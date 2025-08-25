@@ -2,57 +2,72 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
+/* Project Beacon 5.0 Design System - H-Office Legal Practice Management
+All colors MUST be HSL. Professional legal theme with accessibility focus.
 */
 
 @layer base {
   :root {
+    /* H-Office Brand Colors */
+    --primary: 218 100% 52%;        /* #0B5FFF - H-Office Primary Blue */
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 218 100% 47%;   /* Darker blue for hover */
+    --primary-light: 218 100% 95%;   /* Light blue backgrounds */
+    
+    --secondary: 174 100% 38%;       /* #00C2A8 - H-Office Secondary Teal */
+    --secondary-foreground: 0 0% 100%;
+    --secondary-hover: 174 100% 33%;
+    --secondary-light: 174 100% 95%;
+    
+    /* Neutral System */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-
+    --foreground: 215 25% 27%;       /* Professional dark gray */
+    
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
+    --card-foreground: 215 25% 27%;
+    
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
+    --popover-foreground: 215 25% 27%;
+    
+    /* UI Elements */
+    --muted: 220 14% 96%;            /* Light gray backgrounds */
+    --muted-foreground: 215 16% 47%; /* Medium gray text */
+    
+    --accent: 218 100% 97%;          /* Very light blue accent */
+    --accent-foreground: 218 100% 52%;
+    
+    --border: 220 13% 91%;           /* Light borders */
+    --input: 220 13% 91%;
+    --ring: 218 100% 52%;            /* Focus rings use primary */
+    
+    /* Status Colors */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --success: 142 71% 45%;          /* Green for success states */
+    --success-foreground: 0 0% 100%;
+    
+    --warning: 38 92% 50%;           /* Amber for warnings */
+    --warning-foreground: 0 0% 100%;
+    
+    /* Layout & Design */
     --radius: 0.5rem;
-
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    /* Sidebar - Professional Dark Theme */
+    --sidebar-background: 215 28% 17%;     /* Dark professional sidebar */
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 218 100% 52%;       /* Primary blue in sidebar */
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 25% 22%;         /* Slightly lighter than bg */
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 215 25% 22%;
+    --sidebar-ring: 218 100% 52%;
+    
+    /* Custom Legal-Specific Variables */
+    --legal-urgent: 0 84% 60%;       /* Red for urgent matters */
+    --legal-pending: 38 92% 50%;     /* Amber for pending */
+    --legal-approved: 142 71% 45%;   /* Green for approved */
+    --legal-draft: 220 14% 71%;      /* Gray for drafts */
   }
 
   .dark {
@@ -100,6 +115,74 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-inter;
+  }
+}
+
+/* Professional Legal Animations */
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+  
+  .animate-slide-in {
+    animation: slideIn 0.3s ease-out;
+  }
+  
+  .animate-scale-in {
+    animation: scaleIn 0.2s ease-out;
+  }
+  
+  .hover-lift {
+    @apply transition-all duration-200 hover:translate-y-[-2px] hover:shadow-lg;
+  }
+  
+  .status-urgent {
+    @apply bg-red-50 text-red-700 border-red-200;
+  }
+  
+  .status-pending {
+    @apply bg-amber-50 text-amber-700 border-amber-200;
+  }
+  
+  .status-approved {
+    @apply bg-green-50 text-green-700 border-green-200;
+  }
+  
+  .status-draft {
+    @apply bg-gray-50 text-gray-700 border-gray-200;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }
