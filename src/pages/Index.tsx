@@ -4,11 +4,12 @@ import { DashboardOverview } from '@/components/dashboard/DashboardOverview';
 import { ClientMasters } from '@/components/masters/ClientMasters';
 import { CaseManagement } from '@/components/cases/CaseManagement';
 import { DocumentManagement } from '@/components/documents/DocumentManagement';
+import { TaskManagement } from '@/components/tasks/TaskManagement';
 import { motion } from 'framer-motion';
 import { Scale, Shield } from 'lucide-react';
 
 // Mock current page state - in real app this would come from router
-const mockCurrentPage = 'cases'; // Can be: 'dashboard', 'clients', 'documents', 'cases', etc.
+const mockCurrentPage = 'tasks'; // Can be: 'dashboard', 'clients', 'documents', 'cases', 'tasks', etc.
 
 const Index = () => {
   const [currentPage, setCurrentPage] = useState(mockCurrentPage);
@@ -28,6 +29,8 @@ const Index = () => {
         return <DocumentManagement />;
       case 'cases':
         return <CaseManagement />;
+      case 'tasks':
+        return <TaskManagement />;
       default:
         return <DashboardOverview />;
     }
@@ -81,6 +84,16 @@ const Index = () => {
               }`}
             >
               Case Management
+            </button>
+            <button
+              onClick={() => handleNavigation('tasks')}
+              className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                currentPage === 'tasks' 
+                  ? 'bg-primary text-primary-foreground' 
+                  : 'bg-white text-primary hover:bg-primary/10'
+              }`}
+            >
+              Task Management
             </button>
             <button
               onClick={() => handleNavigation('documents')}
