@@ -1,0 +1,438 @@
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Building2, MapPin, Phone, Mail, Search, Filter, Plus, Edit, Eye, Users } from 'lucide-react';
+
+interface Court {
+  id: string;
+  name: string;
+  type: 'Income Tax Appellate Tribunal' | 'Commissioner Appeals' | 'High Court' | 'Supreme Court' | 'Settlement Commission';
+  jurisdiction: string;
+  benchLocation: string;
+  address: string;
+  phone: string;
+  email: string;
+  status: 'Active' | 'Inactive';
+  establishedDate: string;
+  judgeCount: number;
+  benchStrength: number;
+  specializations: string[];
+}
+
+// Mock data for courts
+const mockCourts: Court[] = [
+  {
+    id: 'CT001',
+    name: 'Delhi Income Tax Appellate Tribunal - Bench A',
+    type: 'Income Tax Appellate Tribunal',
+    jurisdiction: 'Delhi NCR',
+    benchLocation: 'Pragati Maidan, New Delhi',
+    address: 'Income Tax Appellate Tribunal, 4th Floor, Pragati Maidan, New Delhi - 110001',
+    phone: '+91-11-23062121',
+    email: 'delhi.itat@gov.in',
+    status: 'Active',
+    establishedDate: '1975-04-15',
+    judgeCount: 8,
+    benchStrength: 2,
+    specializations: ['Corporate Tax', 'Individual Assessment', 'International Taxation']
+  },
+  {
+    id: 'CT002',
+    name: 'Mumbai Income Tax Appellate Tribunal - Bench B',
+    type: 'Income Tax Appellate Tribunal',
+    jurisdiction: 'Mumbai Metropolitan',
+    benchLocation: 'Bandra Kurla Complex, Mumbai',
+    address: 'Income Tax Appellate Tribunal, 2nd Floor, BKC, Mumbai - 400051',
+    phone: '+91-22-26592121',
+    email: 'mumbai.itat@gov.in',
+    status: 'Active',
+    establishedDate: '1978-08-20',
+    judgeCount: 12,
+    benchStrength: 3,
+    specializations: ['Corporate Tax', 'Transfer Pricing', 'Capital Gains']
+  },
+  {
+    id: 'CT003',
+    name: 'Delhi High Court - Tax Division',
+    type: 'High Court',
+    jurisdiction: 'Delhi',
+    benchLocation: 'Delhi High Court Complex',
+    address: 'Delhi High Court, Sher Shah Road, New Delhi - 110003',
+    phone: '+91-11-23855151',
+    email: 'tax.division@delhihighcourt.nic.in',
+    status: 'Active',
+    establishedDate: '1966-10-31',
+    judgeCount: 15,
+    benchStrength: 5,
+    specializations: ['Constitutional Law', 'Tax Appeals', 'Writs']
+  },
+  {
+    id: 'CT004',
+    name: 'Commissioner of Income Tax (Appeals) - Zone 1',
+    type: 'Commissioner Appeals',
+    jurisdiction: 'Connaught Place Zone',
+    benchLocation: 'Aayakar Bhawan, New Delhi',
+    address: 'Commissioner of Income Tax (Appeals), Aayakar Bhawan, CP, New Delhi - 110001',
+    phone: '+91-11-23094567',
+    email: 'cit.appeals.zone1@incometax.gov.in',
+    status: 'Active',
+    establishedDate: '1985-01-01',
+    judgeCount: 3,
+    benchStrength: 1,
+    specializations: ['First Appeals', 'Penalty Proceedings', 'Reassessment']
+  }
+];
+
+export const CourtMasters: React.FC = () => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState<string>('all');
+  const [filterJurisdiction, setFilterJurisdiction] = useState<string>('all');
+  const [isAddCourtOpen, setIsAddCourtOpen] = useState(false);
+
+  // Filter courts based on search and filters
+  const filteredCourts = mockCourts.filter(court => {
+    const matchesSearch = court.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         court.jurisdiction.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         court.benchLocation.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesType = filterType === 'all' || court.type === filterType;
+    const matchesJurisdiction = filterJurisdiction === 'all' || court.jurisdiction === filterJurisdiction;
+    
+    return matchesSearch && matchesType && matchesJurisdiction;
+  });
+
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'Income Tax Appellate Tribunal': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
+      case 'High Court': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300';
+      case 'Supreme Court': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+      case 'Commissioner Appeals': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+      case 'Settlement Commission': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    return status === 'Active' 
+      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+      : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+  };
+
+  const uniqueJurisdictions = [...new Set(mockCourts.map(court => court.jurisdiction))];
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex justify-between items-center"
+      >
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Court Masters</h1>
+          <p className="text-muted-foreground mt-2">Manage court information and jurisdictions</p>
+        </div>
+        <Dialog open={isAddCourtOpen} onOpenChange={setIsAddCourtOpen}>
+          <DialogTrigger asChild>
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              Add New Court
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Add New Court</DialogTitle>
+              <DialogDescription>
+                Create a new court record with jurisdiction and contact details.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="courtName">Court Name</Label>
+                <Input id="courtName" placeholder="Enter court name" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="courtType">Court Type</Label>
+                <Select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select court type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="itat">Income Tax Appellate Tribunal</SelectItem>
+                    <SelectItem value="commissioner">Commissioner Appeals</SelectItem>
+                    <SelectItem value="high">High Court</SelectItem>
+                    <SelectItem value="supreme">Supreme Court</SelectItem>
+                    <SelectItem value="settlement">Settlement Commission</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="jurisdiction">Jurisdiction</Label>
+                <Input id="jurisdiction" placeholder="Enter jurisdiction" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="benchLocation">Bench Location</Label>
+                <Input id="benchLocation" placeholder="Enter bench location" />
+              </div>
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="address">Address</Label>
+                <Textarea id="address" placeholder="Enter complete address" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone</Label>
+                <Input id="phone" placeholder="Enter phone number" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" placeholder="Enter email address" />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-4">
+              <Button variant="outline" onClick={() => setIsAddCourtOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={() => setIsAddCourtOpen(false)}>
+                Create Court
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </motion.div>
+
+      {/* Summary Cards */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="grid grid-cols-1 md:grid-cols-4 gap-6"
+      >
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Courts</CardTitle>
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{mockCourts.length}</div>
+            <p className="text-xs text-muted-foreground">
+              Across all jurisdictions
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">ITAT Benches</CardTitle>
+            <MapPin className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {mockCourts.filter(c => c.type === 'Income Tax Appellate Tribunal').length}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Primary jurisdiction
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">High Courts</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {mockCourts.filter(c => c.type === 'High Court').length}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Appeal jurisdiction
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Courts</CardTitle>
+            <Phone className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {mockCourts.filter(c => c.status === 'Active').length}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Operational courts
+            </p>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Filters */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="flex flex-col sm:flex-row gap-4"
+      >
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search courts by name, jurisdiction, or location..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        
+        <Select value={filterType} onValueChange={setFilterType}>
+          <SelectTrigger className="w-full sm:w-48">
+            <Filter className="h-4 w-4 mr-2" />
+            <SelectValue placeholder="Filter by type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="Income Tax Appellate Tribunal">ITAT</SelectItem>
+            <SelectItem value="High Court">High Court</SelectItem>
+            <SelectItem value="Commissioner Appeals">Commissioner Appeals</SelectItem>
+            <SelectItem value="Settlement Commission">Settlement Commission</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={filterJurisdiction} onValueChange={setFilterJurisdiction}>
+          <SelectTrigger className="w-full sm:w-48">
+            <MapPin className="h-4 w-4 mr-2" />
+            <SelectValue placeholder="Filter by jurisdiction" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Jurisdictions</SelectItem>
+            {uniqueJurisdictions.map(jurisdiction => (
+              <SelectItem key={jurisdiction} value={jurisdiction}>
+                {jurisdiction}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </motion.div>
+
+      {/* Courts Table */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle>Courts Directory</CardTitle>
+            <CardDescription>
+              Comprehensive list of courts with jurisdiction and contact information
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Court Details</TableHead>
+                  <TableHead>Type & Jurisdiction</TableHead>
+                  <TableHead>Contact Information</TableHead>
+                  <TableHead>Bench Details</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredCourts.map((court, index) => (
+                  <motion.tr
+                    key={court.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="hover:bg-muted/50"
+                  >
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="font-medium">{court.name}</div>
+                        <div className="text-sm text-muted-foreground flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {court.benchLocation}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Est. {new Date(court.establishedDate).getFullYear()}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-2">
+                        <Badge className={getTypeColor(court.type)}>
+                          {court.type}
+                        </Badge>
+                        <div className="text-sm font-medium">{court.jurisdiction}</div>
+                        <div className="flex flex-wrap gap-1">
+                          {court.specializations.slice(0, 2).map(spec => (
+                            <Badge key={spec} variant="outline" className="text-xs">
+                              {spec}
+                            </Badge>
+                          ))}
+                          {court.specializations.length > 2 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{court.specializations.length - 2}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="text-sm flex items-center gap-1">
+                          <Phone className="h-3 w-3" />
+                          {court.phone}
+                        </div>
+                        <div className="text-sm flex items-center gap-1">
+                          <Mail className="h-3 w-3" />
+                          {court.email}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {court.address.split(',')[0]}...
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="text-sm">
+                          <span className="font-medium">{court.judgeCount}</span> Judges
+                        </div>
+                        <div className="text-sm">
+                          <span className="font-medium">{court.benchStrength}</span> Bench Strength
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getStatusColor(court.status)}>
+                        {court.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="sm">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </motion.tr>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </div>
+  );
+};

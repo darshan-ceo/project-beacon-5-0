@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { DashboardOverview } from '@/components/dashboard/DashboardOverview';
 import { ClientMasters } from '@/components/masters/ClientMasters';
+import { CourtMasters } from '@/components/masters/CourtMasters';
+import { JudgeMasters } from '@/components/masters/JudgeMasters';
 import { CaseManagement } from '@/components/cases/CaseManagement';
 import { DocumentManagement } from '@/components/documents/DocumentManagement';
 import { TaskManagement } from '@/components/tasks/TaskManagement';
@@ -25,6 +27,10 @@ const Index = () => {
     switch (currentPage) {
       case 'clients':
         return <ClientMasters />;
+      case 'courts':
+        return <CourtMasters />;
+      case 'judges':
+        return <JudgeMasters />;
       case 'documents':
         return <DocumentManagement />;
       case 'cases':
@@ -74,6 +80,26 @@ const Index = () => {
               }`}
             >
               Client Masters
+            </button>
+            <button
+              onClick={() => handleNavigation('courts')}
+              className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                currentPage === 'courts' 
+                  ? 'bg-primary text-primary-foreground' 
+                  : 'bg-white text-primary hover:bg-primary/10'
+              }`}
+            >
+              Court Masters
+            </button>
+            <button
+              onClick={() => handleNavigation('judges')}
+              className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                currentPage === 'judges' 
+                  ? 'bg-primary text-primary-foreground' 
+                  : 'bg-white text-primary hover:bg-primary/10'
+              }`}
+            >
+              Judge Masters
             </button>
             <button
               onClick={() => handleNavigation('cases')}
