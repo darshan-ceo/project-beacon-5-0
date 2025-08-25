@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { NavLink, useLocation } from 'react-router-dom';
 import { 
   Users, 
   Scale, 
@@ -12,7 +13,8 @@ import {
   FileText,
   BarChart3,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  CheckSquare
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -32,12 +34,13 @@ interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
-  { icon: BarChart3, label: 'Dashboard', href: '/dashboard', roles: ['Admin', 'Partner/CA', 'Staff'] },
+  { icon: BarChart3, label: 'Dashboard', href: '/', roles: ['Admin', 'Partner/CA', 'Staff'] },
   { icon: Users, label: 'Client Masters', href: '/clients', roles: ['Admin', 'Partner/CA', 'Staff'] },
   { icon: Building2, label: 'Court Masters', href: '/courts', roles: ['Admin', 'Partner/CA'] },
   { icon: Gavel, label: 'Judge Masters', href: '/judges', roles: ['Admin', 'Partner/CA'] },
-  { icon: FolderOpen, label: 'Document Management', href: '/documents', roles: ['Admin', 'Partner/CA', 'Staff', 'Client'] },
   { icon: FileText, label: 'Case Management', href: '/cases', roles: ['Admin', 'Partner/CA', 'Staff'] },
+  { icon: CheckSquare, label: 'Task Management', href: '/tasks', roles: ['Admin', 'Partner/CA', 'Staff'] },
+  { icon: FolderOpen, label: 'Document Management', href: '/documents', roles: ['Admin', 'Partner/CA', 'Staff', 'Client'] },
   { icon: Shield, label: 'RBAC Management', href: '/rbac', roles: ['Admin'] },
   { icon: Settings, label: 'Global Parameters', href: '/settings', roles: ['Admin', 'Partner/CA'] },
   { icon: UserCircle, label: 'User Profile', href: '/profile', roles: ['Admin', 'Partner/CA', 'Staff', 'Client'] },
@@ -45,6 +48,7 @@ const menuItems: MenuItem[] = [
 
 export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle, userRole }) => {
   const filteredMenuItems = menuItems.filter(item => item.roles.includes(userRole));
+  const location = useLocation();
 
   return (
     <motion.aside
@@ -85,31 +89,36 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle, userRole 
 
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-2">
-          {filteredMenuItems.map((item) => (
-            <motion.div
-              key={item.href}
-              whileHover={{ x: 2 }}
-              transition={{ duration: 0.2 }}
-            >
-              <Button
-                variant="ghost"
-                className={cn(
-                  "w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                  collapsed && "px-2"
-                )}
+          {filteredMenuItems.map((item) => {
+            const isActive = location.pathname === item.href;
+            return (
+              <motion.div
+                key={item.href}
+                whileHover={{ x: 2 }}
+                transition={{ duration: 0.2 }}
               >
-                <item.icon className={cn("h-5 w-5", !collapsed && "mr-3")} />
-                {!collapsed && (
-                  <span className="truncate">{item.label}</span>
-                )}
-                {!collapsed && item.badge && (
-                  <span className="ml-auto bg-sidebar-primary text-sidebar-primary-foreground text-xs px-2 py-1 rounded-full">
-                    {item.badge}
-                  </span>
-                )}
-              </Button>
-            </motion.div>
-          ))}
+                <NavLink
+                  to={item.href}
+                  className={({ isActive: navIsActive }) => cn(
+                    "flex items-center w-full rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                    "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                    (navIsActive || isActive) && "bg-sidebar-accent text-sidebar-accent-foreground",
+                    collapsed && "justify-center px-2"
+                  )}
+                >
+                  <item.icon className={cn("h-5 w-5", !collapsed && "mr-3")} />
+                  {!collapsed && (
+                    <span className="truncate">{item.label}</span>
+                  )}
+                  {!collapsed && item.badge && (
+                    <span className="ml-auto bg-sidebar-primary text-sidebar-primary-foreground text-xs px-2 py-1 rounded-full">
+                      {item.badge}
+                    </span>
+                  )}
+                </NavLink>
+              </motion.div>
+            );
+          })}
         </nav>
 
         {/* Role Badge */}
