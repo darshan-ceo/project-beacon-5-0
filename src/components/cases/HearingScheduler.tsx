@@ -1,0 +1,509 @@
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { 
+  Calendar, 
+  Clock, 
+  MapPin,
+  Gavel,
+  Users,
+  Plus,
+  Edit,
+  Trash2,
+  Bell,
+  Video,
+  FileText,
+  AlertCircle,
+  CheckCircle
+} from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+
+interface Case {
+  id: string;
+  caseNumber: string;
+  title: string;
+  client: string;
+}
+
+interface Hearing {
+  id: string;
+  caseId: string;
+  caseNumber: string;
+  title: string;
+  date: string;
+  time: string;
+  court: string;
+  judge: string;
+  type: 'Adjourned' | 'Final' | 'Argued';
+  status: 'Scheduled' | 'Completed' | 'Postponed';
+  reminder: '1 day' | '3 days' | '7 days';
+  location?: string;
+  notes?: string;
+}
+
+interface HearingSchedulerProps {
+  cases: Case[];
+}
+
+const mockHearings: Hearing[] = [
+  {
+    id: '1',
+    caseId: '1',
+    caseNumber: 'CASE-2024-001',
+    title: 'Tax Assessment Appeal - Acme Corp',
+    date: '2024-02-15',
+    time: '10:30',
+    court: 'Income Tax Appellate Tribunal',
+    judge: 'Justice R.K. Sharma',
+    type: 'Final',
+    status: 'Scheduled',
+    reminder: '1 day',
+    location: 'Court Room 3, ITAT Building',
+    notes: 'Bring original assessment order and supporting documents'
+  },
+  {
+    id: '2',
+    caseId: '3',
+    caseNumber: 'CASE-2024-003',
+    title: 'Supreme Court Constitutional Matter',
+    date: '2024-02-28',
+    time: '14:00',
+    court: 'Supreme Court of India',
+    judge: 'Hon\'ble Chief Justice',
+    type: 'Argued',
+    status: 'Scheduled',
+    reminder: '3 days',
+    location: 'Court Room 1, Supreme Court',
+    notes: 'Constitutional bench hearing - prepare comprehensive arguments'
+  },
+  {
+    id: '3',
+    caseId: '2',
+    caseNumber: 'CASE-2024-002',
+    title: 'GST Demand Notice Challenge',
+    date: '2024-02-10',
+    time: '11:00',
+    court: 'Additional Commissioner Office',
+    judge: 'Shri A.K. Verma',
+    type: 'Adjourned',
+    status: 'Completed',
+    reminder: '7 days',
+    location: 'GST Bhavan, Conference Room 2'
+  }
+];
+
+const upcomingHearings = mockHearings.filter(h => h.status === 'Scheduled');
+const todayHearings = upcomingHearings.filter(h => h.date === '2024-02-15');
+const thisWeekHearings = upcomingHearings.filter(h => {
+  const hearingDate = new Date(h.date);
+  const today = new Date();
+  const weekFromNow = new Date();
+  weekFromNow.setDate(today.getDate() + 7);
+  return hearingDate >= today && hearingDate <= weekFromNow;
+});
+
+export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases }) => {
+  const [selectedDate, setSelectedDate] = useState('');
+  const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
+
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'Final': return 'bg-success text-success-foreground';
+      case 'Argued': return 'bg-primary text-primary-foreground';
+      case 'Adjourned': return 'bg-warning text-warning-foreground';
+      default: return 'bg-muted text-muted-foreground';
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'Scheduled': return 'bg-primary text-primary-foreground';
+      case 'Completed': return 'bg-success text-success-foreground';
+      case 'Postponed': return 'bg-destructive text-destructive-foreground';
+      default: return 'bg-muted text-muted-foreground';
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="flex justify-between items-center"
+      >
+        <div>
+          <h2 className="text-2xl font-bold text-foreground">Hearing Scheduler</h2>
+          <p className="text-muted-foreground mt-1">
+            Manage court hearings with calendar sync and reminders
+          </p>
+        </div>
+        <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-primary hover:bg-primary-hover">
+              <Plus className="mr-2 h-4 w-4" />
+              Schedule Hearing
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Schedule New Hearing</DialogTitle>
+              <DialogDescription>
+                Add a new hearing date with court and judge details
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="case">Case</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select case" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {cases.map((case_) => (
+                        <SelectItem key={case_.id} value={case_.id}>
+                          {case_.caseNumber} - {case_.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="type">Hearing Type</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="final">Final</SelectItem>
+                      <SelectItem value="argued">Argued</SelectItem>
+                      <SelectItem value="adjourned">Adjourned</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="date">Date</Label>
+                  <Input type="date" id="date" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="time">Time</Label>
+                  <Input type="time" id="time" />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="court">Court</Label>
+                  <Input id="court" placeholder="Court name" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="judge">Judge</Label>
+                  <Input id="judge" placeholder="Judge name" />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="location">Location</Label>
+                <Input id="location" placeholder="Court room and address" />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="reminder">Reminder</Label>
+                <Select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Set reminder" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1-day">1 day before</SelectItem>
+                    <SelectItem value="3-days">3 days before</SelectItem>
+                    <SelectItem value="7-days">7 days before</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsScheduleDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={() => setIsScheduleDialogOpen(false)}>
+                Schedule Hearing
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </motion.div>
+
+      {/* Quick Stats */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
+        className="grid grid-cols-1 md:grid-cols-4 gap-6"
+      >
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Today's Hearings</p>
+                <p className="text-2xl font-bold text-foreground">{todayHearings.length}</p>
+              </div>
+              <Calendar className="h-8 w-8 text-primary" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">This Week</p>
+                <p className="text-2xl font-bold text-foreground">{thisWeekHearings.length}</p>
+              </div>
+              <Clock className="h-8 w-8 text-secondary" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Upcoming</p>
+                <p className="text-2xl font-bold text-foreground">{upcomingHearings.length}</p>
+              </div>
+              <Gavel className="h-8 w-8 text-warning" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Completed</p>
+                <p className="text-2xl font-bold text-foreground">45</p>
+              </div>
+              <CheckCircle className="h-8 w-8 text-success" />
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Today's Hearings */}
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Calendar className="mr-2 h-5 w-5 text-primary" />
+                Today's Hearings
+              </CardTitle>
+              <CardDescription>
+                Scheduled hearings for today with quick actions
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {todayHearings.length > 0 ? (
+                todayHearings.map((hearing, index) => (
+                  <motion.div
+                    key={hearing.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                    className="p-4 bg-primary/5 rounded-lg border border-primary/20"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-foreground">{hearing.title}</h4>
+                        <p className="text-sm text-muted-foreground">{hearing.caseNumber}</p>
+                        <div className="flex items-center space-x-4 mt-2 text-sm">
+                          <div className="flex items-center">
+                            <Clock className="mr-1 h-3 w-3" />
+                            {hearing.time}
+                          </div>
+                          <div className="flex items-center">
+                            <MapPin className="mr-1 h-3 w-3" />
+                            {hearing.location}
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2 mt-2">
+                          <Badge variant="secondary" className={getTypeColor(hearing.type)}>
+                            {hearing.type}
+                          </Badge>
+                          <Badge variant="outline">
+                            {hearing.judge}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="flex flex-col space-y-1">
+                        <Button size="sm" variant="outline">
+                          <Bell className="h-3 w-3" />
+                        </Button>
+                        <Button size="sm" variant="outline">
+                          <Video className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No hearings scheduled for today</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Calendar Integration */}
+        <motion.div 
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3, delay: 0.3 }}
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Bell className="mr-2 h-5 w-5 text-secondary" />
+                Calendar Sync & Reminders
+              </CardTitle>
+              <CardDescription>
+                Integrate with external calendars and set reminders
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <Button variant="outline" className="h-20 flex flex-col items-center justify-center">
+                  <Calendar className="h-6 w-6 mb-2 text-primary" />
+                  <span className="text-sm">Google Calendar</span>
+                </Button>
+                <Button variant="outline" className="h-20 flex flex-col items-center justify-center">
+                  <Calendar className="h-6 w-6 mb-2 text-secondary" />
+                  <span className="text-sm">Outlook</span>
+                </Button>
+              </div>
+              
+              <div className="space-y-3">
+                <h4 className="font-medium">Reminder Settings</h4>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                    <span className="text-sm">1 Day Before</span>
+                    <Badge variant="secondary" className="bg-success text-success-foreground">
+                      Active
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                    <span className="text-sm">3 Days Before</span>
+                    <Badge variant="secondary" className="bg-success text-success-foreground">
+                      Active
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                    <span className="text-sm">7 Days Before</span>
+                    <Badge variant="outline">Disabled</Badge>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="pt-4 border-t border-border">
+                <Button className="w-full">
+                  <Bell className="mr-2 h-4 w-4" />
+                  Configure Notifications
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+
+      {/* All Upcoming Hearings */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.4 }}
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Gavel className="mr-2 h-5 w-5 text-primary" />
+              All Upcoming Hearings
+            </CardTitle>
+            <CardDescription>
+              Complete schedule of upcoming court hearings
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {upcomingHearings.map((hearing, index) => (
+                <motion.div
+                  key={hearing.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                  className="flex items-center justify-between p-4 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-4">
+                      <div className="text-center">
+                        <p className="text-lg font-bold text-primary">{new Date(hearing.date).getDate()}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(hearing.date).toLocaleDateString('en-US', { month: 'short' })}
+                        </p>
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-medium text-foreground">{hearing.title}</h4>
+                        <p className="text-sm text-muted-foreground">{hearing.caseNumber}</p>
+                        <div className="flex items-center space-x-4 mt-1 text-sm text-muted-foreground">
+                          <span>{hearing.time}</span>
+                          <span>•</span>
+                          <span>{hearing.court}</span>
+                          <span>•</span>
+                          <span>{hearing.judge}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Badge variant="secondary" className={getTypeColor(hearing.type)}>
+                      {hearing.type}
+                    </Badge>
+                    <Badge variant="secondary" className={getStatusColor(hearing.status)}>
+                      {hearing.status}
+                    </Badge>
+                    <Button variant="ghost" size="sm">
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </div>
+  );
+};
