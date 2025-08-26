@@ -12,16 +12,25 @@ import {
   UserCircle,
   FileText,
   BarChart3,
-  ChevronLeft,
-  ChevronRight,
   CheckSquare
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarFooter,
+  useSidebar,
+} from '@/components/ui/sidebar';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
-interface SidebarProps {
-  collapsed: boolean;
-  onToggle: (collapsed: boolean) => void;
+interface AppSidebarProps {
   userRole: 'Admin' | 'Partner/CA' | 'Staff' | 'Client';
 }
 
@@ -46,88 +55,76 @@ const menuItems: MenuItem[] = [
   { icon: UserCircle, label: 'User Profile', href: '/profile', roles: ['Admin', 'Partner/CA', 'Staff', 'Client'] },
 ];
 
-export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle, userRole }) => {
+export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
   const filteredMenuItems = menuItems.filter(item => item.roles.includes(userRole));
   const location = useLocation();
+  const { open } = useSidebar();
+
+  const getNavClasses = (isActive: boolean) =>
+    isActive ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : "hover:bg-sidebar-accent/50";
 
   return (
-    <motion.aside
-      initial={false}
-      animate={{ width: collapsed ? 64 : 256 }}
-      transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="fixed left-0 top-0 h-screen bg-sidebar border-r border-sidebar-border z-50"
-    >
-      <div className="flex flex-col h-full">
-        {/* Logo & Toggle */}
-        <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
-          <motion.div
-            initial={false}
-            animate={{ opacity: collapsed ? 0 : 1 }}
-            transition={{ duration: 0.2 }}
-            className="flex items-center space-x-2"
-          >
-            {!collapsed && (
-              <>
-                <Scale className="h-8 w-8 text-sidebar-primary" />
-                <div>
-                  <h1 className="text-lg font-semibold text-sidebar-foreground">Project Beacon</h1>
-                  <p className="text-xs text-sidebar-foreground/70">Legal Practice Management</p>
-                </div>
-              </>
-            )}
-          </motion.div>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onToggle(!collapsed)}
-            className="text-sidebar-foreground hover:bg-sidebar-accent"
-          >
-            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-          </Button>
+    <Sidebar className="border-r border-sidebar-border" collapsible="icon">
+      {/* Header with Logo */}
+      <SidebarHeader className="border-b border-sidebar-border">
+        <div className="flex items-center space-x-2 p-2">
+          <Scale className="h-8 w-8 text-sidebar-primary flex-shrink-0" />
+          {open && (
+            <div className="min-w-0">
+              <h1 className="text-lg font-semibold text-sidebar-foreground truncate">Project Beacon</h1>
+              <p className="text-xs text-sidebar-foreground/70 truncate">Legal Practice Management</p>
+            </div>
+          )}
         </div>
+      </SidebarHeader>
 
-        {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2">
-          {filteredMenuItems.map((item) => {
-            const isActive = location.pathname === item.href;
-            return (
-              <motion.div
-                key={item.href}
-                whileHover={{ x: 2 }}
-                transition={{ duration: 0.2 }}
-              >
-                <NavLink
-                  to={item.href}
-                  className={({ isActive: navIsActive }) => cn(
-                    "flex items-center w-full rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                    "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                    (navIsActive || isActive) && "bg-sidebar-accent text-sidebar-accent-foreground",
-                    collapsed && "justify-center px-2"
-                  )}
-                >
-                  <item.icon className={cn("h-5 w-5", !collapsed && "mr-3")} />
-                  {!collapsed && (
-                    <span className="truncate">{item.label}</span>
-                  )}
-                  {!collapsed && item.badge && (
-                    <span className="ml-auto bg-sidebar-primary text-sidebar-primary-foreground text-xs px-2 py-1 rounded-full">
-                      {item.badge}
-                    </span>
-                  )}
-                </NavLink>
-              </motion.div>
-            );
-          })}
-        </nav>
+      {/* Scrollable Content */}
+      <SidebarContent>
+        <ScrollArea className="flex-1">
+          <div className="p-2">
+            <SidebarGroup>
+              <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {filteredMenuItems.map((item) => {
+                    const isActive = location.pathname === item.href;
+                    return (
+                      <SidebarMenuItem key={item.href}>
+                        <SidebarMenuButton asChild>
+                          <NavLink 
+                            to={item.href}
+                            className={({ isActive: navIsActive }) => 
+                              getNavClasses(navIsActive || isActive)
+                            }
+                          >
+                            <item.icon className="h-5 w-5" />
+                            {open && (
+                              <>
+                                <span className="truncate">{item.label}</span>
+                                {item.badge && (
+                                  <span className="ml-auto bg-sidebar-primary text-sidebar-primary-foreground text-xs px-2 py-1 rounded-full">
+                                    {item.badge}
+                                  </span>
+                                )}
+                              </>
+                            )}
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </div>
+        </ScrollArea>
+      </SidebarContent>
 
-        {/* Role Badge */}
-        <div className="p-4 border-t border-sidebar-border">
-          <div className={cn(
-            "bg-sidebar-accent rounded-lg p-3",
-            collapsed && "px-2"
-          )}>
-            {!collapsed ? (
+      {/* Footer with Role Badge */}
+      <SidebarFooter className="border-t border-sidebar-border">
+        <div className="p-2">
+          <div className="bg-sidebar-accent rounded-lg p-3">
+            {open ? (
               <div className="text-center">
                 <Shield className="h-5 w-5 text-sidebar-primary mx-auto mb-1" />
                 <p className="text-xs font-medium text-sidebar-foreground">{userRole}</p>
@@ -138,7 +135,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle, userRole 
             )}
           </div>
         </div>
-      </div>
-    </motion.aside>
+      </SidebarFooter>
+    </Sidebar>
   );
 };
