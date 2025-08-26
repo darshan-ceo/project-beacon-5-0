@@ -12,6 +12,10 @@ import { format } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
 import { Task, useAppState } from '@/contexts/AppStateContext';
 import { cn } from '@/lib/utils';
+import { CaseSelector } from '@/components/ui/relationship-selector';
+import { ContextBadge } from '@/components/ui/context-badge';
+import { useRelationships } from '@/hooks/useRelationships';
+import { useContextualForms } from '@/hooks/useContextualForms';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -20,13 +24,25 @@ interface TaskModalProps {
   mode: 'create' | 'edit' | 'view';
 }
 
-export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task: taskData, mode }) => {
+export const TaskModal: React.FC<TaskModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  task: taskData, 
+  mode,
+  contextCaseId, 
+  contextClientId 
+}: TaskModalProps & { contextCaseId?: string; contextClientId?: string }) => {
   const { state, dispatch } = useAppState();
+  const { validateTaskCase, getCaseWithClient } = useRelationships();
+  const { context, updateContext, getAvailableCases, getContextDetails } = useContextualForms({
+    caseId: contextCaseId,
+    clientId: contextClientId
+  });
+  
   const [formData, setFormData] = useState<{
     title: string;
     description: string;
     caseId: string;
-    caseNumber: string;
     stage: string;
     priority: 'Critical' | 'High' | 'Medium' | 'Low';
     status: 'Not Started' | 'In Progress' | 'Review' | 'Completed' | 'Overdue';
@@ -36,8 +52,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task: tas
   }>({
     title: '',
     description: '',
-    caseId: '',
-    caseNumber: '',
+    caseId: contextCaseId || '',
     stage: '',
     priority: 'Medium',
     status: 'Not Started',
@@ -52,7 +67,6 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task: tas
         title: taskData.title,
         description: taskData.description,
         caseId: taskData.caseId,
-        caseNumber: taskData.caseNumber,
         stage: taskData.stage,
         priority: taskData.priority,
         status: taskData.status,
@@ -60,12 +74,12 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task: tas
         estimatedHours: taskData.estimatedHours,
         dueDate: new Date(taskData.dueDate)
       });
+      updateContext({ caseId: taskData.caseId, clientId: taskData.clientId });
     } else if (mode === 'create') {
       setFormData({
         title: '',
         description: '',
-        caseId: '',
-        caseNumber: '',
+        caseId: contextCaseId || '',
         stage: '',
         priority: 'Medium',
         status: 'Not Started',
@@ -74,10 +88,32 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task: tas
         dueDate: new Date()
       });
     }
-  }, [taskData, mode]);
+  }, [taskData, mode, contextCaseId, updateContext]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate case relationship
+    const caseValidation = validateTaskCase(formData.caseId);
+    if (!caseValidation.isValid) {
+      toast({
+        title: "Validation Error",
+        description: caseValidation.errors.join(', '),
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Get case and client info for auto-derivation
+    const caseWithClient = getCaseWithClient(formData.caseId);
+    if (!caseWithClient?.case || !caseWithClient?.client) {
+      toast({
+        title: "Error",
+        description: "Could not find case or client information.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     if (mode === 'create') {
       const newTask: Task = {
@@ -85,7 +121,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task: tas
         title: formData.title,
         description: formData.description,
         caseId: formData.caseId,
-        caseNumber: formData.caseNumber,
+        clientId: caseWithClient.client.id, // Auto-derived from case
+        caseNumber: caseWithClient.case.caseNumber, // Auto-derived from case
         stage: formData.stage,
         priority: formData.priority,
         status: formData.status,
@@ -113,6 +150,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task: tas
         assignedTo: formData.assignedTo,
         estimatedHours: formData.estimatedHours,
         dueDate: formData.dueDate.toISOString().split('T')[0]
+        // Note: caseId, clientId, caseNumber are not updatable in edit mode
       };
 
       dispatch({ type: 'UPDATE_TASK', payload: updatedTask });
@@ -170,35 +208,45 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task: tas
             />
           </div>
 
+          {/* Context Information */}
+          {context.clientId && (
+            <div className="space-y-2">
+              <ContextBadge
+                label="Client"
+                value={getContextDetails().client?.name || 'Unknown Client'}
+                variant="outline"
+              />
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="caseNumber">Case Number</Label>
-              <Select 
-                value={formData.caseNumber} 
-                onValueChange={(value) => {
-                  const selectedCase = state.cases.find(c => c.caseNumber === value);
-                  if (selectedCase) {
-                    setFormData(prev => ({ 
-                      ...prev, 
-                      caseNumber: value,
-                      caseId: selectedCase.id,
-                      stage: selectedCase.currentStage
-                    }));
-                  }
-                }}
-                disabled={mode === 'view'}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select case" />
-                </SelectTrigger>
-                <SelectContent>
-                  {state.cases.map((case_) => (
-                    <SelectItem key={case_.id} value={case_.caseNumber}>
-                      {case_.caseNumber} - {case_.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {contextCaseId ? (
+                <div className="space-y-2">
+                  <ContextBadge
+                    label="Case"
+                    value={getContextDetails().case?.caseNumber || 'Unknown Case'}
+                    variant="outline"
+                  />
+                </div>
+              ) : (
+                <CaseSelector
+                  cases={getAvailableCases()}
+                  value={formData.caseId}
+                  onValueChange={(value) => {
+                    const selectedCase = state.cases.find(c => c.id === value);
+                    if (selectedCase) {
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        caseId: value,
+                        stage: selectedCase.currentStage
+                      }));
+                      updateContext({ caseId: value });
+                    }
+                  }}
+                  disabled={mode === 'view'}
+                />
+              )}
             </div>
             <div>
               <Label htmlFor="stage">Stage</Label>

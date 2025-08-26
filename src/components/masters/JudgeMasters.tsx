@@ -28,11 +28,16 @@ export const JudgeMasters: React.FC = () => {
   const [filterAvailability, setFilterAvailability] = useState<string>('all');
   const [isAddJudgeOpen, setIsAddJudgeOpen] = useState(false);
 
+  const getCourtName = (courtId: string) => {
+    return state.courts.find(c => c.id === courtId)?.name || 'Unknown Court';
+  };
+
   // Filter judges based on search and filters
   const filteredJudges = state.judges.filter(judge => {
+    const courtName = getCourtName(judge.courtId);
     const matchesSearch = judge.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          judge.designation.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         judge.court.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         courtName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          judge.specialization.some(spec => spec.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesStatus = filterStatus === 'all' || judge.status === filterStatus;
@@ -71,7 +76,7 @@ export const JudgeMasters: React.FC = () => {
     }
   };
 
-  const uniqueCourtTypes = [...new Set(state.judges.map(judge => judge.court))];
+  const uniqueCourtTypes = [...new Set(state.judges.map(judge => getCourtName(judge.courtId)))];
 
   return (
     <div className="space-y-6">
@@ -355,7 +360,7 @@ export const JudgeMasters: React.FC = () => {
                         <Badge variant="secondary">
                           Court
                         </Badge>
-                        <div className="text-sm font-medium">{judge.court}</div>
+                        <div className="text-sm font-medium">{getCourtName(judge.courtId)}</div>
                         <div className="text-sm text-muted-foreground">Active</div>
                       </div>
                     </TableCell>

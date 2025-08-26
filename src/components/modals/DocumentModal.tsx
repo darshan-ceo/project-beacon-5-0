@@ -61,12 +61,24 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({ isOpen, onClose, d
         return;
       }
 
+      // Get case and derive client ID
+      const case_ = state.cases.find(c => c.id === formData.caseId);
+      if (!case_) {
+        toast({
+          title: "Error", 
+          description: "Please select a valid case.",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const newDocument: Document = {
         id: Date.now().toString(),
         name: formData.name || formData.file.name,
         type: formData.type,
         size: formData.file.size,
         caseId: formData.caseId,
+        clientId: case_.clientId, // Auto-derived from case
         uploadedBy: 'Current User', // In real app, get from auth context
         uploadedAt: new Date().toISOString(),
         tags: formData.tags,

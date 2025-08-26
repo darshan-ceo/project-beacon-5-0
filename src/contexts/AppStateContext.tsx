@@ -5,13 +5,14 @@ interface Case {
   id: string;
   caseNumber: string;
   title: string;
-  client: string;
+  clientId: string; // FK to Client.id
   currentStage: 'Scrutiny' | 'Demand' | 'Adjudication' | 'Appeals' | 'GSTAT' | 'HC' | 'SC';
   priority: 'High' | 'Medium' | 'Low';
   slaStatus: 'Green' | 'Amber' | 'Red';
   nextHearing?: {
     date: string;
-    court: string;
+    courtId: string; // FK to Court.id
+    judgeId: string; // FK to Judge.id
     type: 'Adjourned' | 'Final' | 'Argued';
   };
   assignedTo: string;
@@ -25,8 +26,9 @@ interface Task {
   id: string;
   title: string;
   description: string;
-  caseId: string;
-  caseNumber: string;
+  caseId: string; // FK to Case.id (required)
+  clientId: string; // Derived from Case.clientId (auto-populated, read-only)
+  caseNumber: string; // Derived from Case.caseNumber (auto-populated)
   stage: string;
   priority: 'Critical' | 'High' | 'Medium' | 'Low';
   status: 'Not Started' | 'In Progress' | 'Review' | 'Completed' | 'Overdue';
@@ -80,7 +82,7 @@ interface Judge {
   id: string;
   name: string;
   designation: string;
-  court: string;
+  courtId: string; // FK to Court.id
   appointmentDate: string;
   specialization: string[];
   totalCases: number;
@@ -99,12 +101,30 @@ interface Document {
   name: string;
   type: string;
   size: number;
-  caseId?: string;
+  caseId: string; // FK to Case.id (required)
+  clientId: string; // Derived from Case.clientId (auto-populated)
   uploadedBy: string;
   uploadedAt: string;
   tags: string[];
   isShared: boolean;
   path: string;
+}
+
+// New interface for Hearing entity
+interface Hearing {
+  id: string;
+  caseId: string; // FK to Case.id
+  clientId: string; // Derived from Case.clientId
+  courtId: string; // FK to Court.id
+  judgeId: string; // FK to Judge.id
+  date: string;
+  time: string;
+  type: 'Adjourned' | 'Final' | 'Argued' | 'Preliminary';
+  status: 'Scheduled' | 'Completed' | 'Postponed' | 'Cancelled';
+  agenda: string;
+  notes?: string;
+  createdDate: string;
+  lastUpdated: string;
 }
 
 // Application State
@@ -115,6 +135,7 @@ export interface AppState {
   courts: Court[];
   judges: Judge[];
   documents: Document[];
+  hearings: Hearing[];
   isLoading: boolean;
   error: string | null;
 }
@@ -141,6 +162,9 @@ export type AppAction =
   | { type: 'ADD_DOCUMENT'; payload: Document }
   | { type: 'UPDATE_DOCUMENT'; payload: Document }
   | { type: 'DELETE_DOCUMENT'; payload: string }
+  | { type: 'ADD_HEARING'; payload: Hearing }
+  | { type: 'UPDATE_HEARING'; payload: Hearing }
+  | { type: 'DELETE_HEARING'; payload: string }
   | { type: 'RESTORE_STATE'; payload: Partial<AppState> }
   | { type: 'CLEAR_ALL_DATA' };
 
@@ -151,13 +175,14 @@ const initialState: AppState = {
       id: '1',
       caseNumber: 'CASE-2024-001',
       title: 'Tax Assessment Appeal - Acme Corp',
-      client: 'Acme Corporation Ltd',
+      clientId: '1', // FK to Acme Corporation Ltd
       currentStage: 'Adjudication',
       priority: 'High',
       slaStatus: 'Red',
       nextHearing: {
         date: '2024-02-15',
-        court: 'Income Tax Appellate Tribunal',
+        courtId: '1', // FK to Income Tax Appellate Tribunal
+        judgeId: '1', // FK to Justice Rajesh Sharma
         type: 'Final'
       },
       assignedTo: 'John Smith',
@@ -170,7 +195,7 @@ const initialState: AppState = {
       id: '2',
       caseNumber: 'CASE-2024-002',
       title: 'GST Demand Notice Challenge',
-      client: 'Global Tech Solutions',
+      clientId: '2', // FK to Global Tech Solutions (need to add this client)
       currentStage: 'Demand',
       priority: 'Medium',
       slaStatus: 'Amber',
@@ -187,7 +212,8 @@ const initialState: AppState = {
       title: 'Draft Response to DRC-01 Notice',
       description: 'Prepare comprehensive response addressing all points raised in the demand notice',
       caseId: '1',
-      caseNumber: 'CASE-2024-001',
+      clientId: '1', // Auto-derived from Case.clientId
+      caseNumber: 'CASE-2024-001', // Auto-derived from Case.caseNumber
       stage: 'Demand',
       priority: 'Critical',
       status: 'Overdue',
@@ -219,6 +245,23 @@ const initialState: AppState = {
       totalCases: 5,
       activeCases: 2,
       totalInvoiced: 250000
+    },
+    {
+      id: '2',
+      name: 'Global Tech Solutions',
+      type: 'Company',
+      email: 'info@globaltech.com',
+      phone: '+91-9876543211',
+      address: '456 Tech Plaza, Bangalore',
+      registrationNumber: 'U12346KA2021PLC123457',
+      panNumber: 'ABCDE1235G',
+      gstNumber: '29ABCDE1235G1Z6',
+      status: 'Active',
+      assignedCA: 'Sarah Johnson',
+      registrationDate: '2024-01-10',
+      totalCases: 3,
+      activeCases: 1,
+      totalInvoiced: 180000
     }
   ],
   courts: [
@@ -241,7 +284,7 @@ const initialState: AppState = {
       id: '1',
       name: 'Justice Rajesh Sharma',
       designation: 'Chief Justice',
-      court: 'Income Tax Appellate Tribunal',
+      courtId: '1', // FK to Income Tax Appellate Tribunal
       appointmentDate: '2015-06-15',
       specialization: ['Tax Law', 'Corporate Law'],
       totalCases: 1250,
@@ -262,11 +305,28 @@ const initialState: AppState = {
       type: 'pdf',
       size: 1024000,
       caseId: '1',
+      clientId: '1', // Auto-derived from Case.clientId
       uploadedBy: 'John Smith',
       uploadedAt: '2024-01-15T10:30:00Z',
       tags: ['Notice', 'DRC-01', 'Important'],
       isShared: false,
       path: '/documents/case-1/drc-01-notice.pdf'
+    }
+  ],
+  hearings: [
+    {
+      id: '1',
+      caseId: '1',
+      clientId: '1', // Auto-derived from Case.clientId
+      courtId: '1',
+      judgeId: '1',
+      date: '2024-02-15',
+      time: '10:30',
+      type: 'Final',
+      status: 'Scheduled',
+      agenda: 'Final arguments for tax assessment appeal',
+      createdDate: '2024-01-10',
+      lastUpdated: '2024-01-20'
     }
   ],
   isLoading: false,
@@ -352,6 +412,18 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         documents: state.documents.filter(d => d.id !== action.payload)
       };
+    case 'ADD_HEARING':
+      return { ...state, hearings: [...state.hearings, action.payload] };
+    case 'UPDATE_HEARING':
+      return {
+        ...state,
+        hearings: state.hearings.map(h => h.id === action.payload.id ? action.payload : h)
+      };
+    case 'DELETE_HEARING':
+      return {
+        ...state,
+        hearings: state.hearings.filter(h => h.id !== action.payload)
+      };
     case 'RESTORE_STATE':
       return { ...state, ...action.payload };
     case 'CLEAR_ALL_DATA':
@@ -363,6 +435,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         courts: [],
         judges: [],
         documents: [],
+        hearings: [],
       };
     default:
       return state;
@@ -396,4 +469,4 @@ export const useAppState = () => {
 };
 
 // Export types
-export type { Case, Task, Client, Court, Judge, Document };
+export type { Case, Task, Client, Court, Judge, Document, Hearing };

@@ -223,7 +223,7 @@ export const CaseManagement: React.FC = () => {
                         <div className="flex items-center justify-between">
                           <div>
                             <h3 className="text-lg font-semibold text-foreground">{caseItem.title}</h3>
-                            <p className="text-sm text-muted-foreground">{caseItem.caseNumber} • {caseItem.client}</p>
+                            <p className="text-sm text-muted-foreground">{caseItem.caseNumber} • {state.clients.find(c => c.id === caseItem.clientId)?.name || 'Unknown Client'}</p>
                           </div>
                           <div className="flex items-center space-x-2">
                             <Badge variant="secondary" className={getPriorityColor(caseItem.priority)}>
@@ -262,7 +262,7 @@ export const CaseManagement: React.FC = () => {
                             <div>
                               <p className="text-xs text-muted-foreground">Next Hearing</p>
                               <p className="text-sm font-medium">{caseItem.nextHearing.date}</p>
-                              <p className="text-xs text-muted-foreground">{caseItem.nextHearing.court}</p>
+                              <p className="text-xs text-muted-foreground">{state.courts.find(c => c.id === caseItem.nextHearing?.courtId)?.name || 'Unknown Court'}</p>
                             </div>
                           )}
                         </div>
@@ -311,11 +311,11 @@ export const CaseManagement: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="sla" className="mt-6">
-          <SLATracker cases={state.cases} />
+          <SLATracker cases={state.cases} courts={state.courts} clients={state.clients} />
         </TabsContent>
 
         <TabsContent value="hearings" className="mt-6">
-          <HearingScheduler cases={state.cases} />
+          <HearingScheduler cases={state.cases} courts={state.courts} judges={state.judges} clients={state.clients} />
         </TabsContent>
 
         <TabsContent value="timeline" className="mt-6">

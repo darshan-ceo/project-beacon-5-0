@@ -7,6 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { Case, useAppState } from '@/contexts/AppStateContext';
+import { ClientSelector } from '@/components/ui/relationship-selector';
+import { useRelationships } from '@/hooks/useRelationships';
 
 interface CaseModalProps {
   isOpen: boolean;
@@ -17,10 +19,11 @@ interface CaseModalProps {
 
 export const CaseModal: React.FC<CaseModalProps> = ({ isOpen, onClose, case: caseData, mode }) => {
   const { state, dispatch } = useAppState();
+  const { validateCaseClient } = useRelationships();
   const [formData, setFormData] = useState<{
     caseNumber: string;
     title: string;
-    client: string;
+    clientId: string;
     currentStage: 'Scrutiny' | 'Demand' | 'Adjudication' | 'Appeals' | 'GSTAT' | 'HC' | 'SC';
     priority: 'High' | 'Medium' | 'Low';
     assignedTo: string;
@@ -28,7 +31,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({ isOpen, onClose, case: cas
   }>({
     caseNumber: '',
     title: '',
-    client: '',
+    clientId: '',
     currentStage: 'Scrutiny',
     priority: 'Medium',
     assignedTo: '',
@@ -40,7 +43,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({ isOpen, onClose, case: cas
       setFormData({
         caseNumber: caseData.caseNumber,
         title: caseData.title,
-        client: caseData.client,
+        clientId: caseData.clientId,
         currentStage: caseData.currentStage,
         priority: caseData.priority,
         assignedTo: caseData.assignedTo,
@@ -50,7 +53,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({ isOpen, onClose, case: cas
       setFormData({
         caseNumber: `CASE-${new Date().getFullYear()}-${String(state.cases.length + 1).padStart(3, '0')}`,
         title: '',
-        client: '',
+        clientId: '',
         currentStage: 'Scrutiny',
         priority: 'Medium',
         assignedTo: '',
@@ -62,12 +65,23 @@ export const CaseModal: React.FC<CaseModalProps> = ({ isOpen, onClose, case: cas
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validate client relationship
+    const clientValidation = validateCaseClient(formData.clientId);
+    if (!clientValidation.isValid) {
+      toast({
+        title: "Validation Error",
+        description: clientValidation.errors.join(', '),
+        variant: "destructive"
+      });
+      return;
+    }
+    
     if (mode === 'create') {
       const newCase: Case = {
         id: Date.now().toString(),
         caseNumber: formData.caseNumber,
         title: formData.title,
-        client: formData.client,
+        clientId: formData.clientId, // FK reference
         currentStage: formData.currentStage,
         priority: formData.priority,
         slaStatus: 'Green',
@@ -87,7 +101,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({ isOpen, onClose, case: cas
       const updatedCase: Case = {
         ...caseData,
         title: formData.title,
-        client: formData.client,
+        clientId: formData.clientId, // FK reference
         currentStage: formData.currentStage,
         priority: formData.priority,
         assignedTo: formData.assignedTo,
@@ -169,13 +183,11 @@ export const CaseModal: React.FC<CaseModalProps> = ({ isOpen, onClose, case: cas
           </div>
 
           <div>
-            <Label htmlFor="client">Client</Label>
-            <Input
-              id="client"
-              value={formData.client}
-              onChange={(e) => setFormData(prev => ({ ...prev, client: e.target.value }))}
+            <ClientSelector
+              clients={state.clients.filter(c => c.status === 'Active')}
+              value={formData.clientId}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, clientId: value }))}
               disabled={mode === 'view'}
-              required
             />
           </div>
 
