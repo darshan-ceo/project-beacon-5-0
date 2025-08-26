@@ -108,7 +108,7 @@ interface Document {
 }
 
 // Application State
-interface AppState {
+export interface AppState {
   cases: Case[];
   tasks: Task[];
   clients: Client[];
@@ -120,7 +120,7 @@ interface AppState {
 }
 
 // Actions
-type AppAction =
+export type AppAction =
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null }
   | { type: 'ADD_CASE'; payload: Case }
@@ -139,7 +139,10 @@ type AppAction =
   | { type: 'UPDATE_JUDGE'; payload: Judge }
   | { type: 'DELETE_JUDGE'; payload: string }
   | { type: 'ADD_DOCUMENT'; payload: Document }
-  | { type: 'DELETE_DOCUMENT'; payload: string };
+  | { type: 'UPDATE_DOCUMENT'; payload: Document }
+  | { type: 'DELETE_DOCUMENT'; payload: string }
+  | { type: 'RESTORE_STATE'; payload: Partial<AppState> }
+  | { type: 'CLEAR_ALL_DATA' };
 
 // Initial state with mock data
 const initialState: AppState = {
@@ -339,10 +342,27 @@ function appReducer(state: AppState, action: AppAction): AppState {
       };
     case 'ADD_DOCUMENT':
       return { ...state, documents: [...state.documents, action.payload] };
+    case 'UPDATE_DOCUMENT':
+      return {
+        ...state,
+        documents: state.documents.map(d => d.id === action.payload.id ? action.payload : d)
+      };
     case 'DELETE_DOCUMENT':
       return {
         ...state,
         documents: state.documents.filter(d => d.id !== action.payload)
+      };
+    case 'RESTORE_STATE':
+      return { ...state, ...action.payload };
+    case 'CLEAR_ALL_DATA':
+      return {
+        ...initialState,
+        cases: [],
+        tasks: [],
+        clients: [],
+        courts: [],
+        judges: [],
+        documents: [],
       };
     default:
       return state;

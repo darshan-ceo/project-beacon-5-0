@@ -1,6 +1,9 @@
 import React from 'react';
 import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
+import { useAppState } from '@/contexts/AppStateContext';
+import { useRBAC } from '@/hooks/useRBAC';
+import { ProtectedComponent } from '@/hooks/useRBAC';
 import { 
   Users, 
   FileText, 
@@ -90,6 +93,45 @@ const recentActivity = [
 ];
 
 export const DashboardOverview: React.FC = () => {
+  const { state } = useAppState();
+  const { currentUser } = useRBAC();
+  
+  // Calculate real stats from state
+  const realStats = [
+    {
+      title: 'Active Clients',
+      value: state.clients.filter(c => c.status === 'Active').length,
+      description: 'Total registered clients',
+      icon: Users,
+      trend: { value: '+12%', positive: true },
+      color: 'primary' as const
+    },
+    {
+      title: 'Open Cases',
+      value: state.cases.length,
+      description: 'Cases in progress',
+      icon: Scale,
+      trend: { value: '+8%', positive: true },
+      color: 'secondary' as const
+    },
+    {
+      title: 'Pending Documents',
+      value: state.documents.length,
+      description: 'Awaiting review',
+      icon: FileText,
+      trend: { value: '-15%', positive: true },
+      color: 'warning' as const
+    },
+    {
+      title: 'Completed Tasks',
+      value: state.tasks.filter(t => t.status === 'Completed').length,
+      description: 'This month',
+      icon: CheckCircle,
+      trend: { value: '+25%', positive: true },
+      color: 'success' as const
+    }
+  ];
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -117,7 +159,7 @@ export const DashboardOverview: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold text-foreground">Legal Practice Dashboard</h1>
           <p className="text-muted-foreground mt-2">
-            Welcome back! Here's your practice overview for today.
+            Welcome back, {currentUser.name}! Here's your practice overview for today.
           </p>
         </div>
         <Button 
@@ -141,7 +183,7 @@ export const DashboardOverview: React.FC = () => {
         animate="visible"
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
       >
-        {stats.map((stat, index) => (
+        {realStats.map((stat, index) => (
           <motion.div key={index} variants={itemVariants}>
             <Card className="hover-lift">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -236,19 +278,21 @@ export const DashboardOverview: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                onClick={() => {
-                  toast({
-                    title: "Add New Client",
-                    description: "Opening client registration form",
-                  });
-                }}
-              >
-                <Users className="mr-2 h-4 w-4" />
-                Add New Client
-              </Button>
+              <ProtectedComponent module="clients" action="write">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => {
+                    toast({
+                      title: "Add New Client",
+                      description: "Opening client registration form",
+                    });
+                  }}
+                >
+                  <Users className="mr-2 h-4 w-4" />
+                  Add New Client
+                </Button>
+              </ProtectedComponent>
               <Button 
                 variant="outline" 
                 className="w-full justify-start"

@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppStateProvider } from "@/contexts/AppStateContext";
+import { RBACProvider } from "@/hooks/useRBAC";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { AdminLayout } from "./components/layout/AdminLayout";
@@ -29,69 +30,69 @@ const currentUser = {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AppStateProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-        <Routes>
-          <Route path="/" element={
-            <AdminLayout currentUser={currentUser}>
-              <DashboardOverview />
-            </AdminLayout>
-          } />
-          <Route path="/clients" element={
-            <AdminLayout currentUser={currentUser}>
-              <ClientMasters />
-            </AdminLayout>
-          } />
-          <Route path="/courts" element={
-            <AdminLayout currentUser={currentUser}>
-              <CourtMasters />
-            </AdminLayout>
-          } />
-          <Route path="/judges" element={
-            <AdminLayout currentUser={currentUser}>
-              <JudgeMasters />
-            </AdminLayout>
-          } />
-          <Route path="/cases" element={
-            <AdminLayout currentUser={currentUser}>
-              <CaseManagement />
-            </AdminLayout>
-          } />
-          <Route path="/tasks" element={
-            <AdminLayout currentUser={currentUser}>
-              <TaskManagement />
-            </AdminLayout>
-          } />
-          <Route path="/documents" element={
-            <AdminLayout currentUser={currentUser}>
-              <DocumentManagement />
-            </AdminLayout>
-          } />
-          {/* Placeholder routes for missing components */}
-          <Route path="/rbac" element={
-            <AdminLayout currentUser={currentUser}>
-              <RBACManagement />
-            </AdminLayout>
-          } />
-          <Route path="/settings" element={
-            <AdminLayout currentUser={currentUser}>
-              <GlobalParameters />
-            </AdminLayout>
-          } />
-          <Route path="/profile" element={
-            <AdminLayout currentUser={currentUser}>
-              <UserProfile />
-            </AdminLayout>
-          } />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-    </AppStateProvider>
+    <RBACProvider>
+      <AppStateProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={
+                <AdminLayout currentUser={currentUser}>
+                  <DashboardOverview />
+                </AdminLayout>
+              } />
+              <Route path="/clients" element={
+                <AdminLayout currentUser={currentUser}>
+                  <ClientMasters />
+                </AdminLayout>
+              } />
+              <Route path="/courts" element={
+                <AdminLayout currentUser={currentUser}>
+                  <CourtMasters />
+                </AdminLayout>
+              } />
+              <Route path="/judges" element={
+                <AdminLayout currentUser={currentUser}>
+                  <JudgeMasters />
+                </AdminLayout>
+              } />
+              <Route path="/cases" element={
+                <AdminLayout currentUser={currentUser}>
+                  <CaseManagement />
+                </AdminLayout>
+              } />
+              <Route path="/tasks" element={
+                <AdminLayout currentUser={currentUser}>
+                  <TaskManagement />
+                </AdminLayout>
+              } />
+              <Route path="/documents" element={
+                <AdminLayout currentUser={currentUser}>
+                  <DocumentManagement />
+                </AdminLayout>
+              } />
+              <Route path="/rbac" element={
+                <AdminLayout currentUser={currentUser}>
+                  <RBACManagement />
+                </AdminLayout>
+              } />
+              <Route path="/settings" element={
+                <AdminLayout currentUser={currentUser}>
+                  <GlobalParameters />
+                </AdminLayout>
+              } />
+              <Route path="/profile" element={
+                <AdminLayout currentUser={currentUser}>
+                  <UserProfile />
+                </AdminLayout>
+              } />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AppStateProvider>
+    </RBACProvider>
   </QueryClientProvider>
 );
 
