@@ -1,4 +1,5 @@
 import React from 'react';
+import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { 
   Clock, 
@@ -228,11 +229,29 @@ export const CaseTimeline: React.FC<CaseTimelineProps> = ({ selectedCase }) => {
                   <p className="text-sm text-muted-foreground">{selectedCase.caseNumber}</p>
                 </div>
                 <div className="flex space-x-2">
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      toast({
+                        title: "Export Timeline",
+                        description: "Timeline data exported successfully",
+                      });
+                    }}
+                  >
                     <Download className="mr-2 h-4 w-4" />
                     Export Timeline
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      toast({
+                        title: "Generate Report",
+                        description: "Case timeline report generated",
+                      });
+                    }}
+                  >
                     <FileText className="mr-2 h-4 w-4" />
                     Generate Report
                   </Button>

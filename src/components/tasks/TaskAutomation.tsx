@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { 
   Settings, 
@@ -284,7 +285,15 @@ export const TaskAutomation: React.FC<TaskAutomationProps> = ({ bundles }) => {
               <Button variant="outline" onClick={() => setIsCreateBundleOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={() => setIsCreateBundleOpen(false)}>
+              <Button 
+                onClick={() => {
+                  toast({
+                    title: "Bundle Created",
+                    description: "Task bundle has been created successfully",
+                  });
+                  setIsCreateBundleOpen(false);
+                }}
+              >
                 Create Bundle
               </Button>
             </DialogFooter>

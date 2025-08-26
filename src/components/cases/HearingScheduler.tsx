@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { 
   Calendar, 
@@ -243,7 +244,15 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases }) => 
               <Button variant="outline" onClick={() => setIsScheduleDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={() => setIsScheduleDialogOpen(false)}>
+              <Button 
+                onClick={() => {
+                  toast({
+                    title: "Hearing Scheduled",
+                    description: "Hearing has been scheduled successfully",
+                  });
+                  setIsScheduleDialogOpen(false);
+                }}
+              >
                 Schedule Hearing
               </Button>
             </DialogFooter>

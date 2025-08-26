@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { 
   CheckSquare, 
@@ -226,11 +227,27 @@ export const TaskManagement: React.FC = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button 
+            variant="outline"
+            onClick={() => {
+              toast({
+                title: "Escalations",
+                description: "Opening escalation management panel",
+              });
+            }}
+          >
             <Bell className="mr-2 h-4 w-4" />
             Escalations
           </Button>
-          <Button className="bg-primary hover:bg-primary-hover">
+          <Button 
+            className="bg-primary hover:bg-primary-hover"
+            onClick={() => {
+              toast({
+                title: "Create Task",
+                description: "Opening task creation form",
+              });
+            }}
+          >
             <Plus className="mr-2 h-4 w-4" />
             Create Task
           </Button>
@@ -326,15 +343,39 @@ export const TaskManagement: React.FC = () => {
         </div>
         
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button 
+            variant="outline"
+            onClick={() => {
+              toast({
+                title: "Filter Status",
+                description: "Opening status filter options",
+              });
+            }}
+          >
             <Filter className="mr-2 h-4 w-4" />
             Status: {filterStatus}
           </Button>
-          <Button variant="outline">
+          <Button 
+            variant="outline"
+            onClick={() => {
+              toast({
+                title: "Filter Priority",
+                description: "Opening priority filter options",
+              });
+            }}
+          >
             <User className="mr-2 h-4 w-4" />
             Priority: {filterPriority}
           </Button>
-          <Button variant="outline">
+          <Button 
+            variant="outline"
+            onClick={() => {
+              toast({
+                title: "Due Date Filter",
+                description: "Opening date range selector",
+              });
+            }}
+          >
             <Calendar className="mr-2 h-4 w-4" />
             Due Date
           </Button>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { 
   Plus, 
@@ -128,7 +129,15 @@ export const ClientMasters: React.FC = () => {
             Manage client information, GSTIN, PAN, and portal access
           </p>
         </div>
-        <Button className="bg-primary hover:bg-primary-hover">
+        <Button 
+          className="bg-primary hover:bg-primary-hover"
+          onClick={() => {
+            toast({
+              title: "Add New Client",
+              description: "Opening client registration form",
+            });
+          }}
+        >
           <Plus className="mr-2 h-4 w-4" />
           Add New Client
         </Button>
@@ -232,7 +241,15 @@ export const ClientMasters: React.FC = () => {
             </DropdownMenuContent>
           </DropdownMenu>
           
-          <Button variant="outline">
+          <Button 
+            variant="outline"
+            onClick={() => {
+              toast({
+                title: "Export Data",
+                description: "Exporting client data to CSV",
+              });
+            }}
+          >
             <Download className="mr-2 h-4 w-4" />
             Export
           </Button>
@@ -330,16 +347,39 @@ export const ClientMasters: React.FC = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              toast({
+                                title: "View Client Details",
+                                description: `Opening details for ${client.name}`,
+                              });
+                            }}
+                          >
                             <Eye className="mr-2 h-4 w-4" />
                             View Details
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              toast({
+                                title: "Edit Client",
+                                description: `Editing ${client.name}`,
+                              });
+                            }}
+                          >
                             <Edit className="mr-2 h-4 w-4" />
                             Edit Client
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive">
+                          <DropdownMenuItem 
+                            className="text-destructive"
+                            onClick={() => {
+                              toast({
+                                title: "Delete Client",
+                                description: `${client.name} has been deleted`,
+                                variant: "destructive",
+                              });
+                            }}
+                          >
                             <Trash2 className="mr-2 h-4 w-4" />
                             Delete
                           </DropdownMenuItem>

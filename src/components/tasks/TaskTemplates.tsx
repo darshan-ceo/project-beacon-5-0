@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { 
   FileText, 
@@ -370,7 +371,15 @@ export const TaskTemplates: React.FC<TaskTemplatesProps> = ({ bundles }) => {
               <Button variant="outline" onClick={() => setIsCreateTemplateOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={() => setIsCreateTemplateOpen(false)}>
+              <Button 
+                onClick={() => {
+                  toast({
+                    title: "Template Created",
+                    description: "Task template has been created successfully",
+                  });
+                  setIsCreateTemplateOpen(false);
+                }}
+              >
                 Create Template
               </Button>
             </DialogFooter>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { 
   AlertTriangle, 
@@ -235,7 +236,16 @@ export const SLATracker: React.FC<SLATrackerProps> = ({ cases }) => {
                     <div className="text-right">
                       <p className="text-sm font-medium text-destructive">{case_.timeRemaining}</p>
                       <p className="text-xs text-muted-foreground">remaining</p>
-                      <Button size="sm" className="mt-2">
+                      <Button 
+                        size="sm" 
+                        className="mt-2"
+                        onClick={() => {
+                          toast({
+                            title: "Action Initiated",
+                            description: `Taking action on ${case_.caseNumber}`,
+                          });
+                        }}
+                      >
                         Take Action
                       </Button>
                     </div>

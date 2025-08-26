@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { 
   Scale, 
@@ -144,7 +145,15 @@ export const CaseManagement: React.FC = () => {
             Comprehensive case lifecycle with SLA tracking and hearing management
           </p>
         </div>
-        <Button className="bg-primary hover:bg-primary-hover">
+        <Button 
+          className="bg-primary hover:bg-primary-hover"
+          onClick={() => {
+            toast({
+              title: "New Case",
+              description: "Opening case creation form...",
+            });
+          }}
+        >
           <Plus className="mr-2 h-4 w-4" />
           New Case
         </Button>
@@ -228,11 +237,27 @@ export const CaseManagement: React.FC = () => {
         </div>
         
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button 
+            variant="outline"
+            onClick={() => {
+              toast({
+                title: "Filter",
+                description: "Opening filter options...",
+              });
+            }}
+          >
             <Filter className="mr-2 h-4 w-4" />
             Filter
           </Button>
-          <Button variant="outline">
+          <Button 
+            variant="outline"
+            onClick={() => {
+              toast({
+                title: "Hearing Calendar",
+                description: "Opening hearing calendar...",
+              });
+            }}
+          >
             <Calendar className="mr-2 h-4 w-4" />
             Hearing Calendar
           </Button>
@@ -321,10 +346,30 @@ export const CaseManagement: React.FC = () => {
                             <span>Updated: {caseItem.lastUpdated}</span>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <Button variant="ghost" size="sm">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toast({
+                                  title: "View Case",
+                                  description: `Opening details for ${caseItem.caseNumber}`,
+                                });
+                              }}
+                            >
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="sm">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toast({
+                                  title: "Edit Case",
+                                  description: `Editing ${caseItem.caseNumber}`,
+                                });
+                              }}
+                            >
                               <Edit className="h-4 w-4" />
                             </Button>
                             <ArrowRight className="h-4 w-4 text-muted-foreground" />

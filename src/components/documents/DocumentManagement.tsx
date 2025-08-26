@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { 
   Upload, 
@@ -175,11 +176,27 @@ export const DocumentManagement: React.FC = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button 
+            variant="outline"
+            onClick={() => {
+              toast({
+                title: "New Folder",
+                description: "Creating new document folder",
+              });
+            }}
+          >
             <FolderOpen className="mr-2 h-4 w-4" />
             New Folder
           </Button>
-          <Button className="bg-primary hover:bg-primary-hover">
+          <Button 
+            className="bg-primary hover:bg-primary-hover"
+            onClick={() => {
+              toast({
+                title: "Upload Documents",
+                description: "Opening document upload interface",
+              });
+            }}
+          >
             <Upload className="mr-2 h-4 w-4" />
             Upload Documents
           </Button>
@@ -260,11 +277,27 @@ export const DocumentManagement: React.FC = () => {
         </div>
         
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button 
+            variant="outline"
+            onClick={() => {
+              toast({
+                title: "Filter Documents",
+                description: "Opening document filter options",
+              });
+            }}
+          >
             <Filter className="mr-2 h-4 w-4" />
             Filter
           </Button>
-          <Button variant="outline">
+          <Button 
+            variant="outline"
+            onClick={() => {
+              toast({
+                title: "Manage Tags",
+                description: "Opening tag management interface",
+              });
+            }}
+          >
             <Tag className="mr-2 h-4 w-4" />
             Tags
           </Button>
@@ -371,10 +404,28 @@ export const DocumentManagement: React.FC = () => {
                       </div>
                       
                       <div className="flex items-center space-x-2">
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            toast({
+                              title: "View Document",
+                              description: `Opening ${doc.name}`,
+                            });
+                          }}
+                        >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            toast({
+                              title: "Download Document",
+                              description: `Downloading ${doc.name}`,
+                            });
+                          }}
+                        >
                           <Download className="h-4 w-4" />
                         </Button>
                         <DropdownMenu>
@@ -384,16 +435,39 @@ export const DocumentManagement: React.FC = () => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                toast({
+                                  title: "Edit Document",
+                                  description: `Editing ${doc.name}`,
+                                });
+                              }}
+                            >
                               <Edit className="mr-2 h-4 w-4" />
                               Edit
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                toast({
+                                  title: "Add Tags",
+                                  description: `Managing tags for ${doc.name}`,
+                                });
+                              }}
+                            >
                               <Tag className="mr-2 h-4 w-4" />
                               Add Tags
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive">
+                            <DropdownMenuItem 
+                              className="text-destructive"
+                              onClick={() => {
+                                toast({
+                                  title: "Delete Document",
+                                  description: `${doc.name} has been deleted`,
+                                  variant: "destructive",
+                                });
+                              }}
+                            >
                               <Trash2 className="mr-2 h-4 w-4" />
                               Delete
                             </DropdownMenuItem>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { 
   Users, 
@@ -119,7 +120,15 @@ export const DashboardOverview: React.FC = () => {
             Welcome back! Here's your practice overview for today.
           </p>
         </div>
-        <Button className="bg-primary hover:bg-primary-hover">
+        <Button 
+          className="bg-primary hover:bg-primary-hover"
+          onClick={() => {
+            toast({
+              title: "Schedule Hearing",
+              description: "Opening hearing scheduler",
+            });
+          }}
+        >
           <Calendar className="mr-2 h-4 w-4" />
           Schedule Hearing
         </Button>
@@ -227,19 +236,55 @@ export const DashboardOverview: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button variant="outline" className="w-full justify-start">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => {
+                  toast({
+                    title: "Add New Client",
+                    description: "Opening client registration form",
+                  });
+                }}
+              >
                 <Users className="mr-2 h-4 w-4" />
                 Add New Client
               </Button>
-              <Button variant="outline" className="w-full justify-start">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => {
+                  toast({
+                    title: "Upload Document",
+                    description: "Opening document upload interface",
+                  });
+                }}
+              >
                 <FileText className="mr-2 h-4 w-4" />
                 Upload Document
               </Button>
-              <Button variant="outline" className="w-full justify-start">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => {
+                  toast({
+                    title: "Create New Case",
+                    description: "Opening case creation form",
+                  });
+                }}
+              >
                 <Scale className="mr-2 h-4 w-4" />
                 Create New Case
               </Button>
-              <Button variant="outline" className="w-full justify-start">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => {
+                  toast({
+                    title: "Schedule Meeting",
+                    description: "Opening meeting scheduler",
+                  });
+                }}
+              >
                 <Calendar className="mr-2 h-4 w-4" />
                 Schedule Meeting
               </Button>

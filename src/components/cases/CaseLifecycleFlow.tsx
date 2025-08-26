@@ -1,4 +1,5 @@
 import React from 'react';
+import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { 
   ArrowRight, 
@@ -237,7 +238,16 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
                     
                     {/* Action Button */}
                     {status === 'current' && (
-                      <Button size="sm" className="w-full">
+                      <Button 
+                        size="sm" 
+                        className="w-full"
+                        onClick={() => {
+                          toast({
+                            title: "Manage Stage",
+                            description: `Managing ${stage.name} stage actions`,
+                          });
+                        }}
+                      >
                         Manage Stage
                       </Button>
                     )}
@@ -296,23 +306,53 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
                   </div>
                 </div>
                 
-                <div>
-                  <h4 className="font-semibold mb-2">Next Actions</h4>
-                  <div className="space-y-2">
-                    <Button variant="outline" size="sm" className="w-full justify-start">
-                      <FileText className="mr-2 h-4 w-4" />
-                      Upload Response
-                    </Button>
-                    <Button variant="outline" size="sm" className="w-full justify-start">
-                      <Clock className="mr-2 h-4 w-4" />
-                      Schedule Hearing
-                    </Button>
-                    <Button variant="outline" size="sm" className="w-full justify-start">
-                      <ArrowRight className="mr-2 h-4 w-4" />
-                      Advance Stage
-                    </Button>
+                  <div>
+                    <h4 className="font-semibold mb-2">Next Actions</h4>
+                    <div className="space-y-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full justify-start"
+                        onClick={() => {
+                          toast({
+                            title: "Upload Response",
+                            description: "Opening document upload interface",
+                          });
+                        }}
+                      >
+                        <FileText className="mr-2 h-4 w-4" />
+                        Upload Response
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full justify-start"
+                        onClick={() => {
+                          toast({
+                            title: "Schedule Hearing",
+                            description: "Opening hearing scheduler",
+                          });
+                        }}
+                      >
+                        <Clock className="mr-2 h-4 w-4" />
+                        Schedule Hearing
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full justify-start"
+                        onClick={() => {
+                          toast({
+                            title: "Advance Stage",
+                            description: "Moving case to next stage",
+                          });
+                        }}
+                      >
+                        <ArrowRight className="mr-2 h-4 w-4" />
+                        Advance Stage
+                      </Button>
+                    </div>
                   </div>
-                </div>
               </div>
             </CardContent>
           </Card>

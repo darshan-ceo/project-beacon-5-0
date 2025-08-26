@@ -196,7 +196,16 @@ export const UserProfile: React.FC = () => {
                         <AvatarImage src={user.avatar} alt={user.name} />
                         <AvatarFallback>{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                       </Avatar>
-                      <Button size="sm" className="absolute -bottom-2 -right-2 rounded-full h-8 w-8 p-0">
+                      <Button 
+                        size="sm" 
+                        className="absolute -bottom-2 -right-2 rounded-full h-8 w-8 p-0"
+                        onClick={() => {
+                          toast({
+                            title: "Upload Avatar",
+                            description: "Opening image upload interface",
+                          });
+                        }}
+                      >
                         <Camera className="h-4 w-4" />
                       </Button>
                     </div>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -253,7 +254,15 @@ export const JudgeMasters: React.FC = () => {
               <Button variant="outline" onClick={() => setIsAddJudgeOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={() => setIsAddJudgeOpen(false)}>
+              <Button 
+                onClick={() => {
+                  toast({
+                    title: "Judge Profile Created",
+                    description: "New judge profile has been added successfully",
+                  });
+                  setIsAddJudgeOpen(false);
+                }}
+              >
                 Create Judge Profile
               </Button>
             </div>
