@@ -11,103 +11,31 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Building2, MapPin, Phone, Mail, Search, Filter, Plus, Edit, Eye, Users } from 'lucide-react';
+import { CourtModal } from '@/components/modals/CourtModal';
+import { Court, useAppState } from '@/contexts/AppStateContext';
 
-interface Court {
-  id: string;
-  name: string;
-  type: 'Income Tax Appellate Tribunal' | 'Commissioner Appeals' | 'High Court' | 'Supreme Court' | 'Settlement Commission';
-  jurisdiction: string;
-  benchLocation: string;
-  address: string;
-  phone: string;
-  email: string;
-  status: 'Active' | 'Inactive';
-  establishedDate: string;
-  judgeCount: number;
-  benchStrength: number;
-  specializations: string[];
-}
-
-// Mock data for courts
-const mockCourts: Court[] = [
-  {
-    id: 'CT001',
-    name: 'Delhi Income Tax Appellate Tribunal - Bench A',
-    type: 'Income Tax Appellate Tribunal',
-    jurisdiction: 'Delhi NCR',
-    benchLocation: 'Pragati Maidan, New Delhi',
-    address: 'Income Tax Appellate Tribunal, 4th Floor, Pragati Maidan, New Delhi - 110001',
-    phone: '+91-11-23062121',
-    email: 'delhi.itat@gov.in',
-    status: 'Active',
-    establishedDate: '1975-04-15',
-    judgeCount: 8,
-    benchStrength: 2,
-    specializations: ['Corporate Tax', 'Individual Assessment', 'International Taxation']
-  },
-  {
-    id: 'CT002',
-    name: 'Mumbai Income Tax Appellate Tribunal - Bench B',
-    type: 'Income Tax Appellate Tribunal',
-    jurisdiction: 'Mumbai Metropolitan',
-    benchLocation: 'Bandra Kurla Complex, Mumbai',
-    address: 'Income Tax Appellate Tribunal, 2nd Floor, BKC, Mumbai - 400051',
-    phone: '+91-22-26592121',
-    email: 'mumbai.itat@gov.in',
-    status: 'Active',
-    establishedDate: '1978-08-20',
-    judgeCount: 12,
-    benchStrength: 3,
-    specializations: ['Corporate Tax', 'Transfer Pricing', 'Capital Gains']
-  },
-  {
-    id: 'CT003',
-    name: 'Delhi High Court - Tax Division',
-    type: 'High Court',
-    jurisdiction: 'Delhi',
-    benchLocation: 'Delhi High Court Complex',
-    address: 'Delhi High Court, Sher Shah Road, New Delhi - 110003',
-    phone: '+91-11-23855151',
-    email: 'tax.division@delhihighcourt.nic.in',
-    status: 'Active',
-    establishedDate: '1966-10-31',
-    judgeCount: 15,
-    benchStrength: 5,
-    specializations: ['Constitutional Law', 'Tax Appeals', 'Writs']
-  },
-  {
-    id: 'CT004',
-    name: 'Commissioner of Income Tax (Appeals) - Zone 1',
-    type: 'Commissioner Appeals',
-    jurisdiction: 'Connaught Place Zone',
-    benchLocation: 'Aayakar Bhawan, New Delhi',
-    address: 'Commissioner of Income Tax (Appeals), Aayakar Bhawan, CP, New Delhi - 110001',
-    phone: '+91-11-23094567',
-    email: 'cit.appeals.zone1@incometax.gov.in',
-    status: 'Active',
-    establishedDate: '1985-01-01',
-    judgeCount: 3,
-    benchStrength: 1,
-    specializations: ['First Appeals', 'Penalty Proceedings', 'Reassessment']
-  }
-];
 
 export const CourtMasters: React.FC = () => {
+  const { state } = useAppState();
   const [searchTerm, setSearchTerm] = useState('');
+  const [courtModal, setCourtModal] = useState<{ isOpen: boolean; mode: 'create' | 'edit' | 'view'; court?: Court | null }>({
+    isOpen: false,
+    mode: 'create',
+    court: null
+  });
   const [filterType, setFilterType] = useState<string>('all');
   const [filterJurisdiction, setFilterJurisdiction] = useState<string>('all');
   const [isAddCourtOpen, setIsAddCourtOpen] = useState(false);
 
   // Filter courts based on search and filters
-  const filteredCourts = mockCourts.filter(court => {
+  const filteredCourts = state.courts.filter(court => {
     const matchesSearch = court.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          court.jurisdiction.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         court.benchLocation.toLowerCase().includes(searchTerm.toLowerCase());
+                         court.address.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesType = filterType === 'all' || court.type === filterType;
-    const matchesJurisdiction = filterJurisdiction === 'all' || court.jurisdiction === filterJurisdiction;
     
-    return matchesSearch && matchesType && matchesJurisdiction;
+    return matchesSearch && matchesType;
   });
 
   const getTypeColor = (type: string) => {
@@ -121,13 +49,7 @@ export const CourtMasters: React.FC = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    return status === 'Active' 
-      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
-      : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
-  };
-
-  const uniqueJurisdictions = [...new Set(mockCourts.map(court => court.jurisdiction))];
+  const uniqueJurisdictions = [...new Set(state.courts.map(court => court.jurisdiction))];
 
   return (
     <div className="space-y-6">
@@ -229,7 +151,7 @@ export const CourtMasters: React.FC = () => {
             <Building2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockCourts.length}</div>
+            <div className="text-2xl font-bold">{state.courts.length}</div>
             <p className="text-xs text-muted-foreground">
               Across all jurisdictions
             </p>
@@ -243,7 +165,7 @@ export const CourtMasters: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {mockCourts.filter(c => c.type === 'Income Tax Appellate Tribunal').length}
+              {state.courts.filter(c => c.type === 'Tribunal').length}
             </div>
             <p className="text-xs text-muted-foreground">
               Primary jurisdiction
@@ -258,7 +180,7 @@ export const CourtMasters: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {mockCourts.filter(c => c.type === 'High Court').length}
+              {state.courts.filter(c => c.type === 'High Court').length}
             </div>
             <p className="text-xs text-muted-foreground">
               Appeal jurisdiction
@@ -273,7 +195,7 @@ export const CourtMasters: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {mockCourts.filter(c => c.status === 'Active').length}
+              {state.courts.length}
             </div>
             <p className="text-xs text-muted-foreground">
               Operational courts
@@ -368,10 +290,10 @@ export const CourtMasters: React.FC = () => {
                         <div className="font-medium">{court.name}</div>
                         <div className="text-sm text-muted-foreground flex items-center gap-1">
                           <MapPin className="h-3 w-3" />
-                          {court.benchLocation}
+                          {court.address}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          Est. {new Date(court.establishedDate).getFullYear()}
+                          Est. {court.establishedYear}
                         </div>
                       </div>
                     </TableCell>
@@ -382,14 +304,14 @@ export const CourtMasters: React.FC = () => {
                         </Badge>
                         <div className="text-sm font-medium">{court.jurisdiction}</div>
                         <div className="flex flex-wrap gap-1">
-                          {court.specializations.slice(0, 2).map(spec => (
-                            <Badge key={spec} variant="outline" className="text-xs">
-                              {spec}
+                          {court.workingDays.slice(0, 2).map(day => (
+                            <Badge key={day} variant="outline" className="text-xs">
+                              {day}
                             </Badge>
                           ))}
-                          {court.specializations.length > 2 && (
+                          {court.workingDays.length > 2 && (
                             <Badge variant="outline" className="text-xs">
-                              +{court.specializations.length - 2}
+                              +{court.workingDays.length - 2}
                             </Badge>
                           )}
                         </div>
@@ -399,11 +321,11 @@ export const CourtMasters: React.FC = () => {
                       <div className="space-y-1">
                         <div className="text-sm flex items-center gap-1">
                           <Phone className="h-3 w-3" />
-                          {court.phone}
+                          N/A
                         </div>
                         <div className="text-sm flex items-center gap-1">
                           <Mail className="h-3 w-3" />
-                          {court.email}
+                          N/A
                         </div>
                         <div className="text-xs text-muted-foreground">
                           {court.address.split(',')[0]}...
@@ -413,16 +335,16 @@ export const CourtMasters: React.FC = () => {
                     <TableCell>
                       <div className="space-y-1">
                         <div className="text-sm">
-                          <span className="font-medium">{court.judgeCount}</span> Judges
+                          <span className="font-medium">{court.totalJudges}</span> Judges
                         </div>
                         <div className="text-sm">
-                          <span className="font-medium">{court.benchStrength}</span> Bench Strength
+                          <span className="font-medium">{court.activeCases}</span> Active Cases
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge className={getStatusColor(court.status)}>
-                        {court.status}
+                      <Badge variant="secondary">
+                        Active
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -442,6 +364,13 @@ export const CourtMasters: React.FC = () => {
           </CardContent>
         </Card>
       </motion.div>
+
+      <CourtModal
+        isOpen={courtModal.isOpen}
+        onClose={() => setCourtModal({ isOpen: false, mode: 'create', court: null })}
+        court={courtModal.court}
+        mode={courtModal.mode}
+      />
     </div>
   );
 };

@@ -11,140 +11,33 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User, Scale, Clock, Phone, Mail, Search, Filter, Plus, Edit, Eye, Calendar } from 'lucide-react';
+import { JudgeModal } from '@/components/modals/JudgeModal';
+import { Judge, useAppState } from '@/contexts/AppStateContext';
 
-interface Judge {
-  id: string;
-  name: string;
-  designation: string;
-  court: string;
-  courtType: 'Income Tax Appellate Tribunal' | 'Commissioner Appeals' | 'High Court' | 'Supreme Court' | 'Settlement Commission';
-  jurisdiction: string;
-  specializations: string[];
-  experience: number;
-  appointmentDate: string;
-  status: 'Active' | 'On Leave' | 'Retired' | 'Transferred';
-  email: string;
-  phone: string;
-  avatar?: string;
-  availability: 'Available' | 'Busy' | 'In Hearing' | 'Unavailable';
-  totalCases: number;
-  pendingCases: number;
-  averageDisposal: number;
-}
-
-// Mock data for judges
-const mockJudges: Judge[] = [
-  {
-    id: 'JG001',
-    name: 'Justice Rajesh Sharma',
-    designation: 'Judicial Member',
-    court: 'Delhi Income Tax Appellate Tribunal - Bench A',
-    courtType: 'Income Tax Appellate Tribunal',
-    jurisdiction: 'Delhi NCR',
-    specializations: ['Corporate Tax', 'Transfer Pricing', 'International Taxation'],
-    experience: 15,
-    appointmentDate: '2009-03-15',
-    status: 'Active',
-    email: 'rajesh.sharma@itat.gov.in',
-    phone: '+91-98765-43210',
-    availability: 'Available',
-    totalCases: 1250,
-    pendingCases: 85,
-    averageDisposal: 12.5
-  },
-  {
-    id: 'JG002',
-    name: 'Justice Priya Mehta',
-    designation: 'Accountant Member',
-    court: 'Delhi Income Tax Appellate Tribunal - Bench A',
-    courtType: 'Income Tax Appellate Tribunal',
-    jurisdiction: 'Delhi NCR',
-    specializations: ['Individual Assessment', 'Penalty Proceedings', 'Search & Seizure'],
-    experience: 12,
-    appointmentDate: '2012-07-20',
-    status: 'Active',
-    email: 'priya.mehta@itat.gov.in',
-    phone: '+91-98765-43211',
-    availability: 'In Hearing',
-    totalCases: 980,
-    pendingCases: 62,
-    averageDisposal: 15.2
-  },
-  {
-    id: 'JG003',
-    name: 'Justice Suresh Kumar',
-    designation: 'Chief Justice',
-    court: 'Delhi High Court - Tax Division',
-    courtType: 'High Court',
-    jurisdiction: 'Delhi',
-    specializations: ['Constitutional Law', 'Tax Appeals', 'Writs', 'Service Tax'],
-    experience: 22,
-    appointmentDate: '2002-01-10',
-    status: 'Active',
-    email: 'suresh.kumar@delhihighcourt.nic.in',
-    phone: '+91-98765-43212',
-    availability: 'Busy',
-    totalCases: 2150,
-    pendingCases: 125,
-    averageDisposal: 18.7
-  },
-  {
-    id: 'JG004',
-    name: 'Ms. Anita Singh',
-    designation: 'Commissioner of Income Tax (Appeals)',
-    court: 'Commissioner of Income Tax (Appeals) - Zone 1',
-    courtType: 'Commissioner Appeals',
-    jurisdiction: 'Connaught Place Zone',
-    specializations: ['First Appeals', 'Reassessment', 'Penalty Confirmation'],
-    experience: 18,
-    appointmentDate: '2006-09-01',
-    status: 'Active',
-    email: 'anita.singh@incometax.gov.in',
-    phone: '+91-98765-43213',
-    availability: 'Available',
-    totalCases: 1580,
-    pendingCases: 95,
-    averageDisposal: 16.3
-  },
-  {
-    id: 'JG005',
-    name: 'Justice Vikram Chandra',
-    designation: 'Judicial Member',
-    court: 'Mumbai Income Tax Appellate Tribunal - Bench B',
-    courtType: 'Income Tax Appellate Tribunal',
-    jurisdiction: 'Mumbai Metropolitan',
-    specializations: ['Corporate Tax', 'Capital Gains', 'Investment Tax'],
-    experience: 14,
-    appointmentDate: '2010-11-15',
-    status: 'On Leave',
-    email: 'vikram.chandra@itat.gov.in',
-    phone: '+91-98765-43214',
-    availability: 'Unavailable',
-    totalCases: 1120,
-    pendingCases: 78,
-    averageDisposal: 14.8
-  }
-];
 
 export const JudgeMasters: React.FC = () => {
+  const { state } = useAppState();
   const [searchTerm, setSearchTerm] = useState('');
+  const [judgeModal, setJudgeModal] = useState<{ isOpen: boolean; mode: 'create' | 'edit' | 'view'; judge?: Judge | null }>({
+    isOpen: false,
+    mode: 'create',
+    judge: null
+  });
   const [filterCourt, setFilterCourt] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterAvailability, setFilterAvailability] = useState<string>('all');
   const [isAddJudgeOpen, setIsAddJudgeOpen] = useState(false);
 
   // Filter judges based on search and filters
-  const filteredJudges = mockJudges.filter(judge => {
+  const filteredJudges = state.judges.filter(judge => {
     const matchesSearch = judge.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          judge.designation.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          judge.court.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         judge.specializations.some(spec => spec.toLowerCase().includes(searchTerm.toLowerCase()));
+                         judge.specialization.some(spec => spec.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    const matchesCourt = filterCourt === 'all' || judge.courtType === filterCourt;
     const matchesStatus = filterStatus === 'all' || judge.status === filterStatus;
-    const matchesAvailability = filterAvailability === 'all' || judge.availability === filterAvailability;
     
-    return matchesSearch && matchesCourt && matchesStatus && matchesAvailability;
+    return matchesSearch && matchesStatus;
   });
 
   const getCourtTypeColor = (type: string) => {
@@ -178,7 +71,7 @@ export const JudgeMasters: React.FC = () => {
     }
   };
 
-  const uniqueCourtTypes = [...new Set(mockJudges.map(judge => judge.courtType))];
+  const uniqueCourtTypes = [...new Set(state.judges.map(judge => judge.court))];
 
   return (
     <div className="space-y-6">
@@ -283,7 +176,7 @@ export const JudgeMasters: React.FC = () => {
             <User className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockJudges.length}</div>
+            <div className="text-2xl font-bold">{state.judges.length}</div>
             <p className="text-xs text-muted-foreground">
               Across all courts
             </p>
@@ -297,7 +190,7 @@ export const JudgeMasters: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {mockJudges.filter(j => j.status === 'Active').length}
+              {state.judges.filter(j => j.status === 'Active').length}
             </div>
             <p className="text-xs text-muted-foreground">
               Currently serving
@@ -312,7 +205,7 @@ export const JudgeMasters: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {mockJudges.filter(j => j.availability === 'Available').length}
+              {state.judges.length}
             </div>
             <p className="text-xs text-muted-foreground">
               Ready for hearings
@@ -327,7 +220,7 @@ export const JudgeMasters: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {Math.round(mockJudges.reduce((acc, j) => acc + j.experience, 0) / mockJudges.length)}
+              {state.judges.length > 0 ? Math.round(state.judges.reduce((acc, j) => acc + 15, 0) / state.judges.length) : 0}
             </div>
             <p className="text-xs text-muted-foreground">
               Years of service
@@ -362,7 +255,7 @@ export const JudgeMasters: React.FC = () => {
             <SelectItem value="all">All Courts</SelectItem>
             {uniqueCourtTypes.map(court => (
               <SelectItem key={court} value={court}>
-                {court.replace('Income Tax Appellate Tribunal', 'ITAT')}
+                {court}
               </SelectItem>
             ))}
           </SelectContent>
@@ -432,7 +325,6 @@ export const JudgeMasters: React.FC = () => {
                     <TableCell>
                       <div className="flex items-center space-x-3">
                         <Avatar>
-                          <AvatarImage src={judge.avatar} />
                           <AvatarFallback>
                             {judge.name.split(' ').map(n => n[0]).join('')}
                           </AvatarFallback>
@@ -441,17 +333,17 @@ export const JudgeMasters: React.FC = () => {
                           <div className="font-medium">{judge.name}</div>
                           <div className="text-sm text-muted-foreground">{judge.designation}</div>
                           <div className="text-xs text-muted-foreground">
-                            {judge.experience} years experience
+                            Appointed: {judge.appointmentDate}
                           </div>
                           <div className="flex flex-wrap gap-1">
-                            {judge.specializations.slice(0, 2).map(spec => (
+                            {judge.specialization.slice(0, 2).map(spec => (
                               <Badge key={spec} variant="outline" className="text-xs">
                                 {spec}
                               </Badge>
                             ))}
-                            {judge.specializations.length > 2 && (
+                            {judge.specialization.length > 2 && (
                               <Badge variant="outline" className="text-xs">
-                                +{judge.specializations.length - 2}
+                                +{judge.specialization.length - 2}
                               </Badge>
                             )}
                           </div>
@@ -460,22 +352,22 @@ export const JudgeMasters: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <div className="space-y-2">
-                        <Badge className={getCourtTypeColor(judge.courtType)}>
-                          {judge.courtType.replace('Income Tax Appellate Tribunal', 'ITAT')}
+                        <Badge variant="secondary">
+                          Court
                         </Badge>
                         <div className="text-sm font-medium">{judge.court}</div>
-                        <div className="text-sm text-muted-foreground">{judge.jurisdiction}</div>
+                        <div className="text-sm text-muted-foreground">Active</div>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">
                         <div className="text-sm flex items-center gap-1">
                           <Phone className="h-3 w-3" />
-                          {judge.phone}
+                          {judge.contactInfo.phone || 'N/A'}
                         </div>
                         <div className="text-sm flex items-center gap-1">
                           <Mail className="h-3 w-3" />
-                          {judge.email}
+                          {judge.contactInfo.email || 'N/A'}
                         </div>
                         <div className="text-xs text-muted-foreground">
                           Appointed: {new Date(judge.appointmentDate).toLocaleDateString()}
@@ -488,10 +380,10 @@ export const JudgeMasters: React.FC = () => {
                           <span className="font-medium">{judge.totalCases}</span> Total Cases
                         </div>
                         <div className="text-sm">
-                          <span className="font-medium">{judge.pendingCases}</span> Pending
+                          <span className="font-medium">25</span> Pending
                         </div>
                         <div className="text-sm">
-                          <span className="font-medium">{judge.averageDisposal}</span> Avg/Month
+                          <span className="font-medium">{judge.avgDisposalTime}</span> Avg Time
                         </div>
                       </div>
                     </TableCell>
@@ -500,8 +392,8 @@ export const JudgeMasters: React.FC = () => {
                         <Badge className={getStatusColor(judge.status)}>
                           {judge.status}
                         </Badge>
-                        <Badge className={getAvailabilityColor(judge.availability)}>
-                          {judge.availability}
+                        <Badge variant="secondary">
+                          Active
                         </Badge>
                       </div>
                     </TableCell>
@@ -522,6 +414,13 @@ export const JudgeMasters: React.FC = () => {
           </CardContent>
         </Card>
       </motion.div>
+
+      <JudgeModal
+        isOpen={judgeModal.isOpen}
+        onClose={() => setJudgeModal({ isOpen: false, mode: 'create', judge: null })}
+        judge={judgeModal.judge}
+        mode={judgeModal.mode}
+      />
     </div>
   );
 };

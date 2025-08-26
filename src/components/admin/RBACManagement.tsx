@@ -112,9 +112,22 @@ export const RBACManagement: React.FC = () => {
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [isCreateRoleOpen, setIsCreateRoleOpen] = useState(false);
   const [isEditRoleOpen, setIsEditRoleOpen] = useState(false);
+  const [roles, setRoles] = useState(mockRoles);
+  const [users, setUsers] = useState(mockUsers);
   const [roleForm, setRoleForm] = useState({ name: '', description: '', permissions: [] as string[] });
 
   const handleCreateRole = () => {
+    const newRole: Role = {
+      id: Date.now().toString(),
+      name: roleForm.name,
+      description: roleForm.description,
+      permissions: roleForm.permissions,
+      userCount: 0,
+      createdAt: new Date().toISOString().split('T')[0],
+      isActive: true
+    };
+    
+    setRoles([...roles, newRole]);
     toast({
       title: "Role Created",
       description: `Role "${roleForm.name}" has been created successfully.`,
@@ -124,12 +137,20 @@ export const RBACManagement: React.FC = () => {
   };
 
   const handleEditRole = () => {
-    toast({
-      title: "Role Updated",
-      description: `Role "${roleForm.name}" has been updated successfully.`,
-    });
-    setIsEditRoleOpen(false);
-    setSelectedRole(null);
+    if (selectedRole) {
+      const updatedRoles = roles.map(role => 
+        role.id === selectedRole.id 
+          ? { ...role, name: roleForm.name, description: roleForm.description, permissions: roleForm.permissions }
+          : role
+      );
+      setRoles(updatedRoles);
+      toast({
+        title: "Role Updated",
+        description: `Role "${roleForm.name}" has been updated successfully.`,
+      });
+      setIsEditRoleOpen(false);
+      setSelectedRole(null);
+    }
   };
 
   const handleTogglePermission = (permissionId: string) => {
@@ -139,6 +160,14 @@ export const RBACManagement: React.FC = () => {
         ? prev.permissions.filter(p => p !== permissionId)
         : [...prev.permissions, permissionId]
     }));
+  };
+
+  const handleDeleteRole = (roleId: string) => {
+    setRoles(roles.filter(role => role.id !== roleId));
+    toast({
+      title: "Role Deleted",
+      description: "Role has been deleted successfully.",
+    });
   };
 
   return (
@@ -214,7 +243,7 @@ export const RBACManagement: React.FC = () => {
 
         <TabsContent value="roles" className="space-y-6">
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {mockRoles.map((role) => (
+            {roles.map((role) => (
               <motion.div
                 key={role.id}
                 whileHover={{ y: -2 }}
@@ -246,7 +275,17 @@ export const RBACManagement: React.FC = () => {
                     </div>
                     
                     <div className="flex space-x-2">
-                      <Button variant="outline" size="sm" className="flex-1">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1"
+                        onClick={() => {
+                          toast({
+                            title: "View Role",
+                            description: `Viewing details for ${role.name}`,
+                          });
+                        }}
+                      >
                         <Eye className="h-4 w-4 mr-1" />
                         View
                       </Button>
@@ -296,7 +335,7 @@ export const RBACManagement: React.FC = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mockUsers.map((user) => (
+                  {users.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">{user.name}</TableCell>
                       <TableCell>{user.email}</TableCell>
@@ -311,10 +350,28 @@ export const RBACManagement: React.FC = () => {
                       <TableCell className="text-sm text-muted-foreground">{user.lastLogin}</TableCell>
                       <TableCell>
                         <div className="flex space-x-1">
-                          <Button variant="outline" size="sm">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              toast({
+                                title: "Edit User",
+                                description: `Opening user editor for ${user.name}`,
+                              });
+                            }}
+                          >
                             <UserCheck className="h-4 w-4" />
                           </Button>
-                          <Button variant="outline" size="sm">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              toast({
+                                title: "Assign Role",
+                                description: `Opening role assignment for ${user.name}`,
+                              });
+                            }}
+                          >
                             <Edit className="h-4 w-4" />
                           </Button>
                         </div>
@@ -357,7 +414,7 @@ export const RBACManagement: React.FC = () => {
                             <p className="text-xs text-muted-foreground">{permission.description}</p>
                           </div>
                         </td>
-                        {mockRoles.map((role) => (
+                        {roles.map((role) => (
                           <td key={role.id} className="text-center p-2">
                             {role.permissions.includes(permission.id) ? (
                               <Check className="h-4 w-4 text-green-600 mx-auto" />
