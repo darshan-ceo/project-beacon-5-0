@@ -13,6 +13,9 @@ import { JudgeMasters } from "./components/masters/JudgeMasters";
 import { CaseManagement } from "./components/cases/CaseManagement";
 import { TaskManagement } from "./components/tasks/TaskManagement";
 import { DocumentManagement } from "./components/documents/DocumentManagement";
+import { RBACManagement } from "./components/admin/RBACManagement";
+import { GlobalParameters } from "./components/admin/GlobalParameters";
+import { UserProfile } from "./components/admin/UserProfile";
 
 const queryClient = new QueryClient();
 
@@ -68,26 +71,17 @@ const App = () => (
           {/* Placeholder routes for missing components */}
           <Route path="/rbac" element={
             <AdminLayout currentUser={currentUser}>
-              <div className="p-6">
-                <h1 className="text-3xl font-bold">RBAC Management</h1>
-                <p className="text-muted-foreground mt-2">Role-based access control management coming soon...</p>
-              </div>
+              <RBACManagement />
             </AdminLayout>
           } />
           <Route path="/settings" element={
             <AdminLayout currentUser={currentUser}>
-              <div className="p-6">
-                <h1 className="text-3xl font-bold">Global Parameters</h1>
-                <p className="text-muted-foreground mt-2">System-wide settings and configuration coming soon...</p>
-              </div>
+              <GlobalParameters />
             </AdminLayout>
           } />
           <Route path="/profile" element={
             <AdminLayout currentUser={currentUser}>
-              <div className="p-6">
-                <h1 className="text-3xl font-bold">User Profile</h1>
-                <p className="text-muted-foreground mt-2">User profile management coming soon...</p>
-              </div>
+              <UserProfile />
             </AdminLayout>
           } />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
