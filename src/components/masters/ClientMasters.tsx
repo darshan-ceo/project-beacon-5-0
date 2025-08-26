@@ -27,80 +27,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-
-interface Client {
-  id: string;
-  name: string;
-  gstin: string;
-  pan: string;
-  jurisdiction: string;
-  portalAccess: boolean;
-  contactPerson: string;
-  email: string;
-  phone: string;
-  address: string;
-  status: 'Active' | 'Inactive' | 'Pending';
-  casesCount: number;
-  lastActivity: string;
-}
-
-// Mock data
-const mockClients: Client[] = [
-  {
-    id: '1',
-    name: 'Acme Corporation Ltd',
-    gstin: '27AAAAA0000A1Z5',
-    pan: 'AAAAA0000A',
-    jurisdiction: 'Mumbai',
-    portalAccess: true,
-    contactPerson: 'John Smith',
-    email: 'john@acme.com',
-    phone: '+91 98765 43210',
-    address: 'Business District, Mumbai',
-    status: 'Active',
-    casesCount: 12,
-    lastActivity: '2 days ago'
-  },
-  {
-    id: '2',
-    name: 'Global Tech Solutions',
-    gstin: '29BBBBB1111B2Z6',
-    pan: 'BBBBB1111B',
-    jurisdiction: 'Bangalore',
-    portalAccess: false,
-    contactPerson: 'Sarah Johnson',
-    email: 'sarah@globaltech.com',
-    phone: '+91 87654 32109',
-    address: 'Tech Park, Bangalore',
-    status: 'Active',
-    casesCount: 8,
-    lastActivity: '1 week ago'
-  },
-  {
-    id: '3',
-    name: 'Metro Industries Pvt Ltd',
-    gstin: '07CCCCC2222C3Z7',
-    pan: 'CCCCC2222C',
-    jurisdiction: 'Delhi',
-    portalAccess: true,
-    contactPerson: 'Mike Wilson',
-    email: 'mike@metro.com',
-    phone: '+91 76543 21098',
-    address: 'Industrial Area, Delhi',
-    status: 'Pending',
-    casesCount: 3,
-    lastActivity: '3 days ago'
-  }
-];
+import { ClientModal } from '@/components/modals/ClientModal';
+import { Client, useAppState } from '@/contexts/AppStateContext';
 
 export const ClientMasters: React.FC = () => {
+  const { state } = useAppState();
   const [searchTerm, setSearchTerm] = useState('');
+  const [clientModal, setClientModal] = useState<{ isOpen: boolean; mode: 'create' | 'edit' | 'view'; client?: Client | null }>({
+    isOpen: false,
+    mode: 'create',
+    client: null
+  });
   const [filterStatus, setFilterStatus] = useState<'all' | 'Active' | 'Inactive' | 'Pending'>('all');
 
-  const filteredClients = mockClients.filter(client => {
+  const filteredClients = state.clients.filter(client => {
     const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         client.gstin.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         client.pan.toLowerCase().includes(searchTerm.toLowerCase());
+                         (client.gstNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         client.panNumber.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterStatus === 'all' || client.status === filterStatus;
     return matchesSearch && matchesFilter;
   });
@@ -131,12 +74,7 @@ export const ClientMasters: React.FC = () => {
         </div>
         <Button 
           className="bg-primary hover:bg-primary-hover"
-          onClick={() => {
-            toast({
-              title: "Add New Client",
-              description: "Opening client registration form",
-            });
-          }}
+          onClick={() => setClientModal({ isOpen: true, mode: 'create', client: null })}
         >
           <Plus className="mr-2 h-4 w-4" />
           Add New Client
@@ -283,7 +221,7 @@ export const ClientMasters: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredClients.map((client, index) => (
+                 {filteredClients.map((client, index) => (
                   <motion.tr
                     key={client.id}
                     initial={{ opacity: 0, x: -20 }}
@@ -294,26 +232,24 @@ export const ClientMasters: React.FC = () => {
                     <TableCell>
                       <div className="space-y-1">
                         <p className="font-medium text-foreground">{client.name}</p>
-                        <p className="text-sm text-muted-foreground">{client.contactPerson}</p>
+                        <p className="text-sm text-muted-foreground">{client.type}</p>
                         <div className="flex items-center gap-1">
-                          {client.portalAccess && (
-                            <Badge variant="secondary" className="text-xs">
-                              Portal Access
-                            </Badge>
-                          )}
+                          <Badge variant="secondary" className="text-xs">
+                            {client.type}
+                          </Badge>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">
-                        <p className="text-sm font-mono">{client.gstin}</p>
-                        <p className="text-sm font-mono text-muted-foreground">{client.pan}</p>
+                        <p className="text-sm font-mono">{client.gstNumber || 'N/A'}</p>
+                        <p className="text-sm font-mono text-muted-foreground">{client.panNumber}</p>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center">
                         <MapPin className="mr-1 h-3 w-3 text-muted-foreground" />
-                        <span className="text-sm">{client.jurisdiction}</span>
+                        <span className="text-sm">{client.assignedCA}</span>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -335,8 +271,8 @@ export const ClientMasters: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <div className="text-center">
-                        <p className="font-medium">{client.casesCount}</p>
-                        <p className="text-xs text-muted-foreground">{client.lastActivity}</p>
+                        <p className="font-medium">{client.activeCases}</p>
+                        <p className="text-xs text-muted-foreground">{client.registrationDate}</p>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -393,6 +329,13 @@ export const ClientMasters: React.FC = () => {
           </CardContent>
         </Card>
       </motion.div>
+
+      <ClientModal
+        isOpen={clientModal.isOpen}
+        onClose={() => setClientModal({ isOpen: false, mode: 'create', client: null })}
+        client={clientModal.client}
+        mode={clientModal.mode}
+      />
     </div>
   );
 };

@@ -26,86 +26,19 @@ import { CaseLifecycleFlow } from './CaseLifecycleFlow';
 import { CaseTimeline } from './CaseTimeline';
 import { HearingScheduler } from './HearingScheduler';
 import { SLATracker } from './SLATracker';
-
-interface Case {
-  id: string;
-  caseNumber: string;
-  title: string;
-  client: string;
-  currentStage: 'Scrutiny' | 'Demand' | 'Adjudication' | 'Appeals' | 'GSTAT' | 'HC' | 'SC';
-  priority: 'High' | 'Medium' | 'Low';
-  slaStatus: 'Green' | 'Amber' | 'Red';
-  nextHearing?: {
-    date: string;
-    court: string;
-    type: 'Adjourned' | 'Final' | 'Argued';
-  };
-  assignedTo: string;
-  createdDate: string;
-  lastUpdated: string;
-  documents: number;
-  progress: number;
-}
-
-const mockCases: Case[] = [
-  {
-    id: '1',
-    caseNumber: 'CASE-2024-001',
-    title: 'Tax Assessment Appeal - Acme Corp',
-    client: 'Acme Corporation Ltd',
-    currentStage: 'Adjudication',
-    priority: 'High',
-    slaStatus: 'Red',
-    nextHearing: {
-      date: '2024-02-15',
-      court: 'Income Tax Appellate Tribunal',
-      type: 'Final'
-    },
-    assignedTo: 'John Smith',
-    createdDate: '2024-01-10',
-    lastUpdated: '2024-01-20',
-    documents: 15,
-    progress: 65
-  },
-  {
-    id: '2',
-    caseNumber: 'CASE-2024-002',
-    title: 'GST Demand Notice Challenge',
-    client: 'Global Tech Solutions',
-    currentStage: 'Demand',
-    priority: 'Medium',
-    slaStatus: 'Amber',
-    assignedTo: 'Sarah Johnson',
-    createdDate: '2024-01-15',
-    lastUpdated: '2024-01-22',
-    documents: 8,
-    progress: 40
-  },
-  {
-    id: '3',
-    caseNumber: 'CASE-2024-003',
-    title: 'Supreme Court Constitutional Matter',
-    client: 'Metro Industries Pvt Ltd',
-    currentStage: 'SC',
-    priority: 'High',
-    slaStatus: 'Green',
-    nextHearing: {
-      date: '2024-02-28',
-      court: 'Supreme Court of India',
-      type: 'Argued'
-    },
-    assignedTo: 'Mike Wilson',
-    createdDate: '2023-12-01',
-    lastUpdated: '2024-01-23',
-    documents: 45,
-    progress: 90
-  }
-];
+import { CaseModal } from '@/components/modals/CaseModal';
+import { Case, useAppState } from '@/contexts/AppStateContext';
 
 export const CaseManagement: React.FC = () => {
+  const { state } = useAppState();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCase, setSelectedCase] = useState<Case | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [caseModal, setCaseModal] = useState<{ isOpen: boolean; mode: 'create' | 'edit' | 'view'; case?: Case | null }>({
+    isOpen: false,
+    mode: 'create',
+    case: null
+  });
 
   const getSLAColor = (status: string) => {
     switch (status) {
@@ -147,12 +80,7 @@ export const CaseManagement: React.FC = () => {
         </div>
         <Button 
           className="bg-primary hover:bg-primary-hover"
-          onClick={() => {
-            toast({
-              title: "New Case",
-              description: "Opening case creation form...",
-            });
-          }}
+          onClick={() => setCaseModal({ isOpen: true, mode: 'create', case: null })}
         >
           <Plus className="mr-2 h-4 w-4" />
           New Case
@@ -281,7 +209,7 @@ export const CaseManagement: React.FC = () => {
             transition={{ duration: 0.3 }}
             className="space-y-6"
           >
-            {mockCases.map((caseItem, index) => (
+            {state.cases.map((caseItem, index) => (
               <motion.div
                 key={caseItem.id}
                 initial={{ opacity: 0, x: -20 }}
@@ -351,10 +279,7 @@ export const CaseManagement: React.FC = () => {
                               size="sm"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                toast({
-                                  title: "View Case",
-                                  description: `Opening details for ${caseItem.caseNumber}`,
-                                });
+                                setCaseModal({ isOpen: true, mode: 'view', case: caseItem });
                               }}
                             >
                               <Eye className="h-4 w-4" />
@@ -364,10 +289,7 @@ export const CaseManagement: React.FC = () => {
                               size="sm"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                toast({
-                                  title: "Edit Case",
-                                  description: `Editing ${caseItem.caseNumber}`,
-                                });
+                                setCaseModal({ isOpen: true, mode: 'edit', case: caseItem });
                               }}
                             >
                               <Edit className="h-4 w-4" />
@@ -389,17 +311,24 @@ export const CaseManagement: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="sla" className="mt-6">
-          <SLATracker cases={mockCases} />
+          <SLATracker cases={state.cases} />
         </TabsContent>
 
         <TabsContent value="hearings" className="mt-6">
-          <HearingScheduler cases={mockCases} />
+          <HearingScheduler cases={state.cases} />
         </TabsContent>
 
         <TabsContent value="timeline" className="mt-6">
           <CaseTimeline selectedCase={selectedCase} />
         </TabsContent>
       </Tabs>
+
+      <CaseModal
+        isOpen={caseModal.isOpen}
+        onClose={() => setCaseModal({ isOpen: false, mode: 'create', case: null })}
+        case={caseModal.case}
+        mode={caseModal.mode}
+      />
     </div>
   );
 };
