@@ -79,7 +79,8 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({ isOpen, onClose, d
         size: formData.file.size,
         caseId: formData.caseId,
         clientId: case_.clientId, // Auto-derived from case
-        uploadedBy: 'Current User', // In real app, get from auth context
+        uploadedById: '3',
+        uploadedByName: 'Current User', // In real app, get from auth context
         uploadedAt: new Date().toISOString(),
         tags: formData.tags,
         isShared: formData.isShared,
@@ -184,7 +185,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({ isOpen, onClose, d
                   <span className="font-medium">File Size:</span> {formatFileSize(documentData.size)}
                 </div>
                 <div>
-                  <span className="font-medium">Uploaded By:</span> {documentData.uploadedBy}
+                  <span className="font-medium">Uploaded By:</span> {documentData.uploadedByName}
                 </div>
                 <div>
                   <span className="font-medium">Upload Date:</span> {new Date(documentData.uploadedAt).toLocaleDateString()}

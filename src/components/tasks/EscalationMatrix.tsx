@@ -22,11 +22,11 @@ import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-interface Task {
+interface TaskDisplay {
   id: string;
   title: string;
   caseNumber: string;
-  assignedTo: string;
+  assignedToName: string;
   dueDate: string;
   status: string;
   priority: 'Critical' | 'High' | 'Medium' | 'Low';
@@ -48,7 +48,7 @@ interface EscalationRule {
 }
 
 interface EscalationMatrixProps {
-  tasks: Task[];
+  tasks: TaskDisplay[];
 }
 
 const escalationRules: EscalationRule[] = [

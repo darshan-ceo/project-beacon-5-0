@@ -8,33 +8,49 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@/hooks/use-toast';
 import { Case, useAppState } from '@/contexts/AppStateContext';
 import { ClientSelector } from '@/components/ui/relationship-selector';
+import { EmployeeSelector } from '@/components/ui/employee-selector';
+import { ContextBadge } from '@/components/ui/context-badge';
 import { useRelationships } from '@/hooks/useRelationships';
+import { useContextualForms } from '@/hooks/useContextualForms';
 
 interface CaseModalProps {
   isOpen: boolean;
   onClose: () => void;
   case?: Case | null;
   mode: 'create' | 'edit' | 'view';
+  contextClientId?: string;
 }
 
-export const CaseModal: React.FC<CaseModalProps> = ({ isOpen, onClose, case: caseData, mode }) => {
+export const CaseModal: React.FC<CaseModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  case: caseData, 
+  mode,
+  contextClientId 
+}) => {
   const { state, dispatch } = useAppState();
   const { validateCaseClient } = useRelationships();
+  const { context, updateContext, getAvailableClients, getContextDetails } = useContextualForms({
+    clientId: contextClientId
+  });
+  
   const [formData, setFormData] = useState<{
     caseNumber: string;
     title: string;
     clientId: string;
     currentStage: 'Scrutiny' | 'Demand' | 'Adjudication' | 'Appeals' | 'GSTAT' | 'HC' | 'SC';
     priority: 'High' | 'Medium' | 'Low';
-    assignedTo: string;
+    assignedToId: string;
+    assignedToName: string;
     description: string;
   }>({
     caseNumber: '',
     title: '',
-    clientId: '',
+    clientId: contextClientId || '',
     currentStage: 'Scrutiny',
     priority: 'Medium',
-    assignedTo: '',
+    assignedToId: '',
+    assignedToName: '',
     description: ''
   });
 
@@ -46,21 +62,26 @@ export const CaseModal: React.FC<CaseModalProps> = ({ isOpen, onClose, case: cas
         clientId: caseData.clientId,
         currentStage: caseData.currentStage,
         priority: caseData.priority,
-        assignedTo: caseData.assignedTo,
+        assignedToId: caseData.assignedToId,
+        assignedToName: caseData.assignedToName,
         description: ''
       });
+      updateContext({ clientId: caseData.clientId });
     } else if (mode === 'create') {
+      // Generate case number
+      const nextCaseNumber = `CASE-${new Date().getFullYear()}-${String(state.cases.length + 1).padStart(3, '0')}`;
       setFormData({
-        caseNumber: `CASE-${new Date().getFullYear()}-${String(state.cases.length + 1).padStart(3, '0')}`,
+        caseNumber: nextCaseNumber,
         title: '',
-        clientId: '',
+        clientId: contextClientId || '',
         currentStage: 'Scrutiny',
         priority: 'Medium',
-        assignedTo: '',
+        assignedToId: '',
+        assignedToName: '',
         description: ''
       });
     }
-  }, [caseData, mode, state.cases.length]);
+  }, [caseData, mode, contextClientId, state.cases.length, updateContext]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,17 +96,38 @@ export const CaseModal: React.FC<CaseModalProps> = ({ isOpen, onClose, case: cas
       });
       return;
     }
+
+    // Validate employee assignment
+    const assignedEmployee = state.employees.find(emp => emp.id === formData.assignedToId);
+    if (!assignedEmployee) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a valid employee for assignment.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (assignedEmployee.status !== 'Active') {
+      toast({
+        title: "Validation Error",
+        description: "Cannot assign case to inactive employee.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     if (mode === 'create') {
       const newCase: Case = {
         id: Date.now().toString(),
         caseNumber: formData.caseNumber,
         title: formData.title,
-        clientId: formData.clientId, // FK reference
+        clientId: formData.clientId,
         currentStage: formData.currentStage,
         priority: formData.priority,
         slaStatus: 'Green',
-        assignedTo: formData.assignedTo,
+        assignedToId: formData.assignedToId,
+        assignedToName: formData.assignedToName,
         createdDate: new Date().toISOString().split('T')[0],
         lastUpdated: new Date().toISOString().split('T')[0],
         documents: 0,
@@ -95,23 +137,23 @@ export const CaseModal: React.FC<CaseModalProps> = ({ isOpen, onClose, case: cas
       dispatch({ type: 'ADD_CASE', payload: newCase });
       toast({
         title: "Case Created",
-        description: `Case ${formData.caseNumber} has been created successfully.`,
+        description: `Case "${formData.title}" has been created successfully.`,
       });
     } else if (mode === 'edit' && caseData) {
       const updatedCase: Case = {
         ...caseData,
         title: formData.title,
-        clientId: formData.clientId, // FK reference
         currentStage: formData.currentStage,
         priority: formData.priority,
-        assignedTo: formData.assignedTo,
+        assignedToId: formData.assignedToId,
+        assignedToName: formData.assignedToName,
         lastUpdated: new Date().toISOString().split('T')[0]
       };
 
       dispatch({ type: 'UPDATE_CASE', payload: updatedCase });
       toast({
         title: "Case Updated",
-        description: `Case ${formData.caseNumber} has been updated successfully.`,
+        description: `Case "${formData.title}" has been updated successfully.`,
       });
     }
 
@@ -123,7 +165,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({ isOpen, onClose, case: cas
       dispatch({ type: 'DELETE_CASE', payload: caseData.id });
       toast({
         title: "Case Deleted",
-        description: `Case ${caseData.caseNumber} has been deleted.`,
+        description: `Case "${caseData.title}" has been deleted.`,
       });
       onClose();
     }
@@ -147,16 +189,15 @@ export const CaseModal: React.FC<CaseModalProps> = ({ isOpen, onClose, case: cas
               <Input
                 id="caseNumber"
                 value={formData.caseNumber}
-                onChange={(e) => setFormData(prev => ({ ...prev, caseNumber: e.target.value }))}
-                disabled={mode === 'view' || mode === 'edit'}
-                required
+                disabled={true}
+                className="bg-muted"
               />
             </div>
             <div>
               <Label htmlFor="priority">Priority</Label>
               <Select 
                 value={formData.priority} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value as 'High' | 'Medium' | 'Low' }))}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value as any }))}
                 disabled={mode === 'view'}
               >
                 <SelectTrigger>
@@ -182,16 +223,28 @@ export const CaseModal: React.FC<CaseModalProps> = ({ isOpen, onClose, case: cas
             />
           </div>
 
-          <div>
-            <ClientSelector
-              clients={state.clients.filter(c => c.status === 'Active')}
-              value={formData.clientId}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, clientId: value }))}
-              disabled={mode === 'view'}
-            />
-          </div>
-
           <div className="grid grid-cols-2 gap-4">
+            <div>
+              {contextClientId ? (
+                <div className="space-y-2">
+                  <ContextBadge
+                    label="Client"
+                    value={getContextDetails().client?.name || 'Unknown Client'}
+                    variant="outline"
+                  />
+                </div>
+              ) : (
+                <ClientSelector
+                  clients={getAvailableClients()}
+                  value={formData.clientId}
+                  onValueChange={(value) => {
+                    setFormData(prev => ({ ...prev, clientId: value }));
+                    updateContext({ clientId: value });
+                  }}
+                  disabled={mode === 'view'}
+                />
+              )}
+            </div>
             <div>
               <Label htmlFor="currentStage">Current Stage</Label>
               <Select 
@@ -208,21 +261,30 @@ export const CaseModal: React.FC<CaseModalProps> = ({ isOpen, onClose, case: cas
                   <SelectItem value="Adjudication">Adjudication</SelectItem>
                   <SelectItem value="Appeals">Appeals</SelectItem>
                   <SelectItem value="GSTAT">GSTAT</SelectItem>
-                  <SelectItem value="HC">HC</SelectItem>
-                  <SelectItem value="SC">SC</SelectItem>
+                  <SelectItem value="HC">High Court</SelectItem>
+                  <SelectItem value="SC">Supreme Court</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label htmlFor="assignedTo">Assigned To</Label>
-              <Input
-                id="assignedTo"
-                value={formData.assignedTo}
-                onChange={(e) => setFormData(prev => ({ ...prev, assignedTo: e.target.value }))}
-                disabled={mode === 'view'}
-                required
-              />
-            </div>
+          </div>
+
+          <div>
+            <EmployeeSelector
+              label="Case Owner"
+              value={formData.assignedToId}
+              onValueChange={(value) => {
+                const employee = state.employees.find(e => e.id === value);
+                setFormData(prev => ({ 
+                  ...prev, 
+                  assignedToId: value,
+                  assignedToName: employee?.name || ''
+                }));
+              }}
+              disabled={mode === 'view'}
+              required
+              roleFilter={['Partner', 'Senior Associate', 'Associate', 'CA']}
+              showWorkload
+            />
           </div>
 
           <div>
@@ -233,6 +295,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({ isOpen, onClose, case: cas
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               disabled={mode === 'view'}
               rows={3}
+              placeholder="Additional case details..."
             />
           </div>
 

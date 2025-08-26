@@ -16,6 +16,7 @@ import { CaseSelector } from '@/components/ui/relationship-selector';
 import { ContextBadge } from '@/components/ui/context-badge';
 import { useRelationships } from '@/hooks/useRelationships';
 import { useContextualForms } from '@/hooks/useContextualForms';
+import { EmployeeSelector } from '@/components/ui/employee-selector';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -46,7 +47,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     stage: string;
     priority: 'Critical' | 'High' | 'Medium' | 'Low';
     status: 'Not Started' | 'In Progress' | 'Review' | 'Completed' | 'Overdue';
-    assignedTo: string;
+    assignedToId: string;
+    assignedToName: string;
     estimatedHours: number;
     dueDate: Date;
   }>({
@@ -56,7 +58,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     stage: '',
     priority: 'Medium',
     status: 'Not Started',
-    assignedTo: '',
+    assignedToId: '',
+    assignedToName: '',
     estimatedHours: 8,
     dueDate: new Date()
   });
@@ -70,7 +73,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({
         stage: taskData.stage,
         priority: taskData.priority,
         status: taskData.status,
-        assignedTo: taskData.assignedTo,
+        assignedToId: taskData.assignedToId,
+        assignedToName: taskData.assignedToName,
         estimatedHours: taskData.estimatedHours,
         dueDate: new Date(taskData.dueDate)
       });
@@ -83,7 +87,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({
         stage: '',
         priority: 'Medium',
         status: 'Not Started',
-        assignedTo: '',
+        assignedToId: '',
+        assignedToName: '',
         estimatedHours: 8,
         dueDate: new Date()
       });
@@ -126,8 +131,10 @@ export const TaskModal: React.FC<TaskModalProps> = ({
         stage: formData.stage,
         priority: formData.priority,
         status: formData.status,
-        assignedTo: formData.assignedTo,
-        assignedBy: 'Current User', // In real app, get from auth context
+        assignedToId: formData.assignedToId,
+        assignedToName: formData.assignedToName,
+        assignedById: '3', // Current User ID - in real app, get from auth context
+        assignedByName: 'Mike Wilson', // Current User Name - in real app, get from auth context
         createdDate: new Date().toISOString().split('T')[0],
         dueDate: formData.dueDate.toISOString().split('T')[0],
         estimatedHours: formData.estimatedHours,
@@ -147,7 +154,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({
         description: formData.description,
         priority: formData.priority,
         status: formData.status,
-        assignedTo: formData.assignedTo,
+        assignedToId: formData.assignedToId,
+        assignedToName: formData.assignedToName,
         estimatedHours: formData.estimatedHours,
         dueDate: formData.dueDate.toISOString().split('T')[0]
         // Note: caseId, clientId, caseNumber are not updatable in edit mode
@@ -302,13 +310,19 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="assignedTo">Assigned To</Label>
-              <Input
-                id="assignedTo"
-                value={formData.assignedTo}
-                onChange={(e) => setFormData(prev => ({ ...prev, assignedTo: e.target.value }))}
+              <EmployeeSelector
+                value={formData.assignedToId}
+                onValueChange={(value) => {
+                  const employee = state.employees.find(e => e.id === value);
+                  setFormData(prev => ({ 
+                    ...prev, 
+                    assignedToId: value,
+                    assignedToName: employee?.name || ''
+                  }));
+                }}
                 disabled={mode === 'view'}
                 required
+                showWorkload
               />
             </div>
             <div>

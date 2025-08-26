@@ -15,7 +15,8 @@ interface Case {
     judgeId: string; // FK to Judge.id
     type: 'Adjourned' | 'Final' | 'Argued';
   };
-  assignedTo: string;
+  assignedToId: string; // FK to Employee.id
+  assignedToName: string; // Display name derived from Employee
   createdDate: string;
   lastUpdated: string;
   documents: number;
@@ -32,8 +33,10 @@ interface Task {
   stage: string;
   priority: 'Critical' | 'High' | 'Medium' | 'Low';
   status: 'Not Started' | 'In Progress' | 'Review' | 'Completed' | 'Overdue';
-  assignedTo: string;
-  assignedBy: string;
+  assignedToId: string; // FK to Employee.id
+  assignedToName: string; // Display name derived from Employee
+  assignedById: string; // FK to Employee.id
+  assignedByName: string; // Display name derived from Employee
   createdDate: string;
   dueDate: string;
   completedDate?: string;
@@ -57,7 +60,8 @@ interface Client {
   panNumber: string;
   gstNumber?: string;
   status: 'Active' | 'Inactive';
-  assignedCA: string;
+  assignedCAId: string; // FK to Employee.id  
+  assignedCAName: string; // Display name derived from Employee
   registrationDate: string;
   totalCases: number;
   activeCases: number;
@@ -103,11 +107,26 @@ interface Document {
   size: number;
   caseId: string; // FK to Case.id (required)
   clientId: string; // Derived from Case.clientId (auto-populated)
-  uploadedBy: string;
+  uploadedById: string; // FK to Employee.id
+  uploadedByName: string; // Display name derived from Employee
   uploadedAt: string;
   tags: string[];
   isShared: boolean;
   path: string;
+}
+
+// Employee interface for universal assignment system
+interface Employee {
+  id: string;
+  name: string;
+  role: 'Partner' | 'Associate' | 'Paralegal' | 'Admin' | 'CA' | 'Manager' | 'Senior Associate';
+  email: string;
+  status: 'Active' | 'On Leave' | 'Inactive';
+  department: string;
+  joiningDate: string;
+  workloadCapacity: number;
+  phone?: string;
+  specialization?: string[];
 }
 
 // New interface for Hearing entity
@@ -136,6 +155,7 @@ export interface AppState {
   judges: Judge[];
   documents: Document[];
   hearings: Hearing[];
+  employees: Employee[];
   isLoading: boolean;
   error: string | null;
 }
@@ -165,6 +185,9 @@ export type AppAction =
   | { type: 'ADD_HEARING'; payload: Hearing }
   | { type: 'UPDATE_HEARING'; payload: Hearing }
   | { type: 'DELETE_HEARING'; payload: string }
+  | { type: 'ADD_EMPLOYEE'; payload: Employee }
+  | { type: 'UPDATE_EMPLOYEE'; payload: Employee }
+  | { type: 'DELETE_EMPLOYEE'; payload: string }
   | { type: 'RESTORE_STATE'; payload: Partial<AppState> }
   | { type: 'CLEAR_ALL_DATA' };
 
@@ -185,7 +208,8 @@ const initialState: AppState = {
         judgeId: '1', // FK to Justice Rajesh Sharma
         type: 'Final'
       },
-      assignedTo: 'John Smith',
+      assignedToId: '1',
+      assignedToName: 'John Smith',
       createdDate: '2024-01-10',
       lastUpdated: '2024-01-20',
       documents: 15,
@@ -199,7 +223,8 @@ const initialState: AppState = {
       currentStage: 'Demand',
       priority: 'Medium',
       slaStatus: 'Amber',
-      assignedTo: 'Sarah Johnson',
+      assignedToId: '2',
+      assignedToName: 'Sarah Johnson',
       createdDate: '2024-01-15',
       lastUpdated: '2024-01-22',
       documents: 8,
@@ -217,8 +242,10 @@ const initialState: AppState = {
       stage: 'Demand',
       priority: 'Critical',
       status: 'Overdue',
-      assignedTo: 'John Smith',
-      assignedBy: 'Mike Wilson',
+      assignedToId: '1',
+      assignedToName: 'John Smith',
+      assignedById: '3',
+      assignedByName: 'Mike Wilson',
       createdDate: '2024-01-15',
       dueDate: '2024-01-20',
       estimatedHours: 16,
@@ -240,7 +267,8 @@ const initialState: AppState = {
       panNumber: 'ABCDE1234F',
       gstNumber: '27ABCDE1234F1Z5',
       status: 'Active',
-      assignedCA: 'John Smith',
+      assignedCAId: '1',
+      assignedCAName: 'John Smith',
       registrationDate: '2024-01-15',
       totalCases: 5,
       activeCases: 2,
@@ -257,7 +285,8 @@ const initialState: AppState = {
       panNumber: 'ABCDE1235G',
       gstNumber: '29ABCDE1235G1Z6',
       status: 'Active',
-      assignedCA: 'Sarah Johnson',
+      assignedCAId: '2',
+      assignedCAName: 'Sarah Johnson',
       registrationDate: '2024-01-10',
       totalCases: 3,
       activeCases: 1,
@@ -306,7 +335,8 @@ const initialState: AppState = {
       size: 1024000,
       caseId: '1',
       clientId: '1', // Auto-derived from Case.clientId
-      uploadedBy: 'John Smith',
+      uploadedById: '1',
+      uploadedByName: 'John Smith',
       uploadedAt: '2024-01-15T10:30:00Z',
       tags: ['Notice', 'DRC-01', 'Important'],
       isShared: false,
@@ -327,6 +357,80 @@ const initialState: AppState = {
       agenda: 'Final arguments for tax assessment appeal',
       createdDate: '2024-01-10',
       lastUpdated: '2024-01-20'
+    }
+  ],
+  employees: [
+    {
+      id: '1',
+      name: 'John Smith',
+      role: 'Partner',
+      email: 'john.smith@lawfirm.com',
+      status: 'Active',
+      department: 'Corporate Law',
+      joiningDate: '2018-03-15',
+      workloadCapacity: 40,
+      phone: '+91-9876543210',
+      specialization: ['Corporate Law', 'Tax Law', 'Mergers & Acquisitions']
+    },
+    {
+      id: '2',
+      name: 'Sarah Johnson',
+      role: 'Senior Associate',
+      email: 'sarah.johnson@lawfirm.com',
+      status: 'Active',
+      department: 'Tax Law',
+      joiningDate: '2020-08-01',
+      workloadCapacity: 35,
+      phone: '+91-9876543211',
+      specialization: ['Tax Law', 'GST', 'Income Tax Appeals']
+    },
+    {
+      id: '3',
+      name: 'Mike Wilson',
+      role: 'Manager',
+      email: 'mike.wilson@lawfirm.com',
+      status: 'Active',
+      department: 'Operations',
+      joiningDate: '2017-01-10',
+      workloadCapacity: 30,
+      phone: '+91-9876543212',
+      specialization: ['Team Management', 'Operations', 'Client Relations']
+    },
+    {
+      id: '4',
+      name: 'Emily Chen',
+      role: 'Associate',
+      email: 'emily.chen@lawfirm.com',
+      status: 'Active',
+      department: 'Litigation',
+      joiningDate: '2022-06-15',
+      workloadCapacity: 25,
+      phone: '+91-9876543213',
+      specialization: ['Litigation', 'Civil Law', 'Commercial Disputes']
+    },
+    {
+      id: '5',
+      name: 'David Kumar',
+      role: 'CA',
+      email: 'david.kumar@lawfirm.com',
+      status: 'Active',
+      department: 'Tax Law',
+      joiningDate: '2019-11-20',
+      workloadCapacity: 30,
+      phone: '+91-9876543214',
+      specialization: ['Chartered Accountancy', 'Tax Planning', 'Audit']
+    },
+    {
+      id: '6',
+      name: 'Lisa Patel',
+      role: 'Paralegal',
+      email: 'lisa.patel@lawfirm.com',
+      status: 'On Leave',
+      department: 'Support',
+      joiningDate: '2021-02-12',
+      workloadCapacity: 20,
+      phone: '+91-9876543215',
+      specialization: ['Research', 'Documentation', 'Case Management']
     }
   ],
   isLoading: false,
@@ -424,6 +528,18 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         hearings: state.hearings.filter(h => h.id !== action.payload)
       };
+    case 'ADD_EMPLOYEE':
+      return { ...state, employees: [...state.employees, action.payload] };
+    case 'UPDATE_EMPLOYEE':
+      return {
+        ...state,
+        employees: state.employees.map(e => e.id === action.payload.id ? action.payload : e)
+      };
+    case 'DELETE_EMPLOYEE':
+      return {
+        ...state,
+        employees: state.employees.filter(e => e.id !== action.payload)
+      };
     case 'RESTORE_STATE':
       return { ...state, ...action.payload };
     case 'CLEAR_ALL_DATA':
@@ -436,6 +552,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         judges: [],
         documents: [],
         hearings: [],
+        employees: [],
       };
     default:
       return state;
@@ -469,4 +586,4 @@ export const useAppState = () => {
 };
 
 // Export types
-export type { Case, Task, Client, Court, Judge, Document, Hearing };
+export type { Case, Task, Client, Court, Judge, Document, Hearing, Employee };

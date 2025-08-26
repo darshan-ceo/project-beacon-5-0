@@ -246,7 +246,7 @@ export const CaseManagement: React.FC = () => {
                             <p className="text-xs text-muted-foreground">Assigned To</p>
                             <div className="flex items-center">
                               <Users className="mr-1 h-3 w-3" />
-                              <span className="text-sm">{caseItem.assignedTo}</span>
+                              <span className="text-sm">{caseItem.assignedToName}</span>
                             </div>
                           </div>
                           

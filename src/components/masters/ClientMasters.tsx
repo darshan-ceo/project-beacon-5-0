@@ -249,7 +249,7 @@ export const ClientMasters: React.FC = () => {
                     <TableCell>
                       <div className="flex items-center">
                         <MapPin className="mr-1 h-3 w-3 text-muted-foreground" />
-                        <span className="text-sm">{client.assignedCA}</span>
+                        <span className="text-sm">{client.assignedCAName}</span>
                       </div>
                     </TableCell>
                     <TableCell>

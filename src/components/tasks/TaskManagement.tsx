@@ -296,7 +296,7 @@ export const TaskManagement: React.FC = () => {
         </TabsList>
 
         <TabsContent value="board" className="mt-6">
-          <TaskBoard tasks={filteredTasks} />
+          <TaskBoard tasks={filteredTasks.map(t => ({ ...t, assignedTo: t.assignedToName }))} />
         </TabsContent>
 
         <TabsContent value="automation" className="mt-6">
@@ -304,7 +304,7 @@ export const TaskManagement: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="escalation" className="mt-6">
-          <EscalationMatrix tasks={state.tasks} />
+          <EscalationMatrix tasks={state.tasks.map(t => ({ ...t, assignedToName: t.assignedToName }))} />
         </TabsContent>
 
         <TabsContent value="templates" className="mt-6">

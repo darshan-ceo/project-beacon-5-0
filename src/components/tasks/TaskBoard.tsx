@@ -26,7 +26,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-interface Task {
+interface TaskDisplay {
   id: string;
   title: string;
   description: string;
@@ -44,7 +44,7 @@ interface Task {
 }
 
 interface TaskBoardProps {
-  tasks: Task[];
+  tasks: TaskDisplay[];
 }
 
 const statusColumns = [
@@ -91,7 +91,7 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({ tasks }) => {
     return diffDays;
   };
 
-  const TaskCard: React.FC<{ task: Task }> = ({ task }) => {
+  const TaskCard: React.FC<{ task: TaskDisplay }> = ({ task }) => {
     const daysUntilDue = getDaysUntilDue(task.dueDate);
     const isOverdue = daysUntilDue < 0;
     const isUrgent = daysUntilDue <= 1 && daysUntilDue >= 0;

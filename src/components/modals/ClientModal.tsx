@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { Client, useAppState } from '@/contexts/AppStateContext';
+import { CASelector } from '@/components/ui/employee-selector';
 
 interface ClientModalProps {
   isOpen: boolean;
@@ -26,7 +27,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
     registrationNumber: string;
     panNumber: string;
     gstNumber: string;
-    assignedCA: string;
+  assignedCAId: string;
+  assignedCAName: string;
   }>({
     name: '',
     type: 'Individual',
@@ -36,7 +38,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
     registrationNumber: '',
     panNumber: '',
     gstNumber: '',
-    assignedCA: ''
+    assignedCAId: '',
+    assignedCAName: ''
   });
 
   useEffect(() => {
@@ -50,7 +53,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         registrationNumber: clientData.registrationNumber || '',
         panNumber: clientData.panNumber,
         gstNumber: clientData.gstNumber || '',
-        assignedCA: clientData.assignedCA
+        assignedCAId: clientData.assignedCAId,
+        assignedCAName: clientData.assignedCAName
       });
     } else if (mode === 'create') {
       setFormData({
@@ -62,7 +66,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         registrationNumber: '',
         panNumber: '',
         gstNumber: '',
-        assignedCA: ''
+        assignedCAId: '',
+        assignedCAName: ''
       });
     }
   }, [clientData, mode]);
@@ -82,7 +87,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         panNumber: formData.panNumber,
         gstNumber: formData.gstNumber,
         status: 'Active',
-        assignedCA: formData.assignedCA,
+        assignedCAId: formData.assignedCAId,
+        assignedCAName: formData.assignedCAName,
         registrationDate: new Date().toISOString().split('T')[0],
         totalCases: 0,
         activeCases: 0,
@@ -105,7 +111,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         registrationNumber: formData.registrationNumber,
         panNumber: formData.panNumber,
         gstNumber: formData.gstNumber,
-        assignedCA: formData.assignedCA
+        assignedCAId: formData.assignedCAId,
+        assignedCAName: formData.assignedCAName
       };
 
       dispatch({ type: 'UPDATE_CLIENT', payload: updatedClient });
@@ -246,11 +253,16 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
           </div>
 
           <div>
-            <Label htmlFor="assignedCA">Assigned CA</Label>
-            <Input
-              id="assignedCA"
-              value={formData.assignedCA}
-              onChange={(e) => setFormData(prev => ({ ...prev, assignedCA: e.target.value }))}
+            <CASelector
+              value={formData.assignedCAId}
+              onValueChange={(value) => {
+                const employee = state.employees.find(e => e.id === value);
+                setFormData(prev => ({ 
+                  ...prev, 
+                  assignedCAId: value,
+                  assignedCAName: employee?.name || ''
+                }));
+              }}
               disabled={mode === 'view'}
               required
             />
