@@ -311,11 +311,11 @@ export const CaseManagement: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="sla" className="mt-6">
-          <SLATracker cases={state.cases} courts={state.courts} clients={state.clients} />
+          <SLATracker cases={state.cases.map(c => ({ ...c, client: state.clients.find(cl => cl.id === c.clientId)?.name || 'Unknown' }))} />
         </TabsContent>
 
         <TabsContent value="hearings" className="mt-6">
-          <HearingScheduler cases={state.cases} courts={state.courts} judges={state.judges} clients={state.clients} />
+          <HearingScheduler cases={state.cases.map(c => ({ ...c, client: state.clients.find(cl => cl.id === c.clientId)?.name || 'Unknown' }))} />
         </TabsContent>
 
         <TabsContent value="timeline" className="mt-6">

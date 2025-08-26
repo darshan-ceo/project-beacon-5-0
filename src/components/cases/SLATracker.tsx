@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
+import { ActionItemModal } from '@/components/modals/ActionItemModal';
 import { 
   AlertTriangle, 
   Clock, 
@@ -112,6 +113,7 @@ const criticalCases = [
 ];
 
 export const SLATracker: React.FC<SLATrackerProps> = ({ cases }) => {
+  const [selectedCaseForAction, setSelectedCaseForAction] = useState<{ id: string; urgency: string } | null>(null);
   const getSLAColor = (status: string) => {
     switch (status) {
       case 'Green': return 'bg-success text-success-foreground';
@@ -239,12 +241,7 @@ export const SLATracker: React.FC<SLATrackerProps> = ({ cases }) => {
                       <Button 
                         size="sm" 
                         className="mt-2"
-                        onClick={() => {
-                          toast({
-                            title: "Action Initiated",
-                            description: `Taking action on ${case_.caseNumber}`,
-                          });
-                        }}
+                        onClick={() => setSelectedCaseForAction({ id: case_.id, urgency: case_.urgency })}
                       >
                         Take Action
                       </Button>
@@ -379,6 +376,15 @@ export const SLATracker: React.FC<SLATrackerProps> = ({ cases }) => {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Action Item Modal */}
+      <ActionItemModal
+        isOpen={!!selectedCaseForAction}
+        onClose={() => setSelectedCaseForAction(null)}
+        caseId={selectedCaseForAction?.id || null}
+        urgencyLevel={selectedCaseForAction?.urgency as 'High' | 'Medium' | 'Low' || 'Medium'}
+        suggestedAction="Urgent SLA Response Required"
+      />
     </div>
   );
 };

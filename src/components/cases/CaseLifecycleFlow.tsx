@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
+import { StageManagementModal } from '@/components/modals/StageManagementModal';
 import { 
   ArrowRight, 
   CheckCircle, 
@@ -88,6 +89,8 @@ const lifecycleStages = [
 ];
 
 export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCase }) => {
+  const [showStageModal, setShowStageModal] = useState(false);
+
   const getCurrentStageIndex = () => {
     if (!selectedCase) return 0;
     return lifecycleStages.findIndex(stage => 
@@ -241,12 +244,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
                       <Button 
                         size="sm" 
                         className="w-full"
-                        onClick={() => {
-                          toast({
-                            title: "Manage Stage",
-                            description: `Managing ${stage.name} stage actions`,
-                          });
-                        }}
+                        onClick={() => setShowStageModal(true)}
                       >
                         Manage Stage
                       </Button>
