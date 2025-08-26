@@ -28,7 +28,7 @@ export const CourtMasters: React.FC = () => {
   const [isAddCourtOpen, setIsAddCourtOpen] = useState(false);
 
   // Filter courts based on search and filters
-  const filteredCourts = state.courts.filter(court => {
+  const filteredCourts = (state.courts || []).filter(court => {
     const matchesSearch = court.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          court.jurisdiction.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          court.address.toLowerCase().includes(searchTerm.toLowerCase());
@@ -49,7 +49,7 @@ export const CourtMasters: React.FC = () => {
     }
   };
 
-  const uniqueJurisdictions = [...new Set(state.courts.map(court => court.jurisdiction))];
+  const uniqueJurisdictions = [...new Set((state.courts || []).map(court => court.jurisdiction))];
 
   return (
     <div className="space-y-6">
@@ -151,7 +151,7 @@ export const CourtMasters: React.FC = () => {
             <Building2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{state.courts.length}</div>
+            <div className="text-2xl font-bold">{(state.courts || []).length}</div>
             <p className="text-xs text-muted-foreground">
               Across all jurisdictions
             </p>
@@ -165,7 +165,7 @@ export const CourtMasters: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {state.courts.filter(c => c.type === 'Tribunal').length}
+              {(state.courts || []).filter(c => c.type === 'Tribunal').length}
             </div>
             <p className="text-xs text-muted-foreground">
               Primary jurisdiction
@@ -180,7 +180,7 @@ export const CourtMasters: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {state.courts.filter(c => c.type === 'High Court').length}
+              {(state.courts || []).filter(c => c.type === 'High Court').length}
             </div>
             <p className="text-xs text-muted-foreground">
               Appeal jurisdiction
@@ -195,7 +195,7 @@ export const CourtMasters: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {state.courts.length}
+              {(state.courts || []).length}
             </div>
             <p className="text-xs text-muted-foreground">
               Operational courts
@@ -304,14 +304,14 @@ export const CourtMasters: React.FC = () => {
                         </Badge>
                         <div className="text-sm font-medium">{court.jurisdiction}</div>
                         <div className="flex flex-wrap gap-1">
-                          {court.workingDays.slice(0, 2).map(day => (
+                          {(court.workingDays || []).slice(0, 2).map(day => (
                             <Badge key={day} variant="outline" className="text-xs">
                               {day}
                             </Badge>
                           ))}
-                          {court.workingDays.length > 2 && (
+                          {(court.workingDays || []).length > 2 && (
                             <Badge variant="outline" className="text-xs">
-                              +{court.workingDays.length - 2}
+                              +{(court.workingDays || []).length - 2}
                             </Badge>
                           )}
                         </div>
