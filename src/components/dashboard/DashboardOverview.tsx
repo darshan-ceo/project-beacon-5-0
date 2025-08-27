@@ -5,6 +5,7 @@ import { useAppState } from '@/contexts/AppStateContext';
 import { useRBAC } from '@/hooks/useRBAC';
 import { ProtectedComponent } from '@/hooks/useRBAC';
 import { HearingCalendar } from '@/components/cases/HearingCalendar';
+import { DemoDataControls } from '@/components/admin/DemoDataControls';
 import { 
   Users, 
   FileText, 
@@ -333,6 +334,31 @@ export const DashboardOverview: React.FC = () => {
           </Card>
         </motion.div>
       </div>
+
+      {/* Demo Data Controls Section */}
+      <ProtectedComponent module="admin" action="admin">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="mt-8"
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Demo Data Management
+              </CardTitle>
+              <CardDescription>
+                Manage demo data for testing workflows and features
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DemoDataControls />
+            </CardContent>
+          </Card>
+        </motion.div>
+      </ProtectedComponent>
 
       {/* Hearing Calendar Modal */}
       <HearingCalendar 
