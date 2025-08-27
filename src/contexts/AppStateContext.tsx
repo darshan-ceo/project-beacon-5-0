@@ -49,19 +49,66 @@ interface Task {
   escalationLevel: 0 | 1 | 2 | 3;
 }
 
+interface Address {
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state: string;
+  pincode: string;
+  country: string;
+}
+
+interface AuthorizedSignatory {
+  name: string;
+  designation: string;
+  email?: string;
+  phone?: string;
+}
+
+interface Jurisdiction {
+  range?: string;
+  division?: string;
+  commissionerate?: string;
+}
+
 interface Client {
   id: string;
   name: string;
   type: 'Individual' | 'Company' | 'Partnership' | 'Trust' | 'Society';
+  
+  // Contact Information
   email: string;
   phone: string;
-  address: string;
-  registrationNumber?: string;
+  
+  // Address Information (structured)
+  address: Address;
+  
+  // Company-specific fields
+  companyName?: string; // For Company type
+  cin?: string; // Corporate Identification Number
+  registrationNumber?: string; // For Partnership/Trust/Society
+  
+  // Authorized Signatory (for Company)
+  authorizedSignatory?: AuthorizedSignatory;
+  
+  // Communication Address (optional for Company)
+  communicationAddress?: Address;
+  
+  // Tax Information
   panNumber: string;
   gstNumber?: string;
+  
+  // Litigation-specific fields
+  clientCategory?: string; // Regular Taxpayer, Composition Dealer, etc.
+  jurisdiction?: Jurisdiction;
+  notes?: string;
+  
+  // System fields
   status: 'Active' | 'Inactive';
   assignedCAId: string; // FK to Employee.id  
   assignedCAName: string; // Display name derived from Employee
+  defaultAssignedAdvocateId?: string;
+  defaultAssignedAdvocateName?: string;
   registrationDate: string;
   totalCases: number;
   activeCases: number;
@@ -260,15 +307,37 @@ const initialState: AppState = {
       id: '1',
       name: 'Acme Corporation Ltd',
       type: 'Company',
+      companyName: 'Acme Corporation Ltd',
       email: 'contact@acme.com',
       phone: '+91-9876543210',
-      address: '123 Business Park, Mumbai',
-      registrationNumber: 'U12345MH2020PLC123456',
+      address: {
+        addressLine1: '123 Business Park',
+        addressLine2: 'Sector 5',
+        city: 'Mumbai',
+        state: 'MH',
+        pincode: '400001',
+        country: 'IN'
+      },
+      cin: 'U12345MH2020PLC123456',
       panNumber: 'ABCDE1234F',
       gstNumber: '27ABCDE1234F1Z5',
+      authorizedSignatory: {
+        name: 'Rajesh Kumar',
+        designation: 'Managing Director',
+        email: 'rajesh@acme.com',
+        phone: '+91-9876543220'
+      },
+      clientCategory: 'Regular Taxpayer',
+      jurisdiction: {
+        range: 'Mumbai Central',
+        division: 'Mumbai - I',
+        commissionerate: 'Mumbai GST Commissionerate'
+      },
       status: 'Active',
       assignedCAId: '1',
       assignedCAName: 'John Smith',
+      defaultAssignedAdvocateId: '2',
+      defaultAssignedAdvocateName: 'Sarah Johnson',
       registrationDate: '2024-01-15',
       totalCases: 5,
       activeCases: 2,
@@ -278,15 +347,37 @@ const initialState: AppState = {
       id: '2',
       name: 'Global Tech Solutions',
       type: 'Company',
+      companyName: 'Global Tech Solutions Pvt Ltd',
       email: 'info@globaltech.com',
       phone: '+91-9876543211',
-      address: '456 Tech Plaza, Bangalore',
-      registrationNumber: 'U12346KA2021PLC123457',
+      address: {
+        addressLine1: '456 Tech Plaza',
+        addressLine2: 'Electronic City',
+        city: 'Bangalore',
+        state: 'KA',
+        pincode: '560100',
+        country: 'IN'
+      },
+      cin: 'U12346KA2021PLC123457',
       panNumber: 'ABCDE1235G',
       gstNumber: '29ABCDE1235G1Z6',
+      authorizedSignatory: {
+        name: 'Priya Sharma',
+        designation: 'CEO',
+        email: 'priya@globaltech.com',
+        phone: '+91-9876543221'
+      },
+      clientCategory: 'Exporter',
+      jurisdiction: {
+        range: 'Bangalore Central',
+        division: 'Bangalore - II',
+        commissionerate: 'Bangalore GST Commissionerate'
+      },
       status: 'Active',
       assignedCAId: '2',
       assignedCAName: 'Sarah Johnson',
+      defaultAssignedAdvocateId: '4',
+      defaultAssignedAdvocateName: 'Emily Chen',
       registrationDate: '2024-01-10',
       totalCases: 3,
       activeCases: 1,
