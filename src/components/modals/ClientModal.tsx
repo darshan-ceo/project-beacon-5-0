@@ -11,7 +11,9 @@ import { toast } from '@/hooks/use-toast';
 import { Client, useAppState } from '@/contexts/AppStateContext';
 import { CASelector, LawyerSelector } from '@/components/ui/employee-selector';
 import { StructuredAddress } from '@/components/ui/structured-address';
+import { SignatoryManager } from '@/components/ui/signatory-manager';
 import { CLIENT_CATEGORIES } from '@/constants/indianStates';
+import { CompanySignatory } from '@/types/signatory';
 import { 
   validateClientForm, 
   checkDuplicateClient, 
@@ -94,6 +96,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
   const { state, dispatch } = useAppState();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [clientSignatories, setClientSignatories] = useState<CompanySignatory[]>([]);
   
   const [formData, setFormData] = useState<FormData>({
     type: 'Individual',
@@ -133,7 +136,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     defaultAssignedAdvocateName: ''
   });
 
-  // Initialize form data
+  // Initialize form data and signatories
   useEffect(() => {
     if (clientData && (mode === 'edit' || mode === 'view')) {
       setFormData({
@@ -174,6 +177,10 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         defaultAssignedAdvocateId: clientData.defaultAssignedAdvocateId || '',
         defaultAssignedAdvocateName: clientData.defaultAssignedAdvocateName || ''
       });
+
+      // Load signatories for this client
+      const existingSignatories = state.signatories.filter(s => s.clientId === clientData.id);
+      setClientSignatories(existingSignatories);
     } else if (mode === 'create') {
       // Reset form for create mode
       setFormData({
@@ -213,9 +220,10 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         defaultAssignedAdvocateId: '',
         defaultAssignedAdvocateName: ''
       });
+      setClientSignatories([]);
     }
     setErrors({});
-  }, [clientData, mode, isOpen]);
+  }, [clientData, mode, isOpen, state.signatories]);
 
   // Real-time validation
   const validateField = (fieldName: string, value: any) => {
@@ -310,6 +318,30 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         return;
       }
 
+      // For Company clients, ensure at least one active signatory exists
+      if (formData.type === 'Company') {
+        const activeSignatories = clientSignatories.filter(s => s.status === 'Active');
+        if (activeSignatories.length === 0) {
+          toast({
+            title: "Validation Error",
+            description: "Company clients must have at least one active signatory.",
+            variant: "destructive"
+          });
+          return;
+        }
+
+        // Ensure there's a primary signatory among active ones
+        const hasPrimary = activeSignatories.some(s => s.isPrimary);
+        if (!hasPrimary) {
+          toast({
+            title: "Validation Error", 
+            description: "Company clients must have one signatory marked as primary.",
+            variant: "destructive"
+          });
+          return;
+        }
+      }
+
       // Prepare client data
       const clientName = formData.type === 'Company' ? formData.companyName : formData.name;
       
@@ -398,6 +430,54 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         description: `Client "${clientData.name}" has been deleted.`,
       });
       onClose();
+    }
+  };
+
+  // Signatory management handlers
+  const handleAddSignatory = (signatoryData: Omit<CompanySignatory, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'>) => {
+    const newSignatory: CompanySignatory = {
+      ...signatoryData,
+      id: Date.now().toString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: 'current-user', // TODO: Get from auth context
+      updatedBy: 'current-user'
+    };
+
+    // If this is primary signatory, unset any existing primary
+    if (newSignatory.isPrimary) {
+      setClientSignatories(prev => prev.map(s => ({ ...s, isPrimary: false })));
+    }
+
+    setClientSignatories(prev => [...prev, newSignatory]);
+    dispatch({ type: 'ADD_SIGNATORY', payload: newSignatory });
+  };
+
+  const handleUpdateSignatory = (signatory: CompanySignatory) => {
+    // If setting as primary, unset any existing primary
+    if (signatory.isPrimary) {
+      setClientSignatories(prev => prev.map(s => ({ 
+        ...s, 
+        isPrimary: s.id === signatory.id ? true : false 
+      })));
+    }
+
+    setClientSignatories(prev => prev.map(s => s.id === signatory.id ? signatory : s));
+    dispatch({ type: 'UPDATE_SIGNATORY', payload: signatory });
+  };
+
+  const handleDeleteSignatory = (signatoryId: string) => {
+    setClientSignatories(prev => prev.filter(s => s.id !== signatoryId));
+    dispatch({ type: 'DELETE_SIGNATORY', payload: signatoryId });
+  };
+
+  const handleSetPrimarySignatory = (signatoryId: string) => {
+    if (clientData) {
+      dispatch({ type: 'SET_PRIMARY_SIGNATORY', payload: { clientId: clientData.id, signatoryId } });
+      setClientSignatories(prev => prev.map(s => ({ 
+        ...s, 
+        isPrimary: s.id === signatoryId 
+      })));
     }
   };
 
@@ -616,86 +696,17 @@ export const ClientModal: React.FC<ClientModalProps> = ({
             </div>
           </div>
 
-          {/* Authorized Signatory (Company only) */}
+          {/* Multi-Signatory Management (Company only) */}
           {isCompany && (
-            <div className="space-y-4 p-4 border border-border rounded-lg bg-card">
-              <div className="flex items-center space-x-2">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <Label className="text-sm font-medium">Authorized Signatory</Label>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="signatoryName">
-                    Name <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="signatoryName"
-                    value={formData.authorizedSignatory?.name || ''}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      authorizedSignatory: { 
-                        ...prev.authorizedSignatory!, 
-                        name: e.target.value 
-                      } 
-                    }))}
-                    disabled={isDisabled}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="signatoryDesignation">
-                    Designation <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="signatoryDesignation"
-                    value={formData.authorizedSignatory?.designation || ''}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      authorizedSignatory: { 
-                        ...prev.authorizedSignatory!, 
-                        designation: e.target.value 
-                      } 
-                    }))}
-                    disabled={isDisabled}
-                    placeholder="Managing Director, CEO, etc."
-                  />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="signatoryEmail">Email</Label>
-                  <Input
-                    id="signatoryEmail"
-                    type="email"
-                    value={formData.authorizedSignatory?.email || ''}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      authorizedSignatory: { 
-                        ...prev.authorizedSignatory!, 
-                        email: e.target.value 
-                      } 
-                    }))}
-                    disabled={isDisabled}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="signatoryPhone">Phone</Label>
-                  <Input
-                    id="signatoryPhone"
-                    value={formData.authorizedSignatory?.phone || ''}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      authorizedSignatory: { 
-                        ...prev.authorizedSignatory!, 
-                        phone: e.target.value 
-                      } 
-                    }))}
-                    disabled={isDisabled}
-                  />
-                </div>
-              </div>
-            </div>
+            <SignatoryManager
+              clientId={clientData?.id || 'temp-' + Date.now()}
+              signatories={clientSignatories}
+              onAdd={handleAddSignatory}
+              onUpdate={handleUpdateSignatory}
+              onDelete={handleDeleteSignatory}
+              onSetPrimary={handleSetPrimarySignatory}
+              disabled={isDisabled}
+            />
           )}
 
           {/* Address Information */}

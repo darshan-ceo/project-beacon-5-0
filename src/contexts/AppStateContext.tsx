@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+import { CompanySignatory } from '@/types/signatory';
 
 // Types
 interface Case {
@@ -88,7 +89,11 @@ interface Client {
   cin?: string; // Corporate Identification Number
   registrationNumber?: string; // For Partnership/Trust/Society
   
-  // Authorized Signatory (for Company)
+  // Multi-signatory system (replaces single authorizedSignatory)
+  signatories?: CompanySignatory[]; // For Company type
+  primarySignatoryId?: string; // Quick reference to primary signatory
+  
+  // Backward compatibility - will be migrated to signatories
   authorizedSignatory?: AuthorizedSignatory;
   
   // Communication Address (optional for Company)
@@ -203,6 +208,7 @@ export interface AppState {
   documents: Document[];
   hearings: Hearing[];
   employees: Employee[];
+  signatories: CompanySignatory[]; // Global signatories store
   isLoading: boolean;
   error: string | null;
 }
@@ -235,6 +241,10 @@ export type AppAction =
   | { type: 'ADD_EMPLOYEE'; payload: Employee }
   | { type: 'UPDATE_EMPLOYEE'; payload: Employee }
   | { type: 'DELETE_EMPLOYEE'; payload: string }
+  | { type: 'ADD_SIGNATORY'; payload: CompanySignatory }
+  | { type: 'UPDATE_SIGNATORY'; payload: CompanySignatory }
+  | { type: 'DELETE_SIGNATORY'; payload: string }
+  | { type: 'SET_PRIMARY_SIGNATORY'; payload: { clientId: string; signatoryId: string } }
   | { type: 'RESTORE_STATE'; payload: Partial<AppState> }
   | { type: 'CLEAR_ALL_DATA' };
 
@@ -524,6 +534,42 @@ const initialState: AppState = {
       specialization: ['Research', 'Documentation', 'Case Management']
     }
   ],
+  signatories: [
+    {
+      id: '1',
+      clientId: '1',
+      fullName: 'Rajesh Kumar',
+      designation: 'Managing Director',
+      email: 'rajesh@acme.com',
+      phone: '+91-9876543220',
+      signingScope: ['All'],
+      isPrimary: true,
+      validFrom: '2024-01-15',
+      status: 'Active',
+      notes: 'Primary signatory for all company documents',
+      createdBy: '1',
+      createdAt: '2024-01-15T10:00:00Z',
+      updatedBy: '1',
+      updatedAt: '2024-01-15T10:00:00Z'
+    },
+    {
+      id: '2',
+      clientId: '2',
+      fullName: 'Priya Sharma',
+      designation: 'CEO',
+      email: 'priya@globaltech.com',
+      phone: '+91-9876543221',
+      signingScope: ['All'],
+      isPrimary: true,
+      validFrom: '2024-01-10',
+      status: 'Active',
+      notes: 'CEO and primary signatory',
+      createdBy: '2',
+      createdAt: '2024-01-10T10:00:00Z',
+      updatedBy: '2',
+      updatedAt: '2024-01-10T10:00:00Z'
+    }
+  ],
   isLoading: false,
   error: null
 };
@@ -631,6 +677,33 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         employees: state.employees.filter(e => e.id !== action.payload)
       };
+    case 'ADD_SIGNATORY':
+      return { ...state, signatories: [...state.signatories, action.payload] };
+    case 'UPDATE_SIGNATORY':
+      return {
+        ...state,
+        signatories: state.signatories.map(s => s.id === action.payload.id ? action.payload : s)
+      };
+    case 'DELETE_SIGNATORY':
+      return {
+        ...state,
+        signatories: state.signatories.filter(s => s.id !== action.payload)
+      };
+    case 'SET_PRIMARY_SIGNATORY':
+      return {
+        ...state,
+        signatories: state.signatories.map(s => ({
+          ...s,
+          isPrimary: s.clientId === action.payload.clientId 
+            ? s.id === action.payload.signatoryId 
+            : s.isPrimary
+        })),
+        clients: state.clients.map(c => 
+          c.id === action.payload.clientId 
+            ? { ...c, primarySignatoryId: action.payload.signatoryId }
+            : c
+        )
+      };
     case 'RESTORE_STATE':
       return { ...state, ...action.payload };
     case 'CLEAR_ALL_DATA':
@@ -644,6 +717,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         documents: [],
         hearings: [],
         employees: [],
+        signatories: [],
       };
     default:
       return state;

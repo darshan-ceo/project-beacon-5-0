@@ -9,9 +9,11 @@ import { toast } from '@/hooks/use-toast';
 import { Case, useAppState } from '@/contexts/AppStateContext';
 import { ClientSelector } from '@/components/ui/relationship-selector';
 import { EmployeeSelector } from '@/components/ui/employee-selector';
+import { SignatorySelector } from '@/components/ui/signatory-selector';
 import { ContextBadge } from '@/components/ui/context-badge';
 import { useRelationships } from '@/hooks/useRelationships';
 import { useContextualForms } from '@/hooks/useContextualForms';
+import { useSignatoryManagement } from '@/hooks/useSignatoryManagement';
 
 interface CaseModalProps {
   isOpen: boolean;
@@ -34,10 +36,13 @@ export const CaseModal: React.FC<CaseModalProps> = ({
     clientId: contextClientId
   });
   
+  const { getActiveSignatories, getPrimarySignatory } = useSignatoryManagement();
+  
   const [formData, setFormData] = useState<{
     caseNumber: string;
     title: string;
     clientId: string;
+    signatoryId?: string;
     currentStage: 'Scrutiny' | 'Demand' | 'Adjudication' | 'Appeals' | 'GSTAT' | 'HC' | 'SC';
     priority: 'High' | 'Medium' | 'Low';
     assignedToId: string;
@@ -47,6 +52,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
     caseNumber: '',
     title: '',
     clientId: contextClientId || '',
+    signatoryId: '',
     currentStage: 'Scrutiny',
     priority: 'Medium',
     assignedToId: '',
@@ -238,8 +244,16 @@ export const CaseModal: React.FC<CaseModalProps> = ({
                   clients={getAvailableClients()}
                   value={formData.clientId}
                   onValueChange={(value) => {
-                    setFormData(prev => ({ ...prev, clientId: value }));
+                    setFormData(prev => ({ ...prev, clientId: value, signatoryId: '' }));
                     updateContext({ clientId: value });
+                    // Auto-select primary signatory for company clients
+                    const client = state.clients.find(c => c.id === value);
+                    if (client?.type === 'Company') {
+                      const primarySignatory = getPrimarySignatory(value);
+                      if (primarySignatory) {
+                        setFormData(prev => ({ ...prev, signatoryId: primarySignatory.id }));
+                      }
+                    }
                   }}
                   disabled={mode === 'view'}
                 />
@@ -267,6 +281,21 @@ export const CaseModal: React.FC<CaseModalProps> = ({
               </Select>
             </div>
           </div>
+
+          {/* Signatory Selection for Company Clients */}
+          {formData.clientId && state.clients.find(c => c.id === formData.clientId)?.type === 'Company' && (
+            <div>
+              <Label>Authorized Signatory</Label>
+              <SignatorySelector
+                signatories={getActiveSignatories(formData.clientId)}
+                value={formData.signatoryId}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, signatoryId: value }))}
+                signingScope="Litigation"
+                disabled={mode === 'view'}
+                placeholder="Select signatory for this case"
+              />
+            </div>
+          )}
 
           <div>
             <EmployeeSelector
