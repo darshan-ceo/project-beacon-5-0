@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { useAppState } from '@/contexts/AppStateContext';
 import { useRBAC } from '@/hooks/useRBAC';
 import { ProtectedComponent } from '@/hooks/useRBAC';
+import { HearingCalendar } from '@/components/cases/HearingCalendar';
 import { 
   Users, 
   FileText, 
@@ -95,6 +96,7 @@ const recentActivity = [
 export const DashboardOverview: React.FC = () => {
   const { state } = useAppState();
   const { currentUser } = useRBAC();
+  const [calendarOpen, setCalendarOpen] = useState(false);
   
   // Calculate real stats from state
   const realStats = [
@@ -164,12 +166,7 @@ export const DashboardOverview: React.FC = () => {
         </div>
         <Button 
           className="bg-primary hover:bg-primary-hover"
-          onClick={() => {
-            toast({
-              title: "Schedule Hearing",
-              description: "Opening hearing scheduler",
-            });
-          }}
+          onClick={() => setCalendarOpen(true)}
         >
           <Calendar className="mr-2 h-4 w-4" />
           Schedule Hearing
@@ -336,6 +333,12 @@ export const DashboardOverview: React.FC = () => {
           </Card>
         </motion.div>
       </div>
+
+      {/* Hearing Calendar Modal */}
+      <HearingCalendar 
+        isOpen={calendarOpen} 
+        onClose={() => setCalendarOpen(false)} 
+      />
     </div>
   );
 };
