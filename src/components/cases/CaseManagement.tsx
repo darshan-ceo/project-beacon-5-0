@@ -27,6 +27,7 @@ import { CaseTimeline } from './CaseTimeline';
 import { HearingScheduler } from './HearingScheduler';
 import { SLATracker } from './SLATracker';
 import { CaseModal } from '@/components/modals/CaseModal';
+import { HearingCalendar } from './HearingCalendar';
 import { Case, useAppState } from '@/contexts/AppStateContext';
 
 export const CaseManagement: React.FC = () => {
@@ -39,6 +40,7 @@ export const CaseManagement: React.FC = () => {
     mode: 'create',
     case: null
   });
+  const [hearingCalendarOpen, setHearingCalendarOpen] = useState(false);
 
   const getSLAColor = (status: string) => {
     switch (status) {
@@ -179,12 +181,7 @@ export const CaseManagement: React.FC = () => {
           </Button>
           <Button 
             variant="outline"
-            onClick={() => {
-              toast({
-                title: "Hearing Calendar",
-                description: "Opening hearing calendar...",
-              });
-            }}
+            onClick={() => setHearingCalendarOpen(true)}
           >
             <Calendar className="mr-2 h-4 w-4" />
             Hearing Calendar
@@ -328,6 +325,11 @@ export const CaseManagement: React.FC = () => {
         onClose={() => setCaseModal({ isOpen: false, mode: 'create', case: null })}
         case={caseModal.case}
         mode={caseModal.mode}
+      />
+
+      <HearingCalendar
+        isOpen={hearingCalendarOpen}
+        onClose={() => setHearingCalendarOpen(false)}
       />
     </div>
   );
