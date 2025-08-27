@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAppState } from '@/contexts/AppStateContext';
-import { Clock, MapPin, Scale, Plus } from 'lucide-react';
+import { Clock, MapPin, Scale, Plus, Calendar as CalendarIcon } from 'lucide-react';
 import { HearingModal } from '@/components/modals/HearingModal';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
@@ -112,7 +112,7 @@ export const HearingCalendar: React.FC<HearingCalendarProps> = ({ isOpen, onClos
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <Calendar className="h-5 w-5" />
+                <CalendarIcon className="h-5 w-5" />
                 <span>Hearing Calendar</span>
               </div>
               <Button

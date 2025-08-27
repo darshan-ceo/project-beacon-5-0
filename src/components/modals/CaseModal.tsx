@@ -81,7 +81,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
         description: ''
       });
     }
-  }, [caseData, mode, contextClientId, state.cases.length, updateContext]);
+  }, [caseData, mode, contextClientId, state.cases.length]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
