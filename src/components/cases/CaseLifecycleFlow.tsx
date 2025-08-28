@@ -356,6 +356,14 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
           </Card>
         </motion.div>
       )}
+
+      {/* Stage Management Modal */}
+      <StageManagementModal
+        isOpen={showStageModal}
+        onClose={() => setShowStageModal(false)}
+        caseId={selectedCase?.id || null}
+        currentStage={selectedCase?.currentStage || ''}
+      />
     </div>
   );
 };
