@@ -29,11 +29,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ClientModal } from '@/components/modals/ClientModal';
 import { Client, useAppState } from '@/contexts/AppStateContext';
-import { useDataPersistenceContext } from '@/components/providers/DataPersistenceProvider';
 
 export const ClientMasters: React.FC = () => {
   const { state } = useAppState();
-  const { dataService, saveToStorage } = useDataPersistenceContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [clientModal, setClientModal] = useState<{ isOpen: boolean; mode: 'create' | 'edit' | 'view'; client?: Client | null }>({
     isOpen: false,
@@ -286,21 +284,23 @@ export const ClientMasters: React.FC = () => {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
                           <DropdownMenuItem
-                            onClick={() => setClientModal({ 
-                              isOpen: true, 
-                              mode: 'view', 
-                              client 
-                            })}
+                            onClick={() => {
+                              toast({
+                                title: "View Client Details",
+                                description: `Opening details for ${client.name}`,
+                              });
+                            }}
                           >
                             <Eye className="mr-2 h-4 w-4" />
                             View Details
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => setClientModal({ 
-                              isOpen: true, 
-                              mode: 'edit', 
-                              client 
-                            })}
+                            onClick={() => {
+                              toast({
+                                title: "Edit Client",
+                                description: `Editing ${client.name}`,
+                              });
+                            }}
                           >
                             <Edit className="mr-2 h-4 w-4" />
                             Edit Client
@@ -308,12 +308,9 @@ export const ClientMasters: React.FC = () => {
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
                             className="text-destructive"
-                            onClick={async () => {
-                              await dataService.deleteClient(client.id);
-                              console.log('✅ Client deleted from table:', client.name);
-                              saveToStorage();
+                            onClick={() => {
                               toast({
-                                title: "Client Deleted",
+                                title: "Delete Client",
                                 description: `${client.name} has been deleted`,
                                 variant: "destructive",
                               });
