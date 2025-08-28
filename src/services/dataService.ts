@@ -1,43 +1,121 @@
-import { AppAction } from '@/contexts/AppStateContext';
-import { Client } from '@/contexts/AppStateContext';
-import { Case } from '@/contexts/AppStateContext';
-import { Task } from '@/contexts/AppStateContext';
-import { Court } from '@/contexts/AppStateContext';
-import { Judge } from '@/contexts/AppStateContext';
-import { Document } from '@/contexts/AppStateContext';
-import { Hearing } from '@/contexts/AppStateContext';
-import { Employee } from '@/contexts/AppStateContext';
+import { AppAction, AppState, Client, Case, Task, Court, Judge, Document, Hearing, Employee } from '@/contexts/AppStateContext';
 import { CompanySignatory } from '@/types/signatory';
+import { addDiagnosticLog } from '@/components/diagnostics/DiagnosticsDrawer';
 
 // Service layer for all data operations
 // This will be easily replaceable with API calls later
 
 export class DataService {
   private dispatch: (action: AppAction) => void;
+  private state: AppState | null = null;
 
   constructor(dispatch: (action: AppAction) => void) {
     this.dispatch = dispatch;
   }
 
+  // Helper to get current state (will be injected by provider)
+  setCurrentState(state: AppState) {
+    this.state = state;
+  }
+
+  private getCurrentState(): AppState {
+    if (!this.state) {
+      throw new Error('State not set. DataService must be properly initialized.');
+    }
+    return this.state;
+  }
+
   // Client Services
   async createClient(client: Omit<Client, 'id'>): Promise<Client> {
-    const newClient: Client = {
-      ...client,
-      id: this.generateId(),
-    };
-    
-    this.dispatch({ type: 'ADD_CLIENT', payload: newClient });
-    return newClient;
+    try {
+      const newClient: Client = {
+        ...client,
+        id: this.generateId(),
+      };
+      
+      this.dispatch({ type: 'ADD_CLIENT', payload: newClient });
+      
+      addDiagnosticLog({
+        operation: 'CREATE',
+        entity: 'client',
+        status: 'success',
+        details: `Client "${newClient.name}" created successfully`,
+        payload: { id: newClient.id, name: newClient.name }
+      });
+      
+      return newClient;
+    } catch (error) {
+      addDiagnosticLog({
+        operation: 'CREATE',
+        entity: 'client',
+        status: 'error',
+        details: `Failed to create client: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        payload: { clientData: client }
+      });
+      throw error;
+    }
   }
 
   async updateClient(id: string, updates: Partial<Client>): Promise<Client> {
-    const updatedClient = { ...updates, id } as Client;
-    this.dispatch({ type: 'UPDATE_CLIENT', payload: updatedClient });
-    return updatedClient;
+    try {
+      // Get current client
+      const currentClient = this.getCurrentState().clients.find(c => c.id === id);
+      if (!currentClient) {
+        throw new Error(`Client with id ${id} not found`);
+      }
+
+      const updatedClient: Client = {
+        ...currentClient,
+        ...updates,
+      };
+      
+      this.dispatch({ type: 'UPDATE_CLIENT', payload: updatedClient });
+      
+      addDiagnosticLog({
+        operation: 'UPDATE',
+        entity: 'client',
+        status: 'success',
+        details: `Client "${updatedClient.name}" updated successfully`,
+        payload: { id, updates }
+      });
+      
+      return updatedClient;
+    } catch (error) {
+      addDiagnosticLog({
+        operation: 'UPDATE',
+        entity: 'client',
+        status: 'error',
+        details: `Failed to update client: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        payload: { id, updates }
+      });
+      throw error;
+    }
   }
 
   async deleteClient(id: string): Promise<void> {
-    this.dispatch({ type: 'DELETE_CLIENT', payload: id });
+    try {
+      const currentClient = this.getCurrentState().clients.find(c => c.id === id);
+      const clientName = currentClient?.name || 'Unknown';
+      
+      this.dispatch({ type: 'DELETE_CLIENT', payload: id });
+      
+      addDiagnosticLog({
+        operation: 'DELETE',
+        entity: 'client',
+        status: 'success',
+        details: `Client "${clientName}" deleted successfully`,
+        payload: { id }
+      });
+    } catch (error) {
+      addDiagnosticLog({
+        operation: 'DELETE',
+        entity: 'client',
+        status: 'error',
+        details: `Failed to delete client: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        payload: { id }
+      });
+      throw error;
+    }
   }
 
   // Case Services

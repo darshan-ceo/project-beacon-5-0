@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { Client, useAppState } from '@/contexts/AppStateContext';
 import { CASelector, LawyerSelector } from '@/components/ui/employee-selector';
+import { useDataPersistenceContext } from '@/components/providers/DataPersistenceProvider';
 import { StructuredAddress } from '@/components/ui/structured-address';
 import { SignatoryManager } from '@/components/ui/signatory-manager';
 import { CLIENT_CATEGORIES } from '@/constants/indianStates';
@@ -94,6 +95,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
   mode 
 }) => {
   const { state, dispatch } = useAppState();
+  const { dataService, saveToStorage } = useDataPersistenceContext();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [clientSignatories, setClientSignatories] = useState<CompanySignatory[]>([]);
@@ -346,8 +348,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
       const clientName = formData.type === 'Company' ? formData.companyName : formData.name;
       
       if (mode === 'create') {
-        const newClient: Client = {
-          id: Date.now().toString(),
+        const clientData = {
           name: clientName || formData.name,
           type: formData.type,
           companyName: formData.type === 'Company' ? formData.companyName : undefined,
@@ -363,7 +364,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           clientCategory: formData.clientCategory,
           jurisdiction: formData.jurisdiction,
           notes: formData.notes,
-          status: 'Active',
+          status: 'Active' as const,
           assignedCAId: formData.assignedCAId,
           assignedCAName: formData.assignedCAName,
           defaultAssignedAdvocateId: formData.defaultAssignedAdvocateId,
@@ -374,14 +375,18 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           totalInvoiced: 0
         };
 
-        dispatch({ type: 'ADD_CLIENT', payload: newClient });
+        const newClient = await dataService.createClient(clientData);
+        console.log('✅ Client created:', newClient.name, 'ID:', newClient.id);
+        
+        // Immediate save to localStorage
+        saveToStorage();
+        
         toast({
           title: "Client Created",
           description: `${formData.type} client "${clientName || formData.name}" has been created successfully.`,
         });
       } else if (mode === 'edit' && clientData) {
-        const updatedClient: Client = {
-          ...clientData,
+        const updates = {
           name: clientName || formData.name,
           type: formData.type,
           companyName: formData.type === 'Company' ? formData.companyName : undefined,
@@ -403,7 +408,12 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           defaultAssignedAdvocateName: formData.defaultAssignedAdvocateName
         };
 
-        dispatch({ type: 'UPDATE_CLIENT', payload: updatedClient });
+        const updatedClient = await dataService.updateClient(clientData.id, updates);
+        console.log('✅ Client updated:', updatedClient.name, 'ID:', updatedClient.id);
+        
+        // Immediate save to localStorage
+        saveToStorage();
+        
         toast({
           title: "Client Updated",
           description: `Client "${clientName || formData.name}" has been updated successfully.`,
@@ -422,9 +432,14 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (clientData) {
-      dispatch({ type: 'DELETE_CLIENT', payload: clientData.id });
+      await dataService.deleteClient(clientData.id);
+      console.log('✅ Client deleted:', clientData.name, 'ID:', clientData.id);
+      
+      // Immediate save to localStorage
+      saveToStorage();
+      
       toast({
         title: "Client Deleted",
         description: `Client "${clientData.name}" has been deleted.`,

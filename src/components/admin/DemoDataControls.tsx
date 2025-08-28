@@ -3,11 +3,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useDataPersistenceContext } from '@/components/providers/DataPersistenceProvider';
+import { generateSampleWorkflow } from '@/utils/sampleDataGenerator';
+import { addDiagnosticLog } from '@/components/diagnostics/DiagnosticsDrawer';
 import { Trash2, RefreshCw, Database, Download, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const DemoDataControls: React.FC = () => {
-  const { resetDemoData, generateSampleData, exportData, importData, clearAllData } = useDataPersistenceContext();
+  const { dataService, resetDemoData, generateSampleData, exportData, importData, clearAllData, saveToStorage } = useDataPersistenceContext();
 
   const handleFileImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -51,6 +53,78 @@ export const DemoDataControls: React.FC = () => {
             <RefreshCw className="h-4 w-4 mr-2" />
             Generate Sample Data
           </Button>
+          
+          <Button 
+            onClick={async () => {
+              try {
+                const sampleData = generateSampleWorkflow();
+                
+                // Create client first
+                const client = await dataService.createClient(sampleData.client);
+                addDiagnosticLog({
+                  operation: 'CREATE_WORKFLOW',
+                  entity: 'client',
+                  status: 'success',
+                  details: `Sample client "${client.name}" created`,
+                });
+                
+                // Create case linked to client
+                const caseData = { ...sampleData.case, clientId: client.id };
+                const case_ = await dataService.createCase(caseData);
+                addDiagnosticLog({
+                  operation: 'CREATE_WORKFLOW',
+                  entity: 'case',
+                  status: 'success',
+                  details: `Sample case "${case_.title}" created`,
+                });
+                
+                // Create hearing linked to case
+                const hearingData = { ...sampleData.hearing, caseId: case_.id, clientId: client.id };
+                const hearing = await dataService.createHearing(hearingData);
+                addDiagnosticLog({
+                  operation: 'CREATE_WORKFLOW',
+                  entity: 'hearing',
+                  status: 'success',
+                  details: `Sample hearing scheduled for ${hearing.date}`,
+                });
+                
+                // Create task linked to case
+                const taskData = { 
+                  ...sampleData.task, 
+                  caseId: case_.id, 
+                  clientId: client.id,
+                  caseNumber: case_.caseNumber 
+                };
+                const task = await dataService.createTask(taskData);
+                addDiagnosticLog({
+                  operation: 'CREATE_WORKFLOW',
+                  entity: 'task',
+                  status: 'success',
+                  details: `Sample task "${task.title}" created`,
+                });
+                
+                // Save immediately
+                saveToStorage();
+                
+                toast.success(`Created workflow: ${client.name} → ${case_.title} → Hearing → Task`);
+              } catch (error) {
+                addDiagnosticLog({
+                  operation: 'CREATE_WORKFLOW',
+                  entity: 'workflow',
+                  status: 'error',
+                  details: `Failed to create sample workflow: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                });
+                
+                toast.error('Failed to create sample workflow');
+              }
+            }}
+            variant="outline"
+            className="w-full"
+          >
+            <Database className="mr-2 h-4 w-4" />
+            Create Sample Workflow (ABC → Case → Hearing → Task)
+          </Button>
+          
           <p className="text-sm text-muted-foreground">
             Creates sample clients, courts, judges, cases, and other entities for testing
           </p>

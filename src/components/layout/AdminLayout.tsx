@@ -4,6 +4,7 @@ import { AppSidebar } from './Sidebar';
 import { Header } from './Header';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { DataPersistenceProvider } from '@/components/providers/DataPersistenceProvider';
+import { DiagnosticsDrawer } from '@/components/diagnostics/DiagnosticsDrawer';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -53,6 +54,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
             </main>
           </div>
         </div>
+        <DiagnosticsDrawer />
       </SidebarProvider>
     </DataPersistenceProvider>
   );

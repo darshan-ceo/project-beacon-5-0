@@ -29,7 +29,7 @@ interface DataPersistenceProviderProps {
 }
 
 export const DataPersistenceProvider: React.FC<DataPersistenceProviderProps> = ({ children }) => {
-  const { dispatch } = useAppState();
+  const { state, dispatch } = useAppState();
   const { exportData, importData, clearAllData, saveToStorage } = useDataPersistence();
   const dataServiceRef = useRef<DataService | null>(null);
 
@@ -39,7 +39,12 @@ export const DataPersistenceProvider: React.FC<DataPersistenceProviderProps> = (
       dataServiceRef.current = initializeDataService(dispatch);
       console.log('✅ Data service initialized and persistence enabled');
     }
-  }, [dispatch]);
+    
+    // Update state in data service whenever state changes
+    if (dataServiceRef.current) {
+      dataServiceRef.current.setCurrentState(state);
+    }
+  }, [dispatch, state]);
 
   const resetDemoData = async () => {
     try {
