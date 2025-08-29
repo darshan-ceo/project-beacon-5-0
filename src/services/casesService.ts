@@ -80,9 +80,9 @@ export const casesService = {
     }
   },
 
-  update: async (caseId: string, updates: Partial<Case>, dispatch: React.Dispatch<AppAction>): Promise<Partial<Case>> => {
+  update: async (caseId: string, updates: Partial<Case>, dispatch: React.Dispatch<AppAction>): Promise<void> => {
     try {
-      const updatedCase = { ...updates, id: caseId, lastUpdated: new Date().toISOString() };
+      const updatedCase = { id: caseId, lastUpdated: new Date().toISOString(), ...updates };
       dispatch({ type: 'UPDATE_CASE', payload: updatedCase });
       log('success', 'Overview', 'update', { caseId, updates: Object.keys(updates) });
       
@@ -90,8 +90,6 @@ export const casesService = {
         title: "Case Updated",
         description: "Case has been updated successfully.",
       });
-
-      return updatedCase;
     } catch (error) {
       log('error', 'Overview', 'update', error);
       toast({
@@ -123,7 +121,7 @@ export const casesService = {
     }
   },
 
-  advanceStage: async (payload: AdvanceStagePayload, dispatch: React.Dispatch<AppAction>): Promise<Partial<Case>> => {
+  advanceStage: async (payload: AdvanceStagePayload, dispatch: React.Dispatch<AppAction>): Promise<void> => {
     try {
       const { caseId, nextStage, notes, assignedTo } = payload;
       
@@ -173,8 +171,6 @@ export const casesService = {
         title: "Stage Advanced",
         description: `Case moved to ${nextStage} stage successfully.`,
       });
-
-      return { id: caseId, ...updates };
     } catch (error) {
       log('error', 'Lifecycle', 'advanceStage', error);
       toast({

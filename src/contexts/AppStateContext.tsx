@@ -165,7 +165,7 @@ export type AppAction =
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null }
   | { type: 'ADD_CASE'; payload: Case }
-  | { type: 'UPDATE_CASE'; payload: Case }
+  | { type: 'UPDATE_CASE'; payload: Partial<Case> & { id: string } }
   | { type: 'DELETE_CASE'; payload: string }
   | { type: 'ADD_TASK'; payload: Task }
   | { type: 'UPDATE_TASK'; payload: Task }
@@ -183,7 +183,7 @@ export type AppAction =
   | { type: 'UPDATE_DOCUMENT'; payload: Document }
   | { type: 'DELETE_DOCUMENT'; payload: string }
   | { type: 'ADD_HEARING'; payload: Hearing }
-  | { type: 'UPDATE_HEARING'; payload: Hearing }
+  | { type: 'UPDATE_HEARING'; payload: Partial<Hearing> & { id: string } }
   | { type: 'DELETE_HEARING'; payload: string }
   | { type: 'ADD_EMPLOYEE'; payload: Employee }
   | { type: 'UPDATE_EMPLOYEE'; payload: Employee }
@@ -449,7 +449,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'UPDATE_CASE':
       return {
         ...state,
-        cases: state.cases.map(c => c.id === action.payload.id ? action.payload : c)
+        cases: state.cases.map(c => c.id === action.payload.id ? { ...c, ...action.payload } : c)
       };
     case 'DELETE_CASE':
       return {
@@ -521,7 +521,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'UPDATE_HEARING':
       return {
         ...state,
-        hearings: state.hearings.map(h => h.id === action.payload.id ? action.payload : h)
+        hearings: state.hearings.map(h => h.id === action.payload.id ? { ...h, ...action.payload } : h)
       };
     case 'DELETE_HEARING':
       return {

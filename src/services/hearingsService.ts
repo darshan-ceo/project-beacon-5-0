@@ -66,9 +66,9 @@ export const hearingsService = {
     }
   },
 
-  update: async (hearingId: string, updates: Partial<Hearing>, dispatch: React.Dispatch<AppAction>): Promise<Partial<Hearing>> => {
+  update: async (hearingId: string, updates: Partial<Hearing>, dispatch: React.Dispatch<AppAction>): Promise<void> => {
     try {
-      const updatedHearing = { ...updates, id: hearingId, lastUpdated: new Date().toISOString() };
+      const updatedHearing = { id: hearingId, lastUpdated: new Date().toISOString(), ...updates };
       dispatch({ type: 'UPDATE_HEARING', payload: updatedHearing });
       log('success', 'Hearings', 'update', { hearingId, updates: Object.keys(updates) });
       
@@ -76,8 +76,6 @@ export const hearingsService = {
         title: "Hearing Updated",
         description: "Hearing has been updated successfully.",
       });
-
-      return updatedHearing;
     } catch (error) {
       log('error', 'Hearings', 'update', error);
       toast({
