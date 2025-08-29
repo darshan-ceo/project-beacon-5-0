@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { 
@@ -41,6 +41,16 @@ export const CaseManagement: React.FC = () => {
     case: null
   });
   const [hearingCalendarOpen, setHearingCalendarOpen] = useState(false);
+
+  // Sync selectedCase with global state changes
+  useEffect(() => {
+    if (selectedCase) {
+      const updatedCase = state.cases.find(c => c.id === selectedCase.id);
+      if (updatedCase && JSON.stringify(updatedCase) !== JSON.stringify(selectedCase)) {
+        setSelectedCase(updatedCase);
+      }
+    }
+  }, [state.cases, selectedCase]);
 
   const getSLAColor = (status: string) => {
     switch (status) {
@@ -304,7 +314,10 @@ export const CaseManagement: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="lifecycle" className="mt-6">
-          <CaseLifecycleFlow selectedCase={selectedCase} />
+          <CaseLifecycleFlow 
+            selectedCase={selectedCase} 
+            onCaseUpdated={(updatedCase) => setSelectedCase(updatedCase)}
+          />
         </TabsContent>
 
         <TabsContent value="sla" className="mt-6">

@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { StageManagementModal } from '@/components/modals/StageManagementModal';
 import { HearingModal } from '@/components/modals/HearingModal';
-import { useAppState } from '@/contexts/AppStateContext';
+import { useAppState, Case } from '@/contexts/AppStateContext';
 import { casesService } from '@/services/casesService';
 import { dmsService } from '@/services/dmsService';
 import {
@@ -26,16 +26,9 @@ import {
   BookOpen
 } from 'lucide-react';
 
-interface Case {
-  id: string;
-  caseNumber: string;
-  title: string;
-  currentStage: 'Scrutiny' | 'Demand' | 'Adjudication' | 'Appeals' | 'GSTAT' | 'HC' | 'SC';
-  slaStatus: 'Green' | 'Amber' | 'Red';
-}
-
 interface CaseLifecycleFlowProps {
   selectedCase?: Case | null;
+  onCaseUpdated?: (updatedCase: Case) => void;
 }
 
 const lifecycleStages = [
@@ -97,7 +90,7 @@ const lifecycleStages = [
   }
 ];
 
-export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCase }) => {
+export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCase, onCaseUpdated }) => {
   const { toast } = useToast();
   const { dispatch } = useAppState();
   const [showStageModal, setShowStageModal] = useState(false);
@@ -402,6 +395,11 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
         onClose={() => setShowStageModal(false)}
         caseId={selectedCase?.id || null}
         currentStage={selectedCase?.currentStage || ''}
+        onStageAdvanced={(updatedCase) => {
+          if (onCaseUpdated) {
+            onCaseUpdated(updatedCase);
+          }
+        }}
       />
 
       {/* Hearing Modal */}
