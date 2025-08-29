@@ -1,21 +1,30 @@
 import React, { useState } from 'react';
-import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
-import { StageManagementModal } from '@/components/modals/StageManagementModal';
-import { 
-  ArrowRight, 
-  CheckCircle, 
-  Clock, 
-  AlertCircle,
-  FileText,
-  Scale,
-  Building2,
-  Gavel
-} from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import { StageManagementModal } from '@/components/modals/StageManagementModal';
+import { HearingModal } from '@/components/modals/HearingModal';
+import { useAppState } from '@/contexts/AppStateContext';
+import { casesService } from '@/services/casesService';
+import { dmsService } from '@/services/dmsService';
+import {
+  CheckCircle,
+  Clock,
+  AlertTriangle,
+  FileText,
+  ArrowRight,
+  Upload,
+  Calendar,
+  Users,
+  Scale,
+  Gavel,
+  Building,
+  Flag,
+  BookOpen
+} from 'lucide-react';
 
 interface Case {
   id: string;
@@ -31,7 +40,7 @@ interface CaseLifecycleFlowProps {
 
 const lifecycleStages = [
   {
-    id: 'scrutiny',
+    id: 'Scrutiny',
     name: 'Scrutiny',
     description: 'Initial case review and documentation',
     icon: FileText,
@@ -39,15 +48,15 @@ const lifecycleStages = [
     slaHours: 72
   },
   {
-    id: 'demand',
+    id: 'Demand',
     name: 'Demand',
     description: 'Demand notice processing and response',
-    icon: AlertCircle,
+    icon: AlertTriangle,
     forms: ['DRC-01', 'DRC-07'],
     slaHours: 168
   },
   {
-    id: 'adjudication',
+    id: 'Adjudication',
     name: 'Adjudication',
     description: 'Adjudicating authority proceedings',
     icon: Scale,
@@ -55,7 +64,7 @@ const lifecycleStages = [
     slaHours: 720
   },
   {
-    id: 'appeals',
+    id: 'Appeals',
     name: 'Appeals',
     description: 'First appellate authority',
     icon: ArrowRight,
@@ -63,15 +72,15 @@ const lifecycleStages = [
     slaHours: 1440
   },
   {
-    id: 'gstat',
+    id: 'GSTAT',
     name: 'GSTAT',
     description: 'GST Appellate Tribunal',
-    icon: Building2,
+    icon: Building,
     forms: ['GSTAT Form'],
     slaHours: 2160
   },
   {
-    id: 'hc',
+    id: 'HC',
     name: 'HC',
     description: 'High Court proceedings',
     icon: Gavel,
@@ -79,7 +88,7 @@ const lifecycleStages = [
     slaHours: 4320
   },
   {
-    id: 'sc',
+    id: 'SC',
     name: 'SC',
     description: 'Supreme Court of India',
     icon: Gavel,
@@ -89,12 +98,16 @@ const lifecycleStages = [
 ];
 
 export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCase }) => {
+  const { toast } = useToast();
+  const { dispatch } = useAppState();
   const [showStageModal, setShowStageModal] = useState(false);
+  const [showHearingModal, setShowHearingModal] = useState(false);
+  const [isAdvancing, setIsAdvancing] = useState(false);
 
   const getCurrentStageIndex = () => {
     if (!selectedCase) return 0;
     return lifecycleStages.findIndex(stage => 
-      stage.name === selectedCase.currentStage
+      stage.id === selectedCase.currentStage
     );
   };
 
@@ -112,6 +125,46 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
       case 'current': return 'bg-primary text-primary-foreground';
       case 'pending': return 'bg-muted text-muted-foreground';
       default: return 'bg-muted text-muted-foreground';
+    }
+  };
+
+  const handleUploadResponse = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.pdf,.doc,.docx,.jpg,.png';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file && selectedCase) {
+        try {
+          await dmsService.uploadForCaseStage(file, selectedCase.id, selectedCase.currentStage, dispatch);
+        } catch (error) {
+          console.error('Upload failed:', error);
+        }
+      }
+    };
+    input.click();
+  };
+
+  const handleAdvanceStage = async () => {
+    if (!selectedCase || isAdvancing) return;
+    
+    const currentIndex = lifecycleStages.findIndex(stage => stage.id === selectedCase.currentStage);
+    const nextStage = lifecycleStages[currentIndex + 1];
+    
+    if (nextStage) {
+      setIsAdvancing(true);
+      try {
+        await casesService.advanceStage({
+          caseId: selectedCase.id,
+          currentStage: selectedCase.currentStage,
+          nextStage: nextStage.id,
+          notes: `Advanced from ${selectedCase.currentStage} to ${nextStage.id}`
+        }, dispatch);
+      } catch (error) {
+        console.error('Stage advancement failed:', error);
+      } finally {
+        setIsAdvancing(false);
+      }
     }
   };
 
@@ -304,53 +357,39 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
                   </div>
                 </div>
                 
-                  <div>
-                    <h4 className="font-semibold mb-2">Next Actions</h4>
-                    <div className="space-y-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="w-full justify-start"
-                        onClick={() => {
-                          toast({
-                            title: "Upload Response",
-                            description: "Opening document upload interface",
-                          });
-                        }}
-                      >
-                        <FileText className="mr-2 h-4 w-4" />
-                        Upload Response
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="w-full justify-start"
-                        onClick={() => {
-                          toast({
-                            title: "Schedule Hearing",
-                            description: "Opening hearing scheduler",
-                          });
-                        }}
-                      >
-                        <Clock className="mr-2 h-4 w-4" />
-                        Schedule Hearing
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="w-full justify-start"
-                        onClick={() => {
-                          toast({
-                            title: "Advance Stage",
-                            description: "Moving case to next stage",
-                          });
-                        }}
-                      >
-                        <ArrowRight className="mr-2 h-4 w-4" />
-                        Advance Stage
-                      </Button>
-                    </div>
+                <div>
+                  <h4 className="font-semibold mb-2">Next Actions</h4>
+                  <div className="space-y-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full justify-start"
+                      onClick={handleUploadResponse}
+                    >
+                      <FileText className="mr-2 h-4 w-4" />
+                      Upload Response
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full justify-start"
+                      onClick={() => setShowHearingModal(true)}
+                    >
+                      <Clock className="mr-2 h-4 w-4" />
+                      Schedule Hearing
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full justify-start"
+                      onClick={handleAdvanceStage}
+                      disabled={isAdvancing}
+                    >
+                      <ArrowRight className="mr-2 h-4 w-4" />
+                      {isAdvancing ? 'Advancing...' : 'Advance Stage'}
+                    </Button>
                   </div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -363,6 +402,13 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
         onClose={() => setShowStageModal(false)}
         caseId={selectedCase?.id || null}
         currentStage={selectedCase?.currentStage || ''}
+      />
+
+      {/* Hearing Modal */}
+      <HearingModal
+        isOpen={showHearingModal}
+        onClose={() => setShowHearingModal(false)}
+        mode="create"
       />
     </div>
   );
