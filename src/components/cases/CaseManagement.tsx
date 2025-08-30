@@ -455,26 +455,24 @@ export const CaseManagement: React.FC = () => {
         onClose={() => setHearingCalendarOpen(false)}
       />
 
-      <AdvanceStageConfirmationModal
-        isOpen={advanceStageModal.isOpen}
-        onClose={() => setAdvanceStageModal({
-          isOpen: false,
-          caseData: null,
-          currentStage: '',
-          nextStage: '',
-          isLoading: false
-        })}
-        onConfirm={handleConfirmAdvanceStage}
-        caseData={advanceStageModal.caseData!}
-        currentStage={advanceStageModal.currentStage}
-        nextStage={advanceStageModal.nextStage}
-        prerequisites={
-          advanceStageModal.caseData 
-            ? validateStagePrerequisites(advanceStageModal.caseData, advanceStageModal.currentStage, state.tasks)
-            : { isValid: false, missingItems: [], warnings: [] }
-        }
-        isLoading={advanceStageModal.isLoading}
-      />
+      {advanceStageModal.caseData && (
+        <AdvanceStageConfirmationModal
+          isOpen={advanceStageModal.isOpen}
+          onClose={() => setAdvanceStageModal({
+            isOpen: false,
+            caseData: null,
+            currentStage: '',
+            nextStage: '',
+            isLoading: false
+          })}
+          onConfirm={handleConfirmAdvanceStage}
+          caseData={advanceStageModal.caseData}
+          currentStage={advanceStageModal.currentStage}
+          nextStage={advanceStageModal.nextStage}
+          prerequisites={validateStagePrerequisites(advanceStageModal.caseData, advanceStageModal.currentStage, state.tasks)}
+          isLoading={advanceStageModal.isLoading}
+        />
+      )}
     </div>
   );
 };
