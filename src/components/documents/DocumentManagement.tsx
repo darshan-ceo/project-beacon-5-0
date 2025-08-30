@@ -103,7 +103,10 @@ export const DocumentManagement: React.FC = () => {
   const [activeView, setActiveView] = useState<'grid' | 'list'>('list');
   const [activeFilters, setActiveFilters] = useState<any>({});
   const [folders, setFolders] = useState<any[]>([]);
+  const [currentFolderFiles, setCurrentFolderFiles] = useState<LocalDocument[]>([]);
+  const [currentSubfolders, setCurrentSubfolders] = useState<any[]>([]);
   const [filteredDocuments, setFilteredDocuments] = useState<LocalDocument[]>([]);
+  const [loading, setLoading] = useState(false);
   const [documentModal, setDocumentModal] = useState<{ isOpen: boolean; mode: 'upload' | 'edit' | 'view'; document?: any }>({
     isOpen: false,
     mode: 'upload',
@@ -210,12 +213,46 @@ export const DocumentManagement: React.FC = () => {
     setFilteredDocuments(filtered as any[]);
   };
 
+  const loadFolderContents = async (folderId: string | null) => {
+    setLoading(true);
+    try {
+      // Load subfolders
+      const subfolders = await dmsService.folders.list(folderId || undefined);
+      setCurrentSubfolders(subfolders);
+      
+      // Load files in this folder (filter from state documents)
+      const folderFiles = state.documents.filter(doc => 
+        folderId ? doc.path?.includes(`folder-${folderId}`) : !doc.path?.includes('folder-')
+      ).map(doc => ({
+        ...doc,
+        type: doc.type || 'pdf',
+        size: doc.size || 0,
+        uploadedByName: doc.uploadedByName || 'Unknown',
+        uploadedBy: doc.uploadedByName || 'Unknown'
+      }));
+      
+      setCurrentFolderFiles(folderFiles as LocalDocument[]);
+      
+      console.log(`[DMS] openFolder OK id=${folderId || 'root'} subfolders=${subfolders.length} files=${folderFiles.length}`);
+    } catch (error) {
+      console.log(`[DMS] openFolder ERR reason=${error}`);
+      toast({
+        title: "Error",
+        description: "Failed to load folder contents. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleFolderClick = async (folderId: string) => {
     try {
       const folder = await dmsService.folders.get(folderId);
       if (folder) {
         setSelectedFolder(folderId);
         setCurrentPath([...currentPath, folder.name]);
+        await loadFolderContents(folderId);
       }
     } catch (error) {
       toast({
@@ -223,6 +260,21 @@ export const DocumentManagement: React.FC = () => {
         description: "Failed to open folder. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleBreadcrumbClick = async (index: number) => {
+    if (index === -1) {
+      // Navigate to root
+      setSelectedFolder(null);
+      setCurrentPath([]);
+      await loadFolderContents(null);
+    } else {
+      // Navigate to specific path level
+      const newPath = currentPath.slice(0, index + 1);
+      setCurrentPath(newPath);
+      // In a real app, you'd need to derive folderId from path
+      await loadFolderContents(null);
     }
   };
 
@@ -251,26 +303,9 @@ export const DocumentManagement: React.FC = () => {
 
   const handleDocumentDownload = async (doc: any) => {
     try {
-      const downloadUrl = await dmsService.files.getDownloadUrl(doc.id);
-      
-      // Create download link
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = doc.name;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      toast({
-        title: "Download Started",
-        description: `${doc.name} download initiated`,
-      });
+      await dmsService.files.download(doc.id, doc.name);
     } catch (error) {
-      toast({
-        title: "Download Error",
-        description: "Failed to download document. Please try again.",
-        variant: "destructive",
-      });
+      // Error handling is already done in the service
     }
   };
 
@@ -300,10 +335,16 @@ export const DocumentManagement: React.FC = () => {
     }
   };
 
-  const navigateToHome = () => {
+  const navigateToHome = async () => {
     setSelectedFolder(null);
     setCurrentPath([]);
+    await loadFolderContents(null);
   };
+
+  // Load initial content
+  useEffect(() => {
+    loadFolderContents(null);
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -420,24 +461,29 @@ export const DocumentManagement: React.FC = () => {
       </motion.div>
 
       {/* Breadcrumb Navigation */}
-      {currentPath.length > 0 && (
-        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={navigateToHome}
-            className="p-1 h-auto"
-          >
-            <Home className="h-4 w-4" />
-          </Button>
-          {currentPath.map((pathItem, index) => (
-            <React.Fragment key={index}>
-              <ChevronRight className="h-4 w-4" />
-              <span className="font-medium">{pathItem}</span>
-            </React.Fragment>
-          ))}
-        </div>
-      )}
+      <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => handleBreadcrumbClick(-1)}
+          className="p-1 h-auto"
+        >
+          <Home className="h-4 w-4" />
+        </Button>
+        {currentPath.map((pathItem, index) => (
+          <React.Fragment key={index}>
+            <ChevronRight className="h-4 w-4" />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleBreadcrumbClick(index)}
+              className="p-1 h-auto font-medium text-foreground hover:text-primary"
+            >
+              {pathItem}
+            </Button>
+          </React.Fragment>
+        ))}
+      </div>
 
       {/* Main Content */}
       <Tabs defaultValue="folders" className="w-full">
@@ -448,41 +494,181 @@ export const DocumentManagement: React.FC = () => {
         </TabsList>
 
         <TabsContent value="folders" className="mt-6">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-          >
-            {folders.map((folder, index) => (
-              <motion.div
-                key={folder.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
-                whileHover={{ y: -2 }}
-                className="cursor-pointer"
-                onClick={() => handleFolderClick(folder.id)}
-              >
-                <Card className="hover:shadow-lg transition-all duration-200">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <FolderOpen className="h-8 w-8 text-primary" />
-                      <Badge variant="secondary" className="text-xs">
-                        {folder.documentCount} files
-                      </Badge>
-                    </div>
-                    <h3 className="font-semibold text-foreground mb-2">{folder.name}</h3>
-                    <p className="text-sm text-muted-foreground mb-3">{folder.description}</p>
-                    <div className="flex items-center text-xs text-muted-foreground">
-                      <Clock className="mr-1 h-3 w-3" />
-                      Last accessed {folder.lastAccess}
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </motion.div>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-6"
+            >
+              {/* Current Folder Subfolders */}
+              {currentSubfolders.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Folders</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {currentSubfolders.map((folder, index) => (
+                      <motion.div
+                        key={folder.id}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.3, delay: index * 0.1 }}
+                        whileHover={{ y: -2 }}
+                        className="cursor-pointer"
+                        onClick={() => handleFolderClick(folder.id)}
+                      >
+                        <Card className="hover:shadow-lg transition-all duration-200">
+                          <CardContent className="p-6">
+                            <div className="flex items-start justify-between mb-4">
+                              <FolderOpen className="h-8 w-8 text-primary" />
+                              <Badge variant="secondary" className="text-xs">
+                                {folder.documentCount} files
+                              </Badge>
+                            </div>
+                            <h3 className="font-semibold text-foreground mb-2">{folder.name}</h3>
+                            <p className="text-sm text-muted-foreground mb-3">{folder.description}</p>
+                            <div className="flex items-center text-xs text-muted-foreground">
+                              <Clock className="mr-1 h-3 w-3" />
+                              Last accessed {folder.lastAccess}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Current Folder Files */}
+              {currentFolderFiles.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Files</h3>
+                  <Card>
+                    <CardContent className="p-0">
+                      <div className="space-y-0">
+                        {currentFolderFiles.map((doc, index) => (
+                          <div key={doc.id} className={`flex items-center justify-between p-4 hover:bg-muted/50 transition-colors ${index !== currentFolderFiles.length - 1 ? 'border-b' : ''}`}>
+                            <div className="flex items-center space-x-4 flex-1">
+                              <div className="text-2xl">{getFileIcon(String(doc.type))}</div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-medium text-foreground truncate">{doc.name}</h4>
+                                <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                                  <span>{typeof doc.size === 'number' ? `${(doc.size / 1024).toFixed(1)} KB` : doc.size}</span>
+                                  <span>Uploaded by {doc.uploadedByName}</span>
+                                  <span>{new Date(doc.uploadedAt).toLocaleDateString()}</span>
+                                </div>
+                                <div className="flex items-center space-x-2 mt-1">
+                                  {doc.tags.map(tag => (
+                                    <Badge key={tag} variant="outline" className="text-xs">
+                                      {tag}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDocumentView(doc)}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDocumentDownload(doc)}
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm">
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                  <DropdownMenuItem onClick={() => setDocumentModal({ isOpen: true, mode: 'edit', document: doc })}>
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Edit Details
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleAddTag(doc, 'urgent')}>
+                                    <Tag className="mr-2 h-4 w-4" />
+                                    Add Tag
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem 
+                                    onClick={() => handleDocumentDelete(doc)}
+                                    className="text-destructive"
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* Empty State */}
+              {currentSubfolders.length === 0 && currentFolderFiles.length === 0 && !selectedFolder && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {folders.map((folder, index) => (
+                    <motion.div
+                      key={folder.id}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3, delay: index * 0.1 }}
+                      whileHover={{ y: -2 }}
+                      className="cursor-pointer"
+                      onClick={() => handleFolderClick(folder.id)}
+                    >
+                      <Card className="hover:shadow-lg transition-all duration-200">
+                        <CardContent className="p-6">
+                          <div className="flex items-start justify-between mb-4">
+                            <FolderOpen className="h-8 w-8 text-primary" />
+                            <Badge variant="secondary" className="text-xs">
+                              {folder.documentCount} files
+                            </Badge>
+                          </div>
+                          <h3 className="font-semibold text-foreground mb-2">{folder.name}</h3>
+                          <p className="text-sm text-muted-foreground mb-3">{folder.description}</p>
+                          <div className="flex items-center text-xs text-muted-foreground">
+                            <Clock className="mr-1 h-3 w-3" />
+                            Last accessed {folder.lastAccess}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+
+              {/* Empty folder state */}
+              {currentSubfolders.length === 0 && currentFolderFiles.length === 0 && selectedFolder && (
+                <div className="text-center py-12">
+                  <FolderOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">This folder is empty</h3>
+                  <p className="text-muted-foreground mb-4">Start by uploading some documents</p>
+                  <Button 
+                    onClick={() => setDocumentModal({ isOpen: true, mode: 'upload', document: null })}
+                    className="bg-primary hover:bg-primary-hover"
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload Documents
+                  </Button>
+                </div>
+              )}
+            </motion.div>
+          )}
         </TabsContent>
 
         <TabsContent value="documents" className="mt-6">

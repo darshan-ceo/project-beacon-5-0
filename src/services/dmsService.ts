@@ -278,17 +278,63 @@ export const dmsService = {
     getPreviewUrl: async (documentId: string): Promise<string> => {
       await new Promise(resolve => setTimeout(resolve, 200));
       
-      // Mock preview URL generation
-      const baseUrl = window.location.origin;
-      return `${baseUrl}/api/documents/${documentId}/preview`;
+      // Create mock PDF blob for preview
+      const pdfContent = '%PDF-1.4\n1 0 obj\n<<\n/Type /Catalog\n/Pages 2 0 R\n>>\nendobj\n2 0 obj\n<<\n/Type /Pages\n/Kids [3 0 R]\n/Count 1\n>>\nendobj\n3 0 obj\n<<\n/Type /Page\n/Parent 2 0 R\n/MediaBox [0 0 612 792]\n>>\nendobj\nxref\n0 4\n0000000000 65535 f \n0000000009 00000 n \n0000000074 00000 n \n0000000120 00000 n \ntrailer\n<<\n/Size 4\n/Root 1 0 R\n>>\nstartxref\n178\n%%EOF';
+      const blob = new Blob([pdfContent], { type: 'application/pdf' });
+      return URL.createObjectURL(blob);
     },
 
     getDownloadUrl: async (documentId: string): Promise<string> => {
       await new Promise(resolve => setTimeout(resolve, 200));
       
-      // Mock download URL generation  
-      const baseUrl = window.location.origin;
-      return `${baseUrl}/api/documents/${documentId}/download`;
+      // Return null to trigger proper blob download handling
+      return '';
+    },
+
+    download: async (documentId: string, fileName: string): Promise<void> => {
+      log('success', 'DMS', 'downloadFile', { documentId, fileName });
+      
+      try {
+        // Simulate API call delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Create a proper PDF blob
+        const pdfContent = '%PDF-1.4\n1 0 obj\n<<\n/Type /Catalog\n/Pages 2 0 R\n>>\nendobj\n2 0 obj\n<<\n/Type /Pages\n/Kids [3 0 R]\n/Count 1\n>>\nendobj\n3 0 obj\n<<\n/Type /Page\n/Parent 2 0 R\n/MediaBox [0 0 612 792]\n/Contents 4 0 R\n>>\nendobj\n4 0 obj\n<<\n/Length 44\n>>\nstream\nBT\n/F1 12 Tf\n100 700 Td\n(Sample Document) Tj\nET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f \n0000000009 00000 n \n0000000074 00000 n \n0000000120 00000 n \n0000000179 00000 n \ntrailer\n<<\n/Size 5\n/Root 1 0 R\n>>\nstartxref\n269\n%%EOF';
+        
+        // Create blob with proper content type
+        const blob = new Blob([pdfContent], { type: 'application/pdf' });
+        
+        // Validate blob
+        if (blob.size === 0) {
+          throw new Error('Generated file is empty');
+        }
+        
+        // Create download link
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Clean up
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        
+        toast({
+          title: "Download Complete",
+          description: `${fileName} has been downloaded successfully.`,
+        });
+        
+      } catch (error) {
+        log('error', 'DMS', 'downloadFile', error);
+        toast({
+          title: "Download Failed",
+          description: "Failed to download file. The file may be corrupted or unavailable.",
+          variant: "destructive",
+        });
+        throw error;
+      }
     },
 
     delete: async (documentId: string, dispatch: React.Dispatch<AppAction>): Promise<void> => {

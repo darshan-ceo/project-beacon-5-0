@@ -80,6 +80,11 @@ const App = () => (
                   <DocumentManagement />
                 </AdminLayout>
               } />
+              <Route path="/documents/folder/:id" element={
+                <AdminLayout currentUser={currentUser}>
+                  <DocumentManagement />
+                </AdminLayout>
+              } />
               <Route path="/rbac" element={
                 <AdminLayout currentUser={currentUser}>
                   <RBACManagement />
