@@ -5,9 +5,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Separator } from '@/components/ui/separator';
+import { Plus, Edit, Trash2, User, Eye, Building2, MapPin, Shield } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { Client, useAppState } from '@/contexts/AppStateContext';
+import { Client, useAppState, type Signatory, type Address, type Jurisdiction, type PortalAccess } from '@/contexts/AppStateContext';
 import { CASelector } from '@/components/ui/employee-selector';
+import { SignatoryModal } from './SignatoryModal';
+import { clientsService, INDIAN_STATES } from '@/services/clientsService';
 
 interface ClientModalProps {
   isOpen: boolean;
@@ -18,273 +26,857 @@ interface ClientModalProps {
 
 export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, client: clientData, mode }) => {
   const { state, dispatch } = useAppState();
+  
   const [formData, setFormData] = useState<{
     name: string;
-    type: 'Individual' | 'Company' | 'Partnership' | 'Trust' | 'Society';
-    email: string;
-    phone: string;
-    address: string;
-    registrationNumber: string;
-    panNumber: string;
-    gstNumber: string;
-  assignedCAId: string;
-  assignedCAName: string;
+    type: 'Individual' | 'Company' | 'Partnership' | 'Trust' | 'Other';
+    category: 'Regular Dealer' | 'Composition' | 'Exporter' | 'Service' | 'Other';
+    registrationNo: string;
+    gstin: string;
+    pan: string;
+    address: Address;
+    jurisdiction: Jurisdiction;
+    portalAccess: PortalAccess;
+    assignedCAId: string;
+    assignedCAName: string;
+    status: 'Active' | 'Inactive';
   }>({
     name: '',
     type: 'Individual',
-    email: '',
-    phone: '',
-    address: '',
-    registrationNumber: '',
-    panNumber: '',
-    gstNumber: '',
+    category: 'Regular Dealer',
+    registrationNo: '',
+    gstin: '',
+    pan: '',
+    address: {
+      line1: '',
+      line2: '',
+      city: '',
+      state: '',
+      pincode: '',
+      country: 'India'
+    },
+    jurisdiction: {
+      commissionerate: '',
+      division: '',
+      range: ''
+    },
+    portalAccess: {
+      allowLogin: false,
+      email: '',
+      mobile: '',
+      username: '',
+      passwordHash: ''
+    },
     assignedCAId: '',
-    assignedCAName: ''
+    assignedCAName: '',
+    status: 'Active'
   });
+
+  const [signatories, setSignatories] = useState<Signatory[]>([]);
+  const [signatoryModal, setSignatoryModal] = useState<{
+    isOpen: boolean;
+    mode: 'create' | 'edit' | 'view';
+    signatory?: Signatory | null;
+  }>({ isOpen: false, mode: 'create', signatory: null });
+  
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   useEffect(() => {
     if (clientData && (mode === 'edit' || mode === 'view')) {
       setFormData({
         name: clientData.name,
         type: clientData.type,
-        email: clientData.email,
-        phone: clientData.phone,
-        address: clientData.address,
-        registrationNumber: clientData.registrationNumber || '',
-        panNumber: clientData.panNumber,
-        gstNumber: clientData.gstNumber || '',
+        category: clientData.category || 'Regular Dealer',
+        registrationNo: clientData.registrationNo || '',
+        gstin: clientData.gstin || '',
+        pan: clientData.pan,
+        address: clientData.address || {
+          line1: clientData.address?.line1 || '',
+          line2: clientData.address?.line2 || '',
+          city: clientData.address?.city || '',
+          state: clientData.address?.state || '',
+          pincode: clientData.address?.pincode || '',
+          country: clientData.address?.country || 'India'
+        },
+        jurisdiction: clientData.jurisdiction || { commissionerate: '', division: '', range: '' },
+        portalAccess: clientData.portalAccess || { allowLogin: false },
         assignedCAId: clientData.assignedCAId,
-        assignedCAName: clientData.assignedCAName
+        assignedCAName: clientData.assignedCAName,
+        status: clientData.status
       });
+      setSignatories(clientData.signatories || []);
     } else if (mode === 'create') {
+      // Reset to defaults
       setFormData({
         name: '',
         type: 'Individual',
-        email: '',
-        phone: '',
-        address: '',
-        registrationNumber: '',
-        panNumber: '',
-        gstNumber: '',
+        category: 'Regular Dealer',
+        registrationNo: '',
+        gstin: '',
+        pan: '',
+        address: {
+          line1: '',
+          line2: '',
+          city: '',
+          state: '',
+          pincode: '',
+          country: 'India'
+        },
+        jurisdiction: {
+          commissionerate: '',
+          division: '',
+          range: ''
+        },
+        portalAccess: {
+          allowLogin: false,
+          email: '',
+          mobile: '',
+          username: '',
+          passwordHash: ''
+        },
         assignedCAId: '',
-        assignedCAName: ''
+        assignedCAName: '',
+        status: 'Active'
       });
+      setSignatories([]);
     }
-  }, [clientData, mode]);
+    setErrors({});
+    setValidationErrors([]);
+  }, [clientData, mode, isOpen]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    const newValidationErrors: string[] = [];
+
+    // Basic validations
+    if (!formData.name.trim()) {
+      newErrors.name = 'Client name is required';
+    }
+
+    if (!formData.address.line1.trim()) {
+      newErrors.addressLine1 = 'Address line 1 is required';
+    }
+
+    if (!formData.address.city.trim()) {
+      newErrors.addressCity = 'City is required';
+    }
+
+    if (!formData.address.state.trim()) {
+      newErrors.addressState = 'State is required';
+    }
+
+    // Validate using service
+    const panValidation = clientsService.validatePAN(formData.pan);
+    if (!panValidation.isValid) {
+      newErrors.pan = panValidation.errors[0];
+    }
+
+    if (formData.gstin) {
+      const gstinValidation = clientsService.validateGSTIN(formData.gstin);
+      if (!gstinValidation.isValid) {
+        newErrors.gstin = gstinValidation.errors[0];
+      }
+    }
+
+    if (formData.address.pincode) {
+      const pincodeValidation = clientsService.validatePincode(formData.address.pincode);
+      if (!pincodeValidation.isValid) {
+        newErrors.pincode = pincodeValidation.errors[0];
+      }
+    }
+
+    // Portal access validations
+    if (formData.portalAccess.allowLogin) {
+      if (!formData.portalAccess.email) {
+        newErrors.portalEmail = 'Email is required for portal access';
+      } else {
+        const emailValidation = clientsService.validateEmail(formData.portalAccess.email);
+        if (!emailValidation.isValid) {
+          newErrors.portalEmail = emailValidation.errors[0];
+        }
+      }
+
+      if (!formData.portalAccess.mobile) {
+        newErrors.portalMobile = 'Mobile number is required for portal access';
+      }
+    }
+
+    // Signatory validations for non-Individual clients
+    if (formData.type !== 'Individual') {
+      if (signatories.length === 0) {
+        newValidationErrors.push('At least one signatory is required for Company/Partnership/Trust');
+      } else {
+        const primarySignatories = signatories.filter(s => s.isPrimary);
+        if (primarySignatories.length === 0) {
+          newValidationErrors.push('One signatory must be marked as primary');
+        } else if (primarySignatories.length > 1) {
+          newValidationErrors.push('Only one signatory can be marked as primary');
+        }
+      }
+    }
+
+    setErrors(newErrors);
+    setValidationErrors(newValidationErrors);
+    
+    return Object.keys(newErrors).length === 0 && newValidationErrors.length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (mode === 'create') {
-      const newClient: Client = {
-        id: Date.now().toString(),
-        name: formData.name,
-        type: formData.type,
-        email: formData.email,
-        phone: formData.phone,
-        address: formData.address,
-        registrationNumber: formData.registrationNumber,
-        panNumber: formData.panNumber,
-        gstNumber: formData.gstNumber,
-        status: 'Active',
-        assignedCAId: formData.assignedCAId,
-        assignedCAName: formData.assignedCAName,
-        registrationDate: new Date().toISOString().split('T')[0],
-        totalCases: 0,
-        activeCases: 0,
-        totalInvoiced: 0
-      };
-
-      dispatch({ type: 'ADD_CLIENT', payload: newClient });
-      toast({
-        title: "Client Created",
-        description: `Client "${formData.name}" has been created successfully.`,
-      });
-    } else if (mode === 'edit' && clientData) {
-      const updatedClient: Client = {
-        ...clientData,
-        name: formData.name,
-        type: formData.type,
-        email: formData.email,
-        phone: formData.phone,
-        address: formData.address,
-        registrationNumber: formData.registrationNumber,
-        panNumber: formData.panNumber,
-        gstNumber: formData.gstNumber,
-        assignedCAId: formData.assignedCAId,
-        assignedCAName: formData.assignedCAName
-      };
-
-      dispatch({ type: 'UPDATE_CLIENT', payload: updatedClient });
-      toast({
-        title: "Client Updated",
-        description: `Client "${formData.name}" has been updated successfully.`,
-      });
+    if (!validateForm()) {
+      return;
     }
 
-    onClose();
-  };
+    try {
+      const clientToSave: Partial<Client> = {
+        ...formData,
+        signatories
+      };
 
-  const handleDelete = () => {
-    if (clientData) {
-      dispatch({ type: 'DELETE_CLIENT', payload: clientData.id });
-      toast({
-        title: "Client Deleted",
-        description: `Client "${clientData.name}" has been deleted.`,
-      });
+      if (mode === 'create') {
+        await clientsService.create(clientToSave, dispatch);
+      } else if (mode === 'edit' && clientData) {
+        await clientsService.update(clientData.id, { ...clientData, ...clientToSave }, dispatch);
+      }
+
       onClose();
+    } catch (error) {
+      // Error handling is done in the service
     }
   };
+
+  const handleDelete = async () => {
+    if (clientData) {
+      try {
+        await clientsService.delete(clientData.id, dispatch);
+        onClose();
+      } catch (error) {
+        // Error handling is done in the service
+      }
+    }
+  };
+
+  const handleSignatorySubmit = async (signatoryData: Omit<Signatory, 'id'> | Signatory) => {
+    try {
+      if (signatoryModal.mode === 'create') {
+        const newSignatory: Signatory = {
+          ...(signatoryData as Omit<Signatory, 'id'>),
+          id: Date.now().toString()
+        };
+        setSignatories(prev => [...prev, newSignatory]);
+      } else if (signatoryModal.mode === 'edit') {
+        setSignatories(prev => 
+          prev.map(s => s.id === (signatoryData as Signatory).id ? (signatoryData as Signatory) : s)
+        );
+      }
+      setSignatoryModal({ isOpen: false, mode: 'create', signatory: null });
+    } catch (error) {
+      // Error already handled in SignatoryModal
+    }
+  };
+
+  const handleDeleteSignatory = (signatoryId: string) => {
+    setSignatories(prev => prev.filter(s => s.id !== signatoryId));
+  };
+
+  const handlePortalToggle = (enabled: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      portalAccess: {
+        ...prev.portalAccess,
+        allowLogin: enabled,
+        ...(enabled ? clientsService.generateCredentials() : {})
+      }
+    }));
+  };
+
+  const showSignatorySection = formData.type !== 'Individual';
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>
-            {mode === 'create' && 'Add New Client'}
-            {mode === 'edit' && 'Edit Client'}
-            {mode === 'view' && 'Client Details'}
-          </DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {mode === 'create' && <><Plus className="h-5 w-5" /> Add New Client</>}
+              {mode === 'edit' && <><Edit className="h-5 w-5" /> Edit Client</>}
+              {mode === 'view' && <><Eye className="h-5 w-5" /> Client Details</>}
+            </DialogTitle>
+          </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="name">Client Name</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                disabled={mode === 'view'}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="type">Client Type</Label>
-              <Select 
-                value={formData.type} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, type: value as any }))}
-                disabled={mode === 'view'}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Individual">Individual</SelectItem>
-                  <SelectItem value="Company">Company</SelectItem>
-                  <SelectItem value="Partnership">Partnership</SelectItem>
-                  <SelectItem value="Trust">Trust</SelectItem>
-                  <SelectItem value="Society">Society</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* General Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4" />
+                  General Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="name">Client Name *</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => {
+                        setFormData(prev => ({ ...prev, name: e.target.value }));
+                        setErrors(prev => ({ ...prev, name: '' }));
+                      }}
+                      disabled={mode === 'view'}
+                      className={errors.name ? 'border-destructive' : ''}
+                    />
+                    {errors.name && <p className="text-sm text-destructive mt-1">{errors.name}</p>}
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="type">Client Type *</Label>
+                    <Select 
+                      value={formData.type} 
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, type: value as any }))}
+                      disabled={mode === 'view'}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Individual">Individual</SelectItem>
+                        <SelectItem value="Company">Company</SelectItem>
+                        <SelectItem value="Partnership">Partnership</SelectItem>
+                        <SelectItem value="Trust">Trust</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                disabled={mode === 'view'}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="phone">Phone</Label>
-              <Input
-                id="phone"
-                value={formData.phone}
-                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                disabled={mode === 'view'}
-                required
-              />
-            </div>
-          </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="category">GST Category</Label>
+                    <Select 
+                      value={formData.category} 
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, category: value as any }))}
+                      disabled={mode === 'view'}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Regular Dealer">Regular Dealer</SelectItem>
+                        <SelectItem value="Composition">Composition</SelectItem>
+                        <SelectItem value="Exporter">Exporter</SelectItem>
+                        <SelectItem value="Service">Service Provider</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-          <div>
-            <Label htmlFor="address">Address</Label>
-            <Textarea
-              id="address"
-              value={formData.address}
-              onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-              disabled={mode === 'view'}
-              rows={2}
-              required
-            />
-          </div>
+                  {showSignatorySection && (
+                    <div>
+                      <Label htmlFor="registrationNo">Registration Number</Label>
+                      <Input
+                        id="registrationNo"
+                        value={formData.registrationNo}
+                        onChange={(e) => setFormData(prev => ({ ...prev, registrationNo: e.target.value }))}
+                        disabled={mode === 'view'}
+                        placeholder="CIN/LLP/Registration No."
+                      />
+                    </div>
+                  )}
+                </div>
 
-          {(formData.type === 'Company' || formData.type === 'Partnership' || formData.type === 'Trust' || formData.type === 'Society') && (
-            <div>
-              <Label htmlFor="registrationNumber">Registration Number</Label>
-              <Input
-                id="registrationNumber"
-                value={formData.registrationNumber}
-                onChange={(e) => setFormData(prev => ({ ...prev, registrationNumber: e.target.value }))}
-                disabled={mode === 'view'}
-              />
-            </div>
-          )}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="pan">PAN Number *</Label>
+                    <Input
+                      id="pan"
+                      value={formData.pan}
+                      onChange={(e) => {
+                        setFormData(prev => ({ ...prev, pan: e.target.value.toUpperCase() }));
+                        setErrors(prev => ({ ...prev, pan: '' }));
+                      }}
+                      disabled={mode === 'view'}
+                      maxLength={10}
+                      placeholder="ABCDE1234F"
+                      className={errors.pan ? 'border-destructive' : ''}
+                    />
+                    {errors.pan && <p className="text-sm text-destructive mt-1">{errors.pan}</p>}
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="gstin">GSTIN</Label>
+                    <Input
+                      id="gstin"
+                      value={formData.gstin}
+                      onChange={(e) => {
+                        setFormData(prev => ({ ...prev, gstin: e.target.value.toUpperCase() }));
+                        setErrors(prev => ({ ...prev, gstin: '' }));
+                      }}
+                      disabled={mode === 'view'}
+                      maxLength={15}
+                      placeholder="07AABCU9603R1ZV"
+                      className={errors.gstin ? 'border-destructive' : ''}
+                    />
+                    {errors.gstin && <p className="text-sm text-destructive mt-1">{errors.gstin}</p>}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="panNumber">PAN Number</Label>
-              <Input
-                id="panNumber"
-                value={formData.panNumber}
-                onChange={(e) => setFormData(prev => ({ ...prev, panNumber: e.target.value.toUpperCase() }))}
-                disabled={mode === 'view'}
-                maxLength={10}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="gstNumber">GST Number</Label>
-              <Input
-                id="gstNumber"
-                value={formData.gstNumber}
-                onChange={(e) => setFormData(prev => ({ ...prev, gstNumber: e.target.value.toUpperCase() }))}
-                disabled={mode === 'view'}
-                maxLength={15}
-              />
-            </div>
-          </div>
+            {/* Address Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  Address Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="addressLine1">Address Line 1 *</Label>
+                  <Input
+                    id="addressLine1"
+                    value={formData.address.line1}
+                    onChange={(e) => {
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        address: { ...prev.address, line1: e.target.value }
+                      }));
+                      setErrors(prev => ({ ...prev, addressLine1: '' }));
+                    }}
+                    disabled={mode === 'view'}
+                    className={errors.addressLine1 ? 'border-destructive' : ''}
+                  />
+                  {errors.addressLine1 && <p className="text-sm text-destructive mt-1">{errors.addressLine1}</p>}
+                </div>
 
-          <div>
-            <CASelector
-              value={formData.assignedCAId}
-              onValueChange={(value) => {
-                const employee = state.employees.find(e => e.id === value);
-                setFormData(prev => ({ 
-                  ...prev, 
-                  assignedCAId: value,
-                  assignedCAName: employee?.name || ''
-                }));
-              }}
-              disabled={mode === 'view'}
-              required
-            />
-          </div>
+                <div>
+                  <Label htmlFor="addressLine2">Address Line 2</Label>
+                  <Input
+                    id="addressLine2"
+                    value={formData.address.line2}
+                    onChange={(e) => setFormData(prev => ({ 
+                      ...prev, 
+                      address: { ...prev.address, line2: e.target.value }
+                    }))}
+                    disabled={mode === 'view'}
+                  />
+                </div>
 
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              {mode === 'view' ? 'Close' : 'Cancel'}
-            </Button>
-            {mode === 'edit' && (
-              <Button type="button" variant="destructive" onClick={handleDelete}>
-                Delete Client
-              </Button>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="city">City *</Label>
+                    <Input
+                      id="city"
+                      value={formData.address.city}
+                      onChange={(e) => {
+                        setFormData(prev => ({ 
+                          ...prev, 
+                          address: { ...prev.address, city: e.target.value }
+                        }));
+                        setErrors(prev => ({ ...prev, addressCity: '' }));
+                      }}
+                      disabled={mode === 'view'}
+                      className={errors.addressCity ? 'border-destructive' : ''}
+                    />
+                    {errors.addressCity && <p className="text-sm text-destructive mt-1">{errors.addressCity}</p>}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="state">State *</Label>
+                    <Select 
+                      value={formData.address.state} 
+                      onValueChange={(value) => {
+                        setFormData(prev => ({ 
+                          ...prev, 
+                          address: { ...prev.address, state: value }
+                        }));
+                        setErrors(prev => ({ ...prev, addressState: '' }));
+                      }}
+                      disabled={mode === 'view'}
+                    >
+                      <SelectTrigger className={errors.addressState ? 'border-destructive' : ''}>
+                        <SelectValue placeholder="Select state" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {INDIAN_STATES.map(state => (
+                          <SelectItem key={state} value={state}>{state}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.addressState && <p className="text-sm text-destructive mt-1">{errors.addressState}</p>}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="pincode">Pincode *</Label>
+                    <Input
+                      id="pincode"
+                      value={formData.address.pincode}
+                      onChange={(e) => {
+                        setFormData(prev => ({ 
+                          ...prev, 
+                          address: { ...prev.address, pincode: e.target.value }
+                        }));
+                        setErrors(prev => ({ ...prev, pincode: '' }));
+                      }}
+                      disabled={mode === 'view'}
+                      maxLength={6}
+                      placeholder="123456"
+                      className={errors.pincode ? 'border-destructive' : ''}
+                    />
+                    {errors.pincode && <p className="text-sm text-destructive mt-1">{errors.pincode}</p>}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Jurisdiction Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Tax Jurisdiction</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="commissionerate">Commissionerate</Label>
+                    <Input
+                      id="commissionerate"
+                      value={formData.jurisdiction.commissionerate || ''}
+                      onChange={(e) => setFormData(prev => ({ 
+                        ...prev, 
+                        jurisdiction: { ...prev.jurisdiction, commissionerate: e.target.value }
+                      }))}
+                      disabled={mode === 'view'}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="division">Division</Label>
+                    <Input
+                      id="division"
+                      value={formData.jurisdiction.division || ''}
+                      onChange={(e) => setFormData(prev => ({ 
+                        ...prev, 
+                        jurisdiction: { ...prev.jurisdiction, division: e.target.value }
+                      }))}
+                      disabled={mode === 'view'}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="range">Range</Label>
+                    <Input
+                      id="range"
+                      value={formData.jurisdiction.range || ''}
+                      onChange={(e) => setFormData(prev => ({ 
+                        ...prev, 
+                        jurisdiction: { ...prev.jurisdiction, range: e.target.value }
+                      }))}
+                      disabled={mode === 'view'}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Signatories Section - Only for Company/Partnership/Trust */}
+            {showSignatorySection && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      Authorized Signatories
+                    </div>
+                    {mode !== 'view' && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSignatoryModal({ isOpen: true, mode: 'create', signatory: null })}
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Add Signatory
+                      </Button>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {signatories.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No signatories added yet</p>
+                      {mode !== 'view' && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="mt-2"
+                          onClick={() => setSignatoryModal({ isOpen: true, mode: 'create', signatory: null })}
+                        >
+                          Add First Signatory
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Designation</TableHead>
+                          <TableHead>Scope</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {signatories.map((signatory) => (
+                          <TableRow key={signatory.id}>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                {signatory.fullName}
+                                {signatory.isPrimary && (
+                                  <Badge variant="secondary" className="text-xs">Primary</Badge>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>{signatory.email}</TableCell>
+                            <TableCell>{signatory.designation || '-'}</TableCell>
+                            <TableCell>{signatory.scope}</TableCell>
+                            <TableCell>
+                              <Badge 
+                                variant={signatory.status === 'Active' ? 'default' : 'secondary'}
+                                className="text-xs"
+                              >
+                                {signatory.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setSignatoryModal({ 
+                                    isOpen: true, 
+                                    mode: mode === 'view' ? 'view' : 'edit', 
+                                    signatory 
+                                  })}
+                                >
+                                  {mode === 'view' ? <Eye className="h-4 w-4" /> : <Edit className="h-4 w-4" />}
+                                </Button>
+                                {mode !== 'view' && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDeleteSignatory(signatory.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
             )}
-            {mode !== 'view' && (
-              <Button type="submit">
-                {mode === 'create' ? 'Add Client' : 'Update Client'}
-              </Button>
+
+            {/* Portal Access Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="h-4 w-4" />
+                  Client Portal Access
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Enable Client Portal Login</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Allow this client to access the client portal
+                    </p>
+                  </div>
+                  <Switch
+                    checked={formData.portalAccess.allowLogin}
+                    onCheckedChange={handlePortalToggle}
+                    disabled={mode === 'view'}
+                  />
+                </div>
+
+                {formData.portalAccess.allowLogin && (
+                  <>
+                    <Separator />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="portalEmail">Portal Email *</Label>
+                        <Input
+                          id="portalEmail"
+                          type="email"
+                          value={formData.portalAccess.email || ''}
+                          onChange={(e) => {
+                            setFormData(prev => ({ 
+                              ...prev, 
+                              portalAccess: { ...prev.portalAccess, email: e.target.value }
+                            }));
+                            setErrors(prev => ({ ...prev, portalEmail: '' }));
+                          }}
+                          disabled={mode === 'view'}
+                          className={errors.portalEmail ? 'border-destructive' : ''}
+                        />
+                        {errors.portalEmail && <p className="text-sm text-destructive mt-1">{errors.portalEmail}</p>}
+                      </div>
+
+                      <div>
+                        <Label htmlFor="portalMobile">Portal Mobile *</Label>
+                        <Input
+                          id="portalMobile"
+                          value={formData.portalAccess.mobile || ''}
+                          onChange={(e) => {
+                            setFormData(prev => ({ 
+                              ...prev, 
+                              portalAccess: { ...prev.portalAccess, mobile: e.target.value }
+                            }));
+                            setErrors(prev => ({ ...prev, portalMobile: '' }));
+                          }}
+                          disabled={mode === 'view'}
+                          className={errors.portalMobile ? 'border-destructive' : ''}
+                        />
+                        {errors.portalMobile && <p className="text-sm text-destructive mt-1">{errors.portalMobile}</p>}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="username">Username</Label>
+                        <Input
+                          id="username"
+                          value={formData.portalAccess.username || ''}
+                          onChange={(e) => setFormData(prev => ({ 
+                            ...prev, 
+                            portalAccess: { ...prev.portalAccess, username: e.target.value }
+                          }))}
+                          disabled={mode === 'view'}
+                          placeholder="Auto-generated"
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="password">Password</Label>
+                        <Input
+                          id="password"
+                          type="password"
+                          value={formData.portalAccess.passwordHash || ''}
+                          onChange={(e) => setFormData(prev => ({ 
+                            ...prev, 
+                            portalAccess: { ...prev.portalAccess, passwordHash: e.target.value }
+                          }))}
+                          disabled={mode === 'view'}
+                          placeholder="Auto-generated"
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Assignment & Status */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Assignment & Status</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <CASelector
+                      value={formData.assignedCAId}
+                      onValueChange={(value) => {
+                        const employee = state.employees.find(e => e.id === value);
+                        setFormData(prev => ({ 
+                          ...prev, 
+                          assignedCAId: value,
+                          assignedCAName: employee?.name || ''
+                        }));
+                      }}
+                      disabled={mode === 'view'}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="status">Status</Label>
+                    <Select 
+                      value={formData.status} 
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as any }))}
+                      disabled={mode === 'view'}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Active">Active</SelectItem>
+                        <SelectItem value="Inactive">Inactive</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Validation Errors */}
+            {validationErrors.length > 0 && (
+              <Card className="border-destructive">
+                <CardContent className="pt-6">
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium text-destructive">Please fix the following errors:</h4>
+                    <ul className="text-sm text-destructive space-y-1">
+                      {validationErrors.map((error, index) => (
+                        <li key={index}>• {error}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
             )}
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button type="button" variant="outline" onClick={onClose}>
+                {mode === 'view' ? 'Close' : 'Cancel'}
+              </Button>
+              {mode === 'edit' && (
+                <Button type="button" variant="destructive" onClick={handleDelete}>
+                  Delete Client
+                </Button>
+              )}
+              {mode !== 'view' && (
+                <Button type="submit">
+                  {mode === 'create' ? 'Create Client' : 'Update Client'}
+                </Button>
+              )}
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Signatory Modal */}
+      <SignatoryModal
+        isOpen={signatoryModal.isOpen}
+        onClose={() => setSignatoryModal({ isOpen: false, mode: 'create', signatory: null })}
+        signatory={signatoryModal.signatory}
+        mode={signatoryModal.mode}
+        onSubmit={handleSignatorySubmit}
+        existingSignatories={signatories}
+      />
+    </>
   );
 };

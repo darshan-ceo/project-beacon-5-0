@@ -52,20 +52,33 @@ interface Task {
 interface Client {
   id: string;
   name: string;
-  type: 'Individual' | 'Company' | 'Partnership' | 'Trust' | 'Society';
-  email: string;
-  phone: string;
-  address: string;
-  registrationNumber?: string;
-  panNumber: string;
-  gstNumber?: string;
+  type: 'Individual' | 'Company' | 'Partnership' | 'Trust' | 'Other';
+  category?: 'Regular Dealer' | 'Composition' | 'Exporter' | 'Service' | 'Other';
+  registrationNo?: string;
+  gstin?: string;
+  pan: string;
+  address: Address | string; // Support both new and legacy format
+  jurisdiction?: Jurisdiction;
+  portalAccess?: PortalAccess;
+  signatories?: Signatory[];
   status: 'Active' | 'Inactive';
   assignedCAId: string; // FK to Employee.id  
   assignedCAName: string; // Display name derived from Employee
-  registrationDate: string;
-  totalCases: number;
-  activeCases: number;
-  totalInvoiced: number;
+  createdAt?: string;
+  updatedAt?: string;
+  // Migration flags
+  needsAddressReview?: boolean;
+  needsSignatoryReview?: boolean;
+  // Legacy support
+  email?: string;
+  phone?: string;
+  registrationNumber?: string;
+  panNumber?: string;
+  gstNumber?: string;
+  registrationDate?: string;
+  totalCases?: number;
+  activeCases?: number;
+  totalInvoiced?: number;
 }
 
 interface Court {
@@ -188,6 +201,10 @@ export type AppAction =
   | { type: 'ADD_CLIENT'; payload: Client }
   | { type: 'UPDATE_CLIENT'; payload: Client }
   | { type: 'DELETE_CLIENT'; payload: string }
+  | { type: 'ADD_SIGNATORY'; payload: { clientId: string; signatory: Signatory } }
+  | { type: 'UPDATE_SIGNATORY'; payload: { clientId: string; signatory: Signatory } }
+  | { type: 'DELETE_SIGNATORY'; payload: { clientId: string; signatoryId: string } }
+  | { type: 'UPDATE_PORTAL_ACCESS'; payload: { clientId: string; portalAccess: PortalAccess } }
   | { type: 'ADD_COURT'; payload: Court }
   | { type: 'UPDATE_COURT'; payload: Court }
   | { type: 'DELETE_COURT'; payload: string }
@@ -649,5 +666,42 @@ export const useAppState = () => {
   return context;
 };
 
-// Export types
+// Export types  
 export type { Case, Task, Client, Court, Judge, Document, Folder, Hearing, Employee };
+
+// New interfaces for enhanced Client Master
+export interface Address {
+  line1: string;
+  line2?: string;
+  city: string;
+  state: string;
+  pincode: string;
+  country: string;
+}
+
+export interface Jurisdiction {
+  commissionerate?: string;
+  division?: string;
+  range?: string;
+}
+
+export interface PortalAccess {
+  allowLogin: boolean;
+  email?: string;
+  mobile?: string;
+  username?: string;
+  passwordHash?: string;
+}
+
+export interface Signatory {
+  id: string;
+  fullName: string;
+  designation?: string;
+  email: string;
+  phone?: string;
+  isPrimary: boolean;
+  scope: 'All' | 'GST Filings' | 'Litigation' | 'Appeals';
+  status: 'Active' | 'Inactive';
+}
+
+export type { Address, Jurisdiction, PortalAccess, Signatory };
