@@ -33,8 +33,8 @@ export const ClientPortal: React.FC = () => {
     .filter(d => d.clientId === clientId)
     .map(d => ({
       ...d,
-      uploadedBy: d.uploadedBy || 'System',
-      shared: d.shared || false
+      uploadedBy: d.uploadedById || 'System',
+      shared: d.isShared || false
     }));
   
   // Transform hearings to match interface  
