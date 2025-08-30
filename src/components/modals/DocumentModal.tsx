@@ -219,7 +219,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({ isOpen, onClose, d
                 <SelectValue placeholder="Select case (optional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No Case Association</SelectItem>
+                <SelectItem value="no-case">No Case Association</SelectItem>
                 {state.cases.map((case_) => (
                   <SelectItem key={case_.id} value={case_.id}>
                     {case_.caseNumber} - {case_.title}

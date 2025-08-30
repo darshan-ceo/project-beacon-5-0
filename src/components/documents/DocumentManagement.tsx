@@ -93,53 +93,7 @@ const mockFolders: Folder[] = [
   }
 ];
 
-const mockDocuments: Document[] = [
-  {
-    id: '1',
-    name: 'Service Agreement - Acme Corp.pdf',
-    type: 'pdf',
-    size: '2.4 MB',
-    stage: 'Approved',
-    tags: ['contract', 'service', 'acme'],
-    uploadedBy: 'John Smith',
-    uploadedAt: '2024-01-15',
-    lastModified: '2024-01-20',
-    version: 'v2.1',
-    isStarred: true,
-    folder: 'Client Agreements',
-    client: 'Acme Corporation Ltd'
-  },
-  {
-    id: '2',
-    name: 'Court Filing - Case #2024-001.pdf',
-    type: 'pdf',
-    size: '1.8 MB',
-    stage: 'Final',
-    tags: ['court', 'filing', 'urgent'],
-    uploadedBy: 'Sarah Johnson',
-    uploadedAt: '2024-01-18',
-    lastModified: '2024-01-18',
-    version: 'v1.0',
-    isStarred: false,
-    folder: 'Court Filings',
-    client: 'Global Tech Solutions'
-  },
-  {
-    id: '3',
-    name: 'Evidence Photos - Location A.zip',
-    type: 'jpg',
-    size: '15.6 MB',
-    stage: 'Review',
-    tags: ['evidence', 'photos', 'investigation'],
-    uploadedBy: 'Mike Wilson',
-    uploadedAt: '2024-01-19',
-    lastModified: '2024-01-19',
-    version: 'v1.0',
-    isStarred: false,
-    folder: 'Evidence & Discovery',
-    client: 'Metro Industries Pvt Ltd'
-  }
-];
+// Remove the old mock data - we'll use the state data now
 
 export const DocumentManagement: React.FC = () => {
   const { state, dispatch } = useAppState();
@@ -150,7 +104,7 @@ export const DocumentManagement: React.FC = () => {
   const [activeFilters, setActiveFilters] = useState<any>({});
   const [folders, setFolders] = useState<any[]>([]);
   const [filteredDocuments, setFilteredDocuments] = useState<LocalDocument[]>([]);
-  const [documentModal, setDocumentModal] = useState<{ isOpen: boolean; mode: 'upload' | 'edit' | 'view'; document?: Document | null }>({
+  const [documentModal, setDocumentModal] = useState<{ isOpen: boolean; mode: 'upload' | 'edit' | 'view'; document?: any }>({
     isOpen: false,
     mode: 'upload',
     document: null
@@ -183,8 +137,16 @@ export const DocumentManagement: React.FC = () => {
   useEffect(() => {
     loadFolders();
     loadTags();
-    setFilteredDocuments(state.documents as any[]);
-  }, []);
+    // Convert state documents to local format
+    const convertedDocs = state.documents.map(doc => ({
+      ...doc,
+      type: doc.type || 'pdf',
+      size: doc.size || 0,
+      uploadedByName: doc.uploadedByName || 'Unknown',
+      uploadedBy: doc.uploadedByName || 'Unknown'
+    }));
+    setFilteredDocuments(convertedDocs);
+  }, [state.documents]);
 
   // Apply filters when documents or filters change
   useEffect(() => {
@@ -210,7 +172,16 @@ export const DocumentManagement: React.FC = () => {
   };
 
   const applyFilters = () => {
-    let filtered = [...state.documents];
+    // Convert state documents to local format for filtering
+    const convertedDocs = state.documents.map(doc => ({
+      ...doc,
+      type: doc.type || 'pdf',
+      size: doc.size || 0,
+      uploadedByName: doc.uploadedByName || 'Unknown',
+      uploadedBy: doc.uploadedByName || 'Unknown'
+    }));
+    
+    let filtered = [...convertedDocs];
 
     // Search filter
     if (searchTerm) {
@@ -225,7 +196,7 @@ export const DocumentManagement: React.FC = () => {
       filtered = filtered.filter(doc => doc.caseId === activeFilters.caseId);
     }
     if (activeFilters.fileType && activeFilters.fileType !== 'all') {
-      filtered = filtered.filter(doc => doc.type.includes(activeFilters.fileType));
+      filtered = filtered.filter(doc => String(doc.type).includes(activeFilters.fileType));
     }
     if (activeFilters.uploadedBy) {
       filtered = filtered.filter(doc => doc.uploadedById === activeFilters.uploadedBy);
@@ -548,20 +519,20 @@ export const DocumentManagement: React.FC = () => {
                         className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
                       >
                         <div className="flex items-center space-x-4">
-                          <div className="text-2xl">{getFileIcon(doc.type)}</div>
+                          <div className="text-2xl">{getFileIcon(String(doc.type))}</div>
                           <div className="space-y-1">
                             <div className="flex items-center space-x-2">
                               <p className="font-medium text-foreground">{doc.name}</p>
                               <Star className="h-4 w-4 text-warning" />
                             </div>
                             <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                              <span>{typeof doc.size === 'number' ? (doc.size / 1024).toFixed(1) + 'KB' : doc.size}</span>
+                              <span>{typeof doc.size === 'number' ? (doc.size / 1024).toFixed(1) + 'KB' : String(doc.size)}</span>
                               <span>•</span>
                               <span>v1.0</span>
                               <span>•</span>
                               <div className="flex items-center">
                                 <User className="mr-1 h-3 w-3" />
-                                {doc.uploadedByName || doc.uploadedBy}
+                                {doc.uploadedByName || 'Unknown'}
                               </div>
                             </div>
                             <div className="flex items-center space-x-2">
@@ -599,11 +570,11 @@ export const DocumentManagement: React.FC = () => {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent>
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setDocumentModal({ isOpen: true, mode: 'edit', document: doc as any });
-                                }}
-                              >
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setDocumentModal({ isOpen: true, mode: 'edit', document: doc as any });
+                              }}
+                            >
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edit
                               </DropdownMenuItem>
