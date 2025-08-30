@@ -24,7 +24,7 @@ export const ClientPortal: React.FC = () => {
   const { currentUser } = useRBAC();
 
   // In a real app, this would be the logged-in client ID
-  const clientId = 'client-1'; // Mock client ID
+  const clientId = '1'; // Mock client ID
   const client = state.clients.find(c => c.id === clientId);
 
   // Filter data for this client only
