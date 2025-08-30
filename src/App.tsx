@@ -18,6 +18,8 @@ import { DocumentManagement } from "./components/documents/DocumentManagement";
 import { RBACManagement } from "./components/admin/RBACManagement";
 import { GlobalParameters } from "./components/admin/GlobalParameters";
 import { UserProfile } from "./components/admin/UserProfile";
+import { ClientPortal } from "./components/portal/ClientPortal";
+import { EnhancedDashboard } from "./components/dashboard/EnhancedDashboard";
 
 const queryClient = new QueryClient();
 
@@ -39,9 +41,10 @@ const App = () => (
             <Routes>
               <Route path="/" element={
                 <AdminLayout currentUser={currentUser}>
-                  <DashboardOverview />
+                  <EnhancedDashboard />
                 </AdminLayout>
               } />
+              <Route path="/client-portal" element={<ClientPortal />} />
               <Route path="/clients" element={
                 <AdminLayout currentUser={currentUser}>
                   <ClientMasters />

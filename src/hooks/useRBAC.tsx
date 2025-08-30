@@ -1,7 +1,7 @@
 import { createContext, useContext, ReactNode, useState } from 'react';
 
 // Role-based access control hook
-export type UserRole = 'Partner' | 'Admin' | 'Manager' | 'Associate' | 'Clerk';
+export type UserRole = 'Partner' | 'Admin' | 'Manager' | 'Associate' | 'Clerk' | 'Client';
 
 export interface Permission {
   module: string;
@@ -52,6 +52,12 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   Clerk: [
     { module: 'tasks', action: 'read' },
     { module: 'documents', action: 'read' },
+  ],
+  Client: [
+    { module: 'cases', action: 'read' }, // Own cases only
+    { module: 'documents', action: 'read' }, // Own documents only
+    { module: 'hearings', action: 'read' }, // Own hearings only
+    { module: 'notifications', action: 'read' },
   ],
 };
 
