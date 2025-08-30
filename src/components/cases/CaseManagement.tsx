@@ -36,6 +36,8 @@ import { HearingCalendar } from './HearingCalendar';
 import { AdvanceStageConfirmationModal } from '@/components/modals/AdvanceStageConfirmationModal';
 import { FilterDropdown } from '@/components/ui/filter-dropdown';
 import { Case, useAppState } from '@/contexts/AppStateContext';
+import { formTemplatesService } from '@/services/formTemplatesService';
+import { FormRenderModal } from '@/components/documents/FormRenderModal';
 
 export const CaseManagement: React.FC = () => {
   const { state, dispatch } = useAppState();
@@ -63,6 +65,16 @@ export const CaseManagement: React.FC = () => {
     currentStage: '',
     nextStage: '',
     isLoading: false
+  });
+  
+  const [formTemplateModal, setFormTemplateModal] = useState<{
+    isOpen: boolean;
+    template: any;
+    caseId: string;
+  }>({
+    isOpen: false,
+    template: null,
+    caseId: ''
   });
 
   // Sync selectedCase with global state changes
@@ -365,21 +377,55 @@ export const CaseManagement: React.FC = () => {
                             </div>
                           </div>
                           
-                          <div>
-                            <p className="text-xs text-muted-foreground">Documents</p>
-                            <div className="flex items-center">
-                              <FileText className="mr-1 h-3 w-3" />
-                              <span className="text-sm">{caseItem.documents} files</span>
-                            </div>
+                           <div>
+                             <p className="text-xs text-muted-foreground">Documents</p>
+                             <div className="flex items-center">
+                               <FileText className="mr-1 h-3 w-3" />
+                               <span className="text-sm">{caseItem.documents} files</span>
+                             </div>
+                           </div>
+                           
+                           {caseItem.nextHearing && (
+                             <div>
+                               <p className="text-xs text-muted-foreground">Next Hearing</p>
+                               <p className="text-sm font-medium">{caseItem.nextHearing.date}</p>
+                               <p className="text-xs text-muted-foreground">{state.courts.find(c => c.id === caseItem.nextHearing?.courtId)?.name || 'Unknown Court'}</p>
+                             </div>
+                           )}
+                         </div>
+
+                        {/* Quick Actions for Form Templates */}
+                        <div className="pt-2 border-t border-border">
+                          <div className="flex items-center gap-2 mb-2">
+                            <FileText className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm font-medium text-muted-foreground">Quick Actions:</span>
                           </div>
-                          
-                          {caseItem.nextHearing && (
-                            <div>
-                              <p className="text-xs text-muted-foreground">Next Hearing</p>
-                              <p className="text-sm font-medium">{caseItem.nextHearing.date}</p>
-                              <p className="text-xs text-muted-foreground">{state.courts.find(c => c.id === caseItem.nextHearing?.courtId)?.name || 'Unknown Court'}</p>
-                            </div>
-                          )}
+                          <div className="flex flex-wrap gap-2">
+                            {formTemplatesService.getFormsByStage(caseItem.currentStage).map(formCode => (
+                              <Button
+                                key={formCode}
+                                variant="outline"
+                                size="sm"
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  const template = await formTemplatesService.loadFormTemplate(formCode);
+                                  if (template) {
+                                    setFormTemplateModal({
+                                      isOpen: true,
+                                      template,
+                                      caseId: caseItem.id
+                                    });
+                                  }
+                                }}
+                                className="text-xs"
+                              >
+                                Generate {formCode.replace('_', '-')}
+                              </Button>
+                            ))}
+                            {formTemplatesService.getFormsByStage(caseItem.currentStage).length === 0 && (
+                              <span className="text-xs text-muted-foreground">No forms available for {caseItem.currentStage} stage</span>
+                            )}
+                          </div>
                         </div>
 
                         <div className="flex items-center justify-between pt-2 border-t border-border">
@@ -498,6 +544,15 @@ export const CaseManagement: React.FC = () => {
           nextStage={advanceStageModal.nextStage}
           prerequisites={validateStagePrerequisites(advanceStageModal.caseData, advanceStageModal.currentStage, state.tasks)}
           isLoading={advanceStageModal.isLoading}
+        />
+      )}
+
+      {formTemplateModal.template && (
+        <FormRenderModal
+          isOpen={formTemplateModal.isOpen}
+          onClose={() => setFormTemplateModal({ isOpen: false, template: null, caseId: '' })}
+          template={formTemplateModal.template}
+          selectedCaseId={formTemplateModal.caseId}
         />
       )}
     </div>

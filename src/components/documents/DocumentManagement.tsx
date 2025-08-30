@@ -26,6 +26,7 @@ import {
   Plus
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { FormTemplatesView } from './FormTemplatesView';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -487,10 +488,11 @@ export const DocumentManagement: React.FC = () => {
 
       {/* Main Content */}
       <Tabs defaultValue="folders" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="folders">Folders</TabsTrigger>
           <TabsTrigger value="documents">All Documents</TabsTrigger>
           <TabsTrigger value="recent">Recent</TabsTrigger>
+          <TabsTrigger value="templates">Form Templates</TabsTrigger>
         </TabsList>
 
         <TabsContent value="folders" className="mt-6">
@@ -811,6 +813,10 @@ export const DocumentManagement: React.FC = () => {
               </CardContent>
             </Card>
           </motion.div>
+        </TabsContent>
+
+        <TabsContent value="templates" className="mt-6">
+          <FormTemplatesView />
         </TabsContent>
       </Tabs>
 
