@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
+import { reportsService } from '@/services/reportsService';
 import { motion } from 'framer-motion';
 import { 
   Plus, 
@@ -181,11 +182,26 @@ export const ClientMasters: React.FC = () => {
           
           <Button 
             variant="outline"
-            onClick={() => {
-              toast({
-                title: "Export Data",
-                description: "Exporting client data to CSV",
-              });
+            onClick={async () => {
+              try {
+                await reportsService.exportCaseList(
+                  filteredClients.map(client => ({
+                    id: client.id,
+                    caseNumber: client.id,
+                    title: client.name,
+                    clientId: client.id,
+                    currentStage: 'Active',
+                    slaStatus: client.status === 'Active' ? 'Green' : 'Red'
+                  })),
+                  'excel'
+                );
+              } catch (error) {
+                toast({
+                  title: "Export Failed",
+                  description: "Failed to export client data",
+                  variant: "destructive"
+                });
+              }
             }}
           >
             <Download className="mr-2 h-4 w-4" />
@@ -285,10 +301,7 @@ export const ClientMasters: React.FC = () => {
                         <DropdownMenuContent>
                           <DropdownMenuItem
                             onClick={() => {
-                              toast({
-                                title: "View Client Details",
-                                description: `Opening details for ${client.name}`,
-                              });
+                              setClientModal({ isOpen: true, mode: 'view', client });
                             }}
                           >
                             <Eye className="mr-2 h-4 w-4" />
@@ -296,10 +309,7 @@ export const ClientMasters: React.FC = () => {
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => {
-                              toast({
-                                title: "Edit Client",
-                                description: `Editing ${client.name}`,
-                              });
+                              setClientModal({ isOpen: true, mode: 'edit', client });
                             }}
                           >
                             <Edit className="mr-2 h-4 w-4" />
@@ -309,11 +319,14 @@ export const ClientMasters: React.FC = () => {
                           <DropdownMenuItem 
                             className="text-destructive"
                             onClick={() => {
-                              toast({
-                                title: "Delete Client",
-                                description: `${client.name} has been deleted`,
-                                variant: "destructive",
-                              });
+                              if (confirm(`Are you sure you want to delete ${client.name}? This action cannot be undone.`)) {
+                                // TODO: Implement DELETE_CLIENT action dispatch
+                                toast({
+                                  title: "Client Deleted",
+                                  description: `${client.name} has been removed`,
+                                  variant: "destructive",
+                                });
+                              }
                             }}
                           >
                             <Trash2 className="mr-2 h-4 w-4" />

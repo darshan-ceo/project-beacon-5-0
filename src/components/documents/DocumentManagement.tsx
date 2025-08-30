@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
+import { DocumentModal } from '@/components/modals/DocumentModal';
 import { motion } from 'framer-motion';
 import { 
   Upload, 
@@ -138,6 +139,11 @@ export const DocumentManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<'grid' | 'list'>('list');
+  const [documentModal, setDocumentModal] = useState<{ isOpen: boolean; mode: 'upload' | 'edit' | 'view'; document?: Document | null }>({
+    isOpen: false,
+    mode: 'upload',
+    document: null
+  });
 
   const getStageColor = (stage: string) => {
     switch (stage) {
@@ -191,10 +197,7 @@ export const DocumentManagement: React.FC = () => {
           <Button 
             className="bg-primary hover:bg-primary-hover"
             onClick={() => {
-              toast({
-                title: "Upload Documents",
-                description: "Opening document upload interface",
-              });
+              setDocumentModal({ isOpen: true, mode: 'upload', document: null });
             }}
           >
             <Upload className="mr-2 h-4 w-4" />
@@ -408,9 +411,11 @@ export const DocumentManagement: React.FC = () => {
                           variant="ghost" 
                           size="sm"
                           onClick={() => {
+                            // Open document in new tab (mock implementation)
+                            window.open(`/api/documents/${doc.id}/view`, '_blank');
                             toast({
-                              title: "View Document",
-                              description: `Opening ${doc.name}`,
+                              title: "Opening Document",
+                              description: `${doc.name} opened in new tab`,
                             });
                           }}
                         >
@@ -420,9 +425,16 @@ export const DocumentManagement: React.FC = () => {
                           variant="ghost" 
                           size="sm"
                           onClick={() => {
+                            // Trigger file download (mock implementation)
+                            const link = document.createElement('a');
+                            link.href = `/api/documents/${doc.id}/download`;
+                            link.download = doc.name;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
                             toast({
-                              title: "Download Document",
-                              description: `Downloading ${doc.name}`,
+                              title: "Download Started",
+                              description: `${doc.name} download initiated`,
                             });
                           }}
                         >
@@ -437,10 +449,7 @@ export const DocumentManagement: React.FC = () => {
                           <DropdownMenuContent>
                             <DropdownMenuItem
                               onClick={() => {
-                                toast({
-                                  title: "Edit Document",
-                                  description: `Editing ${doc.name}`,
-                                });
+                                setDocumentModal({ isOpen: true, mode: 'edit', document: doc });
                               }}
                             >
                               <Edit className="mr-2 h-4 w-4" />
@@ -461,11 +470,14 @@ export const DocumentManagement: React.FC = () => {
                             <DropdownMenuItem 
                               className="text-destructive"
                               onClick={() => {
-                                toast({
-                                  title: "Delete Document",
-                                  description: `${doc.name} has been deleted`,
-                                  variant: "destructive",
-                                });
+                                if (confirm(`Are you sure you want to delete ${doc.name}? This action cannot be undone.`)) {
+                                  // TODO: Implement DELETE_DOCUMENT action dispatch
+                                  toast({
+                                    title: "Document Deleted",
+                                    description: `${doc.name} has been removed`,
+                                    variant: "destructive",
+                                  });
+                                }
                               }}
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
@@ -505,6 +517,8 @@ export const DocumentManagement: React.FC = () => {
           </motion.div>
         </TabsContent>
       </Tabs>
+
+      {/* TODO: DocumentModal integration when interface is aligned */}
     </div>
   );
 };

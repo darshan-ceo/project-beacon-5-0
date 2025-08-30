@@ -28,6 +28,7 @@ import { TaskAutomation } from './TaskAutomation';
 import { EscalationMatrix } from './EscalationMatrix';
 import { TaskTemplates } from './TaskTemplates';
 import { TaskModal } from '@/components/modals/TaskModal';
+import { FilterDropdown } from '@/components/ui/filter-dropdown';
 import { Task, useAppState } from '@/contexts/AppStateContext';
 
 interface TaskBundle {
@@ -72,6 +73,7 @@ export const TaskManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | Task['status']>('all');
   const [filterPriority, setFilterPriority] = useState<'all' | Task['priority']>('all');
+  const [activeTab, setActiveTab] = useState('board');
   const [taskModal, setTaskModal] = useState<{ isOpen: boolean; mode: 'create' | 'edit' | 'view'; task?: Task | null }>({
     isOpen: false,
     mode: 'create',
@@ -138,10 +140,7 @@ export const TaskManagement: React.FC = () => {
           <Button 
             variant="outline"
             onClick={() => {
-              toast({
-                title: "Escalations",
-                description: "Opening escalation management panel",
-              });
+              setActiveTab('escalation');
             }}
           >
             <Bell className="mr-2 h-4 w-4" />
@@ -246,36 +245,36 @@ export const TaskManagement: React.FC = () => {
         </div>
         
         <div className="flex gap-2">
-          <Button 
-            variant="outline"
-            onClick={() => {
-              toast({
-                title: "Filter Status",
-                description: "Opening status filter options",
-              });
-            }}
-          >
-            <Filter className="mr-2 h-4 w-4" />
-            Status: {filterStatus}
-          </Button>
-          <Button 
-            variant="outline"
-            onClick={() => {
-              toast({
-                title: "Filter Priority",
-                description: "Opening priority filter options",
-              });
-            }}
-          >
-            <User className="mr-2 h-4 w-4" />
-            Priority: {filterPriority}
-          </Button>
+          <FilterDropdown
+            label="Status"
+            value={filterStatus}
+            options={[
+              { label: 'Completed', value: 'Completed' },
+              { label: 'In Progress', value: 'In Progress' },
+              { label: 'Review', value: 'Review' },
+              { label: 'Overdue', value: 'Overdue' },
+              { label: 'Not Started', value: 'Not Started' }
+            ]}
+            onChange={(value) => setFilterStatus(value as 'all' | Task['status'])}
+          />
+          <FilterDropdown
+            label="Priority"
+            value={filterPriority}
+            options={[
+              { label: 'Critical', value: 'Critical' },
+              { label: 'High', value: 'High' },
+              { label: 'Medium', value: 'Medium' },
+              { label: 'Low', value: 'Low' }
+            ]}
+            onChange={(value) => setFilterPriority(value as 'all' | Task['priority'])}
+            icon={<User className="mr-2 h-4 w-4" />}
+          />
           <Button 
             variant="outline"
             onClick={() => {
               toast({
                 title: "Due Date Filter",
-                description: "Opening date range selector",
+                description: "Date range picker coming soon",
               });
             }}
           >
@@ -286,7 +285,7 @@ export const TaskManagement: React.FC = () => {
       </motion.div>
 
       {/* Main Content */}
-      <Tabs defaultValue="board" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="board">Task Board</TabsTrigger>
           <TabsTrigger value="automation">Automation</TabsTrigger>

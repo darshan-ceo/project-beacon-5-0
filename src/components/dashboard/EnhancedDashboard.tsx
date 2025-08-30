@@ -32,6 +32,7 @@ import {
   ChartLegendContent
 } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, PieChart as RechartsPieChart, Cell, LineChart, Line } from 'recharts';
+import { QuickActionsPanel } from '@/components/qa/QuickActionsPanel';
 
 interface DashboardFilters {
   clientId?: string;
@@ -488,6 +489,15 @@ export const EnhancedDashboard: React.FC = () => {
           </Card>
         </motion.div>
       </div>
+
+      {/* Quick Actions Panel */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6 }}
+      >
+        <QuickActionsPanel />
+      </motion.div>
     </div>
   );
 };

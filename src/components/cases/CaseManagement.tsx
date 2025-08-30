@@ -34,6 +34,7 @@ import { CommunicationHub } from './CommunicationHub';
 import { CaseModal } from '@/components/modals/CaseModal';
 import { HearingCalendar } from './HearingCalendar';
 import { AdvanceStageConfirmationModal } from '@/components/modals/AdvanceStageConfirmationModal';
+import { FilterDropdown } from '@/components/ui/filter-dropdown';
 import { Case, useAppState } from '@/contexts/AppStateContext';
 
 export const CaseManagement: React.FC = () => {
@@ -48,6 +49,8 @@ export const CaseManagement: React.FC = () => {
     case: null
   });
   const [hearingCalendarOpen, setHearingCalendarOpen] = useState(false);
+  const [filterStage, setFilterStage] = useState<'all' | string>('all');
+  const [filterSLA, setFilterSLA] = useState<'all' | string>('all');
   const [advanceStageModal, setAdvanceStageModal] = useState<{
     isOpen: boolean;
     caseData: Case | null;
@@ -268,18 +271,30 @@ export const CaseManagement: React.FC = () => {
         </div>
         
         <div className="flex gap-2">
-          <Button 
-            variant="outline"
-            onClick={() => {
-              toast({
-                title: "Filter",
-                description: "Opening filter options...",
-              });
-            }}
-          >
-            <Filter className="mr-2 h-4 w-4" />
-            Filter
-          </Button>
+          <FilterDropdown
+            label="Stage"
+            value={filterStage}
+            options={[
+              { label: 'Scrutiny', value: 'Scrutiny' },
+              { label: 'Demand', value: 'Demand' },
+              { label: 'Adjudication', value: 'Adjudication' },
+              { label: 'Appeals', value: 'Appeals' },
+              { label: 'GSTAT', value: 'GSTAT' },
+              { label: 'HC', value: 'HC' },
+              { label: 'SC', value: 'SC' }
+            ]}
+            onChange={(value) => setFilterStage(value)}
+          />
+          <FilterDropdown
+            label="SLA"
+            value={filterSLA}
+            options={[
+              { label: 'Green', value: 'Green' },
+              { label: 'Amber', value: 'Amber' },
+              { label: 'Red', value: 'Red' }
+            ]}
+            onChange={(value) => setFilterSLA(value)}
+          />
           <Button 
             variant="outline"
             onClick={() => setHearingCalendarOpen(true)}
