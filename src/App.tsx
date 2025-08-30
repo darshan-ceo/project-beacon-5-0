@@ -20,6 +20,7 @@ import { GlobalParameters } from "./components/admin/GlobalParameters";
 import { UserProfile } from "./components/admin/UserProfile";
 import { ClientPortal } from "./components/portal/ClientPortal";
 import { ClientLayout } from "./components/layout/ClientLayout";
+import { ClientRouteGuard } from "./components/ui/client-route-guard";
 import { EnhancedDashboard } from "./components/dashboard/EnhancedDashboard";
 
 const queryClient = new QueryClient();
@@ -45,10 +46,12 @@ const App = () => (
                   <EnhancedDashboard />
                 </AdminLayout>
               } />
-              <Route path="/client-portal" element={
-                <ClientLayout>
-                  <ClientPortal />
-                </ClientLayout>
+              <Route path="/portal" element={
+                <ClientRouteGuard>
+                  <ClientLayout>
+                    <ClientPortal />
+                  </ClientLayout>
+                </ClientRouteGuard>
               } />
               <Route path="/clients" element={
                 <AdminLayout currentUser={currentUser}>
