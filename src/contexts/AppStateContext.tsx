@@ -146,6 +146,20 @@ interface Hearing {
   lastUpdated: string;
 }
 
+// New Folder interface for DMS
+interface Folder {
+  id: string;
+  name: string;
+  parentId?: string;
+  caseId?: string;
+  documentCount: number;
+  size: number;
+  createdAt: string;
+  lastAccess: string;
+  description?: string;
+  path: string;
+}
+
 // Application State
 export interface AppState {
   cases: Case[];
@@ -154,13 +168,14 @@ export interface AppState {
   courts: Court[];
   judges: Judge[];
   documents: Document[];
+  folders: Folder[];
   hearings: Hearing[];
   employees: Employee[];
   isLoading: boolean;
   error: string | null;
 }
 
-// Actions
+// Actions  
 export type AppAction =
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null }
@@ -180,8 +195,11 @@ export type AppAction =
   | { type: 'UPDATE_JUDGE'; payload: Judge }
   | { type: 'DELETE_JUDGE'; payload: string }
   | { type: 'ADD_DOCUMENT'; payload: Document }
-  | { type: 'UPDATE_DOCUMENT'; payload: Document }
+  | { type: 'UPDATE_DOCUMENT'; payload: Partial<Document> & { id: string } }
   | { type: 'DELETE_DOCUMENT'; payload: string }
+  | { type: 'ADD_FOLDER'; payload: Folder }
+  | { type: 'UPDATE_FOLDER'; payload: Partial<Folder> & { id: string } }
+  | { type: 'DELETE_FOLDER'; payload: string }
   | { type: 'ADD_HEARING'; payload: Hearing }
   | { type: 'UPDATE_HEARING'; payload: Partial<Hearing> & { id: string } }
   | { type: 'DELETE_HEARING'; payload: string }
@@ -341,6 +359,39 @@ const initialState: AppState = {
       tags: ['Notice', 'DRC-01', 'Important'],
       isShared: false,
       path: '/documents/case-1/drc-01-notice.pdf'
+    }
+  ],
+  folders: [
+    {
+      id: '1',
+      name: 'Litigation Docs',
+      documentCount: 15,
+      size: 25600000,
+      createdAt: '2024-01-10',
+      lastAccess: '2024-01-25',
+      description: 'Legal documents for litigation cases',
+      path: '/folders/litigation-docs'
+    },
+    {
+      id: '2', 
+      name: 'GSTAT',
+      parentId: '1',
+      documentCount: 8,
+      size: 12800000,
+      createdAt: '2024-01-15',
+      lastAccess: '2024-01-24',
+      description: 'GSTAT related documents',
+      path: '/folders/litigation-docs/gstat'
+    },
+    {
+      id: '3',
+      name: 'Client Uploads',
+      documentCount: 23,
+      size: 35200000,
+      createdAt: '2024-01-05',
+      lastAccess: '2024-01-25',
+      description: 'Documents uploaded by clients',
+      path: '/folders/client-uploads'
     }
   ],
   hearings: [
@@ -509,12 +560,24 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'UPDATE_DOCUMENT':
       return {
         ...state,
-        documents: state.documents.map(d => d.id === action.payload.id ? action.payload : d)
+        documents: state.documents.map(d => d.id === action.payload.id ? { ...d, ...action.payload } : d)
       };
     case 'DELETE_DOCUMENT':
       return {
         ...state,
         documents: state.documents.filter(d => d.id !== action.payload)
+      };
+    case 'ADD_FOLDER':
+      return { ...state, folders: [...state.folders, action.payload] };
+    case 'UPDATE_FOLDER':
+      return {
+        ...state,
+        folders: state.folders.map(f => f.id === action.payload.id ? { ...f, ...action.payload } : f)
+      };
+    case 'DELETE_FOLDER':
+      return {
+        ...state,
+        folders: state.folders.filter(f => f.id !== action.payload)
       };
     case 'ADD_HEARING':
       return { ...state, hearings: [...state.hearings, action.payload] };
@@ -551,6 +614,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         courts: [],
         judges: [],
         documents: [],
+        folders: [],
         hearings: [],
         employees: [],
       };
@@ -586,4 +650,4 @@ export const useAppState = () => {
 };
 
 // Export types
-export type { Case, Task, Client, Court, Judge, Document, Hearing, Employee };
+export type { Case, Task, Client, Court, Judge, Document, Folder, Hearing, Employee };

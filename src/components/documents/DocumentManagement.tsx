@@ -1,7 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { DocumentModal } from '@/components/modals/DocumentModal';
+import { NewFolderModal } from './NewFolderModal';
+import { DocumentFilters } from './DocumentFilters';
 import { motion } from 'framer-motion';
+import { dmsService } from '@/services/dmsService';
+import { useAppState } from '@/contexts/AppStateContext';
 import { 
   Upload, 
   FolderOpen, 
@@ -16,7 +20,10 @@ import {
   Clock,
   User,
   Shield,
-  Star
+  Star,
+  ChevronRight,
+  Home,
+  Plus
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,20 +38,19 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-interface Document {
+interface LocalDocument {
   id: string;
   name: string;
-  type: 'pdf' | 'doc' | 'xlsx' | 'jpg' | 'png';
-  size: string;
-  stage: 'Draft' | 'Review' | 'Approved' | 'Final';
-  tags: string[];
-  uploadedBy: string;
+  type: string | number;
+  size: string | number;
+  caseId: string;
+  clientId: string;
+  uploadedById: string;
+  uploadedByName: string;
   uploadedAt: string;
-  lastModified: string;
-  version: string;
-  isStarred: boolean;
-  folder: string;
-  client?: string;
+  tags: string[];
+  isShared: boolean;
+  path: string;
 }
 
 interface Folder {
@@ -136,14 +142,21 @@ const mockDocuments: Document[] = [
 ];
 
 export const DocumentManagement: React.FC = () => {
+  const { state, dispatch } = useAppState();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+  const [currentPath, setCurrentPath] = useState<string[]>([]);
   const [activeView, setActiveView] = useState<'grid' | 'list'>('list');
+  const [activeFilters, setActiveFilters] = useState<any>({});
+  const [folders, setFolders] = useState<any[]>([]);
+  const [filteredDocuments, setFilteredDocuments] = useState<LocalDocument[]>([]);
   const [documentModal, setDocumentModal] = useState<{ isOpen: boolean; mode: 'upload' | 'edit' | 'view'; document?: Document | null }>({
     isOpen: false,
     mode: 'upload',
     document: null
   });
+  const [newFolderModal, setNewFolderModal] = useState(false);
+  const [tags, setTags] = useState<any[]>([]);
 
   const getStageColor = (stage: string) => {
     switch (stage) {
@@ -166,6 +179,161 @@ export const DocumentManagement: React.FC = () => {
     }
   };
 
+  // Load data on component mount
+  useEffect(() => {
+    loadFolders();
+    loadTags();
+    setFilteredDocuments(state.documents as any[]);
+  }, []);
+
+  // Apply filters when documents or filters change
+  useEffect(() => {
+    applyFilters();
+  }, [state.documents, searchTerm, activeFilters]);
+
+  const loadFolders = async () => {
+    try {
+      const folderList = await dmsService.folders.list();
+      setFolders([...state.folders, ...folderList]);
+    } catch (error) {
+      console.error('Failed to load folders:', error);
+    }
+  };
+
+  const loadTags = async () => {
+    try {
+      const tagList = await dmsService.tags.list();
+      setTags(tagList);
+    } catch (error) {
+      console.error('Failed to load tags:', error);
+    }
+  };
+
+  const applyFilters = () => {
+    let filtered = [...state.documents];
+
+    // Search filter
+    if (searchTerm) {
+      filtered = filtered.filter(doc => 
+        doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        doc.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+
+    // Apply active filters
+    if (activeFilters.caseId) {
+      filtered = filtered.filter(doc => doc.caseId === activeFilters.caseId);
+    }
+    if (activeFilters.fileType && activeFilters.fileType !== 'all') {
+      filtered = filtered.filter(doc => doc.type.includes(activeFilters.fileType));
+    }
+    if (activeFilters.uploadedBy) {
+      filtered = filtered.filter(doc => doc.uploadedById === activeFilters.uploadedBy);
+    }
+    if (activeFilters.tags?.length > 0) {
+      filtered = filtered.filter(doc => 
+        activeFilters.tags.some((tag: string) => doc.tags.includes(tag))
+      );
+    }
+
+    setFilteredDocuments(filtered as any[]);
+  };
+
+  const handleFolderClick = async (folderId: string) => {
+    try {
+      const folder = await dmsService.folders.get(folderId);
+      if (folder) {
+        setSelectedFolder(folderId);
+        setCurrentPath([...currentPath, folder.name]);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to open folder. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleFolderCreated = (newFolder: any) => {
+    dispatch({ type: 'ADD_FOLDER', payload: newFolder });
+    setFolders(prev => [...prev, newFolder]);
+  };
+
+  const handleDocumentView = async (doc: any) => {
+    try {
+      const previewUrl = await dmsService.files.getPreviewUrl(doc.id);
+      window.open(previewUrl, '_blank');
+      
+      toast({
+        title: "Opening Document",
+        description: `${doc.name} opened for preview`,
+      });
+    } catch (error) {
+      toast({
+        title: "Preview Error",
+        description: "Unable to preview this document. Try downloading instead.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDocumentDownload = async (doc: any) => {
+    try {
+      const downloadUrl = await dmsService.files.getDownloadUrl(doc.id);
+      
+      // Create download link
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = doc.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: "Download Started",
+        description: `${doc.name} download initiated`,
+      });
+    } catch (error) {
+      toast({
+        title: "Download Error",
+        description: "Failed to download document. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDocumentDelete = async (doc: any) => {
+    if (confirm(`Are you sure you want to delete ${doc.name}? This action cannot be undone.`)) {
+      try {
+        await dmsService.files.delete(doc.id, dispatch);
+        // Remove from filtered list immediately
+        setFilteredDocuments(prev => prev.filter(d => d.id !== doc.id));
+      } catch (error) {
+        // Error already handled in service
+      }
+    }
+  };
+
+  const handleAddTag = async (doc: any, tagName: string) => {
+    try {
+      const updatedTags = [...doc.tags, tagName];
+      await dmsService.files.updateMetadata(doc.id, { tags: updatedTags }, dispatch);
+      
+      // Update local state
+      setFilteredDocuments(prev => 
+        prev.map(d => d.id === doc.id ? { ...d, tags: updatedTags } : d)
+      );
+    } catch (error) {
+      // Error already handled in service
+    }
+  };
+
+  const navigateToHome = () => {
+    setSelectedFolder(null);
+    setCurrentPath([]);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -184,12 +352,7 @@ export const DocumentManagement: React.FC = () => {
         <div className="flex gap-2">
           <Button 
             variant="outline"
-            onClick={() => {
-              toast({
-                title: "New Folder",
-                description: "Creating new document folder",
-              });
-            }}
+            onClick={() => setNewFolderModal(true)}
           >
             <FolderOpen className="mr-2 h-4 w-4" />
             New Folder
@@ -279,33 +442,31 @@ export const DocumentManagement: React.FC = () => {
           />
         </div>
         
-        <div className="flex gap-2">
-          <Button 
-            variant="outline"
-            onClick={() => {
-              toast({
-                title: "Filter Documents",
-                description: "Opening document filter options",
-              });
-            }}
-          >
-            <Filter className="mr-2 h-4 w-4" />
-            Filter
-          </Button>
-          <Button 
-            variant="outline"
-            onClick={() => {
-              toast({
-                title: "Manage Tags",
-                description: "Opening tag management interface",
-              });
-            }}
-          >
-            <Tag className="mr-2 h-4 w-4" />
-            Tags
-          </Button>
-        </div>
+        <DocumentFilters
+          onFiltersChange={setActiveFilters}
+          activeFilters={activeFilters}
+        />
       </motion.div>
+
+      {/* Breadcrumb Navigation */}
+      {currentPath.length > 0 && (
+        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={navigateToHome}
+            className="p-1 h-auto"
+          >
+            <Home className="h-4 w-4" />
+          </Button>
+          {currentPath.map((pathItem, index) => (
+            <React.Fragment key={index}>
+              <ChevronRight className="h-4 w-4" />
+              <span className="font-medium">{pathItem}</span>
+            </React.Fragment>
+          ))}
+        </div>
+      )}
 
       {/* Main Content */}
       <Tabs defaultValue="folders" className="w-full">
@@ -322,7 +483,7 @@ export const DocumentManagement: React.FC = () => {
             transition={{ duration: 0.3 }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
           >
-            {mockFolders.map((folder, index) => (
+            {folders.map((folder, index) => (
               <motion.div
                 key={folder.id}
                 initial={{ opacity: 0, scale: 0.9 }}
@@ -330,7 +491,7 @@ export const DocumentManagement: React.FC = () => {
                 transition={{ duration: 0.3, delay: index * 0.1 }}
                 whileHover={{ y: -2 }}
                 className="cursor-pointer"
-                onClick={() => setSelectedFolder(folder.id)}
+                onClick={() => handleFolderClick(folder.id)}
               >
                 <Card className="hover:shadow-lg transition-all duration-200">
                   <CardContent className="p-6">
@@ -368,126 +529,104 @@ export const DocumentManagement: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {mockDocuments.map((doc, index) => (
-                    <motion.div
-                      key={doc.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.1 }}
-                      className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex items-center space-x-4">
-                        <div className="text-2xl">{getFileIcon(doc.type)}</div>
-                        <div className="space-y-1">
-                          <div className="flex items-center space-x-2">
-                            <p className="font-medium text-foreground">{doc.name}</p>
-                            {doc.isStarred && <Star className="h-4 w-4 text-warning fill-current" />}
-                          </div>
-                          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                            <span>{doc.size}</span>
-                            <span>•</span>
-                            <span>{doc.version}</span>
-                            <span>•</span>
-                            <div className="flex items-center">
-                              <User className="mr-1 h-3 w-3" />
-                              {doc.uploadedBy}
+                  {filteredDocuments.length === 0 ? (
+                    <div className="text-center py-12">
+                      <File className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">
+                        {searchTerm || Object.keys(activeFilters).length > 0 
+                          ? 'No documents match your search criteria' 
+                          : 'No documents found'}
+                      </p>
+                    </div>
+                  ) : (
+                    filteredDocuments.map((doc, index) => (
+                      <motion.div
+                        key={doc.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.1 }}
+                        className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center space-x-4">
+                          <div className="text-2xl">{getFileIcon(doc.type)}</div>
+                          <div className="space-y-1">
+                            <div className="flex items-center space-x-2">
+                              <p className="font-medium text-foreground">{doc.name}</p>
+                              <Star className="h-4 w-4 text-warning" />
+                            </div>
+                            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                              <span>{typeof doc.size === 'number' ? (doc.size / 1024).toFixed(1) + 'KB' : doc.size}</span>
+                              <span>•</span>
+                              <span>v1.0</span>
+                              <span>•</span>
+                              <div className="flex items-center">
+                                <User className="mr-1 h-3 w-3" />
+                                {doc.uploadedByName || doc.uploadedBy}
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Badge variant="secondary" className="bg-primary text-primary-foreground">
+                                Active
+                              </Badge>
+                              {doc.tags.map((tag) => (
+                                <Badge key={tag} variant="outline" className="text-xs">
+                                  {tag}
+                                </Badge>
+                              ))}
                             </div>
                           </div>
-                          <div className="flex items-center space-x-2">
-                            <Badge variant="secondary" className={getStageColor(doc.stage)}>
-                              {doc.stage}
-                            </Badge>
-                            {doc.tags.map((tag) => (
-                              <Badge key={tag} variant="outline" className="text-xs">
-                                {tag}
-                              </Badge>
-                            ))}
-                          </div>
                         </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => {
-                            // Open document in new tab (mock implementation)
-                            window.open(`/api/documents/${doc.id}/view`, '_blank');
-                            toast({
-                              title: "Opening Document",
-                              description: `${doc.name} opened in new tab`,
-                            });
-                          }}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => {
-                            // Trigger file download (mock implementation)
-                            const link = document.createElement('a');
-                            link.href = `/api/documents/${doc.id}/download`;
-                            link.download = doc.name;
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                            toast({
-                              title: "Download Started",
-                              description: `${doc.name} download initiated`,
-                            });
-                          }}
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              •••
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setDocumentModal({ isOpen: true, mode: 'edit', document: doc });
-                              }}
-                            >
-                              <Edit className="mr-2 h-4 w-4" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                toast({
-                                  title: "Add Tags",
-                                  description: `Managing tags for ${doc.name}`,
-                                });
-                              }}
-                            >
-                              <Tag className="mr-2 h-4 w-4" />
-                              Add Tags
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              className="text-destructive"
-                              onClick={() => {
-                                if (confirm(`Are you sure you want to delete ${doc.name}? This action cannot be undone.`)) {
-                                  // TODO: Implement DELETE_DOCUMENT action dispatch
-                                  toast({
-                                    title: "Document Deleted",
-                                    description: `${doc.name} has been removed`,
-                                    variant: "destructive",
-                                  });
-                                }
-                              }}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </motion.div>
-                  ))}
+                        
+                        <div className="flex items-center space-x-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleDocumentView(doc)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleDocumentDownload(doc)}
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                •••
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setDocumentModal({ isOpen: true, mode: 'edit', document: doc as any });
+                                }}
+                              >
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleAddTag(doc, 'new-tag')}
+                              >
+                                <Tag className="mr-2 h-4 w-4" />
+                                Add Tags
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                className="text-destructive"
+                                onClick={() => handleDocumentDelete(doc)}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </motion.div>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -518,7 +657,20 @@ export const DocumentManagement: React.FC = () => {
         </TabsContent>
       </Tabs>
 
-      {/* TODO: DocumentModal integration when interface is aligned */}
+      {/* Modals */}
+      <NewFolderModal
+        isOpen={newFolderModal}
+        onClose={() => setNewFolderModal(false)}
+        parentId={selectedFolder}
+        onFolderCreated={handleFolderCreated}
+      />
+
+      <DocumentModal
+        isOpen={documentModal.isOpen}
+        onClose={() => setDocumentModal({ isOpen: false, mode: 'upload', document: null })}
+        mode={documentModal.mode}
+        document={documentModal.document}
+      />
     </div>
   );
 };
