@@ -1,0 +1,88 @@
+{
+  "code": "HC_PETITION",
+  "title": "High Court Petition",
+  "stage": "High Court",
+  "version": "1.0",
+  "prefill": {
+    "client_name": "case.client.name",
+    "gstin": "case.client.gstin",
+    "pan": "case.client.pan",
+    "address": "case.client.address",
+    "case_id": "case.id",
+    "case_title": "case.title",
+    "stage": "case.currentStage",
+    "authorized_signatory": "case.signatory.fullName"
+  },
+  "fields": [
+    {
+      "key": "petitioner_details",
+      "label": "Petitioner Details",
+      "type": "group",
+      "fields": [
+        {
+          "key": "name",
+          "label": "Name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "key": "address",
+          "label": "Address",
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "key": "contact",
+          "label": "Contact Details",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "key": "respondent",
+      "label": "Respondent",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "cause_of_action",
+      "label": "Cause of Action",
+      "type": "textarea",
+      "required": true,
+      "minLength": 150
+    },
+    {
+      "key": "questions_of_law",
+      "label": "Questions of Law",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    {
+      "key": "interim_reliefs",
+      "label": "Interim Reliefs",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "key": "final_reliefs",
+      "label": "Final Reliefs",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "key": "affidavit",
+      "label": "Affidavit Required",
+      "type": "boolean",
+      "required": false,
+      "default": true
+    }
+  ],
+  "output": {
+    "filename": "HC_PETITION_${case.id}_${now:YYYYMMDD}.pdf",
+    "dms_folder_by_stage": true,
+    "timeline_event": "High Court Petition submitted"
+  }
+}

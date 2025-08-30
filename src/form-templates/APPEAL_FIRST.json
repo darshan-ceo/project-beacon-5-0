@@ -1,0 +1,93 @@
+{
+  "code": "APPEAL_FIRST",
+  "title": "First Appeal",
+  "stage": "Appeals",
+  "version": "1.0",
+  "prefill": {
+    "client_name": "case.client.name",
+    "gstin": "case.client.gstin",
+    "pan": "case.client.pan",
+    "address": "case.client.address",
+    "case_id": "case.id",
+    "case_title": "case.title",
+    "stage": "case.currentStage",
+    "authorized_signatory": "case.signatory.fullName"
+  },
+  "fields": [
+    {
+      "key": "appellant_details",
+      "label": "Appellant Details",
+      "type": "group",
+      "fields": [
+        {
+          "key": "address",
+          "label": "Address",
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "key": "email",
+          "label": "Email",
+          "type": "string",
+          "required": true
+        },
+        {
+          "key": "phone",
+          "label": "Phone",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "key": "impugned_order_no",
+      "label": "Impugned Order Number",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "impugned_order_date",
+      "label": "Impugned Order Date",
+      "type": "date",
+      "required": true
+    },
+    {
+      "key": "amount_in_dispute",
+      "label": "Amount in Dispute",
+      "type": "number",
+      "required": true
+    },
+    {
+      "key": "predeposit_made",
+      "label": "Pre-deposit Made",
+      "type": "number",
+      "required": true
+    },
+    {
+      "key": "grounds_of_appeal",
+      "label": "Grounds of Appeal",
+      "type": "textarea",
+      "required": true,
+      "minLength": 150
+    },
+    {
+      "key": "relief_sought",
+      "label": "Relief Sought",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "key": "annexures",
+      "label": "Annexures",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  ],
+  "output": {
+    "filename": "APPEAL_FIRST_${case.id}_${now:YYYYMMDD}.pdf",
+    "dms_folder_by_stage": true,
+    "timeline_event": "First Appeal submitted"
+  }
+}

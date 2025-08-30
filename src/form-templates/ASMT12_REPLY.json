@@ -1,0 +1,100 @@
+{
+  "code": "ASMT12_REPLY",
+  "title": "ASMT-12 Reply",
+  "stage": "Adjudication",
+  "version": "1.0",
+  "prefill": {
+    "client_name": "case.client.name",
+    "gstin": "case.client.gstin",
+    "pan": "case.client.pan",
+    "address": "case.client.address",
+    "case_id": "case.id",
+    "case_title": "case.title",
+    "stage": "case.currentStage",
+    "notice_no": "case.notice.number",
+    "notice_date": "case.notice.date",
+    "authorized_signatory": "case.signatory.fullName"
+  },
+  "fields": [
+    {
+      "key": "reply_reference",
+      "label": "Reply Reference Number",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "period_covered",
+      "label": "Period Covered",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "factual_background",
+      "label": "Factual Background",
+      "type": "textarea",
+      "required": true,
+      "minLength": 100
+    },
+    {
+      "key": "reconciliations",
+      "label": "Reconciliations",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    {
+      "key": "legal_submissions",
+      "label": "Legal Submissions",
+      "type": "textarea",
+      "required": true,
+      "minLength": 120
+    },
+    {
+      "key": "prayer",
+      "label": "Prayer",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "key": "attachments",
+      "label": "Attachments",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    {
+      "key": "verification_place",
+      "label": "Verification Place",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "verification_date",
+      "label": "Verification Date",
+      "type": "date",
+      "required": true
+    },
+    {
+      "key": "personal_hearing_requested",
+      "label": "Personal Hearing Requested",
+      "type": "boolean",
+      "required": false,
+      "default": true
+    },
+    {
+      "key": "dates_unavailable",
+      "label": "Dates Unavailable",
+      "type": "array",
+      "items": {
+        "type": "date"
+      }
+    }
+  ],
+  "output": {
+    "filename": "ASMT12_REPLY_${case.id}_${now:YYYYMMDD}.pdf",
+    "dms_folder_by_stage": true,
+    "timeline_event": "ASMT-12 Reply submitted"
+  }
+}

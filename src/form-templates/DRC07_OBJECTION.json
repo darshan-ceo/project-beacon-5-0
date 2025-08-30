@@ -1,0 +1,56 @@
+{
+  "code": "DRC07_OBJECTION",
+  "title": "DRC-07 Objection",
+  "stage": "Demand",
+  "version": "1.0",
+  "prefill": {
+    "client_name": "case.client.name",
+    "gstin": "case.client.gstin",
+    "pan": "case.client.pan",
+    "address": "case.client.address",
+    "case_id": "case.id",
+    "case_title": "case.title",
+    "stage": "case.currentStage",
+    "notice_no": "case.notice.number",
+    "notice_date": "case.notice.date",
+    "authorized_signatory": "case.signatory.fullName"
+  },
+  "fields": [
+    {
+      "key": "reference_drc07_no",
+      "label": "Reference DRC-07 Number",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "grounds",
+      "label": "Grounds for Objection",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "key": "payment_made",
+      "label": "Payment Made",
+      "type": "number",
+      "required": false,
+      "minimum": 0
+    },
+    {
+      "key": "challan_details",
+      "label": "Challan Details",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "key": "prayer",
+      "label": "Prayer",
+      "type": "textarea",
+      "required": true
+    }
+  ],
+  "output": {
+    "filename": "DRC07_OBJECTION_${case.id}_${now:YYYYMMDD}.pdf",
+    "dms_folder_by_stage": true,
+    "timeline_event": "DRC-07 Objection submitted"
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "code": "SC_SLP",
+  "title": "Supreme Court SLP",
+  "stage": "Supreme Court",
+  "version": "1.0",
+  "prefill": {
+    "client_name": "case.client.name",
+    "gstin": "case.client.gstin",
+    "pan": "case.client.pan",
+    "address": "case.client.address",
+    "case_id": "case.id",
+    "case_title": "case.title",
+    "stage": "case.currentStage",
+    "authorized_signatory": "case.signatory.fullName"
+  },
+  "fields": [
+    {
+      "key": "impugned_hc_order_no",
+      "label": "Impugned HC Order Number",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "date_of_hc_order",
+      "label": "Date of HC Order",
+      "type": "date",
+      "required": true
+    },
+    {
+      "key": "substantial_questions",
+      "label": "Substantial Questions of Law",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    {
+      "key": "delay_condonation",
+      "label": "Delay Condonation",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "key": "reliefs",
+      "label": "Reliefs Sought",
+      "type": "textarea",
+      "required": true
+    }
+  ],
+  "output": {
+    "filename": "SC_SLP_${case.id}_${now:YYYYMMDD}.pdf",
+    "dms_folder_by_stage": true,
+    "timeline_event": "Supreme Court SLP submitted"
+  }
+}
