@@ -29,6 +29,8 @@ import { CaseLifecycleFlow } from './CaseLifecycleFlow';
 import { CaseTimeline } from './CaseTimeline';
 import { HearingScheduler } from './HearingScheduler';
 import { SLATracker } from './SLATracker';
+import { AIAssistant } from './AIAssistant';
+import { CommunicationHub } from './CommunicationHub';
 import { CaseModal } from '@/components/modals/CaseModal';
 import { HearingCalendar } from './HearingCalendar';
 import { AdvanceStageConfirmationModal } from '@/components/modals/AdvanceStageConfirmationModal';
@@ -290,12 +292,14 @@ export const CaseManagement: React.FC = () => {
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="lifecycle">Lifecycle</TabsTrigger>
           <TabsTrigger value="sla">SLA Tracker</TabsTrigger>
           <TabsTrigger value="hearings">Hearings</TabsTrigger>
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
+          <TabsTrigger value="ai-assistant">AI Assistant</TabsTrigger>
+          <TabsTrigger value="communications">Communications</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-6">
@@ -440,6 +444,14 @@ export const CaseManagement: React.FC = () => {
 
         <TabsContent value="timeline" className="mt-6">
           <CaseTimeline selectedCase={selectedCase} />
+        </TabsContent>
+
+        <TabsContent value="ai-assistant" className="mt-6">
+          <AIAssistant selectedCase={selectedCase} />
+        </TabsContent>
+
+        <TabsContent value="communications" className="mt-6">
+          <CommunicationHub selectedCase={selectedCase} />
         </TabsContent>
       </Tabs>
 

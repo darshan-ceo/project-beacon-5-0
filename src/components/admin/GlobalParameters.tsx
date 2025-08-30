@@ -190,12 +190,13 @@ export const GlobalParameters: React.FC = () => {
       )}
 
       <Tabs defaultValue="system" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="system">System</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="legal">Legal</TabsTrigger>
           <TabsTrigger value="integrations">Integrations</TabsTrigger>
+          <TabsTrigger value="ai-communications">AI & Communications</TabsTrigger>
         </TabsList>
 
         <TabsContent value="system" className="space-y-6">
@@ -516,6 +517,81 @@ export const GlobalParameters: React.FC = () => {
                   <Label>Enable API Logging</Label>
                   <Switch defaultChecked />
                   <p className="text-xs text-muted-foreground">Log all external API calls for debugging</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="ai-communications" className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Settings className="h-5 w-5 mr-2" />
+                  AI Features
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Enable AI Assistant</Label>
+                  <Switch defaultChecked />
+                  <p className="text-xs text-muted-foreground">Enable AI-powered draft generation and document summarization</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>AI Provider</Label>
+                  <Select defaultValue="openai">
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="openai">OpenAI GPT</SelectItem>
+                      <SelectItem value="anthropic">Anthropic Claude</SelectItem>
+                      <SelectItem value="mock">Mock Service</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">AI service provider for content generation</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Response Time Limit (seconds)</Label>
+                  <Input type="number" defaultValue="30" />
+                  <p className="text-xs text-muted-foreground">Maximum time to wait for AI responses</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <MessageSquare className="h-5 w-5 mr-2" />
+                  Communication Settings
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Enable Email</Label>
+                  <Switch defaultChecked />
+                  <p className="text-xs text-muted-foreground">Allow sending emails to clients</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Enable SMS</Label>
+                  <Switch defaultChecked />
+                  <p className="text-xs text-muted-foreground">Allow sending SMS messages</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Enable WhatsApp</Label>
+                  <Switch />
+                  <p className="text-xs text-muted-foreground">Allow sending WhatsApp messages</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Auto Hearing Reminders</Label>
+                  <Switch defaultChecked />
+                  <p className="text-xs text-muted-foreground">Automatically send hearing reminders</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Reminder Days</Label>
+                  <Input defaultValue="1,3,7" />
+                  <p className="text-xs text-muted-foreground">Days before hearing to send reminders (comma-separated)</p>
                 </div>
               </CardContent>
             </Card>
