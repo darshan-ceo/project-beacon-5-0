@@ -59,7 +59,7 @@ export const DocumentFilters: React.FC<DocumentFiltersProps> = ({
   }));
 
   const uploaderOptions = state.employees.map(e => ({
-    label: e.name,
+    label: e.full_name,
     value: e.id
   }));
 

@@ -1,0 +1,25 @@
+{
+  "timestamp": "2024-01-26T10:30:00.000Z",
+  "totalCases": 2,
+  "totalTasks": 1,
+  "totalHearings": 1,
+  "mappedCases": 2,
+  "mappedTasks": 1,
+  "mappedHearings": 0,
+  "unmappedCases": [],
+  "unmappedTasks": [],
+  "unmappedHearings": [
+    {
+      "hearingId": "1",
+      "responsibleName": "Not assigned"
+    }
+  ],
+  "summary": "Migration completed with 75.0% success rate. Mapped: 2/2 cases, 1/1 tasks, 0/1 hearings.",
+  "notes": [
+    "All existing cases successfully mapped to new Employee Master",
+    "Tasks assigned to John Smith and Mike Wilson mapped successfully", 
+    "Hearings don't have responsible person assigned yet - this is expected",
+    "Employee data structure updated from 'name' to 'full_name'",
+    "Role mappings: Senior Associate -> Advocate, Associate -> Advocate, Manager -> Staff, Paralegal -> Staff"
+  ]
+}

@@ -129,16 +129,17 @@ interface Document {
 }
 
 // Employee interface for universal assignment system
-interface Employee {
+export interface Employee {
   id: string;
-  name: string;
-  role: 'Partner' | 'Associate' | 'Paralegal' | 'Admin' | 'CA' | 'Manager' | 'Senior Associate';
+  full_name: string;
+  role: 'Partner' | 'CA' | 'Advocate' | 'Staff' | 'RM' | 'Finance' | 'Admin';
   email: string;
-  status: 'Active' | 'On Leave' | 'Inactive';
+  mobile?: string;
+  status: 'Active' | 'Inactive';
+  date_of_joining?: string;
+  notes?: string;
   department: string;
-  joiningDate: string;
   workloadCapacity: number;
-  phone?: string;
   specialization?: string[];
 }
 
@@ -221,7 +222,7 @@ export type AppAction =
   | { type: 'UPDATE_HEARING'; payload: Partial<Hearing> & { id: string } }
   | { type: 'DELETE_HEARING'; payload: string }
   | { type: 'ADD_EMPLOYEE'; payload: Employee }
-  | { type: 'UPDATE_EMPLOYEE'; payload: Employee }
+  | { type: 'UPDATE_EMPLOYEE'; payload: { id: string; updates: Partial<Employee> } }
   | { type: 'DELETE_EMPLOYEE'; payload: string }
   | { type: 'RESTORE_STATE'; payload: Partial<AppState> }
   | { type: 'CLEAR_ALL_DATA' };
@@ -432,74 +433,74 @@ const initialState: AppState = {
   employees: [
     {
       id: '1',
-      name: 'John Smith',
+      full_name: 'John Smith',
       role: 'Partner',
       email: 'john.smith@lawfirm.com',
+      mobile: '+91-9876543210',
       status: 'Active',
+      date_of_joining: '2018-03-15',
       department: 'Corporate Law',
-      joiningDate: '2018-03-15',
       workloadCapacity: 40,
-      phone: '+91-9876543210',
       specialization: ['Corporate Law', 'Tax Law', 'Mergers & Acquisitions']
     },
     {
       id: '2',
-      name: 'Sarah Johnson',
-      role: 'Senior Associate',
+      full_name: 'Sarah Johnson',
+      role: 'Advocate',
       email: 'sarah.johnson@lawfirm.com',
+      mobile: '+91-9876543211',
       status: 'Active',
+      date_of_joining: '2020-08-01',
       department: 'Tax Law',
-      joiningDate: '2020-08-01',
       workloadCapacity: 35,
-      phone: '+91-9876543211',
       specialization: ['Tax Law', 'GST', 'Income Tax Appeals']
     },
     {
       id: '3',
-      name: 'Mike Wilson',
-      role: 'Manager',
+      full_name: 'Mike Wilson',
+      role: 'Staff',
       email: 'mike.wilson@lawfirm.com',
+      mobile: '+91-9876543212',
       status: 'Active',
+      date_of_joining: '2017-01-10',
       department: 'Operations',
-      joiningDate: '2017-01-10',
       workloadCapacity: 30,
-      phone: '+91-9876543212',
       specialization: ['Team Management', 'Operations', 'Client Relations']
     },
     {
       id: '4',
-      name: 'Emily Chen',
-      role: 'Associate',
+      full_name: 'Emily Chen',
+      role: 'Advocate',
       email: 'emily.chen@lawfirm.com',
+      mobile: '+91-9876543213',
       status: 'Active',
+      date_of_joining: '2022-06-15',
       department: 'Litigation',
-      joiningDate: '2022-06-15',
       workloadCapacity: 25,
-      phone: '+91-9876543213',
       specialization: ['Litigation', 'Civil Law', 'Commercial Disputes']
     },
     {
       id: '5',
-      name: 'David Kumar',
+      full_name: 'David Kumar',
       role: 'CA',
       email: 'david.kumar@lawfirm.com',
+      mobile: '+91-9876543214',
       status: 'Active',
+      date_of_joining: '2019-11-20',
       department: 'Tax Law',
-      joiningDate: '2019-11-20',
       workloadCapacity: 30,
-      phone: '+91-9876543214',
       specialization: ['Chartered Accountancy', 'Tax Planning', 'Audit']
     },
     {
       id: '6',
-      name: 'Lisa Patel',
-      role: 'Paralegal',
+      full_name: 'Lisa Patel',
+      role: 'Staff',
       email: 'lisa.patel@lawfirm.com',
-      status: 'On Leave',
+      mobile: '+91-9876543215',
+      status: 'Inactive',
+      date_of_joining: '2021-02-12',
       department: 'Support',
-      joiningDate: '2021-02-12',
       workloadCapacity: 20,
-      phone: '+91-9876543215',
       specialization: ['Research', 'Documentation', 'Case Management']
     }
   ],
@@ -672,7 +673,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'UPDATE_EMPLOYEE':
       return {
         ...state,
-        employees: state.employees.map(e => e.id === action.payload.id ? action.payload : e)
+        employees: state.employees.map(e => e.id === action.payload.id ? { ...e, ...action.payload.updates } : e)
       };
     case 'DELETE_EMPLOYEE':
       return {
@@ -726,7 +727,7 @@ export const useAppState = () => {
 };
 
 // Export types  
-export type { Case, Task, Client, Court, Judge, Document, Folder, Hearing, Employee };
+export type { Case, Task, Client, Court, Judge, Document, Folder, Hearing };
 
 // New interfaces for enhanced Client Master
 export interface Address {

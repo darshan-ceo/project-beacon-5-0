@@ -90,7 +90,7 @@ export const EmployeeSelector: React.FC<EmployeeSelectorProps> = ({
               <SelectItem key={employee.id} value={employee.id}>
                 <div className="flex items-center justify-between w-full">
                   <div className="flex flex-col">
-                    <span className="font-medium">{employee.name}</span>
+                    <span className="font-medium">{employee.full_name}</span>
                     <div className="flex items-center space-x-2 mt-1">
                       <Badge variant="secondary" className="text-xs">
                         {employee.role}
@@ -152,7 +152,7 @@ export const LawyerSelector: React.FC<Omit<EmployeeSelectorProps, 'roleFilter' |
   <EmployeeSelector
     {...props}
     label="Assigned Lawyer"
-    roleFilter={['Partner', 'Senior Associate', 'Associate']}
+    roleFilter={['Partner', 'Advocate']}
     placeholder="Select lawyer..."
   />
 );

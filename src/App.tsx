@@ -12,6 +12,7 @@ import { DashboardOverview } from "./components/dashboard/DashboardOverview";
 import { ClientMasters } from "./components/masters/ClientMasters";
 import { CourtMasters } from "./components/masters/CourtMasters";
 import { JudgeMasters } from "./components/masters/JudgeMasters";
+import { EmployeeMasters } from "./components/masters/EmployeeMasters";
 import { CaseManagement } from "./components/cases/CaseManagement";
 import { TaskManagement } from "./components/tasks/TaskManagement";
 import { DocumentManagement } from "./components/documents/DocumentManagement";
@@ -66,6 +67,11 @@ const App = () => (
               <Route path="/judges" element={
                 <AdminLayout currentUser={currentUser}>
                   <JudgeMasters />
+                </AdminLayout>
+              } />
+              <Route path="/employees" element={
+                <AdminLayout currentUser={currentUser}>
+                  <EmployeeMasters />
                 </AdminLayout>
               } />
               <Route path="/cases" element={

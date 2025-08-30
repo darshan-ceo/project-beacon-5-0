@@ -317,7 +317,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                   setFormData(prev => ({ 
                     ...prev, 
                     assignedToId: value,
-                    assignedToName: employee?.name || ''
+                    assignedToName: employee?.full_name || ''
                   }));
                 }}
                 disabled={mode === 'view'}

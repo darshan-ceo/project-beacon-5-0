@@ -277,12 +277,12 @@ export const CaseModal: React.FC<CaseModalProps> = ({
                 setFormData(prev => ({ 
                   ...prev, 
                   assignedToId: value,
-                  assignedToName: employee?.name || ''
+                  assignedToName: employee?.full_name || ''
                 }));
               }}
               disabled={mode === 'view'}
               required
-              roleFilter={['Partner', 'Senior Associate', 'Associate', 'CA']}
+              roleFilter={['Partner', 'CA', 'Advocate']}
               showWorkload
             />
           </div>

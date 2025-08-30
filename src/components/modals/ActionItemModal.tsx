@@ -67,7 +67,7 @@ export const ActionItemModal: React.FC<ActionItemModalProps> = ({
         status: 'Not Started' as const,
         dueDate: new Date(formData.dueDate).toISOString(),
         assignedToId: formData.assignee,
-        assignedToName: state.employees.find(e => e.id === formData.assignee)?.name || '',
+        assignedToName: state.employees.find(e => e.id === formData.assignee)?.full_name || '',
         caseId: caseId,
         clientId: caseData.clientId,
         createdDate: new Date().toISOString(),

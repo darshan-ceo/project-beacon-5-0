@@ -12,7 +12,8 @@ import {
   UserCircle,
   FileText,
   BarChart3,
-  CheckSquare
+  CheckSquare,
+  UserCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -47,6 +48,7 @@ const menuItems: MenuItem[] = [
   { icon: Users, label: 'Client Masters', href: '/clients', roles: ['Admin', 'Partner/CA', 'Staff'] },
   { icon: Building2, label: 'Court Masters', href: '/courts', roles: ['Admin', 'Partner/CA'] },
   { icon: Gavel, label: 'Judge Masters', href: '/judges', roles: ['Admin', 'Partner/CA'] },
+  { icon: UserCheck, label: 'Employee Masters', href: '/employees', roles: ['Admin'] },
   { icon: FileText, label: 'Case Management', href: '/cases', roles: ['Admin', 'Partner/CA', 'Staff'] },
   { icon: CheckSquare, label: 'Task Management', href: '/tasks', roles: ['Admin', 'Partner/CA', 'Staff'] },
   { icon: FolderOpen, label: 'Document Management', href: '/documents', roles: ['Admin', 'Partner/CA', 'Staff', 'Client'] },

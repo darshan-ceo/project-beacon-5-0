@@ -816,7 +816,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                         setFormData(prev => ({ 
                           ...prev, 
                           assignedCAId: value,
-                          assignedCAName: employee?.name || ''
+                          assignedCAName: employee?.full_name || ''
                         }));
                       }}
                       disabled={mode === 'view'}
