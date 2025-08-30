@@ -111,7 +111,7 @@ export const clientsService = {
         }
       }
 
-      if (clientData.address?.pincode) {
+      if (clientData.address && typeof clientData.address === 'object' && clientData.address.pincode) {
         const pincodeValidation = clientsService.validatePincode(clientData.address.pincode);
         if (!pincodeValidation.isValid) {
           validationErrors.push(...pincodeValidation.errors);

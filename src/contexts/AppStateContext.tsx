@@ -299,6 +299,7 @@ const initialState: AppState = {
       phone: '+91-9876543210',
       address: '123 Business Park, Mumbai',
       registrationNumber: 'U12345MH2020PLC123456',
+      pan: 'ABCDE1234F',
       panNumber: 'ABCDE1234F',
       gstNumber: '27ABCDE1234F1Z5',
       status: 'Active',
@@ -317,6 +318,7 @@ const initialState: AppState = {
       phone: '+91-9876543211',
       address: '456 Tech Plaza, Bangalore',
       registrationNumber: 'U12346KA2021PLC123457',
+      pan: 'ABCDE1235G',
       panNumber: 'ABCDE1235G',
       gstNumber: '29ABCDE1235G1Z6',
       status: 'Active',
@@ -541,12 +543,69 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'UPDATE_CLIENT':
       return {
         ...state,
-        clients: state.clients.map(c => c.id === action.payload.id ? action.payload : c)
+        clients: state.clients.map(client => 
+          client.id === action.payload.id ? action.payload : client
+        )
       };
+
     case 'DELETE_CLIENT':
       return {
         ...state,
-        clients: state.clients.filter(c => c.id !== action.payload)
+        clients: state.clients.filter(client => client.id !== action.payload)
+      };
+
+    case 'ADD_SIGNATORY':
+      return {
+        ...state,
+        clients: state.clients.map(client => 
+          client.id === action.payload.clientId
+            ? {
+                ...client,
+                signatories: [...(client.signatories || []), action.payload.signatory]
+              }
+            : client
+        )
+      };
+
+    case 'UPDATE_SIGNATORY':
+      return {
+        ...state,
+        clients: state.clients.map(client => 
+          client.id === action.payload.clientId
+            ? {
+                ...client,
+                signatories: (client.signatories || []).map(sig =>
+                  sig.id === action.payload.signatory.id ? action.payload.signatory : sig
+                )
+              }
+            : client
+        )
+      };
+
+    case 'DELETE_SIGNATORY':
+      return {
+        ...state,
+        clients: state.clients.map(client => 
+          client.id === action.payload.clientId
+            ? {
+                ...client,
+                signatories: (client.signatories || []).filter(sig => sig.id !== action.payload.signatoryId)
+              }
+            : client
+        )
+      };
+
+    case 'UPDATE_PORTAL_ACCESS':
+      return {
+        ...state,
+        clients: state.clients.map(client => 
+          client.id === action.payload.clientId
+            ? {
+                ...client,
+                portalAccess: action.payload.portalAccess
+              }
+            : client
+        )
       };
     case 'ADD_COURT':
       return { ...state, courts: [...state.courts, action.payload] };
@@ -703,5 +762,3 @@ export interface Signatory {
   scope: 'All' | 'GST Filings' | 'Litigation' | 'Appeals';
   status: 'Active' | 'Inactive';
 }
-
-export type { Address, Jurisdiction, PortalAccess, Signatory };

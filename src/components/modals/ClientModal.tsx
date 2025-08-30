@@ -84,21 +84,33 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
 
   useEffect(() => {
     if (clientData && (mode === 'edit' || mode === 'view')) {
+      // Handle address migration from string to Address object
+      const addressObj = typeof clientData.address === 'string' 
+        ? {
+            line1: clientData.address,
+            line2: '',
+            city: '',
+            state: '',
+            pincode: '',
+            country: 'India'
+          }
+        : clientData.address || {
+            line1: '',
+            line2: '',
+            city: '',
+            state: '',
+            pincode: '',
+            country: 'India'
+          };
+
       setFormData({
         name: clientData.name,
         type: clientData.type,
         category: clientData.category || 'Regular Dealer',
         registrationNo: clientData.registrationNo || '',
         gstin: clientData.gstin || '',
-        pan: clientData.pan,
-        address: clientData.address || {
-          line1: clientData.address?.line1 || '',
-          line2: clientData.address?.line2 || '',
-          city: clientData.address?.city || '',
-          state: clientData.address?.state || '',
-          pincode: clientData.address?.pincode || '',
-          country: clientData.address?.country || 'India'
-        },
+        pan: clientData.pan || clientData.panNumber || '',
+        address: addressObj,
         jurisdiction: clientData.jurisdiction || { commissionerate: '', division: '', range: '' },
         portalAccess: clientData.portalAccess || { allowLogin: false },
         assignedCAId: clientData.assignedCAId,
