@@ -16,6 +16,9 @@ import {
   Eye,
   Edit
 } from 'lucide-react';
+import { useRBAC } from '@/hooks/useRBAC';
+import { casesService } from '@/services/casesService';
+import { getNextStage, validateStagePrerequisites, generateStageDefaults } from '@/utils/stageUtils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,10 +31,12 @@ import { HearingScheduler } from './HearingScheduler';
 import { SLATracker } from './SLATracker';
 import { CaseModal } from '@/components/modals/CaseModal';
 import { HearingCalendar } from './HearingCalendar';
+import { AdvanceStageConfirmationModal } from '@/components/modals/AdvanceStageConfirmationModal';
 import { Case, useAppState } from '@/contexts/AppStateContext';
 
 export const CaseManagement: React.FC = () => {
-  const { state } = useAppState();
+  const { state, dispatch } = useAppState();
+  const { hasPermission } = useRBAC();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCase, setSelectedCase] = useState<Case | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
@@ -41,6 +46,19 @@ export const CaseManagement: React.FC = () => {
     case: null
   });
   const [hearingCalendarOpen, setHearingCalendarOpen] = useState(false);
+  const [advanceStageModal, setAdvanceStageModal] = useState<{
+    isOpen: boolean;
+    caseData: Case | null;
+    currentStage: string;
+    nextStage: string;
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    caseData: null,
+    currentStage: '',
+    nextStage: '',
+    isLoading: false
+  });
 
   // Sync selectedCase with global state changes
   useEffect(() => {
@@ -74,6 +92,77 @@ export const CaseManagement: React.FC = () => {
     const stages = ['Scrutiny', 'Demand', 'Adjudication', 'Appeals', 'GSTAT', 'HC', 'SC'];
     return ((stages.indexOf(stage) + 1) / stages.length) * 100;
   };
+
+  const handleAdvanceCase = (caseData: Case) => {
+    // Check permissions
+    if (!hasPermission('cases', 'write')) {
+      toast({
+        title: "Permission Denied",
+        description: "You don't have permission to advance case stages.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const nextStage = getNextStage(caseData.currentStage);
+    if (!nextStage) {
+      toast({
+        title: "Stage Advancement Not Available",
+        description: "This case is already at the final stage or has an invalid current stage.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setAdvanceStageModal({
+      isOpen: true,
+      caseData,
+      currentStage: caseData.currentStage,
+      nextStage,
+      isLoading: false
+    });
+  };
+
+  const handleConfirmAdvanceStage = async (notes?: string) => {
+    if (!advanceStageModal.caseData) return;
+
+    setAdvanceStageModal(prev => ({ ...prev, isLoading: true }));
+
+    try {
+      await casesService.advanceStage({
+        caseId: advanceStageModal.caseData.id,
+        currentStage: advanceStageModal.currentStage,
+        nextStage: advanceStageModal.nextStage,
+        notes,
+        assignedTo: advanceStageModal.caseData.assignedToId
+      }, dispatch);
+
+      // Generate auto-tasks for the new stage
+      const stageDefaults = generateStageDefaults(advanceStageModal.nextStage);
+      
+      toast({
+        title: "Stage Advanced Successfully",
+        description: `Case moved to ${advanceStageModal.nextStage}. ${stageDefaults.suggestedTasks.length} tasks generated.`,
+      });
+
+      setAdvanceStageModal({
+        isOpen: false,
+        caseData: null,
+        currentStage: '',
+        nextStage: '',
+        isLoading: false
+      });
+    } catch (error) {
+      toast({
+        title: "Failed to Advance Stage",
+        description: error instanceof Error ? error.message : "An unexpected error occurred.",
+        variant: "destructive"
+      });
+      setAdvanceStageModal(prev => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  const canUserAdvanceStage = hasPermission('cases', 'write');
 
   return (
     <div className="space-y-6">
@@ -301,7 +390,28 @@ export const CaseManagement: React.FC = () => {
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAdvanceCase(caseItem);
+                              }}
+                              disabled={!canUserAdvanceStage || !getNextStage(caseItem.currentStage)}
+                              title={
+                                !canUserAdvanceStage 
+                                  ? "Insufficient permission to advance stages"
+                                  : !getNextStage(caseItem.currentStage)
+                                  ? "Case is at final stage"
+                                  : `Advance to ${getNextStage(caseItem.currentStage)}`
+                              }
+                            >
+                              <ArrowRight className={`h-4 w-4 ${
+                                canUserAdvanceStage && getNextStage(caseItem.currentStage)
+                                  ? 'text-primary hover:text-primary-hover'
+                                  : 'text-muted-foreground'
+                              }`} />
+                            </Button>
                           </div>
                         </div>
                       </div>
@@ -343,6 +453,27 @@ export const CaseManagement: React.FC = () => {
       <HearingCalendar
         isOpen={hearingCalendarOpen}
         onClose={() => setHearingCalendarOpen(false)}
+      />
+
+      <AdvanceStageConfirmationModal
+        isOpen={advanceStageModal.isOpen}
+        onClose={() => setAdvanceStageModal({
+          isOpen: false,
+          caseData: null,
+          currentStage: '',
+          nextStage: '',
+          isLoading: false
+        })}
+        onConfirm={handleConfirmAdvanceStage}
+        caseData={advanceStageModal.caseData!}
+        currentStage={advanceStageModal.currentStage}
+        nextStage={advanceStageModal.nextStage}
+        prerequisites={
+          advanceStageModal.caseData 
+            ? validateStagePrerequisites(advanceStageModal.caseData, advanceStageModal.currentStage, state.tasks)
+            : { isValid: false, missingItems: [], warnings: [] }
+        }
+        isLoading={advanceStageModal.isLoading}
       />
     </div>
   );
