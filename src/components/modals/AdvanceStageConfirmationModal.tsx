@@ -51,6 +51,11 @@ export const AdvanceStageConfirmationModal: React.FC<AdvanceStageConfirmationMod
     onClose();
   };
 
+  // Early return if no case data
+  if (!caseData) {
+    return null;
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl">
