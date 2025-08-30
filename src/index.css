@@ -68,7 +68,21 @@ All colors MUST be HSL. Professional legal theme with accessibility focus.
     --legal-pending: 38 92% 50%;     /* Amber for pending */
     --legal-approved: 142 71% 45%;   /* Green for approved */
     --legal-draft: 220 14% 71%;      /* Gray for drafts */
+}
+
+@layer utilities {
+  .hover-lift {
+    @apply transition-all duration-300 ease-out hover:shadow-lg hover:-translate-y-1;
   }
+  
+  .story-link {
+    @apply relative inline-block after:content-[''] after:absolute after:w-full after:scale-x-0 after:h-0.5 after:bottom-0 after:left-0 after:bg-primary after:origin-bottom-right after:transition-transform after:duration-300 hover:after:scale-x-100 hover:after:origin-bottom-left;
+  }
+  
+  .hover-scale {
+    @apply transition-transform duration-200 hover:scale-105;
+  }
+}
 
   .dark {
     --background: 222.2 84% 4.9%;

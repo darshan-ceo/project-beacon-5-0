@@ -32,7 +32,7 @@ export const RoleSelector: React.FC = () => {
   const { currentUser, switchRole } = useRBAC();
   const IconComponent = roleIcons[currentUser.role];
 
-  const roles: UserRole[] = ['Partner', 'Admin', 'Manager', 'Associate', 'Clerk'];
+  const roles: UserRole[] = ['Partner', 'Admin', 'Manager', 'Associate', 'Clerk', 'Client'];
 
   return (
     <DropdownMenu>

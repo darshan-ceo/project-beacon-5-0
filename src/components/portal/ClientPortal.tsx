@@ -6,6 +6,7 @@ import { ClientCaseView } from './ClientCaseView';
 import { ClientDocumentLibrary } from './ClientDocumentLibrary';
 import { ClientHearingSchedule } from './ClientHearingSchedule';
 import { ClientNotifications } from './ClientNotifications';
+import { ClientDocumentUpload } from './ClientDocumentUpload';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -33,7 +34,7 @@ export const ClientPortal: React.FC = () => {
     .filter(d => d.clientId === clientId)
     .map(d => ({
       ...d,
-      uploadedBy: d.uploadedById || 'System',
+      uploadedBy: d.uploadedByName || 'System',
       shared: d.isShared || false
     }));
   
@@ -192,7 +193,10 @@ export const ClientPortal: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="documents">
-            <ClientDocumentLibrary documents={clientDocuments} clientId={clientId} />
+            <div className="space-y-6">
+              <ClientDocumentUpload clientId={clientId} />
+              <ClientDocumentLibrary documents={clientDocuments} clientId={clientId} />
+            </div>
           </TabsContent>
 
           <TabsContent value="notifications">
