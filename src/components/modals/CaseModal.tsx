@@ -131,7 +131,8 @@ export const CaseModal: React.FC<CaseModalProps> = ({
         createdDate: new Date().toISOString().split('T')[0],
         lastUpdated: new Date().toISOString().split('T')[0],
         documents: 0,
-        progress: 0
+        progress: 0,
+        generatedForms: []
       };
 
       dispatch({ type: 'ADD_CASE', payload: newCase });

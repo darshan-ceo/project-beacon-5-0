@@ -1,6 +1,17 @@
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
 
 // Types
+interface GeneratedForm {
+  formCode: string;
+  version: number;
+  generatedDate: string;
+  employeeId: string;
+  employeeName: string;
+  documentId?: string;
+  fileName: string;
+  status: 'Generated' | 'Uploaded';
+}
+
 interface Case {
   id: string;
   caseNumber: string;
@@ -21,6 +32,7 @@ interface Case {
   lastUpdated: string;
   documents: number;
   progress: number;
+  generatedForms: GeneratedForm[]; // Track completed forms
 }
 
 interface Task {
@@ -249,7 +261,8 @@ const initialState: AppState = {
       createdDate: '2024-01-10',
       lastUpdated: '2024-01-20',
       documents: 15,
-      progress: 65
+      progress: 65,
+      generatedForms: []
     },
     {
       id: '2',
@@ -264,7 +277,19 @@ const initialState: AppState = {
       createdDate: '2024-01-15',
       lastUpdated: '2024-01-22',
       documents: 8,
-      progress: 40
+      progress: 40,
+      generatedForms: [
+        {
+          formCode: 'GSTAT',
+          version: 1,
+          generatedDate: '2024-01-15T09:30:00Z',
+          employeeId: 'emp-1',
+          employeeName: 'John Smith',
+          documentId: 'doc-gstat-001',
+          fileName: 'GSTAT_Form_CAS123456_20240115.pdf',
+          status: 'Uploaded'
+        }
+      ]
     }
   ],
   tasks: [
@@ -727,7 +752,7 @@ export const useAppState = () => {
 };
 
 // Export types  
-export type { Case, Task, Client, Court, Judge, Document, Folder, Hearing };
+export type { Case, Task, Client, Court, Judge, Document, Folder, Hearing, GeneratedForm };
 
 // New interfaces for enhanced Client Master
 export interface Address {

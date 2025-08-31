@@ -7,9 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { StageManagementModal } from '@/components/modals/StageManagementModal';
 import { HearingModal } from '@/components/modals/HearingModal';
-import { useAppState, Case } from '@/contexts/AppStateContext';
+import { FormRenderModal } from '@/components/documents/FormRenderModal';
+import { FormChip } from './FormChip';
+import { useAppState, Case, GeneratedForm } from '@/contexts/AppStateContext';
 import { casesService } from '@/services/casesService';
 import { dmsService } from '@/services/dmsService';
+import { formTemplatesService } from '@/services/formTemplatesService';
 import {
   CheckCircle,
   Clock,
@@ -95,6 +98,9 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
   const { dispatch } = useAppState();
   const [showStageModal, setShowStageModal] = useState(false);
   const [showHearingModal, setShowHearingModal] = useState(false);
+  const [showFormModal, setShowFormModal] = useState(false);
+  const [selectedFormCode, setSelectedFormCode] = useState<string>('');
+  const [formTemplate, setFormTemplate] = useState<any>(null);
   const [isAdvancing, setIsAdvancing] = useState(false);
 
   const getCurrentStageIndex = () => {
@@ -136,6 +142,43 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
       }
     };
     input.click();
+  };
+
+  const handleFormClick = async (formCode: string) => {
+    try {
+      const template = await formTemplatesService.loadFormTemplate(formCode);
+      if (template) {
+        setFormTemplate(template);
+        setSelectedFormCode(formCode);
+        setShowFormModal(true);
+      } else {
+        toast({
+          title: "Template Not Found",
+          description: `Form template ${formCode} could not be loaded.`,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error loading form template:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load form template. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleFormDownload = (form: GeneratedForm) => {
+    // Create download link for existing form
+    const link = document.createElement('a');
+    link.href = `data:application/pdf;base64,${form.fileName}`;
+    link.download = form.fileName;
+    link.click();
+
+    toast({
+      title: "Download Started",
+      description: `Downloading ${form.fileName}`,
+    });
   };
 
   const handleAdvanceStage = async () => {
@@ -322,12 +365,18 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
                 <div>
                   <h4 className="font-semibold mb-2">Required Forms</h4>
                   <div className="space-y-2">
-                    {lifecycleStages[currentStageIndex]?.forms.map((form) => (
-                      <div key={form} className="flex items-center justify-between p-2 bg-muted/50 rounded">
-                        <span className="text-sm">{form}</span>
-                        <Badge variant="outline">Required</Badge>
-                      </div>
+                    {formTemplatesService.getFormsByStage(selectedCase.currentStage).map((formCode) => (
+                      <FormChip
+                        key={formCode}
+                        formCode={formCode}
+                        case={selectedCase}
+                        onFormClick={handleFormClick}
+                        onDownload={handleFormDownload}
+                      />
                     ))}
+                    {formTemplatesService.getFormsByStage(selectedCase.currentStage).length === 0 && (
+                      <p className="text-sm text-muted-foreground">No forms required for this stage</p>
+                    )}
                   </div>
                 </div>
                 
@@ -408,6 +457,36 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
         onClose={() => setShowHearingModal(false)}
         mode="create"
       />
+
+      {/* Form Render Modal */}
+      {formTemplate && (
+        <FormRenderModal
+          isOpen={showFormModal}
+          onClose={() => {
+            setShowFormModal(false);
+            setFormTemplate(null);
+            setSelectedFormCode('');
+          }}
+          template={formTemplate}
+          selectedCaseId={selectedCase?.id}
+          onFormGenerated={(generatedForm) => {
+            // Update case with generated form
+            if (selectedCase) {
+              const updatedForms = [...(selectedCase.generatedForms || []), generatedForm];
+              dispatch({
+                type: 'UPDATE_CASE',
+                payload: {
+                  id: selectedCase.id,
+                  generatedForms: updatedForms,
+                  lastUpdated: new Date().toISOString()
+                }
+              });
+              
+              // Note: Timeline integration would go here in full implementation
+            }
+          }}
+        />
+      )}
     </div>
   );
 };

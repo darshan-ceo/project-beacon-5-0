@@ -61,12 +61,12 @@ class FormTemplatesService {
   getFormsByStage(stage: string): string[] {
     const formsByStage: Record<string, string[]> = {
       'Scrutiny': ['ASMT10_REPLY', 'ASMT11_REPRESENTATION'],
-      'Adjudication': ['ASMT12_REPLY'],
       'Demand': ['DRC01_REPLY', 'DRC07_OBJECTION'],
+      'Adjudication': ['ASMT12_REPLY'],
       'Appeals': ['APPEAL_FIRST'],
-      'Tribunal': ['GSTAT'],
-      'High Court': ['HC_PETITION'],
-      'Supreme Court': ['SC_SLP']
+      'GSTAT': ['GSTAT'],
+      'HC': ['HC_PETITION'],
+      'SC': ['SC_SLP']
     };
 
     return formsByStage[stage] || [];

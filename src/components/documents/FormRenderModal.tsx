@@ -20,13 +20,15 @@ interface FormRenderModalProps {
   onClose: () => void;
   template: FormTemplate;
   selectedCaseId?: string;
+  onFormGenerated?: (generatedForm: any) => void;
 }
 
 export const FormRenderModal: React.FC<FormRenderModalProps> = ({
   isOpen,
   onClose,
   template,
-  selectedCaseId
+  selectedCaseId,
+  onFormGenerated
 }) => {
   const { state, dispatch } = useAppState();
   const { toast } = useToast();
@@ -169,12 +171,33 @@ export const FormRenderModal: React.FC<FormRenderModalProps> = ({
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      // Note: In a real app, this would also create a timeline event and save the document to DMS
-      // For now, we'll just simulate the download
+      // Get case and current employee info
+      const caseData = state.cases.find(c => c.id === caseId);
+      const currentEmployee = state.employees.find(e => e.id === 'emp-1'); // TODO: Get from auth context
+
+      // Create generated form record
+      const generatedForm = {
+        formCode: template.code,
+        version: (caseData?.generatedForms?.filter(f => f.formCode === template.code).length || 0) + 1,
+        generatedDate: new Date().toISOString(),
+        employeeId: currentEmployee?.id || 'emp-1',
+        employeeName: currentEmployee?.full_name || 'Current User',
+        fileName: suggestedFilename,
+        status: 'Uploaded' as const,
+        documentId: `doc-${Date.now()}`
+      };
+
+      // Simulate DMS upload (in real app, would upload to DMS)
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Notify parent component
+      if (onFormGenerated) {
+        onFormGenerated(generatedForm);
+      }
 
       toast({
-        title: "Document Generated",
-        description: `${template.title} has been successfully generated and downloaded.`,
+        title: "Form Generated & Uploaded",
+        description: `${template.title} has been successfully generated and uploaded to DMS.`,
       });
 
       onClose();

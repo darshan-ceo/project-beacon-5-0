@@ -2,27 +2,7 @@ import { AppAction } from '@/contexts/AppStateContext';
 import { toast } from '@/hooks/use-toast';
 
 // Import the Case interface from AppStateContext
-interface Case {
-  id: string;
-  caseNumber: string;
-  title: string;
-  clientId: string;
-  currentStage: 'Scrutiny' | 'Demand' | 'Adjudication' | 'Appeals' | 'GSTAT' | 'HC' | 'SC';
-  priority: 'High' | 'Medium' | 'Low';
-  slaStatus: 'Green' | 'Amber' | 'Red';
-  nextHearing?: {
-    date: string;
-    courtId: string;
-    judgeId: string;
-    type: 'Adjourned' | 'Final' | 'Argued';
-  };
-  assignedToId: string;
-  assignedToName: string;
-  createdDate: string;
-  lastUpdated: string;
-  documents: number;
-  progress: number;
-}
+import { Case } from '@/contexts/AppStateContext';
 
 export interface AdvanceStagePayload {
   caseId: string;
@@ -57,6 +37,7 @@ export const casesService = {
         lastUpdated: new Date().toISOString(),
         documents: 0,
         progress: 0,
+        generatedForms: [],
         ...caseData
       };
 
