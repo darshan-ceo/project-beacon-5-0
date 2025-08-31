@@ -9,9 +9,10 @@ import { FormRenderModal } from './FormRenderModal';
 
 interface FormTemplatesViewProps {
   selectedCaseId?: string;
+  selectedCase?: any;
 }
 
-export const FormTemplatesView: React.FC<FormTemplatesViewProps> = ({ selectedCaseId }) => {
+export const FormTemplatesView: React.FC<FormTemplatesViewProps> = ({ selectedCaseId, selectedCase }) => {
   const [templates, setTemplates] = useState<FormTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(null);
@@ -19,12 +20,21 @@ export const FormTemplatesView: React.FC<FormTemplatesViewProps> = ({ selectedCa
 
   useEffect(() => {
     loadTemplates();
-  }, []);
+  }, [selectedCase]);
 
   const loadTemplates = async () => {
     try {
-      const allTemplates = await formTemplatesService.getAllTemplates();
-      setTemplates(allTemplates);
+      let templatesData: FormTemplate[];
+      
+      if (selectedCase?.currentStage) {
+        // Load templates for the selected case's current stage
+        templatesData = await formTemplatesService.getTemplatesByLifecycleStage(selectedCase.currentStage);
+      } else {
+        // Fallback: load all templates if no case is selected
+        templatesData = await formTemplatesService.getAllTemplates();
+      }
+      
+      setTemplates(templatesData);
     } catch (error) {
       console.error('Failed to load form templates:', error);
     } finally {
@@ -38,6 +48,10 @@ export const FormTemplatesView: React.FC<FormTemplatesViewProps> = ({ selectedCa
       'Demand': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
       'Adjudication': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
       'Appeals': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+      'GSTAT': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
+      'HC': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+      'SC': 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200',
+      // Legacy template categories for backward compatibility
       'Tribunal': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
       'High Court': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
       'Supreme Court': 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
@@ -51,10 +65,14 @@ export const FormTemplatesView: React.FC<FormTemplatesViewProps> = ({ selectedCa
   };
 
   const groupedTemplates = templates.reduce((groups, template) => {
-    if (!groups[template.stage]) {
-      groups[template.stage] = [];
+    // Convert template category to lifecycle stage for consistent grouping
+    const lifecycleStage = formTemplatesService.getLifecycleStageFromTemplateCategory(template.stage);
+    const displayStage = lifecycleStage;
+    
+    if (!groups[displayStage]) {
+      groups[displayStage] = [];
     }
-    groups[template.stage].push(template);
+    groups[displayStage].push(template);
     return groups;
   }, {} as Record<string, FormTemplate[]>);
 
@@ -71,7 +89,17 @@ export const FormTemplatesView: React.FC<FormTemplatesViewProps> = ({ selectedCa
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-foreground">Form Templates</h2>
-          <p className="text-muted-foreground">Generate legal documents from standardized templates</p>
+          <p className="text-muted-foreground">
+            Generate legal documents from standardized templates
+            {selectedCase && (
+              <span className="block mt-1">
+                Showing templates for: <span className="font-medium text-foreground">{selectedCase.title}</span> 
+                <span className="ml-2 text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
+                  {selectedCase.currentStage} Stage
+                </span>
+              </span>
+            )}
+          </p>
         </div>
       </div>
 
@@ -86,7 +114,7 @@ export const FormTemplatesView: React.FC<FormTemplatesViewProps> = ({ selectedCa
             <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
               {stage} Stage
               <Badge variant="secondary" className={getStageColor(stage)}>
-                {stageTemplates.length} templates
+                {stageTemplates.length} template{stageTemplates.length !== 1 ? 's' : ''}
               </Badge>
             </h3>
           </div>
@@ -105,8 +133,11 @@ export const FormTemplatesView: React.FC<FormTemplatesViewProps> = ({ selectedCa
                         Code: {template.code} • Version {template.version}
                       </CardDescription>
                     </div>
-                    <Badge variant="outline" className={getStageColor(template.stage)}>
-                      {template.stage}
+                    <Badge variant="outline" className={getStageColor(stage)}>
+                      {stage}
+                      {template.stage !== stage && (
+                        <span className="ml-1 text-xs opacity-70">({template.stage})</span>
+                      )}
                     </Badge>
                   </div>
                 </CardHeader>

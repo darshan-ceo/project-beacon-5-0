@@ -816,7 +816,10 @@ export const DocumentManagement: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="templates" className="mt-6">
-          <FormTemplatesView />
+          <FormTemplatesView 
+            selectedCaseId={activeFilters.caseId}
+            selectedCase={activeFilters.caseId ? state.cases.find(c => c.id === activeFilters.caseId) : undefined}
+          />
         </TabsContent>
       </Tabs>
 

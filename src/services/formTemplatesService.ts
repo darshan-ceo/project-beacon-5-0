@@ -58,18 +58,30 @@ class FormTemplatesService {
     }
   }
 
-  getFormsByStage(stage: string): string[] {
-    const formsByStage: Record<string, string[]> = {
-      'Scrutiny': ['ASMT10_REPLY', 'ASMT11_REPRESENTATION'],
-      'Demand': ['DRC01_REPLY', 'DRC07_OBJECTION'],
-      'Adjudication': ['ASMT12_REPLY'],
-      'Appeals': ['APPEAL_FIRST'],
-      'GSTAT': ['GSTAT'],
-      'HC': ['HC_PETITION'],
-      'SC': ['SC_SLP']
-    };
+  // Stage to Template Mapping - Maps lifecycle stages to template codes
+  private static LIFECYCLE_TO_TEMPLATE_MAPPING: Record<string, string[]> = {
+    'Scrutiny': ['ASMT10_REPLY', 'ASMT11_REPRESENTATION'],
+    'Demand': ['DRC01_REPLY', 'DRC07_OBJECTION'],
+    'Adjudication': ['ASMT12_REPLY'],
+    'Appeals': ['APPEAL_FIRST'],
+    'GSTAT': ['GSTAT'],     // GSTAT lifecycle → GSTAT template (stored as "Tribunal" in JSON)
+    'HC': ['HC_PETITION'],  // HC lifecycle → HC template (stored as "High Court" in JSON)
+    'SC': ['SC_SLP']        // SC lifecycle → SC template (stored as "Supreme Court" in JSON)
+  };
 
-    return formsByStage[stage] || [];
+  // Template Category to Lifecycle Stage Mapping - For display purposes
+  private static TEMPLATE_TO_LIFECYCLE_MAPPING: Record<string, string> = {
+    'Tribunal': 'GSTAT',
+    'High Court': 'HC',
+    'Supreme Court': 'SC'
+  };
+
+  getFormsByStage(stage: string): string[] {
+    return FormTemplatesService.LIFECYCLE_TO_TEMPLATE_MAPPING[stage] || [];
+  }
+
+  getLifecycleStageFromTemplateCategory(templateCategory: string): string {
+    return FormTemplatesService.TEMPLATE_TO_LIFECYCLE_MAPPING[templateCategory] || templateCategory;
   }
 
   validateFormData(template: FormTemplate, data: any): FormValidationError[] {
@@ -239,6 +251,20 @@ class FormTemplatesService {
     const templates: FormTemplate[] = [];
     
     for (const code of allFormCodes) {
+      const template = await this.loadFormTemplate(code);
+      if (template) {
+        templates.push(template);
+      }
+    }
+
+    return templates;
+  }
+
+  async getTemplatesByLifecycleStage(lifecycleStage: string): Promise<FormTemplate[]> {
+    const formCodes = this.getFormsByStage(lifecycleStage);
+    const templates: FormTemplate[] = [];
+    
+    for (const code of formCodes) {
       const template = await this.loadFormTemplate(code);
       if (template) {
         templates.push(template);
