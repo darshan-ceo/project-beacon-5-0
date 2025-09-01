@@ -83,9 +83,20 @@ export const CaseManagement: React.FC = () => {
       const updatedCase = state.cases.find(c => c.id === selectedCase.id);
       if (updatedCase && JSON.stringify(updatedCase) !== JSON.stringify(selectedCase)) {
         setSelectedCase(updatedCase);
+        // Force a re-render of the lifecycle component by triggering state update
+        console.log('Case updated in CaseManagement:', updatedCase.currentStage);
       }
     }
   }, [state.cases, selectedCase]);
+
+  // Handler for when case is updated from child components
+  const handleCaseUpdated = (updatedCase: Case) => {
+    setSelectedCase(updatedCase);
+    // Force activeTab to refresh if we're on lifecycle tab
+    if (activeTab === 'lifecycle') {
+      setActiveTab('lifecycle'); // This will trigger a re-render
+    }
+  };
 
   const getSLAColor = (status: string) => {
     switch (status) {
@@ -491,7 +502,7 @@ export const CaseManagement: React.FC = () => {
         <TabsContent value="lifecycle" className="mt-6">
           <CaseLifecycleFlow 
             selectedCase={selectedCase} 
-            onCaseUpdated={(updatedCase) => setSelectedCase(updatedCase)}
+            onCaseUpdated={handleCaseUpdated}
           />
         </TabsContent>
 

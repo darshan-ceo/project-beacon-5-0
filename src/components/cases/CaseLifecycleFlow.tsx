@@ -95,7 +95,7 @@ const lifecycleStages = [
 
 export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCase, onCaseUpdated }) => {
   const { toast } = useToast();
-  const { dispatch } = useAppState();
+  const { state, dispatch } = useAppState();
   const [showStageModal, setShowStageModal] = useState(false);
   const [showHearingModal, setShowHearingModal] = useState(false);
   const [showFormModal, setShowFormModal] = useState(false);
@@ -196,6 +196,17 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
           nextStage: nextStage.id,
           notes: `Advanced from ${selectedCase.currentStage} to ${nextStage.id}`
         }, dispatch);
+        
+        // Trigger parent update callback to refresh the case in parent component
+        if (onCaseUpdated) {
+          // Get the updated case from the global state
+          setTimeout(() => {
+            const updatedCase = state.cases.find(c => c.id === selectedCase.id);
+            if (updatedCase) {
+              onCaseUpdated(updatedCase);
+            }
+          }, 100); // Small delay to ensure state has been updated
+        }
       } catch (error) {
         console.error('Stage advancement failed:', error);
       } finally {
@@ -445,9 +456,16 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
         caseId={selectedCase?.id || null}
         currentStage={selectedCase?.currentStage || ''}
         onStageAdvanced={(updatedCase) => {
+          // Trigger parent update callback
           if (onCaseUpdated) {
             onCaseUpdated(updatedCase);
           }
+          // Also close the modal and show immediate visual feedback
+          setShowStageModal(false);
+          toast({
+            title: "Stage Updated",
+            description: "The case stage has been updated successfully.",
+          });
         }}
       />
 
