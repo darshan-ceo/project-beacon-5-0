@@ -201,6 +201,145 @@ export const reportsService = {
     }
   },
 
+  // Get case reports with filters
+  getCaseReport: async (filters: any): Promise<{ data: any[] }> => {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Mock case report data
+    const mockData = [
+      {
+        id: 'CS001',
+        title: 'Property Dispute Case',
+        client: 'ABC Corp',
+        stage: 'Appeals',
+        owner: 'John Doe',
+        createdDate: '2024-01-15',
+        updatedDate: '2024-08-15',
+        slaStatus: 'Green',
+        priority: 'High',
+        agingDays: 45
+      },
+      {
+        id: 'CS002',
+        title: 'Contract Breach',
+        client: 'XYZ Ltd',
+        stage: 'Adjudication',
+        owner: 'Jane Smith',
+        createdDate: '2024-02-01',
+        updatedDate: '2024-08-20',
+        slaStatus: 'Amber',
+        priority: 'Medium',
+        agingDays: 30
+      }
+    ];
+    
+    return { data: mockData };
+  },
+
+  // Get hearing reports with filters
+  getHearingReport: async (filters: any): Promise<{ data: any[] }> => {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const mockData = [
+      {
+        id: 'H001',
+        caseId: 'CS001',
+        caseTitle: 'Property Dispute Case',
+        client: 'ABC Corp',
+        date: '2024-09-15',
+        time: '10:30 AM',
+        court: 'High Court',
+        judge: 'Justice Kumar',
+        status: 'Scheduled'
+      }
+    ];
+    
+    return { data: mockData };
+  },
+
+  // Get SLA reports with filters
+  getSLAReport: async (filters: any): Promise<{ data: any[] }> => {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const mockData = [
+      {
+        caseId: 'CS001',
+        caseTitle: 'Property Dispute Case',
+        client: 'ABC Corp',
+        stage: 'Appeals',
+        slaDue: '2024-09-30',
+        agingDays: 45,
+        ragStatus: 'Green',
+        owner: 'John Doe',
+        breached: false
+      }
+    ];
+    
+    return { data: mockData };
+  },
+
+  // Get task reports with filters
+  getTaskReport: async (filters: any): Promise<{ data: any[] }> => {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const mockData = [
+      {
+        id: 'T001',
+        title: 'Review Documents',
+        caseId: 'CS001',
+        caseTitle: 'Property Dispute Case',
+        assignee: 'John Doe',
+        dueDate: '2024-09-20',
+        status: 'In Progress',
+        agingDays: 5,
+        escalated: false,
+        priority: 'High'
+      }
+    ];
+    
+    return { data: mockData };
+  },
+
+  // Get client reports with filters
+  getClientReport: async (filters: any): Promise<{ data: any[] }> => {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const mockData = [
+      {
+        id: 'CL001',
+        name: 'ABC Corp',
+        totalCases: 15,
+        activeCases: 8,
+        stageMix: { 'Appeals': 3, 'Adjudication': 5 },
+        slaBreaches: 2,
+        nextHearing: '2024-09-15',
+        totalValue: 2500000
+      }
+    ];
+    
+    return { data: mockData };
+  },
+
+  // Get communication reports with filters
+  getCommunicationReport: async (filters: any): Promise<{ data: any[] }> => {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const mockData = [
+      {
+        id: 'COM001',
+        date: '2024-08-25',
+        caseId: 'CS001',
+        client: 'ABC Corp',
+        channel: 'Email',
+        to: 'client@abccorp.com',
+        status: 'Delivered',
+        template: 'Hearing Notice'
+      }
+    ];
+    
+    return { data: mockData };
+  },
+
   /**
    * Renders a form template to PDF with user data
    * @param formCode - The form template code (e.g., 'GSTAT', 'ASMT10_REPLY')
@@ -259,6 +398,14 @@ export const reportsService = {
     }
   }
 };
+
+// Export individual functions for easier importing
+export const getCaseReport = reportsService.getCaseReport;
+export const getHearingReport = reportsService.getHearingReport;
+export const getSLAReport = reportsService.getSLAReport;
+export const getTaskReport = reportsService.getTaskReport;
+export const getClientReport = reportsService.getClientReport;
+export const getCommunicationReport = reportsService.getCommunicationReport;
 
 /**
  * Generates structured PDF content from form template and data
