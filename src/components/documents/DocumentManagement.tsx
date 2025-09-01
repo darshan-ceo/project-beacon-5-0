@@ -26,7 +26,7 @@ import {
   Plus
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FormTemplatesView } from './FormTemplatesView';
+import { TemplatesManagement } from './TemplatesManagement';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -816,10 +816,7 @@ export const DocumentManagement: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="templates" className="mt-6">
-          <FormTemplatesView 
-            selectedCaseId={activeFilters.caseId}
-            selectedCase={activeFilters.caseId ? state.cases.find(c => c.id === activeFilters.caseId) : undefined}
-          />
+          <TemplatesManagement />
         </TabsContent>
       </Tabs>
 

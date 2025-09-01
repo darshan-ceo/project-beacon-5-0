@@ -1,0 +1,49 @@
+{
+  "code": "ASMT10_REPLY",
+  "title": "ASMT-10 Reply",
+  "stage": "Scrutiny",
+  "version": "1.0",
+  "prefill": {
+    "client_name": "case.client.name",
+    "gstin": "case.client.gstin",
+    "pan": "case.client.pan",
+    "address": "case.client.address",
+    "case_id": "case.id",
+    "case_title": "case.title",
+    "stage": "case.currentStage",
+    "notice_no": "case.notice.number",
+    "notice_date": "case.notice.date",
+    "authorized_signatory": "case.signatory.fullName"
+  },
+  "fields": [
+    {
+      "key": "factual_background",
+      "label": "Factual Background",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "key": "legal_submissions",
+      "label": "Legal Submissions",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "key": "reconciliations",
+      "label": "Reconciliations",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "key": "prayer",
+      "label": "Prayer",
+      "type": "textarea",
+      "required": true
+    }
+  ],
+  "output": {
+    "filename": "ASMT10_REPLY_${case.id}_${now:YYYYMMDD}.pdf",
+    "dms_folder_by_stage": true,
+    "timeline_event": "ASMT-10 Reply submitted"
+  }
+}

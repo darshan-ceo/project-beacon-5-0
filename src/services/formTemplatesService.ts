@@ -43,7 +43,7 @@ class FormTemplatesService {
     }
 
     try {
-      const response = await fetch(`/src/form-templates/${formCode}.json`);
+      const response = await fetch(`/form-templates/${formCode}.json`);
       if (!response.ok) {
         console.error(`Failed to load form template: ${formCode}`);
         return null;

@@ -1,0 +1,51 @@
+{
+  "code": "ASMT11_REPRESENTATION",
+  "title": "ASMT-11 Representation",
+  "stage": "Scrutiny",
+  "version": "1.0",
+  "prefill": {
+    "client_name": "case.client.name",
+    "gstin": "case.client.gstin",
+    "pan": "case.client.pan",
+    "address": "case.client.address",
+    "case_id": "case.id",
+    "case_title": "case.title",
+    "stage": "case.currentStage",
+    "notice_no": "case.notice.number",
+    "notice_date": "case.notice.date",
+    "authorized_signatory": "case.signatory.fullName"
+  },
+  "fields": [
+    {
+      "key": "reference_order_no",
+      "label": "Reference Order Number",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "objections",
+      "label": "Objections",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "key": "additional_evidence",
+      "label": "Additional Evidence",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    {
+      "key": "prayer",
+      "label": "Prayer",
+      "type": "textarea",
+      "required": true
+    }
+  ],
+  "output": {
+    "filename": "ASMT11_REPRESENTATION_${case.id}_${now:YYYYMMDD}.pdf",
+    "dms_folder_by_stage": true,
+    "timeline_event": "ASMT-11 Representation submitted"
+  }
+}
