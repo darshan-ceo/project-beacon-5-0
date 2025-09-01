@@ -23,6 +23,7 @@ import { ClientPortal } from "./components/portal/ClientPortal";
 import { ClientLayout } from "./components/layout/ClientLayout";
 import { ClientRouteGuard } from "./components/ui/client-route-guard";
 import { EnhancedDashboard } from "./components/dashboard/EnhancedDashboard";
+import { ReportsModule } from "./components/reports/ReportsModule";
 
 const queryClient = new QueryClient();
 
@@ -107,6 +108,11 @@ const App = () => (
               <Route path="/profile" element={
                 <AdminLayout currentUser={currentUser}>
                   <UserProfile />
+                </AdminLayout>
+              } />
+              <Route path="/reports" element={
+                <AdminLayout currentUser={currentUser}>
+                  <ReportsModule userRole={currentUser.role} />
                 </AdminLayout>
               } />
               <Route path="*" element={<NotFound />} />

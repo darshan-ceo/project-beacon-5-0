@@ -50,6 +50,7 @@ const menuItems: MenuItem[] = [
   { icon: Gavel, label: 'Judge Masters', href: '/judges', roles: ['Admin', 'Partner/CA'] },
   { icon: UserCheck, label: 'Employee Masters', href: '/employees', roles: ['Admin'] },
   { icon: FileText, label: 'Case Management', href: '/cases', roles: ['Admin', 'Partner/CA', 'Staff'] },
+  { icon: BarChart3, label: 'Reports', href: '/reports', roles: ['Admin', 'Partner/CA', 'Staff'] },
   { icon: CheckSquare, label: 'Task Management', href: '/tasks', roles: ['Admin', 'Partner/CA', 'Staff'] },
   { icon: FolderOpen, label: 'Document Management', href: '/documents', roles: ['Admin', 'Partner/CA', 'Staff', 'Client'] },
   { icon: Shield, label: 'RBAC Management', href: '/rbac', roles: ['Admin'] },
