@@ -154,6 +154,9 @@ Yours faithfully,
 Advocate`
 };
 
+// Enhanced AI service with draft generation capabilities
+export { aiDraftService } from './aiDraftService';
+
 export const aiService = {
   // Generate AI draft for legal notices
   generateDraft: async (

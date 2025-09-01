@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { X, FileText, Download, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+import { X, FileText, Download, AlertCircle, CheckCircle, Loader2, Wand2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,9 @@ import { FormTemplate, FormField, FormValidationError, formTemplatesService } fr
 import { reportsService } from '@/services/reportsService';
 import { useAppState } from '@/contexts/AppStateContext';
 import { useToast } from '@/hooks/use-toast';
+import { usePermission } from '@/hooks/useRBAC';
+import { AIAssistantPanel } from './AIAssistantPanel';
+import { AIDraftResult } from '@/services/aiDraftService';
 
 interface FormRenderModalProps {
   isOpen: boolean;
@@ -36,6 +39,10 @@ export const FormRenderModal: React.FC<FormRenderModalProps> = ({
   const [errors, setErrors] = useState<FormValidationError[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedCase, setSelectedCase] = useState<string>('');
+  const [improvingField, setImprovingField] = useState<string | null>(null);
+  
+  // AI permissions
+  const canUseAI = usePermission('ai', 'read');
 
   // Initialize form data when template changes
   useEffect(() => {
@@ -214,6 +221,66 @@ export const FormRenderModal: React.FC<FormRenderModalProps> = ({
     }
   };
 
+  const handleDraftGenerated = (result: AIDraftResult) => {
+    // Apply AI generated content to form fields
+    result.sections.forEach(section => {
+      setFormData(prev => ({
+        ...prev,
+        [section.fieldKey]: section.content
+      }));
+    });
+
+    toast({
+      title: "AI Draft Applied",
+      description: `Generated content applied to ${result.sections.length} fields.`,
+    });
+  };
+
+  const handleFieldImproved = (fieldKey: string, content: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [fieldKey]: content
+    }));
+  };
+
+  const handleImproveSectionWithAI = async (fieldKey: string) => {
+    const caseId = selectedCaseId || selectedCase;
+    if (!caseId || !canUseAI) return;
+
+    const caseData = state.cases.find(c => c.id === caseId);
+    const clientData = caseData ? state.clients.find(c => c.id === caseData.clientId) : null;
+    
+    if (!caseData || !clientData) return;
+
+    setImprovingField(fieldKey);
+    
+    try {
+      const { aiDraftService } = await import('@/services/aiDraftService');
+      
+      const improvedContent = await aiDraftService.improveSectionWithAI(
+        fieldKey,
+        formData[fieldKey] || '',
+        {
+          tone: 'formal',
+          audience: 'officer',
+          focusAreas: ['Facts', 'Legal Grounds'],
+          personalization: '',
+          language: 'english',
+          insertCitations: false
+        },
+        { template, caseData, clientData },
+        'current-user' // TODO: Get from auth context
+      );
+
+      handleFieldImproved(fieldKey, improvedContent);
+      
+    } catch (error) {
+      console.error('Failed to improve section:', error);
+    } finally {
+      setImprovingField(null);
+    }
+  };
+
   const renderField = (field: FormField, parentKey?: string): React.ReactNode => {
     const fieldKey = parentKey ? `${parentKey}.${field.key}` : field.key;
     const value = parentKey ? formData[parentKey]?.[field.key] : formData[field.key];
@@ -248,13 +315,32 @@ export const FormRenderModal: React.FC<FormRenderModalProps> = ({
 
       case 'textarea':
         return fieldWrapper(
-          <Textarea
-            id={fieldKey}
-            value={value || ''}
-            onChange={(e) => handleFieldChange(field.key, e.target.value, parentKey)}
-            className={fieldErrors.length > 0 ? 'border-destructive' : ''}
-            rows={4}
-          />
+          <div className="space-y-2">
+            <div className="relative">
+              <Textarea
+                id={fieldKey}
+                value={value || ''}
+                onChange={(e) => handleFieldChange(field.key, e.target.value, parentKey)}
+                className={fieldErrors.length > 0 ? 'border-destructive' : ''}
+                rows={4}
+              />
+              {canUseAI && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute top-2 right-2 h-6 px-2 text-xs"
+                  onClick={() => handleImproveSectionWithAI(parentKey ? `${parentKey}.${field.key}` : field.key)}
+                  disabled={improvingField === (parentKey ? `${parentKey}.${field.key}` : field.key)}
+                >
+                  {improvingField === (parentKey ? `${parentKey}.${field.key}` : field.key) ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Wand2 className="h-3 w-3" />
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
         );
 
       case 'number':
@@ -348,6 +434,26 @@ export const FormRenderModal: React.FC<FormRenderModalProps> = ({
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* AI Assistant Panel */}
+          {canUseAI && (
+            <AIAssistantPanel
+              template={template}
+              caseData={(() => {
+                const caseId = selectedCaseId || selectedCase;
+                return caseId ? state.cases.find(c => c.id === caseId) : undefined;
+              })()}
+              clientData={(() => {
+                const caseId = selectedCaseId || selectedCase;
+                const caseData = caseId ? state.cases.find(c => c.id === caseId) : undefined;
+                return caseData ? state.clients.find(c => c.id === caseData.clientId) : undefined;
+              })()}
+              formData={formData}
+              onDraftGenerated={handleDraftGenerated}
+              onFieldImproved={handleFieldImproved}
+              disabled={!canUseAI}
+            />
+          )}
+
           {/* Case Selection */}
           {!selectedCaseId && (
             <div className="space-y-2">
@@ -389,27 +495,32 @@ export const FormRenderModal: React.FC<FormRenderModalProps> = ({
           )}
 
           {/* Actions */}
-          <div className="flex justify-end gap-2 pt-4 border-t border-border">
-            <Button variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={validateAndGenerate} 
-              disabled={isGenerating}
-              className="min-w-[120px]"
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Download className="h-4 w-4 mr-2" />
-                  Generate PDF
-                </>
-              )}
-            </Button>
+          <div className="flex justify-between items-center pt-4 border-t border-border">
+            <div className="text-xs text-muted-foreground">
+              {canUseAI && "AI-assisted draft. Please review before submission."}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={validateAndGenerate} 
+                disabled={isGenerating}
+                className="min-w-[120px]"
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4 mr-2" />
+                    Generate PDF
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>

@@ -31,6 +31,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { module: 'reports', action: 'admin' },
     { module: 'rbac', action: 'read' },
     { module: 'settings', action: 'admin' },
+    { module: 'ai', action: 'admin' },
   ],
   Manager: [
     { module: 'cases', action: 'write' },
@@ -42,6 +43,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { module: 'reports', action: 'read' },
     { module: 'rbac', action: 'read' },
     { module: 'settings', action: 'read' },
+    { module: 'ai', action: 'write' },
   ],
   Associate: [
     { module: 'cases', action: 'read' },
@@ -51,6 +53,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { module: 'tasks', action: 'write' },
     { module: 'documents', action: 'read' },
     { module: 'reports', action: 'read' },
+    { module: 'ai', action: 'read' },
   ],
   Clerk: [
     { module: 'tasks', action: 'read' },
