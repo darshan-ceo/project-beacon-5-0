@@ -148,12 +148,12 @@ export const ReportsFilterRail: React.FC<ReportsFilterRailProps> = ({
           <>
             <div className="space-y-2">
               <Label className="text-sm font-medium">Stage</Label>
-              <Select value={filters.stage || ''} onValueChange={(value) => updateFilters({ stage: value || undefined })}>
+              <Select value={filters.stage || 'all'} onValueChange={(value) => updateFilters({ stage: value === 'all' ? undefined : value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="All stages" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All stages</SelectItem>
+                  <SelectItem value="all">All stages</SelectItem>
                   {mockStages.map(stage => (
                     <SelectItem key={stage.value} value={stage.value}>{stage.label}</SelectItem>
                   ))}
@@ -163,12 +163,12 @@ export const ReportsFilterRail: React.FC<ReportsFilterRailProps> = ({
 
             <div className="space-y-2">
               <Label className="text-sm font-medium">SLA Status</Label>
-              <Select value={filters.ragStatus || ''} onValueChange={(value) => updateFilters({ ragStatus: value as any || undefined })}>
+              <Select value={filters.ragStatus || 'all'} onValueChange={(value) => updateFilters({ ragStatus: value === 'all' ? undefined : value as any })}>
                 <SelectTrigger>
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All statuses</SelectItem>
+                  <SelectItem value="all">All statuses</SelectItem>
                   {ragStatuses.map(status => (
                     <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
                   ))}
@@ -183,12 +183,12 @@ export const ReportsFilterRail: React.FC<ReportsFilterRailProps> = ({
           <>
             <div className="space-y-2">
               <Label className="text-sm font-medium">Court</Label>
-              <Select value={filters.courtId || ''} onValueChange={(value) => updateFilters({ courtId: value || undefined })}>
+              <Select value={filters.courtId || 'all'} onValueChange={(value) => updateFilters({ courtId: value === 'all' ? undefined : value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="All courts" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All courts</SelectItem>
+                  <SelectItem value="all">All courts</SelectItem>
                   {mockCourts.map(court => (
                     <SelectItem key={court.value} value={court.value}>{court.label}</SelectItem>
                   ))}
@@ -212,12 +212,12 @@ export const ReportsFilterRail: React.FC<ReportsFilterRailProps> = ({
           <>
             <div className="space-y-2">
               <Label className="text-sm font-medium">Status</Label>
-              <Select value={filters.status || ''} onValueChange={(value) => updateFilters({ status: value || undefined })}>
+              <Select value={filters.status || 'all'} onValueChange={(value) => updateFilters({ status: value === 'all' ? undefined : value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All statuses</SelectItem>
+                  <SelectItem value="all">All statuses</SelectItem>
                   {taskStatuses.map(status => (
                     <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
                   ))}
@@ -227,12 +227,12 @@ export const ReportsFilterRail: React.FC<ReportsFilterRailProps> = ({
 
             <div className="space-y-2">
               <Label className="text-sm font-medium">Assignee</Label>
-              <Select value={filters.assigneeId || ''} onValueChange={(value) => updateFilters({ assigneeId: value || undefined })}>
+              <Select value={filters.assigneeId || 'all'} onValueChange={(value) => updateFilters({ assigneeId: value === 'all' ? undefined : value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="All assignees" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All assignees</SelectItem>
+                  <SelectItem value="all">All assignees</SelectItem>
                   {mockEmployees.map(emp => (
                     <SelectItem key={emp.value} value={emp.value}>{emp.label}</SelectItem>
                   ))}
@@ -247,12 +247,12 @@ export const ReportsFilterRail: React.FC<ReportsFilterRailProps> = ({
           <>
             <div className="space-y-2">
               <Label className="text-sm font-medium">Channel</Label>
-              <Select value={filters.channel || ''} onValueChange={(value) => updateFilters({ channel: value as any || undefined })}>
+              <Select value={filters.channel || 'all'} onValueChange={(value) => updateFilters({ channel: value === 'all' ? undefined : value as any })}>
                 <SelectTrigger>
                   <SelectValue placeholder="All channels" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All channels</SelectItem>
+                  <SelectItem value="all">All channels</SelectItem>
                   {communicationChannels.map(channel => (
                     <SelectItem key={channel.value} value={channel.value}>{channel.label}</SelectItem>
                   ))}
@@ -262,12 +262,12 @@ export const ReportsFilterRail: React.FC<ReportsFilterRailProps> = ({
 
             <div className="space-y-2">
               <Label className="text-sm font-medium">Delivery Status</Label>
-              <Select value={filters.status || ''} onValueChange={(value) => updateFilters({ status: value || undefined })}>
+              <Select value={filters.status || 'all'} onValueChange={(value) => updateFilters({ status: value === 'all' ? undefined : value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All statuses</SelectItem>
+                  <SelectItem value="all">All statuses</SelectItem>
                   {communicationStatuses.map(status => (
                     <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
                   ))}
@@ -402,12 +402,12 @@ export const ReportsFilterRail: React.FC<ReportsFilterRailProps> = ({
         {/* Client Filter */}
         <div className="space-y-2">
           <Label className="text-sm font-medium">Client</Label>
-          <Select value={filters.clientId || ''} onValueChange={(value) => updateFilters({ clientId: value || undefined })}>
+          <Select value={filters.clientId || 'all'} onValueChange={(value) => updateFilters({ clientId: value === 'all' ? undefined : value })}>
             <SelectTrigger>
               <SelectValue placeholder="All clients" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All clients</SelectItem>
+              <SelectItem value="all">All clients</SelectItem>
               {mockClients.map(client => (
                 <SelectItem key={client.value} value={client.value}>{client.label}</SelectItem>
               ))}
@@ -418,12 +418,12 @@ export const ReportsFilterRail: React.FC<ReportsFilterRailProps> = ({
         {/* Priority Filter */}
         <div className="space-y-2">
           <Label className="text-sm font-medium">Priority</Label>
-          <Select value={filters.priority || ''} onValueChange={(value) => updateFilters({ priority: value || undefined })}>
+          <Select value={filters.priority || 'all'} onValueChange={(value) => updateFilters({ priority: value === 'all' ? undefined : value })}>
             <SelectTrigger>
               <SelectValue placeholder="All priorities" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All priorities</SelectItem>
+              <SelectItem value="all">All priorities</SelectItem>
               {priorities.map(priority => (
                 <SelectItem key={priority.value} value={priority.value}>{priority.label}</SelectItem>
               ))}
@@ -435,12 +435,12 @@ export const ReportsFilterRail: React.FC<ReportsFilterRailProps> = ({
         {userRole === 'Admin' && (
           <div className="space-y-2">
             <Label className="text-sm font-medium">Owner</Label>
-            <Select value={filters.ownerId || ''} onValueChange={(value) => updateFilters({ ownerId: value || undefined })}>
+            <Select value={filters.ownerId || 'all'} onValueChange={(value) => updateFilters({ ownerId: value === 'all' ? undefined : value })}>
               <SelectTrigger>
                 <SelectValue placeholder="All owners" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All owners</SelectItem>
+                <SelectItem value="all">All owners</SelectItem>
                 {mockEmployees.map(emp => (
                   <SelectItem key={emp.value} value={emp.value}>{emp.label}</SelectItem>
                 ))}
