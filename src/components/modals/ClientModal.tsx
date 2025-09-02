@@ -335,14 +335,26 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
               {/* Dev environment badges */}
               {import.meta.env.MODE === 'development' && (
                 <div className="flex gap-2 text-xs">
-                  <Badge variant={import.meta.env.VITE_FEATURE_GST_CLIENT_AUTOFILL === 'on' ? "default" : "destructive"}>
-                    GST: {import.meta.env.VITE_FEATURE_GST_CLIENT_AUTOFILL === 'on' ? "ON" : "OFF"}
+                  <Badge variant={(() => {
+                    const s = (k: string) => String(import.meta.env[k] || '').trim().toLowerCase();
+                    return ['on', 'true', '1'].includes(s('VITE_FEATURE_GST_CLIENT_AUTOFILL')) ? "default" : "destructive";
+                  })()}>
+                    GST: {(() => {
+                      const s = (k: string) => String(import.meta.env[k] || '').trim().toLowerCase();
+                      return ['on', 'true', '1'].includes(s('VITE_FEATURE_GST_CLIENT_AUTOFILL')) ? "ON" : "OFF";
+                    })()}
                   </Badge>
                   <Badge variant={import.meta.env.VITE_API_BASE_URL ? "default" : "destructive"}>
                     API: {import.meta.env.VITE_API_BASE_URL ? "SET" : "MISSING"}
                   </Badge>
-                  <Badge variant={import.meta.env.VITE_GST_MOCK === 'on' ? "secondary" : "outline"}>
-                    MOCK: {import.meta.env.VITE_GST_MOCK === 'on' ? "ON" : "OFF"}
+                  <Badge variant={(() => {
+                    const s = (k: string) => String(import.meta.env[k] || '').trim().toLowerCase();
+                    return ['on', 'true', '1'].includes(s('VITE_GST_MOCK')) ? "secondary" : "outline";
+                  })()}>
+                    MOCK: {(() => {
+                      const s = (k: string) => String(import.meta.env[k] || '').trim().toLowerCase();
+                      return ['on', 'true', '1'].includes(s('VITE_GST_MOCK')) ? "ON" : "OFF";
+                    })()}
                   </Badge>
                 </div>
               )}
