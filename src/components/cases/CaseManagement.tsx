@@ -14,7 +14,9 @@ import {
   Filter,
   Search,
   Eye,
-  Edit
+  Edit,
+  Info,
+  Check
 } from 'lucide-react';
 import { useRBAC } from '@/hooks/useRBAC';
 import { casesService } from '@/services/casesService';
@@ -45,6 +47,7 @@ export const CaseManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCase, setSelectedCase] = useState<Case | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [showHelpText, setShowHelpText] = useState(true);
   const [caseModal, setCaseModal] = useState<{ isOpen: boolean; mode: 'create' | 'edit' | 'view'; case?: Case | null }>({
     isOpen: false,
     mode: 'create',
@@ -192,6 +195,27 @@ export const CaseManagement: React.FC = () => {
 
   const canUserAdvanceStage = hasPermission('cases', 'write');
 
+  // Helper function to handle case selection
+  const handleCaseSelect = (caseItem: Case) => {
+    setSelectedCase(caseItem);
+    if (showHelpText) {
+      setShowHelpText(false);
+    }
+  };
+
+  // Helper function to check if tabs should be disabled
+  const getTabDisabled = (tabValue: string) => {
+    const caseRequiredTabs = ['lifecycle', 'timeline', 'ai-assistant', 'communications'];
+    return caseRequiredTabs.includes(tabValue) && !selectedCase;
+  };
+
+  // Auto-switch to overview if accessing disabled tab
+  useEffect(() => {
+    if (getTabDisabled(activeTab)) {
+      setActiveTab('overview');
+    }
+  }, [selectedCase, activeTab]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -332,12 +356,40 @@ export const CaseManagement: React.FC = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="lifecycle">Lifecycle</TabsTrigger>
+          <TabsTrigger 
+            value="lifecycle" 
+            disabled={getTabDisabled('lifecycle')}
+            className="disabled:opacity-50 disabled:cursor-not-allowed"
+            title={getTabDisabled('lifecycle') ? "Select a case from Overview to proceed" : ""}
+          >
+            Lifecycle
+          </TabsTrigger>
           <TabsTrigger value="sla">SLA Tracker</TabsTrigger>
           <TabsTrigger value="hearings">Hearings</TabsTrigger>
-          <TabsTrigger value="timeline">Timeline</TabsTrigger>
-          <TabsTrigger value="ai-assistant">AI Assistant</TabsTrigger>
-          <TabsTrigger value="communications">Communications</TabsTrigger>
+          <TabsTrigger 
+            value="timeline"
+            disabled={getTabDisabled('timeline')}
+            className="disabled:opacity-50 disabled:cursor-not-allowed"
+            title={getTabDisabled('timeline') ? "Select a case from Overview to proceed" : ""}
+          >
+            Timeline
+          </TabsTrigger>
+          <TabsTrigger 
+            value="ai-assistant"
+            disabled={getTabDisabled('ai-assistant')}
+            className="disabled:opacity-50 disabled:cursor-not-allowed"
+            title={getTabDisabled('ai-assistant') ? "Select a case from Overview to proceed" : ""}
+          >
+            AI Assistant
+          </TabsTrigger>
+          <TabsTrigger 
+            value="communications"
+            disabled={getTabDisabled('communications')}
+            className="disabled:opacity-50 disabled:cursor-not-allowed"
+            title={getTabDisabled('communications') ? "Select a case from Overview to proceed" : ""}
+          >
+            Communications
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-6">
@@ -347,21 +399,84 @@ export const CaseManagement: React.FC = () => {
             transition={{ duration: 0.3 }}
             className="space-y-6"
           >
-            {state.cases.map((caseItem, index) => (
+            {/* Help Instructions Panel */}
+            {showHelpText && (
               <motion.div
-                key={caseItem.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="bg-primary/5 border border-primary/20 rounded-lg p-4"
               >
-                <Card className="hover-lift cursor-pointer" onClick={() => setSelectedCase(caseItem)}>
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="text-lg font-semibold text-foreground">{caseItem.title}</h3>
-                            <p className="text-sm text-muted-foreground">{caseItem.caseNumber} • {state.clients.find(c => c.id === caseItem.clientId)?.name || 'Unknown Client'}</p>
+                <div className="flex items-start gap-3">
+                  <Info className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h4 className="font-medium text-foreground mb-1">Select a Case to Get Started</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Please select a case from the list below. The selected case will be highlighted and used across 
+                      Lifecycle, Timeline, AI Assistant, and Communications tabs.
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+            
+            {!showHelpText && selectedCase && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="bg-secondary/5 border border-secondary/20 rounded-lg p-3"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-secondary" />
+                    <span className="text-sm font-medium text-foreground">
+                      Selected: {selectedCase.title} ({selectedCase.caseNumber})
+                    </span>
+                  </div>
+                  <Button
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setShowHelpText(true)}
+                    className="text-xs h-auto p-1"
+                  >
+                    <Info className="h-3 w-3 mr-1" />
+                    Help
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+            {state.cases.map((caseItem, index) => {
+              const isSelected = selectedCase?.id === caseItem.id;
+              return (
+                <motion.div
+                  key={caseItem.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.1 }}
+                >
+                  <Card 
+                    className={`hover-lift cursor-pointer transition-all duration-200 ${
+                      isSelected 
+                        ? 'border-l-4 border-l-primary bg-primary/5 shadow-md ring-1 ring-primary/20' 
+                        : 'hover:border-l-4 hover:border-l-secondary hover:bg-secondary/5'
+                    }`}
+                    onClick={() => handleCaseSelect(caseItem)}
+                  >
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 space-y-4">
+                          <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            {isSelected && (
+                              <div className="flex-shrink-0 w-6 h-6 bg-primary rounded-full flex items-center justify-center">
+                                <Check className="h-3 w-3 text-primary-foreground" />
+                              </div>
+                            )}
+                            <div>
+                              <h3 className="text-lg font-semibold text-foreground">{caseItem.title}</h3>
+                              <p className="text-sm text-muted-foreground">{caseItem.caseNumber} • {state.clients.find(c => c.id === caseItem.clientId)?.name || 'Unknown Client'}</p>
+                            </div>
                           </div>
                           <div className="flex items-center space-x-2">
                             <Badge variant="secondary" className={getPriorityColor(caseItem.priority)}>
@@ -488,14 +603,15 @@ export const CaseManagement: React.FC = () => {
                                   : 'text-muted-foreground'
                               }`} />
                             </Button>
-                          </div>
+                         </div>
+                        </div>
                         </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
           </motion.div>
         </TabsContent>
 
