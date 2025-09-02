@@ -21,8 +21,8 @@ class FeatureFlagService {
     const gstFeature = import.meta.env.VITE_FEATURE_GST_CLIENT_AUTOFILL || 'off';
     this.flags.set('gst_client_autofill_v1', {
       key: 'gst_client_autofill_v1',
-      isEnabled: gstFeature === 'v1' || gstFeature === 'on' || gstFeature === 'true',
-      version: gstFeature === 'v1' ? 'v1' : undefined
+      isEnabled: gstFeature === 'on',
+      version: gstFeature === 'on' ? 'v1' : undefined
     });
   }
 

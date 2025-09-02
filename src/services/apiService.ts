@@ -33,7 +33,7 @@ class ApiService {
 
   async get<T>(endpoint: string, params?: Record<string, any>): Promise<ApiResponse<T>> {
     try {
-      const url = new URL(`${this.baseURL}${endpoint}`);
+      const url = new URL(endpoint, this.baseURL);
       if (params) {
         Object.entries(params).forEach(([key, value]) => {
           if (value !== undefined && value !== null) {
@@ -42,7 +42,10 @@ class ApiService {
         });
       }
 
-      const response = await fetch(url.toString(), {
+      const finalUrl = url.toString();
+      console.log(`API GET: ${finalUrl}`);
+
+      const response = await fetch(finalUrl, {
         method: 'GET',
         headers: this.getAuthHeaders()
       });
@@ -52,7 +55,7 @@ class ApiService {
       if (!response.ok) {
         return {
           success: false,
-          error: data.message || `HTTP ${response.status}`,
+          error: `${data.message || `HTTP ${response.status}`} (URL: ${finalUrl})`,
           data: null
         };
       }
@@ -73,7 +76,10 @@ class ApiService {
 
   async post<T>(endpoint: string, body?: any): Promise<ApiResponse<T>> {
     try {
-      const response = await fetch(`${this.baseURL}${endpoint}`, {
+      const url = new URL(endpoint, this.baseURL).toString();
+      console.log(`API POST: ${url}`);
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: this.getAuthHeaders(),
         body: body ? JSON.stringify(body) : undefined
@@ -84,7 +90,7 @@ class ApiService {
       if (!response.ok) {
         return {
           success: false,
-          error: data.message || `HTTP ${response.status}`,
+          error: `${data.message || `HTTP ${response.status}`} (URL: ${url})`,
           data: null
         };
       }

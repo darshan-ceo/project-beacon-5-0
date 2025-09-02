@@ -322,15 +322,15 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                 {mode === 'view' && <><Eye className="h-5 w-5" /> Client Details</>}
               </div>
               {/* Dev environment badges */}
-              {process.env.NODE_ENV === 'development' && (
+              {import.meta.env.MODE === 'development' && (
                 <div className="flex gap-2 text-xs">
-                  <Badge variant={featureFlagService.isEnabled('gst_client_autofill_v1') ? "default" : "destructive"}>
-                    GST: {featureFlagService.isEnabled('gst_client_autofill_v1') ? "ON" : "OFF"}
+                  <Badge variant={import.meta.env.VITE_FEATURE_GST_CLIENT_AUTOFILL === 'on' ? "default" : "destructive"}>
+                    GST: {import.meta.env.VITE_FEATURE_GST_CLIENT_AUTOFILL === 'on' ? "ON" : "OFF"}
                   </Badge>
                   {import.meta.env.VITE_GST_MOCK === 'on' && (
                     <Badge variant="secondary">MOCK: ON</Badge>
                   )}
-                  <Badge variant="outline">
+                  <Badge variant={import.meta.env.VITE_API_BASE_URL ? "default" : "destructive"}>
                     API: {import.meta.env.VITE_API_BASE_URL ? "SET" : "MISSING"}
                   </Badge>
                 </div>

@@ -20,7 +20,8 @@ import {
   CheckCircle,
   Eye,
   EyeOff,
-  User
+  User,
+  Search
 } from 'lucide-react';
 import { gstPublicService, GSTTaxpayerInfo } from '@/services/gstPublicService';
 import { gspConsentService, ConsentVerifyResponse } from '@/services/gspConsentService';
@@ -67,7 +68,7 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
   const isGSTFeatureEnabled = featureFlagService.isEnabled('gst_client_autofill_v1');
   
   // Don't render if feature is disabled (except in development)
-  if (!isGSTFeatureEnabled && process.env.NODE_ENV !== 'development') {
+  if (!isGSTFeatureEnabled && import.meta.env.MODE !== 'development') {
     return null;
   }
 
@@ -329,19 +330,20 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
                   )}
                 </div>
                 {mode !== 'view' && (
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 items-center">
                     <Button
                       type="button"
                       variant="outline"
                       onClick={() => handleFetchGSTIN(false)}
-                      disabled={loading || !formData.gstin}
+                      disabled={loading || !formData.gstin || !import.meta.env.VITE_API_BASE_URL}
+                      title={!import.meta.env.VITE_API_BASE_URL ? "Set VITE_API_BASE_URL to enable real fetch" : undefined}
                     >
                       {loading ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
-                        <Download className="h-4 w-4" />
+                        <Search className="h-4 w-4" />
                       )}
-                      Fetch
+                      {import.meta.env.VITE_GST_MOCK === 'on' || !import.meta.env.VITE_API_BASE_URL ? 'Mock Fetch' : 'Fetch'}
                     </Button>
                     {needsReVerification && (
                       <Button
@@ -353,6 +355,11 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
                       >
                         Re-verify
                       </Button>
+                    )}
+                    {!import.meta.env.VITE_API_BASE_URL && (
+                      <div className="text-xs text-destructive">
+                        API URL missing - using mock data
+                      </div>
                     )}
                   </div>
                 )}

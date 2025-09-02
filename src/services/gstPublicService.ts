@@ -73,8 +73,8 @@ class GSTPublicService {
       }
     }
 
-    // Check for mock mode
-    if (import.meta.env.VITE_GST_MOCK === 'on') {
+    // Check for mock mode or missing API
+    if (import.meta.env.VITE_GST_MOCK === 'on' || !import.meta.env.VITE_API_BASE_URL) {
       return this.getMockTaxpayerData(gstin);
     }
 
