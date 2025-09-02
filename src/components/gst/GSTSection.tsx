@@ -172,25 +172,47 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
       registeredMobile: profile.profilePayload.registeredMobile,
       filingFrequency: profile.profilePayload.filingFrequency,
       aatoBand: profile.profilePayload.aatoBand,
+      eInvoiceEnabled: profile.profilePayload.eInvoiceEnabled,
+      eWayBillEnabled: profile.profilePayload.eWayBillEnabled,
     };
 
     // Update field states for GSP data
     const newFieldStates = { ...fieldStates };
     Object.keys(gspUpdates).forEach(key => {
-      newFieldStates[key] = {
-        value: gspUpdates[key],
-        source: 'gsp',
-        isLocked: true,
-        originalValue: gspUpdates[key]
-      };
+      if (gspUpdates[key] !== undefined) {
+        newFieldStates[key] = {
+          value: gspUpdates[key],
+          source: 'gsp',
+          isLocked: true,
+          originalValue: gspUpdates[key]
+        };
+      }
     });
 
     setFieldStates(newFieldStates);
     onFormDataChange(gspUpdates);
+
+    // Process signatories - add them to client contacts if available
+    if (profile.profilePayload.authorizedSignatories && profile.profilePayload.authorizedSignatories.length > 0) {
+      const signatoryContacts = profile.profilePayload.authorizedSignatories.map(signatory => ({
+        name: signatory.name,
+        email: signatory.email || '',
+        phone: signatory.mobile || '',
+        role: signatory.designation || signatory.signatoryType || 'Authorized Signatory',
+        isPrimary: signatory.signatoryType === 'Authorized Signatory' && !signatory.designation,
+        source: 'gsp'
+      }));
+
+      // Notify parent about new contacts from GSP
+      onFormDataChange({
+        ...gspUpdates,
+        gspSignatories: signatoryContacts
+      });
+    }
     
     toast({
       title: 'GSP Profile Linked',
-      description: `Imported ${profile.profilePayload.authorizedSignatories.length} authorized signatories`,
+      description: `Imported ${profile.profilePayload.authorizedSignatories.length} authorized signatories and enhanced data`,
     });
   };
 

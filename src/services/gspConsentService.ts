@@ -85,10 +85,50 @@ class GSPConsentService {
       };
     }
 
-    return apiService.post<ConsentVerifyResponse>('/api/gst/consent/verify', {
+    const response = await apiService.post<any>('/api/gst/consent/verify', {
       txnId,
       otp
     });
+
+    if (response.success && response.data) {
+      // Map API response to expected interface
+      const mappedData = this.mapGSPResponseToInterface(response.data);
+      return {
+        success: true,
+        data: mappedData,
+        error: null
+      };
+    }
+    
+    return response;
+  }
+
+  /**
+   * Map GSP API response to internal interface
+   */
+  private mapGSPResponseToInterface(apiData: any): ConsentVerifyResponse {
+    return {
+      consentId: apiData.consentId || `consent_${Date.now()}`,
+      accessToken: apiData.accessToken || '',
+      tokenExpiry: apiData.tokenExpiry || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      profilePayload: {
+        gstin: apiData.gstin,
+        authorizedSignatories: (apiData.signatories || []).map((sig: any) => ({
+          name: sig.name,
+          email: sig.email,
+          mobile: sig.mobile,
+          designation: sig.designation || sig.role,
+          signatoryType: sig.signatoryType || sig.role || 'Authorized Signatory'
+        })),
+        registeredEmail: apiData.registeredEmail,
+        registeredMobile: apiData.registeredMobile,
+        filingFrequency: apiData.filingFreq || apiData.filingFrequency || 'Monthly',
+        aatoBand: apiData.aatoBand,
+        eInvoiceEnabled: apiData.eInvoiceEnabled || false,
+        eWayBillEnabled: apiData.eWayBillEnabled || false,
+        lastVerified: new Date().toISOString()
+      }
+    };
   }
 
   /**
