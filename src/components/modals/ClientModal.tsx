@@ -16,6 +16,10 @@ import { Client, useAppState, type Signatory, type Address, type Jurisdiction, t
 import { CASelector } from '@/components/ui/employee-selector';
 import { SignatoryModal } from './SignatoryModal';
 import { clientsService, INDIAN_STATES } from '@/services/clientsService';
+import { GSTSection } from '@/components/gst/GSTSection';
+import { ContactsDrawer } from '@/components/contacts/ContactsDrawer';
+import { ClientContactsSection } from '@/components/contacts/ClientContactsSection';
+import { featureFlagService } from '@/services/featureFlagService';
 
 interface ClientModalProps {
   isOpen: boolean;
@@ -843,6 +847,24 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                 </div>
               </CardContent>
             </Card>
+
+            {/* GST Section - Feature Flagged */}
+            {featureFlagService.isEnabled('gst_client_autofill_v1') && (
+              <GSTSection
+                clientId={clientData?.id || 'new'}
+                formData={formData}
+                onFormDataChange={(updates) => setFormData(prev => ({ ...prev, ...updates }))}
+                mode={mode}
+              />
+            )}
+
+            {/* Client Contacts Section */}
+            {clientData?.id && (
+              <ClientContactsSection
+                clientId={clientData.id}
+                mode={mode}
+              />
+            )}
 
             {/* Validation Errors */}
             {validationErrors.length > 0 && (
