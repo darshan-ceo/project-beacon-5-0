@@ -27,6 +27,7 @@ export const envConfig = {
   MOCK_ON,
   API,
   API_SET: Boolean(API),
+  GST_ENABLED: GST_ON || MOCK_ON,
   
   // Helper to check if URL overrides are active
   hasUrlOverrides: typeof window !== 'undefined' ? 
