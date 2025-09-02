@@ -872,12 +872,10 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
             )}
 
             {/* Client Contacts Section */}
-            {clientData?.id && (
-              <ClientContactsSection
-                clientId={clientData.id}
-                mode={mode}
-              />
-            )}
+            <ClientContactsSection
+              clientId={clientData?.id || 'new'}
+              mode={mode}
+            />
 
             {/* Validation Errors */}
             {validationErrors.length > 0 && (
