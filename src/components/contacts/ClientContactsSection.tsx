@@ -31,7 +31,7 @@ export const ClientContactsSection: React.FC<ClientContactsSectionProps> = ({
   const [showCreateDrawer, setShowCreateDrawer] = useState(false);
 
   useEffect(() => {
-    if (clientId && mode !== 'create') {
+    if (clientId && clientId !== 'new' && mode !== 'create') {
       fetchContacts();
     }
   }, [clientId, mode]);
@@ -89,8 +89,13 @@ export const ClientContactsSection: React.FC<ClientContactsSectionProps> = ({
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
             Client Contacts
+            {(mode === 'create' || clientId === 'new') && (
+              <Badge variant="outline" className="ml-2 text-xs">
+                Available after client creation
+              </Badge>
+            )}
           </CardTitle>
-          {mode !== 'view' && (
+          {mode !== 'view' && clientId && clientId !== 'new' && (
             <Button
               type="button"
               variant="outline"
@@ -104,12 +109,14 @@ export const ClientContactsSection: React.FC<ClientContactsSectionProps> = ({
         </div>
       </CardHeader>
       <CardContent>
-        {contacts.length === 0 ? (
+        {(mode === 'create' || clientId === 'new') ? (
           <div className="text-center py-8 text-muted-foreground">
-            {mode === 'create' 
-              ? 'Contacts can be added after creating the client'
-              : 'No contacts added yet'
-            }
+            <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+            <p>Contacts can be added after creating and saving the client.</p>
+          </div>
+        ) : contacts.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            No contacts added yet
           </div>
         ) : (
           <Table>
@@ -188,12 +195,14 @@ export const ClientContactsSection: React.FC<ClientContactsSectionProps> = ({
           </Table>
         )}
 
-        <CreateContactDrawer
-          isOpen={showCreateDrawer}
-          onClose={() => setShowCreateDrawer(false)}
-          clientId={clientId}
-          onSuccess={handleContactCreated}
-        />
+        {clientId && clientId !== 'new' && (
+          <CreateContactDrawer
+            isOpen={showCreateDrawer}
+            onClose={() => setShowCreateDrawer(false)}
+            clientId={clientId}
+            onSuccess={handleContactCreated}
+          />
+        )}
       </CardContent>
     </Card>
   );

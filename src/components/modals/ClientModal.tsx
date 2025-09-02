@@ -315,10 +315,23 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {mode === 'create' && <><Plus className="h-5 w-5" /> Add New Client</>}
-              {mode === 'edit' && <><Edit className="h-5 w-5" /> Edit Client</>}
-              {mode === 'view' && <><Eye className="h-5 w-5" /> Client Details</>}
+            <DialogTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {mode === 'create' && <><Plus className="h-5 w-5" /> Add New Client</>}
+                {mode === 'edit' && <><Edit className="h-5 w-5" /> Edit Client</>}
+                {mode === 'view' && <><Eye className="h-5 w-5" /> Client Details</>}
+              </div>
+              {/* Temporary dev badge - remove after verification */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="flex gap-2 text-xs">
+                  <Badge variant={featureFlagService.isEnabled('gst_client_autofill_v1') ? "default" : "destructive"}>
+                    GST: {featureFlagService.isEnabled('gst_client_autofill_v1') ? "ON" : "OFF"}
+                  </Badge>
+                  <Badge variant="outline">
+                    API: {import.meta.env.VITE_API_BASE_URL ? "SET" : "MISSING"}
+                  </Badge>
+                </div>
+              )}
             </DialogTitle>
           </DialogHeader>
 

@@ -24,6 +24,7 @@ import { ClientLayout } from "./components/layout/ClientLayout";
 import { ClientRouteGuard } from "./components/ui/client-route-guard";
 import { EnhancedDashboard } from "./components/dashboard/EnhancedDashboard";
 import { ReportsModule } from "./components/reports/ReportsModule";
+import { GSTDebugPage } from "./components/debug/GSTDebugPage";
 
 const queryClient = new QueryClient();
 
@@ -113,6 +114,11 @@ const App = () => (
               <Route path="/reports" element={
                 <AdminLayout currentUser={currentUser}>
                   <ReportsModule userRole={currentUser.role} />
+                </AdminLayout>
+              } />
+              <Route path="/debug/gst" element={
+                <AdminLayout currentUser={currentUser}>
+                  <GSTDebugPage />
                 </AdminLayout>
               } />
               <Route path="*" element={<NotFound />} />
