@@ -204,11 +204,18 @@ export const dmsService = {
     ): Promise<Document> => {
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Validate file type
-      const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 
-                           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'image/png', 'image/jpeg'];
+      // Validate file type - Extended support for AI drafts
+      const allowedTypes = [
+        'application/pdf', 
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 
+        'image/png', 
+        'image/jpeg',
+        'text/plain', // Support for AI drafts
+        'text/html' // Support for HTML drafts
+      ];
       if (!allowedTypes.includes(file.type)) {
-        throw new Error('File type not supported. Please upload PDF, DOCX, XLSX, PNG, or JPG files.');
+        throw new Error(`File type ${file.type} is not supported. Allowed types: PDF, DOCX, XLSX, PNG, JPG, TXT, HTML`);
       }
 
       // Validate file size (50MB limit)

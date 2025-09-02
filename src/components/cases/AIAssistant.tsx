@@ -26,6 +26,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
 import { aiService, AIDraft, DocumentSummary } from '@/services/aiService';
 import { dmsService } from '@/services/dmsService';
+import { draftService } from '@/services/draftService';
+import { timelineService } from '@/services/timelineService';
 import { useAppState, Case, Document } from '@/contexts/AppStateContext';
 
 interface AIAssistantProps {
@@ -114,56 +116,52 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ selectedCase }) => {
     }
   };
 
-  // Save edited draft
+  // Save edited draft with enhanced pipeline
   const handleSaveDraft = async () => {
     if (!generatedDraft || !selectedCase) return;
     
+    setIsSaving(true);
+    
     try {
-      setIsSaving(true);
-      const updatedContent = editedDraftContent;
-      const draftBlob = new Blob([updatedContent], { type: 'text/plain' });
-      const draftFile = new File([draftBlob], `AI_Draft_${generatedDraft.noticeType}_v${Date.now()}.txt`, {
-        type: 'text/plain'
-      });
+      // Import draft service
+      const { draftService } = await import('@/services/draftService');
       
-      // Save to DMS
-      await dmsService.uploadForCaseStage(draftFile, selectedCase.id, 'ai-drafts', dispatch);
+      // Convert content to HTML format
+      const htmlContent = `
+        <h1>AI Generated Draft - ${generatedDraft.noticeType}</h1>
+        <p><strong>Case:</strong> ${selectedCase.title}</p>
+        <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
+        <hr>
+        <div style="white-space: pre-wrap; font-family: monospace;">
+          ${editedDraftContent.replace(/\n/g, '<br>')}
+        </div>
+      `;
       
-      // Add timeline entry
-      const timelineEntry = {
-        id: Date.now().toString(),
+      // Get next version number
+      const version = await draftService.getNextVersion(selectedCase.id, generatedDraft.noticeType);
+      
+      // Save using standardized pipeline
+      const saveResult = await draftService.save({
         caseId: selectedCase.id,
-        type: 'ai_draft_saved' as const,
-        title: 'AI Draft Saved',
-        description: `AI draft for ${generatedDraft.noticeType} has been saved`,
-        createdBy: 'Current User', // In real app, get from auth context
-        createdAt: new Date().toISOString(),
-        metadata: {
-          draftType: generatedDraft.noticeType,
-          fileName: draftFile.name
-        }
-      };
-
-      // Timeline entry will be added through DMS service integration
+        stageId: selectedCase.currentStage,
+        templateCode: generatedDraft.noticeType,
+        html: htmlContent,
+        output: 'pdf' // Default to PDF, can be made configurable
+      }, dispatch);
       
+      // Update local state
       setGeneratedDraft(prev => prev ? { 
         ...prev, 
-        generatedContent: updatedContent, 
+        generatedContent: editedDraftContent, 
         lastModified: new Date().toISOString() 
       } : null);
       setIsEditingDraft(false);
       
-      toast({
-        title: "Draft Saved Successfully",
-        description: `${draftFile.name} has been saved to case documents and timeline updated.`,
-      });
+      console.log(`[AIAssistant] Draft saved successfully:`, saveResult);
+      
     } catch (error) {
-      console.error('Failed to save draft:', error);
-      toast({
-        title: "Save Failed",
-        description: "There was an error saving your draft. Please try again.",
-        variant: "destructive"
-      });
+      console.error('[AIAssistant] Failed to save draft:', error);
+      // Error toast is already handled by draftService
     } finally {
       setIsSaving(false);
     }
@@ -413,6 +411,7 @@ ${summary.extractedEntities.map(entity =>
                     <CardTitle className="flex items-center">
                       <FileText className="mr-2 h-5 w-5" />
                       Generated Draft - {generatedDraft.noticeType}
+                      <Badge variant="secondary" className="ml-2">v1</Badge>
                     </CardTitle>
                     <div className="flex gap-2">
                       <Button
@@ -424,7 +423,7 @@ ${summary.extractedEntities.map(entity =>
                         {isEditingDraft ? 'Preview' : 'Edit'}
                       </Button>
                       {isEditingDraft && (
-                        <Button 
+                         <Button 
                           size="sm" 
                           onClick={handleSaveDraft}
                           disabled={isSaving}
@@ -437,7 +436,7 @@ ${summary.extractedEntities.map(entity =>
                           ) : (
                             <>
                               <Save className="mr-1 h-4 w-4" />
-                              Save
+                              Save as PDF
                             </>
                           )}
                         </Button>
