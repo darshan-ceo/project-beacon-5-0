@@ -170,6 +170,10 @@ interface Hearing {
   notes?: string;
   createdDate: string;
   lastUpdated: string;
+  // Calendar integration fields
+  externalEventId?: string; // ID from Google Calendar/Outlook
+  syncStatus?: 'synced' | 'not_synced' | 'sync_failed' | 'sync_pending';
+  syncError?: string; // Error message if sync failed
 }
 
 // New Folder interface for DMS

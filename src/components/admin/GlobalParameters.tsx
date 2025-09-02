@@ -24,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
+import { CalendarIntegrationPanel } from './CalendarIntegrationPanel';
 
 interface SystemParameter {
   id: string;
@@ -459,30 +460,7 @@ export const GlobalParameters: React.FC = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Calendar Provider</Label>
-                  <Select defaultValue="google">
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="google">Google Calendar</SelectItem>
-                      <SelectItem value="outlook">Outlook</SelectItem>
-                      <SelectItem value="both">Both</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">External calendar integration</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>Auto-sync Hearings</Label>
-                  <Switch defaultChecked />
-                  <p className="text-xs text-muted-foreground">Automatically sync court hearings to calendar</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>Reminder Time (minutes)</Label>
-                  <Input type="number" defaultValue="30" />
-                  <p className="text-xs text-muted-foreground">Default reminder time for appointments</p>
-                </div>
+                <CalendarIntegrationPanel />
               </CardContent>
             </Card>
 

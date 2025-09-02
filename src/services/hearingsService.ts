@@ -1,5 +1,7 @@
 import { AppAction } from '@/contexts/AppStateContext';
 import { toast } from '@/hooks/use-toast';
+import { calendarService } from './calendar/calendarService';
+import { integrationsService } from './integrationsService';
 
 // Use the Hearing interface from AppStateContext
 interface Hearing {
@@ -16,6 +18,9 @@ interface Hearing {
   notes?: string;
   createdDate: string;
   lastUpdated: string;
+  externalEventId?: string;
+  syncStatus?: 'synced' | 'not_synced' | 'sync_failed' | 'sync_pending';
+  syncError?: string;
 }
 
 const isDev = import.meta.env.DEV;
@@ -43,8 +48,24 @@ export const hearingsService = {
         notes: hearingData.notes || '',
         createdDate: new Date().toISOString(),
         lastUpdated: new Date().toISOString(),
+        syncStatus: 'not_synced',
         ...hearingData
       };
+
+      // Try calendar sync
+      const settings = integrationsService.loadCalendarSettings('default');
+      if (settings?.autoSync && settings.provider !== 'none') {
+        try {
+          const externalEventId = await calendarService.createEvent(newHearing, settings);
+          if (externalEventId) {
+            newHearing.externalEventId = externalEventId;
+            newHearing.syncStatus = 'synced';
+          }
+        } catch (error) {
+          newHearing.syncStatus = 'sync_failed';
+          newHearing.syncError = String(error);
+        }
+      }
 
       dispatch({ type: 'ADD_HEARING', payload: newHearing });
       log('success', 'Hearings', 'create', { hearingId: newHearing.id, caseId: newHearing.caseId });
@@ -69,6 +90,20 @@ export const hearingsService = {
   update: async (hearingId: string, updates: Partial<Hearing>, dispatch: React.Dispatch<AppAction>): Promise<void> => {
     try {
       const updatedHearing = { id: hearingId, lastUpdated: new Date().toISOString(), ...updates };
+      
+      // Try calendar sync for updates
+      const settings = integrationsService.loadCalendarSettings('default');
+      if (settings?.autoSync && settings.provider !== 'none' && updatedHearing.externalEventId) {
+        try {
+          await calendarService.updateEvent(updatedHearing as Hearing, settings);
+          updatedHearing.syncStatus = 'synced';
+          updatedHearing.syncError = undefined;
+        } catch (error) {
+          updatedHearing.syncStatus = 'sync_failed';
+          updatedHearing.syncError = String(error);
+        }
+      }
+
       dispatch({ type: 'UPDATE_HEARING', payload: updatedHearing });
       log('success', 'Hearings', 'update', { hearingId, updates: Object.keys(updates) });
       
@@ -89,6 +124,11 @@ export const hearingsService = {
 
   delete: async (hearingId: string, dispatch: React.Dispatch<AppAction>): Promise<void> => {
     try {
+      // Try calendar sync for deletion - need to get hearing data first
+      const settings = integrationsService.loadCalendarSettings('default');
+      // Note: In real implementation, we'd fetch the hearing data first to get externalEventId
+      // For now, just proceed with local deletion
+      
       dispatch({ type: 'DELETE_HEARING', payload: hearingId });
       log('success', 'Hearings', 'delete', { hearingId });
       
