@@ -60,7 +60,72 @@ class GSTPublicService {
       };
     }
 
-    return apiService.get<GSTTaxpayerInfo>('/api/gst/public/taxpayer', { gstin });
+    const response = await apiService.get<any>('/api/gst/public/taxpayer', { gstin });
+    
+    if (response.success && response.data) {
+      // Map API response to our interface
+      const mappedData = this.mapApiResponseToInterface(response.data);
+      return {
+        success: true,
+        data: mappedData,
+        error: null
+      };
+    }
+    
+    return response;
+  }
+
+  /**
+   * Map API response format to internal interface
+   */
+  private mapApiResponseToInterface(apiData: any): GSTTaxpayerInfo {
+    return {
+      gstin: apiData.gstin,
+      legalName: apiData.lgnm,
+      tradeName: apiData.tradeNam,
+      status: apiData.sts,
+      registrationDate: apiData.rgdt,
+      cancellationDate: apiData.cnldt,
+      constitution: apiData.ctb,
+      taxpayerType: apiData.dty,
+      natureOfBusiness: apiData.nba || [],
+      principalAddress: this.mapAddressFormat(apiData.pradr?.addr),
+      additionalAddresses: apiData.adadr?.map((addr: any) => this.mapAddressFormat(addr.addr)) || [],
+      centreJurisdiction: apiData.ctj,
+      centreJurisdictionCode: apiData.ctjCd,
+      stateJurisdiction: apiData.stj,
+      stateJurisdictionCode: apiData.stjCd,
+      lastUpdated: apiData.lstupdt,
+      isEInvoiceEnabled: apiData.einv,
+      isEWayBillEnabled: apiData.ewb,
+      filingFrequency: apiData.freq,
+      aatoBand: apiData.aato
+    };
+  }
+
+  /**
+   * Map API address format to internal format
+   */
+  private mapAddressFormat(apiAddr: any): GSTAddress {
+    if (!apiAddr) {
+      return {
+        type: 'Principal',
+        district: '',
+        stateCode: '',
+        pincode: ''
+      };
+    }
+
+    return {
+      type: 'Principal',
+      buildingNumber: apiAddr.bno,
+      buildingName: apiAddr.bnm,
+      street: apiAddr.st,
+      location: apiAddr.loc,
+      district: apiAddr.dst,
+      stateCode: apiAddr.stcd,
+      pincode: apiAddr.pncd
+    };
   }
 
   /**
