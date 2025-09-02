@@ -321,12 +321,15 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                 {mode === 'edit' && <><Edit className="h-5 w-5" /> Edit Client</>}
                 {mode === 'view' && <><Eye className="h-5 w-5" /> Client Details</>}
               </div>
-              {/* Temporary dev badge - remove after verification */}
+              {/* Dev environment badges */}
               {process.env.NODE_ENV === 'development' && (
                 <div className="flex gap-2 text-xs">
                   <Badge variant={featureFlagService.isEnabled('gst_client_autofill_v1') ? "default" : "destructive"}>
                     GST: {featureFlagService.isEnabled('gst_client_autofill_v1') ? "ON" : "OFF"}
                   </Badge>
+                  {import.meta.env.VITE_GST_MOCK === 'on' && (
+                    <Badge variant="secondary">MOCK: ON</Badge>
+                  )}
                   <Badge variant="outline">
                     API: {import.meta.env.VITE_API_BASE_URL ? "SET" : "MISSING"}
                   </Badge>
@@ -336,6 +339,14 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* GST Section - Moved to Top for Enhanced Workflow */}
+            <GSTSection
+              clientId={clientData?.id || 'new'}
+              formData={formData}
+              onFormDataChange={(updates) => setFormData(prev => ({ ...prev, ...updates }))}
+              mode={mode}
+            />
+
             {/* General Information */}
             <Card>
               <CardHeader>
@@ -860,14 +871,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                 </div>
               </CardContent>
             </Card>
-
-            {/* GST Section - Temporarily bypassed for testing */}
-            <GSTSection
-              clientId={clientData?.id || 'new'}
-              formData={formData}
-              onFormDataChange={(updates) => setFormData(prev => ({ ...prev, ...updates }))}
-              mode={mode}
-            />
 
             {/* Client Contacts Section */}
             <ClientContactsSection

@@ -56,7 +56,7 @@ export interface ConsentStatus {
 
 class GSPConsentService {
   /**
-   * Initiate GSP consent flow
+   * Initiate consent flow with mock support
    */
   async initiateConsent(clientId: string, gstin: string): Promise<ApiResponse<ConsentInitResponse>> {
     if (!clientId || !gstin) {
@@ -67,6 +67,11 @@ class GSPConsentService {
       };
     }
 
+    // Check for mock mode
+    if (import.meta.env.VITE_GST_MOCK === 'on') {
+      return this.getMockConsentInitResponse();
+    }
+
     return apiService.post<ConsentInitResponse>('/api/gst/consent/initiate', {
       clientId,
       gstin
@@ -74,7 +79,26 @@ class GSPConsentService {
   }
 
   /**
-   * Verify OTP and complete consent
+   * Generate mock consent initiate response
+   */
+  private getMockConsentInitResponse(): Promise<ApiResponse<ConsentInitResponse>> {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          success: true,
+          data: {
+            txnId: `mock_txn_${Date.now()}`,
+            maskedDestination: "**98",
+            expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString()
+          },
+          error: null
+        });
+      }, 1500);
+    });
+  }
+
+  /**
+   * Verify OTP with mock support
    */
   async verifyOTP(txnId: string, otp: string): Promise<ApiResponse<ConsentVerifyResponse>> {
     if (!txnId || !otp) {
@@ -85,22 +109,44 @@ class GSPConsentService {
       };
     }
 
+    // Check for mock mode
+    if (import.meta.env.VITE_GST_MOCK === 'on') {
+      return this.getMockConsentVerifyResponse();
+    }
+
     const response = await apiService.post<any>('/api/gst/consent/verify', {
       txnId,
       otp
     });
 
     if (response.success && response.data) {
-      // Map API response to expected interface
       const mappedData = this.mapGSPResponseToInterface(response.data);
-      return {
-        success: true,
-        data: mappedData,
-        error: null
-      };
+      return { success: true, data: mappedData, error: null };
     }
     
     return response;
+  }
+
+  /**
+   * Generate mock consent verify response
+   */
+  private getMockConsentVerifyResponse(): Promise<ApiResponse<ConsentVerifyResponse>> {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const mockResponse = {
+          gstin: "24AAACB5343E1Z2",
+          registeredEmail: "accounts@abcindustries.com", 
+          registeredMobile: "+91-9876543210",
+          filingFreq: "Monthly",
+          signatories: [
+            { name: "Rakesh Shah", email: "rakesh.shah@abcindustries.com", mobile: "+91-9898989898", role: "Authorized Signatory", signatoryType: "Primary" },
+            { name: "Meera Patel", email: "meera.patel@abcindustries.com", mobile: "+91-9090909090", role: "Billing", signatoryType: "Secondary" }
+          ],
+          eInvoiceEnabled: true, eWayBillEnabled: true, aatoBand: "1B"
+        };
+        resolve({ success: true, data: this.mapGSPResponseToInterface(mockResponse), error: null });
+      }, 2000);
+    });
   }
 
   /**

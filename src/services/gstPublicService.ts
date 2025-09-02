@@ -4,6 +4,7 @@
  */
 
 import { apiService, ApiResponse } from './apiService';
+import { gstCacheService } from './gstCacheService';
 
 export interface GSTTaxpayerInfo {
   gstin: string;
@@ -49,9 +50,9 @@ export interface EInvoiceStatus {
 
 class GSTPublicService {
   /**
-   * Fetch taxpayer information by GSTIN
+   * Fetch taxpayer information by GSTIN with caching
    */
-  async fetchTaxpayer(gstin: string): Promise<ApiResponse<GSTTaxpayerInfo>> {
+  async fetchTaxpayer(gstin: string, bypassCache: boolean = false): Promise<ApiResponse<GSTTaxpayerInfo>> {
     if (!gstin || gstin.length !== 15) {
       return {
         success: false,
@@ -60,9 +61,29 @@ class GSTPublicService {
       };
     }
 
+    // Check cache first (unless bypassed)
+    if (!bypassCache) {
+      const cached = gstCacheService.get(gstin);
+      if (cached) {
+        return {
+          success: true,
+          data: this.mapApiResponseToInterface(cached.data),
+          error: null
+        };
+      }
+    }
+
+    // Check for mock mode
+    if (import.meta.env.VITE_GST_MOCK === 'on') {
+      return this.getMockTaxpayerData(gstin);
+    }
+
     const response = await apiService.get<any>('/api/gst/public/taxpayer', { gstin });
     
     if (response.success && response.data) {
+      // Cache the response
+      gstCacheService.set(gstin, response.data, 'public');
+      
       // Map API response to our interface
       const mappedData = this.mapApiResponseToInterface(response.data);
       return {
@@ -73,6 +94,57 @@ class GSTPublicService {
     }
     
     return response;
+  }
+
+  /**
+   * Generate mock taxpayer data for development
+   */
+  private getMockTaxpayerData(gstin: string): Promise<ApiResponse<GSTTaxpayerInfo>> {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const mockData = {
+          gstin: gstin,
+          lgnm: "ABC INDUSTRIES PRIVATE LIMITED",
+          tradeNam: "ABC INDUSTRIES",
+          sts: "Active",
+          rgdt: "2017-07-01",
+          lstupdt: new Date().toISOString().split('T')[0],
+          ctb: "Private Limited Company",
+          dty: "Regular",
+          nba: ["Manufacturing", "Wholesale"],
+          pradr: {
+            addr: {
+              bno: "12",
+              bnm: "Shreenath Complex",
+              st: "Ring Road",
+              loc: "Adajan",
+              dst: "Surat",
+              stcd: "24",
+              pncd: "395007"
+            }
+          },
+          adadr: [],
+          ctj: "CE Surat North",
+          ctjCd: "ZZ123",
+          stj: "STO Surat-1",
+          stjCd: "SR01",
+          einv: true,
+          ewb: true,
+          freq: "Monthly"
+        };
+
+        const mappedData = this.mapApiResponseToInterface(mockData);
+        
+        // Cache mock data
+        gstCacheService.set(gstin, mockData, 'public');
+        
+        resolve({
+          success: true,
+          data: mappedData,
+          error: null
+        });
+      }, 1000); // Simulate API delay
+    });
   }
 
   /**

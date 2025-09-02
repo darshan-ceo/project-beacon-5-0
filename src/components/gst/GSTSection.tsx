@@ -19,12 +19,15 @@ import {
   AlertTriangle, 
   CheckCircle,
   Eye,
-  EyeOff
+  EyeOff,
+  User
 } from 'lucide-react';
 import { gstPublicService, GSTTaxpayerInfo } from '@/services/gstPublicService';
 import { gspConsentService, ConsentVerifyResponse } from '@/services/gspConsentService';
+import { gstCacheService } from '@/services/gstCacheService';
 import { SourceChip, DataSource } from '@/components/ui/source-chip';
 import { GSPConsentModal } from './GSPConsentModal';
+import { SignatorySelectionModal } from './SignatorySelectionModal';
 import { toast } from '@/hooks/use-toast';
 import { featureFlagService } from '@/services/featureFlagService';
 
@@ -55,14 +58,18 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [consentData, setConsentData] = useState<ConsentVerifyResponse | null>(null);
   const [fieldStates, setFieldStates] = useState<Record<string, GSTFieldState>>({});
+  const [needsReVerification, setNeedsReVerification] = useState(false);
+  const [lastSnapShotTime, setLastSnapShotTime] = useState<Date | null>(null);
+  const [showSignatoryModal, setShowSignatoryModal] = useState(false);
+  const [gspSignatories, setGspSignatories] = useState<any[]>([]);
   
-  // Check if GST feature is enabled - TEMPORARILY BYPASSED FOR TESTING
-  const isGSTFeatureEnabled = true; // featureFlagService.isEnabled('gst_client_autofill_v1');
+  // Check if GST feature is enabled
+  const isGSTFeatureEnabled = featureFlagService.isEnabled('gst_client_autofill_v1');
   
-  // Temporarily bypassed for debugging
-  // if (!isGSTFeatureEnabled) {
-  //   return null; // Don't render if feature is disabled
-  // }
+  // Don't render if feature is disabled (except in development)
+  if (!isGSTFeatureEnabled && process.env.NODE_ENV !== 'development') {
+    return null;
+  }
 
   const handleGSTINToggle = (enabled: boolean) => {
     setHasGSTIN(enabled);
@@ -82,7 +89,7 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
     }
   };
 
-  const handleFetchGSTIN = async () => {
+  const handleFetchGSTIN = async (bypassCache: boolean = false) => {
     if (!formData.gstin) {
       setFetchError('Please enter GSTIN');
       return;
@@ -94,15 +101,22 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
       return;
     }
 
+    // Check if re-verification is needed
+    if (!bypassCache && gstCacheService.needsReVerification(formData.gstin)) {
+      setNeedsReVerification(true);
+    }
+
     setLoading(true);
     setFetchError(null);
 
     try {
-      const response = await gstPublicService.fetchTaxpayer(formData.gstin);
+      const response = await gstPublicService.fetchTaxpayer(formData.gstin, bypassCache);
       
       if (response.success && response.data) {
         const gstInfo = response.data;
         setGstData(gstInfo);
+        setLastSnapShotTime(new Date());
+        setNeedsReVerification(false);
         
         // Auto-fill form fields with source tracking
         const updates: any = {
@@ -121,23 +135,36 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
           eWayBillEnabled: gstInfo.isEWayBillEnabled,
         };
 
+        // Update addresses if available
+        if (gstInfo.principalAddress) {
+          const mappedAddress = gstPublicService.mapToAddressFormat(gstInfo.principalAddress);
+          Object.assign(updates, {
+            address: {
+              ...formData.address,
+              ...mappedAddress
+            }
+          });
+        }
+
         // Update field states to track source
         const newFieldStates: Record<string, GSTFieldState> = {};
         Object.keys(updates).forEach(key => {
-          newFieldStates[key] = {
-            value: updates[key],
-            source: 'public',
-            isLocked: true,
-            originalValue: updates[key]
-          };
+          if (key !== 'address') { // Handle address separately
+            newFieldStates[key] = {
+              value: updates[key],
+              source: 'public',
+              isLocked: true,
+              originalValue: updates[key]
+            };
+          }
         });
 
         setFieldStates(newFieldStates);
         onFormDataChange(updates);
         
         toast({
-          title: 'GSTIN Data Fetched',
-          description: 'Public taxpayer information has been imported',
+          title: 'GST Data Fetched Successfully',
+          description: `Public taxpayer information imported${bypassCache ? ' (fresh data)' : ''}`,
         });
       } else {
         setFetchError(response.error || 'Failed to fetch GSTIN data');
@@ -192,27 +219,36 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
     setFieldStates(newFieldStates);
     onFormDataChange(gspUpdates);
 
-    // Process signatories - add them to client contacts if available
+    // Store signatories for selection modal
     if (profile.profilePayload.authorizedSignatories && profile.profilePayload.authorizedSignatories.length > 0) {
-      const signatoryContacts = profile.profilePayload.authorizedSignatories.map(signatory => ({
-        name: signatory.name,
-        email: signatory.email || '',
-        phone: signatory.mobile || '',
-        role: signatory.designation || signatory.signatoryType || 'Authorized Signatory',
-        isPrimary: signatory.signatoryType === 'Authorized Signatory' && !signatory.designation,
-        source: 'gsp'
-      }));
-
-      // Notify parent about new contacts from GSP
-      onFormDataChange({
-        ...gspUpdates,
-        gspSignatories: signatoryContacts
-      });
+      setGspSignatories(profile.profilePayload.authorizedSignatories);
+      setShowSignatoryModal(true);
     }
     
     toast({
-      title: 'GSP Profile Linked',
-      description: `Imported ${profile.profilePayload.authorizedSignatories.length} authorized signatories and enhanced data`,
+      title: 'GSP Profile Linked Successfully',
+      description: `Found ${profile.profilePayload.authorizedSignatories?.length || 0} authorized signatories`,
+    });
+  };
+
+  const handleSignatoryImport = (selectedSignatories: any[]) => {
+    const signatoryContacts = selectedSignatories.map(signatory => ({
+      name: signatory.name,
+      email: signatory.email || '',
+      phone: signatory.mobile || '',
+      role: signatory.role,
+      isPrimary: signatory.isPrimary,
+      source: 'gsp'
+    }));
+
+    // Notify parent about new contacts from GSP
+    onFormDataChange({
+      gspSignatories: signatoryContacts
+    });
+
+    toast({
+      title: 'Signatories Imported',
+      description: `${selectedSignatories.length} signator${selectedSignatories.length === 1 ? 'y' : 'ies'} added to contacts`,
     });
   };
 
@@ -240,18 +276,25 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Shield className="h-5 w-5" />
-          GST Information
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            GST Registration & Auto-fill
+          </div>
+          {lastSnapShotTime && (
+            <div className="text-xs text-muted-foreground">
+              Auto-fill snapshot saved: {lastSnapShotTime.toLocaleTimeString()}
+            </div>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* GST Toggle */}
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <Label>I have GSTIN</Label>
+            <Label>I have GST registration</Label>
             <p className="text-sm text-muted-foreground">
-              Enable GST-related features and auto-fill
+              Auto-fill client details from public GST database
             </p>
           </div>
           <Switch
@@ -286,19 +329,32 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
                   )}
                 </div>
                 {mode !== 'view' && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleFetchGSTIN}
-                    disabled={loading || !formData.gstin}
-                  >
-                    {loading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Download className="h-4 w-4" />
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => handleFetchGSTIN(false)}
+                      disabled={loading || !formData.gstin}
+                    >
+                      {loading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Download className="h-4 w-4" />
+                      )}
+                      Fetch
+                    </Button>
+                    {needsReVerification && (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleFetchGSTIN(true)}
+                        disabled={loading}
+                      >
+                        Re-verify
+                      </Button>
                     )}
-                    Fetch
-                  </Button>
+                  </div>
                 )}
               </div>
 
@@ -439,6 +495,21 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
                             </span>
                           </div>
                         </div>
+
+                        {consentData.profilePayload.authorizedSignatories.length > 0 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setGspSignatories(consentData.profilePayload.authorizedSignatories);
+                              setShowSignatoryModal(true);
+                            }}
+                          >
+                            <User className="h-4 w-4 mr-2" />
+                            Add Signatories to Contacts
+                          </Button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -448,13 +519,20 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
           </>
         )}
 
-        {/* GSP Consent Modal */}
+        {/* Modals */}
         <GSPConsentModal
           isOpen={showConsentModal}
           onClose={() => setShowConsentModal(false)}
           clientId={clientId}
           gstin={formData.gstin || ''}
           onSuccess={handleGSPConsentSuccess}
+        />
+
+        <SignatorySelectionModal
+          isOpen={showSignatoryModal}
+          onClose={() => setShowSignatoryModal(false)}
+          signatories={gspSignatories}
+          onImportSelected={handleSignatoryImport}
         />
       </CardContent>
     </Card>
