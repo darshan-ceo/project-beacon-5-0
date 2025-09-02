@@ -73,10 +73,11 @@ class GSTPublicService {
       }
     }
 
-    // Check for mock mode or missing API
-    const s = (k: string) => String(import.meta.env[k] || '').trim().toLowerCase();
-    const MOCK_ON = ['on', 'true', '1'].includes(s('VITE_GST_MOCK'));
-    const API = (import.meta.env.VITE_API_BASE_URL || '').trim();
+    // Check for mock mode or missing API using centralized config
+    const { MOCK_ON, API } = await import('../utils/envConfig').then(m => ({ 
+      MOCK_ON: m.envConfig.MOCK_ON, 
+      API: m.envConfig.API 
+    }));
     
     if (MOCK_ON || !API) {
       return this.getMockTaxpayerData(gstin);

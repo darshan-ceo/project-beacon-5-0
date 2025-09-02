@@ -30,6 +30,7 @@ import { SourceChip, DataSource } from '@/components/ui/source-chip';
 import { GSPConsentModal } from './GSPConsentModal';
 import { SignatorySelectionModal } from './SignatorySelectionModal';
 import { toast } from '@/hooks/use-toast';
+import { envConfig } from '../../utils/envConfig';
 
 interface GSTSectionProps {
   clientId: string;
@@ -65,12 +66,8 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
   const [showSignatoryModal, setShowSignatoryModal] = useState(false);
   const [gspSignatories, setGspSignatories] = useState<any[]>([]);
   
-  // Check if GST feature is enabled via robust env check
-  const s = (k: string) => String(import.meta.env[k] || '').trim().toLowerCase();
-  const GST_ON = ['on', 'true', '1'].includes(s('VITE_FEATURE_GST_CLIENT_AUTOFILL'));
-  let MOCK_ON = ['on', 'true', '1'].includes(s('VITE_GST_MOCK'));
-  const API = (import.meta.env.VITE_API_BASE_URL || '').trim();
-  const API_SET = Boolean(API);
+  // Use centralized environment configuration with URL overrides
+  const { GST_ON, MOCK_ON, API, API_SET } = envConfig;
   
   // Don't render if feature is disabled (except in development)
   if (!GST_ON && import.meta.env.MODE !== 'development') {

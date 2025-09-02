@@ -20,6 +20,7 @@ import { GSTSection } from '@/components/gst/GSTSection';
 import { ContactsDrawer } from '@/components/contacts/ContactsDrawer';
 import { ClientContactsSection } from '@/components/contacts/ClientContactsSection';
 import { featureFlagService } from '@/services/featureFlagService';
+import { envConfig } from '../../utils/envConfig';
 
 interface ClientModalProps {
   isOpen: boolean;
@@ -335,26 +336,17 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
               {/* Dev environment badges */}
               {import.meta.env.MODE === 'development' && (
                 <div className="flex gap-2 text-xs">
-                  <Badge variant={(() => {
-                    const s = (k: string) => String(import.meta.env[k] || '').trim().toLowerCase();
-                    return ['on', 'true', '1'].includes(s('VITE_FEATURE_GST_CLIENT_AUTOFILL')) ? "default" : "destructive";
-                  })()}>
-                    GST: {(() => {
-                      const s = (k: string) => String(import.meta.env[k] || '').trim().toLowerCase();
-                      return ['on', 'true', '1'].includes(s('VITE_FEATURE_GST_CLIENT_AUTOFILL')) ? "ON" : "OFF";
-                    })()}
+                  <Badge variant={envConfig.GST_ON ? "default" : "destructive"}>
+                    GST: {envConfig.GST_ON ? "ON" : "OFF"}
+                    {envConfig.hasUrlOverrides && envConfig.getActiveOverrides().gst && " (URL)"}
                   </Badge>
-                  <Badge variant={import.meta.env.VITE_API_BASE_URL ? "default" : "destructive"}>
-                    API: {import.meta.env.VITE_API_BASE_URL ? "SET" : "MISSING"}
+                  <Badge variant={envConfig.API_SET ? "default" : "destructive"}>
+                    API: {envConfig.API_SET ? "SET" : "MISSING"}
+                    {envConfig.hasUrlOverrides && envConfig.getActiveOverrides().api && " (URL)"}
                   </Badge>
-                  <Badge variant={(() => {
-                    const s = (k: string) => String(import.meta.env[k] || '').trim().toLowerCase();
-                    return ['on', 'true', '1'].includes(s('VITE_GST_MOCK')) ? "secondary" : "outline";
-                  })()}>
-                    MOCK: {(() => {
-                      const s = (k: string) => String(import.meta.env[k] || '').trim().toLowerCase();
-                      return ['on', 'true', '1'].includes(s('VITE_GST_MOCK')) ? "ON" : "OFF";
-                    })()}
+                  <Badge variant={envConfig.MOCK_ON ? "secondary" : "outline"}>
+                    MOCK: {envConfig.MOCK_ON ? "ON" : "OFF"}
+                    {envConfig.hasUrlOverrides && envConfig.getActiveOverrides().mock && " (URL)"}
                   </Badge>
                 </div>
               )}
