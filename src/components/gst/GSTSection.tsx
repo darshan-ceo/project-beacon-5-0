@@ -30,13 +30,13 @@ import { SourceChip, DataSource } from '@/components/ui/source-chip';
 import { GSPConsentModal } from './GSPConsentModal';
 import { SignatorySelectionModal } from './SignatorySelectionModal';
 import { toast } from '@/hooks/use-toast';
-import { featureFlagService } from '@/services/featureFlagService';
 
 interface GSTSectionProps {
   clientId: string;
   formData: any;
   onFormDataChange: (updates: any) => void;
   mode?: 'create' | 'edit' | 'view';
+  onSignatoriesImport?: (signatories: any[]) => void;
 }
 
 interface GSTFieldState {
@@ -50,7 +50,8 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
   clientId,
   formData,
   onFormDataChange,
-  mode = 'edit'
+  mode = 'edit',
+  onSignatoriesImport
 }) => {
   const [hasGSTIN, setHasGSTIN] = useState(!!formData.gstin);
   const [loading, setLoading] = useState(false);
@@ -64,11 +65,11 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
   const [showSignatoryModal, setShowSignatoryModal] = useState(false);
   const [gspSignatories, setGspSignatories] = useState<any[]>([]);
   
-  // Check if GST feature is enabled
-  const isGSTFeatureEnabled = featureFlagService.isEnabled('gst_client_autofill_v1');
+  // Check if GST feature is enabled via direct env check
+  const GST_ON = import.meta.env.VITE_FEATURE_GST_CLIENT_AUTOFILL === 'on';
   
   // Don't render if feature is disabled (except in development)
-  if (!isGSTFeatureEnabled && import.meta.env.MODE !== 'development') {
+  if (!GST_ON && import.meta.env.MODE !== 'development') {
     return null;
   }
 
@@ -119,9 +120,10 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
         setLastSnapShotTime(new Date());
         setNeedsReVerification(false);
         
-        // Auto-fill form fields with source tracking
+        // Auto-fill form fields with source tracking - complete mapping
         const updates: any = {
           name: gstInfo.legalName,
+          tradeName: gstInfo.tradeName,
           gstin: gstInfo.gstin,
           gstStatus: gstInfo.status,
           gstRegistrationDate: gstInfo.registrationDate,
@@ -134,6 +136,7 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
           filingFrequency: gstInfo.filingFrequency,
           eInvoiceEnabled: gstInfo.isEInvoiceEnabled,
           eWayBillEnabled: gstInfo.isEWayBillEnabled,
+          lastUpdated: gstInfo.lastUpdated,
         };
 
         // Update addresses if available
@@ -165,7 +168,7 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
         
         toast({
           title: 'GST Data Fetched Successfully',
-          description: `Public taxpayer information imported${bypassCache ? ' (fresh data)' : ''}`,
+          description: `Public taxpayer information imported${bypassCache ? ' (fresh data)' : ''} | Snapshot saved`,
         });
       } else {
         setFetchError(response.error || 'Failed to fetch GSTIN data');
@@ -246,6 +249,11 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
     onFormDataChange({
       gspSignatories: signatoryContacts
     });
+
+    // Pass to parent handler if available
+    if (onSignatoriesImport) {
+      onSignatoriesImport(signatoryContacts);
+    }
 
     toast({
       title: 'Signatories Imported',
@@ -335,8 +343,8 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
                       type="button"
                       variant="outline"
                       onClick={() => handleFetchGSTIN(false)}
-                      disabled={loading || !formData.gstin || !import.meta.env.VITE_API_BASE_URL}
-                      title={!import.meta.env.VITE_API_BASE_URL ? "Set VITE_API_BASE_URL to enable real fetch" : undefined}
+                      disabled={loading || !formData.gstin || (!import.meta.env.VITE_API_BASE_URL && import.meta.env.VITE_GST_MOCK !== 'on')}
+                      title={(!import.meta.env.VITE_API_BASE_URL && import.meta.env.VITE_GST_MOCK !== 'on') ? "Set API or turn on mock" : undefined}
                     >
                       {loading ? (
                         <Loader2 className="h-4 w-4 animate-spin" />

@@ -33,19 +33,20 @@ class ApiService {
 
   async get<T>(endpoint: string, params?: Record<string, any>): Promise<ApiResponse<T>> {
     try {
-      const url = new URL(endpoint, this.baseURL);
+      const url = new URL(endpoint, this.baseURL || '').toString();
+      const finalUrl = new URL(url);
       if (params) {
         Object.entries(params).forEach(([key, value]) => {
           if (value !== undefined && value !== null) {
-            url.searchParams.append(key, String(value));
+            finalUrl.searchParams.append(key, String(value));
           }
         });
       }
 
-      const finalUrl = url.toString();
-      console.log(`API GET: ${finalUrl}`);
+      const resolvedUrl = finalUrl.toString();
+      console.log(`API GET: ${resolvedUrl}`);
 
-      const response = await fetch(finalUrl, {
+      const response = await fetch(resolvedUrl, {
         method: 'GET',
         headers: this.getAuthHeaders()
       });
@@ -55,7 +56,7 @@ class ApiService {
       if (!response.ok) {
         return {
           success: false,
-          error: `${data.message || `HTTP ${response.status}`} (URL: ${finalUrl})`,
+          error: `${data.message || `HTTP ${response.status}`} (URL: ${resolvedUrl})`,
           data: null
         };
       }
@@ -76,7 +77,7 @@ class ApiService {
 
   async post<T>(endpoint: string, body?: any): Promise<ApiResponse<T>> {
     try {
-      const url = new URL(endpoint, this.baseURL).toString();
+      const url = new URL(endpoint, this.baseURL || '').toString();
       console.log(`API POST: ${url}`);
 
       const response = await fetch(url, {

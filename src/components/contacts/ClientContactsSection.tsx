@@ -20,11 +20,15 @@ import { toast } from '@/hooks/use-toast';
 interface ClientContactsSectionProps {
   clientId: string;
   mode?: 'create' | 'edit' | 'view';
+  preloadedContacts?: any[];
+  hasGstData?: boolean;
 }
 
 export const ClientContactsSection: React.FC<ClientContactsSectionProps> = ({
   clientId,
-  mode = 'edit'
+  mode = 'edit',
+  preloadedContacts = [],
+  hasGstData = false
 }) => {
   const [contacts, setContacts] = useState<ClientContact[]>([]);
   const [loading, setLoading] = useState(false);
@@ -33,8 +37,11 @@ export const ClientContactsSection: React.FC<ClientContactsSectionProps> = ({
   useEffect(() => {
     if (clientId && clientId !== 'new' && mode !== 'create') {
       fetchContacts();
+    } else if (preloadedContacts.length > 0) {
+      // Show preloaded contacts from GSP/GST
+      setContacts(preloadedContacts);
     }
-  }, [clientId, mode]);
+  }, [clientId, mode, preloadedContacts]);
 
   const fetchContacts = async () => {
     setLoading(true);
@@ -89,13 +96,18 @@ export const ClientContactsSection: React.FC<ClientContactsSectionProps> = ({
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
             Client Contacts
-            {(mode === 'create' || clientId === 'new') && (
+            {(mode === 'create' || clientId === 'new') && !hasGstData && (
               <Badge variant="outline" className="ml-2 text-xs">
                 Available after client creation
               </Badge>
             )}
+            {preloadedContacts.length > 0 && (
+              <Badge variant="secondary" className="ml-2 text-xs">
+                Pre-loaded from GST
+              </Badge>
+            )}
           </CardTitle>
-          {mode !== 'view' && clientId && clientId !== 'new' && (
+          {mode !== 'view' && (clientId && clientId !== 'new' || hasGstData) && (
             <Button
               type="button"
               variant="outline"
@@ -109,7 +121,7 @@ export const ClientContactsSection: React.FC<ClientContactsSectionProps> = ({
         </div>
       </CardHeader>
       <CardContent>
-        {(mode === 'create' || clientId === 'new') ? (
+        {(mode === 'create' || clientId === 'new') && !hasGstData ? (
           <div className="text-center py-8 text-muted-foreground">
             <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
             <p>Contacts can be added after creating and saving the client.</p>
@@ -195,14 +207,14 @@ export const ClientContactsSection: React.FC<ClientContactsSectionProps> = ({
           </Table>
         )}
 
-        {clientId && clientId !== 'new' && (
+        {(clientId && clientId !== 'new') || hasGstData ? (
           <CreateContactDrawer
             isOpen={showCreateDrawer}
             onClose={() => setShowCreateDrawer(false)}
             clientId={clientId}
             onSuccess={handleContactCreated}
           />
-        )}
+        ) : null}
       </CardContent>
     </Card>
   );

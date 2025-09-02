@@ -108,6 +108,7 @@ class GSTPublicService {
           tradeNam: "ABC INDUSTRIES",
           sts: "Active",
           rgdt: "2017-07-01",
+          cnldt: null, // Cancellation date
           lstupdt: new Date().toISOString().split('T')[0],
           ctb: "Private Limited Company",
           dty: "Regular",

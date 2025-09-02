@@ -44,6 +44,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
     assignedCAId: string;
     assignedCAName: string;
     status: 'Active' | 'Inactive';
+    gspSignatories?: any[];
+    gstData?: any;
   }>({
     name: '',
     type: 'Individual',
@@ -77,6 +79,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
   });
 
   const [signatories, setSignatories] = useState<Signatory[]>([]);
+  const [preloadedContacts, setPreloadedContacts] = useState<any[]>([]);
+  const [gstData, setGstData] = useState<any>(null);
   const [signatoryModal, setSignatoryModal] = useState<{
     isOpen: boolean;
     mode: 'create' | 'edit' | 'view';
@@ -156,6 +160,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         status: 'Active'
       });
       setSignatories([]);
+      setPreloadedContacts([]);
+      setGstData(null);
     }
     setErrors({});
     setValidationErrors([]);
@@ -308,6 +314,11 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
     }));
   };
 
+  const handleSignatoriesImport = (importedContacts: any[]) => {
+    setPreloadedContacts(importedContacts);
+    setGstData({ hasSignatories: true }); // Track GST data presence
+  };
+
   const showSignatorySection = formData.type !== 'Individual';
 
   return (
@@ -327,11 +338,11 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                   <Badge variant={import.meta.env.VITE_FEATURE_GST_CLIENT_AUTOFILL === 'on' ? "default" : "destructive"}>
                     GST: {import.meta.env.VITE_FEATURE_GST_CLIENT_AUTOFILL === 'on' ? "ON" : "OFF"}
                   </Badge>
-                  {import.meta.env.VITE_GST_MOCK === 'on' && (
-                    <Badge variant="secondary">MOCK: ON</Badge>
-                  )}
                   <Badge variant={import.meta.env.VITE_API_BASE_URL ? "default" : "destructive"}>
                     API: {import.meta.env.VITE_API_BASE_URL ? "SET" : "MISSING"}
+                  </Badge>
+                  <Badge variant={import.meta.env.VITE_GST_MOCK === 'on' ? "secondary" : "outline"}>
+                    MOCK: {import.meta.env.VITE_GST_MOCK === 'on' ? "ON" : "OFF"}
                   </Badge>
                 </div>
               )}
@@ -343,8 +354,14 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
             <GSTSection
               clientId={clientData?.id || 'new'}
               formData={formData}
-              onFormDataChange={(updates) => setFormData(prev => ({ ...prev, ...updates }))}
+              onFormDataChange={(updates) => {
+                setFormData(prev => ({ ...prev, ...updates }));
+                if (updates.gstStatus || updates.gstin) {
+                  setGstData(updates);
+                }
+              }}
               mode={mode}
+              onSignatoriesImport={handleSignatoriesImport}
             />
 
             {/* General Information */}
@@ -876,6 +893,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
             <ClientContactsSection
               clientId={clientData?.id || 'new'}
               mode={mode}
+              preloadedContacts={preloadedContacts}
+              hasGstData={!!gstData || !!formData.gspSignatories}
             />
 
             {/* Validation Errors */}
