@@ -861,15 +861,13 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
               </CardContent>
             </Card>
 
-            {/* GST Section - Feature Flagged */}
-            {featureFlagService.isEnabled('gst_client_autofill_v1') && (
-              <GSTSection
-                clientId={clientData?.id || 'new'}
-                formData={formData}
-                onFormDataChange={(updates) => setFormData(prev => ({ ...prev, ...updates }))}
-                mode={mode}
-              />
-            )}
+            {/* GST Section - Temporarily bypassed for testing */}
+            <GSTSection
+              clientId={clientData?.id || 'new'}
+              formData={formData}
+              onFormDataChange={(updates) => setFormData(prev => ({ ...prev, ...updates }))}
+              mode={mode}
+            />
 
             {/* Client Contacts Section */}
             <ClientContactsSection

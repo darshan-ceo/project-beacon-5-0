@@ -56,12 +56,13 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
   const [consentData, setConsentData] = useState<ConsentVerifyResponse | null>(null);
   const [fieldStates, setFieldStates] = useState<Record<string, GSTFieldState>>({});
   
-  // Check if GST feature is enabled
-  const isGSTFeatureEnabled = featureFlagService.isEnabled('gst_client_autofill_v1');
+  // Check if GST feature is enabled - TEMPORARILY BYPASSED FOR TESTING
+  const isGSTFeatureEnabled = true; // featureFlagService.isEnabled('gst_client_autofill_v1');
   
-  if (!isGSTFeatureEnabled) {
-    return null; // Don't render if feature is disabled
-  }
+  // Temporarily bypassed for debugging
+  // if (!isGSTFeatureEnabled) {
+  //   return null; // Don't render if feature is disabled
+  // }
 
   const handleGSTINToggle = (enabled: boolean) => {
     setHasGSTIN(enabled);
