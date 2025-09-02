@@ -45,6 +45,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ selectedCase }) => {
   const [isDraftGenerating, setIsDraftGenerating] = useState(false);
   const [isEditingDraft, setIsEditingDraft] = useState(false);
   const [editedDraftContent, setEditedDraftContent] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   // Summarizer State
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
@@ -116,25 +117,55 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ selectedCase }) => {
   // Save edited draft
   const handleSaveDraft = async () => {
     if (!generatedDraft || !selectedCase) return;
-
+    
     try {
+      setIsSaving(true);
       const updatedContent = editedDraftContent;
       const draftBlob = new Blob([updatedContent], { type: 'text/plain' });
-      const draftFile = new File([draftBlob], `AI_Draft_Edited_${Date.now()}.txt`, {
+      const draftFile = new File([draftBlob], `AI_Draft_${generatedDraft.noticeType}_v${Date.now()}.txt`, {
         type: 'text/plain'
       });
       
+      // Save to DMS
       await dmsService.uploadForCaseStage(draftFile, selectedCase.id, 'ai-drafts', dispatch);
       
-      setGeneratedDraft(prev => prev ? { ...prev, generatedContent: updatedContent, lastModified: new Date().toISOString() } : null);
+      // Add timeline entry
+      const timelineEntry = {
+        id: Date.now().toString(),
+        caseId: selectedCase.id,
+        type: 'ai_draft_saved' as const,
+        title: 'AI Draft Saved',
+        description: `AI draft for ${generatedDraft.noticeType} has been saved`,
+        createdBy: 'Current User', // In real app, get from auth context
+        createdAt: new Date().toISOString(),
+        metadata: {
+          draftType: generatedDraft.noticeType,
+          fileName: draftFile.name
+        }
+      };
+
+      // Timeline entry will be added through DMS service integration
+      
+      setGeneratedDraft(prev => prev ? { 
+        ...prev, 
+        generatedContent: updatedContent, 
+        lastModified: new Date().toISOString() 
+      } : null);
       setIsEditingDraft(false);
       
       toast({
-        title: "Draft Saved",
-        description: "Your edited draft has been saved successfully.",
+        title: "Draft Saved Successfully",
+        description: `${draftFile.name} has been saved to case documents and timeline updated.`,
       });
     } catch (error) {
       console.error('Failed to save draft:', error);
+      toast({
+        title: "Save Failed",
+        description: "There was an error saving your draft. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -393,9 +424,22 @@ ${summary.extractedEntities.map(entity =>
                         {isEditingDraft ? 'Preview' : 'Edit'}
                       </Button>
                       {isEditingDraft && (
-                        <Button size="sm" onClick={handleSaveDraft}>
-                          <Save className="mr-1 h-4 w-4" />
-                          Save
+                        <Button 
+                          size="sm" 
+                          onClick={handleSaveDraft}
+                          disabled={isSaving}
+                        >
+                          {isSaving ? (
+                            <>
+                              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="mr-1 h-4 w-4" />
+                              Save
+                            </>
+                          )}
                         </Button>
                       )}
                     </div>

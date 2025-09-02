@@ -202,6 +202,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
               disabled={mode === 'view'}
               required
+              autoComplete="off"
             />
           </div>
 
@@ -213,6 +214,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               disabled={mode === 'view'}
               rows={3}
+              autoComplete="off"
             />
           </div>
 
@@ -264,6 +266,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 onChange={(e) => setFormData(prev => ({ ...prev, stage: e.target.value }))}
                 disabled={mode === 'view'}
                 required
+                autoComplete="off"
               />
             </div>
           </div>

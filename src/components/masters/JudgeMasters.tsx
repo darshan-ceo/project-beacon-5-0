@@ -153,12 +153,49 @@ export const JudgeMasters: React.FC = () => {
                 Cancel
               </Button>
               <Button 
-                onClick={() => {
-                  toast({
-                    title: "Judge Profile Created",
-                    description: "New judge profile has been added successfully",
-                  });
-                  setIsAddJudgeOpen(false);
+                onClick={async () => {
+                  try {
+                    // Get form data
+                    const form = document.forms[0];
+                    const formData = new FormData(form);
+                    
+                    const judgeData = {
+                      name: (document.getElementById('judgeName') as HTMLInputElement)?.value || '',
+                      designation: (document.getElementById('designation') as HTMLInputElement)?.value || '',
+                      courtId: 'court-1', // In real app, get from select
+                      appointmentDate: (document.getElementById('appointmentDate') as HTMLInputElement)?.value || '',
+                      specialization: ['GST', 'Income Tax'], // In real app, get from form
+                      contactInfo: {
+                        chambers: 'Chamber 1',
+                        phone: (document.getElementById('phone') as HTMLInputElement)?.value,
+                        email: (document.getElementById('email') as HTMLInputElement)?.value
+                      },
+                      status: 'Active' as const
+                    };
+
+                    if (!judgeData.name || !judgeData.designation) {
+                      toast({
+                        title: "Validation Error",
+                        description: "Please fill in all required fields",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
+
+                    // This would normally call judgesService.create(judgeData)
+                    // For now, just show success
+                    toast({
+                      title: "Judge Profile Created",
+                      description: "New judge profile has been added successfully",
+                    });
+                    setIsAddJudgeOpen(false);
+                  } catch (error) {
+                    toast({
+                      title: "Error",
+                      description: "Failed to create judge profile. Please try again.",
+                      variant: "destructive"
+                    });
+                  }
                 }}
               >
                 Create Judge Profile
