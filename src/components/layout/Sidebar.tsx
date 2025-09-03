@@ -13,7 +13,9 @@ import {
   FileText,
   BarChart3,
   CheckSquare,
-  UserCheck
+  UserCheck,
+  Bug,
+  TestTube
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -30,6 +32,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { envConfig } from '@/utils/envConfig';
 
 interface AppSidebarProps {
   userRole: 'Admin' | 'Partner/CA' | 'Staff' | 'Client';
@@ -59,7 +62,28 @@ const menuItems: MenuItem[] = [
 ];
 
 export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
-  const filteredMenuItems = menuItems.filter(item => item.roles.includes(userRole));
+  // Add QA and Debug items based on environment
+  const dynamicMenuItems = [...menuItems];
+  
+  if (envConfig.QA_ON) {
+    dynamicMenuItems.push({ 
+      icon: Bug, 
+      label: 'QA Dashboard', 
+      href: '/qa', 
+      roles: ['Admin'] 
+    });
+  }
+  
+  if (envConfig.GST_ENABLED) {
+    dynamicMenuItems.push({ 
+      icon: TestTube, 
+      label: 'GST Debug', 
+      href: '/debug/gst', 
+      roles: ['Admin'] 
+    });
+  }
+
+  const filteredMenuItems = dynamicMenuItems.filter(item => item.roles.includes(userRole));
   const location = useLocation();
   const { open } = useSidebar();
 
@@ -123,9 +147,20 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
         </ScrollArea>
       </SidebarContent>
 
-      {/* Footer with Role Badge */}
+      {/* Footer with Role Badge and Environment Status */}
       <SidebarFooter className="border-t border-sidebar-border">
-        <div className="p-2">
+        <div className="p-2 space-y-2">
+          {/* Environment Status */}
+          {envConfig.QA_ON && open && (
+            <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-green-700 dark:text-green-400">QA Mode</span>
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              </div>
+            </div>
+          )}
+          
+          {/* Role Badge */}
           <div className="bg-sidebar-accent rounded-lg p-3">
             {open ? (
               <div className="text-center">

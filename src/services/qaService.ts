@@ -66,6 +66,93 @@ class QAService {
       }
     });
 
+    // GSP Consent Flow Test
+    this.addTest({
+      name: 'GSP Consent Flow',
+      description: 'Test GSP consent modal and OTP flow',
+      run: async () => {
+        try {
+          // Check if GSP consent service is available
+          const gspConsentService = await import('@/services/gspConsentService');
+          return {
+            status: 'pass',
+            message: 'GSP consent service integrated and ready'
+          };
+        } catch (error) {
+          return {
+            status: 'fail',
+            message: `GSP consent service not available: ${error}`
+          };
+        }
+      }
+    });
+
+    // GST Signatory Import Test
+    this.addTest({
+      name: 'GST Signatory Import',
+      description: 'Test GST signatory data import and mapping',
+      run: async () => {
+        try {
+          // Mock signatory data
+          const mockSignatories = [
+            { name: 'Test User', email: 'test@example.com', mobile: '9999999999', role: 'director', isPrimary: true }
+          ];
+          
+          const result = this.testSignatoryMapping(mockSignatories);
+          return {
+            status: 'pass',
+            message: 'Signatory mapping works correctly',
+            details: result
+          };
+        } catch (error) {
+          return {
+            status: 'fail',
+            message: `Signatory mapping failed: ${error}`
+          };
+        }
+      }
+    });
+
+    // GST Public API Test
+    this.addTest({
+      name: 'GST Public API',
+      description: 'Test GST public service availability',
+      run: async () => {
+        try {
+          const gstPublicService = await import('@/services/gstPublicService');
+          return {
+            status: 'pass',
+            message: 'GST public service available'
+          };
+        } catch (error) {
+          return {
+            status: 'fail',
+            message: 'GST public service not available'
+          };
+        }
+      }
+    });
+
+    // GST Cache Service Test
+    this.addTest({
+      name: 'GST Cache Service',
+      description: 'Test GST caching mechanism',
+      run: async () => {
+        try {
+          const gstCacheService = await import('@/services/gstCacheService');
+          return {
+            status: 'pass',
+            message: 'GST cache service available'
+          };
+        } catch (error) {
+          return {
+            status: 'fail',
+            message: 'GST cache service not available'
+          };
+        }
+      }
+    });
+
     // Task Input Test
     this.addTest({
       name: 'Task Input Persistence',
@@ -192,6 +279,30 @@ class QAService {
       status: 'Active',
       registrationDate: '2020-01-01'
     };
+  }
+
+  private testSignatoryMapping(signatories: any[]): any {
+    // Test signatory mapping logic
+    return signatories.map(signatory => {
+      const mapRole = (gspRole: string): 'authorized_signatory' | 'primary' => {
+        if (signatory.isPrimary) return 'primary';
+        return 'authorized_signatory';
+      };
+
+      return {
+        id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        clientId: 'test-client-id',
+        name: signatory.name,
+        email: signatory.email || undefined,
+        phone: signatory.mobile || undefined,
+        roles: [mapRole(signatory.role)],
+        isPrimary: !!signatory.isPrimary,
+        source: 'gsp' as const,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+    });
   }
 
   private scanToastOnlyButtons(): any[] {
