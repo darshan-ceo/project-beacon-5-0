@@ -4,6 +4,7 @@
  */
 
 import { apiService, ApiResponse } from './apiService';
+import { envConfig } from '../utils/envConfig';
 
 export interface ConsentInitResponse {
   txnId: string;
@@ -68,7 +69,7 @@ class GSPConsentService {
     }
 
     // Check for mock mode
-    if (import.meta.env.VITE_GST_MOCK === 'on') {
+    if (envConfig.MOCK_ON) {
       return this.getMockConsentInitResponse();
     }
 
@@ -110,7 +111,7 @@ class GSPConsentService {
     }
 
     // Check for mock mode
-    if (import.meta.env.VITE_GST_MOCK === 'on') {
+    if (envConfig.MOCK_ON) {
       return this.getMockConsentVerifyResponse();
     }
 
