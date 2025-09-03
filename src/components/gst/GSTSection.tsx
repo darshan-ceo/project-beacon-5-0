@@ -344,15 +344,15 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
                       type="button"
                       variant="outline"
                       onClick={() => handleFetchGSTIN(false)}
-                      disabled={loading || !formData.gstin || (!import.meta.env.VITE_API_BASE_URL && import.meta.env.VITE_GST_MOCK !== 'on')}
-                      title={(!import.meta.env.VITE_API_BASE_URL && import.meta.env.VITE_GST_MOCK !== 'on') ? "Set API or turn on mock" : undefined}
+                      disabled={loading || !formData.gstin || (!API_SET && !MOCK_ON)}
+                      title={(!API_SET && !MOCK_ON) ? "Set API or turn on mock" : undefined}
                     >
                       {loading ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
                         <Search className="h-4 w-4" />
                       )}
-                      {import.meta.env.VITE_GST_MOCK === 'on' || !import.meta.env.VITE_API_BASE_URL ? 'Mock Fetch' : 'Fetch'}
+                      {MOCK_ON || !API_SET ? 'Mock Fetch' : 'Fetch'}
                     </Button>
                     {needsReVerification && (
                       <Button
@@ -365,7 +365,7 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
                         Re-verify
                       </Button>
                     )}
-                    {!import.meta.env.VITE_API_BASE_URL && (
+                    {!API_SET && (
                       <div className="text-xs text-destructive">
                         API URL missing - using mock data
                       </div>
