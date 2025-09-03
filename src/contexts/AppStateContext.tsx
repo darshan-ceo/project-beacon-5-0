@@ -33,6 +33,8 @@ interface Case {
   documents: number;
   progress: number;
   generatedForms: GeneratedForm[]; // Track completed forms
+  amountInDispute?: number; // Amount in dispute for GST cases
+  description?: string; // Case description
 }
 
 interface Task {
@@ -247,53 +249,156 @@ export type AppAction =
 const initialState: AppState = {
   cases: [
     {
-      id: '1',
-      caseNumber: 'CASE-2024-001',
-      title: 'Tax Assessment Appeal - Acme Corp',
-      clientId: '1', // FK to Acme Corporation Ltd
-      currentStage: 'Adjudication',
+      id: 'GST-001',
+      caseNumber: 'GST/2024/001',
+      title: 'Input Tax Credit Disallowance - TechCorp Industries',
+      clientId: 'CLT-MOCK-001',
+      currentStage: 'Appeals',
       priority: 'High',
-      slaStatus: 'Red',
+      slaStatus: 'Green',
       nextHearing: {
-        date: '2024-02-15',
-        courtId: '1', // FK to Income Tax Appellate Tribunal
-        judgeId: '1', // FK to Justice Rajesh Sharma
+        date: '2024-03-15',
+        courtId: '1',
+        judgeId: '1',
         type: 'Final'
       },
-      assignedToId: '1',
-      assignedToName: 'John Smith',
-      createdDate: '2024-01-10',
-      lastUpdated: '2024-01-20',
-      documents: 15,
-      progress: 65,
-      generatedForms: []
-    },
-    {
-      id: '2',
-      caseNumber: 'CASE-2024-002',
-      title: 'GST Demand Notice Challenge',
-      clientId: '2', // FK to Global Tech Solutions (need to add this client)
-      currentStage: 'Demand',
-      priority: 'Medium',
-      slaStatus: 'Amber',
       assignedToId: '2',
       assignedToName: 'Sarah Johnson',
       createdDate: '2024-01-15',
-      lastUpdated: '2024-01-22',
-      documents: 8,
-      progress: 40,
+      lastUpdated: '2024-02-20',
+      documents: 25,
+      progress: 75,
       generatedForms: [
         {
           formCode: 'GSTAT',
           version: 1,
           generatedDate: '2024-01-15T09:30:00Z',
-          employeeId: 'emp-1',
-          employeeName: 'John Smith',
+          employeeId: '2',
+          employeeName: 'Sarah Johnson',
           documentId: 'doc-gstat-001',
-          fileName: 'GSTAT_Form_CAS123456_20240115.pdf',
+          fileName: 'GSTAT_Form_GST001_20240115.pdf',
           status: 'Uploaded'
         }
-      ]
+      ],
+      amountInDispute: 2500000,
+      description: 'Challenge to disallowance of Input Tax Credit worth ₹25 lakhs on capital goods purchased for expansion project'
+    },
+    {
+      id: 'GST-002', 
+      caseNumber: 'GST/2024/002',
+      title: 'Output Tax Liability Dispute - ManufacturingPlus Ltd',
+      clientId: 'CLT-MOCK-002',
+      currentStage: 'Demand',
+      priority: 'High',
+      slaStatus: 'Red',
+      nextHearing: {
+        date: '2024-02-28',
+        courtId: '2',
+        judgeId: '2', 
+        type: 'Final'
+      },
+      assignedToId: '1',
+      assignedToName: 'John Smith',
+      createdDate: '2024-01-08',
+      lastUpdated: '2024-02-22',
+      documents: 42,
+      progress: 45,
+      generatedForms: [
+        {
+          formCode: 'DRC07_OBJECTION',
+          version: 1,
+          generatedDate: '2024-01-20T14:15:00Z',
+          employeeId: '1',
+          employeeName: 'John Smith', 
+          documentId: 'doc-drc07-001',
+          fileName: 'DRC07_Objection_GST002_20240120.pdf',
+          status: 'Uploaded'
+        }
+      ],
+      amountInDispute: 4500000,
+      description: 'Dispute regarding classification of products leading to differential output tax liability of ₹45 lakhs'
+    },
+    {
+      id: 'GST-003',
+      caseNumber: 'GST/2024/003', 
+      title: 'Reverse Charge Mechanism Non-Compliance - ServiceHub Pvt Ltd',
+      clientId: 'CLT-MOCK-003',
+      currentStage: 'Demand',
+      priority: 'Medium',
+      slaStatus: 'Amber',
+      assignedToId: '5',
+      assignedToName: 'David Kumar',
+      createdDate: '2024-01-22',
+      lastUpdated: '2024-02-18',
+      documents: 18,
+      progress: 30,
+      generatedForms: [],
+      amountInDispute: 1200000,
+      description: 'Show cause notice for non-payment of GST under Reverse Charge Mechanism on imported services worth ₹12 lakhs'
+    },
+    {
+      id: 'GST-004',
+      caseNumber: 'GST/2024/004',
+      title: 'IGST Refund Rejection Appeal - ExportKing Enterprises', 
+      clientId: 'CLT-MOCK-004',
+      currentStage: 'Appeals',
+      priority: 'High',
+      slaStatus: 'Green',
+      nextHearing: {
+        date: '2024-03-08',
+        courtId: '1',
+        judgeId: '3',
+        type: 'Final'
+      },
+      assignedToId: '2',
+      assignedToName: 'Sarah Johnson',
+      createdDate: '2024-01-30',
+      lastUpdated: '2024-02-25',
+      documents: 35,
+      progress: 85,
+      generatedForms: [
+        {
+          formCode: 'APPEAL_FIRST',
+          version: 1,
+          generatedDate: '2024-02-05T11:20:00Z',
+          employeeId: '2',
+          employeeName: 'Sarah Johnson',
+          documentId: 'doc-appeal-001',
+          fileName: 'FirstAppeal_GST004_20240205.pdf', 
+          status: 'Uploaded'
+        }
+      ],
+      amountInDispute: 3200000,
+      description: 'Appeal against rejection of IGST refund claim of ₹32 lakhs on zero-rated export supplies'
+    },
+    {
+      id: 'GST-005',
+      caseNumber: 'GST/2024/005',
+      title: 'Place of Supply Determination - MultiState Logistics',
+      clientId: 'CLT-MOCK-005', 
+      currentStage: 'Scrutiny',
+      priority: 'Medium',
+      slaStatus: 'Amber',
+      assignedToId: '4',
+      assignedToName: 'Emily Chen',
+      createdDate: '2024-02-05',
+      lastUpdated: '2024-02-20',
+      documents: 22,
+      progress: 20,
+      generatedForms: [
+        {
+          formCode: 'ASMT11_REPRESENTATION',
+          version: 1,
+          generatedDate: '2024-02-10T16:45:00Z',
+          employeeId: '4',
+          employeeName: 'Emily Chen',
+          documentId: 'doc-asmt11-001',
+          fileName: 'ASMT11_Representation_GST005_20240210.pdf',
+          status: 'Generated'
+        }
+      ],
+      amountInDispute: 1800000,
+      description: 'Dispute over place of supply determination for interstate logistics services affecting tax liability by ₹18 lakhs'
     }
   ],
   tasks: [
@@ -322,42 +427,159 @@ const initialState: AppState = {
   ],
   clients: [
     {
-      id: '1',
-      name: 'Acme Corporation Ltd',
+      id: 'CLT-MOCK-001',
+      name: 'TechCorp Industries Private Limited',
       type: 'Company',
-      email: 'contact@acme.com',
-      phone: '+91-9876543210',
-      address: '123 Business Park, Mumbai',
-      registrationNumber: 'U12345MH2020PLC123456',
-      pan: 'ABCDE1234F',
-      panNumber: 'ABCDE1234F',
-      gstNumber: '27ABCDE1234F1Z5',
-      status: 'Active',
-      assignedCAId: '1',
-      assignedCAName: 'John Smith',
-      registrationDate: '2024-01-15',
-      totalCases: 5,
-      activeCases: 2,
-      totalInvoiced: 250000
-    },
-    {
-      id: '2',
-      name: 'Global Tech Solutions',
-      type: 'Company',
-      email: 'info@globaltech.com',
-      phone: '+91-9876543211',
-      address: '456 Tech Plaza, Bangalore',
-      registrationNumber: 'U12346KA2021PLC123457',
-      pan: 'ABCDE1235G',
-      panNumber: 'ABCDE1235G',
-      gstNumber: '29ABCDE1235G1Z6',
+      email: 'legal@techcorp.in',
+      phone: '+91-9876543220',
+      address: '15th Floor, Tech Tower, Cyber City, Gurgaon, Haryana - 122002',
+      registrationNumber: 'U72200HR2018PTC074521',
+      pan: 'AACTC1234M',
+      panNumber: 'AACTC1234M',
+      gstNumber: '06AACTC1234M1ZX',
       status: 'Active',
       assignedCAId: '2',
       assignedCAName: 'Sarah Johnson',
-      registrationDate: '2024-01-10',
-      totalCases: 3,
-      activeCases: 1,
-      totalInvoiced: 180000
+      registrationDate: '2018-05-15',
+      totalCases: 8,
+      activeCases: 3,
+      totalInvoiced: 850000,
+      signatories: [
+        {
+          id: 'SIG-001',
+          fullName: 'Rajesh Gupta',
+          designation: 'Chief Executive Officer',
+          email: 'rajesh.gupta@techcorp.in',
+          phone: '+91-9876543221',
+          isPrimary: true,
+          scope: 'All',
+          status: 'Active'
+        }
+      ]
+    },
+    {
+      id: 'CLT-MOCK-002',
+      name: 'ManufacturingPlus Limited',
+      type: 'Company', 
+      email: 'compliance@manufacturingplus.com',
+      phone: '+91-9876543222',
+      address: 'Plot No. 45, Industrial Area Phase-2, Chandigarh - 160002',
+      registrationNumber: 'U25200CH2015PLC035896',
+      pan: 'AABCM5678N',
+      panNumber: 'AABCM5678N',
+      gstNumber: '04AABCM5678N1Z1',
+      status: 'Active',
+      assignedCAId: '1',
+      assignedCAName: 'John Smith',
+      registrationDate: '2015-03-20',
+      totalCases: 12,
+      activeCases: 4,
+      totalInvoiced: 1250000,
+      signatories: [
+        {
+          id: 'SIG-002',
+          fullName: 'Priya Sharma',
+          designation: 'Chief Financial Officer',
+          email: 'priya.sharma@manufacturingplus.com',
+          phone: '+91-9876543223',
+          isPrimary: true,
+          scope: 'All',
+          status: 'Active'
+        }
+      ]
+    },
+    {
+      id: 'CLT-MOCK-003',
+      name: 'ServiceHub Private Limited',
+      type: 'Company',
+      email: 'info@servicehub.co.in',
+      phone: '+91-9876543224',
+      address: '3rd Floor, Business Center, MG Road, Bangalore - 560001',
+      registrationNumber: 'U74200KA2019PTC125847',
+      pan: 'AACSH9012P',
+      panNumber: 'AACSH9012P',
+      gstNumber: '29AACSH9012P1Z5',
+      status: 'Active',
+      assignedCAId: '5',
+      assignedCAName: 'David Kumar',
+      registrationDate: '2019-07-10',
+      totalCases: 5,
+      activeCases: 2,
+      totalInvoiced: 420000,
+      signatories: [
+        {
+          id: 'SIG-003',
+          fullName: 'Amit Patel',
+          designation: 'Managing Director',
+          email: 'amit.patel@servicehub.co.in',
+          phone: '+91-9876543225',
+          isPrimary: true,
+          scope: 'All',
+          status: 'Active'
+        }
+      ]
+    },
+    {
+      id: 'CLT-MOCK-004',
+      name: 'ExportKing Enterprises',
+      type: 'Company',
+      email: 'exports@exportking.in',
+      phone: '+91-9876543226',
+      address: 'Export House, SEEPZ, Andheri East, Mumbai - 400096',
+      registrationNumber: 'U51200MH2020PTC342158',
+      pan: 'AABEK3456Q',
+      panNumber: 'AABEK3456Q',
+      gstNumber: '27AABEK3456Q1ZY',
+      status: 'Active',
+      assignedCAId: '2',
+      assignedCAName: 'Sarah Johnson',
+      registrationDate: '2020-01-25',
+      totalCases: 6,
+      activeCases: 2,
+      totalInvoiced: 680000,
+      signatories: [
+        {
+          id: 'SIG-004',
+          fullName: 'Sunita Agarwal',
+          designation: 'Export Manager',
+          email: 'sunita.agarwal@exportking.in',
+          phone: '+91-9876543227',
+          isPrimary: true,
+          scope: 'All',
+          status: 'Active'
+        }
+      ]
+    },
+    {
+      id: 'CLT-MOCK-005',
+      name: 'MultiState Logistics Limited',
+      type: 'Company',
+      email: 'legal@multistatelogistics.com',
+      phone: '+91-9876543228',
+      address: 'Transport Nagar, Ring Road, New Delhi - 110020',
+      registrationNumber: 'U60200DL2017PLC316472',
+      pan: 'AACMS7890R',
+      panNumber: 'AACMS7890R',
+      gstNumber: '07AACMS7890R1Z8',
+      status: 'Active',
+      assignedCAId: '4',
+      assignedCAName: 'Emily Chen',
+      registrationDate: '2017-09-15',
+      totalCases: 9,
+      activeCases: 3,
+      totalInvoiced: 920000,
+      signatories: [
+        {
+          id: 'SIG-005',
+          fullName: 'Vikram Singh',
+          designation: 'General Manager',
+          email: 'vikram.singh@multistatelogistics.com',
+          phone: '+91-9876543229',
+          isPrimary: true,
+          scope: 'All',
+          status: 'Active'
+        }
+      ]
     }
   ],
   courts: [
