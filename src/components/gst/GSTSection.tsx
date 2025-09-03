@@ -237,14 +237,27 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
   };
 
   const handleSignatoryImport = (selectedSignatories: any[]) => {
-    const signatoryContacts = selectedSignatories.map(signatory => ({
-      name: signatory.name,
-      email: signatory.email || '',
-      phone: signatory.mobile || '',
-      role: signatory.role,
-      isPrimary: signatory.isPrimary,
-      source: 'gsp'
-    }));
+    const signatoryContacts = selectedSignatories.map(signatory => {
+      // Map GSP role to valid ContactRole
+      const mapRole = (gspRole: string): 'authorized_signatory' | 'primary' => {
+        if (signatory.isPrimary) return 'primary';
+        return 'authorized_signatory'; // Default for GSP signatories
+      };
+
+      return {
+        id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Temporary ID
+        clientId: clientId,
+        name: signatory.name,
+        email: signatory.email || undefined,
+        phone: signatory.mobile || undefined,
+        roles: [mapRole(signatory.role)] as ('authorized_signatory' | 'primary')[],
+        isPrimary: !!signatory.isPrimary,
+        source: 'gsp' as const,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+    });
 
     // Notify parent about new contacts from GSP
     onFormDataChange({
