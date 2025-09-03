@@ -5,6 +5,7 @@
 
 import { apiService, ApiResponse } from './apiService';
 import { gstCacheService } from './gstCacheService';
+import { envConfig } from '../utils/envConfig';
 
 export interface GSTTaxpayerInfo {
   gstin: string;
@@ -74,12 +75,7 @@ class GSTPublicService {
     }
 
     // Check for mock mode or missing API using centralized config
-    const { MOCK_ON, API } = await import('../utils/envConfig').then(m => ({ 
-      MOCK_ON: m.envConfig.MOCK_ON, 
-      API: m.envConfig.API 
-    }));
-    
-    if (MOCK_ON || !API) {
+    if (envConfig.MOCK_ON || !envConfig.API) {
       return this.getMockTaxpayerData(gstin);
     }
 
