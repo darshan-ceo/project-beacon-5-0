@@ -441,12 +441,28 @@ export const JudgeMasters: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm">
-                          <Edit className="h-4 w-4" />
-                        </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setJudgeModal({ 
+                        isOpen: true, 
+                        mode: 'view', 
+                        judge: judge 
+                      })}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setJudgeModal({ 
+                        isOpen: true, 
+                        mode: 'edit', 
+                        judge: judge 
+                      })}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
                       </div>
                     </TableCell>
                   </motion.tr>

@@ -65,6 +65,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   });
 
   useEffect(() => {
+    // Only update form data when task changes or mode changes, not on every render
     if (taskData && (mode === 'edit' || mode === 'view')) {
       setFormData({
         title: taskData.title,
@@ -79,7 +80,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({
         dueDate: new Date(taskData.dueDate)
       });
       updateContext({ caseId: taskData.caseId, clientId: taskData.clientId });
-    } else if (mode === 'create') {
+    } else if (mode === 'create' && !taskData) {
+      // Only reset form for create mode when there's no task data
       setFormData({
         title: '',
         description: '',
@@ -93,7 +95,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
         dueDate: new Date()
       });
     }
-  }, [taskData, mode, contextCaseId, updateContext]);
+  }, [taskData?.id, mode, contextCaseId]); // Add specific dependencies to prevent infinite loops
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
