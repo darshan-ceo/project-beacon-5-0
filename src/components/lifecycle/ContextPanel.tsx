@@ -4,11 +4,13 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   ChevronDown, 
   ChevronRight, 
@@ -35,6 +37,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
   caseId,
   stageInstanceId
 }) => {
+  const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(() => {
     const saved = localStorage.getItem('stage-context-expanded');
     return saved ? JSON.parse(saved) : false;
@@ -108,9 +111,23 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
     }
   };
 
+  // Navigation handlers
+  const handleTaskClick = (taskId: string) => {
+    navigate(`/tasks?highlight=${taskId}`);
+  };
+
+  const handleHearingClick = () => {
+    navigate(`/cases/${caseId}?tab=hearings`);
+  };
+
+  const handleDocumentClick = (docKey: string) => {
+    navigate(`/documents?search=${docKey}`);
+  };
+
   return (
-    <div className="border-l border-border pl-4 ml-4">
-      <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
+    <TooltipProvider>
+      <div className="border-l border-border pl-4 ml-4">
+        <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
         <CollapsibleTrigger asChild>
           <Button
             variant="ghost"
@@ -177,9 +194,21 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
                           </Badge>
                         </div>
                       </div>
-                      <Button variant="ghost" size="sm" className="ml-2">
-                        <ExternalLink className="h-3 w-3" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="ml-2"
+                            onClick={() => handleTaskClick(task.id)}
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>View task details</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                   ))}
                 </CardContent>
@@ -198,9 +227,20 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
                     <div className="text-sm">
                       <div className="font-medium flex items-center justify-between">
                         Next: {contextData.hearings.next.type}
-                        <Button variant="ghost" size="sm">
-                          <ExternalLink className="h-3 w-3" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={handleHearingClick}
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>View hearing details</p>
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {contextData.hearings.next.date} • {contextData.hearings.next.courtName}
@@ -255,9 +295,20 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
                         >
                           {doc.status}
                         </Badge>
-                        <Button variant="ghost" size="sm">
-                          <ExternalLink className="h-3 w-3" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleDocumentClick(doc.key)}
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Find document</p>
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
                     </div>
                   ))}
@@ -308,5 +359,6 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
         </CollapsibleContent>
       </Collapsible>
     </div>
+    </TooltipProvider>
   );
 };
