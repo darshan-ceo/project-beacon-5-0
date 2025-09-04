@@ -43,6 +43,13 @@ class FeatureFlagService {
       isEnabled: true, // ON in UAT
       version: 'v1'
     });
+
+    // Stage Context Snapshot Feature (UAT enabled)
+    this.flags.set('stage_context_snapshot_v1', {
+      key: 'stage_context_snapshot_v1',
+      isEnabled: true, // ON in UAT
+      version: 'v1'
+    });
   }
 
   /**

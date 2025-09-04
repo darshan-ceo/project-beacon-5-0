@@ -15,9 +15,11 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { featureFlagService } from '@/services/featureFlagService';
 import { lifecycleService } from '@/services/lifecycleService';
+import { ContextPanel } from '@/components/lifecycle/ContextPanel';
 import { TransitionType, ChecklistItem, OrderDetails, ReasonEnum, LifecycleState } from '@/types/lifecycle';
 import { 
   ArrowRight, 
@@ -28,7 +30,8 @@ import {
   Shield,
   FileText,
   Upload,
-  Loader2
+  Loader2,
+  Info
 } from 'lucide-react';
 
 interface UnifiedStageDialogProps {
@@ -66,6 +69,7 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
   // Feature flag check
   const lifecycleCyclesEnabled = featureFlagService.isEnabled('lifecycle_cycles_v1');
   const checklistEnabled = featureFlagService.isEnabled('stage_checklist_v1');
+  const contextSnapshotEnabled = featureFlagService.isEnabled('stage_context_snapshot_v1');
 
   // State management
   const [lifecycleState, setLifecycleState] = useState<LifecycleState | null>(null);
@@ -302,7 +306,16 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Manage Case Stage</DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle>Manage Case Stage</DialogTitle>
+              {/* Context Panel Integration */}
+              {contextSnapshotEnabled && caseId && lifecycleState?.currentInstance && (
+                <ContextPanel 
+                  caseId={caseId}
+                  stageInstanceId={lifecycleState.currentInstance.id}
+                />
+              )}
+            </div>
           </DialogHeader>
 
           <div className="space-y-6">
@@ -402,7 +415,35 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
                     <TableBody>
                       {lifecycleState.checklistItems.map(item => (
                         <TableRow key={item.id}>
-                          <TableCell>{item.label}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <span>{item.label}</span>
+                              {/* Context Info Icon */}
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                                  </TooltipTrigger>
+                                  <TooltipContent side="right" className="max-w-xs">
+                                    <div className="text-xs space-y-1">
+                                      <div className="font-medium">Context:</div>
+                                      <div>
+                                        {item.ruleType === 'auto_dms' && 'Checks document status in DMS'}
+                                        {item.ruleType === 'auto_hearing' && 'Validates hearing completion'}
+                                        {item.ruleType === 'auto_field' && 'Validates required case data'}
+                                        {item.ruleType === 'manual' && 'Requires manual attestation'}
+                                      </div>
+                                      {item.note && (
+                                        <div className="text-muted-foreground">
+                                          Note: {item.note}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                          </TableCell>
                           <TableCell>
                             {item.required && <Badge variant="outline">Required</Badge>}
                           </TableCell>

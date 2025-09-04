@@ -76,3 +76,43 @@ export interface LifecycleState {
   checklistItems: ChecklistItem[];
   isLoading: boolean;
 }
+
+export interface StageContextSummary {
+  tasks: {
+    open: number;
+    overdue: number;
+    done: number;
+    top: Array<{
+      id: string;
+      title: string;
+      status: string;
+      dueDate: string;
+      priority: string;
+    }>;
+  };
+  hearings: {
+    next?: {
+      date: string;
+      status: string;
+      type: string;
+      courtName: string;
+    };
+    last?: {
+      date: string;
+      outcome: string;
+      notes: string;
+    };
+  };
+  docs: Array<{
+    key: string;
+    status: 'Present' | 'Missing';
+    name: string;
+    type: string;
+  }>;
+  contacts: Array<{
+    name: string;
+    role: 'Primary' | 'Authorized Signatory' | 'Counsel';
+    email?: string;
+    phone?: string;
+  }>;
+}
