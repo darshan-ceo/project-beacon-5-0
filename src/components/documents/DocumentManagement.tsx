@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { DocumentModal } from '@/components/modals/DocumentModal';
 import { NewFolderModal } from './NewFolderModal';
@@ -24,7 +24,8 @@ import {
   Star,
   ChevronRight,
   Home,
-  Plus
+  Plus,
+  ArrowRight
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { TemplatesManagement } from './TemplatesManagement';
@@ -39,6 +40,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 
 interface LocalDocument {
   id: string;
@@ -100,6 +102,7 @@ const mockFolders: Folder[] = [
 export const DocumentManagement: React.FC = () => {
   const { state, dispatch } = useAppState();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [currentPath, setCurrentPath] = useState<string[]>([]);
@@ -139,10 +142,12 @@ export const DocumentManagement: React.FC = () => {
     }
   };
 
-  // Handle URL parameters for search and case filtering
+  // Handle URL parameters for search, case filtering, and return context
   useEffect(() => {
     const search = searchParams.get('search');
     const caseId = searchParams.get('caseId');
+    const returnTo = searchParams.get('returnTo');
+    const returnCaseId = searchParams.get('returnCaseId');
     
     if (search) {
       setSearchTerm(search);
@@ -150,6 +155,18 @@ export const DocumentManagement: React.FC = () => {
     
     if (caseId) {
       setActiveFilters(prev => ({ ...prev, caseId }));
+    }
+
+    // Store return context if present
+    if (returnTo && returnCaseId) {
+      const returnContext = {
+        returnTo,
+        returnCaseId,
+        returnStage: searchParams.get('returnStage'),
+        fromUrl: window.location.pathname + window.location.search,
+        timestamp: Date.now()
+      };
+      localStorage.setItem('return-context', JSON.stringify(returnContext));
     }
   }, [searchParams]);
 
@@ -358,6 +375,52 @@ export const DocumentManagement: React.FC = () => {
     await loadFolderContents(null);
   };
 
+  // Return navigation handler
+  const handleReturnToStageManagement = () => {
+    const returnContext = JSON.parse(localStorage.getItem('return-context') || '{}');
+    if (returnContext.returnTo === 'stage-management' && returnContext.returnCaseId) {
+      // Navigate back to case and open stage management
+      navigate(`/cases?caseId=${returnContext.returnCaseId}`);
+      
+      // Clear return context
+      localStorage.removeItem('return-context');
+      localStorage.removeItem('navigation-context');
+      
+      // Signal to reopen stage dialog after navigation
+      setTimeout(() => {
+        const event = new CustomEvent('reopen-stage-dialog', { 
+          detail: { 
+            caseId: returnContext.returnCaseId,
+            stageId: returnContext.returnStage 
+          } 
+        });
+        window.dispatchEvent(event);
+      }, 100);
+    }
+  };
+
+  // Check if we have return context
+  const hasReturnContext = () => {
+    try {
+      const returnContext = JSON.parse(localStorage.getItem('return-context') || '{}');
+      return returnContext.returnTo === 'stage-management' && returnContext.returnCaseId;
+    } catch {
+      return false;
+    }
+  };
+
+  // Get current case info for breadcrumb
+  const getCurrentCaseInfo = () => {
+    try {
+      const returnContext = JSON.parse(localStorage.getItem('return-context') || '{}');
+      const caseId = searchParams.get('caseId') || returnContext.returnCaseId;
+      const currentCase = state.cases.find(c => c.id === caseId);
+      return currentCase ? { id: caseId, number: currentCase.caseNumber } : null;
+    } catch {
+      return null;
+    }
+  };
+
   // Load initial content
   useEffect(() => {
     loadFolderContents(null);
@@ -365,6 +428,57 @@ export const DocumentManagement: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Return Navigation Breadcrumb */}
+      {hasReturnContext() && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="bg-secondary/10 border border-secondary/20 rounded-lg p-3"
+        >
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink className="cursor-pointer" onClick={handleReturnToStageManagement}>
+                  Cases
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink className="cursor-pointer" onClick={handleReturnToStageManagement}>
+                  {getCurrentCaseInfo()?.number || 'Case'}
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink className="cursor-pointer" onClick={handleReturnToStageManagement}>
+                  Stage Management
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Documents</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          <div className="flex items-center justify-between mt-2">
+            <p className="text-sm text-muted-foreground">
+              Viewing documents from Case Stage Management
+              {searchTerm && <span className="ml-2 px-2 py-1 bg-primary/20 text-primary text-xs rounded">Search: {searchTerm}</span>}
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleReturnToStageManagement}
+              className="h-8"
+            >
+              <ArrowRight className="mr-2 h-3 w-3" />
+              Back to Case Stage
+            </Button>
+          </div>
+        </motion.div>
+      )}
+
       {/* Header */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}

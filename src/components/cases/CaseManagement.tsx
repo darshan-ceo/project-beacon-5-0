@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { 
@@ -41,11 +41,13 @@ import { FilterDropdown } from '@/components/ui/filter-dropdown';
 import { Case, useAppState } from '@/contexts/AppStateContext';
 import { formTemplatesService } from '@/services/formTemplatesService';
 import { FormRenderModal } from '@/components/documents/FormRenderModal';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 
 export const CaseManagement: React.FC = () => {
   const { state, dispatch } = useAppState();
   const { hasPermission } = useRBAC();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCase, setSelectedCase] = useState<Case | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
@@ -82,10 +84,12 @@ export const CaseManagement: React.FC = () => {
     caseId: ''
   });
 
-  // Handle URL parameters on component mount and when URL changes
+  // Handle URL parameters and return context
   useEffect(() => {
     const caseId = searchParams.get('caseId');
     const tab = searchParams.get('tab');
+    const returnTo = searchParams.get('returnTo');
+    const returnCaseId = searchParams.get('returnCaseId');
     
     if (caseId) {
       const caseToSelect = state.cases.find(c => c.id === caseId);
@@ -97,6 +101,18 @@ export const CaseManagement: React.FC = () => {
     
     if (tab && tab !== activeTab) {
       setActiveTab(tab);
+    }
+
+    // Store return context if present
+    if (returnTo && returnCaseId) {
+      const returnContext = {
+        returnTo,
+        returnCaseId,
+        returnStage: searchParams.get('returnStage'),
+        fromUrl: window.location.pathname + window.location.search,
+        timestamp: Date.now()
+      };
+      localStorage.setItem('return-context', JSON.stringify(returnContext));
     }
   }, [searchParams, state.cases]);
 
@@ -236,8 +252,92 @@ export const CaseManagement: React.FC = () => {
     }
   }, [selectedCase, activeTab]);
 
+  // Return navigation handler
+  const handleReturnToStageManagement = () => {
+    const returnContext = JSON.parse(localStorage.getItem('return-context') || '{}');
+    if (returnContext.returnTo === 'stage-management' && returnContext.returnCaseId) {
+      // Navigate back to case and open stage management
+      navigate(`/cases?caseId=${returnContext.returnCaseId}`);
+      
+      // Clear return context
+      localStorage.removeItem('return-context');
+      localStorage.removeItem('navigation-context');
+      
+      // Signal to reopen stage dialog after navigation
+      setTimeout(() => {
+        const event = new CustomEvent('reopen-stage-dialog', { 
+          detail: { 
+            caseId: returnContext.returnCaseId,
+            stageId: returnContext.returnStage 
+          } 
+        });
+        window.dispatchEvent(event);
+      }, 100);
+    }
+  };
+
+  // Check if we have return context
+  const hasReturnContext = () => {
+    try {
+      const returnContext = JSON.parse(localStorage.getItem('return-context') || '{}');
+      return returnContext.returnTo === 'stage-management' && returnContext.returnCaseId;
+    } catch {
+      return false;
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* Return Navigation Breadcrumb */}
+      {hasReturnContext() && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="bg-secondary/10 border border-secondary/20 rounded-lg p-3"
+        >
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink className="cursor-pointer" onClick={handleReturnToStageManagement}>
+                  Cases
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink className="cursor-pointer" onClick={handleReturnToStageManagement}>
+                  {selectedCase?.caseNumber || 'Case'}
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink className="cursor-pointer" onClick={handleReturnToStageManagement}>
+                  Stage Management
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Hearings</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          <div className="flex items-center justify-between mt-2">
+            <p className="text-sm text-muted-foreground">
+              Viewing hearings from Case Stage Management
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleReturnToStageManagement}
+              className="h-8"
+            >
+              <ArrowRight className="mr-2 h-3 w-3" />
+              Back to Case Stage
+            </Button>
+          </div>
+        </motion.div>
+      )}
+
       {/* Header */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}

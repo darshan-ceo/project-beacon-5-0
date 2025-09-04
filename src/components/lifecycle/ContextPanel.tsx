@@ -111,17 +111,44 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
     }
   };
 
-  // Navigation handlers
+  // Navigation handlers with return path context
   const handleTaskClick = (taskId: string) => {
-    navigate(`/tasks?highlight=${taskId}&caseId=${caseId}`);
+    // Store navigation context for return path
+    const returnContext = {
+      returnTo: 'stage-management',
+      returnCaseId: caseId,
+      returnStage: stageInstanceId,
+      timestamp: Date.now()
+    };
+    localStorage.setItem('navigation-context', JSON.stringify(returnContext));
+    
+    navigate(`/tasks?highlight=${taskId}&caseId=${caseId}&returnTo=stage-management&returnCaseId=${caseId}&returnStage=${stageInstanceId}`);
   };
 
   const handleHearingClick = () => {
-    navigate(`/cases?caseId=${caseId}&tab=hearings`);
+    // Store navigation context for return path
+    const returnContext = {
+      returnTo: 'stage-management',
+      returnCaseId: caseId,
+      returnStage: stageInstanceId,
+      timestamp: Date.now()
+    };
+    localStorage.setItem('navigation-context', JSON.stringify(returnContext));
+    
+    navigate(`/cases?caseId=${caseId}&tab=hearings&returnTo=stage-management&returnCaseId=${caseId}&returnStage=${stageInstanceId}`);
   };
 
   const handleDocumentClick = (docKey: string) => {
-    navigate(`/documents?search=${docKey}&caseId=${caseId}`);
+    // Store navigation context for return path
+    const returnContext = {
+      returnTo: 'stage-management',
+      returnCaseId: caseId,
+      returnStage: stageInstanceId,
+      timestamp: Date.now()
+    };
+    localStorage.setItem('navigation-context', JSON.stringify(returnContext));
+    
+    navigate(`/documents?search=${docKey}&caseId=${caseId}&returnTo=stage-management&returnCaseId=${caseId}&returnStage=${stageInstanceId}`);
   };
 
   return (

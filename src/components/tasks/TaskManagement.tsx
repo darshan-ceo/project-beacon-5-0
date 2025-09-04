@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { 
@@ -12,7 +12,7 @@ import {
   Search,
   Calendar,
   Bell,
-  ArrowUp,
+  ArrowRight,
   FileText,
   Users,
   Target,
@@ -31,6 +31,7 @@ import { TaskTemplates } from './TaskTemplates';
 import { TaskModal } from '@/components/modals/TaskModal';
 import { FilterDropdown } from '@/components/ui/filter-dropdown';
 import { Task, useAppState } from '@/contexts/AppStateContext';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 
 interface TaskBundle {
   id: string;
@@ -72,6 +73,7 @@ const taskBundles: TaskBundle[] = [
 export const TaskManagement: React.FC = () => {
   const { state } = useAppState();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [highlightedTaskId, setHighlightedTaskId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | Task['status']>('all');
@@ -83,10 +85,12 @@ export const TaskManagement: React.FC = () => {
     task: null
   });
 
-  // Handle URL parameters for highlighting tasks
+  // Handle URL parameters for highlighting tasks and return context
   useEffect(() => {
     const highlight = searchParams.get('highlight');
     const caseId = searchParams.get('caseId');
+    const returnTo = searchParams.get('returnTo');
+    const returnCaseId = searchParams.get('returnCaseId');
     
     if (highlight) {
       setHighlightedTaskId(highlight);
@@ -102,6 +106,18 @@ export const TaskManagement: React.FC = () => {
     if (caseId) {
       // Filter by case if provided
       setSearchTerm(caseId);
+    }
+
+    // Store return context if present
+    if (returnTo && returnCaseId) {
+      const returnContext = {
+        returnTo,
+        returnCaseId,
+        returnStage: searchParams.get('returnStage'),
+        fromUrl: window.location.pathname + window.location.search,
+        timestamp: Date.now()
+      };
+      localStorage.setItem('return-context', JSON.stringify(returnContext));
     }
   }, [searchParams]);
 
@@ -146,8 +162,105 @@ export const TaskManagement: React.FC = () => {
 
   const stats = getTaskStats();
 
+  // Return navigation handler
+  const handleReturnToStageManagement = () => {
+    const returnContext = JSON.parse(localStorage.getItem('return-context') || '{}');
+    if (returnContext.returnTo === 'stage-management' && returnContext.returnCaseId) {
+      // Navigate back to case and open stage management
+      navigate(`/cases?caseId=${returnContext.returnCaseId}`);
+      
+      // Clear return context
+      localStorage.removeItem('return-context');
+      localStorage.removeItem('navigation-context');
+      
+      // Signal to reopen stage dialog after navigation
+      setTimeout(() => {
+        const event = new CustomEvent('reopen-stage-dialog', { 
+          detail: { 
+            caseId: returnContext.returnCaseId,
+            stageId: returnContext.returnStage 
+          } 
+        });
+        window.dispatchEvent(event);
+      }, 100);
+    }
+  };
+
+  // Check if we have return context
+  const hasReturnContext = () => {
+    try {
+      const returnContext = JSON.parse(localStorage.getItem('return-context') || '{}');
+      return returnContext.returnTo === 'stage-management' && returnContext.returnCaseId;
+    } catch {
+      return false;
+    }
+  };
+
+  // Get current case info for breadcrumb
+  const getCurrentCaseInfo = () => {
+    try {
+      const returnContext = JSON.parse(localStorage.getItem('return-context') || '{}');
+      const caseId = searchParams.get('caseId') || returnContext.returnCaseId;
+      const currentCase = state.cases.find(c => c.id === caseId);
+      return currentCase ? { id: caseId, number: currentCase.caseNumber } : null;
+    } catch {
+      return null;
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* Return Navigation Breadcrumb */}
+      {hasReturnContext() && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="bg-secondary/10 border border-secondary/20 rounded-lg p-3"
+        >
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink className="cursor-pointer" onClick={handleReturnToStageManagement}>
+                  Cases
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink className="cursor-pointer" onClick={handleReturnToStageManagement}>
+                  {getCurrentCaseInfo()?.number || 'Case'}
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink className="cursor-pointer" onClick={handleReturnToStageManagement}>
+                  Stage Management
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Tasks</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          <div className="flex items-center justify-between mt-2">
+            <p className="text-sm text-muted-foreground">
+              Viewing tasks from Case Stage Management
+              {highlightedTaskId && <span className="ml-2 px-2 py-1 bg-primary/20 text-primary text-xs rounded">Highlighting: {highlightedTaskId}</span>}
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleReturnToStageManagement}
+              className="h-8"
+            >
+              <ArrowRight className="mr-2 h-3 w-3" />
+              Back to Case Stage
+            </Button>
+          </div>
+        </motion.div>
+      )}
+
       {/* Header */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
