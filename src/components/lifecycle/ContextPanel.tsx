@@ -53,19 +53,33 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
 
   // Load context data when expanded
   useEffect(() => {
+    console.log('ContextPanel useEffect:', { 
+      isExpanded, 
+      hasContextData: !!contextData, 
+      isLoading, 
+      caseId, 
+      stageInstanceId 
+    });
+    
     if (isExpanded && !contextData && !isLoading) {
       loadContextData();
     }
   }, [isExpanded, caseId, stageInstanceId]);
 
   const loadContextData = async () => {
-    if (!caseId || !stageInstanceId) return;
+    console.log('Loading context data for:', { caseId, stageInstanceId });
+    
+    if (!caseId || !stageInstanceId) {
+      console.warn('Missing required parameters for context data');
+      return;
+    }
     
     setIsLoading(true);
     setError(null);
     
     try {
       const data = await contextService.getStageContextSummary(caseId, stageInstanceId);
+      console.log('Context data loaded successfully:', data);
       setContextData(data);
     } catch (err) {
       setError('Failed to load context data');

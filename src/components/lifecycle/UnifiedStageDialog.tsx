@@ -71,6 +71,14 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
   const checklistEnabled = featureFlagService.isEnabled('stage_checklist_v1');
   const contextSnapshotEnabled = featureFlagService.isEnabled('stage_context_snapshot_v1');
 
+  console.log('UnifiedStageDialog feature flags:', {
+    lifecycleCyclesEnabled,
+    checklistEnabled, 
+    contextSnapshotEnabled,
+    caseId,
+    isOpen
+  });
+
   // State management
   const [lifecycleState, setLifecycleState] = useState<LifecycleState | null>(null);
   const [transitionType, setTransitionType] = useState<TransitionType>('Forward');
@@ -103,8 +111,11 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
   const loadLifecycleData = async () => {
     if (!caseId) return;
     
+    console.log('Loading lifecycle data for case:', caseId);
+    
     try {
       const data = await lifecycleService.getLifecycle(caseId);
+      console.log('Lifecycle data loaded:', data);
       setLifecycleState(data);
     } catch (error) {
       console.error('Failed to load lifecycle data:', error);
@@ -309,10 +320,10 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
             <div className="flex items-center justify-between">
               <DialogTitle>Manage Case Stage</DialogTitle>
               {/* Context Panel Integration */}
-              {contextSnapshotEnabled && caseId && lifecycleState?.currentInstance && (
+              {contextSnapshotEnabled && caseId && (
                 <ContextPanel 
                   caseId={caseId}
-                  stageInstanceId={lifecycleState.currentInstance.id}
+                  stageInstanceId={lifecycleState?.currentInstance?.id || 'temp-instance-id'}
                 />
               )}
             </div>
