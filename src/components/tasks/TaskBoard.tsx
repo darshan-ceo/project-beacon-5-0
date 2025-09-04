@@ -45,6 +45,7 @@ interface TaskDisplay {
 
 interface TaskBoardProps {
   tasks: TaskDisplay[];
+  highlightedTaskId?: string | null;
 }
 
 const statusColumns = [
@@ -55,7 +56,7 @@ const statusColumns = [
   { id: 'Overdue', title: 'Overdue', icon: AlertTriangle, color: 'bg-destructive' }
 ];
 
-export const TaskBoard: React.FC<TaskBoardProps> = ({ tasks }) => {
+export const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, highlightedTaskId }) => {
   const [draggedTask, setDraggedTask] = useState<string | null>(null);
 
   const getTasksByStatus = (status: string) => {
@@ -95,15 +96,19 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({ tasks }) => {
     const daysUntilDue = getDaysUntilDue(task.dueDate);
     const isOverdue = daysUntilDue < 0;
     const isUrgent = daysUntilDue <= 1 && daysUntilDue >= 0;
+    const isHighlighted = highlightedTaskId === task.id;
 
     return (
       <motion.div
+        id={`task-${task.id}`}
         layout
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.9 }}
         whileHover={{ y: -2 }}
-        className={`p-4 bg-background rounded-lg border-l-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer ${getPriorityColor(task.priority)}`}
+        className={`p-4 bg-background rounded-lg border-l-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer ${getPriorityColor(task.priority)} ${
+          isHighlighted ? 'ring-2 ring-primary ring-offset-2 bg-primary/10' : ''
+        }`}
         draggable
         onDragStart={() => setDraggedTask(task.id)}
         onDragEnd={() => setDraggedTask(null)}

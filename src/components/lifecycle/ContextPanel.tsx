@@ -113,15 +113,15 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
 
   // Navigation handlers
   const handleTaskClick = (taskId: string) => {
-    navigate(`/tasks?highlight=${taskId}`);
+    navigate(`/tasks?highlight=${taskId}&caseId=${caseId}`);
   };
 
   const handleHearingClick = () => {
-    navigate(`/cases/${caseId}?tab=hearings`);
+    navigate(`/cases?caseId=${caseId}&tab=hearings`);
   };
 
   const handleDocumentClick = (docKey: string) => {
-    navigate(`/documents?search=${docKey}`);
+    navigate(`/documents?search=${docKey}&caseId=${caseId}`);
   };
 
   return (

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { DocumentModal } from '@/components/modals/DocumentModal';
 import { NewFolderModal } from './NewFolderModal';
@@ -98,6 +99,7 @@ const mockFolders: Folder[] = [
 
 export const DocumentManagement: React.FC = () => {
   const { state, dispatch } = useAppState();
+  const [searchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [currentPath, setCurrentPath] = useState<string[]>([]);
@@ -136,6 +138,20 @@ export const DocumentManagement: React.FC = () => {
       default: return '📁';
     }
   };
+
+  // Handle URL parameters for search and case filtering
+  useEffect(() => {
+    const search = searchParams.get('search');
+    const caseId = searchParams.get('caseId');
+    
+    if (search) {
+      setSearchTerm(search);
+    }
+    
+    if (caseId) {
+      setActiveFilters(prev => ({ ...prev, caseId }));
+    }
+  }, [searchParams]);
 
   // Load data on component mount
   useEffect(() => {

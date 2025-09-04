@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { 
@@ -44,6 +45,7 @@ import { FormRenderModal } from '@/components/documents/FormRenderModal';
 export const CaseManagement: React.FC = () => {
   const { state, dispatch } = useAppState();
   const { hasPermission } = useRBAC();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCase, setSelectedCase] = useState<Case | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
@@ -79,6 +81,24 @@ export const CaseManagement: React.FC = () => {
     template: null,
     caseId: ''
   });
+
+  // Handle URL parameters on component mount and when URL changes
+  useEffect(() => {
+    const caseId = searchParams.get('caseId');
+    const tab = searchParams.get('tab');
+    
+    if (caseId) {
+      const caseToSelect = state.cases.find(c => c.id === caseId);
+      if (caseToSelect && caseToSelect.id !== selectedCase?.id) {
+        setSelectedCase(caseToSelect);
+        setShowHelpText(false);
+      }
+    }
+    
+    if (tab && tab !== activeTab) {
+      setActiveTab(tab);
+    }
+  }, [searchParams, state.cases]);
 
   // Sync selectedCase with global state changes
   useEffect(() => {

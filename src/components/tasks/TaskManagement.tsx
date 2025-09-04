@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { 
@@ -70,7 +71,9 @@ const taskBundles: TaskBundle[] = [
 
 export const TaskManagement: React.FC = () => {
   const { state } = useAppState();
+  const [searchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
+  const [highlightedTaskId, setHighlightedTaskId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | Task['status']>('all');
   const [filterPriority, setFilterPriority] = useState<'all' | Task['priority']>('all');
   const [activeTab, setActiveTab] = useState('board');
@@ -79,6 +82,28 @@ export const TaskManagement: React.FC = () => {
     mode: 'create',
     task: null
   });
+
+  // Handle URL parameters for highlighting tasks
+  useEffect(() => {
+    const highlight = searchParams.get('highlight');
+    const caseId = searchParams.get('caseId');
+    
+    if (highlight) {
+      setHighlightedTaskId(highlight);
+      // Auto-scroll to highlighted task after a short delay
+      setTimeout(() => {
+        const element = document.getElementById(`task-${highlight}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 500);
+    }
+    
+    if (caseId) {
+      // Filter by case if provided
+      setSearchTerm(caseId);
+    }
+  }, [searchParams]);
 
   const filteredTasks = state.tasks.filter(task => {
     const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -295,7 +320,10 @@ export const TaskManagement: React.FC = () => {
         </TabsList>
 
         <TabsContent value="board" className="mt-6">
-          <TaskBoard tasks={filteredTasks.map(t => ({ ...t, assignedTo: t.assignedToName }))} />
+          <TaskBoard 
+            tasks={filteredTasks.map(t => ({ ...t, assignedTo: t.assignedToName }))} 
+            highlightedTaskId={highlightedTaskId}
+          />
         </TabsContent>
 
         <TabsContent value="automation" className="mt-6">
