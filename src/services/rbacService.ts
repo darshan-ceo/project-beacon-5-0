@@ -62,7 +62,13 @@ class RBACService {
     // AI
     { module: 'ai', action: 'read' },
     { module: 'ai', action: 'write' },
-    { module: 'ai', action: 'admin' }
+    { module: 'ai', action: 'admin' },
+    
+    // Hearings
+    { module: 'hearings', action: 'read' },
+    { module: 'hearings', action: 'write' },
+    { module: 'hearings', action: 'delete' },
+    { module: 'hearings', action: 'admin' }
   ];
 
   async getAvailablePermissions(): Promise<Permission[]> {
@@ -130,7 +136,10 @@ class RBACService {
       '/global-parameters': { module: 'global-parameters', action: 'read' },
       '/reports/schedule': { module: 'reports.schedule', action: 'admin' },
       '/templates': { module: 'templates', action: 'read' },
-      '/ai': { module: 'ai', action: 'read' }
+      '/ai': { module: 'ai', action: 'read' },
+      '/hearings': { module: 'hearings', action: 'read' },
+      '/hearings/calendar': { module: 'hearings', action: 'read' },
+      '/hearings/list': { module: 'hearings', action: 'read' }
     };
 
     const permission = routePermissions[route];

@@ -50,6 +50,14 @@ class FeatureFlagService {
       isEnabled: true, // ON in UAT
       version: 'v1'
     });
+
+    // Hearings Module Feature (UAT enabled)
+    const hearingsFeature = import.meta.env.VITE_FEATURE_HEARINGS || 'on';
+    this.flags.set('hearings_module_v1', {
+      key: 'hearings_module_v1',
+      isEnabled: hearingsFeature === 'on',
+      version: hearingsFeature === 'on' ? 'v1' : undefined
+    });
   }
 
   /**

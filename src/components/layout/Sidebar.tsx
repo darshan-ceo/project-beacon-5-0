@@ -15,7 +15,8 @@ import {
   CheckSquare,
   UserCheck,
   Bug,
-  TestTube
+  TestTube,
+  CalendarDays
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -55,6 +56,7 @@ const menuItems: MenuItem[] = [
   { icon: FileText, label: 'Case Management', href: '/cases', roles: ['Admin', 'Partner/CA', 'Staff'] },
   { icon: BarChart3, label: 'Reports', href: '/reports', roles: ['Admin', 'Partner/CA', 'Staff'] },
   { icon: CheckSquare, label: 'Task Management', href: '/tasks', roles: ['Admin', 'Partner/CA', 'Staff'] },
+  { icon: CalendarDays, label: 'Hearings', href: '/hearings/calendar', roles: ['Admin', 'Partner/CA', 'Staff'] },
   { icon: FolderOpen, label: 'Document Management', href: '/documents', roles: ['Admin', 'Partner/CA', 'Staff', 'Client'] },
   { icon: Shield, label: 'RBAC Management', href: '/rbac', roles: ['Admin'] },
   { icon: Settings, label: 'Global Parameters', href: '/settings', roles: ['Admin', 'Partner/CA'] },

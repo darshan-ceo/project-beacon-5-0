@@ -157,25 +157,42 @@ export interface Employee {
   specialization?: string[];
 }
 
-// New interface for Hearing entity
+// Enhanced Hearing interface with lifecycle integration
 interface Hearing {
   id: string;
-  caseId: string; // FK to Case.id
-  clientId: string; // Derived from Case.clientId
-  courtId: string; // FK to Court.id
-  judgeId: string; // FK to Judge.id
+  case_id: string;
+  stage_instance_id?: string;
+  cycle_no?: number;
   date: string;
-  time: string;
-  type: 'Adjourned' | 'Final' | 'Argued' | 'Preliminary';
-  status: 'Scheduled' | 'Completed' | 'Postponed' | 'Cancelled';
-  agenda: string;
+  start_time: string;
+  end_time: string;
+  timezone: string;
+  court_id: string;
+  courtroom?: string;
+  judge_ids: string[];
+  purpose: 'PH' | 'mention' | 'final' | 'other';
+  status: 'scheduled' | 'concluded' | 'adjourned' | 'no-board' | 'withdrawn';
+  outcome?: string;
+  outcome_text?: string;
+  next_hearing_date?: string;
+  order_file_id?: string;
   notes?: string;
-  createdDate: string;
-  lastUpdated: string;
-  // Calendar integration fields
-  externalEventId?: string; // ID from Google Calendar/Outlook
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  // Legacy compatibility
+  caseId?: string;
+  clientId?: string;
+  courtId?: string;
+  judgeId?: string;
+  time?: string;
+  type?: 'Adjourned' | 'Final' | 'Argued' | 'Preliminary';
+  agenda?: string;
+  createdDate?: string;
+  lastUpdated?: string;
+  externalEventId?: string;
   syncStatus?: 'synced' | 'not_synced' | 'sync_failed' | 'sync_pending';
-  syncError?: string; // Error message if sync failed
+  syncError?: string;
 }
 
 // New Folder interface for DMS

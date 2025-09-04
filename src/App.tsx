@@ -127,6 +127,16 @@ const App = () => (
                   <QADashboard />
                 </AdminLayout>
               } />
+              <Route path="/hearings/calendar" element={
+                <AdminLayout currentUser={currentUser}>
+                  <div>Hearings Calendar - Coming Soon</div>
+                </AdminLayout>
+              } />
+              <Route path="/hearings/list" element={
+                <AdminLayout currentUser={currentUser}>
+                  <div>Hearings List - Coming Soon</div>
+                </AdminLayout>
+              } />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
