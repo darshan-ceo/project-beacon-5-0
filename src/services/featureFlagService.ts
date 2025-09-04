@@ -24,6 +24,25 @@ class FeatureFlagService {
       isEnabled: gstFeature === 'on',
       version: gstFeature === 'on' ? 'v1' : undefined
     });
+
+    // Cyclic Lifecycle Features (UAT enabled)
+    this.flags.set('lifecycle_cycles_v1', {
+      key: 'lifecycle_cycles_v1',
+      isEnabled: true, // ON in UAT
+      version: 'v1'
+    });
+
+    this.flags.set('stage_checklist_v1', {
+      key: 'stage_checklist_v1', 
+      isEnabled: true, // ON in UAT
+      version: 'v1'
+    });
+
+    this.flags.set('stage_task_automation_v1', {
+      key: 'stage_task_automation_v1',
+      isEnabled: true, // ON in UAT
+      version: 'v1'
+    });
   }
 
   /**

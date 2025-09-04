@@ -6,6 +6,9 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { StageManagementModal } from '@/components/modals/StageManagementModal';
+import { UnifiedStageDialog } from '@/components/lifecycle/UnifiedStageDialog';
+import { CycleTimeline } from '@/components/lifecycle/CycleTimeline';
+import { featureFlagService } from '@/services/featureFlagService';
 import { HearingModal } from '@/components/modals/HearingModal';
 import { FormRenderModal } from '@/components/documents/FormRenderModal';
 import { FormChip } from './FormChip';
@@ -435,11 +438,19 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
                       variant="outline" 
                       size="sm" 
                       className="w-full justify-start"
-                      onClick={handleAdvanceStage}
+                      onClick={() => {
+                        // Use unified dialog if feature enabled, otherwise quick advance
+                        if (featureFlagService.isEnabled('lifecycle_cycles_v1')) {
+                          setShowStageModal(true);
+                        } else {
+                          handleAdvanceStage();
+                        }
+                      }}
                       disabled={isAdvancing}
                     >
                       <ArrowRight className="mr-2 h-4 w-4" />
-                      {isAdvancing ? 'Advancing...' : 'Advance Stage'}
+                      {featureFlagService.isEnabled('lifecycle_cycles_v1') ? 'Advance Stage' : 
+                       isAdvancing ? 'Advancing...' : 'Advance Stage'}
                     </Button>
                   </div>
                 </div>
@@ -449,25 +460,62 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
         </motion.div>
       )}
 
-      {/* Stage Management Modal */}
-      <StageManagementModal
-        isOpen={showStageModal}
-        onClose={() => setShowStageModal(false)}
-        caseId={selectedCase?.id || null}
-        currentStage={selectedCase?.currentStage || ''}
-        onStageAdvanced={(updatedCase) => {
-          // Trigger parent update callback
-          if (onCaseUpdated) {
-            onCaseUpdated(updatedCase);
-          }
-          // Also close the modal and show immediate visual feedback
-          setShowStageModal(false);
-          toast({
-            title: "Stage Updated",
-            description: "The case stage has been updated successfully.",
-          });
-        }}
-      />
+      {/* Cycle Timeline (if feature enabled) */}
+      {selectedCase && featureFlagService.isEnabled('lifecycle_cycles_v1') && (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.4 }}
+        >
+          <CycleTimeline 
+            caseId={selectedCase.id}
+            currentStage={selectedCase.currentStage}
+          />
+        </motion.div>
+      )}
+
+      {/* Stage Management Modal - Use Unified Dialog when feature enabled */}
+      {featureFlagService.isEnabled('lifecycle_cycles_v1') ? (
+        <UnifiedStageDialog
+          isOpen={showStageModal}
+          onClose={() => setShowStageModal(false)}
+          caseId={selectedCase?.id || null}
+          currentStage={selectedCase?.currentStage || ''}
+          onStageUpdated={(updatedData) => {
+            // Trigger parent update callback
+            if (onCaseUpdated) {
+              const updatedCase = state.cases.find(c => c.id === selectedCase?.id);
+              if (updatedCase) {
+                onCaseUpdated(updatedCase);
+              }
+            }
+            setShowStageModal(false);
+            toast({
+              title: "Stage Transition Completed",
+              description: `Case ${updatedData.type.toLowerCase()}ed successfully.`,
+            });
+          }}
+        />
+      ) : (
+        <StageManagementModal
+          isOpen={showStageModal}
+          onClose={() => setShowStageModal(false)}
+          caseId={selectedCase?.id || null}
+          currentStage={selectedCase?.currentStage || ''}
+          onStageAdvanced={(updatedCase) => {
+            // Trigger parent update callback
+            if (onCaseUpdated) {
+              onCaseUpdated(updatedCase);
+            }
+            // Also close the modal and show immediate visual feedback
+            setShowStageModal(false);
+            toast({
+              title: "Stage Updated",
+              description: "The case stage has been updated successfully.",
+            });
+          }}
+        />
+      )}
 
       {/* Hearing Modal */}
       <HearingModal

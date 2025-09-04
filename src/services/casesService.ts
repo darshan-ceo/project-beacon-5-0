@@ -1,8 +1,11 @@
 import { AppAction } from '@/contexts/AppStateContext';
 import { toast } from '@/hooks/use-toast';
 
-// Import the Case interface from AppStateContext
 import { Case } from '@/contexts/AppStateContext';
+import { lifecycleService } from '@/services/lifecycleService';
+import { taskBundleService } from '@/services/taskBundleService';
+import { timelineService } from '@/services/timelineService';
+import { featureFlagService } from '@/services/featureFlagService';
 
 export interface AdvanceStagePayload {
   caseId: string;
@@ -104,7 +107,17 @@ export const casesService = {
 
   advanceStage: async (payload: AdvanceStagePayload, dispatch: React.Dispatch<AppAction>): Promise<void> => {
     try {
-      const { caseId, nextStage, notes, assignedTo } = payload;
+      const { caseId, currentStage, nextStage, notes, assignedTo } = payload;
+      
+      // Create transition through lifecycle service if feature enabled
+      if (featureFlagService.isEnabled('lifecycle_cycles_v1')) {
+        await lifecycleService.createTransition({
+          caseId,
+          type: 'Forward',
+          toStageKey: nextStage,
+          comments: notes
+        });
+      }
       
       // Calculate new SLA status based on stage
       const slaStatus = nextStage === 'Adjudication' ? 'Amber' : 
@@ -118,6 +131,15 @@ export const casesService = {
       };
 
       dispatch({ type: 'UPDATE_CASE', payload: { id: caseId, ...updates } });
+      
+      // Add timeline entry
+      await timelineService.addEntry({
+        caseId,
+        type: 'case_created',
+        title: `Stage Advanced: ${currentStage} → ${nextStage}`,
+        description: notes || `Case automatically advanced from ${currentStage} to ${nextStage}`,
+        createdBy: assignedTo || 'System'
+      });
       
       // Generate task bundle for new stage
       if (nextStage === 'Scrutiny') {

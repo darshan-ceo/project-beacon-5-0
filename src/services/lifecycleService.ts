@@ -1,0 +1,235 @@
+/**
+ * Lifecycle Service for Cyclic Stage Management
+ * Handles stage instances, transitions, and validation
+ */
+
+import { StageInstance, StageTransition, ChecklistItem, TransitionType, OrderDetails, LifecycleState } from '@/types/lifecycle';
+import { toast } from '@/hooks/use-toast';
+
+export interface CreateTransitionRequest {
+  caseId: string;
+  type: TransitionType;
+  toStageKey: string;
+  comments?: string;
+  checklistOverrides?: Array<{ itemKey: string; note: string }>;
+  orderDetails?: OrderDetails;
+}
+
+class LifecycleService {
+  private baseUrl = '/api';
+
+  /**
+   * Get complete lifecycle state for a case
+   */
+  async getLifecycle(caseId: string): Promise<LifecycleState> {
+    try {
+      // Mock implementation - replace with actual API call
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      const mockCurrentInstance: StageInstance = {
+        id: 'si_' + Date.now(),
+        caseId,
+        stageKey: 'Scrutiny',
+        cycleNo: 1,
+        startedAt: new Date().toISOString(),
+        status: 'Active',
+        createdBy: 'current-user',
+        createdAt: new Date().toISOString()
+      };
+
+      return {
+        currentInstance: mockCurrentInstance,
+        stageInstances: [mockCurrentInstance],
+        transitions: [],
+        checklistItems: this.generateMockChecklist(mockCurrentInstance.id),
+        isLoading: false
+      };
+    } catch (error) {
+      console.error('Failed to fetch lifecycle:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create a new stage transition
+   */
+  async createTransition(request: CreateTransitionRequest): Promise<StageTransition> {
+    try {
+      // Mock implementation - replace with actual API call
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const transition: StageTransition = {
+        id: 'tr_' + Date.now(),
+        caseId: request.caseId,
+        toStageInstanceId: 'si_' + (Date.now() + 1),
+        type: request.type,
+        comments: request.comments,
+        createdBy: 'current-user',
+        createdAt: new Date().toISOString(),
+        ...request.orderDetails && {
+          reasonEnum: request.orderDetails.reasonEnum,
+          reasonText: request.orderDetails.reasonText,
+          orderNo: request.orderDetails.orderNo,
+          orderDate: request.orderDetails.orderDate
+        }
+      };
+
+      toast({
+        title: "Stage Transition Created",
+        description: `Successfully ${request.type.toLowerCase()}ed case to ${request.toStageKey}`
+      });
+
+      return transition;
+    } catch (error) {
+      console.error('Failed to create transition:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Attest to a checklist item
+   */
+  async attestChecklistItem(itemKey: string, note?: string): Promise<ChecklistItem> {
+    try {
+      // Mock implementation
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      const item: ChecklistItem = {
+        id: 'cli_' + Date.now(),
+        stageInstanceId: 'si_current',
+        itemKey,
+        label: `Checklist item ${itemKey}`,
+        required: true,
+        ruleType: 'manual',
+        status: 'Attested',
+        attestedBy: 'current-user',
+        attestedAt: new Date().toISOString(),
+        note
+      };
+
+      return item;
+    } catch (error) {
+      console.error('Failed to attest checklist item:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Override a checklist item with justification
+   */
+  async overrideChecklistItem(itemKey: string, note: string): Promise<ChecklistItem> {
+    try {
+      // Mock implementation
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      const item: ChecklistItem = {
+        id: 'cli_' + Date.now(),
+        stageInstanceId: 'si_current',
+        itemKey,
+        label: `Checklist item ${itemKey}`,
+        required: true,
+        ruleType: 'manual',
+        status: 'Override',
+        attestedBy: 'current-user',
+        attestedAt: new Date().toISOString(),
+        note
+      };
+
+      return item;
+    } catch (error) {
+      console.error('Failed to override checklist item:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Validate if transition is allowed based on checklist
+   */
+  validateTransition(checklistItems: ChecklistItem[], type: TransitionType): {
+    isValid: boolean;
+    missingItems: string[];
+  } {
+    if (type !== 'Forward') {
+      return { isValid: true, missingItems: [] }; // Send Back/Remand always allowed
+    }
+
+    const requiredItems = checklistItems.filter(item => item.required);
+    const completedItems = requiredItems.filter(item => 
+      ['Auto✓', 'Attested', 'Override'].includes(item.status)
+    );
+
+    const missingItems = requiredItems
+      .filter(item => !['Auto✓', 'Attested', 'Override'].includes(item.status))
+      .map(item => item.label);
+
+    return {
+      isValid: completedItems.length === requiredItems.length,
+      missingItems
+    };
+  }
+
+  /**
+   * Get available next stages based on transition type
+   */
+  getAvailableStages(currentStage: string, type: TransitionType): string[] {
+    const allStages = ['Scrutiny', 'Demand', 'Adjudication', 'Appeals', 'GSTAT', 'HC', 'SC'];
+    const currentIndex = allStages.indexOf(currentStage);
+
+    switch (type) {
+      case 'Forward':
+        return allStages.slice(currentIndex + 1);
+      case 'Send Back':
+        return allStages.slice(0, currentIndex);
+      case 'Remand':
+        return [currentStage]; // Same stage, new cycle
+      default:
+        return [];
+    }
+  }
+
+  /**
+   * Generate mock checklist for development
+   */
+  private generateMockChecklist(stageInstanceId: string): ChecklistItem[] {
+    return [
+      {
+        id: 'cli_1',
+        stageInstanceId,
+        itemKey: 'documents_uploaded',
+        label: 'Required documents uploaded',
+        required: true,
+        ruleType: 'auto_dms',
+        status: 'Auto✓'
+      },
+      {
+        id: 'cli_2', 
+        stageInstanceId,
+        itemKey: 'case_assigned',
+        label: 'Case assigned to team member',
+        required: true,
+        ruleType: 'auto_field',
+        status: 'Auto✓'
+      },
+      {
+        id: 'cli_3',
+        stageInstanceId,
+        itemKey: 'client_verified',
+        label: 'Client information verified',
+        required: true,
+        ruleType: 'manual',
+        status: 'Pending'
+      },
+      {
+        id: 'cli_4',
+        stageInstanceId,
+        itemKey: 'legal_review',
+        label: 'Legal review completed',
+        required: false,
+        ruleType: 'manual',
+        status: 'Pending'
+      }
+    ];
+  }
+}
+
+export const lifecycleService = new LifecycleService();
