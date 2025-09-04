@@ -5,6 +5,7 @@
 
 import { StageInstance, StageTransition, ChecklistItem, TransitionType, OrderDetails, LifecycleState } from '@/types/lifecycle';
 import { toast } from '@/hooks/use-toast';
+import React from 'react';
 
 export interface CreateTransitionRequest {
   caseId: string;
@@ -13,6 +14,7 @@ export interface CreateTransitionRequest {
   comments?: string;
   checklistOverrides?: Array<{ itemKey: string; note: string }>;
   orderDetails?: OrderDetails;
+  dispatch?: React.Dispatch<any>;
 }
 
 class LifecycleService {
@@ -73,6 +75,22 @@ class LifecycleService {
           orderDate: request.orderDetails.orderDate
         }
       };
+
+      // Update case state if dispatch is provided
+      if (request.dispatch) {
+        const slaStatus = request.toStageKey === 'Adjudication' ? 'Amber' : 
+                         request.toStageKey === 'HC' ? 'Green' : 'Green';
+
+        request.dispatch({
+          type: 'UPDATE_CASE',
+          payload: {
+            id: request.caseId,
+            currentStage: request.toStageKey as 'Scrutiny' | 'Demand' | 'Adjudication' | 'Appeals' | 'GSTAT' | 'HC' | 'SC',
+            slaStatus: slaStatus as 'Green' | 'Amber' | 'Red',
+            lastUpdated: new Date().toISOString()
+          }
+        });
+      }
 
       toast({
         title: "Stage Transition Created",

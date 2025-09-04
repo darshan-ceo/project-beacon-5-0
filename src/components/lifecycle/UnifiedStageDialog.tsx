@@ -37,6 +37,7 @@ interface UnifiedStageDialogProps {
   caseId: string | null;
   currentStage: string;
   onStageUpdated?: (updatedData: any) => void;
+  dispatch?: React.Dispatch<any>;
 }
 
 const transitionTypeOptions = [
@@ -59,7 +60,8 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
   onClose,
   caseId,
   currentStage,
-  onStageUpdated
+  onStageUpdated,
+  dispatch
 }) => {
   // Feature flag check
   const lifecycleCyclesEnabled = featureFlagService.isEnabled('lifecycle_cycles_v1');
@@ -230,11 +232,17 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
         toStageKey: selectedStage,
         comments,
         checklistOverrides: overrides,
-        orderDetails: requiresOrderDetails ? orderDetails as OrderDetails : undefined
+        orderDetails: requiresOrderDetails ? orderDetails as OrderDetails : undefined,
+        dispatch
       });
 
       if (onStageUpdated) {
-        onStageUpdated({ stage: selectedStage, type: transitionType });
+        onStageUpdated({ 
+          stage: selectedStage, 
+          type: transitionType,
+          caseId: caseId,
+          updatedAt: new Date().toISOString()
+        });
       }
 
       onClose();

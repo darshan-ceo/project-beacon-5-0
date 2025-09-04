@@ -481,6 +481,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
           onClose={() => setShowStageModal(false)}
           caseId={selectedCase?.id || null}
           currentStage={selectedCase?.currentStage || ''}
+          dispatch={dispatch}
           onStageUpdated={(updatedData) => {
             // Trigger parent update callback
             if (onCaseUpdated) {
