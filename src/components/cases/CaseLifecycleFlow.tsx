@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -105,6 +105,21 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
   const [selectedFormCode, setSelectedFormCode] = useState<string>('');
   const [formTemplate, setFormTemplate] = useState<any>(null);
   const [isAdvancing, setIsAdvancing] = useState(false);
+
+  // Listen for reopen stage dialog events
+  useEffect(() => {
+    const handleReopenStageDialog = (event: CustomEvent) => {
+      const { caseId, stageId } = event.detail;
+      if (selectedCase?.id === caseId) {
+        setShowStageModal(true);
+      }
+    };
+
+    window.addEventListener('reopen-stage-dialog', handleReopenStageDialog as EventListener);
+    return () => {
+      window.removeEventListener('reopen-stage-dialog', handleReopenStageDialog as EventListener);
+    };
+  }, [selectedCase]);
 
   const getCurrentStageIndex = () => {
     if (!selectedCase) return 0;

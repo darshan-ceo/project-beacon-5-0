@@ -166,7 +166,7 @@ export const DocumentManagement: React.FC = () => {
         fromUrl: window.location.pathname + window.location.search,
         timestamp: Date.now()
       };
-      localStorage.setItem('return-context', JSON.stringify(returnContext));
+      localStorage.setItem('navigation-context', JSON.stringify(returnContext));
     }
   }, [searchParams]);
 
@@ -377,13 +377,12 @@ export const DocumentManagement: React.FC = () => {
 
   // Return navigation handler
   const handleReturnToStageManagement = () => {
-    const returnContext = JSON.parse(localStorage.getItem('return-context') || '{}');
+    const returnContext = JSON.parse(localStorage.getItem('navigation-context') || '{}');
     if (returnContext.returnTo === 'stage-management' && returnContext.returnCaseId) {
       // Navigate back to case and open stage management
       navigate(`/cases?caseId=${returnContext.returnCaseId}`);
       
       // Clear return context
-      localStorage.removeItem('return-context');
       localStorage.removeItem('navigation-context');
       
       // Signal to reopen stage dialog after navigation
@@ -402,7 +401,7 @@ export const DocumentManagement: React.FC = () => {
   // Check if we have return context
   const hasReturnContext = () => {
     try {
-      const returnContext = JSON.parse(localStorage.getItem('return-context') || '{}');
+      const returnContext = JSON.parse(localStorage.getItem('navigation-context') || '{}');
       return returnContext.returnTo === 'stage-management' && returnContext.returnCaseId;
     } catch {
       return false;
@@ -412,7 +411,7 @@ export const DocumentManagement: React.FC = () => {
   // Get current case info for breadcrumb
   const getCurrentCaseInfo = () => {
     try {
-      const returnContext = JSON.parse(localStorage.getItem('return-context') || '{}');
+      const returnContext = JSON.parse(localStorage.getItem('navigation-context') || '{}');
       const caseId = searchParams.get('caseId') || returnContext.returnCaseId;
       const currentCase = state.cases.find(c => c.id === caseId);
       return currentCase ? { id: caseId, number: currentCase.caseNumber } : null;
