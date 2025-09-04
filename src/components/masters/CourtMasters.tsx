@@ -13,10 +13,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Building2, MapPin, Phone, Mail, Search, Filter, Plus, Edit, Eye, Users } from 'lucide-react';
 import { CourtModal } from '@/components/modals/CourtModal';
 import { Court, useAppState } from '@/contexts/AppStateContext';
+import { courtsService } from '@/services/courtsService';
 
 
 export const CourtMasters: React.FC = () => {
-  const { state } = useAppState();
+  const { state, dispatch } = useAppState();
   const [searchTerm, setSearchTerm] = useState('');
   const [courtModal, setCourtModal] = useState<{ isOpen: boolean; mode: 'create' | 'edit' | 'view'; court?: Court | null }>({
     isOpen: false,
@@ -127,7 +128,6 @@ export const CourtMasters: React.FC = () => {
                     try {
                       // Get form data properly
                       const courtName = (document.getElementById('courtName') as HTMLInputElement)?.value;
-                      const courtTypeSelect = document.querySelector('select[aria-describedby]') as HTMLSelectElement;
                       const jurisdiction = (document.getElementById('jurisdiction') as HTMLInputElement)?.value;
                       const address = (document.getElementById('address') as HTMLTextAreaElement)?.value;
 
@@ -140,30 +140,25 @@ export const CourtMasters: React.FC = () => {
                         return;
                       }
 
-                      // This would normally call courtsService.create()
-                      // For now, simulate successful creation and update list
-                      const newCourt = {
-                        id: Date.now().toString(),
+                      // Create court using courtsService
+                      const newCourt = await courtsService.create({
                         name: courtName,
                         type: 'Tribunal' as const,
                         jurisdiction: jurisdiction,
                         address: address || '',
                         establishedYear: new Date().getFullYear(),
-                        totalJudges: 0,
-                        activeCases: 0,
-                        avgHearingTime: '0 days',
                         digitalFiling: true,
                         workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
-                      };
+                      });
+
+                      // Dispatch to update state
+                      dispatch({ type: 'ADD_COURT', payload: newCourt });
 
                       toast({
                         title: "Court Created Successfully",
                         description: `${courtName} has been added to the system`,
                       });
                       setIsAddCourtOpen(false);
-                      
-                      // In real app, would dispatch ADD_COURT action or refetch data
-                      console.log('New court created:', newCourt);
                       
                     } catch (error) {
                       toast({

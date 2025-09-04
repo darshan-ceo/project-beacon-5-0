@@ -13,10 +13,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User, Scale, Clock, Phone, Mail, Search, Filter, Plus, Edit, Eye, Calendar } from 'lucide-react';
 import { JudgeModal } from '@/components/modals/JudgeModal';
 import { Judge, useAppState } from '@/contexts/AppStateContext';
+import { judgesService } from '@/services/judgesService';
 
 
 export const JudgeMasters: React.FC = () => {
-  const { state } = useAppState();
+  const { state, dispatch } = useAppState();
   const [searchTerm, setSearchTerm] = useState('');
   const [judgeModal, setJudgeModal] = useState<{ isOpen: boolean; mode: 'create' | 'edit' | 'view'; judge?: Judge | null }>({
     isOpen: false,
@@ -156,14 +157,11 @@ export const JudgeMasters: React.FC = () => {
                 onClick={async () => {
                   try {
                     // Get form data
-                    const form = document.forms[0];
-                    const formData = new FormData(form);
-                    
                     const judgeData = {
                       name: (document.getElementById('judgeName') as HTMLInputElement)?.value || '',
                       designation: (document.getElementById('designation') as HTMLInputElement)?.value || '',
-                      courtId: 'court-1', // In real app, get from select
-                      appointmentDate: (document.getElementById('appointmentDate') as HTMLInputElement)?.value || '',
+                      courtId: state.courts[0]?.id || 'court-1', // Use first available court or default
+                      appointmentDate: (document.getElementById('appointmentDate') as HTMLInputElement)?.value || new Date().toISOString().split('T')[0],
                       specialization: ['GST', 'Income Tax'], // In real app, get from form
                       contactInfo: {
                         chambers: 'Chamber 1',
@@ -182,8 +180,12 @@ export const JudgeMasters: React.FC = () => {
                       return;
                     }
 
-                    // This would normally call judgesService.create(judgeData)
-                    // For now, just show success
+                    // Create judge using judgesService
+                    const newJudge = await judgesService.create(judgeData);
+                    
+                    // Dispatch to update state
+                    dispatch({ type: 'ADD_JUDGE', payload: newJudge });
+
                     toast({
                       title: "Judge Profile Created",
                       description: "New judge profile has been added successfully",

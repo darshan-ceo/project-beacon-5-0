@@ -32,6 +32,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from '@/hooks/use-toast';
+import { profileService } from '@/services/profileService';
 
 interface UserProfileData {
   id: string;
@@ -135,6 +136,8 @@ export const UserProfile: React.FC = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
+  const [sessions, setSessions] = useState(mockSessions);
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleSaveProfile = () => {
     toast({
@@ -152,10 +155,42 @@ export const UserProfile: React.FC = () => {
   };
 
   const handleTerminateSession = (sessionId: string) => {
+    // Update sessions state to remove the terminated session
+    const updatedSessions = sessions.map(session =>
+      session.id === sessionId 
+        ? { ...session, status: 'Expired' as const }
+        : session
+    );
+    setSessions(updatedSessions);
+    
     toast({
       title: "Session Terminated",
       description: "The selected session has been terminated.",
     });
+  };
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      const avatarUrl = await profileService.uploadAvatar(file);
+      setUser(prev => ({ ...prev, avatar: avatarUrl }));
+      
+      toast({
+        title: "Avatar Updated",
+        description: "Your profile photo has been updated successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Upload Failed",
+        description: error.message || "Failed to upload avatar. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleEnable2FA = () => {
@@ -196,18 +231,23 @@ export const UserProfile: React.FC = () => {
                         <AvatarImage src={user.avatar} alt={user.name} />
                         <AvatarFallback>{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                       </Avatar>
-                      <Button 
-                        size="sm" 
-                        className="absolute -bottom-2 -right-2 rounded-full h-8 w-8 p-0"
-                        onClick={() => {
-                          toast({
-                            title: "Upload Avatar",
-                            description: "Opening image upload interface",
-                          });
-                        }}
-                      >
-                        <Camera className="h-4 w-4" />
-                      </Button>
+                      <div className="relative">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleAvatarUpload}
+                          className="hidden"
+                          id="avatar-upload"
+                        />
+                        <Button 
+                          size="sm" 
+                          className="absolute -bottom-2 -right-2 rounded-full h-8 w-8 p-0"
+                          onClick={() => document.getElementById('avatar-upload')?.click()}
+                          disabled={isUploading}
+                        >
+                          <Camera className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                     <div className="text-center">
                       <h3 className="text-lg font-semibold">{user.name}</h3>
@@ -532,7 +572,7 @@ export const UserProfile: React.FC = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mockSessions.map((session) => (
+                  {sessions.map((session) => (
                     <TableRow key={session.id}>
                       <TableCell>{session.device}</TableCell>
                       <TableCell>{session.location}</TableCell>

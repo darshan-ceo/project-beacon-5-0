@@ -354,9 +354,17 @@ export const RBACManagement: React.FC = () => {
                             variant="outline" 
                             size="sm"
                             onClick={() => {
+                              // Update user role functionality
+                              const newStatus: User['status'] = user.status === 'Active' ? 'Inactive' : 'Active';
+                              const updatedUsers = users.map(u => 
+                                u.id === user.id 
+                                  ? { ...u, status: newStatus }
+                                  : u
+                              );
+                              setUsers(updatedUsers);
                               toast({
-                                title: "Edit User",
-                                description: `Opening user editor for ${user.name}`,
+                                title: "User Status Updated",
+                                description: `${user.name} status has been updated`,
                               });
                             }}
                           >
@@ -366,10 +374,25 @@ export const RBACManagement: React.FC = () => {
                             variant="outline" 
                             size="sm"
                             onClick={() => {
-                              toast({
-                                title: "Assign Role",
-                                description: `Opening role assignment for ${user.name}`,
-                              });
+                              // Role assignment functionality
+                              const availableRoles = roles.filter(r => r.name !== user.role);
+                              if (availableRoles.length > 0) {
+                                const newRole = availableRoles[0].name;
+                                const updatedUsers = users.map(u => 
+                                  u.id === user.id ? { ...u, role: newRole } : u
+                                );
+                                setUsers(updatedUsers);
+                                toast({
+                                  title: "Role Assigned",
+                                  description: `${user.name} assigned role: ${newRole}`,
+                                });
+                              } else {
+                                toast({
+                                  title: "No Available Roles",
+                                  description: "Create more roles to assign",
+                                  variant: "destructive"
+                                });
+                              }
                             }}
                           >
                             <Edit className="h-4 w-4" />

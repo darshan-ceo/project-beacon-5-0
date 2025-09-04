@@ -399,15 +399,46 @@ export const TaskAutomation: React.FC<TaskAutomationProps> = ({ bundles }) => {
         >
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <Settings className="mr-2 h-5 w-5 text-secondary" />
-                Automation Rules
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <Settings className="mr-2 h-5 w-5 text-secondary" />
+                  Automation Rules
+                </div>
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const container = document.getElementById('automation-rules-container');
+                      if (container) {
+                        container.scrollBy({ left: -200, behavior: 'smooth' });
+                      }
+                    }}
+                  >
+                    ←
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const container = document.getElementById('automation-rules-container');
+                      if (container) {
+                        container.scrollBy({ left: 200, behavior: 'smooth' });
+                      }
+                    }}
+                  >
+                    →
+                  </Button>
+                </div>
               </CardTitle>
               <CardDescription>
                 Configure when and how tasks are automatically created
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent 
+              id="automation-rules-container"
+              className="space-y-4 overflow-x-auto max-h-96 overflow-y-auto"
+            >
               {automationRules.map((rule, index) => (
                 <motion.div
                   key={rule.id}
