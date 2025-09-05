@@ -182,7 +182,7 @@ export const hearingsService = {
         updated_at: new Date().toISOString()
       };
 
-      const response = await apiService.patch<Hearing>(`/api/hearings/${id}`, updates);
+      const response = await apiService.put<Hearing>(`/api/hearings/${id}`, updates);
       
       if (response.success) {
         toast({
@@ -320,10 +320,10 @@ export const hearingsService = {
         return response.data;
       }
       
-      return { hearings: {} };
+      return { hearings: { next: null, last: null } };
     } catch (error) {
       log('error', 'fetch stage context', error);
-      return { hearings: {} };
+      return { hearings: { next: null, last: null } };
     }
   },
 

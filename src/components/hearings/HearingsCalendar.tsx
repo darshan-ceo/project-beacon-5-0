@@ -139,7 +139,7 @@ export const HearingsCalendar: React.FC<HearingsCalendarProps> = ({
       case 'adjourned':
         backgroundColor = '#f59e0b';
         break;
-      case 'cancelled':
+      case 'withdrawn':
         backgroundColor = '#ef4444';
         break;
     }
@@ -157,7 +157,7 @@ export const HearingsCalendar: React.FC<HearingsCalendarProps> = ({
   };
 
   const CustomEvent: React.FC<{ event: CalendarEvent }> = ({ event }) => {
-    const { hearing, case_, court, judges } = event.resource;
+    const { hearing, case: caseData, court, judges } = event.resource;
     
     return (
       <div className="p-1">
@@ -238,7 +238,7 @@ export const HearingsCalendar: React.FC<HearingsCalendarProps> = ({
                 <div>
                   <Label>Status</Label>
                   <div className="mt-2 space-y-2">
-                    {['scheduled', 'concluded', 'adjourned', 'cancelled'].map(status => (
+                    {['scheduled', 'concluded', 'adjourned', 'withdrawn'].map(status => (
                       <div key={status} className="flex items-center space-x-2">
                         <Checkbox
                           id={status}

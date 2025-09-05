@@ -54,7 +54,7 @@ export const HearingModal: React.FC<HearingModalProps> = ({
     date: Date;
     time: string;
     type: 'Adjourned' | 'Final' | 'Argued' | 'Preliminary';
-    status: 'Scheduled' | 'Completed' | 'Postponed' | 'Cancelled';
+    status: 'scheduled' | 'concluded' | 'adjourned' | 'no-board' | 'withdrawn';
     agenda: string;
     notes: string;
   }>({
@@ -64,7 +64,7 @@ export const HearingModal: React.FC<HearingModalProps> = ({
     date: new Date(),
     time: '10:00',
     type: 'Preliminary',
-    status: 'Scheduled',
+    status: 'scheduled',
     agenda: '',
     notes: ''
   });
@@ -78,7 +78,7 @@ export const HearingModal: React.FC<HearingModalProps> = ({
         date: new Date(hearingData.date),
         time: hearingData.time,
         type: hearingData.type,
-        status: hearingData.status,
+        status: hearingData.status as any,
         agenda: hearingData.agenda,
         notes: hearingData.notes || ''
       });
@@ -118,16 +118,27 @@ export const HearingModal: React.FC<HearingModalProps> = ({
     if (mode === 'create') {
       const newHearing: Hearing = {
         id: Date.now().toString(),
+        case_id: formData.caseId,
+        start_time: formData.time,
+        end_time: formData.time,
+        timezone: 'Asia/Kolkata',
+        court_id: formData.courtId,
+        judge_ids: [formData.judgeId],
+        purpose: 'mention',
+        status: formData.status as any,
+        created_by: 'current-user',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        date: formData.date.toISOString().split('T')[0],
+        notes: formData.notes,
+        // Legacy compatibility
         caseId: formData.caseId,
         clientId: caseWithClient.client.id,
         courtId: formData.courtId,
         judgeId: formData.judgeId,
-        date: formData.date.toISOString().split('T')[0],
         time: formData.time,
         type: formData.type,
-        status: formData.status,
         agenda: formData.agenda,
-        notes: formData.notes,
         createdDate: new Date().toISOString().split('T')[0],
         lastUpdated: new Date().toISOString().split('T')[0]
       };
@@ -145,7 +156,7 @@ export const HearingModal: React.FC<HearingModalProps> = ({
         date: formData.date.toISOString().split('T')[0],
         time: formData.time,
         type: formData.type,
-        status: formData.status,
+        status: formData.status as any,
         agenda: formData.agenda,
         notes: formData.notes,
         lastUpdated: new Date().toISOString().split('T')[0]

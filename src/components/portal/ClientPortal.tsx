@@ -40,11 +40,13 @@ export const ClientPortal: React.FC = () => {
   
   // Transform hearings to match interface  
   const clientHearings = (state.hearings?.filter(h => 
-    clientCases.some(c => c.id === h.caseId)
+    clientCases.some(c => c.id === (h.caseId || h.case_id))
   ) || []).map(h => ({
     ...h,
-    status: h.status === 'Postponed' ? 'Rescheduled' as const : h.status as any
-  }));
+    time: h.time || h.start_time,
+    caseId: h.caseId || h.case_id,
+    type: h.type || 'Preliminary'
+  })) as any;
 
   // Calculate stats
   const activeCases = clientCases.length; // All cases considered active for demo
