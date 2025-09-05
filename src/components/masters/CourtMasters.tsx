@@ -29,9 +29,14 @@ export const CourtMasters: React.FC = () => {
 
   // Filter courts based on search and filters
   const filteredCourts = (state.courts || []).filter(court => {
+    // Handle both string and object addresses for search
+    const addressText = typeof court.address === 'string' 
+      ? court.address 
+      : `${court.address.line1} ${court.address.line2} ${court.address.locality} ${court.address.district}`.trim();
+    
     const matchesSearch = court.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          court.jurisdiction.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         court.address.toLowerCase().includes(searchTerm.toLowerCase());
+                         addressText.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesType = filterType === 'all' || court.type === filterType;
     
@@ -228,7 +233,10 @@ export const CourtMasters: React.FC = () => {
                         <div className="font-medium">{court.name}</div>
                         <div className="text-sm text-muted-foreground flex items-center gap-1">
                           <MapPin className="h-3 w-3" />
-                          {court.address}
+                          {typeof court.address === 'string' 
+                            ? court.address 
+                            : `${court.address.line1}${court.address.line2 ? ', ' + court.address.line2 : ''}${court.address.locality ? ', ' + court.address.locality : ''}${court.address.district ? ', ' + court.address.district : ''}`
+                          }
                         </div>
                         <div className="text-xs text-muted-foreground">
                           Est. {court.establishedYear}
