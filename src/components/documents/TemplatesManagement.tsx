@@ -5,10 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
 import { formTemplatesService, FormTemplate } from '@/services/formTemplatesService';
+import { customTemplatesService, CustomTemplate } from '@/services/customTemplatesService';
 import { FormRenderModal } from './FormRenderModal';
+import { TemplateEditor } from './TemplateEditor';
+import { TemplateBuilder } from './TemplateBuilder';
 import { useAppState } from '@/contexts/AppStateContext';
 import { useRBAC } from '@/hooks/useRBAC';
 import { 
@@ -23,13 +27,19 @@ import {
   Calendar,
   Tag,
   CheckCircle,
-  Clock
+  Clock,
+  Wrench,
+  Copy,
+  Import,
+  Trash2,
+  History
 } from 'lucide-react';
 
 export const TemplatesManagement: React.FC = () => {
   const { state } = useAppState();
   const { hasPermission } = useRBAC();
   const [templates, setTemplates] = useState<FormTemplate[]>([]);
+  const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [stageFilter, setStageFilter] = useState<string>('all');
@@ -37,28 +47,47 @@ export const TemplatesManagement: React.FC = () => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [generateModalOpen, setGenerateModalOpen] = useState(false);
   const [selectedCaseId, setSelectedCaseId] = useState<string>('');
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [builderOpen, setBuilderOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<FormTemplate | null>(null);
+  const [activeTab, setActiveTab] = useState('standard');
 
   const canEdit = hasPermission('admin', 'admin');
   const canGenerate = hasPermission('documents', 'write') || hasPermission('admin', 'admin');
 
   useEffect(() => {
     loadTemplates();
+    loadCustomTemplates();
   }, []);
 
   const loadTemplates = async () => {
     setLoading(true);
     try {
-      const allTemplates = await formTemplatesService.getAllTemplates();
-      setTemplates(allTemplates);
+      const templatesData = await formTemplatesService.getAllTemplates();
+      setTemplates(templatesData);
     } catch (error) {
-      console.error('Failed to load templates:', error);
+      console.error('Error loading templates:', error);
       toast({
         title: "Error",
-        description: "Failed to load templates. Please try again.",
+        description: "Failed to load templates",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadCustomTemplates = async () => {
+    try {
+      const customTemplatesData = await customTemplatesService.getCustomTemplates();
+      setCustomTemplates(customTemplatesData);
+    } catch (error) {
+      console.error('Error loading custom templates:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load custom templates",
+        variant: "destructive",
+      });
     }
   };
 
@@ -92,15 +121,33 @@ export const TemplatesManagement: React.FC = () => {
     return matchesSearch && matchesStage;
   });
 
+  const filteredCustomTemplates = customTemplates.filter(template => {
+    const matchesSearch = template.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         template.code.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStage = stageFilter === 'all' || template.stage === stageFilter;
+    return matchesSearch && matchesStage;
+  });
+
   const groupedTemplates = filteredTemplates.reduce((acc, template) => {
-    if (!acc[template.stage]) {
-      acc[template.stage] = [];
+    const stage = template.stage;
+    if (!acc[stage]) {
+      acc[stage] = [];
     }
-    acc[template.stage].push(template);
+    acc[stage].push(template);
     return acc;
   }, {} as Record<string, FormTemplate[]>);
 
-  const uniqueStages = [...new Set(templates.map(t => t.stage))];
+  const groupedCustomTemplates = filteredCustomTemplates.reduce((acc, template) => {
+    const stage = template.stage;
+    if (!acc[stage]) {
+      acc[stage] = [];
+    }
+    acc[stage].push(template);
+    return acc;
+  }, {} as Record<string, CustomTemplate[]>);
+
+  const allTemplates = [...templates, ...customTemplates];
+  const uniqueStages = Array.from(new Set(allTemplates.map(t => t.stage)));
 
   if (loading) {
     return (
@@ -116,33 +163,29 @@ export const TemplatesManagement: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <motion.div 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="flex justify-between items-center"
-      >
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Form Templates</h2>
-          <p className="text-muted-foreground mt-1">
-            Statutory forms and templates for GST cases
+          <h2 className="text-2xl font-bold tracking-tight">Form Templates</h2>
+          <p className="text-muted-foreground">
+            Manage and generate compliance forms for different case stages
           </p>
         </div>
         {canEdit && (
-          <Button variant="outline">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Template
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setBuilderOpen(true)}>
+              <Wrench className="mr-2 h-4 w-4" />
+              Template Builder
+            </Button>
+            <Button onClick={() => { setEditingTemplate(null); setEditorOpen(true); }}>
+              <Plus className="mr-2 h-4 w-4" />
+              Create Template
+            </Button>
+          </div>
         )}
-      </motion.div>
+      </div>
 
       {/* Search and Filters */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.1 }}
-        className="flex flex-col sm:flex-row gap-4 items-center justify-between"
-      >
+      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -167,211 +210,148 @@ export const TemplatesManagement: React.FC = () => {
             </SelectContent>
           </Select>
         </div>
-      </motion.div>
+      </div>
 
-      {/* Templates Grid */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.2 }}
-        className="space-y-8"
-      >
-        {Object.entries(groupedTemplates).map(([stage, stageTemplates]) => (
-          <div key={stage} className="space-y-4">
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-semibold text-foreground">{stage}</h3>
-              <Badge variant="outline" className={getStageColor(stage)}>
-                {stageTemplates.length} template{stageTemplates.length !== 1 ? 's' : ''}
-              </Badge>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {stageTemplates.map((template) => (
-                <Card key={template.code} className="hover:shadow-md transition-shadow">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1">
-                        <CardTitle className="text-base">{template.title}</CardTitle>
-                        <CardDescription className="text-xs">
-                          <Code className="inline h-3 w-3 mr-1" />
-                          {template.code}
-                        </CardDescription>
-                      </div>
-                      <Badge variant="outline" className={getStageColor(template.stage)}>
-                        v{template.version}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  
-                  <CardContent className="pt-0">
-                    <div className="space-y-3">
-                      <div className="text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <FileText className="h-3 w-3" />
-                          {template.fields.length} field{template.fields.length !== 1 ? 's' : ''}
-                        </div>
-                        <div className="flex items-center gap-1 mt-1">
-                          <Tag className="h-3 w-3" />
-                          Auto-prefill: {Object.keys(template.prefill).length} field{Object.keys(template.prefill).length !== 1 ? 's' : ''}
-                        </div>
-                      </div>
-                      
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handlePreview(template)}
-                          className="flex-1"
-                        >
-                          <Eye className="mr-1 h-3 w-3" />
-                          Preview
-                        </Button>
-                        {canGenerate && (
-                          <Button
-                            size="sm"
-                            onClick={() => handleGenerate(template)}
-                            className="flex-1"
-                          >
-                            <Download className="mr-1 h-3 w-3" />
-                            Generate
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        ))}
-      </motion.div>
+      {/* Templates Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="standard">Standard Templates ({filteredTemplates.length})</TabsTrigger>
+          <TabsTrigger value="custom">Custom Templates ({filteredCustomTemplates.length})</TabsTrigger>
+        </TabsList>
 
-      {/* No Results */}
-      {filteredTemplates.length === 0 && !loading && (
-        <div className="text-center py-12">
-          <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-lg font-medium text-foreground mb-2">No templates found</h3>
-          <p className="text-muted-foreground">
-            {searchTerm || stageFilter !== 'all' 
-              ? 'Try adjusting your search or filters'
-              : 'No templates are available yet'
-            }
-          </p>
-        </div>
-      )}
-
-      {/* Preview Modal */}
-      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Template Preview: {selectedTemplate?.title}</DialogTitle>
-            <DialogDescription>
-              Template structure and field definitions
-            </DialogDescription>
-          </DialogHeader>
-          
-          {selectedTemplate && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="font-medium">Code:</span> {selectedTemplate.code}
-                </div>
-                <div>
-                  <span className="font-medium">Stage:</span> {selectedTemplate.stage}
-                </div>
-                <div>
-                  <span className="font-medium">Version:</span> {selectedTemplate.version}
-                </div>
-                <div>
-                  <span className="font-medium">Fields:</span> {selectedTemplate.fields.length}
-                </div>
+        <TabsContent value="standard" className="space-y-6">
+          {Object.entries(groupedTemplates).map(([stage, stageTemplates]) => (
+            <motion.div
+              key={stage}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="mb-4 flex items-center gap-2">
+                <h3 className="text-lg font-semibold">{stage}</h3>
+                <Badge variant="secondary">{stageTemplates.length}</Badge>
               </div>
               
-              <div>
-                <h4 className="font-medium mb-2">Form Fields:</h4>
-                <div className="space-y-2">
-                  {selectedTemplate.fields.map((field, index) => (
-                    <div key={index} className="border rounded p-3 text-sm">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-medium">{field.label}</span>
-                        <Badge variant="outline" className="text-xs">
-                          {field.type}
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {stageTemplates.map((template, index) => (
+                  <Card key={template.code} className="h-full hover:shadow-md transition-shadow">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <Badge variant="outline" className={getStageColor(template.stage)}>
+                          {template.stage}
                         </Badge>
+                        <Badge variant="secondary">v{template.version}</Badge>
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        Key: {field.key}
-                        {field.required && <span className="text-red-500 ml-2">Required</span>}
+                      <CardTitle className="text-lg leading-6">{template.title}</CardTitle>
+                      <CardDescription className="text-sm">
+                        Code: {template.code}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between text-sm text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <FileText className="h-4 w-4" />
+                            {template.fields.length} fields
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <CheckCircle className="h-4 w-4" />
+                            Standard
+                          </span>
+                        </div>
+                        
+                        <div className="flex flex-wrap gap-2">
+                          <Button variant="outline" size="sm" onClick={() => handlePreview(template)}>
+                            <Eye className="mr-1 h-3 w-3" />
+                            Preview
+                          </Button>
+                          {canGenerate && (
+                            <Button size="sm" onClick={() => handleGenerate(template)}>
+                              <Download className="mr-1 h-3 w-3" />
+                              Generate
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
+            </motion.div>
+          ))}
+
+          {filteredTemplates.length === 0 && (
+            <div className="text-center py-12">
+              <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
+              <h3 className="mt-2 text-sm font-semibold text-foreground">No standard templates found</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {searchTerm || stageFilter !== 'all' 
+                  ? 'Try adjusting your search criteria.' 
+                  : 'Standard templates will appear here.'}
+              </p>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
+        </TabsContent>
 
-      {/* Generate Modal */}
-      {selectedTemplate && (
+        <TabsContent value="custom" className="space-y-6">
+          {filteredCustomTemplates.length === 0 && (
+            <div className="text-center py-12">
+              <Wrench className="mx-auto h-12 w-12 text-muted-foreground" />
+              <h3 className="mt-2 text-sm font-semibold text-foreground">No custom templates found</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {searchTerm || stageFilter !== 'all' 
+                  ? 'Try adjusting your search criteria.' 
+                  : 'Create your first custom template to get started.'}
+              </p>
+              {canEdit && (
+                <Button className="mt-4" onClick={() => setBuilderOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Custom Template
+                </Button>
+              )}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      {/* Modals */}
+      {generateModalOpen && selectedTemplate && (
         <FormRenderModal
           isOpen={generateModalOpen}
-          onClose={() => setGenerateModalOpen(false)}
-          template={selectedTemplate}
-          selectedCaseId={selectedCaseId || undefined}
-          onFormGenerated={() => {
+          onClose={() => {
             setGenerateModalOpen(false);
-            toast({
-              title: "Form Generated",
-              description: `${selectedTemplate.title} has been generated successfully.`,
-            });
+            setSelectedTemplate(null);
+            setSelectedCaseId('');
           }}
+          template={selectedTemplate}
+          selectedCaseId={selectedCaseId}
+          onCaseSelect={setSelectedCaseId}
         />
       )}
 
-      {/* Case Selector for Generate */}
-      {generateModalOpen && !selectedCaseId && (
-        <Dialog open={true} onOpenChange={() => setGenerateModalOpen(false)}>
-          <DialogContent>
+      <TemplateEditor
+        template={editingTemplate}
+        onSave={() => {}}
+        onCancel={() => {
+          setEditorOpen(false);
+          setEditingTemplate(null);
+        }}
+        isOpen={editorOpen}
+      />
+
+      {builderOpen && (
+        <Dialog open={builderOpen} onOpenChange={() => setBuilderOpen(false)}>
+          <DialogContent className="max-w-7xl max-h-[90vh] overflow-hidden">
             <DialogHeader>
-              <DialogTitle>Select Case</DialogTitle>
+              <DialogTitle>Template Builder</DialogTitle>
               <DialogDescription>
-                Choose a case to generate the template for
+                Create a new template using predefined fields from your system
               </DialogDescription>
             </DialogHeader>
-            
-            <div className="space-y-4">
-              <Select onValueChange={setSelectedCaseId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a case..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {state.cases.map(case_ => {
-                    const client = state.clients.find(c => c.id === case_.clientId);
-                    return (
-                      <SelectItem key={case_.id} value={case_.id}>
-                        {case_.title} - {client?.name || 'Unknown Client'}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-              
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setGenerateModalOpen(false)}>
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={() => {
-                    if (selectedCaseId) {
-                      // This will trigger the FormRenderModal to open
-                    }
-                  }}
-                  disabled={!selectedCaseId}
-                >
-                  Continue
-                </Button>
-              </div>
-            </div>
+            <TemplateBuilder
+              onCreateTemplate={() => {}}
+              onClose={() => setBuilderOpen(false)}
+            />
           </DialogContent>
         </Dialog>
       )}
