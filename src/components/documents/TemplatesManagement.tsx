@@ -101,6 +101,102 @@ export const TemplatesManagement: React.FC = () => {
     setGenerateModalOpen(true);
   };
 
+  const handleEdit = (template: FormTemplate) => {
+    setEditingTemplate(template);
+    setEditorOpen(true);
+  };
+
+  const handleDuplicate = async (template: CustomTemplate) => {
+    try {
+      await customTemplatesService.duplicateTemplate(template.id, `${template.title} (Copy)`);
+      await loadCustomTemplates();
+      toast({
+        title: "Success",
+        description: "Template duplicated successfully",
+      });
+    } catch (error) {
+      console.error('Error duplicating template:', error);
+      toast({
+        title: "Error",
+        description: "Failed to duplicate template",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDelete = async (template: CustomTemplate) => {
+    try {
+      await customTemplatesService.deleteTemplate(template.id);
+      await loadCustomTemplates();
+      toast({
+        title: "Success",
+        description: "Template deleted successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting template:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete template",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSaveTemplate = async (template: FormTemplate) => {
+    try {
+      if (editingTemplate && 'isCustom' in editingTemplate) {
+        // Update existing custom template
+        await customTemplatesService.updateTemplate((editingTemplate as CustomTemplate).id, template);
+      } else {
+        // Create new custom template from standard template or new template
+        await customTemplatesService.saveTemplate({
+          ...template,
+          createdBy: 'Current User'
+        });
+      }
+      
+      await loadCustomTemplates();
+      setEditorOpen(false);
+      setEditingTemplate(null);
+      
+      toast({
+        title: "Success",
+        description: editingTemplate ? "Template updated successfully" : "Template created successfully",
+      });
+    } catch (error) {
+      console.error('Error saving template:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save template",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCreateFromBuilder = async (template: FormTemplate) => {
+    try {
+      await customTemplatesService.saveTemplate({
+        ...template,
+        createdBy: 'Current User'
+      });
+      
+      await loadCustomTemplates();
+      setBuilderOpen(false);
+      
+      toast({
+        title: "Success",
+        description: "Template created successfully",
+      });
+    } catch (error) {
+      console.error('Error creating template:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create template",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getStageColor = (stage: string) => {
     switch (stage) {
       case 'Scrutiny': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
@@ -271,6 +367,12 @@ export const TemplatesManagement: React.FC = () => {
                               Generate
                             </Button>
                           )}
+                          {canEdit && (
+                            <Button variant="outline" size="sm" onClick={() => handleEdit(template)}>
+                              <Edit className="mr-1 h-3 w-3" />
+                              Edit
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </CardContent>
@@ -294,6 +396,93 @@ export const TemplatesManagement: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="custom" className="space-y-6">
+          {/* Custom Templates Header with Action Button */}
+          {canEdit && filteredCustomTemplates.length > 0 && (
+            <div className="flex justify-end">
+              <Button onClick={() => { setEditingTemplate(null); setEditorOpen(true); }}>
+                <Plus className="mr-2 h-4 w-4" />
+                New Custom Template
+              </Button>
+            </div>
+          )}
+
+          {/* Custom Templates Display */}
+          {Object.entries(groupedCustomTemplates).map(([stage, stageTemplates]) => (
+            <motion.div
+              key={stage}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="mb-4 flex items-center gap-2">
+                <h3 className="text-lg font-semibold">{stage}</h3>
+                <Badge variant="secondary">{stageTemplates.length}</Badge>
+              </div>
+              
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {stageTemplates.map((template) => (
+                  <Card key={template.id} className="h-full hover:shadow-md transition-shadow">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <Badge variant="outline" className={getStageColor(template.stage)}>
+                          {template.stage}
+                        </Badge>
+                        <Badge variant="default">Custom</Badge>
+                      </div>
+                      <CardTitle className="text-lg leading-6">{template.title}</CardTitle>
+                      <CardDescription className="text-sm">
+                        Code: {template.code}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between text-sm text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <FileText className="h-4 w-4" />
+                            {template.fields.length} fields
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Wrench className="h-4 w-4" />
+                            {template.createdBy}
+                          </span>
+                        </div>
+                        
+                        <div className="flex flex-wrap gap-2">
+                          <Button variant="outline" size="sm" onClick={() => handlePreview(template)}>
+                            <Eye className="mr-1 h-3 w-3" />
+                            Preview
+                          </Button>
+                          {canGenerate && (
+                            <Button size="sm" onClick={() => handleGenerate(template)}>
+                              <Download className="mr-1 h-3 w-3" />
+                              Generate
+                            </Button>
+                          )}
+                          {canEdit && (
+                            <>
+                              <Button variant="outline" size="sm" onClick={() => handleEdit(template)}>
+                                <Edit className="mr-1 h-3 w-3" />
+                                Edit
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => handleDuplicate(template)}>
+                                <Copy className="mr-1 h-3 w-3" />
+                                Duplicate
+                              </Button>
+                              <Button variant="destructive" size="sm" onClick={() => handleDelete(template)}>
+                                <Trash2 className="mr-1 h-3 w-3" />
+                                Delete
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </motion.div>
+          ))}
+
           {filteredCustomTemplates.length === 0 && (
             <div className="text-center py-12">
               <Wrench className="mx-auto h-12 w-12 text-muted-foreground" />
@@ -304,10 +493,16 @@ export const TemplatesManagement: React.FC = () => {
                   : 'Create your first custom template to get started.'}
               </p>
               {canEdit && (
-                <Button className="mt-4" onClick={() => setBuilderOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Custom Template
-                </Button>
+                <div className="flex gap-2 justify-center mt-4">
+                  <Button onClick={() => { setEditingTemplate(null); setEditorOpen(true); }}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    New Custom Template
+                  </Button>
+                  <Button variant="outline" onClick={() => setBuilderOpen(true)}>
+                    <Wrench className="mr-2 h-4 w-4" />
+                    Template Builder
+                  </Button>
+                </div>
               )}
             </div>
           )}
@@ -331,7 +526,7 @@ export const TemplatesManagement: React.FC = () => {
 
       <TemplateEditor
         template={editingTemplate}
-        onSave={() => {}}
+        onSave={handleSaveTemplate}
         onCancel={() => {
           setEditorOpen(false);
           setEditingTemplate(null);
@@ -349,7 +544,7 @@ export const TemplatesManagement: React.FC = () => {
               </DialogDescription>
             </DialogHeader>
             <TemplateBuilder
-              onCreateTemplate={() => {}}
+              onCreateTemplate={handleCreateFromBuilder}
               onClose={() => setBuilderOpen(false)}
             />
           </DialogContent>
