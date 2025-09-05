@@ -74,7 +74,57 @@ class AddressLookupService {
     { id: 'TN001', name: 'Chennai', stateId: 'TN' },
     { id: 'TN002', name: 'Coimbatore', stateId: 'TN' },
     { id: 'TN003', name: 'Madurai', stateId: 'TN' },
-    { id: 'TN004', name: 'Tiruchirappalli', stateId: 'TN' }
+    { id: 'TN004', name: 'Tiruchirappalli', stateId: 'TN' },
+    
+    // Gujarat
+    { id: 'GJ001', name: 'Ahmedabad', stateId: 'GJ' },
+    { id: 'GJ002', name: 'Surat', stateId: 'GJ' },
+    { id: 'GJ003', name: 'Vadodara', stateId: 'GJ' },
+    { id: 'GJ004', name: 'Rajkot', stateId: 'GJ' },
+    { id: 'GJ005', name: 'Gandhinagar', stateId: 'GJ' },
+    { id: 'GJ006', name: 'Jamnagar', stateId: 'GJ' },
+    { id: 'GJ007', name: 'Junagadh', stateId: 'GJ' },
+    { id: 'GJ008', name: 'Bhavnagar', stateId: 'GJ' },
+    { id: 'GJ009', name: 'Anand', stateId: 'GJ' },
+    { id: 'GJ010', name: 'Bharuch', stateId: 'GJ' },
+    
+    // Uttar Pradesh
+    { id: 'UP001', name: 'Lucknow', stateId: 'UP' },
+    { id: 'UP002', name: 'Kanpur', stateId: 'UP' },
+    { id: 'UP003', name: 'Agra', stateId: 'UP' },
+    { id: 'UP004', name: 'Varanasi', stateId: 'UP' },
+    { id: 'UP005', name: 'Meerut', stateId: 'UP' },
+    { id: 'UP006', name: 'Allahabad', stateId: 'UP' },
+    { id: 'UP007', name: 'Bareilly', stateId: 'UP' },
+    { id: 'UP008', name: 'Ghaziabad', stateId: 'UP' },
+    
+    // Rajasthan
+    { id: 'RJ001', name: 'Jaipur', stateId: 'RJ' },
+    { id: 'RJ002', name: 'Jodhpur', stateId: 'RJ' },
+    { id: 'RJ003', name: 'Udaipur', stateId: 'RJ' },
+    { id: 'RJ004', name: 'Kota', stateId: 'RJ' },
+    { id: 'RJ005', name: 'Bikaner', stateId: 'RJ' },
+    { id: 'RJ006', name: 'Ajmer', stateId: 'RJ' },
+    
+    // West Bengal
+    { id: 'WB001', name: 'Kolkata', stateId: 'WB' },
+    { id: 'WB002', name: 'Howrah', stateId: 'WB' },
+    { id: 'WB003', name: 'Durgapur', stateId: 'WB' },
+    { id: 'WB004', name: 'Asansol', stateId: 'WB' },
+    { id: 'WB005', name: 'Siliguri', stateId: 'WB' },
+    
+    // Andhra Pradesh
+    { id: 'AP001', name: 'Visakhapatnam', stateId: 'AP' },
+    { id: 'AP002', name: 'Vijayawada', stateId: 'AP' },
+    { id: 'AP003', name: 'Guntur', stateId: 'AP' },
+    { id: 'AP004', name: 'Nellore', stateId: 'AP' },
+    { id: 'AP005', name: 'Kurnool', stateId: 'AP' },
+    
+    // Telangana
+    { id: 'TS001', name: 'Hyderabad', stateId: 'TS' },
+    { id: 'TS002', name: 'Warangal', stateId: 'TS' },
+    { id: 'TS003', name: 'Nizamabad', stateId: 'TS' },
+    { id: 'TS004', name: 'Karimnagar', stateId: 'TS' }
   ];
 
   async getCountries(): Promise<Country[]> {

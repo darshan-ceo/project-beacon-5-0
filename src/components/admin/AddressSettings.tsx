@@ -244,6 +244,23 @@ export const AddressSettings: React.FC = () => {
           </div>
         </div>
 
+        {fieldName === 'cityId' && fieldConfig.visible && (
+          <div className="mt-3 p-3 bg-muted/50 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <Switch
+                checked={fieldConfig.allowManualInput || false}
+                onCheckedChange={(checked) => 
+                  updateFieldConfig(moduleName, fieldName, 'allowManualInput', checked)
+                }
+              />
+              <Label className="text-sm">Allow Manual City Input</Label>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Enable text input as fallback when no cities are available in dropdown
+            </p>
+          </div>
+        )}
+
         {isDisabled && (
           <Alert>
             <AlertTriangle className="h-4 w-4" />

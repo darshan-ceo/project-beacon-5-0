@@ -12,7 +12,8 @@ import {
   Globe,
   Save,
   RefreshCw,
-  AlertTriangle
+  AlertTriangle,
+  MapPin
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,6 +26,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
 import { CalendarIntegrationPanel } from './CalendarIntegrationPanel';
+import { AddressSettings } from './AddressSettings';
 
 interface SystemParameter {
   id: string;
@@ -191,13 +193,14 @@ export const GlobalParameters: React.FC = () => {
       )}
 
       <Tabs defaultValue="system" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="system">System</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="legal">Legal</TabsTrigger>
           <TabsTrigger value="integrations">Integrations</TabsTrigger>
           <TabsTrigger value="ai-communications">AI & Communications</TabsTrigger>
+          <TabsTrigger value="address-config">Address Configuration</TabsTrigger>
         </TabsList>
 
         <TabsContent value="system" className="space-y-6">
@@ -574,6 +577,20 @@ export const GlobalParameters: React.FC = () => {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="address-config" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <MapPin className="h-5 w-5 mr-2" />
+                Address Configuration
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <AddressSettings />
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

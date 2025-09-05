@@ -24,6 +24,7 @@ export interface FieldConfig {
   visible: boolean;
   required: boolean;
   editable: boolean;
+  allowManualInput?: boolean;
 }
 
 export interface AddressFieldConfig {
@@ -37,7 +38,8 @@ export interface ModuleAddressConfig {
 const defaultFieldConfig: FieldConfig = {
   visible: true,
   required: false,
-  editable: true
+  editable: true,
+  allowManualInput: false
 };
 
 const defaultModuleConfig: ModuleAddressConfig = {
@@ -47,7 +49,7 @@ const defaultModuleConfig: ModuleAddressConfig = {
     landmark: { visible: true, required: false, editable: true },
     locality: { visible: true, required: false, editable: true },
     district: { visible: true, required: true, editable: true },
-    cityId: { visible: true, required: true, editable: true },
+    cityId: { visible: true, required: true, editable: true, allowManualInput: false },
     stateId: { visible: true, required: true, editable: true },
     countryId: { visible: true, required: true, editable: false },
     pincode: { visible: true, required: true, editable: true },
@@ -60,7 +62,7 @@ const defaultModuleConfig: ModuleAddressConfig = {
     landmark: { visible: true, required: false, editable: true },
     locality: { visible: true, required: false, editable: true },
     district: { visible: true, required: true, editable: true },
-    cityId: { visible: true, required: true, editable: true },
+    cityId: { visible: true, required: true, editable: true, allowManualInput: false },
     stateId: { visible: true, required: true, editable: true },
     countryId: { visible: true, required: true, editable: false },
     pincode: { visible: true, required: true, editable: true },
@@ -73,7 +75,7 @@ const defaultModuleConfig: ModuleAddressConfig = {
     landmark: { visible: true, required: false, editable: true },
     locality: { visible: true, required: false, editable: true },
     district: { visible: true, required: true, editable: true },
-    cityId: { visible: true, required: true, editable: true },
+    cityId: { visible: true, required: true, editable: true, allowManualInput: false },
     stateId: { visible: true, required: true, editable: true },
     countryId: { visible: true, required: true, editable: false },
     pincode: { visible: true, required: true, editable: true },
@@ -86,7 +88,7 @@ const defaultModuleConfig: ModuleAddressConfig = {
     landmark: { visible: true, required: false, editable: true },
     locality: { visible: true, required: false, editable: true },
     district: { visible: true, required: true, editable: true },
-    cityId: { visible: true, required: true, editable: true },
+    cityId: { visible: true, required: true, editable: true, allowManualInput: false },
     stateId: { visible: true, required: true, editable: true },
     countryId: { visible: true, required: true, editable: false },
     pincode: { visible: true, required: true, editable: true },

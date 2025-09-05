@@ -487,45 +487,65 @@ export const AddressForm: React.FC<AddressFormProps> = ({
                   <SourceChip source={fieldSources['cityId']} />
                 )}
               </div>
-               <Select
-                value={value.cityId || ''}
-                onValueChange={(cityId) => handleFieldChange('cityId', cityId)}
-                disabled={disabled || !isFieldEditable('cityId')}
-                required={required || isFieldRequired('cityId')}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={
-                    !value.stateId 
-                      ? "Select state first" 
-                      : citiesLoading 
-                        ? "Loading cities..." 
-                        : cities.length === 0 
-                          ? "No cities available" 
-                          : "Select city"
-                  } />
-                </SelectTrigger>
-                <SelectContent className="z-50 bg-popover">
-                  {!value.stateId ? (
-                    <SelectItem value="_select_state_first" disabled>
-                      Please select a state first
-                    </SelectItem>
-                  ) : citiesLoading ? (
-                    <SelectItem value="_loading_cities" disabled>
-                      Loading cities...
-                    </SelectItem>
-                  ) : cities.length === 0 ? (
-                    <SelectItem value="_no_cities" disabled>
-                      No cities available for this state
-                    </SelectItem>
-                  ) : (
-                    cities.map((city) => (
-                      <SelectItem key={city.id} value={city.id}>
-                        {city.name}
+              
+              {/* Show manual input if allowManualInput is enabled and no cities available */}
+              {fieldConfig.cityId?.allowManualInput && cities.length === 0 && value.stateId && !citiesLoading ? (
+                <Input
+                  id="city-manual"
+                  value={value.cityId || ''}
+                  onChange={(e) => handleFieldChange('cityId', e.target.value)}
+                  placeholder="Enter city name manually"
+                  disabled={disabled || !isFieldEditable('cityId')}
+                  required={required || isFieldRequired('cityId')}
+                />
+              ) : (
+                <Select
+                  value={value.cityId || ''}
+                  onValueChange={(cityId) => handleFieldChange('cityId', cityId)}
+                  disabled={disabled || !isFieldEditable('cityId')}
+                  required={required || isFieldRequired('cityId')}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={
+                      !value.stateId 
+                        ? "Select state first" 
+                        : citiesLoading 
+                          ? "Loading cities..." 
+                          : cities.length === 0 
+                            ? (fieldConfig.cityId?.allowManualInput ? "No cities - manual entry available" : "No cities available")
+                            : "Select city"
+                    } />
+                  </SelectTrigger>
+                  <SelectContent className="z-50 bg-popover">
+                    {!value.stateId ? (
+                      <SelectItem value="_select_state_first" disabled>
+                        Please select a state first
                       </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
+                    ) : citiesLoading ? (
+                      <SelectItem value="_loading_cities" disabled>
+                        Loading cities...
+                      </SelectItem>
+                    ) : cities.length === 0 ? (
+                      <>
+                        <SelectItem value="_no_cities" disabled>
+                          No cities available for this state
+                        </SelectItem>
+                        {fieldConfig.cityId?.allowManualInput && (
+                          <SelectItem value="_manual_hint" disabled className="text-xs text-muted-foreground">
+                            Manual entry will be enabled automatically
+                          </SelectItem>
+                        )}
+                      </>
+                    ) : (
+                      cities.map((city) => (
+                        <SelectItem key={city.id} value={city.id}>
+                          {city.name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           )}
         </div>
