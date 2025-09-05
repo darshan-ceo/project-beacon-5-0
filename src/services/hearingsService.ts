@@ -314,10 +314,10 @@ export const hearingsService = {
     hearings: { next?: any; last?: any }
   }> {
     try {
-      const response = await apiService.get(`/api/cases/${caseId}/stages/${stageInstanceId}/summary`);
+      const response = await apiService.get<{ hearings?: { next?: any; last?: any } }>(`/api/cases/${caseId}/stages/${stageInstanceId}/summary`);
       
-      if (response.success && response.data) {
-        return response.data;
+      if (response.success && response.data && response.data.hearings) {
+        return { hearings: response.data.hearings };
       }
       
       return { hearings: { next: null, last: null } };
