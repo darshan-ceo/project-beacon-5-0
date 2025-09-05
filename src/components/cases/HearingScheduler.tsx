@@ -33,6 +33,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { NotificationConfigModal } from '@/components/modals/NotificationConfigModal';
 
 interface Case {
   id: string;
@@ -64,6 +65,7 @@ interface HearingSchedulerProps {
 export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases }) => {
   const [selectedDate, setSelectedDate] = useState('');
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
+  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
   const [globalHearings, setGlobalHearings] = useState<GlobalHearing[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -427,7 +429,10 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases }) => 
               </div>
               
               <div className="pt-4 border-t border-border">
-                <Button className="w-full">
+                <Button 
+                  className="w-full"
+                  onClick={() => setIsNotificationModalOpen(true)}
+                >
                   <Bell className="mr-2 h-4 w-4" />
                   Configure Notifications
                 </Button>
@@ -502,6 +507,13 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases }) => 
           </CardContent>
         </Card>
       </motion.div>
+      
+      {/* Notification Configuration Modal */}
+      <NotificationConfigModal
+        open={isNotificationModalOpen}
+        onOpenChange={setIsNotificationModalOpen}
+        caseId="global"
+      />
     </div>
   );
 };
