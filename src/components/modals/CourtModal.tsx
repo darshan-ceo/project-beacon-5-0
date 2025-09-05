@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
 import { Court, useAppState } from '@/contexts/AppStateContext';
@@ -14,7 +14,7 @@ import { AddressForm } from '@/components/ui/AddressForm';
 import { AddressView } from '@/components/ui/AddressView';
 import { EnhancedAddressData, addressMasterService } from '@/services/addressMasterService';
 import { featureFlagService } from '@/services/featureFlagService';
-import { MapPin } from 'lucide-react';
+import { MapPin, Phone, Mail } from 'lucide-react';
 
 interface CourtModalProps {
   isOpen: boolean;
@@ -38,6 +38,9 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     totalJudges: number;
     digitalFiling: boolean;
     workingDays: string[];
+    phone?: string;
+    email?: string;
+    benchLocation?: string;
     addressId?: string;
   }>({
     name: '',
@@ -57,7 +60,10 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     establishedYear: new Date().getFullYear(),
     totalJudges: 1,
     digitalFiling: false,
-    workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+    workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+    phone: '',
+    email: '',
+    benchLocation: ''
   });
   const [isAddressMasterEnabled, setIsAddressMasterEnabled] = useState(false);
 
@@ -75,7 +81,10 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         establishedYear: courtData.establishedYear,
         totalJudges: courtData.totalJudges,
         digitalFiling: courtData.digitalFiling,
-        workingDays: courtData.workingDays
+        workingDays: courtData.workingDays,
+        phone: courtData.phone || '',
+        email: courtData.email || '',
+        benchLocation: courtData.benchLocation || ''
       });
     } else if (mode === 'create') {
       setFormData({
@@ -96,7 +105,10 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         establishedYear: new Date().getFullYear(),
         totalJudges: 1,
         digitalFiling: false,
-        workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+        workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+        phone: '',
+        email: '',
+        benchLocation: ''
       });
     }
   }, [courtData, mode]);
@@ -110,10 +122,25 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (mode === 'create') {
+      let addressId: string | undefined;
+      
+      // Save address if address master is enabled
+      if (isAddressMasterEnabled) {
+        try {
+          const addressResponse = await addressMasterService.createAddress(formData.address);
+          
+          if (addressResponse.success && addressResponse.data) {
+            addressId = addressResponse.data.id;
+          }
+        } catch (error) {
+          console.error('Failed to save address:', error);
+        }
+      }
+
       const newCourt: Court = {
         id: Date.now().toString(),
         name: formData.name,
@@ -125,8 +152,17 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         activeCases: 0,
         avgHearingTime: '30 mins',
         digitalFiling: formData.digitalFiling,
-        workingDays: formData.workingDays
+        workingDays: formData.workingDays,
+        phone: formData.phone,
+        email: formData.email,
+        benchLocation: formData.benchLocation,
+        addressId: addressId
       };
+
+      // Link address if saved
+      if (addressId) {
+        await addressMasterService.linkAddress('court', newCourt.id, addressId, true);
+      }
 
       dispatch({ type: 'ADD_COURT', payload: newCourt });
       toast({
@@ -134,6 +170,15 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         description: `Court "${formData.name}" has been added successfully.`,
       });
     } else if (mode === 'edit' && courtData) {
+      // Handle address updates
+      if (isAddressMasterEnabled && courtData.addressId) {
+        try {
+          await addressMasterService.updateAddress(courtData.addressId, formData.address);
+        } catch (error) {
+          console.error('Failed to update address:', error);
+        }
+      }
+
       const updatedCourt: Court = {
         ...courtData,
         name: formData.name,
@@ -143,7 +188,10 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         establishedYear: formData.establishedYear,
         totalJudges: formData.totalJudges,
         digitalFiling: formData.digitalFiling,
-        workingDays: formData.workingDays
+        workingDays: formData.workingDays,
+        phone: formData.phone,
+        email: formData.email,
+        benchLocation: formData.benchLocation
       };
 
       dispatch({ type: 'UPDATE_COURT', payload: updatedCourt });
@@ -169,16 +217,19 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {mode === 'create' && 'Add New Court'}
-            {mode === 'edit' && 'Edit Court'}
-            {mode === 'view' && 'Court Details'}
+            {mode === 'create' ? 'Add New Court' : mode === 'edit' ? 'Edit Court' : 'View Court'}
           </DialogTitle>
+          <DialogDescription>
+            {mode === 'create' ? 'Create a new court record with jurisdiction and contact details.' :
+             mode === 'edit' ? 'Update court information and address details.' :
+             'View court information and contact details.'}
+          </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <Label htmlFor="name">Court Name</Label>
             <Input
@@ -221,6 +272,49 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
               />
             </div>
           </div>
+
+          {/* Contact Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Phone className="h-4 w-4" />
+                Contact Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                  disabled={mode === 'view'}
+                  placeholder="Enter phone number"
+                />
+              </div>
+              <div>
+                <Label htmlFor="email">Email Address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                  disabled={mode === 'view'}
+                  placeholder="Enter email address"
+                />
+              </div>
+              <div>
+                <Label htmlFor="benchLocation">Bench Location</Label>
+                <Input
+                  id="benchLocation"
+                  value={formData.benchLocation}
+                  onChange={(e) => setFormData(prev => ({ ...prev, benchLocation: e.target.value }))}
+                  disabled={mode === 'view'}
+                  placeholder="Enter bench location"
+                />
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Address Section */}
           <Card>
@@ -284,13 +378,13 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
               onCheckedChange={(checked) => setFormData(prev => ({ ...prev, digitalFiling: checked }))}
               disabled={mode === 'view'}
             />
-            <Label htmlFor="digitalFiling">Digital Filing Available</Label>
+            <Label htmlFor="digitalFiling">Digital Filing Enabled</Label>
           </div>
 
           <div>
             <Label>Working Days</Label>
-            <div className="grid grid-cols-4 gap-2 mt-2">
-              {workingDayOptions.map((day) => (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {workingDayOptions.map(day => (
                 <div key={day} className="flex items-center space-x-2">
                   <Checkbox
                     id={day}
@@ -298,25 +392,52 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                     onCheckedChange={(checked) => handleWorkingDayChange(day, checked as boolean)}
                     disabled={mode === 'view'}
                   />
-                  <Label htmlFor={day} className="text-sm">{day.substring(0, 3)}</Label>
+                  <Label htmlFor={day} className="text-sm">{day}</Label>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              {mode === 'view' ? 'Close' : 'Cancel'}
-            </Button>
-            {mode === 'edit' && (
-              <Button type="button" variant="destructive" onClick={handleDelete}>
-                Delete Court
+          <div className="flex justify-between">
+            {mode === 'view' ? (
+              <Button type="button" onClick={onClose}>
+                Close
               </Button>
-            )}
-            {mode !== 'view' && (
-              <Button type="submit">
-                {mode === 'create' ? 'Add Court' : 'Update Court'}
-              </Button>
+            ) : (
+              <>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" onClick={onClose}>
+                    Cancel
+                  </Button>
+                  {mode === 'edit' && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button type="button" variant="destructive">
+                          Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the court
+                            and remove all associated data.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleDelete}>
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
+                <Button type="submit">
+                  {mode === 'create' ? 'Create Court' : 'Update Court'}
+                </Button>
+              </>
             )}
           </div>
         </form>

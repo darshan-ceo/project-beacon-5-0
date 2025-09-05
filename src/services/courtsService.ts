@@ -8,6 +8,9 @@ export interface CreateCourtData {
   establishedYear: number;
   digitalFiling: boolean;
   workingDays: string[];
+  phone?: string;
+  email?: string;
+  benchLocation?: string;
 }
 
 export interface UpdateCourtData extends Partial<CreateCourtData> {
@@ -29,7 +32,10 @@ class CourtsService {
       activeCases: 0,
       avgHearingTime: '0 days',
       digitalFiling: data.digitalFiling,
-      workingDays: data.workingDays
+      workingDays: data.workingDays,
+      phone: data.phone,
+      email: data.email,
+      benchLocation: data.benchLocation
     };
 
     this.courts.push(newCourt);

@@ -26,7 +26,6 @@ export const CourtMasters: React.FC = () => {
   });
   const [filterType, setFilterType] = useState<string>('all');
   const [filterJurisdiction, setFilterJurisdiction] = useState<string>('all');
-  const [isAddCourtOpen, setIsAddCourtOpen] = useState(false);
 
   // Filter courts based on search and filters
   const filteredCourts = (state.courts || []).filter(court => {
@@ -64,116 +63,17 @@ export const CourtMasters: React.FC = () => {
           <h1 className="text-3xl font-bold text-foreground">Court Masters</h1>
           <p className="text-muted-foreground mt-2">Manage court information and jurisdictions</p>
         </div>
-        <Dialog open={isAddCourtOpen} onOpenChange={setIsAddCourtOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Add New Court
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Add New Court</DialogTitle>
-              <DialogDescription>
-                Create a new court record with jurisdiction and contact details.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="courtName">Court Name</Label>
-                <Input id="courtName" placeholder="Enter court name" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="courtType">Court Type</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select court type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="itat">Income Tax Appellate Tribunal</SelectItem>
-                    <SelectItem value="commissioner">Commissioner Appeals</SelectItem>
-                    <SelectItem value="high">High Court</SelectItem>
-                    <SelectItem value="supreme">Supreme Court</SelectItem>
-                    <SelectItem value="settlement">Settlement Commission</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="jurisdiction">Jurisdiction</Label>
-                <Input id="jurisdiction" placeholder="Enter jurisdiction" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="benchLocation">Bench Location</Label>
-                <Input id="benchLocation" placeholder="Enter bench location" />
-              </div>
-              <div className="col-span-2 space-y-2">
-                <Label htmlFor="address">Address</Label>
-                <Textarea id="address" placeholder="Enter complete address" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
-                <Input id="phone" placeholder="Enter phone number" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="Enter email address" />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 mt-4">
-              <Button variant="outline" onClick={() => setIsAddCourtOpen(false)}>
-                Cancel
-              </Button>
-                <Button 
-                  onClick={async () => {
-                    try {
-                      // Get form data properly
-                      const courtName = (document.getElementById('courtName') as HTMLInputElement)?.value;
-                      const jurisdiction = (document.getElementById('jurisdiction') as HTMLInputElement)?.value;
-                      const address = (document.getElementById('address') as HTMLTextAreaElement)?.value;
-
-                      if (!courtName || !jurisdiction) {
-                        toast({
-                          title: "Validation Error",
-                          description: "Please fill in all required fields",
-                          variant: "destructive"
-                        });
-                        return;
-                      }
-
-                      // Create court using courtsService
-                      const newCourt = await courtsService.create({
-                        name: courtName,
-                        type: 'Tribunal' as const,
-                        jurisdiction: jurisdiction,
-                        address: address || '',
-                        establishedYear: new Date().getFullYear(),
-                        digitalFiling: true,
-                        workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
-                      });
-
-                      // Dispatch to update state
-                      dispatch({ type: 'ADD_COURT', payload: newCourt });
-
-                      toast({
-                        title: "Court Created Successfully",
-                        description: `${courtName} has been added to the system`,
-                      });
-                      setIsAddCourtOpen(false);
-                      
-                    } catch (error) {
-                      toast({
-                        title: "Error",
-                        description: "Failed to create court. Please try again.",
-                        variant: "destructive"
-                      });
-                    }
-                  }}
-                >
-                Create Court
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <Button 
+          className="gap-2"
+          onClick={() => setCourtModal({ 
+            isOpen: true, 
+            mode: 'create', 
+            court: null 
+          })}
+        >
+          <Plus className="h-4 w-4" />
+          Add New Court
+        </Button>
       </motion.div>
 
       {/* Summary Cards */}
@@ -355,21 +255,21 @@ export const CourtMasters: React.FC = () => {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className="text-sm flex items-center gap-1">
-                          <Phone className="h-3 w-3" />
-                          N/A
-                        </div>
-                        <div className="text-sm flex items-center gap-1">
-                          <Mail className="h-3 w-3" />
-                          N/A
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {court.address.split(',')[0]}...
-                        </div>
-                      </div>
-                    </TableCell>
+                     <TableCell>
+                       <div className="space-y-1">
+                         <div className="text-sm flex items-center gap-1">
+                           <Phone className="h-3 w-3" />
+                           {court.phone || 'N/A'}
+                         </div>
+                         <div className="text-sm flex items-center gap-1">
+                           <Mail className="h-3 w-3" />
+                           {court.email || 'N/A'}
+                         </div>
+                         <div className="text-xs text-muted-foreground">
+                           {court.benchLocation || 'N/A'}
+                         </div>
+                       </div>
+                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">
                         <div className="text-sm">

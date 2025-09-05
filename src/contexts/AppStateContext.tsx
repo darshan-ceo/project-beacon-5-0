@@ -108,6 +108,9 @@ interface Court {
   digitalFiling: boolean;
   workingDays: string[];
   addressId?: string; // For address master integration
+  phone?: string;
+  email?: string;
+  benchLocation?: string;
 }
 
 interface Judge {
