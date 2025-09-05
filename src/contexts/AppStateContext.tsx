@@ -129,6 +129,8 @@ interface Judge {
     phone?: string;
     email?: string;
   };
+  address?: any; // Support both legacy string and enhanced address for address master integration
+  addressId?: string; // For address master integration
 }
 
 interface Document {

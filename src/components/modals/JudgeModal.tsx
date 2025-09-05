@@ -7,11 +7,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
 import { Judge, useAppState } from '@/contexts/AppStateContext';
 import { cn } from '@/lib/utils';
+import { AddressForm } from '@/components/ui/AddressForm';
+import { AddressView } from '@/components/ui/AddressView';
+import { EnhancedAddressData } from '@/services/addressMasterService';
+import { featureFlagService } from '@/services/featureFlagService';
+import { Separator } from '@/components/ui/separator';
 
 interface JudgeModalProps {
   isOpen: boolean;
@@ -33,6 +38,7 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
     chambers: string;
     phone: string;
     email: string;
+    address?: EnhancedAddressData;
   }>({
     name: '',
     designation: '',
@@ -43,10 +49,24 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
     status: 'Active',
     chambers: '',
     phone: '',
-    email: ''
+    email: '',
+    address: {
+      line1: '',
+      line2: '',
+      locality: '',
+      district: '',
+      cityId: '',
+      stateId: '',
+      pincode: '',
+      countryId: 'IN',
+      source: 'manual'
+    } as EnhancedAddressData
   });
+  const [isAddressMasterEnabled, setIsAddressMasterEnabled] = useState(false);
 
   useEffect(() => {
+    setIsAddressMasterEnabled(featureFlagService.isEnabled('address_master_v1'));
+    
     if (judgeData && (mode === 'edit' || mode === 'view')) {
       setFormData({
         name: judgeData.name,
@@ -58,7 +78,18 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
         status: judgeData.status,
         chambers: judgeData.contactInfo.chambers,
         phone: judgeData.contactInfo.phone || '',
-        email: judgeData.contactInfo.email || ''
+        email: judgeData.contactInfo.email || '',
+        address: (judgeData as any).address || {
+          line1: '',
+          line2: '',
+          locality: '',
+          district: '',
+          cityId: '',
+          stateId: '',
+          pincode: '',
+          countryId: 'IN',
+          source: 'manual'
+        }
       });
     } else if (mode === 'create') {
       setFormData({
@@ -71,7 +102,18 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
         status: 'Active',
         chambers: '',
         phone: '',
-        email: ''
+        email: '',
+        address: {
+          line1: '',
+          line2: '',
+          locality: '',
+          district: '',
+          cityId: '',
+          stateId: '',
+          pincode: '',
+          countryId: 'IN',
+          source: 'manual'
+        }
       });
     }
   }, [judgeData, mode]);
@@ -95,7 +137,8 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
           chambers: formData.chambers,
           phone: formData.phone,
           email: formData.email
-        }
+        },
+        ...(isAddressMasterEnabled && { address: formData.address })
       };
 
       dispatch({ type: 'ADD_JUDGE', payload: newJudge });
@@ -117,7 +160,8 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
           chambers: formData.chambers,
           phone: formData.phone,
           email: formData.email
-        }
+        },
+        ...(isAddressMasterEnabled && { address: formData.address })
       };
 
       dispatch({ type: 'UPDATE_JUDGE', payload: updatedJudge });
@@ -345,6 +389,33 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
               />
             </div>
           </div>
+
+          {/* Address Information */}
+          {isAddressMasterEnabled && (
+            <>
+              <Separator />
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium flex items-center space-x-2">
+                  <MapPin className="h-4 w-4" />
+                  <span>Address Information</span>
+                </h3>
+                
+                {mode !== 'view' ? (
+                  <AddressView 
+                    address={formData.address} 
+                    showSource={true}
+                    className="border rounded-lg p-4"
+                  />
+                ) : (
+                  <AddressView 
+                    address={formData.address} 
+                    showSource={true}
+                    className="border rounded-lg p-4"
+                  />
+                )}
+              </div>
+            </>
+          )}
 
           <div className="flex justify-end space-x-2 pt-4">
             <Button type="button" variant="outline" onClick={onClose}>

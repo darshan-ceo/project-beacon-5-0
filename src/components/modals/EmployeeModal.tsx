@@ -326,6 +326,36 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
 
           <Separator />
 
+          {/* Address Information */}
+          {isAddressMasterEnabled && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium flex items-center space-x-2">
+                <MapPin className="h-4 w-4" />
+                <span>Address Information</span>
+              </h3>
+              
+              <AddressForm
+                value={formData.address || {
+                  line1: '',
+                  line2: '',
+                  locality: '',
+                  district: '',
+                  cityId: '',
+                  stateId: '',
+                  pincode: '',
+                  countryId: 'IN',
+                  source: 'manual'
+                }}
+                onChange={(address) => setFormData(prev => ({ ...prev, address: address }))}
+                disabled={isReadOnly}
+                module="employee"
+                className="border rounded-lg p-4"
+              />
+            </div>
+          )}
+
+          <Separator />
+
           {/* Additional Information */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Additional Information</h3>

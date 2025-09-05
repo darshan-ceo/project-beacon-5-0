@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
 import { Hearing, useAppState } from '@/contexts/AppStateContext';
@@ -15,6 +15,9 @@ import { CaseSelector, CourtSelector, JudgeSelector } from '@/components/ui/rela
 import { ContextBadge } from '@/components/ui/context-badge';
 import { useRelationships } from '@/hooks/useRelationships';
 import { useContextualForms } from '@/hooks/useContextualForms';
+import { AddressView } from '@/components/ui/AddressView';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { featureFlagService } from '@/services/featureFlagService';
 
 interface HearingModalProps {
   isOpen: boolean;
@@ -68,8 +71,11 @@ export const HearingModal: React.FC<HearingModalProps> = ({
     agenda: '',
     notes: ''
   });
+  const [isAddressMasterEnabled, setIsAddressMasterEnabled] = useState(false);
 
   useEffect(() => {
+    setIsAddressMasterEnabled(featureFlagService.isEnabled('address_master_v1'));
+    
     if (hearingData && (mode === 'edit' || mode === 'view')) {
       setFormData({
         caseId: hearingData.caseId,
@@ -279,6 +285,34 @@ export const HearingModal: React.FC<HearingModalProps> = ({
               />
             </div>
           </div>
+
+          {/* Court Address Display */}
+          {formData.courtId && isAddressMasterEnabled && (() => {
+            const selectedCourt = state.courts.find(court => court.id === formData.courtId);
+            return selectedCourt ? (
+              <Card className="bg-muted/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    Court Address
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  {selectedCourt.address && typeof selectedCourt.address === 'object' ? (
+                    <AddressView 
+                      address={selectedCourt.address}
+                      compact={true}
+                      showSource={false}
+                    />
+                  ) : (
+                    <div className="text-sm text-muted-foreground">
+                      {selectedCourt.address || 'No address information available'}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ) : null;
+          })()}
 
           <div>
             <Label htmlFor="agenda">Agenda</Label>
