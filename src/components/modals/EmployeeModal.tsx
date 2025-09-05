@@ -8,9 +8,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAppState } from '@/contexts/AppStateContext';
 import { employeesService, Employee } from '@/services/employeesService';
 import { toast } from '@/hooks/use-toast';
+import { AddressForm } from '@/components/ui/AddressForm';
+import { AddressView } from '@/components/ui/AddressView';
+import { EnhancedAddressData, addressMasterService } from '@/services/addressMasterService';
+import { featureFlagService } from '@/services/featureFlagService';
 import { Mail, Phone, Calendar, MapPin, User, Building, X } from 'lucide-react';
 
 interface EmployeeModalProps {
@@ -27,7 +32,7 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
   mode
 }) => {
   const { state, dispatch } = useAppState();
-  const [formData, setFormData] = useState<Partial<Employee>>({
+  const [formData, setFormData] = useState<Partial<Employee & { address?: EnhancedAddressData; addressId?: string }>>({
     full_name: '',
     role: 'Staff',
     email: '',
@@ -37,13 +42,27 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
     notes: '',
     department: 'General',
     workloadCapacity: 40,
-    specialization: []
+    specialization: [],
+    address: {
+      line1: '',
+      line2: '',
+      locality: '',
+      district: '',
+      cityId: '',
+      stateId: '',
+      pincode: '',
+      countryId: 'IN',
+      source: 'manual'
+    } as EnhancedAddressData
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [specializationInput, setSpecializationInput] = useState('');
+  const [isAddressMasterEnabled, setIsAddressMasterEnabled] = useState(false);
 
   // Initialize form data
   useEffect(() => {
+    setIsAddressMasterEnabled(featureFlagService.isEnabled('address_master_v1'));
+    
     if (mode === 'create') {
       setFormData({
         full_name: '',

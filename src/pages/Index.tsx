@@ -8,6 +8,7 @@ import { CaseManagement } from '@/components/cases/CaseManagement';
 import { DocumentManagement } from '@/components/documents/DocumentManagement';
 import { TaskManagement } from '@/components/tasks/TaskManagement';
 import { QADashboard } from './QADashboard';
+import { AddressSettings } from '@/components/admin/AddressSettings';
 import { motion } from 'framer-motion';
 import { Scale, Shield } from 'lucide-react';
 import { envConfig } from '@/utils/envConfig';
@@ -41,6 +42,8 @@ const Index = () => {
         return <TaskManagement />;
       case 'qa':
         return <QADashboard />;
+      case 'address-settings':
+        return <AddressSettings />;
       default:
         return <DashboardOverview />;
     }
@@ -134,6 +137,16 @@ const Index = () => {
               }`}
             >
               QA Dashboard
+            </button>
+            <button
+              onClick={() => handleNavigation('address-settings')}
+              className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                currentPage === 'address-settings' 
+                  ? 'bg-primary text-primary-foreground' 
+                  : 'bg-white text-primary hover:bg-primary/10'
+              }`}
+            >
+              Address Settings
             </button>
           </div>
         </div>

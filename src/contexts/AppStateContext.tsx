@@ -71,7 +71,7 @@ interface Client {
   registrationNo?: string;
   gstin?: string;
   pan: string;
-  address: Address | string; // Support both new and legacy format
+  address: Address | string | any; // Support both new and legacy format plus enhanced
   jurisdiction?: Jurisdiction;
   portalAccess?: PortalAccess;
   signatories?: Signatory[];
@@ -100,13 +100,14 @@ interface Court {
   name: string;
   type: 'Supreme Court' | 'High Court' | 'District Court' | 'Tribunal' | 'Commission';
   jurisdiction: string;
-  address: string;
+  address: string | any; // Support both legacy string and enhanced address
   establishedYear: number;
   totalJudges: number;
   activeCases: number;
   avgHearingTime: string;
   digitalFiling: boolean;
   workingDays: string[];
+  addressId?: string; // For address master integration
 }
 
 interface Judge {
@@ -155,6 +156,8 @@ export interface Employee {
   department: string;
   workloadCapacity: number;
   specialization?: string[];
+  address?: any; // Support enhanced address
+  addressId?: string; // For address master integration
 }
 
 // Enhanced Hearing interface with lifecycle integration

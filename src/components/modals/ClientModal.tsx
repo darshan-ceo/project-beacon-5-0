@@ -21,6 +21,9 @@ import { ContactsDrawer } from '@/components/contacts/ContactsDrawer';
 import { ClientContactsSection } from '@/components/contacts/ClientContactsSection';
 import { featureFlagService } from '@/services/featureFlagService';
 import { envConfig } from '../../utils/envConfig';
+import { AddressForm } from '@/components/ui/AddressForm';
+import { AddressView } from '@/components/ui/AddressView';
+import { EnhancedAddressData, addressMasterService } from '@/services/addressMasterService';
 
 interface ClientModalProps {
   isOpen: boolean;
@@ -39,7 +42,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
     registrationNo: string;
     gstin: string;
     pan: string;
-    address: Address;
+    address: EnhancedAddressData | Address;
     jurisdiction: Jurisdiction;
     portalAccess: PortalAccess;
     assignedCAId: string;
@@ -47,6 +50,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
     status: 'Active' | 'Inactive';
     gspSignatories?: any[];
     gstData?: any;
+    addressId?: string;
   }>({
     name: '',
     type: 'Individual',
@@ -57,11 +61,14 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
     address: {
       line1: '',
       line2: '',
-      city: '',
-      state: '',
+      locality: '',
+      district: '',
+      cityId: '',
+      stateId: '',
       pincode: '',
-      country: 'India'
-    },
+      countryId: 'IN',
+      source: 'manual'
+    } as EnhancedAddressData,
     jurisdiction: {
       commissionerate: '',
       division: '',
@@ -90,27 +97,59 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
   
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [isAddressMasterEnabled, setIsAddressMasterEnabled] = useState(false);
 
   useEffect(() => {
+    setIsAddressMasterEnabled(featureFlagService.isEnabled('address_master_v1'));
+    
     if (clientData && (mode === 'edit' || mode === 'view')) {
-      // Handle address migration from string to Address object
-      const addressObj = typeof clientData.address === 'string' 
-        ? {
-            line1: clientData.address,
-            line2: '',
-            city: '',
-            state: '',
-            pincode: '',
-            country: 'India'
-          }
-        : clientData.address || {
-            line1: '',
-            line2: '',
-            city: '',
-            state: '',
-            pincode: '',
-            country: 'India'
-          };
+      // Handle address migration from string to Address/EnhancedAddressData object
+      let addressObj: EnhancedAddressData;
+      
+      if (isAddressMasterEnabled) {
+        // Load linked address from address master
+        loadClientAddress(clientData.id);
+      }
+      
+      if (typeof clientData.address === 'string') {
+        addressObj = {
+          line1: clientData.address,
+          line2: '',
+          locality: '',
+          district: '',
+          cityId: '',
+          stateId: '',
+          pincode: '',
+          countryId: 'IN',
+          source: 'manual'
+        };
+      } else if (clientData.address && 'city' in clientData.address) {
+        // Legacy Address format
+        addressObj = {
+          line1: clientData.address.line1 || '',
+          line2: clientData.address.line2 || '',
+          locality: '',
+          district: '',
+          cityId: '',
+          stateId: '',
+          pincode: clientData.address.pincode || '',
+          countryId: 'IN',
+          source: 'manual'
+        };
+      } else {
+        // Already EnhancedAddressData format
+        addressObj = clientData.address as EnhancedAddressData || {
+          line1: '',
+          line2: '',
+          locality: '',
+          district: '',
+          cityId: '',
+          stateId: '',
+          pincode: '',
+          countryId: 'IN',
+          source: 'manual'
+        };
+      }
 
       setFormData({
         name: clientData.name,
@@ -139,11 +178,14 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         address: {
           line1: '',
           line2: '',
-          city: '',
-          state: '',
+          locality: '',
+          district: '',
+          cityId: '',
+          stateId: '',
           pincode: '',
-          country: 'India'
-        },
+          countryId: 'IN',
+          source: 'manual'
+        } as EnhancedAddressData,
         jurisdiction: {
           commissionerate: '',
           division: '',
@@ -166,7 +208,24 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
     }
     setErrors({});
     setValidationErrors([]);
-  }, [clientData, mode, isOpen]);
+  }, [clientData, mode, isOpen, isAddressMasterEnabled]);
+
+  const loadClientAddress = async (clientId: string) => {
+    if (!isAddressMasterEnabled) return;
+    
+    try {
+      const result = await addressMasterService.getEntityAddress('client', clientId);
+      if (result.success && result.data) {
+        setFormData(prev => ({
+          ...prev,
+          address: result.data!,
+          addressId: result.data!.id
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to load client address:', error);
+    }
+  };
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -177,16 +236,30 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
       newErrors.name = 'Client name is required';
     }
 
-    if (!formData.address.line1.trim()) {
+    if (!formData.address.line1?.trim()) {
       newErrors.addressLine1 = 'Address line 1 is required';
     }
 
-    if (!formData.address.city.trim()) {
-      newErrors.addressCity = 'City is required';
-    }
-
-    if (!formData.address.state.trim()) {
-      newErrors.addressState = 'State is required';
+    const address = formData.address as EnhancedAddressData;
+    
+    // For legacy address format
+    if ('city' in formData.address && formData.address.city !== undefined) {
+      if (!formData.address.city?.trim()) {
+        newErrors.addressCity = 'City is required';
+      }
+      if (!formData.address.state?.trim()) {
+        newErrors.addressState = 'State is required';
+      }
+    } else {
+      // For enhanced address format
+      if (isAddressMasterEnabled) {
+        if (!address.district?.trim()) {
+          newErrors.addressDistrict = 'District is required';
+        }
+        if (!address.stateId?.trim()) {
+          newErrors.addressState = 'State is required';
+        }
+      }
     }
 
     // Validate using service
@@ -253,15 +326,63 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
     }
 
     try {
+      let addressId = formData.addressId;
+      
+      // Handle address creation/update for address master
+      if (isAddressMasterEnabled && formData.address) {
+        const addressData = formData.address as EnhancedAddressData;
+        
+        if (addressId) {
+          // Update existing address
+          const updateResult = await addressMasterService.updateAddress(addressId, addressData);
+          if (!updateResult.success) {
+            toast({
+              title: "Error",
+              description: "Failed to update address",
+              variant: "destructive"
+            });
+            return;
+          }
+        } else {
+          // Create new address
+          const createResult = await addressMasterService.createAddress({
+            ...addressData,
+            source: addressData.source || 'manual'
+          });
+          if (createResult.success && createResult.data) {
+            addressId = createResult.data.id!;
+          } else {
+            toast({
+              title: "Error", 
+              description: "Failed to create address",
+              variant: "destructive"
+            });
+            return;
+          }
+        }
+      }
+
       const clientToSave: Partial<Client> = {
         ...formData,
-        signatories
+        address: isAddressMasterEnabled ? undefined : formData.address, // Don't include address if using address master
+        signatories,
+        ...(isAddressMasterEnabled && addressId ? { addressId } : {})
       };
 
       if (mode === 'create') {
-        await clientsService.create(clientToSave, dispatch);
+        const createdClient = await clientsService.create(clientToSave, dispatch) as Client;
+        
+        // Link address for new client
+        if (isAddressMasterEnabled && addressId && createdClient) {
+          await addressMasterService.linkAddress('client', createdClient.id, addressId, true);
+        }
       } else if (mode === 'edit' && clientData) {
         await clientsService.update(clientData.id, { ...clientData, ...clientToSave }, dispatch);
+        
+        // Link address for existing client if not already linked
+        if (isAddressMasterEnabled && addressId && !formData.addressId) {
+          await addressMasterService.linkAddress('client', clientData.id, addressId, true);
+        }
       }
 
       onClose();
@@ -495,102 +616,31 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                   Address Information
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="addressLine1">Address Line 1 *</Label>
-                  <Input
-                    id="addressLine1"
-                    value={formData.address.line1}
-                    onChange={(e) => {
-                      setFormData(prev => ({ 
-                        ...prev, 
-                        address: { ...prev.address, line1: e.target.value }
-                      }));
-                      setErrors(prev => ({ ...prev, addressLine1: '' }));
+              <CardContent>
+                {mode === 'view' && isAddressMasterEnabled ? (
+                  <AddressView 
+                    address={formData.address as EnhancedAddressData}
+                    showSource={true}
+                    showActions={false}
+                  />
+                ) : (
+                  <AddressForm
+                    value={formData.address}
+                    onChange={(address) => setFormData(prev => ({ ...prev, address }))}
+                    disabled={mode === 'view'}
+                    required={true}
+                    module="client"
+                    showGSTIntegration={!!formData.gstin}
+                    gstin={formData.gstin}
+                    onGSTAddressSelect={(address) => {
+                      setFormData(prev => ({ ...prev, address }));
+                      toast({
+                        title: "Success",
+                        description: "GST address populated successfully"
+                      });
                     }}
-                    disabled={mode === 'view'}
-                    className={errors.addressLine1 ? 'border-destructive' : ''}
                   />
-                  {errors.addressLine1 && <p className="text-sm text-destructive mt-1">{errors.addressLine1}</p>}
-                </div>
-
-                <div>
-                  <Label htmlFor="addressLine2">Address Line 2</Label>
-                  <Input
-                    id="addressLine2"
-                    value={formData.address.line2}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      address: { ...prev.address, line2: e.target.value }
-                    }))}
-                    disabled={mode === 'view'}
-                  />
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="city">City *</Label>
-                    <Input
-                      id="city"
-                      value={formData.address.city}
-                      onChange={(e) => {
-                        setFormData(prev => ({ 
-                          ...prev, 
-                          address: { ...prev.address, city: e.target.value }
-                        }));
-                        setErrors(prev => ({ ...prev, addressCity: '' }));
-                      }}
-                      disabled={mode === 'view'}
-                      className={errors.addressCity ? 'border-destructive' : ''}
-                    />
-                    {errors.addressCity && <p className="text-sm text-destructive mt-1">{errors.addressCity}</p>}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="state">State *</Label>
-                    <Select 
-                      value={formData.address.state} 
-                      onValueChange={(value) => {
-                        setFormData(prev => ({ 
-                          ...prev, 
-                          address: { ...prev.address, state: value }
-                        }));
-                        setErrors(prev => ({ ...prev, addressState: '' }));
-                      }}
-                      disabled={mode === 'view'}
-                    >
-                      <SelectTrigger className={errors.addressState ? 'border-destructive' : ''}>
-                        <SelectValue placeholder="Select state" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {INDIAN_STATES.map(state => (
-                          <SelectItem key={state} value={state}>{state}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.addressState && <p className="text-sm text-destructive mt-1">{errors.addressState}</p>}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="pincode">Pincode *</Label>
-                    <Input
-                      id="pincode"
-                      value={formData.address.pincode}
-                      onChange={(e) => {
-                        setFormData(prev => ({ 
-                          ...prev, 
-                          address: { ...prev.address, pincode: e.target.value }
-                        }));
-                        setErrors(prev => ({ ...prev, pincode: '' }));
-                      }}
-                      disabled={mode === 'view'}
-                      maxLength={6}
-                      placeholder="123456"
-                      className={errors.pincode ? 'border-destructive' : ''}
-                    />
-                    {errors.pincode && <p className="text-sm text-destructive mt-1">{errors.pincode}</p>}
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
 

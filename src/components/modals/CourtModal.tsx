@@ -7,8 +7,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
 import { Court, useAppState } from '@/contexts/AppStateContext';
+import { AddressForm } from '@/components/ui/AddressForm';
+import { AddressView } from '@/components/ui/AddressView';
+import { EnhancedAddressData, addressMasterService } from '@/services/addressMasterService';
+import { featureFlagService } from '@/services/featureFlagService';
+import { MapPin } from 'lucide-react';
 
 interface CourtModalProps {
   isOpen: boolean;
@@ -27,29 +33,45 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     name: string;
     type: 'Supreme Court' | 'High Court' | 'District Court' | 'Tribunal' | 'Commission';
     jurisdiction: string;
-    address: string;
+    address: EnhancedAddressData;
     establishedYear: number;
     totalJudges: number;
     digitalFiling: boolean;
     workingDays: string[];
+    addressId?: string;
   }>({
     name: '',
     type: 'District Court',
     jurisdiction: '',
-    address: '',
+    address: {
+      line1: '',
+      line2: '',
+      locality: '',
+      district: '',
+      cityId: '',
+      stateId: '',
+      pincode: '',
+      countryId: 'IN',
+      source: 'manual'
+    } as EnhancedAddressData,
     establishedYear: new Date().getFullYear(),
     totalJudges: 1,
     digitalFiling: false,
     workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
   });
+  const [isAddressMasterEnabled, setIsAddressMasterEnabled] = useState(false);
 
   useEffect(() => {
+    setIsAddressMasterEnabled(featureFlagService.isEnabled('address_master_v1'));
+    
     if (courtData && (mode === 'edit' || mode === 'view')) {
       setFormData({
         name: courtData.name,
         type: courtData.type,
         jurisdiction: courtData.jurisdiction,
-        address: courtData.address,
+        address: typeof courtData.address === 'string' 
+          ? { line1: courtData.address, line2: '', locality: '', district: '', cityId: '', stateId: '', pincode: '', countryId: 'IN', source: 'manual' } as EnhancedAddressData
+          : courtData.address as EnhancedAddressData,
         establishedYear: courtData.establishedYear,
         totalJudges: courtData.totalJudges,
         digitalFiling: courtData.digitalFiling,
@@ -60,7 +82,17 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         name: '',
         type: 'District Court',
         jurisdiction: '',
-        address: '',
+        address: {
+          line1: '',
+          line2: '',
+          locality: '',
+          district: '',
+          cityId: '',
+          stateId: '',
+          pincode: '',
+          countryId: 'IN',
+          source: 'manual'
+        } as EnhancedAddressData,
         establishedYear: new Date().getFullYear(),
         totalJudges: 1,
         digitalFiling: false,
@@ -190,17 +222,32 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
             </div>
           </div>
 
-          <div>
-            <Label htmlFor="address">Address</Label>
-            <Textarea
-              id="address"
-              value={formData.address}
-              onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-              disabled={mode === 'view'}
-              rows={2}
-              required
-            />
-          </div>
+          {/* Address Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                Address Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {mode === 'view' && isAddressMasterEnabled ? (
+                <AddressView 
+                  address={formData.address}
+                  showSource={true}
+                  showActions={false}
+                />
+              ) : (
+                <AddressForm
+                  value={formData.address}
+                  onChange={(address) => setFormData(prev => ({ ...prev, address }))}
+                  disabled={mode === 'view'}
+                  required={true}
+                  module="court"
+                />
+              )}
+            </CardContent>
+          </Card>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
