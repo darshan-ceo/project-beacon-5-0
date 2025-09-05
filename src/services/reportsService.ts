@@ -455,12 +455,40 @@ BT
 
   // Add form fields content
   template.fields.forEach((field, index) => {
-    const value = payload[field.key] || '';
-    const displayValue = Array.isArray(value) ? value.join(', ') : String(value);
-    
-    content += `0 -25 Td
+    if (field.type === 'repeatable_group' && field.key === 'issues') {
+      const issues = payload[field.key] || [];
+      const issueCount = payload.issue_count || 1;
+      
+      content += `0 -40 Td
+(ISSUES ADDRESSED:) Tj
+`;
+      
+      issues.forEach((issue: any, issueIndex: number) => {
+        content += `0 -30 Td
+(ISSUE ${issueIndex + 1}:) Tj
+`;
+        
+        field.fields?.forEach(subField => {
+          const value = issue[subField.key] || '';
+          const displayValue = Array.isArray(value) ? value.join(', ') : String(value);
+          
+          content += `0 -20 Td
+(${subField.label}: ${displayValue}) Tj
+`;
+        });
+        
+        content += `0 -15 Td
+(---) Tj
+`;
+      });
+    } else if (field.type !== 'repeatable_group') {
+      const value = payload[field.key] || '';
+      const displayValue = Array.isArray(value) ? value.join(', ') : String(value);
+      
+      content += `0 -25 Td
 (${field.label}: ${displayValue}) Tj
 `;
+    }
   });
 
   content += `ET

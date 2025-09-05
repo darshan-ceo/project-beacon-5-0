@@ -1,8 +1,8 @@
 {
   "code": "ASMT10_REPLY",
-  "title": "ASMT-10 Reply",
+  "title": "ASMT-10 Reply (Multi-Issue)",
   "stage": "Scrutiny",
-  "version": "1.0",
+  "version": "2.0",
   "prefill": {
     "client_name": "case.client.name",
     "gstin": "case.client.gstin",
@@ -29,40 +29,63 @@
       "required": true
     },
     {
-      "key": "factual_background",
-      "label": "Factual Background",
-      "type": "textarea",
+      "key": "issue_count",
+      "label": "Number of Issues to Address",
+      "type": "number",
       "required": true,
-      "minLength": 100
+      "minimum": 1,
+      "maximum": 10,
+      "default": 1
     },
     {
-      "key": "reconciliations",
-      "label": "Reconciliations",
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    {
-      "key": "legal_submissions",
-      "label": "Legal Submissions",
-      "type": "textarea",
-      "required": true,
-      "minLength": 120
-    },
-    {
-      "key": "prayer",
-      "label": "Prayer",
-      "type": "textarea",
-      "required": true
-    },
-    {
-      "key": "attachments",
-      "label": "Attachments",
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
+      "key": "issues",
+      "label": "Issues",
+      "type": "repeatable_group",
+      "repeat_count_field": "issue_count",
+      "fields": [
+        {
+          "key": "issue_title",
+          "label": "Issue Title/Description",
+          "type": "string",
+          "required": true
+        },
+        {
+          "key": "factual_background",
+          "label": "Factual Background",
+          "type": "textarea",
+          "required": true,
+          "minLength": 100
+        },
+        {
+          "key": "legal_submissions",
+          "label": "Legal Submissions",
+          "type": "textarea",
+          "required": true,
+          "minLength": 120
+        },
+        {
+          "key": "reconciliations",
+          "label": "Reconciliations",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        {
+          "key": "prayer",
+          "label": "Prayer for this Issue",
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "key": "attachments",
+          "label": "Issue-specific Attachments",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      ]
     },
     {
       "key": "verification_place",
@@ -78,8 +101,8 @@
     }
   ],
   "output": {
-    "filename": "ASMT10_REPLY_${case.id}_${now:YYYYMMDD}.pdf",
+    "filename": "ASMT10_REPLY_MultiIssue_${case.id}_${now:YYYYMMDD}.pdf",
     "dms_folder_by_stage": true,
-    "timeline_event": "ASMT-10 Reply submitted"
+    "timeline_event": "ASMT-10 Multi-Issue Reply submitted"
   }
 }

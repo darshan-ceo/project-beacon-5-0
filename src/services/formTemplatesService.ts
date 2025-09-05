@@ -3,7 +3,7 @@ import { Case, Client, Signatory } from '../contexts/AppStateContext';
 export interface FormField {
   key: string;
   label: string;
-  type: 'string' | 'textarea' | 'date' | 'number' | 'array' | 'group' | 'boolean';
+  type: 'string' | 'textarea' | 'date' | 'number' | 'array' | 'group' | 'boolean' | 'repeatable_group';
   required?: boolean;
   minLength?: number;
   minimum?: number;
@@ -13,6 +13,7 @@ export interface FormField {
     type: string;
   };
   fields?: FormField[];
+  repeat_count_field?: string; // For repeatable groups
 }
 
 export interface FormTemplate {
@@ -179,6 +180,21 @@ class FormTemplatesService {
           if (field.fields && typeof value === 'object') {
             field.fields.forEach(subField => {
               validateField(subField, value[subField.key], fieldPath);
+            });
+          }
+          break;
+
+        case 'repeatable_group':
+          if (!Array.isArray(value)) {
+            errors.push({
+              field: fieldPath,
+              message: `${field.label} must be an array`
+            });
+          } else if (field.fields) {
+            value.forEach((item: any, index: number) => {
+              field.fields!.forEach(subField => {
+                validateField(subField, item[subField.key], `${fieldPath}[${index}]`);
+              });
             });
           }
           break;

@@ -17,6 +17,8 @@ import { useToast } from '@/hooks/use-toast';
 import { usePermission } from '@/hooks/useRBAC';
 import { AIAssistantPanel } from './AIAssistantPanel';
 import { AIDraftResult } from '@/services/aiDraftService';
+import { IssueNavigator } from '@/components/ui/issue-navigator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface FormRenderModalProps {
   isOpen: boolean;
@@ -40,6 +42,9 @@ export const FormRenderModal: React.FC<FormRenderModalProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedCase, setSelectedCase] = useState<string>('');
   const [improvingField, setImprovingField] = useState<string | null>(null);
+  const [currentIssue, setCurrentIssue] = useState<number>(0);
+  const [issueStatus, setIssueStatus] = useState<('complete' | 'incomplete' | 'error')[]>([]);
+  const [issueProgress, setIssueProgress] = useState<{ [key: number]: number }>({});
   
   // AI permissions
   const canUseAI = usePermission('ai', 'read');
@@ -78,6 +83,29 @@ export const FormRenderModal: React.FC<FormRenderModalProps> = ({
               });
             }
             break;
+          case 'repeatable_group':
+            // Initialize based on repeat count field
+            const countField = template.fields.find(f => f.key === field.repeat_count_field);
+            const defaultCount = countField?.default || 1;
+            initialData[field.key] = Array.from({ length: defaultCount }, () => {
+              const item: Record<string, any> = {};
+              if (field.fields) {
+                field.fields.forEach(subField => {
+                  switch (subField.type) {
+                    case 'array':
+                      item[subField.key] = [];
+                      break;
+                    case 'boolean':
+                      item[subField.key] = false;
+                      break;
+                    default:
+                      item[subField.key] = subField.default || '';
+                  }
+                });
+              }
+              return item;
+            });
+            break;
           default:
             initialData[field.key] = '';
         }
@@ -100,21 +128,69 @@ export const FormRenderModal: React.FC<FormRenderModalProps> = ({
     setErrors([]);
   };
 
-  const handleFieldChange = (fieldKey: string, value: any, parentKey?: string) => {
+  const handleFieldChange = (fieldKey: string, value: any, parentKey?: string, issueIndex?: number) => {
     setFormData(prev => {
       const updated = { ...prev };
-      if (parentKey) {
+      if (issueIndex !== undefined && parentKey === 'issues') {
+        updated[parentKey] = [...(updated[parentKey] || [])];
+        updated[parentKey][issueIndex] = { ...updated[parentKey][issueIndex], [fieldKey]: value };
+      } else if (parentKey) {
         updated[parentKey] = { ...updated[parentKey], [fieldKey]: value };
       } else {
         updated[fieldKey] = value;
+        
+        // Handle issue count change for repeatable groups
+        if (fieldKey === 'issue_count' && typeof value === 'number') {
+          const currentIssues = updated.issues || [];
+          if (value > currentIssues.length) {
+            // Add new issues
+            const newIssues = Array.from({ length: value - currentIssues.length }, () => {
+              const newIssue: Record<string, any> = {};
+              const issueTemplate = template.fields.find(f => f.key === 'issues');
+              if (issueTemplate?.fields) {
+                issueTemplate.fields.forEach(subField => {
+                  switch (subField.type) {
+                    case 'array':
+                      newIssue[subField.key] = [];
+                      break;
+                    case 'boolean':
+                      newIssue[subField.key] = false;
+                      break;
+                    default:
+                      newIssue[subField.key] = subField.default || '';
+                  }
+                });
+              }
+              return newIssue;
+            });
+            updated.issues = [...currentIssues, ...newIssues];
+          } else if (value < currentIssues.length) {
+            // Remove excess issues
+            updated.issues = currentIssues.slice(0, value);
+          }
+          
+          // Update issue status array
+          setIssueStatus(prev => {
+            const newStatus = Array.from({ length: value }, (_, i) => prev[i] || 'incomplete');
+            return newStatus;
+          });
+          
+          // Adjust current issue if necessary
+          if (currentIssue >= value) {
+            setCurrentIssue(Math.max(0, value - 1));
+          }
+        }
       }
       return updated;
     });
 
     // Clear errors for this field
-    setErrors(prev => prev.filter(error => 
-      parentKey ? !error.field.startsWith(`${parentKey}.${fieldKey}`) : error.field !== fieldKey
-    ));
+    setErrors(prev => prev.filter(error => {
+      if (issueIndex !== undefined && parentKey === 'issues') {
+        return !error.field.startsWith(`${parentKey}[${issueIndex}].${fieldKey}`);
+      }
+      return parentKey ? !error.field.startsWith(`${parentKey}.${fieldKey}`) : error.field !== fieldKey;
+    }));
   };
 
   const handleArrayAdd = (fieldKey: string) => {
@@ -414,6 +490,132 @@ export const FormRenderModal: React.FC<FormRenderModalProps> = ({
         return fieldWrapper(
           <div className="border border-border rounded-md p-4 space-y-4">
             {field.fields?.map(subField => renderField(subField, field.key))}
+          </div>
+        );
+
+      case 'repeatable_group':
+        const issueCount = formData[field.repeat_count_field || 'issue_count'] || 1;
+        const issues = formData[field.key] || [];
+        
+        return fieldWrapper(
+          <div className="space-y-4">
+            {/* Issue Navigator */}
+            <IssueNavigator
+              currentIssue={currentIssue}
+              totalIssues={issueCount}
+              issueStatus={issueStatus}
+              onIssueChange={setCurrentIssue}
+              issueProgress={issueProgress}
+            />
+            
+            {/* Current Issue Form */}
+            <div className="border border-border rounded-lg p-6 bg-card">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-lg font-semibold">
+                  Issue {currentIssue + 1} of {issueCount}
+                </h4>
+                <Badge variant="outline">
+                  {issueStatus[currentIssue] === 'complete' ? 'Complete' : 
+                   issueStatus[currentIssue] === 'error' ? 'Has Errors' : 'In Progress'}
+                </Badge>
+              </div>
+              
+              <div className="space-y-4">
+                {field.fields?.map(subField => {
+                  const subFieldKey = `${field.key}[${currentIssue}].${subField.key}`;
+                  const subValue = issues[currentIssue]?.[subField.key];
+                  const subFieldErrors = errors.filter(error => error.field === subFieldKey);
+                  
+                  return (
+                    <div key={subField.key} className="space-y-2">
+                      <Label htmlFor={subFieldKey} className={`text-sm font-medium ${subField.required ? 'required' : ''}`}>
+                        {subField.label}
+                        {subField.required && <span className="text-destructive ml-1">*</span>}
+                      </Label>
+                      
+                      {subField.type === 'textarea' ? (
+                        <div className="relative">
+                          <Textarea
+                            id={subFieldKey}
+                            value={subValue || ''}
+                            onChange={(e) => handleFieldChange(subField.key, e.target.value, field.key, currentIssue)}
+                            className={subFieldErrors.length > 0 ? 'border-destructive' : ''}
+                            rows={4}
+                            placeholder={`Enter ${subField.label.toLowerCase()} for issue ${currentIssue + 1}...`}
+                          />
+                          {canUseAI && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="absolute top-2 right-2 h-6 px-2 text-xs"
+                              onClick={() => handleImproveSectionWithAI(`${field.key}[${currentIssue}].${subField.key}`)}
+                              disabled={improvingField === `${field.key}[${currentIssue}].${subField.key}`}
+                            >
+                              {improvingField === `${field.key}[${currentIssue}].${subField.key}` ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <Wand2 className="h-3 w-3" />
+                              )}
+                            </Button>
+                          )}
+                        </div>
+                      ) : subField.type === 'array' ? (
+                        <div className="space-y-2">
+                          {(subValue || []).map((item: string, index: number) => (
+                            <div key={index} className="flex gap-2">
+                              <Input
+                                value={item}
+                                onChange={(e) => {
+                                  const newArray = [...(subValue || [])];
+                                  newArray[index] = e.target.value;
+                                  handleFieldChange(subField.key, newArray, field.key, currentIssue);
+                                }}
+                                placeholder={`${subField.label} ${index + 1}`}
+                              />
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const newArray = (subValue || []).filter((_: any, i: number) => i !== index);
+                                  handleFieldChange(subField.key, newArray, field.key, currentIssue);
+                                }}
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          ))}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const newArray = [...(subValue || []), ''];
+                              handleFieldChange(subField.key, newArray, field.key, currentIssue);
+                            }}
+                          >
+                            Add {subField.label}
+                          </Button>
+                        </div>
+                      ) : (
+                        <Input
+                          id={subFieldKey}
+                          value={subValue || ''}
+                          onChange={(e) => handleFieldChange(subField.key, e.target.value, field.key, currentIssue)}
+                          className={subFieldErrors.length > 0 ? 'border-destructive' : ''}
+                          placeholder={`Enter ${subField.label.toLowerCase()}...`}
+                        />
+                      )}
+                      
+                      {subFieldErrors.map((error, index) => (
+                        <div key={index} className="text-sm text-destructive flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" />
+                          {error.message}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         );
 
