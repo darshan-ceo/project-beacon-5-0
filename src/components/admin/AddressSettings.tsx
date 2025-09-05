@@ -53,7 +53,7 @@ const FIELD_LABELS: Record<AddressFieldName, string> = {
   lng: 'Longitude'
 };
 
-const REQUIRED_FIELDS: AddressFieldName[] = ['line1', 'district', 'stateId', 'countryId', 'pincode'];
+const REQUIRED_FIELDS: AddressFieldName[] = ['line1', 'stateId', 'countryId', 'pincode'];
 
 export const AddressSettings: React.FC = () => {
   const [configs, setConfigs] = useState<Record<ModuleName, AddressFieldConfig>>({
@@ -191,7 +191,7 @@ export const AddressSettings: React.FC = () => {
   const renderFieldConfig = (moduleName: ModuleName, fieldName: AddressFieldName) => {
     const fieldConfig = configs[moduleName]?.[fieldName] || { visible: true, required: false, editable: true };
     const isRequired = REQUIRED_FIELDS.includes(fieldName);
-    const isDisabled = isRequired && (fieldName === 'line1' || fieldName === 'district' || fieldName === 'stateId' || fieldName === 'countryId' || fieldName === 'pincode');
+    const isDisabled = isRequired && (fieldName === 'line1' || fieldName === 'stateId' || fieldName === 'countryId' || fieldName === 'pincode');
 
     return (
       <div key={fieldName} className="space-y-3 p-4 border rounded-lg">
