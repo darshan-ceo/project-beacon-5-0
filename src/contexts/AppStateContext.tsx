@@ -2042,13 +2042,6 @@ const AppStateContext = createContext<{
 export const AppStateProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, initialState);
 
-  // Expose state globally for services to access (temporary bridge until proper DI)
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.__APP_STATE__ = state;
-    }
-  }, [state]);
-
   return (
     <AppStateContext.Provider value={{ state, dispatch }}>
       {children}

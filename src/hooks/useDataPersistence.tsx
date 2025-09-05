@@ -95,11 +95,13 @@ export const useDataPersistence = () => {
   useEffect(() => {
     const savedData = loadFromStorage();
     if (savedData) {
-      dispatch({ type: 'RESTORE_STATE', payload: savedData });
+      // Only restore non-profile data to avoid conflicts
+      const { userProfile, ...dataWithoutProfile } = savedData;
+      dispatch({ type: 'RESTORE_STATE', payload: dataWithoutProfile });
     }
   }, [loadFromStorage, dispatch]);
 
-  // Auto-save every 30 seconds
+  // Auto-save every 30 seconds (debounced)
   useEffect(() => {
     const interval = setInterval(() => {
       saveToStorage(state);
