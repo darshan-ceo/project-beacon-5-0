@@ -325,7 +325,7 @@ export const TemplatesManagement: React.FC = () => {
           }}
           template={selectedTemplate}
           selectedCaseId={selectedCaseId}
-          onCaseSelect={setSelectedCaseId}
+          
         />
       )}
 

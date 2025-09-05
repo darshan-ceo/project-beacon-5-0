@@ -28,6 +28,10 @@ export interface FormTemplate {
     dms_folder_by_stage: boolean;
     timeline_event: string;
   };
+  customization?: {
+    companyHeader?: string;
+    companyFooter?: string;
+  };
 }
 
 export interface FormValidationError {
