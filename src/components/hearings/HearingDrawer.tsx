@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppState } from '@/contexts/AppStateContext';
 import { featureFlagService } from '@/services/featureFlagService';
 import { hearingsService } from '@/services/hearingsService';
@@ -32,6 +33,7 @@ export const HearingDrawer: React.FC<HearingDrawerProps> = ({
   prefillData,
   mode
 }) => {
+  const navigate = useNavigate();
   const { state, dispatch } = useAppState();
   const [formData, setFormData] = useState<HearingFormData>({
     case_id: '',
@@ -145,6 +147,30 @@ export const HearingDrawer: React.FC<HearingDrawerProps> = ({
       setOrderFile(null);
     } catch (error) {
       console.error('Failed to upload order:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOpenStageWorkspace = () => {
+    if (!hearing?.stage_instance_id) return;
+    navigate(`/cases?caseId=${hearing.case_id}&tab=lifecycle&stageId=${hearing.stage_instance_id}`);
+  };
+
+  const handleSendNotifications = async () => {
+    if (!hearing) return;
+    
+    setIsLoading(true);
+    try {
+      await hearingsService.sendNotifications({
+        hearing_id: hearing.id,
+        template_id: 'default',
+        recipients: [{ type: 'client_signatory' }],
+        status: 'pending'
+      });
+      toast({ title: 'Success', description: 'Notifications sent successfully.' });
+    } catch (error) {
+      console.error('Failed to send notifications:', error);
     } finally {
       setIsLoading(false);
     }
@@ -492,7 +518,7 @@ export const HearingDrawer: React.FC<HearingDrawerProps> = ({
                     </a>
                   </Button>
                   {hearing.stage_instance_id && (
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={handleOpenStageWorkspace}>
                       Open Stage Workspace
                     </Button>
                   )}
@@ -519,7 +545,7 @@ export const HearingDrawer: React.FC<HearingDrawerProps> = ({
                   >
                     Record Outcome
                   </Button>
-                  <Button variant="outline">
+                  <Button variant="outline" onClick={handleSendNotifications} disabled={isLoading}>
                     Send Notifications
                   </Button>
                 </>
