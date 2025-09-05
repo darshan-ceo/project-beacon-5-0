@@ -18,6 +18,7 @@ import { useContextualForms } from '@/hooks/useContextualForms';
 import { AddressView } from '@/components/ui/AddressView';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { featureFlagService } from '@/services/featureFlagService';
+import { hearingsService } from '@/services/hearingsService';
 
 interface HearingModalProps {
   isOpen: boolean;
@@ -72,6 +73,7 @@ export const HearingModal: React.FC<HearingModalProps> = ({
     notes: ''
   });
   const [isAddressMasterEnabled, setIsAddressMasterEnabled] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     setIsAddressMasterEnabled(featureFlagService.isEnabled('address_master_v1'));
@@ -97,85 +99,69 @@ export const HearingModal: React.FC<HearingModalProps> = ({
     }
   }, [hearingData, mode, updateContext]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate relationships
-    const judgeCourtValidation = validateJudgeCourt(formData.judgeId, formData.courtId);
-    if (!judgeCourtValidation.isValid) {
-      toast({
-        title: "Validation Error",
-        description: judgeCourtValidation.errors.join(', '),
-        variant: "destructive"
-      });
-      return;
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
+    try {
+      // Validate relationships
+      const judgeCourtValidation = validateJudgeCourt(formData.judgeId, formData.courtId);
+      if (!judgeCourtValidation.isValid) {
+        toast({
+          title: "Validation Error",
+          description: judgeCourtValidation.errors.join(', '),
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const caseWithClient = getCaseWithClient(formData.caseId);
+      if (!caseWithClient?.case || !caseWithClient?.client) {
+        toast({
+          title: "Error",
+          description: "Could not find case or client information.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (mode === 'create') {
+        const hearingFormData = {
+          case_id: formData.caseId,
+          date: formData.date.toISOString().split('T')[0],
+          start_time: formData.time,
+          end_time: formData.time,
+          timezone: 'Asia/Kolkata',
+          court_id: formData.courtId,
+          judge_ids: [formData.judgeId],
+          purpose: 'mention' as const,
+          notes: formData.notes
+        };
+
+        await hearingsService.createHearing(hearingFormData, dispatch);
+      } else if (mode === 'edit' && hearingData) {
+        const updates = {
+          court_id: formData.courtId,
+          judge_ids: [formData.judgeId],
+          date: formData.date.toISOString().split('T')[0],
+          start_time: formData.time,
+          end_time: formData.time,
+          agenda: formData.agenda,
+          notes: formData.notes
+        };
+
+        await hearingsService.updateHearing(hearingData.id, updates, dispatch);
+      }
+
+      onClose();
+    } catch (error) {
+      console.error('Error submitting hearing:', error);
+      // Error toast is handled by the service
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const caseWithClient = getCaseWithClient(formData.caseId);
-    if (!caseWithClient?.case || !caseWithClient?.client) {
-      toast({
-        title: "Error",
-        description: "Could not find case or client information.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (mode === 'create') {
-      const newHearing: Hearing = {
-        id: Date.now().toString(),
-        case_id: formData.caseId,
-        start_time: formData.time,
-        end_time: formData.time,
-        timezone: 'Asia/Kolkata',
-        court_id: formData.courtId,
-        judge_ids: [formData.judgeId],
-        purpose: 'mention',
-        status: formData.status as any,
-        created_by: 'current-user',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        date: formData.date.toISOString().split('T')[0],
-        notes: formData.notes,
-        // Legacy compatibility
-        caseId: formData.caseId,
-        clientId: caseWithClient.client.id,
-        courtId: formData.courtId,
-        judgeId: formData.judgeId,
-        time: formData.time,
-        type: formData.type,
-        agenda: formData.agenda,
-        createdDate: new Date().toISOString().split('T')[0],
-        lastUpdated: new Date().toISOString().split('T')[0]
-      };
-
-      dispatch({ type: 'ADD_HEARING', payload: newHearing });
-      toast({
-        title: "Hearing Scheduled",
-        description: `Hearing for ${formData.date.toDateString()} has been scheduled.`,
-      });
-    } else if (mode === 'edit' && hearingData) {
-      const updatedHearing: Hearing = {
-        ...hearingData,
-        courtId: formData.courtId,
-        judgeId: formData.judgeId,
-        date: formData.date.toISOString().split('T')[0],
-        time: formData.time,
-        type: formData.type,
-        status: formData.status as any,
-        agenda: formData.agenda,
-        notes: formData.notes,
-        lastUpdated: new Date().toISOString().split('T')[0]
-      };
-
-      dispatch({ type: 'UPDATE_HEARING', payload: updatedHearing });
-      toast({
-        title: "Hearing Updated",
-        description: "Hearing details have been updated successfully.",
-      });
-    }
-
-    onClose();
   };
 
   return (
@@ -335,8 +321,11 @@ export const HearingModal: React.FC<HearingModalProps> = ({
               {mode === 'view' ? 'Close' : 'Cancel'}
             </Button>
             {mode !== 'view' && (
-              <Button type="submit">
-                {mode === 'create' ? 'Schedule Hearing' : 'Update Hearing'}
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting 
+                  ? (mode === 'create' ? 'Scheduling...' : 'Updating...')
+                  : (mode === 'create' ? 'Schedule Hearing' : 'Update Hearing')
+                }
               </Button>
             )}
           </div>

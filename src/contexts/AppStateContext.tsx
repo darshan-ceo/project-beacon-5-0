@@ -1044,6 +1044,32 @@ const initialState: AppState = {
       avgHearingTime: '45 mins',
       digitalFiling: true,
       workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+    },
+    {
+      id: '2',
+      name: 'Supreme Court of India',
+      type: 'Supreme Court',
+      jurisdiction: 'National',
+      address: 'Tilak Marg, New Delhi - 110001',
+      establishedYear: 1950,
+      totalJudges: 34,
+      activeCases: 70000,
+      avgHearingTime: '90 mins',
+      digitalFiling: true,
+      workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+    },
+    {
+      id: '3',
+      name: 'GST Commissioner Office',
+      type: 'Commission',
+      jurisdiction: 'Mumbai Zone',
+      address: 'GST Bhavan, BKC, Mumbai - 400051',
+      establishedYear: 2017,
+      totalJudges: 8,
+      activeCases: 1200,
+      avgHearingTime: '30 mins',
+      digitalFiling: true,
+      workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
     }
   ],
   judges: [
@@ -1062,6 +1088,40 @@ const initialState: AppState = {
         chambers: 'Chamber No. 15, ITAT Mumbai',
         phone: '+91-22-12345678',
         email: 'justice.sharma@itat.gov.in'
+      }
+    },
+    {
+      id: '2',
+      name: 'Hon\'ble Chief Justice D.Y. Chandrachud',
+      designation: 'Chief Justice of India',
+      courtId: '2', // FK to Supreme Court of India
+      appointmentDate: '2016-05-13',
+      specialization: ['Constitutional Law', 'Human Rights', 'Criminal Law'],
+      totalCases: 2800,
+      avgDisposalTime: '12 months',
+      retirementDate: '2029-11-10',
+      status: 'Active',
+      contactInfo: {
+        chambers: 'Chamber No. 1, Supreme Court',
+        phone: '+91-11-23388922',
+        email: 'cji@sci.gov.in'
+      }
+    },
+    {
+      id: '3',
+      name: 'Shri A.K. Verma',
+      designation: 'Additional Commissioner',
+      courtId: '3', // FK to GST Commissioner Office
+      appointmentDate: '2018-07-01',
+      specialization: ['GST Law', 'Tax Assessment', 'Revenue Recovery'],
+      totalCases: 800,
+      avgDisposalTime: '4 months',
+      retirementDate: '2032-03-31',
+      status: 'Active',
+      contactInfo: {
+        chambers: 'Office No. 301, GST Bhavan',
+        phone: '+91-22-26572000',
+        email: 'addl.comm@gstmumbai.gov.in'
       }
     }
   ],
