@@ -133,6 +133,29 @@ const mockActivityLogs: ActivityLog[] = [
 export const UserProfile: React.FC = () => {
   const { state, dispatch } = useAppState();
   const [user, setUser] = useState(state.userProfile);
+
+  // Load saved profile data on component mount
+  React.useEffect(() => {
+    const loadSavedProfile = async () => {
+      try {
+        const savedProfile = await profileService.getProfile();
+        if (savedProfile) {
+          const updatedProfile = { ...state.userProfile, ...savedProfile };
+          setUser(updatedProfile);
+          dispatch({ type: 'UPDATE_USER_PROFILE', payload: savedProfile });
+        }
+      } catch (error) {
+        console.error('Failed to load saved profile:', error);
+      }
+    };
+    
+    loadSavedProfile();
+  }, [dispatch, state.userProfile]);
+
+  // Sync local state with global state changes
+  React.useEffect(() => {
+    setUser(state.userProfile);
+  }, [state.userProfile]);
   const [isEditing, setIsEditing] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);

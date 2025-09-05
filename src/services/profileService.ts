@@ -56,6 +56,17 @@ class ProfileService {
     }
   }
 
+  async getProfile(): Promise<any> {
+    try {
+      const PROFILE_KEY = 'user_profile';
+      const savedProfile = localStorage.getItem(PROFILE_KEY);
+      return savedProfile ? JSON.parse(savedProfile) : null;
+    } catch (error) {
+      console.error('Failed to load profile:', error);
+      return null;
+    }
+  }
+
   async getAvatarUrl(): Promise<string> {
     return this.avatarUrl;
   }

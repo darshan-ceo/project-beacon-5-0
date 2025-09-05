@@ -65,6 +65,10 @@ export const useDataPersistence = () => {
           
           // Validate the structure
           if (importedData.cases && importedData.tasks && importedData.clients) {
+            // Ensure userProfile exists in imported data
+            if (!importedData.userProfile) {
+              importedData.userProfile = state.userProfile;
+            }
             dispatch({ type: 'RESTORE_STATE', payload: importedData });
             saveToStorage(importedData);
             resolve(true);

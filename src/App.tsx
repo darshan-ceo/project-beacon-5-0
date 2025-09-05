@@ -28,6 +28,8 @@ import { GSTDebugPage } from "./components/debug/GSTDebugPage";
 import { QADashboard } from "./pages/QADashboard";
 import { HearingsCalendar } from "./components/hearings/HearingsCalendar";
 
+import { AppWithPersistence } from "./components/AppWithPersistence";
+
 const queryClient = new QueryClient();
 
 // Mock current user - in real app this would come from auth context
@@ -41,10 +43,11 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <RBACProvider>
       <AppStateProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
+        <AppWithPersistence>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
             <Routes>
               <Route path="/" element={
                 <AdminLayout currentUser={currentUser}>
@@ -140,8 +143,9 @@ const App = () => (
               } />
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
+            </BrowserRouter>
+          </TooltipProvider>
+        </AppWithPersistence>
       </AppStateProvider>
     </RBACProvider>
   </QueryClientProvider>
