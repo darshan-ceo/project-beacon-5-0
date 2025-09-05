@@ -41,6 +41,7 @@ export const AddressForm: React.FC<AddressFormProps> = ({
   const [countries, setCountries] = useState<Country[]>([]);
   const [states, setStates] = useState<State[]>([]);
   const [cities, setCities] = useState<City[]>([]);
+  const [citiesLoading, setCitiesLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [fieldConfig, setFieldConfig] = useState<Record<string, any>>({});
   const [gstData, setGstData] = useState<GSTTaxpayerInfo | null>(null);
@@ -151,6 +152,7 @@ export const AddressForm: React.FC<AddressFormProps> = ({
   };
 
   const loadCities = async (stateId: string) => {
+    setCitiesLoading(true);
     try {
       const citiesData = await addressLookupService.getCities(stateId);
       setCities(citiesData);
@@ -167,6 +169,9 @@ export const AddressForm: React.FC<AddressFormProps> = ({
       }
     } catch (error) {
       console.error('Failed to load cities:', error);
+      setCities([]);
+    } finally {
+      setCitiesLoading(false);
     }
   };
 
@@ -482,21 +487,43 @@ export const AddressForm: React.FC<AddressFormProps> = ({
                   <SourceChip source={fieldSources['cityId']} />
                 )}
               </div>
-              <Select
+               <Select
                 value={value.cityId || ''}
                 onValueChange={(cityId) => handleFieldChange('cityId', cityId)}
-                disabled={disabled || !value.stateId || !isFieldEditable('cityId')}
+                disabled={disabled || !isFieldEditable('cityId')}
                 required={required || isFieldRequired('cityId')}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select city" />
+                  <SelectValue placeholder={
+                    !value.stateId 
+                      ? "Select state first" 
+                      : citiesLoading 
+                        ? "Loading cities..." 
+                        : cities.length === 0 
+                          ? "No cities available" 
+                          : "Select city"
+                  } />
                 </SelectTrigger>
-                <SelectContent>
-                  {cities.map((city) => (
-                    <SelectItem key={city.id} value={city.id}>
-                      {city.name}
+                <SelectContent className="z-50 bg-popover">
+                  {!value.stateId ? (
+                    <SelectItem value="" disabled>
+                      Please select a state first
                     </SelectItem>
-                  ))}
+                  ) : citiesLoading ? (
+                    <SelectItem value="" disabled>
+                      Loading cities...
+                    </SelectItem>
+                  ) : cities.length === 0 ? (
+                    <SelectItem value="" disabled>
+                      No cities available for this state
+                    </SelectItem>
+                  ) : (
+                    cities.map((city) => (
+                      <SelectItem key={city.id} value={city.id}>
+                        {city.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
