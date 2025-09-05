@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, momentLocalizer, View } from 'react-big-calendar';
-import moment from 'moment';
+import { Calendar, dateFnsLocalizer, View } from 'react-big-calendar';
+import { format, parse, startOfWeek, getDay } from 'date-fns';
+import { enUS } from 'date-fns/locale';
 import { useAppState } from '@/contexts/AppStateContext';
 import { featureFlagService } from '@/services/featureFlagService';
 import { hearingsService } from '@/services/hearingsService';
@@ -17,7 +18,15 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
-const localizer = momentLocalizer(moment);
+const localizer = dateFnsLocalizer({
+  format,
+  parse,
+  startOfWeek,
+  getDay,
+  locales: {
+    'en-US': enUS,
+  },
+});
 
 interface CalendarEvent {
   id: string;
@@ -312,7 +321,7 @@ export const HearingsCalendar: React.FC<HearingsCalendarProps> = ({
               formats={{
                 timeGutterFormat: 'HH:mm',
                 eventTimeRangeFormat: ({ start, end }) => 
-                  `${moment(start).format('HH:mm')} - ${moment(end).format('HH:mm')}`
+                  `${format(start, 'HH:mm')} - ${format(end, 'HH:mm')}`
               }}
             />
           )}
