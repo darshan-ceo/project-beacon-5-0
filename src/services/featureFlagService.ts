@@ -58,6 +58,13 @@ class FeatureFlagService {
       isEnabled: hearingsFeature === 'on',
       version: hearingsFeature === 'on' ? 'v1' : undefined
     });
+
+    // Address Master Feature (UAT enabled)
+    this.flags.set('address_master_v1', {
+      key: 'address_master_v1',
+      isEnabled: true, // ON in UAT
+      version: 'v1'
+    });
   }
 
   /**

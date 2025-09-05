@@ -16,13 +16,19 @@ export interface Country {
 }
 
 export interface AddressData {
-  line1: string;
+  line1?: string;
   line2?: string;
+  landmark?: string;
   locality?: string;
-  cityId: string;
-  stateId: string;
-  pincode: string;
-  countryId: string;
+  district?: string;
+  cityId?: string;
+  stateId?: string;
+  stateCode?: string;
+  stateName?: string;
+  countryId?: string;
+  pincode?: string;
+  lat?: number;
+  lng?: number;
 }
 
 class AddressLookupService {
