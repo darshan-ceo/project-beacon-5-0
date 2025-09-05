@@ -506,15 +506,15 @@ export const AddressForm: React.FC<AddressFormProps> = ({
                 </SelectTrigger>
                 <SelectContent className="z-50 bg-popover">
                   {!value.stateId ? (
-                    <SelectItem value="" disabled>
+                    <SelectItem value="_select_state_first" disabled>
                       Please select a state first
                     </SelectItem>
                   ) : citiesLoading ? (
-                    <SelectItem value="" disabled>
+                    <SelectItem value="_loading_cities" disabled>
                       Loading cities...
                     </SelectItem>
                   ) : cities.length === 0 ? (
-                    <SelectItem value="" disabled>
+                    <SelectItem value="_no_cities" disabled>
                       No cities available for this state
                     </SelectItem>
                   ) : (
