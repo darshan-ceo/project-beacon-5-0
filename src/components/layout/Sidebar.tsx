@@ -32,6 +32,7 @@ import {
   SidebarFooter,
   useSidebar,
 } from '@/components/ui/sidebar';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { envConfig } from '@/utils/envConfig';
 
@@ -47,28 +48,54 @@ interface MenuItem {
   badge?: string;
 }
 
-const menuItems: MenuItem[] = [
+interface MenuGroup {
+  label: string;
+  items: MenuItem[];
+  defaultOpen?: boolean;
+  roles: string[];
+}
+
+// Main navigation items (always visible, in requested order)
+const mainMenuItems: MenuItem[] = [
   { icon: BarChart3, label: 'Dashboard', href: '/', roles: ['Admin', 'Partner/CA', 'Staff'] },
-  { icon: Users, label: 'Client Masters', href: '/clients', roles: ['Admin', 'Partner/CA', 'Staff'] },
-  { icon: Building2, label: 'Court Masters', href: '/courts', roles: ['Admin', 'Partner/CA'] },
-  { icon: Gavel, label: 'Judge Masters', href: '/judges', roles: ['Admin', 'Partner/CA'] },
-  { icon: UserCheck, label: 'Employee Masters', href: '/employees', roles: ['Admin'] },
   { icon: FileText, label: 'Case Management', href: '/cases', roles: ['Admin', 'Partner/CA', 'Staff'] },
-  { icon: BarChart3, label: 'Reports', href: '/reports', roles: ['Admin', 'Partner/CA', 'Staff'] },
-  { icon: CheckSquare, label: 'Task Management', href: '/tasks', roles: ['Admin', 'Partner/CA', 'Staff'] },
   { icon: CalendarDays, label: 'Hearings', href: '/hearings/calendar', roles: ['Admin', 'Partner/CA', 'Staff'] },
+  { icon: CheckSquare, label: 'Task Management', href: '/tasks', roles: ['Admin', 'Partner/CA', 'Staff'] },
   { icon: FolderOpen, label: 'Document Management', href: '/documents', roles: ['Admin', 'Partner/CA', 'Staff', 'Client'] },
-  { icon: Shield, label: 'RBAC Management', href: '/rbac', roles: ['Admin'] },
-  { icon: Settings, label: 'Global Parameters', href: '/settings', roles: ['Admin', 'Partner/CA'] },
+  { icon: BarChart3, label: 'Reports', href: '/reports', roles: ['Admin', 'Partner/CA', 'Staff'] },
   { icon: UserCircle, label: 'User Profile', href: '/profile', roles: ['Admin', 'Partner/CA', 'Staff', 'Client'] },
 ];
 
+// Grouped menu sections
+const menuGroups: MenuGroup[] = [
+  {
+    label: 'Masters',
+    defaultOpen: false,
+    roles: ['Admin', 'Partner/CA', 'Staff'],
+    items: [
+      { icon: Users, label: 'Client Masters', href: '/clients', roles: ['Admin', 'Partner/CA', 'Staff'] },
+      { icon: Building2, label: 'Court Masters', href: '/courts', roles: ['Admin', 'Partner/CA'] },
+      { icon: Gavel, label: 'Judge Masters', href: '/judges', roles: ['Admin', 'Partner/CA'] },
+      { icon: UserCheck, label: 'Employee Masters', href: '/employees', roles: ['Admin'] },
+    ]
+  },
+  {
+    label: 'Administration',
+    defaultOpen: false,
+    roles: ['Admin'],
+    items: [
+      { icon: Settings, label: 'Global Parameters', href: '/settings', roles: ['Admin', 'Partner/CA'] },
+      { icon: Shield, label: 'RBAC Management', href: '/rbac', roles: ['Admin'] },
+    ]
+  }
+];
+
 export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
-  // Add QA and Debug items based on environment
-  const dynamicMenuItems = [...menuItems];
+  // Add QA and Debug items to main menu based on environment
+  const dynamicMainItems = [...mainMenuItems];
   
   if (envConfig.QA_ON) {
-    dynamicMenuItems.push({ 
+    dynamicMainItems.push({ 
       icon: Bug, 
       label: 'QA Dashboard', 
       href: '/qa', 
@@ -77,7 +104,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
   }
   
   if (envConfig.GST_ENABLED) {
-    dynamicMenuItems.push({ 
+    dynamicMainItems.push({ 
       icon: TestTube, 
       label: 'GST Debug', 
       href: '/debug/gst', 
@@ -85,12 +112,46 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
     });
   }
 
-  const filteredMenuItems = dynamicMenuItems.filter(item => item.roles.includes(userRole));
+  // Filter menu items and groups by user role
+  const filteredMainItems = dynamicMainItems.filter(item => item.roles.includes(userRole));
+  const filteredGroups = menuGroups.filter(group => 
+    group.roles.includes(userRole) && 
+    group.items.some(item => item.roles.includes(userRole))
+  );
+
   const location = useLocation();
   const { open } = useSidebar();
 
   const getNavClasses = (isActive: boolean) =>
     isActive ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : "hover:bg-sidebar-accent/50";
+
+  const renderMenuItem = (item: MenuItem) => {
+    const isActive = location.pathname === item.href;
+    return (
+      <SidebarMenuItem key={item.href}>
+        <SidebarMenuButton asChild>
+          <NavLink 
+            to={item.href}
+            className={({ isActive: navIsActive }) => 
+              getNavClasses(navIsActive || isActive)
+            }
+          >
+            <item.icon className="h-5 w-5" />
+            {open && (
+              <>
+                <span className="truncate">{item.label}</span>
+                {item.badge && (
+                  <span className="ml-auto bg-sidebar-primary text-sidebar-primary-foreground text-xs px-2 py-1 rounded-full">
+                    {item.badge}
+                  </span>
+                )}
+              </>
+            )}
+          </NavLink>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    );
+  };
 
   return (
     <Sidebar className="border-r border-sidebar-border" collapsible="icon">
@@ -110,48 +171,48 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
       {/* Scrollable Content */}
       <SidebarContent>
         <ScrollArea className="flex-1">
-          <div className="p-2">
+          <div className="p-2 space-y-4">
+            {/* Main Navigation */}
             <SidebarGroup>
               <SidebarGroupLabel>Navigation</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {filteredMenuItems.map((item) => {
-                    const isActive = location.pathname === item.href;
-                    return (
-                      <SidebarMenuItem key={item.href}>
-                        <SidebarMenuButton asChild>
-                          <NavLink 
-                            to={item.href}
-                            className={({ isActive: navIsActive }) => 
-                              getNavClasses(navIsActive || isActive)
-                            }
-                          >
-                            <item.icon className="h-5 w-5" />
-                            {open && (
-                              <>
-                                <span className="truncate">{item.label}</span>
-                                {item.badge && (
-                                  <span className="ml-auto bg-sidebar-primary text-sidebar-primary-foreground text-xs px-2 py-1 rounded-full">
-                                    {item.badge}
-                                  </span>
-                                )}
-                              </>
-                            )}
-                          </NavLink>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
-                  })}
+                  {filteredMainItems.map(renderMenuItem)}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
+
+            {/* Collapsible Groups */}
+            {filteredGroups.map((group) => {
+              const groupItems = group.items.filter(item => item.roles.includes(userRole));
+              if (groupItems.length === 0) return null;
+
+              return (
+                <SidebarGroup key={group.label}>
+                  <Collapsible defaultOpen={group.defaultOpen}>
+                    <CollapsibleTrigger asChild>
+                      <SidebarGroupLabel className="cursor-pointer hover:text-sidebar-accent-foreground">
+                        {group.label}
+                      </SidebarGroupLabel>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarGroupContent>
+                        <SidebarMenu>
+                          {groupItems.map(renderMenuItem)}
+                        </SidebarMenu>
+                      </SidebarGroupContent>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </SidebarGroup>
+              );
+            })}
           </div>
         </ScrollArea>
       </SidebarContent>
 
-      {/* Footer with Role Badge and Environment Status */}
+      {/* Footer with Environment Status Only */}
       <SidebarFooter className="border-t border-sidebar-border">
-        <div className="p-2 space-y-2">
+        <div className="p-2">
           {/* Environment Status */}
           {envConfig.QA_ON && open && (
             <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-2">
@@ -161,19 +222,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
               </div>
             </div>
           )}
-          
-          {/* Role Badge */}
-          <div className="bg-sidebar-accent rounded-lg p-3">
-            {open ? (
-              <div className="text-center">
-                <Shield className="h-5 w-5 text-sidebar-primary mx-auto mb-1" />
-                <p className="text-xs font-medium text-sidebar-foreground">{userRole}</p>
-                <p className="text-xs text-sidebar-foreground/70">Access Level</p>
-              </div>
-            ) : (
-              <Shield className="h-5 w-5 text-sidebar-primary mx-auto" />
-            )}
-          </div>
         </div>
       </SidebarFooter>
     </Sidebar>
