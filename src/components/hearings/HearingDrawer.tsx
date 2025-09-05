@@ -168,9 +168,14 @@ export const HearingDrawer: React.FC<HearingDrawerProps> = ({
         recipients: [{ type: 'client_signatory' }],
         status: 'pending'
       });
-      toast({ title: 'Success', description: 'Notifications sent successfully.' });
+      // Success toast is handled by the service
     } catch (error) {
       console.error('Failed to send notifications:', error);
+      toast({ 
+        title: 'Error', 
+        description: 'Failed to send notifications. Please try again.',
+        variant: 'destructive'
+      });
     } finally {
       setIsLoading(false);
     }
