@@ -26,6 +26,7 @@ import { EnhancedDashboard } from "./components/dashboard/EnhancedDashboard";
 import { ReportsModule } from "./components/reports/ReportsModule";
 import { GSTDebugPage } from "./components/debug/GSTDebugPage";
 import { QADashboard } from "./pages/QADashboard";
+import { HearingsCalendar } from "./components/hearings/HearingsCalendar";
 
 const queryClient = new QueryClient();
 
@@ -129,7 +130,7 @@ const App = () => (
               } />
               <Route path="/hearings/calendar" element={
                 <AdminLayout currentUser={currentUser}>
-                  <div>Hearings Calendar - Coming Soon</div>
+                  <HearingsCalendar />
                 </AdminLayout>
               } />
               <Route path="/hearings/list" element={
