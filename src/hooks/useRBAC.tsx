@@ -32,6 +32,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { module: 'rbac', action: 'read' },
     { module: 'settings', action: 'admin' },
     { module: 'ai', action: 'admin' },
+    { module: 'admin', action: 'admin' },
   ],
   Manager: [
     { module: 'cases', action: 'write' },
