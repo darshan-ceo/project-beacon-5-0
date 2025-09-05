@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   User, 
@@ -133,29 +133,42 @@ const mockActivityLogs: ActivityLog[] = [
 export const UserProfile: React.FC = () => {
   const { state, dispatch } = useAppState();
   const [user, setUser] = useState(state.userProfile);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Load saved profile data on component mount
-  React.useEffect(() => {
+  // Load saved profile data ONCE on component mount
+  useEffect(() => {
+    if (isInitialized) return;
+
     const loadSavedProfile = async () => {
+      setIsLoading(true);
       try {
         const savedProfile = await profileService.getProfile();
         if (savedProfile) {
           const updatedProfile = { ...state.userProfile, ...savedProfile };
           setUser(updatedProfile);
-          dispatch({ type: 'UPDATE_USER_PROFILE', payload: savedProfile });
+          // Only dispatch if we actually have new data to avoid loops
+          if (JSON.stringify(savedProfile) !== JSON.stringify(state.userProfile)) {
+            dispatch({ type: 'UPDATE_USER_PROFILE', payload: savedProfile });
+          }
         }
       } catch (error) {
         console.error('Failed to load saved profile:', error);
+      } finally {
+        setIsLoading(false);
+        setIsInitialized(true);
       }
     };
     
     loadSavedProfile();
-  }, [dispatch, state.userProfile]);
+  }, [dispatch]); // Remove state.userProfile dependency to prevent loops
 
-  // Sync local state with global state changes
-  React.useEffect(() => {
-    setUser(state.userProfile);
-  }, [state.userProfile]);
+  // Sync local state with global state changes (only after initialization)
+  useEffect(() => {
+    if (isInitialized && !isLoading) {
+      setUser(state.userProfile);
+    }
+  }, [state.userProfile, isInitialized, isLoading]);
   const [isEditing, setIsEditing] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -243,11 +256,18 @@ export const UserProfile: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">User Profile</h1>
-          <p className="text-muted-foreground mt-2">Manage your account settings and security preferences</p>
+          <p className="text-muted-foreground mt-2">
+            {isLoading ? "Loading profile..." : "Manage your account settings and security preferences"}
+          </p>
         </div>
       </div>
 
-      <Tabs defaultValue="profile" className="space-y-6">
+      {isLoading ? (
+        <div className="flex items-center justify-center p-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      ) : (
+        <Tabs defaultValue="profile" className="space-y-6">{/* ... rest of tabs content stays the same ... */}
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
@@ -670,6 +690,7 @@ export const UserProfile: React.FC = () => {
           </Card>
         </TabsContent>
       </Tabs>
+      )}
     </div>
   );
 };

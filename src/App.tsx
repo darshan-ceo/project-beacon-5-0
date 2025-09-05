@@ -19,6 +19,7 @@ import { DocumentManagement } from "./components/documents/DocumentManagement";
 import { RBACManagement } from "./components/admin/RBACManagement";
 import { GlobalParameters } from "./components/admin/GlobalParameters";
 import { UserProfile } from "./components/admin/UserProfile";
+import { ProfileErrorBoundary } from "./components/admin/ProfileErrorBoundary";
 import { ClientPortal } from "./components/portal/ClientPortal";
 import { ClientLayout } from "./components/layout/ClientLayout";
 import { ClientRouteGuard } from "./components/ui/client-route-guard";
@@ -113,7 +114,9 @@ const App = () => (
               } />
               <Route path="/profile" element={
                 <AdminLayout currentUser={currentUser}>
-                  <UserProfile />
+                  <ProfileErrorBoundary>
+                    <UserProfile />
+                  </ProfileErrorBoundary>
                 </AdminLayout>
               } />
               <Route path="/reports" element={

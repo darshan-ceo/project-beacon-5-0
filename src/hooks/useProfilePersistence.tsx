@@ -28,14 +28,28 @@ export const useProfilePersistence = () => {
     loadProfile();
   }, [dispatch]);
 
-  // Auto-save profile changes (only if not currently loading)
+  // Auto-save profile changes with proper debouncing and guards
+  const lastSavedProfileRef = useRef<string>('');
+  const hasMountedRef = useRef(false);
+
   useEffect(() => {
-    if (isLoadingRef.current || isSavingRef.current) return;
+    // Don't auto-save during initial mount or if loading/saving
+    if (!hasMountedRef.current || isLoadingRef.current || isSavingRef.current) {
+      hasMountedRef.current = true;
+      return;
+    }
+
+    // Don't save if profile hasn't actually changed
+    const currentProfileStr = JSON.stringify(state.userProfile);
+    if (currentProfileStr === lastSavedProfileRef.current) {
+      return;
+    }
 
     const saveProfile = async () => {
       isSavingRef.current = true;
       try {
         await profileService.updateProfile(state.userProfile);
+        lastSavedProfileRef.current = currentProfileStr;
       } catch (error) {
         console.error('Failed to auto-save profile:', error);
       } finally {
@@ -44,7 +58,7 @@ export const useProfilePersistence = () => {
     };
 
     // Debounce profile saves to avoid excessive writes
-    const timeoutId = setTimeout(saveProfile, 1000);
+    const timeoutId = setTimeout(saveProfile, 2000); // Increased debounce time
     return () => clearTimeout(timeoutId);
   }, [state.userProfile]);
 
