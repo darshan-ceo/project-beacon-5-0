@@ -304,9 +304,13 @@ export const HearingModal: React.FC<HearingModalProps> = ({
                       compact={true}
                       showSource={false}
                     />
+                  ) : selectedCourt.address && typeof selectedCourt.address === 'string' ? (
+                    <div className="text-sm">
+                      {selectedCourt.address}
+                    </div>
                   ) : (
                     <div className="text-sm text-muted-foreground">
-                      {selectedCourt.address || 'No address information available'}
+                      No address information available
                     </div>
                   )}
                 </CardContent>
