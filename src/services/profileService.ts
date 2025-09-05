@@ -41,7 +41,14 @@ class ProfileService {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // In real app, this would update user profile in database
+      // Save to localStorage
+      const PROFILE_KEY = 'user_profile';
+      const existingProfile = localStorage.getItem(PROFILE_KEY);
+      const updatedProfile = existingProfile 
+        ? { ...JSON.parse(existingProfile), ...data }
+        : data;
+      
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(updatedProfile));
       console.log('Profile updated:', data);
     } catch (error) {
       console.error('Profile update failed:', error);

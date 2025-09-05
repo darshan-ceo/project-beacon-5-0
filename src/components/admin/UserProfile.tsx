@@ -33,6 +33,7 @@ import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from '@/hooks/use-toast';
 import { profileService } from '@/services/profileService';
+import { useAppState } from '@/contexts/AppStateContext';
 
 interface UserProfileData {
   id: string;
@@ -130,7 +131,8 @@ const mockActivityLogs: ActivityLog[] = [
 ];
 
 export const UserProfile: React.FC = () => {
-  const [user, setUser] = useState(mockUser);
+  const { state, dispatch } = useAppState();
+  const [user, setUser] = useState(state.userProfile);
   const [isEditing, setIsEditing] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -139,12 +141,22 @@ export const UserProfile: React.FC = () => {
   const [sessions, setSessions] = useState(mockSessions);
   const [isUploading, setIsUploading] = useState(false);
 
-  const handleSaveProfile = () => {
-    toast({
-      title: "Profile Updated",
-      description: "Your profile information has been saved successfully.",
-    });
-    setIsEditing(false);
+  const handleSaveProfile = async () => {
+    try {
+      await profileService.updateProfile(user);
+      dispatch({ type: 'UPDATE_USER_PROFILE', payload: user });
+      toast({
+        title: "Profile Updated",
+        description: "Your profile information has been saved successfully.",
+      });
+      setIsEditing(false);
+    } catch (error: any) {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update profile.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleChangePassword = () => {

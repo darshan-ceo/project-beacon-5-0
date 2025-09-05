@@ -217,6 +217,23 @@ interface Folder {
   path: string;
 }
 
+// User Profile Interface
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  role: string;
+  department: string;
+  avatar: string;
+  bio: string;
+  location: string;
+  timezone: string;
+  joinedDate: string;
+  lastLogin: string;
+  isActive: boolean;
+}
+
 // Application State
 export interface AppState {
   cases: Case[];
@@ -228,6 +245,7 @@ export interface AppState {
   folders: Folder[];
   hearings: Hearing[];
   employees: Employee[];
+  userProfile: UserProfile;
   isLoading: boolean;
   error: string | null;
 }
@@ -267,6 +285,7 @@ export type AppAction =
   | { type: 'ADD_EMPLOYEE'; payload: Employee }
   | { type: 'UPDATE_EMPLOYEE'; payload: { id: string; updates: Partial<Employee> } }
   | { type: 'DELETE_EMPLOYEE'; payload: string }
+  | { type: 'UPDATE_USER_PROFILE'; payload: Partial<UserProfile> }
   | { type: 'RESTORE_STATE'; payload: Partial<AppState> }
   | { type: 'CLEAR_ALL_DATA' };
 
@@ -1723,6 +1742,21 @@ const initialState: AppState = {
       externalEventId: 'goog_cal_event_006'
     }
   ] as any,
+  userProfile: {
+    id: '1',
+    name: 'John Doe',
+    email: 'john@lawfirm.com',
+    phone: '+1 (555) 123-4567',
+    role: 'Admin',
+    department: 'Administration',
+    avatar: '/placeholder.svg',
+    bio: 'Experienced legal professional with over 10 years in practice management and administration.',
+    location: 'New York, NY',
+    timezone: 'America/New_York',
+    joinedDate: '2024-01-15',
+    lastLogin: '2024-01-20 10:30:00',
+    isActive: true
+  },
   employees: [
     {
       id: '1',
@@ -1972,6 +2006,11 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         employees: state.employees.filter(e => e.id !== action.payload)
+      };
+    case 'UPDATE_USER_PROFILE':
+      return {
+        ...state,
+        userProfile: { ...state.userProfile, ...action.payload }
       };
     case 'RESTORE_STATE':
       return { ...state, ...action.payload };
