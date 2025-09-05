@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
+import { hearingsService } from '@/services/hearingsService';
+import { Hearing as GlobalHearing } from '@/types/hearings';
 import { motion } from 'framer-motion';
 import { 
   Calendar, 
@@ -59,66 +61,53 @@ interface HearingSchedulerProps {
   cases: Case[];
 }
 
-const mockHearings: Hearing[] = [
-  {
-    id: '1',
-    caseId: '1',
-    caseNumber: 'CASE-2024-001',
-    title: 'Tax Assessment Appeal - Acme Corp',
-    date: '2024-02-15',
-    time: '10:30',
-    court: 'Income Tax Appellate Tribunal',
-    judge: 'Justice R.K. Sharma',
-    type: 'Final',
-    status: 'Scheduled',
-    reminder: '1 day',
-    location: 'Court Room 3, ITAT Building',
-    notes: 'Bring original assessment order and supporting documents'
-  },
-  {
-    id: '2',
-    caseId: '3',
-    caseNumber: 'CASE-2024-003',
-    title: 'Supreme Court Constitutional Matter',
-    date: '2024-02-28',
-    time: '14:00',
-    court: 'Supreme Court of India',
-    judge: 'Hon\'ble Chief Justice',
-    type: 'Argued',
-    status: 'Scheduled',
-    reminder: '3 days',
-    location: 'Court Room 1, Supreme Court',
-    notes: 'Constitutional bench hearing - prepare comprehensive arguments'
-  },
-  {
-    id: '3',
-    caseId: '2',
-    caseNumber: 'CASE-2024-002',
-    title: 'GST Demand Notice Challenge',
-    date: '2024-02-10',
-    time: '11:00',
-    court: 'Additional Commissioner Office',
-    judge: 'Shri A.K. Verma',
-    type: 'Adjourned',
-    status: 'Completed',
-    reminder: '7 days',
-    location: 'GST Bhavan, Conference Room 2'
-  }
-];
-
-const upcomingHearings = mockHearings.filter(h => h.status === 'Scheduled');
-const todayHearings = upcomingHearings.filter(h => h.date === '2024-02-15');
-const thisWeekHearings = upcomingHearings.filter(h => {
-  const hearingDate = new Date(h.date);
-  const today = new Date();
-  const weekFromNow = new Date();
-  weekFromNow.setDate(today.getDate() + 7);
-  return hearingDate >= today && hearingDate <= weekFromNow;
-});
-
 export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases }) => {
   const [selectedDate, setSelectedDate] = useState('');
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
+  const [globalHearings, setGlobalHearings] = useState<GlobalHearing[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchHearings = async () => {
+      try {
+        const fetchedHearings = await hearingsService.getHearings();
+        setGlobalHearings(fetchedHearings);
+      } catch (error) {
+        console.error('Error fetching hearings:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchHearings();
+  }, []);
+
+  // Transform global hearings to local format for compatibility
+  const hearings: Hearing[] = globalHearings.map(h => ({
+    id: h.id,
+    caseId: h.clientId || h.case_id,
+    caseNumber: `CASE-${h.case_id}`,
+    title: h.agenda || `Hearing for Case ${h.case_id}`,
+    date: h.date,
+    time: h.time || h.start_time,
+    court: (h as any).court || 'Court',
+    judge: (h as any).judge || 'Judge',
+    type: (h.type === 'Preliminary' ? 'Final' : h.type) as 'Adjourned' | 'Final' | 'Argued' || 'Final',
+    status: h.status === 'scheduled' ? 'Scheduled' : h.status === 'concluded' ? 'Completed' : 'Postponed',
+    reminder: ((h as any).reminder || '1 day') as '1 day' | '3 days' | '7 days',
+    location: (h as any).location || h.courtroom,
+    notes: h.notes
+  }));
+
+  const today = new Date().toISOString().split('T')[0];
+  const upcomingHearings = hearings.filter(h => h.status === 'Scheduled');
+  const todayHearings = upcomingHearings.filter(h => h.date === today);
+  const thisWeekHearings = upcomingHearings.filter(h => {
+    const hearingDate = new Date(h.date);
+    const todayDate = new Date();
+    const weekFromNow = new Date();
+    weekFromNow.setDate(todayDate.getDate() + 7);
+    return hearingDate >= todayDate && hearingDate <= weekFromNow;
+  });
 
   const getTypeColor = (type: string) => {
     switch (type) {

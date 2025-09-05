@@ -331,13 +331,22 @@ export const hearingsService = {
    * Mock data fallback
    */
   getMockHearings(filters?: HearingFilters): Hearing[] {
-    const mockHearings: Hearing[] = [
+    const today = new Date().toISOString().split('T')[0];
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    
+    const pastDate = new Date();
+    pastDate.setDate(pastDate.getDate() - 5);
+    const pastDateStr = pastDate.toISOString().split('T')[0];
+
+    const mockHearings: (Hearing & { court?: string; judge?: string; location?: string; reminder?: string })[] = [
       {
         id: 'hearing-001',
         case_id: 'GST-001',
         stage_instance_id: 'stage-inst-001',
         cycle_no: 1,
-        date: '2024-03-15',
+        date: today,
         start_time: '10:30',
         end_time: '11:30',
         timezone: 'Asia/Kolkata',
@@ -346,7 +355,7 @@ export const hearingsService = {
         judge_ids: ['1'],
         purpose: 'final',
         status: 'scheduled',
-        notes: 'Final hearing for ITC disallowance case',
+        notes: 'Bring original assessment order and supporting documents',
         attendance: {
           our_counsel_id: '2',
           opposite_counsel: 'Advocate Kumar',
@@ -355,35 +364,68 @@ export const hearingsService = {
         created_by: 'user-001',
         created_at: '2024-02-01T10:00:00Z',
         updated_at: '2024-02-01T10:00:00Z',
-        // Legacy compatibility
-        clientId: 'CLT-MOCK-001',
+        // Legacy compatibility fields for HearingScheduler component
+        clientId: '1',
         judgeId: '1',
         time: '10:30',
         type: 'Final',
-        agenda: 'Final hearing for ITC disallowance case'
+        agenda: 'Tax Assessment Appeal - Acme Corp',
+        court: 'Income Tax Appellate Tribunal',
+        judge: 'Justice R.K. Sharma',
+        location: 'Court Room 3, ITAT Building',
+        reminder: '1 day'
       },
       {
         id: 'hearing-002',
         case_id: 'GST-002',
-        date: '2024-02-28',
+        date: tomorrowStr,
         start_time: '14:00',
         end_time: '15:00',
         timezone: 'Asia/Kolkata',
         court_id: '2',
         judge_ids: ['2'],
         purpose: 'mention',
-        status: 'concluded',
-        outcome: 'Adjourned',
-        outcome_text: 'Adjourned for filing additional documents',
-        next_hearing_date: '2024-03-20',
+        status: 'scheduled',
         created_by: 'user-001',
         created_at: '2024-02-01T10:00:00Z',
         updated_at: '2024-02-28T15:00:00Z',
-        // Legacy compatibility
-        clientId: 'CLT-MOCK-002',
+        // Legacy compatibility fields for HearingScheduler component
+        clientId: '3',
         judgeId: '2',
         time: '14:00',
-        type: 'Final'
+        type: 'Argued',
+        agenda: 'Supreme Court Constitutional Matter',
+        court: 'Supreme Court of India',
+        judge: 'Hon\'ble Chief Justice',
+        location: 'Court Room 1, Supreme Court',
+        reminder: '3 days'
+      },
+      {
+        id: 'hearing-003',
+        case_id: 'GST-003',
+        date: pastDateStr,
+        start_time: '11:00',
+        end_time: '12:00',
+        timezone: 'Asia/Kolkata',
+        court_id: '3',
+        judge_ids: ['3'],
+        purpose: 'mention',
+        status: 'concluded',
+        outcome: 'Adjourned',
+        outcome_text: 'Adjourned for filing additional documents',
+        created_by: 'user-001',
+        created_at: '2024-02-01T10:00:00Z',
+        updated_at: '2024-02-28T15:00:00Z',
+        // Legacy compatibility fields for HearingScheduler component
+        clientId: '2',
+        judgeId: '3',
+        time: '11:00',
+        type: 'Adjourned',
+        agenda: 'GST Demand Notice Challenge',
+        court: 'Additional Commissioner Office',
+        judge: 'Shri A.K. Verma',
+        location: 'GST Bhavan, Conference Room 2',
+        reminder: '7 days'
       }
     ];
 
