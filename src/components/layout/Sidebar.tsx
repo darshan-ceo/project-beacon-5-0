@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { NavLink, useLocation } from 'react-router-dom';
 import { 
@@ -16,7 +16,8 @@ import {
   UserCheck,
   Bug,
   TestTube,
-  CalendarDays
+  CalendarDays,
+  ChevronDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -91,6 +92,15 @@ const menuGroups: MenuGroup[] = [
 ];
 
 export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
+  // State for tracking group expansion
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    const initialState: Record<string, boolean> = {};
+    menuGroups.forEach(group => {
+      initialState[group.label] = group.defaultOpen || false;
+    });
+    return initialState;
+  });
+
   // Add QA and Debug items to main menu based on environment
   const dynamicMainItems = [...mainMenuItems];
   
@@ -186,16 +196,31 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
             {filteredGroups.map((group) => {
               const groupItems = group.items.filter(item => item.roles.includes(userRole));
               if (groupItems.length === 0) return null;
+              
+              const isGroupOpen = openGroups[group.label];
 
               return (
                 <SidebarGroup key={group.label}>
-                  <Collapsible defaultOpen={group.defaultOpen}>
-                    <CollapsibleTrigger asChild>
-                      <SidebarGroupLabel className="cursor-pointer hover:text-sidebar-accent-foreground">
-                        {group.label}
-                      </SidebarGroupLabel>
+                  <Collapsible 
+                    open={isGroupOpen}
+                    onOpenChange={(open) => 
+                      setOpenGroups(prev => ({ ...prev, [group.label]: open }))
+                    }
+                  >
+                    <CollapsibleTrigger className="w-full group">
+                      <div className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md cursor-pointer transition-colors">
+                        <span className="truncate">{group.label}</span>
+                        {open && (
+                          <ChevronDown 
+                            className={cn(
+                              "h-4 w-4 transition-transform duration-200 flex-shrink-0",
+                              isGroupOpen ? "rotate-180" : "rotate-0"
+                            )}
+                          />
+                        )}
+                      </div>
                     </CollapsibleTrigger>
-                    <CollapsibleContent>
+                    <CollapsibleContent className="space-y-1">
                       <SidebarGroupContent>
                         <SidebarMenu>
                           {groupItems.map(renderMenuItem)}
