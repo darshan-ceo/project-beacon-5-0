@@ -1,0 +1,53 @@
+{
+  "default": {
+    "title": "Hearing Management",
+    "content": "Schedule court hearings, send notifications, and sync with external calendar systems. Track hearing preparation tasks and manage attendee coordination.",
+    "learnMoreUrl": "/help#hearing-scheduling",
+    "quickTips": [
+      "Schedule hearings with adequate preparation time",
+      "Send calendar invitations to all attendees",
+      "Create preparation task checklists",
+      "Sync with external calendars"
+    ],
+    "relatedArticles": [
+      {
+        "title": "Hearing Preparation Checklist",
+        "url": "/help#hearing-preparation"
+      },
+      {
+        "title": "Calendar Integration Guide",
+        "url": "/help#calendar-integration"
+      }
+    ]
+  },
+  "scheduling": {
+    "title": "Hearing Scheduling",
+    "content": "Schedule court appearances, depositions, and meetings with proper notice and coordination. Check for conflicts and ensure all parties are notified.",
+    "quickTips": [
+      "Check calendar conflicts before scheduling",
+      "Provide adequate notice to all parties",
+      "Include case and matter details",
+      "Set up preparation reminders"
+    ]
+  },
+  "calendar-sync": {
+    "title": "Calendar Integration",
+    "content": "Synchronize hearings with Google Calendar, Outlook, or other calendar systems. Automatic sync ensures all team members have current information.",
+    "quickTips": [
+      "Enable calendar integration",
+      "Verify sync settings regularly",
+      "Update external calendars for changes",
+      "Check sync status after scheduling"
+    ]
+  },
+  "preparation-tracking": {
+    "title": "Hearing Preparation",
+    "content": "Track preparation tasks, document requirements, and witness coordination. Create checklists to ensure thorough preparation for each hearing.",
+    "quickTips": [
+      "Create comprehensive preparation checklists",
+      "Assign preparation tasks early",
+      "Track document preparation progress",
+      "Coordinate with witnesses and experts"
+    ]
+  }
+}

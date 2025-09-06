@@ -1,0 +1,357 @@
+[
+  {
+    "id": "case-management-tour",
+    "title": "Case Management Walkthrough",
+    "description": "Learn how to create, manage, and track legal cases from start to finish",
+    "module": "cases",
+    "roles": ["all"],
+    "steps": [
+      {
+        "target": "[data-tour='cases-nav']",
+        "title": "Navigate to Cases",
+        "content": "Click on 'Cases' in the sidebar to access the case management module. This is your central hub for managing all legal cases.",
+        "position": "right",
+        "action": "click"
+      },
+      {
+        "target": "[data-tour='new-case-btn']",
+        "title": "Create New Case",
+        "content": "Click the '+ New Case' button to start creating a new case. This opens the case creation form with all necessary fields.",
+        "position": "left",
+        "action": "click"
+      },
+      {
+        "target": "[data-tour='case-form']",
+        "title": "Fill Case Details",
+        "content": "Complete the case information including title, client, case type, priority, and description. Required fields are marked with an asterisk.",
+        "position": "top",
+        "action": "none"
+      },
+      {
+        "target": "[data-tour='case-team-assignment']",
+        "title": "Assign Team Members",
+        "content": "Select the lead attorney and supporting team members. This determines who has access to the case and receives notifications.",
+        "position": "left",
+        "action": "none"
+      },
+      {
+        "target": "[data-tour='case-timeline']",
+        "title": "Set Important Dates",
+        "content": "Add key deadlines, court dates, and milestones. The system will automatically create reminders and track SLA compliance.",
+        "position": "top",
+        "action": "none"
+      },
+      {
+        "target": "[data-tour='save-case-btn']",
+        "title": "Save the Case",
+        "content": "Click 'Save' to create the case. You'll be redirected to the case overview where you can add documents and tasks.",
+        "position": "bottom",
+        "action": "click"
+      },
+      {
+        "target": "[data-tour='case-list']",
+        "title": "Case List Overview",
+        "content": "View all your cases here. Use filters to find specific cases by status, client, or assigned team member. Click any case to view details.",
+        "position": "top",
+        "action": "none"
+      },
+      {
+        "target": "[data-tour='case-actions']",
+        "title": "Case Actions",
+        "content": "Access quick actions like editing case details, adding documents, creating tasks, or changing case status from the action menu.",
+        "position": "left",
+        "action": "none"
+      }
+    ]
+  },
+  {
+    "id": "document-management-tour",
+    "title": "Document Management Tour",
+    "description": "Master document upload, organization, and sharing workflows",
+    "module": "documents",
+    "roles": ["all"],
+    "steps": [
+      {
+        "target": "[data-tour='documents-nav']",
+        "title": "Access Documents",
+        "content": "Navigate to the Documents section to manage all your case-related files and folders.",
+        "position": "right",
+        "action": "click"
+      },
+      {
+        "target": "[data-tour='folder-structure']",
+        "title": "Folder Organization",
+        "content": "Documents are organized by case and folder type. You can create custom folders or use the default structure for pleadings, discovery, evidence, etc.",
+        "position": "left",
+        "action": "none"
+      },
+      {
+        "target": "[data-tour='upload-btn']",
+        "title": "Upload Documents",
+        "content": "Click 'Upload' to add new documents. You can drag and drop files or use the file browser to select multiple files at once.",
+        "position": "left",
+        "action": "click"
+      },
+      {
+        "target": "[data-tour='upload-form']",
+        "title": "Document Details",
+        "content": "Add document descriptions, select the appropriate case and folder, and set access permissions. Use tags to make documents searchable.",
+        "position": "top",
+        "action": "none"
+      },
+      {
+        "target": "[data-tour='document-preview']",
+        "title": "Document Preview",
+        "content": "Click on any document to preview it without downloading. The system supports PDF, images, and text documents for preview.",
+        "position": "right",
+        "action": "hover"
+      },
+      {
+        "target": "[data-tour='document-sharing']",
+        "title": "Share Documents",
+        "content": "Use the share button to securely share documents with team members, clients, or external parties with appropriate access controls.",
+        "position": "top",
+        "action": "none"
+      },
+      {
+        "target": "[data-tour='version-control']",
+        "title": "Version Management",
+        "content": "When uploading a file with the same name, the system creates a new version. View version history and restore previous versions if needed.",
+        "position": "left",
+        "action": "none"
+      },
+      {
+        "target": "[data-tour='document-search']",
+        "title": "Search Documents",
+        "content": "Use the search function to find documents by name, content, tags, or metadata. Advanced filters help narrow down results.",
+        "position": "bottom",
+        "action": "none"
+      }
+    ]
+  },
+  {
+    "id": "hearing-scheduler-tour",
+    "title": "Hearing Scheduling Guide",
+    "description": "Learn to schedule court hearings and manage calendar integration",
+    "module": "hearings",
+    "roles": ["all"],
+    "steps": [
+      {
+        "target": "[data-tour='hearings-nav']",
+        "title": "Open Hearings Module",
+        "content": "Access the Hearings section to schedule court dates, depositions, and other case-related meetings.",
+        "position": "right",
+        "action": "click"
+      },
+      {
+        "target": "[data-tour='calendar-view']",
+        "title": "Calendar Overview",
+        "content": "View all scheduled hearings in calendar format. Switch between month, week, and day views to see different levels of detail.",
+        "position": "top",
+        "action": "none"
+      },
+      {
+        "target": "[data-tour='schedule-hearing-btn']",
+        "title": "Schedule New Hearing",
+        "content": "Click 'Schedule Hearing' to create a new court appearance or meeting. This opens the hearing creation form.",
+        "position": "left",
+        "action": "click"
+      },
+      {
+        "target": "[data-tour='hearing-details']",
+        "title": "Hearing Information",
+        "content": "Fill in hearing details including case, type, court, judge, date, and time. Add a description and any special instructions.",
+        "position": "top",
+        "action": "none"
+      },
+      {
+        "target": "[data-tour='attendee-list']",
+        "title": "Manage Attendees",
+        "content": "Add attorneys, clients, witnesses, and other participants. The system will send calendar invitations to all attendees.",
+        "position": "left",
+        "action": "none"
+      },
+      {
+        "target": "[data-tour='calendar-integration']",
+        "title": "Calendar Sync",
+        "content": "Enable calendar integration to automatically sync hearings with Google Calendar, Outlook, or other calendar systems.",
+        "position": "right",
+        "action": "none"
+      },
+      {
+        "target": "[data-tour='hearing-reminders']",
+        "title": "Set Reminders",
+        "content": "Configure automatic reminders for preparation tasks, document deadlines, and the hearing itself. Customize timing and recipients.",
+        "position": "top",
+        "action": "none"
+      },
+      {
+        "target": "[data-tour='hearing-notes']",
+        "title": "Hearing Notes",
+        "content": "During or after the hearing, add notes, outcomes, and follow-up tasks. These become part of the case timeline.",
+        "position": "bottom",
+        "action": "none"
+      }
+    ]
+  },
+  {
+    "id": "task-management-tour",
+    "title": "Task Management System",
+    "description": "Organize work with tasks, deadlines, and team collaboration",
+    "module": "tasks",
+    "roles": ["all"],
+    "steps": [
+      {
+        "target": "[data-tour='tasks-nav']",
+        "title": "Access Task Management",
+        "content": "Navigate to Tasks to view, create, and manage work items across all your cases and projects.",
+        "position": "right",
+        "action": "click"
+      },
+      {
+        "target": "[data-tour='task-board']",
+        "title": "Task Board View",
+        "content": "View tasks in different formats: list view for details, board view for workflow stages, or calendar view for deadlines.",
+        "position": "top",
+        "action": "none"
+      },
+      {
+        "target": "[data-tour='create-task-btn']",
+        "title": "Create New Task",
+        "content": "Click 'New Task' to create work items. Tasks can be case-specific or general administrative work.",
+        "position": "left",
+        "action": "click"
+      },
+      {
+        "target": "[data-tour='task-form']",
+        "title": "Task Details",
+        "content": "Provide task description, priority level, due date, and estimated time. Link tasks to specific cases for better organization.",
+        "position": "top",
+        "action": "none"
+      },
+      {
+        "target": "[data-tour='task-assignment']",
+        "title": "Assign Tasks",
+        "content": "Assign tasks to team members, set dependencies, and configure approval workflows. Assigned users receive notifications.",
+        "position": "left",
+        "action": "none"
+      },
+      {
+        "target": "[data-tour='task-progress']",
+        "title": "Track Progress",
+        "content": "Monitor task completion, time spent, and progress updates. Use status updates to keep stakeholders informed.",
+        "position": "right",
+        "action": "none"
+      },
+      {
+        "target": "[data-tour='task-templates']",
+        "title": "Task Templates",
+        "content": "Use pre-defined task templates for common workflows like case intake, discovery, or trial preparation to ensure consistency.",
+        "position": "top",
+        "action": "none"
+      },
+      {
+        "target": "[data-tour='sla-tracking']",
+        "title": "SLA Monitoring",
+        "content": "Track service level agreements and deadline compliance. The system alerts you when tasks approach their deadlines.",
+        "position": "bottom",
+        "action": "none"
+      }
+    ]
+  },
+  {
+    "id": "client-portal-tour",
+    "title": "Client Portal Overview",
+    "description": "Understanding the client-facing portal features and capabilities",
+    "module": "client-portal",
+    "roles": ["Admin", "Partner/CA"],
+    "steps": [
+      {
+        "target": "[data-tour='client-portal-nav']",
+        "title": "Client Portal Access",
+        "content": "The Client Portal provides secure access for clients to view their case information, documents, and communicate with the legal team.",
+        "position": "right",
+        "action": "none"
+      },
+      {
+        "target": "[data-tour='client-dashboard']",
+        "title": "Client Dashboard",
+        "content": "Clients see a personalized dashboard with their active cases, recent updates, upcoming hearings, and important notifications.",
+        "position": "top",
+        "action": "none"
+      },
+      {
+        "target": "[data-tour='client-documents']",
+        "title": "Document Sharing",
+        "content": "Control which documents clients can access. Set permissions for viewing, downloading, or uploading documents.",
+        "position": "left",
+        "action": "none"
+      },
+      {
+        "target": "[data-tour='client-communication']",
+        "title": "Secure Messaging",
+        "content": "Clients can send secure messages to their legal team and receive important updates through the portal messaging system.",
+        "position": "right",
+        "action": "none"
+      },
+      {
+        "target": "[data-tour='client-settings']",
+        "title": "Client Configuration",
+        "content": "Configure client access levels, notification preferences, and portal features available to different types of clients.",
+        "position": "top",
+        "action": "none"
+      }
+    ]
+  },
+  {
+    "id": "reporting-tour",
+    "title": "Reports and Analytics",
+    "description": "Generate insights with comprehensive reporting tools",
+    "module": "reports",
+    "roles": ["Admin", "Partner/CA"],
+    "steps": [
+      {
+        "target": "[data-tour='reports-nav']",
+        "title": "Access Reporting",
+        "content": "Navigate to Reports to access comprehensive analytics and generate custom reports for cases, performance, and billing.",
+        "position": "right",
+        "action": "click"
+      },
+      {
+        "target": "[data-tour='report-categories']",
+        "title": "Report Categories",
+        "content": "Choose from predefined report categories: Case Reports, Time & Billing, Performance Analytics, or create custom reports.",
+        "position": "top",
+        "action": "none"
+      },
+      {
+        "target": "[data-tour='report-filters']",
+        "title": "Apply Filters",
+        "content": "Use date ranges, case types, team members, and other filters to focus your reports on specific data sets.",
+        "position": "left",
+        "action": "none"
+      },
+      {
+        "target": "[data-tour='report-generation']",
+        "title": "Generate Reports",
+        "content": "Click 'Generate Report' to create your custom report. Reports can be viewed online, exported to PDF, or downloaded as Excel files.",
+        "position": "bottom",
+        "action": "click"
+      },
+      {
+        "target": "[data-tour='scheduled-reports']",
+        "title": "Schedule Reports",
+        "content": "Set up automatic report generation and delivery. Schedule weekly, monthly, or quarterly reports to be emailed to stakeholders.",
+        "position": "right",
+        "action": "none"
+      },
+      {
+        "target": "[data-tour='dashboard-widgets']",
+        "title": "Dashboard Widgets",
+        "content": "Add key metrics to your dashboard for quick access to important statistics and performance indicators.",
+        "position": "top",
+        "action": "none"
+      }
+    ]
+  }
+]

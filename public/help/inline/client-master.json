@@ -1,0 +1,39 @@
+{
+  "default": {
+    "title": "Client Management",
+    "content": "Add and manage client information including contact details, case history, and relationship data. Use the client search to find existing clients or create new ones with comprehensive contact information.",
+    "learnMoreUrl": "/help#client-management",
+    "quickTips": [
+      "Use clear, searchable client names",
+      "Add all relevant contact methods",
+      "Link related clients and contacts",
+      "Keep client information up to date"
+    ],
+    "relatedArticles": [
+      {
+        "title": "Client Setup Best Practices",
+        "url": "/help#client-setup-guide"
+      }
+    ]
+  },
+  "contact-management": {
+    "title": "Contact Management",
+    "content": "Manage multiple contacts for each client including decision makers, assistants, and other stakeholders. Set primary contacts and communication preferences.",
+    "quickTips": [
+      "Designate primary contacts clearly",
+      "Include role and department information",
+      "Set communication preferences",
+      "Update contact information regularly"
+    ]
+  },
+  "relationship-mapping": {
+    "title": "Relationship Mapping",
+    "content": "Create connections between related clients, such as parent companies, subsidiaries, or family members. This helps track conflicts and shared interests.",
+    "quickTips": [
+      "Map corporate structures accurately",
+      "Identify potential conflicts of interest",
+      "Track family relationships",
+      "Update relationships as they change"
+    ]
+  }
+}

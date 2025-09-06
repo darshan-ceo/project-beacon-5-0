@@ -1,0 +1,102 @@
+[
+  {
+    "term": "RAG",
+    "definition": "Retrieval-Augmented Generation - AI technique that combines information retrieval with text generation to provide contextually relevant responses",
+    "technicalNote": "Used in the AI assistant to provide contextually relevant responses based on case documents and legal precedents",
+    "category": "technical",
+    "relatedTerms": ["AI Assistant", "Document Analysis", "Natural Language Processing"]
+  },
+  {
+    "term": "SLA",
+    "definition": "Service Level Agreement - A commitment between a service provider and a client that defines the expected level of service",
+    "technicalNote": "System tracks SLA compliance for case processing times, response deadlines, and deliverable timelines",
+    "category": "process",
+    "relatedTerms": ["Timeline", "Escalation", "Compliance", "Performance Metrics"]
+  },
+  {
+    "term": "DRC",
+    "definition": "Dispute Resolution Council - Administrative body established to resolve specific types of legal disputes outside traditional court systems",
+    "category": "legal",
+    "relatedTerms": ["Alternative Dispute Resolution", "Arbitration", "Mediation", "Administrative Law"]
+  },
+  {
+    "term": "ASMT",
+    "definition": "Assessment - Process of evaluating case merits, evidence quality, and determining appropriate legal strategy",
+    "technicalNote": "System supports automated case assessment workflows with checklist templates and evaluation criteria",
+    "category": "legal",
+    "relatedTerms": ["Case Evaluation", "Legal Strategy", "Due Diligence", "Risk Assessment"]
+  },
+  {
+    "term": "RBAC",
+    "definition": "Role-Based Access Control - Security model that restricts system access to authorized users based on their assigned roles",
+    "technicalNote": "System uses hierarchical RBAC with roles like Admin, Partner/CA, Staff, and Client, each with specific permissions",
+    "category": "technical",
+    "relatedTerms": ["Permissions", "Security", "User Management", "Access Control"]
+  },
+  {
+    "term": "GST",
+    "definition": "Goods and Services Tax - Comprehensive indirect tax levied on the supply of goods and services",
+    "category": "legal",
+    "relatedTerms": ["Tax Law", "Compliance", "Revenue Law", "Indirect Taxation"]
+  },
+  {
+    "term": "DMS",
+    "definition": "Document Management System - Software platform for storing, organizing, tracking, and managing electronic documents",
+    "technicalNote": "Integrated with case management for automatic document categorization, version control, and secure sharing",
+    "category": "technical",
+    "relatedTerms": ["Document Control", "Version Management", "File Organization", "Digital Archive"]
+  },
+  {
+    "term": "API",
+    "definition": "Application Programming Interface - Set of protocols and tools for building software applications and enabling system integration",
+    "technicalNote": "REST APIs available for calendar integration, document sync, and external system connections",
+    "category": "technical",
+    "relatedTerms": ["Integration", "Web Services", "Data Exchange", "System Connectivity"]
+  },
+  {
+    "term": "Escalation Matrix",
+    "definition": "Structured framework defining when and how issues should be escalated to higher levels of authority or expertise",
+    "technicalNote": "Automated escalation rules based on case priority, SLA breaches, and task overdue status",
+    "category": "process",
+    "relatedTerms": ["Issue Management", "Workflow", "Authority Levels", "Process Automation"]
+  },
+  {
+    "term": "Compliance Dashboard",
+    "definition": "Centralized view showing adherence to legal, regulatory, and internal requirements across all cases and processes",
+    "category": "compliance",
+    "relatedTerms": ["Regulatory Compliance", "Audit Trail", "Risk Management", "Governance"]
+  },
+  {
+    "term": "Case Lifecycle",
+    "definition": "Complete progression of a legal case from initial intake through resolution, including all stages and milestones",
+    "technicalNote": "System tracks 8 standard lifecycle stages with customizable workflows and automatic status updates",
+    "category": "process",
+    "relatedTerms": ["Workflow Management", "Stage Progression", "Milestone Tracking", "Process Control"]
+  },
+  {
+    "term": "Legal Precedent",
+    "definition": "Previous court decision that serves as an authoritative rule or pattern for future similar cases",
+    "category": "legal",
+    "relatedTerms": ["Case Law", "Judicial Decision", "Legal Authority", "Stare Decisis"]
+  },
+  {
+    "term": "Billable Hours",
+    "definition": "Time spent working on client matters that can be charged to the client according to the fee agreement",
+    "technicalNote": "System tracks time automatically with task-based logging and generates billing reports",
+    "category": "process",
+    "relatedTerms": ["Time Tracking", "Billing", "Client Charges", "Fee Management"]
+  },
+  {
+    "term": "Discovery Process",
+    "definition": "Pre-trial procedure where parties exchange information and evidence relevant to the case",
+    "category": "legal",
+    "relatedTerms": ["Evidence Collection", "Information Exchange", "Document Production", "Depositions"]
+  },
+  {
+    "term": "Client Portal",
+    "definition": "Secure online platform where clients can access case information, documents, and communicate with their legal team",
+    "technicalNote": "Role-based access ensures clients only see their own cases and approved documents",
+    "category": "technical",
+    "relatedTerms": ["Client Access", "Secure Communication", "Document Sharing", "Self-Service"]
+  }
+]
