@@ -14,7 +14,8 @@ import {
   MapPin,
   Phone,
   Mail,
-  FileText
+  FileText,
+  HelpCircle
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ClientModal } from '@/components/modals/ClientModal';
 import { Client, useAppState } from '@/contexts/AppStateContext';
+import { InlineHelp } from '@/components/help/InlineHelp';
 
 export const ClientMasters: React.FC = () => {
   const { state } = useAppState();
@@ -67,11 +69,14 @@ export const ClientMasters: React.FC = () => {
         transition={{ duration: 0.3 }}
         className="flex justify-between items-center"
       >
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Client Masters</h1>
-          <p className="text-muted-foreground mt-2">
-            Manage client information, GSTIN, PAN, and portal access
-          </p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Client Masters</h1>
+            <p className="text-muted-foreground mt-2">
+              Manage client information, GSTIN, PAN, and portal access
+            </p>
+          </div>
+          <InlineHelp module="client-master" />
         </div>
         <Button 
           className="bg-primary hover:bg-primary-hover"

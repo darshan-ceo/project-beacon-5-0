@@ -17,7 +17,8 @@ import {
   Eye,
   Edit,
   Info,
-  Check
+  Check,
+  HelpCircle
 } from 'lucide-react';
 import { useRBAC } from '@/hooks/useRBAC';
 import { casesService } from '@/services/casesService';
@@ -42,6 +43,7 @@ import { Case, useAppState } from '@/contexts/AppStateContext';
 import { formTemplatesService } from '@/services/formTemplatesService';
 import { FormRenderModal } from '@/components/documents/FormRenderModal';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
+import { InlineHelp } from '@/components/help/InlineHelp';
 
 export const CaseManagement: React.FC = () => {
   const { state, dispatch } = useAppState();
@@ -344,11 +346,14 @@ export const CaseManagement: React.FC = () => {
         transition={{ duration: 0.3 }}
         className="flex justify-between items-center"
       >
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Case Management</h1>
-          <p className="text-muted-foreground mt-2">
-            Comprehensive case lifecycle with SLA tracking and hearing management
-          </p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Case Management</h1>
+            <p className="text-muted-foreground mt-2">
+              Comprehensive case lifecycle with SLA tracking and hearing management
+            </p>
+          </div>
+          <InlineHelp module="case-overview" />
         </div>
         <Button 
           className="bg-primary hover:bg-primary-hover"

@@ -28,6 +28,7 @@ import { ReportsModule } from "./components/reports/ReportsModule";
 import { GSTDebugPage } from "./components/debug/GSTDebugPage";
 import { QADashboard } from "./pages/QADashboard";
 import { HearingsCalendar } from "./components/hearings/HearingsCalendar";
+import { HelpCenter } from "./pages/HelpCenter";
 
 import { AppWithPersistence } from "./components/AppWithPersistence";
 
@@ -142,6 +143,11 @@ const App = () => (
               <Route path="/hearings/list" element={
                 <AdminLayout currentUser={currentUser}>
                   <div>Hearings List - Coming Soon</div>
+                </AdminLayout>
+              } />
+              <Route path="/help" element={
+                <AdminLayout currentUser={currentUser}>
+                  <HelpCenter />
                 </AdminLayout>
               } />
               <Route path="*" element={<NotFound />} />

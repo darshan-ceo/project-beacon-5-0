@@ -10,7 +10,8 @@ import { HearingDrawer } from './HearingDrawer';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CalendarDays, Plus, Filter, Download } from 'lucide-react';
+import { CalendarDays, Plus, Filter, Download, HelpCircle } from 'lucide-react';
+import { InlineHelp } from '@/components/help/InlineHelp';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -203,14 +204,17 @@ export const HearingsCalendar: React.FC<HearingsCalendarProps> = ({
     <div className="space-y-6">
       {/* Header with Controls */}
       <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <CalendarDays className="h-6 w-6" />
-            Hearings Calendar
-          </h2>
-          <p className="text-muted-foreground">
-            Manage and schedule hearings across all cases
-          </p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <CalendarDays className="h-6 w-6" />
+              Hearings Calendar
+            </h2>
+            <p className="text-muted-foreground">
+              Manage and schedule hearings across all cases
+            </p>
+          </div>
+          <InlineHelp module="hearings" />
         </div>
         
         <div className="flex gap-2">

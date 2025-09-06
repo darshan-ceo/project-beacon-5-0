@@ -3,7 +3,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Calendar, AlertTriangle, CheckSquare, Users, MessageSquare, Settings, Save } from 'lucide-react';
+import { FileText, Calendar, AlertTriangle, CheckSquare, Users, MessageSquare, Settings, Save, HelpCircle } from 'lucide-react';
+import { InlineHelp } from '@/components/help/InlineHelp';
 import { usePermission } from '@/hooks/useRBAC';
 
 // Import individual report tab components
@@ -123,11 +124,14 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({ userRole }) => {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between p-6 border-b border-border">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">Reports & Analytics</h1>
-          <p className="text-muted-foreground">
-            Generate, filter, and export operational reports across all modules
-          </p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold text-foreground">Reports & Analytics</h1>
+            <p className="text-muted-foreground">
+              Generate, filter, and export operational reports across all modules
+            </p>
+          </div>
+          <InlineHelp module="reports" />
         </div>
         <div className="flex items-center gap-3">
           <Button

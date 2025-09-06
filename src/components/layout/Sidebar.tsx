@@ -17,7 +17,8 @@ import {
   Bug,
   TestTube,
   CalendarDays,
-  ChevronDown
+  ChevronDown,
+  HelpCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -64,6 +65,7 @@ const mainMenuItems: MenuItem[] = [
   { icon: CheckSquare, label: 'Task Management', href: '/tasks', roles: ['Admin', 'Partner/CA', 'Staff'] },
   { icon: FolderOpen, label: 'Document Management', href: '/documents', roles: ['Admin', 'Partner/CA', 'Staff', 'Client'] },
   { icon: BarChart3, label: 'Reports', href: '/reports', roles: ['Admin', 'Partner/CA', 'Staff'] },
+  { icon: HelpCircle, label: 'Help & Knowledge Base', href: '/help', roles: ['Admin', 'Partner/CA', 'Staff', 'Client'] },
   { icon: UserCircle, label: 'User Profile', href: '/profile', roles: ['Admin', 'Partner/CA', 'Staff', 'Client'] },
 ];
 

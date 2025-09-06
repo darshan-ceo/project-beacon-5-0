@@ -25,7 +25,8 @@ import {
   ChevronRight,
   Home,
   Plus,
-  ArrowRight
+  ArrowRight,
+  HelpCircle
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { TemplatesManagement } from './TemplatesManagement';
@@ -41,6 +42,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
+import { InlineHelp } from '@/components/help/InlineHelp';
 
 interface LocalDocument {
   id: string;
@@ -485,11 +487,14 @@ export const DocumentManagement: React.FC = () => {
         transition={{ duration: 0.3 }}
         className="flex justify-between items-center"
       >
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Document Management</h1>
-          <p className="text-muted-foreground mt-2">
-            Secure document storage with version control and access management
-          </p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Document Management</h1>
+            <p className="text-muted-foreground mt-2">
+              Secure document storage with version control and access management
+            </p>
+          </div>
+          <InlineHelp module="documents" />
         </div>
         <div className="flex gap-2">
           <Button 
