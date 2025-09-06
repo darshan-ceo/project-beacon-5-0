@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
@@ -14,6 +14,8 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
+import { ReportGeneratorModal } from '@/components/modals/ReportGeneratorModal';
+import { SystemSettingsModal } from '@/components/modals/SystemSettingsModal';
 
 interface QuickAction {
   id: string;
@@ -26,6 +28,8 @@ interface QuickAction {
 
 export const QuickActionsPanel: React.FC = () => {
   const navigate = useNavigate();
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
 
   const quickActions: QuickAction[] = [
     {
@@ -105,11 +109,7 @@ export const QuickActionsPanel: React.FC = () => {
       icon: <FileText className="h-5 w-5" />,
       variant: 'outline' as const,
       action: () => {
-        // TODO: Open report generator modal
-        toast({
-          title: "Generate Report",
-          description: "Report generator coming soon",
-        });
+        setReportModalOpen(true);
       }
     },
     {
@@ -134,11 +134,7 @@ export const QuickActionsPanel: React.FC = () => {
       icon: <Settings className="h-5 w-5" />,
       variant: 'secondary' as const,
       action: () => {
-        // TODO: Open settings modal
-        toast({
-          title: "System Settings",
-          description: "Settings panel coming soon",
-        });
+        setSettingsModalOpen(true);
       }
     }
   ];
@@ -224,6 +220,17 @@ export const QuickActionsPanel: React.FC = () => {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Modals */}
+      <ReportGeneratorModal
+        isOpen={reportModalOpen}
+        onClose={() => setReportModalOpen(false)}
+      />
+      
+      <SystemSettingsModal
+        isOpen={settingsModalOpen}
+        onClose={() => setSettingsModalOpen(false)}
+      />
     </div>
   );
 };

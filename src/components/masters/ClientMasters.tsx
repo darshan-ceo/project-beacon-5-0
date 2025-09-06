@@ -32,9 +32,11 @@ import {
 import { ClientModal } from '@/components/modals/ClientModal';
 import { Client, useAppState } from '@/contexts/AppStateContext';
 import { InlineHelp } from '@/components/help/InlineHelp';
+import { useRelationships } from '@/hooks/useRelationships';
 
 export const ClientMasters: React.FC = () => {
-  const { state } = useAppState();
+  const { state, dispatch } = useAppState();
+  const { checkDependencies, safeDelete } = useRelationships();
   const [searchTerm, setSearchTerm] = useState('');
   const [clientModal, setClientModal] = useState<{ isOpen: boolean; mode: 'create' | 'edit' | 'view'; client?: Client | null }>({
     isOpen: false,
@@ -324,13 +326,22 @@ export const ClientMasters: React.FC = () => {
                           <DropdownMenuItem 
                             className="text-destructive"
                             onClick={() => {
-                              if (confirm(`Are you sure you want to delete ${client.name}? This action cannot be undone.`)) {
-                                // TODO: Implement DELETE_CLIENT action dispatch
-                                toast({
-                                  title: "Client Deleted",
-                                  description: `${client.name} has been removed`,
-                                  variant: "destructive",
-                                });
+                              const dependencies = checkDependencies('client', client.id);
+                              let confirmMessage = `Are you sure you want to delete ${client.name}? This action cannot be undone.`;
+                              
+                              if (dependencies.length > 0) {
+                                confirmMessage += `\n\nThis client has ${dependencies.join(', ')}. These will also be deleted.`;
+                              }
+                              
+                              if (confirm(confirmMessage)) {
+                                const success = safeDelete('client', client.id, dependencies.length > 0);
+                                if (success) {
+                                  toast({
+                                    title: "Client Deleted",
+                                    description: `${client.name} has been removed`,
+                                    variant: "destructive",
+                                  });
+                                }
                               }
                             }}
                           >
