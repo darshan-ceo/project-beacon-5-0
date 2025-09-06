@@ -128,26 +128,40 @@ export const HearingModal: React.FC<HearingModalProps> = ({
       }
 
       if (mode === 'create') {
+        // Calculate end time (assume 1 hour duration if not specified)
+        const startTime = formData.time;
+        const [hours, minutes] = startTime.split(':').map(Number);
+        const endDate = new Date();
+        endDate.setHours(hours + 1, minutes);
+        const endTime = endDate.toTimeString().slice(0, 5);
+
         const hearingFormData = {
           case_id: formData.caseId,
           date: formData.date.toISOString().split('T')[0],
-          start_time: formData.time,
-          end_time: formData.time,
+          start_time: startTime,
+          end_time: endTime,
           timezone: 'Asia/Kolkata',
           court_id: formData.courtId,
           judge_ids: [formData.judgeId],
           purpose: 'mention' as const,
-          notes: formData.notes
+          notes: formData.notes || formData.agenda
         };
 
         await hearingsService.createHearing(hearingFormData, dispatch);
       } else if (mode === 'edit' && hearingData) {
+        // Calculate end time for updates too
+        const startTime = formData.time;
+        const [hours, minutes] = startTime.split(':').map(Number);
+        const endDate = new Date();
+        endDate.setHours(hours + 1, minutes);
+        const endTime = endDate.toTimeString().slice(0, 5);
+
         const updates = {
           court_id: formData.courtId,
           judge_ids: [formData.judgeId],
           date: formData.date.toISOString().split('T')[0],
-          start_time: formData.time,
-          end_time: formData.time,
+          start_time: startTime,
+          end_time: endTime,
           agenda: formData.agenda,
           notes: formData.notes
         };
