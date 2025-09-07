@@ -68,7 +68,21 @@ class RBACService {
     { module: 'hearings', action: 'read' },
     { module: 'hearings', action: 'write' },
     { module: 'hearings', action: 'delete' },
-    { module: 'hearings', action: 'admin' }
+    { module: 'hearings', action: 'admin' },
+
+    // Import/Export - Global permissions
+    { module: 'io.import', action: 'write' },
+    { module: 'io.export', action: 'write' },
+    
+    // Import/Export - Module-specific permissions
+    { module: 'io.import.court', action: 'write' },
+    { module: 'io.import.client', action: 'write' },
+    { module: 'io.import.judge', action: 'write' },
+    { module: 'io.import.employee', action: 'write' },
+    { module: 'io.export.court', action: 'write' },
+    { module: 'io.export.client', action: 'write' },
+    { module: 'io.export.judge', action: 'write' },
+    { module: 'io.export.employee', action: 'write' }
   ];
 
   async getAvailablePermissions(): Promise<Permission[]> {

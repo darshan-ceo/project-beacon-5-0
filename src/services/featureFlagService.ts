@@ -65,6 +65,13 @@ class FeatureFlagService {
       isEnabled: true, // ON in UAT
       version: 'v1'
     });
+
+    // Data Import/Export Feature (UAT enabled)
+    this.flags.set('data_io_v1', {
+      key: 'data_io_v1',
+      isEnabled: true, // ON in UAT
+      version: 'v1'
+    });
   }
 
   /**
