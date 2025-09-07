@@ -7,6 +7,7 @@ import {
   Search, 
   Filter, 
   Download, 
+  Upload,
   Eye,
   Edit,
   Trash2,
@@ -80,13 +81,23 @@ export const ClientMasters: React.FC = () => {
           </div>
           <InlineHelp module="client-master" />
         </div>
-        <Button 
-          className="bg-primary hover:bg-primary-hover"
-          onClick={() => setClientModal({ isOpen: true, mode: 'create', client: null })}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Add New Client
-        </Button>
+        <div className="flex space-x-3">
+          <Button variant="outline" className="flex items-center space-x-2">
+            <Upload className="h-4 w-4" />
+            <span>Import Excel</span>
+          </Button>
+          <Button variant="outline" className="flex items-center space-x-2">
+            <Download className="h-4 w-4" />
+            <span>Export Excel</span>
+          </Button>
+          <Button 
+            className="bg-primary hover:bg-primary-hover"
+            onClick={() => setClientModal({ isOpen: true, mode: 'create', client: null })}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add New Client
+          </Button>
+        </div>
       </motion.div>
 
       {/* Stats Cards */}

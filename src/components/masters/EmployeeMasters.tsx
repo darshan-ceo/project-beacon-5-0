@@ -21,8 +21,11 @@ import {
 import { FilterDropdown } from '@/components/ui/filter-dropdown';
 import { ExportButton } from '@/components/ui/export-button';
 import { EmployeeModal } from '@/components/modals/EmployeeModal';
+import { ImportWizard } from '@/components/importExport/ImportWizard';
+import { ExportWizard } from '@/components/importExport/ExportWizard';
 import { useAppState } from '@/contexts/AppStateContext';
 import { employeesService, Employee } from '@/services/employeesService';
+import { useRBAC } from '@/hooks/useRBAC';
 import { 
   Plus, 
   Search, 
@@ -35,12 +38,15 @@ import {
   UserPlus,
   Building,
   Phone,
-  Mail
+  Mail,
+  Upload,
+  Download
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 export const EmployeeMasters: React.FC = () => {
   const { state, dispatch } = useAppState();
+  const { hasPermission } = useRBAC();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
@@ -48,6 +54,8 @@ export const EmployeeMasters: React.FC = () => {
   const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isExportOpen, setIsExportOpen] = useState(false);
 
   // Filter employees
   const filteredEmployees = useMemo(() => {
@@ -183,11 +191,26 @@ export const EmployeeMasters: React.FC = () => {
           <p className="text-muted-foreground">Manage employee profiles and assignments</p>
         </div>
         <div className="flex space-x-3">
-          <ExportButton 
-            data={filteredEmployees}
-            filename="employees"
-            type="dashboard"
-          />
+          {hasPermission('employees', 'write') && (
+            <Button 
+              variant="outline" 
+              onClick={() => setIsImportOpen(true)}
+              className="flex items-center space-x-2"
+            >
+              <Upload className="h-4 w-4" />
+              <span>Import Excel</span>
+            </Button>
+          )}
+          {hasPermission('employees', 'read') && (
+            <Button 
+              variant="outline" 
+              onClick={() => setIsExportOpen(true)}
+              className="flex items-center space-x-2"
+            >
+              <Download className="h-4 w-4" />
+              <span>Export Excel</span>
+            </Button>
+          )}
           <Button onClick={handleCreateEmployee} className="flex items-center space-x-2">
             <Plus className="h-4 w-4" />
             <span>Add Employee</span>
@@ -425,6 +448,29 @@ export const EmployeeMasters: React.FC = () => {
         onClose={() => setIsEmployeeModalOpen(false)}
         employee={selectedEmployee}
         mode={modalMode}
+      />
+
+      {/* Import/Export Wizards */}
+      <ImportWizard
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        entityType="employee"
+        onImportComplete={(job) => {
+          toast({
+            title: "Import Complete",
+            description: `${job.counts.processed} employees imported successfully`
+          });
+        }}
+      />
+
+      <ExportWizard
+        isOpen={isExportOpen}
+        onClose={() => setIsExportOpen(false)}
+        entityType="employee"
+        currentFilters={{
+          search: searchTerm,
+          active: statusFilter === 'Active' ? true : statusFilter === 'Inactive' ? false : undefined
+        }}
       />
     </div>
   );
