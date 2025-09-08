@@ -179,7 +179,7 @@ class HelpService {
   }
 
   clearCache(): void {
-    this.cache.clear();
+    this.contentCache.clear();
   }
 
   getFallbackPageHelp(pageId: string): any {
@@ -487,10 +487,6 @@ Regular maintenance tasks include user access reviews, system backups, and perfo
     if (!moduleHelp) return null;
 
     return moduleHelp[context || 'default'] || null;
-  }
-
-  clearCache(): void {
-    this.contentCache.clear();
   }
 }
 

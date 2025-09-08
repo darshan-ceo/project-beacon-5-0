@@ -68,6 +68,157 @@ export const PageHelp: React.FC<PageHelpProps> = ({
     whatsNew: false
   });
 
+  const renderHelpContent = () => {
+    if (loading) {
+      return <div className="text-center py-8 text-muted-foreground">Loading help content...</div>;
+    }
+
+    if (!content) {
+      return <div className="text-center py-8 text-muted-foreground">No help content available</div>;
+    }
+
+    return (
+      <div className="space-y-4">
+        {/* Overview */}
+        <Collapsible open={expandedSections.overview} onOpenChange={() => toggleSection('overview')}>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" className="w-full justify-between p-0 h-auto">
+              <span className="font-medium">Overview</span>
+              {expandedSections.overview ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-2 text-sm text-muted-foreground">
+            {content.overview}
+          </CollapsibleContent>
+        </Collapsible>
+
+        <Separator />
+
+        {/* Key Features */}
+        <Collapsible open={expandedSections.features} onOpenChange={() => toggleSection('features')}>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" className="w-full justify-between p-0 h-auto">
+              <span className="font-medium">Key Features</span>
+              {expandedSections.features ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-2 space-y-2">
+            {content.keyFeatures.map((feature, index) => (
+              <div key={index} className="text-sm">
+                <div className="font-medium">{feature.title}</div>
+                <div className="text-muted-foreground">{feature.description}</div>
+              </div>
+            ))}
+          </CollapsibleContent>
+        </Collapsible>
+
+        <Separator />
+
+        {/* Quick Start */}
+        <Collapsible open={expandedSections.quickStart} onOpenChange={() => toggleSection('quickStart')}>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" className="w-full justify-between p-0 h-auto">
+              <span className="font-medium">Quick Start</span>
+              {expandedSections.quickStart ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-2 space-y-2">
+            {content.quickStart.map((step, index) => (
+              <div key={index} className="flex gap-3 text-sm">
+                <Badge variant="secondary" className="h-5 w-5 p-0 flex items-center justify-center text-xs">
+                  {step.step}
+                </Badge>
+                <div>
+                  <div className="font-medium">{step.title}</div>
+                  <div className="text-muted-foreground">{step.description}</div>
+                </div>
+              </div>
+            ))}
+          </CollapsibleContent>
+        </Collapsible>
+
+        <Separator />
+
+        {/* Common Tasks */}
+        <Collapsible open={expandedSections.tasks} onOpenChange={() => toggleSection('tasks')}>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" className="w-full justify-between p-0 h-auto">
+              <span className="font-medium">Common Tasks</span>
+              {expandedSections.tasks ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-2 space-y-2">
+            {content.commonTasks.map((task, index) => (
+              <div key={index} className="text-sm border rounded p-2">
+                <div className="font-medium">{task.title}</div>
+                <div className="text-muted-foreground">{task.description}</div>
+              </div>
+            ))}
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* Guided Tours */}
+        {content.relatedTours && content.relatedTours.length > 0 && (
+          <>
+            <Separator />
+            <Collapsible open={expandedSections.tours} onOpenChange={() => toggleSection('tours')}>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" className="w-full justify-between p-0 h-auto">
+                  <span className="font-medium">Guided Tours</span>
+                  {expandedSections.tours ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2 space-y-2">
+                {content.relatedTours.map((tour, index) => (
+                  <div key={index} className="flex items-center justify-between text-sm border rounded p-2">
+                    <div>
+                      <div className="font-medium">{tour.title}</div>
+                      <div className="text-muted-foreground">{tour.description}</div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => startTour(tour.id)}
+                    >
+                      <Play className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
+          </>
+        )}
+
+        {/* What's New */}
+        {content.whatsNew && content.whatsNew.length > 0 && (
+          <>
+            <Separator />
+            <Collapsible open={expandedSections.whatsNew} onOpenChange={() => toggleSection('whatsNew')}>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" className="w-full justify-between p-0 h-auto">
+                  <span className="font-medium">What's New</span>
+                  {expandedSections.whatsNew ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2 space-y-2">
+                {content.whatsNew.map((item, index) => (
+                  <div key={index} className="text-sm border rounded p-2">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="font-medium">{item.title}</div>
+                      {item.badge && <Badge variant="secondary" className="text-xs">{item.badge}</Badge>}
+                    </div>
+                    <div className="text-muted-foreground">{item.description}</div>
+                    <div className="text-xs text-muted-foreground mt-1">{item.date}</div>
+                  </div>
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
+          </>
+        )}
+      </div>
+    );
+  };
+
   useEffect(() => {
     if (isOpen && !content) {
       fetchPageHelp();
@@ -220,306 +371,6 @@ export const PageHelp: React.FC<PageHelpProps> = ({
     );
   }
 
-  const renderHelpContent = () => {
-    if (loading) {
-      return <div className="text-center py-8 text-muted-foreground">Loading help content...</div>;
-    }
-
-    if (!content) {
-      return <div className="text-center py-8 text-muted-foreground">No help content available</div>;
-    }
-
-    return (
-      <div className="space-y-4">
-        {/* Overview */}
-        <Collapsible open={expandedSections.overview} onOpenChange={() => toggleSection('overview')}>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" className="w-full justify-between p-0 h-auto">
-              <span className="font-medium">Overview</span>
-              {expandedSections.overview ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="mt-2 text-sm text-muted-foreground">
-            {content.overview}
-          </CollapsibleContent>
-        </Collapsible>
-
-        <Separator />
-
-        {/* Key Features */}
-        <Collapsible open={expandedSections.features} onOpenChange={() => toggleSection('features')}>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" className="w-full justify-between p-0 h-auto">
-              <span className="font-medium">Key Features</span>
-              {expandedSections.features ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="mt-2 space-y-2">
-            {content.keyFeatures.map((feature, index) => (
-              <div key={index} className="text-sm">
-                <div className="font-medium">{feature.title}</div>
-                <div className="text-muted-foreground">{feature.description}</div>
-              </div>
-            ))}
-          </CollapsibleContent>
-        </Collapsible>
-
-        <Separator />
-
-        {/* Quick Start */}
-        <Collapsible open={expandedSections.quickStart} onOpenChange={() => toggleSection('quickStart')}>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" className="w-full justify-between p-0 h-auto">
-              <span className="font-medium">Quick Start</span>
-              {expandedSections.quickStart ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="mt-2 space-y-2">
-            {content.quickStart.map((step, index) => (
-              <div key={index} className="flex gap-3 text-sm">
-                <Badge variant="secondary" className="h-5 w-5 p-0 flex items-center justify-center text-xs">
-                  {step.step}
-                </Badge>
-                <div>
-                  <div className="font-medium">{step.title}</div>
-                  <div className="text-muted-foreground">{step.description}</div>
-                </div>
-              </div>
-            ))}
-          </CollapsibleContent>
-        </Collapsible>
-
-        <Separator />
-
-        {/* Common Tasks */}
-        <Collapsible open={expandedSections.tasks} onOpenChange={() => toggleSection('tasks')}>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" className="w-full justify-between p-0 h-auto">
-              <span className="font-medium">Common Tasks</span>
-              {expandedSections.tasks ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="mt-2 space-y-2">
-            {content.commonTasks.map((task, index) => (
-              <div key={index} className="text-sm border rounded p-2">
-                <div className="font-medium">{task.title}</div>
-                <div className="text-muted-foreground">{task.description}</div>
-              </div>
-            ))}
-          </CollapsibleContent>
-        </Collapsible>
-
-        {/* Guided Tours */}
-        {content.relatedTours && content.relatedTours.length > 0 && (
-          <>
-            <Separator />
-            <Collapsible open={expandedSections.tours} onOpenChange={() => toggleSection('tours')}>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" className="w-full justify-between p-0 h-auto">
-                  <span className="font-medium">Guided Tours</span>
-                  {expandedSections.tours ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="mt-2 space-y-2">
-                {content.relatedTours.map((tour, index) => (
-                  <div key={index} className="flex items-center justify-between text-sm border rounded p-2">
-                    <div>
-                      <div className="font-medium">{tour.title}</div>
-                      <div className="text-muted-foreground">{tour.description}</div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => startTour(tour.id)}
-                    >
-                      <Play className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
-              </CollapsibleContent>
-            </Collapsible>
-          </>
-        )}
-
-        {/* What's New */}
-        {content.whatsNew && content.whatsNew.length > 0 && (
-          <>
-            <Separator />
-            <Collapsible open={expandedSections.whatsNew} onOpenChange={() => toggleSection('whatsNew')}>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" className="w-full justify-between p-0 h-auto">
-                  <span className="font-medium">What's New</span>
-                  {expandedSections.whatsNew ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="mt-2 space-y-2">
-                {content.whatsNew.map((item, index) => (
-                  <div key={index} className="text-sm border rounded p-2">
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="font-medium">{item.title}</div>
-                      {item.badge && <Badge variant="secondary" className="text-xs">{item.badge}</Badge>}
-                    </div>
-                    <div className="text-muted-foreground">{item.description}</div>
-                    <div className="text-xs text-muted-foreground mt-1">{item.date}</div>
-                  </div>
-                ))}
-              </CollapsibleContent>
-            </Collapsible>
-          </>
-        )}
-      </div>
-    );
-  };
-    if (loading) {
-      return <div className="text-center py-8 text-muted-foreground">Loading help content...</div>;
-    }
-
-    if (!content) {
-      return <div className="text-center py-8 text-muted-foreground">No help content available</div>;
-    }
-
-    return (
-      <div className="space-y-4">
-        {/* Overview */}
-        <Collapsible open={expandedSections.overview} onOpenChange={() => toggleSection('overview')}>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" className="w-full justify-between p-0 h-auto">
-              <span className="font-medium">Overview</span>
-              {expandedSections.overview ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="mt-2 text-sm text-muted-foreground">
-            {content.overview}
-          </CollapsibleContent>
-        </Collapsible>
-
-        <Separator />
-
-        {/* Key Features */}
-        <Collapsible open={expandedSections.features} onOpenChange={() => toggleSection('features')}>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" className="w-full justify-between p-0 h-auto">
-              <span className="font-medium">Key Features</span>
-              {expandedSections.features ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="mt-2 space-y-2">
-            {content.keyFeatures.map((feature, index) => (
-              <div key={index} className="text-sm">
-                <div className="font-medium">{feature.title}</div>
-                <div className="text-muted-foreground">{feature.description}</div>
-              </div>
-            ))}
-          </CollapsibleContent>
-        </Collapsible>
-
-        <Separator />
-
-        {/* Quick Start */}
-        <Collapsible open={expandedSections.quickStart} onOpenChange={() => toggleSection('quickStart')}>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" className="w-full justify-between p-0 h-auto">
-              <span className="font-medium">Quick Start</span>
-              {expandedSections.quickStart ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="mt-2 space-y-2">
-            {content.quickStart.map((step, index) => (
-              <div key={index} className="flex gap-3 text-sm">
-                <Badge variant="secondary" className="h-5 w-5 p-0 flex items-center justify-center text-xs">
-                  {step.step}
-                </Badge>
-                <div>
-                  <div className="font-medium">{step.title}</div>
-                  <div className="text-muted-foreground">{step.description}</div>
-                </div>
-              </div>
-            ))}
-          </CollapsibleContent>
-        </Collapsible>
-
-        <Separator />
-
-        {/* Common Tasks */}
-        <Collapsible open={expandedSections.tasks} onOpenChange={() => toggleSection('tasks')}>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" className="w-full justify-between p-0 h-auto">
-              <span className="font-medium">Common Tasks</span>
-              {expandedSections.tasks ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="mt-2 space-y-2">
-            {content.commonTasks.map((task, index) => (
-              <div key={index} className="text-sm border rounded p-2">
-                <div className="font-medium">{task.title}</div>
-                <div className="text-muted-foreground">{task.description}</div>
-              </div>
-            ))}
-          </CollapsibleContent>
-        </Collapsible>
-
-        {/* Guided Tours */}
-        {content.relatedTours && content.relatedTours.length > 0 && (
-          <>
-            <Separator />
-            <Collapsible open={expandedSections.tours} onOpenChange={() => toggleSection('tours')}>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" className="w-full justify-between p-0 h-auto">
-                  <span className="font-medium">Guided Tours</span>
-                  {expandedSections.tours ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="mt-2 space-y-2">
-                {content.relatedTours.map((tour, index) => (
-                  <div key={index} className="flex items-center justify-between text-sm border rounded p-2">
-                    <div>
-                      <div className="font-medium">{tour.title}</div>
-                      <div className="text-muted-foreground">{tour.description}</div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => startTour(tour.id)}
-                    >
-                      <Play className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
-              </CollapsibleContent>
-            </Collapsible>
-          </>
-        )}
-
-        {/* What's New */}
-        {content.whatsNew && content.whatsNew.length > 0 && (
-          <>
-            <Separator />
-            <Collapsible open={expandedSections.whatsNew} onOpenChange={() => toggleSection('whatsNew')}>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" className="w-full justify-between p-0 h-auto">
-                  <span className="font-medium">What's New</span>
-                  {expandedSections.whatsNew ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="mt-2 space-y-2">
-                {content.whatsNew.map((item, index) => (
-                  <div key={index} className="text-sm border rounded p-2">
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="font-medium">{item.title}</div>
-                      {item.badge && <Badge variant="secondary" className="text-xs">{item.badge}</Badge>}
-                    </div>
-                    <div className="text-muted-foreground">{item.description}</div>
-                    <div className="text-xs text-muted-foreground mt-1">{item.date}</div>
-                  </div>
-                ))}
-              </CollapsibleContent>
-            </Collapsible>
-          </>
-        )}
-      </div>
-    );
-  };
-
   // Drawer variant (default)
   if (!isOpen) {
     return (
@@ -570,8 +421,6 @@ export const PageHelp: React.FC<PageHelpProps> = ({
             {renderHelpContent()}
           </div>
         </div>
-        </div>
-      </div>
       </div>
     </div>
   );

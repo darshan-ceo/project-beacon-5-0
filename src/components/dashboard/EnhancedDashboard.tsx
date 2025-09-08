@@ -32,6 +32,8 @@ import {
   ChartLegendContent
 } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, PieChart as RechartsPieChart, Cell, LineChart, Line } from 'recharts';
+import { InlineHelp } from '@/components/help/InlineHelp';
+import { PageHelp } from '@/components/help/PageHelp';
 import { QuickActionsPanel } from '@/components/qa/QuickActionsPanel';
 
 interface DashboardFilters {
@@ -175,11 +177,17 @@ export const EnhancedDashboard: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4"
       >
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Practice Analytics</h1>
-          <p className="text-muted-foreground mt-2">
-            Comprehensive insights and metrics for {currentUser.name}
-          </p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Practice Analytics</h1>
+            <p className="text-muted-foreground mt-2">
+              Comprehensive insights and metrics for {currentUser.name}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <InlineHelp module="dashboard" />
+            <PageHelp pageId="dashboard" />
+          </div>
         </div>
         
         <div className="flex flex-wrap gap-3 items-center">
