@@ -48,6 +48,7 @@ interface MenuItem {
   href: string;
   roles: string[];
   badge?: string;
+  tourId?: string;
 }
 
 interface MenuGroup {
@@ -59,14 +60,14 @@ interface MenuGroup {
 
 // Main navigation items (always visible, in requested order)
 const mainMenuItems: MenuItem[] = [
-  { icon: BarChart3, label: 'Dashboard', href: '/', roles: ['Admin', 'Partner/CA', 'Staff'] },
-  { icon: FileText, label: 'Case Management', href: '/cases', roles: ['Admin', 'Partner/CA', 'Staff'] },
-  { icon: CalendarDays, label: 'Hearings', href: '/hearings/calendar', roles: ['Admin', 'Partner/CA', 'Staff'] },
-  { icon: CheckSquare, label: 'Task Management', href: '/tasks', roles: ['Admin', 'Partner/CA', 'Staff'] },
-  { icon: FolderOpen, label: 'Document Management', href: '/documents', roles: ['Admin', 'Partner/CA', 'Staff', 'Client'] },
-  { icon: BarChart3, label: 'Reports', href: '/reports', roles: ['Admin', 'Partner/CA', 'Staff'] },
-  { icon: HelpCircle, label: 'Help & Knowledge Base', href: '/help', roles: ['Admin', 'Partner/CA', 'Staff', 'Client'] },
-  { icon: UserCircle, label: 'User Profile', href: '/profile', roles: ['Admin', 'Partner/CA', 'Staff', 'Client'] },
+  { icon: BarChart3, label: 'Dashboard', href: '/', roles: ['Admin', 'Partner/CA', 'Staff'], tourId: 'dashboard-nav' },
+  { icon: FileText, label: 'Case Management', href: '/cases', roles: ['Admin', 'Partner/CA', 'Staff'], tourId: 'cases-nav' },
+  { icon: CalendarDays, label: 'Hearings', href: '/hearings/calendar', roles: ['Admin', 'Partner/CA', 'Staff'], tourId: 'hearings-nav' },
+  { icon: CheckSquare, label: 'Task Management', href: '/tasks', roles: ['Admin', 'Partner/CA', 'Staff'], tourId: 'tasks-nav' },
+  { icon: FolderOpen, label: 'Document Management', href: '/documents', roles: ['Admin', 'Partner/CA', 'Staff', 'Client'], tourId: 'documents-nav' },
+  { icon: BarChart3, label: 'Reports', href: '/reports', roles: ['Admin', 'Partner/CA', 'Staff'], tourId: 'reports-nav' },
+  { icon: HelpCircle, label: 'Help & Knowledge Base', href: '/help', roles: ['Admin', 'Partner/CA', 'Staff', 'Client'], tourId: 'help-nav' },
+  { icon: UserCircle, label: 'User Profile', href: '/profile', roles: ['Admin', 'Partner/CA', 'Staff', 'Client'], tourId: 'profile-nav' },
 ];
 
 // Grouped menu sections
@@ -144,6 +145,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
         <SidebarMenuButton asChild>
           <NavLink 
             to={item.href}
+            data-tour={item.tourId}
             className={({ isActive: navIsActive }) => 
               getNavClasses(navIsActive || isActive)
             }

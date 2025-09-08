@@ -194,12 +194,13 @@ class TourService {
 
       // Create Shepherd tour instance
       this.activeTour = new Shepherd.Tour({
-        useModalOverlay: true,
+        useModalOverlay: false, // Disable by default, enable per step
         defaultStepOptions: {
           classes: 'bg-background border border-border shadow-lg rounded-lg',
           scrollTo: { behavior: 'smooth', block: 'center' },
-          modalOverlayOpeningPadding: 10,
-          modalOverlayOpeningRadius: 8,
+          cancelIcon: {
+            enabled: true,
+          },
           buttons: [
             {
               text: 'Skip Tour',
@@ -230,8 +231,9 @@ class TourService {
           title: step.title,
           text: step.text,
           attachTo: step.attachTo,
-          modalOverlayOpeningPadding: isInteractive ? 20 : 10,
-          modalOverlayOpeningRadius: isInteractive ? 12 : 8,
+          modalOverlay: !isInteractive, // Enable overlay only for non-interactive steps
+          modalOverlayOpeningPadding: isInteractive ? 30 : 10,
+          modalOverlayOpeningRadius: isInteractive ? 15 : 8,
           canClickTarget: isInteractive,
           buttons: step.buttons || [
             {
@@ -273,9 +275,23 @@ class TourService {
           when: {
             ...step.when,
             show: () => {
-              if (step.attachTo?.element) {
-                const element = document.querySelector(step.attachTo.element);
-                if (element) {
+              // Enhanced element detection with retry logic
+              const waitForElement = (retries = 10) => {
+                if (step.attachTo?.element) {
+                  const element = document.querySelector(step.attachTo.element);
+                  if (!element) {
+                    if (retries > 0) {
+                      // Element not found, wait and retry
+                      setTimeout(() => waitForElement(retries - 1), 200);
+                      return;
+                    } else {
+                      // Element not found after retries, show warning but continue
+                      console.warn(`Tour element not found: ${step.attachTo.element}`);
+                      return;
+                    }
+                  }
+                  
+                  // Element found, scroll and highlight it
                   element.scrollIntoView({ behavior: 'smooth', block: 'center' });
                   
                   // Add different highlighting for interactive elements
@@ -295,9 +311,13 @@ class TourService {
                   setTimeout(() => {
                     element.classList.remove('tour-highlight', 'tour-highlight-interactive', 'tour-pulse');
                     (element as HTMLElement).style.cursor = '';
-                  }, 5000);
+                  }, 8000);
+                } else {
+                  // No element to attach to, just show the step
+                  console.log('Step has no target element, showing as floating step');
                 }
               }
+              waitForElement();
               if (step.when?.show) step.when.show();
             },
             hide: () => {
