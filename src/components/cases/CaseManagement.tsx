@@ -44,6 +44,7 @@ import { formTemplatesService } from '@/services/formTemplatesService';
 import { FormRenderModal } from '@/components/documents/FormRenderModal';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { InlineHelp } from '@/components/help/InlineHelp';
+import { tourService } from '@/services/tourService';
 
 export const CaseManagement: React.FC = () => {
   const { state, dispatch } = useAppState();
@@ -355,13 +356,23 @@ export const CaseManagement: React.FC = () => {
           </div>
           <InlineHelp module="case-overview" />
         </div>
-        <Button 
-          className="bg-primary hover:bg-primary-hover"
-          onClick={() => setCaseModal({ isOpen: true, mode: 'create', case: null })}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          New Case
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline"
+            onClick={() => tourService.startTour('create-case')}
+            className="text-xs"
+          >
+            <HelpCircle className="mr-2 h-3 w-3" />
+            Start Tour
+          </Button>
+          <Button 
+            className="bg-primary hover:bg-primary-hover"
+            onClick={() => setCaseModal({ isOpen: true, mode: 'create', case: null })}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            New Case
+          </Button>
+        </div>
       </motion.div>
 
       {/* Key Metrics */}

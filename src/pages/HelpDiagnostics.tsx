@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, XCircle, AlertCircle, RefreshCw, Monitor } from 'lucide-react';
 import { featureFlagService } from '@/services/featureFlagService';
+import { enhancedHelpService } from '@/services/enhancedHelpService';
+import { tourService } from '@/services/tourService';
 import { helpService } from '@/services/helpService';
 import { useRBAC } from '@/hooks/useRBAC';
 import { cn } from '@/lib/utils';

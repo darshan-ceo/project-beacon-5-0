@@ -12,6 +12,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CalendarDays, Plus, Filter, Download, HelpCircle } from 'lucide-react';
 import { InlineHelp } from '@/components/help/InlineHelp';
+import { tourService } from '@/services/tourService';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -278,6 +279,15 @@ export const HearingsCalendar: React.FC<HearingsCalendarProps> = ({
               </div>
             </PopoverContent>
           </Popover>
+
+          <Button 
+            variant="outline"
+            onClick={() => tourService.startTour('schedule-hearing')}
+            className="text-xs"
+          >
+            <HelpCircle className="mr-2 h-3 w-3" />
+            Start Tour
+          </Button>
 
           <Button
             onClick={() => {

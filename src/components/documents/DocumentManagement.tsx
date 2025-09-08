@@ -43,6 +43,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { InlineHelp } from '@/components/help/InlineHelp';
+import { tourService } from '@/services/tourService';
 
 interface LocalDocument {
   id: string;
@@ -503,6 +504,14 @@ export const DocumentManagement: React.FC = () => {
           >
             <FolderOpen className="mr-2 h-4 w-4" />
             New Folder
+          </Button>
+          <Button 
+            variant="outline"
+            onClick={() => tourService.startTour('dms-upload')}
+            className="text-xs"
+          >
+            <HelpCircle className="mr-2 h-3 w-3" />
+            Start Tour
           </Button>
           <Button 
             className="bg-primary hover:bg-primary-hover"
