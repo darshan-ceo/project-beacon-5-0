@@ -31,12 +31,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ClientModal } from '@/components/modals/ClientModal';
+import { ImportWizard } from '@/components/importExport/ImportWizard';
+import { ExportWizard } from '@/components/importExport/ExportWizard';
 import { Client, useAppState } from '@/contexts/AppStateContext';
 import { InlineHelp } from '@/components/help/InlineHelp';
 import { useRelationships } from '@/hooks/useRelationships';
+import { useRBAC } from '@/hooks/useRBAC';
+import { featureFlagService } from '@/services/featureFlagService';
 
 export const ClientMasters: React.FC = () => {
   const { state, dispatch } = useAppState();
+  const { hasPermission } = useRBAC();
   const { checkDependencies, safeDelete } = useRelationships();
   const [searchTerm, setSearchTerm] = useState('');
   const [clientModal, setClientModal] = useState<{ isOpen: boolean; mode: 'create' | 'edit' | 'view'; client?: Client | null }>({
@@ -45,6 +50,8 @@ export const ClientMasters: React.FC = () => {
     client: null
   });
   const [filterStatus, setFilterStatus] = useState<'all' | 'Active' | 'Inactive' | 'Pending'>('all');
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isExportOpen, setIsExportOpen] = useState(false);
 
   const filteredClients = state.clients.filter(client => {
     const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -82,14 +89,26 @@ export const ClientMasters: React.FC = () => {
           <InlineHelp module="client-master" />
         </div>
         <div className="flex space-x-3">
-          <Button variant="outline" className="flex items-center space-x-2">
-            <Upload className="h-4 w-4" />
-            <span>Import Excel</span>
-          </Button>
-          <Button variant="outline" className="flex items-center space-x-2">
-            <Download className="h-4 w-4" />
-            <span>Export Excel</span>
-          </Button>
+          {featureFlagService.isEnabled('data_io_v1') && hasPermission('io.import.client', 'write') && (
+            <Button 
+              variant="outline" 
+              onClick={() => setIsImportOpen(true)}
+              className="flex items-center space-x-2"
+            >
+              <Upload className="h-4 w-4" />
+              <span>Import Excel</span>
+            </Button>
+          )}
+          {featureFlagService.isEnabled('data_io_v1') && hasPermission('io.export.client', 'write') && (
+            <Button 
+              variant="outline" 
+              onClick={() => setIsExportOpen(true)}
+              className="flex items-center space-x-2"
+            >
+              <Download className="h-4 w-4" />
+              <span>Export Excel</span>
+            </Button>
+          )}
           <Button 
             className="bg-primary hover:bg-primary-hover"
             onClick={() => setClientModal({ isOpen: true, mode: 'create', client: null })}
@@ -375,6 +394,23 @@ export const ClientMasters: React.FC = () => {
         onClose={() => setClientModal({ isOpen: false, mode: 'create', client: null })}
         client={clientModal.client}
         mode={clientModal.mode}
+      />
+
+      {/* Import/Export Wizards */}
+      <ImportWizard
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        entityType="client"
+        onImportComplete={(job) => {
+          console.log('Client import completed:', job);
+          // Refresh client data if needed
+        }}
+      />
+
+      <ExportWizard
+        isOpen={isExportOpen}
+        onClose={() => setIsExportOpen(false)}
+        entityType="client"
       />
     </div>
   );

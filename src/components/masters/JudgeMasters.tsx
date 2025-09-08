@@ -17,6 +17,7 @@ import { ExportWizard } from '@/components/importExport/ExportWizard';
 import { Judge, useAppState } from '@/contexts/AppStateContext';
 import { judgesService } from '@/services/judgesService';
 import { useRBAC } from '@/hooks/useRBAC';
+import { featureFlagService } from '@/services/featureFlagService';
 
 
 export const JudgeMasters: React.FC = () => {
@@ -98,7 +99,7 @@ export const JudgeMasters: React.FC = () => {
           <p className="text-muted-foreground mt-2">Manage judge profiles, assignments, and availability</p>
         </div>
         <div className="flex gap-2">
-          {hasPermission('data_io:judge:import', 'read') && (
+          {featureFlagService.isEnabled('data_io_v1') && hasPermission('io.import.judge', 'write') && (
             <Button 
               variant="outline" 
               className="gap-2"
@@ -108,7 +109,7 @@ export const JudgeMasters: React.FC = () => {
               Import Judges
             </Button>
           )}
-          {hasPermission('data_io:judge:export', 'read') && (
+          {featureFlagService.isEnabled('data_io_v1') && hasPermission('io.export.judge', 'write') && (
             <Button 
               variant="outline" 
               className="gap-2"
@@ -118,14 +119,16 @@ export const JudgeMasters: React.FC = () => {
               Export Judges
             </Button>
           )}
+          <Dialog open={isAddJudgeOpen} onOpenChange={setIsAddJudgeOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add New Judge
+              </Button>
+            </DialogTrigger>
+          </Dialog>
         </div>
         <Dialog open={isAddJudgeOpen} onOpenChange={setIsAddJudgeOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Add New Judge
-            </Button>
-          </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Add New Judge</DialogTitle>

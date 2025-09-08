@@ -26,6 +26,7 @@ import { ExportWizard } from '@/components/importExport/ExportWizard';
 import { useAppState } from '@/contexts/AppStateContext';
 import { employeesService, Employee } from '@/services/employeesService';
 import { useRBAC } from '@/hooks/useRBAC';
+import { featureFlagService } from '@/services/featureFlagService';
 import { 
   Plus, 
   Search, 
@@ -191,7 +192,7 @@ export const EmployeeMasters: React.FC = () => {
           <p className="text-muted-foreground">Manage employee profiles and assignments</p>
         </div>
         <div className="flex space-x-3">
-          {hasPermission('employees', 'write') && (
+          {featureFlagService.isEnabled('data_io_v1') && hasPermission('io.import.employee', 'write') && (
             <Button 
               variant="outline" 
               onClick={() => setIsImportOpen(true)}
@@ -201,7 +202,7 @@ export const EmployeeMasters: React.FC = () => {
               <span>Import Excel</span>
             </Button>
           )}
-          {hasPermission('employees', 'read') && (
+          {featureFlagService.isEnabled('data_io_v1') && hasPermission('io.export.employee', 'write') && (
             <Button 
               variant="outline" 
               onClick={() => setIsExportOpen(true)}

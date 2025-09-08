@@ -17,6 +17,7 @@ import { ExportWizard } from '@/components/importExport/ExportWizard';
 import { Court, useAppState } from '@/contexts/AppStateContext';
 import { courtsService } from '@/services/courtsService';
 import { useRBAC } from '@/hooks/useRBAC';
+import { featureFlagService } from '@/services/featureFlagService';
 
 
 export const CourtMasters: React.FC = () => {
@@ -75,7 +76,7 @@ export const CourtMasters: React.FC = () => {
           <p className="text-muted-foreground mt-2">Manage court information and jurisdictions</p>
         </div>
         <div className="flex gap-2">
-          {hasPermission('data_io:court:import', 'read') && (
+          {featureFlagService.isEnabled('data_io_v1') && hasPermission('io.import.court', 'write') && (
             <Button 
               variant="outline" 
               className="gap-2"
@@ -85,7 +86,7 @@ export const CourtMasters: React.FC = () => {
               Import Courts
             </Button>
           )}
-          {hasPermission('data_io:court:export', 'read') && (
+          {featureFlagService.isEnabled('data_io_v1') && hasPermission('io.export.court', 'write') && (
             <Button 
               variant="outline" 
               className="gap-2"
