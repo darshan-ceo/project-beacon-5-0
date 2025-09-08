@@ -1,0 +1,152 @@
+{
+  "title": "Case Management",
+  "description": "Comprehensive legal case management from creation to completion",
+  "overview": "The Case Management module serves as the central hub for all your legal cases. It provides tools to track case progress, manage documents, schedule hearings, monitor SLA compliance, and collaborate with team members. Whether you're handling a simple consultation or a complex litigation, this module ensures nothing falls through the cracks.",
+  "keyFeatures": [
+    {
+      "title": "Case Lifecycle Management",
+      "description": "Track cases through predefined legal stages with automated validation and requirement checking",
+      "icon": "scale"
+    },
+    {
+      "title": "Timeline & Milestones",
+      "description": "Visual timeline showing case history, key events, and upcoming deadlines",
+      "icon": "clock"
+    },
+    {
+      "title": "SLA Tracking",
+      "description": "Monitor compliance deadlines, court dates, and regulatory requirements with automated alerts",
+      "icon": "alert-triangle"
+    },
+    {
+      "title": "Team Collaboration",
+      "description": "Assign tasks, share updates, and communicate with team members in real-time",
+      "icon": "users"
+    },
+    {
+      "title": "Document Integration",
+      "description": "Seamlessly link case documents, correspondence, and evidence to specific cases",
+      "icon": "file-text"
+    },
+    {
+      "title": "AI Assistant",
+      "description": "Get intelligent suggestions for case strategy, document drafting, and legal research",
+      "icon": "help-circle"
+    }
+  ],
+  "quickStart": [
+    {
+      "step": 1,
+      "title": "Create New Case",
+      "description": "Click the 'New Case' button in the top-right corner to open the case creation form"
+    },
+    {
+      "step": 2,
+      "title": "Enter Case Details",
+      "description": "Fill in case information including client, court, case type, and initial stage"
+    },
+    {
+      "step": 3,
+      "title": "Set Initial Stage",
+      "description": "Choose the appropriate legal stage based on case type and current status"
+    },
+    {
+      "step": 4,
+      "title": "Add Team Members",
+      "description": "Assign lawyers, paralegals, and other team members to the case"
+    },
+    {
+      "step": 5,
+      "title": "Upload Documents",
+      "description": "Add initial case documents, correspondence, and evidence"
+    },
+    {
+      "step": 6,
+      "title": "Set Key Dates",
+      "description": "Schedule important deadlines, court dates, and review milestones"
+    }
+  ],
+  "commonTasks": [
+    {
+      "title": "Advance to Next Stage",
+      "description": "Move cases through legal stages with built-in validation and requirement checking",
+      "action": "advance-stage"
+    },
+    {
+      "title": "Schedule Court Hearing",
+      "description": "Book hearing dates with calendar integration and automated notifications",
+      "action": "schedule-hearing"
+    },
+    {
+      "title": "Upload Case Documents",
+      "description": "Add pleadings, evidence, correspondence, and other case-related files",
+      "action": "upload-documents"
+    },
+    {
+      "title": "Create Case Tasks",
+      "description": "Assign specific tasks to team members with deadlines and priorities",
+      "action": "create-tasks"
+    },
+    {
+      "title": "Generate Case Reports",
+      "description": "Create detailed reports on case progress, time tracking, and expenses",
+      "action": "generate-reports"
+    },
+    {
+      "title": "Communicate with Client",
+      "description": "Send updates, requests, and notifications to clients through the portal",
+      "action": "client-communication"
+    }
+  ],
+  "relatedTours": [
+    {
+      "id": "case-overview-tour",
+      "title": "Case Overview Tour",
+      "description": "Learn the basics of case management and navigation"
+    },
+    {
+      "id": "case-lifecycle-tour", 
+      "title": "Case Lifecycle Tour",
+      "description": "Understand how to advance cases through legal stages"
+    },
+    {
+      "id": "hearing-management-tour",
+      "title": "Hearing Management",
+      "description": "Master hearing scheduling and calendar integration"
+    }
+  ],
+  "relatedArticles": [
+    {
+      "title": "Case Creation Best Practices",
+      "url": "/help/best-practices/case-creation"
+    },
+    {
+      "title": "Understanding Legal Stages",
+      "url": "/help/faqs/legal-stages"
+    },
+    {
+      "title": "SLA Compliance Guide",
+      "url": "/help/guides/sla-compliance"
+    }
+  ],
+  "whatsNew": [
+    {
+      "title": "Enhanced AI Assistant",
+      "description": "New AI-powered suggestions for case strategy and document drafting",
+      "date": "December 2024",
+      "badge": "New"
+    },
+    {
+      "title": "Bulk Case Actions",
+      "description": "Perform actions on multiple cases simultaneously for better efficiency",
+      "date": "November 2024",
+      "badge": "Enhancement"
+    },
+    {
+      "title": "Advanced Filtering",
+      "description": "New filtering options including custom date ranges and complex queries",
+      "date": "November 2024",
+      "badge": "Enhancement"
+    }
+  ]
+}

@@ -1,0 +1,152 @@
+{
+  "title": "Dashboard",
+  "description": "Real-time overview of your practice performance and key metrics",
+  "overview": "The Dashboard provides a comprehensive command center for your legal practice. It displays real-time metrics, pending tasks, upcoming deadlines, performance analytics, and quick access to common operations. Customizable widgets and role-based views ensure you see the most relevant information for your responsibilities.",
+  "keyFeatures": [
+    {
+      "title": "Real-time Metrics",
+      "description": "Live updates on case status, task completion, and practice performance",
+      "icon": "activity"
+    },
+    {
+      "title": "Quick Actions Panel",
+      "description": "Shortcuts to frequently used operations like creating cases and scheduling hearings",
+      "icon": "zap"
+    },
+    {
+      "title": "Task Management",
+      "description": "Overview of pending tasks, overdue items, and upcoming deadlines",
+      "icon": "check-circle"
+    },
+    {
+      "title": "Performance Analytics",
+      "description": "Charts and graphs showing practice trends, productivity, and key metrics",
+      "icon": "trending-up"
+    },
+    {
+      "title": "Calendar Integration",
+      "description": "Upcoming hearings, deadlines, and appointments at a glance",
+      "icon": "calendar"
+    },
+    {
+      "title": "Customizable Widgets",
+      "description": "Personalize your dashboard with relevant widgets and information",
+      "icon": "layout-grid"
+    }
+  ],
+  "quickStart": [
+    {
+      "step": 1,
+      "title": "Review Key Metrics",
+      "description": "Check the overview cards showing active cases, pending tasks, and deadlines"
+    },
+    {
+      "step": 2,
+      "title": "Check Recent Activity",
+      "description": "Review the activity feed for recent case updates and system notifications"
+    },
+    {
+      "step": 3,
+      "title": "Use Quick Actions",
+      "description": "Access frequently used features through the Quick Actions panel"
+    },
+    {
+      "step": 4,
+      "title": "Review Analytics",
+      "description": "Analyze performance charts to understand practice trends and productivity"
+    },
+    {
+      "step": 5,
+      "title": "Check Calendar",
+      "description": "View upcoming hearings, deadlines, and appointments"
+    },
+    {
+      "step": 6,
+      "title": "Customize Layout",
+      "description": "Arrange widgets and customize the dashboard to match your workflow"
+    }
+  ],
+  "commonTasks": [
+    {
+      "title": "Create New Case",
+      "description": "Start a new legal case directly from the dashboard",
+      "action": "new-case"
+    },
+    {
+      "title": "Schedule Hearing",
+      "description": "Book a court hearing with calendar integration",
+      "action": "schedule-hearing"
+    },
+    {
+      "title": "Review Tasks",
+      "description": "Check and manage pending tasks and assignments",
+      "action": "review-tasks"
+    },
+    {
+      "title": "Generate Reports",
+      "description": "Create practice performance and case reports",
+      "action": "generate-reports"
+    },
+    {
+      "title": "Upload Documents",
+      "description": "Add new documents to the system",
+      "action": "upload-documents"
+    },
+    {
+      "title": "Client Communication",
+      "description": "Send updates and notifications to clients",
+      "action": "client-communication"
+    }
+  ],
+  "relatedTours": [
+    {
+      "id": "dashboard-overview-tour",
+      "title": "Dashboard Overview",
+      "description": "Learn to navigate and use the main dashboard effectively"
+    },
+    {
+      "id": "quick-actions-tour",
+      "title": "Quick Actions Tour",
+      "description": "Discover shortcuts and time-saving features"
+    },
+    {
+      "id": "analytics-tour",
+      "title": "Analytics & Reporting",
+      "description": "Understand performance metrics and reporting features"
+    }
+  ],
+  "relatedArticles": [
+    {
+      "title": "Dashboard Customization Guide",
+      "url": "/help/guides/dashboard-customization"
+    },
+    {
+      "title": "Understanding Analytics",
+      "url": "/help/faqs/analytics-explained"
+    },
+    {
+      "title": "Quick Actions Reference",
+      "url": "/help/reference/quick-actions"
+    }
+  ],
+  "whatsNew": [
+    {
+      "title": "Enhanced Analytics",
+      "description": "New performance charts and productivity insights with AI-powered recommendations",
+      "date": "December 2024",
+      "badge": "New"
+    },
+    {
+      "title": "Mobile Dashboard",
+      "description": "Optimized mobile experience with responsive design",
+      "date": "November 2024",
+      "badge": "Enhancement"
+    },
+    {
+      "title": "Widget Customization",
+      "description": "Drag-and-drop widget arrangement with more layout options",
+      "date": "October 2024",
+      "badge": "Enhancement"
+    }
+  ]
+}

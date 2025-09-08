@@ -43,6 +43,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { InlineHelp } from '@/components/help/InlineHelp';
+import { PageHelp } from '@/components/help/PageHelp';
 import { tourService } from '@/services/tourService';
 
 interface LocalDocument {
@@ -495,7 +496,10 @@ export const DocumentManagement: React.FC = () => {
               Secure document storage with version control and access management
             </p>
           </div>
-          <InlineHelp module="documents" />
+          <div className="flex items-center gap-2">
+            <InlineHelp module="documents" />
+            <PageHelp pageId="document-management" />
+          </div>
         </div>
         <div className="flex gap-2">
           <Button 

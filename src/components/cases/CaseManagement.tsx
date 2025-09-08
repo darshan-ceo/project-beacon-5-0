@@ -44,6 +44,7 @@ import { formTemplatesService } from '@/services/formTemplatesService';
 import { FormRenderModal } from '@/components/documents/FormRenderModal';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { InlineHelp } from '@/components/help/InlineHelp';
+import { PageHelp } from '@/components/help/PageHelp';
 import { tourService } from '@/services/tourService';
 
 export const CaseManagement: React.FC = () => {
@@ -354,7 +355,10 @@ export const CaseManagement: React.FC = () => {
               Comprehensive case lifecycle with SLA tracking and hearing management
             </p>
           </div>
-          <InlineHelp module="case-overview" />
+          <div className="flex items-center gap-2">
+            <InlineHelp module="case-overview" />
+            <PageHelp pageId="case-management" />
+          </div>
         </div>
         <div className="flex gap-2">
           <Button 

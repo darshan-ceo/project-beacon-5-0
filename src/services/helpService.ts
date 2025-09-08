@@ -146,15 +146,87 @@ class HelpService {
       try {
         const response = await fetch(`/help/inline/${module}.json`);
         if (!response.ok) {
-          return this.getFallbackInlineHelp(module, context);
+          throw new Error(`Failed to fetch inline help for ${module}`);
         }
-        const helpData = await response.json();
-        return context ? helpData[context] : helpData.default;
+        
+        const data = await response.json();
+        const key = context || `${module}-basics`;
+        
+        return data[key] || null;
       } catch (error) {
-        console.warn(`Failed to load inline help for ${module}, using fallback:`, error);
+        console.warn(`Failed to fetch inline help for ${module}:`, error);
         return this.getFallbackInlineHelp(module, context);
       }
     });
+  }
+
+  async getPageHelp(pageId: string): Promise<any> {
+    const cacheKey = `page-help-${pageId}`;
+    
+    return this.fetchWithCache(cacheKey, async () => {
+      try {
+        const response = await fetch(`/help/pages/${pageId}.json`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch page help for ${pageId}`);
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.warn(`Failed to fetch page help for ${pageId}:`, error);
+        return this.getFallbackPageHelp(pageId);
+      }
+    });
+  }
+
+  clearCache(): void {
+    this.cache.clear();
+  }
+
+  getFallbackPageHelp(pageId: string): any {
+    const fallbackContent: Record<string, any> = {
+      'case-management': {
+        title: 'Case Management',
+        description: 'Manage your legal cases from creation to completion',
+        overview: 'The Case Management module provides comprehensive tools for tracking cases, managing documents, and collaborating with your team.',
+        keyFeatures: [
+          { title: 'Case Lifecycle', description: 'Track cases through legal stages' },
+          { title: 'Timeline View', description: 'Visual timeline of case events' },
+          { title: 'SLA Tracking', description: 'Monitor compliance and deadlines' }
+        ],
+        quickStart: [
+          { step: 1, title: 'Create New Case', description: 'Click New Case to start' },
+          { step: 2, title: 'Fill Details', description: 'Add case information' },
+          { step: 3, title: 'Set Stage', description: 'Choose legal stage' }
+        ],
+        commonTasks: [
+          { title: 'Advance Stage', description: 'Move cases forward' },
+          { title: 'Schedule Hearing', description: 'Book court dates' },
+          { title: 'Upload Documents', description: 'Add case files' }
+        ]
+      },
+      'dashboard': {
+        title: 'Dashboard',
+        description: 'Overview of your practice performance',
+        overview: 'The Dashboard provides real-time metrics and quick access to common operations.',
+        keyFeatures: [
+          { title: 'Real-time Metrics', description: 'Live performance data' },
+          { title: 'Quick Actions', description: 'Shortcuts to common tasks' },
+          { title: 'Analytics', description: 'Practice insights and trends' }
+        ],
+        quickStart: [
+          { step: 1, title: 'Review Metrics', description: 'Check key indicators' },
+          { step: 2, title: 'Use Quick Actions', description: 'Access common features' },
+          { step: 3, title: 'Analyze Trends', description: 'Review performance data' }
+        ],
+        commonTasks: [
+          { title: 'Create Case', description: 'Start new legal case' },
+          { title: 'Schedule Hearing', description: 'Book court hearing' },
+          { title: 'Generate Reports', description: 'Create practice reports' }
+        ]
+      }
+    };
+    
+    return fallbackContent[pageId] || fallbackContent['dashboard'];
   }
 
   private getFallbackContent(userRole: string): HelpContent[] {
