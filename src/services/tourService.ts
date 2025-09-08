@@ -5,6 +5,7 @@ interface TourStep {
   id: string;
   title: string;
   text: string;
+  action?: 'click' | 'hover' | 'none';
   attachTo?: {
     element: string;
     on: 'top' | 'bottom' | 'left' | 'right' | 'center';
@@ -60,6 +61,7 @@ class TourService {
             id: step.target.replace(/[\[\]'"-]/g, '').replace(/[^a-zA-Z0-9]/g, '-'),
             title: step.title,
             text: step.content,
+            action: step.action || 'none',
             attachTo: step.target ? {
               element: step.target,
               on: this.convertPosition(step.position)
@@ -221,12 +223,16 @@ class TourService {
       // Add steps to tour
       tour.steps.forEach((step, index) => {
         const isLast = index === tour.steps.length - 1;
+        const isInteractive = step.action === 'click' || step.action === 'hover';
         
         this.activeTour!.addStep({
           id: step.id,
           title: step.title,
           text: step.text,
           attachTo: step.attachTo,
+          modalOverlayOpeningPadding: isInteractive ? 20 : 10,
+          modalOverlayOpeningRadius: isInteractive ? 12 : 8,
+          canClickTarget: isInteractive,
           buttons: step.buttons || [
             {
               text: 'Skip Tour',
@@ -239,7 +245,7 @@ class TourService {
               action: () => this.activeTour?.back()
             }] : []),
             {
-              text: isLast ? 'Complete' : 'Next',
+              text: isLast ? 'Complete' : (isInteractive ? 'Continue' : 'Next'),
               classes: 'btn btn-primary',
               action: isLast 
                 ? () => this.completeTour(tourId)
@@ -271,9 +277,25 @@ class TourService {
                 const element = document.querySelector(step.attachTo.element);
                 if (element) {
                   element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                  // Highlight the element
-                  element.classList.add('tour-highlight');
-                  setTimeout(() => element.classList.remove('tour-highlight'), 3000);
+                  
+                  // Add different highlighting for interactive elements
+                  if (isInteractive) {
+                    element.classList.add('tour-highlight-interactive');
+                    // Add pointer cursor to indicate clickability
+                    (element as HTMLElement).style.cursor = 'pointer';
+                    // Add pulse animation for click actions
+                    if (step.action === 'click') {
+                      element.classList.add('tour-pulse');
+                    }
+                  } else {
+                    element.classList.add('tour-highlight');
+                  }
+                  
+                  // Remove highlighting after delay
+                  setTimeout(() => {
+                    element.classList.remove('tour-highlight', 'tour-highlight-interactive', 'tour-pulse');
+                    (element as HTMLElement).style.cursor = '';
+                  }, 5000);
                 }
               }
               if (step.when?.show) step.when.show();
@@ -282,7 +304,8 @@ class TourService {
               if (step.attachTo?.element) {
                 const element = document.querySelector(step.attachTo.element);
                 if (element) {
-                  element.classList.remove('tour-highlight');
+                  element.classList.remove('tour-highlight', 'tour-highlight-interactive', 'tour-pulse');
+                  (element as HTMLElement).style.cursor = '';
                 }
               }
               if (step.when?.hide) step.when.hide();
