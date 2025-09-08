@@ -61,10 +61,16 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({
 
   const handleStartTour = async (tourId: string) => {
     try {
-      await tourService.startTour(tourId);
-      onClose();
+      const success = await tourService.startTour(tourId);
+      if (success) {
+        onClose();
+      } else {
+        console.error('Failed to start tour - tour not found or navigation failed');
+        // Could show an error toast here instead of just logging
+      }
     } catch (error) {
       console.error('Failed to start tour:', error);
+      // Could show an error toast here
     }
   };
 

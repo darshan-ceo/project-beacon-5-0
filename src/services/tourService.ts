@@ -38,12 +38,56 @@ class TourService {
   private tourPreferences: Map<string, { completed: boolean; dontShowAgain: boolean }> = new Map();
 
   constructor() {
-    this.initializeTours();
     this.loadPreferences();
+    this.initializeTours();
   }
 
-  private initializeTours() {
-    // Create Case Tour
+  private async initializeTours() {
+    try {
+      // Load tours from JSON file
+      const response = await fetch('/help/tours.json');
+      const jsonTours = await response.json();
+      
+      // Convert JSON format to Shepherd.js format
+      for (const jsonTour of jsonTours) {
+        const tour: Tour = {
+          id: jsonTour.id,
+          title: jsonTour.title,
+          description: jsonTour.description,
+          module: jsonTour.module,
+          roles: jsonTour.roles.includes('all') ? ['Users', 'Admin', 'Partner/CA'] : jsonTour.roles,
+          steps: jsonTour.steps.map((step: any) => ({
+            id: step.target.replace(/[\[\]'"-]/g, '').replace(/[^a-zA-Z0-9]/g, '-'),
+            title: step.title,
+            text: step.content,
+            attachTo: step.target ? {
+              element: step.target,
+              on: this.convertPosition(step.position)
+            } : undefined
+          }))
+        };
+        
+        this.tours.set(tour.id, tour);
+      }
+    } catch (error) {
+      console.error('Failed to load tours from JSON:', error);
+      // Fallback to hardcoded tours if JSON loading fails
+      this.initializeFallbackTours();
+    }
+  }
+
+  private convertPosition(position: string): 'top' | 'bottom' | 'left' | 'right' | 'center' {
+    switch (position) {
+      case 'top': return 'top';
+      case 'bottom': return 'bottom';
+      case 'left': return 'left';
+      case 'right': return 'right';
+      default: return 'bottom';
+    }
+  }
+
+  private initializeFallbackTours() {
+    // Fallback hardcoded tours for when JSON loading fails
     this.tours.set('create-case', {
       id: 'create-case',
       title: 'Create a New Case',
@@ -63,191 +107,6 @@ class TourService {
           attachTo: {
             element: '[data-tour="new-case-button"]',
             on: 'bottom'
-          }
-        },
-        {
-          id: 'case-form',
-          title: 'Fill Case Details',
-          text: 'Enter the basic case information including case number, title, and description.',
-          attachTo: {
-            element: '[data-tour="case-form"]',
-            on: 'left'
-          }
-        },
-        {
-          id: 'client-selection',
-          title: 'Select Client',
-          text: 'Choose the client for this case from the dropdown or create a new client.',
-          attachTo: {
-            element: '[data-tour="client-selector"]',
-            on: 'top'
-          }
-        },
-        {
-          id: 'court-selection',
-          title: 'Choose Court',
-          text: 'Select the appropriate court where this case will be heard.',
-          attachTo: {
-            element: '[data-tour="court-selector"]',
-            on: 'top'
-          }
-        },
-        {
-          id: 'case-lifecycle',
-          title: 'Set Initial Stage',
-          text: 'Choose the initial lifecycle stage for your case.',
-          attachTo: {
-            element: '[data-tour="lifecycle-selector"]',
-            on: 'right'
-          }
-        },
-        {
-          id: 'save-case',
-          title: 'Save Your Case',
-          text: 'Once all details are filled, click Save to create the case.',
-          attachTo: {
-            element: '[data-tour="save-case-button"]',
-            on: 'top'
-          }
-        }
-      ]
-    });
-
-    // DMS Upload Tour
-    this.tours.set('dms-upload', {
-      id: 'dms-upload',
-      title: 'Upload Documents to DMS',
-      description: 'Learn how to upload and organize documents in the Document Management System',
-      module: 'documents',
-      roles: ['Users', 'Admin'],
-      steps: [
-        {
-          id: 'dms-welcome',
-          title: 'Document Management System',
-          text: 'Learn how to upload, organize, and manage documents for your cases.'
-        },
-        {
-          id: 'select-case',
-          title: 'Select Case',
-          text: 'First, select the case you want to upload documents for.',
-          attachTo: {
-            element: '[data-tour="case-selector-dms"]',
-            on: 'bottom'
-          }
-        },
-        {
-          id: 'upload-area',
-          title: 'Upload Documents',
-          text: 'Drag and drop files here or click to select files from your computer.',
-          attachTo: {
-            element: '[data-tour="upload-area"]',
-            on: 'top'
-          }
-        },
-        {
-          id: 'document-categories',
-          title: 'Categorize Documents',
-          text: 'Select the appropriate category for your document (Pleading, Evidence, Correspondence, etc.)',
-          attachTo: {
-            element: '[data-tour="document-category"]',
-            on: 'right'
-          }
-        },
-        {
-          id: 'folder-organization',
-          title: 'Organize in Folders',
-          text: 'Create folders or select existing ones to organize your documents.',
-          attachTo: {
-            element: '[data-tour="folder-tree"]',
-            on: 'left'
-          }
-        },
-        {
-          id: 'document-metadata',
-          title: 'Add Document Details',
-          text: 'Fill in document metadata like title, description, and tags for better searchability.',
-          attachTo: {
-            element: '[data-tour="document-metadata"]',
-            on: 'top'
-          }
-        }
-      ]
-    });
-
-    // Schedule Hearing Tour
-    this.tours.set('schedule-hearing', {
-      id: 'schedule-hearing',
-      title: 'Schedule a Hearing',
-      description: 'Learn how to schedule hearings and manage court dates',
-      module: 'hearings',
-      roles: ['Users', 'Admin'],
-      steps: [
-        {
-          id: 'hearing-welcome',
-          title: 'Hearing Management',
-          text: 'Learn how to schedule hearings and manage important court dates.'
-        },
-        {
-          id: 'new-hearing',
-          title: 'Create New Hearing',
-          text: 'Click "Schedule Hearing" to create a new hearing entry.',
-          attachTo: {
-            element: '[data-tour="new-hearing-button"]',
-            on: 'bottom'
-          }
-        },
-        {
-          id: 'hearing-case',
-          title: 'Select Case',
-          text: 'Choose the case for which you\'re scheduling the hearing.',
-          attachTo: {
-            element: '[data-tour="hearing-case-selector"]',
-            on: 'top'
-          }
-        },
-        {
-          id: 'hearing-date',
-          title: 'Set Date and Time',
-          text: 'Select the hearing date and time from the calendar picker.',
-          attachTo: {
-            element: '[data-tour="hearing-datetime"]',
-            on: 'left'
-          }
-        },
-        {
-          id: 'hearing-court',
-          title: 'Select Court',
-          text: 'Choose the court and courtroom where the hearing will take place.',
-          attachTo: {
-            element: '[data-tour="hearing-court"]',
-            on: 'right'
-          }
-        },
-        {
-          id: 'hearing-type',
-          title: 'Hearing Type',
-          text: 'Specify the type of hearing (Arguments, Evidence, Final Hearing, etc.)',
-          attachTo: {
-            element: '[data-tour="hearing-type"]',
-            on: 'top'
-          }
-        },
-        {
-          id: 'hearing-participants',
-          title: 'Add Participants',
-          text: 'Add judges, advocates, and other participants who will attend the hearing.',
-          attachTo: {
-            element: '[data-tour="hearing-participants"]',
-            on: 'bottom'
-          }
-        },
-        {
-          id: 'hearing-reminders',
-          title: 'Set Reminders',
-          text: 'Configure email and SMS reminders for the hearing.',
-          attachTo: {
-            element: '[data-tour="hearing-reminders"]',
-            on: 'top'
           }
         }
       ]
@@ -312,12 +171,18 @@ class TourService {
       return false;
     }
 
+    // Navigate to correct page if needed
+    await this.navigateToTourModule(tour.module);
+
     // Stop any existing tour
     if (this.activeTour) {
       this.activeTour.complete();
     }
 
     try {
+      // Wait for navigation to complete and DOM elements to be available
+      await this.waitForTourElements(tour);
+
       // Check if required DOM elements exist for this tour
       const missingElements = this.checkTourElementsExist(tour);
       if (missingElements.length > 0) {
@@ -446,6 +311,65 @@ class TourService {
     } catch (error) {
       console.error('Failed to start tour:', error);
       return false;
+    }
+  }
+
+  /**
+   * Navigate to the correct module/page before starting tour
+   */
+  private async navigateToTourModule(module: string): Promise<void> {
+    const currentPath = window.location.pathname;
+    let targetPath = '/';
+
+    switch (module) {
+      case 'cases':
+        targetPath = '/';
+        break;
+      case 'documents':
+        targetPath = '/';
+        break;
+      case 'hearings':
+        targetPath = '/';
+        break;
+      case 'tasks':
+        targetPath = '/';
+        break;
+      case 'reports':
+        targetPath = '/';
+        break;
+      case 'client-portal':
+        targetPath = '/';
+        break;
+      default:
+        targetPath = '/';
+    }
+
+    if (currentPath !== targetPath) {
+      window.history.pushState({}, '', targetPath);
+      // Dispatch a custom event to trigger route change if using React Router
+      window.dispatchEvent(new PopStateEvent('popstate'));
+      // Wait for navigation
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  }
+
+  /**
+   * Wait for tour elements to be available in DOM
+   */
+  private async waitForTourElements(tour: Tour, maxAttempts: number = 20): Promise<void> {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const elementsWithTargets = tour.steps.filter(step => step.attachTo?.element);
+      const foundElements = elementsWithTargets.filter(step => 
+        document.querySelector(step.attachTo!.element)
+      );
+      
+      // If we found most elements or no elements have targets, proceed
+      if (foundElements.length >= Math.ceil(elementsWithTargets.length * 0.5) || elementsWithTargets.length === 0) {
+        return;
+      }
+      
+      // Wait before next attempt
+      await new Promise(resolve => setTimeout(resolve, 250));
     }
   }
 
