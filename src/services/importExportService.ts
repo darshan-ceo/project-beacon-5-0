@@ -5,6 +5,7 @@
 
 import { apiService, ApiResponse } from './apiService';
 import { featureFlagService } from './featureFlagService';
+import { clientSideImportExportService } from './clientSideImportExportService';
 import {
   EntityType,
   ImportJob,
@@ -37,30 +38,8 @@ class ImportExportService {
       };
     }
 
-    try {
-      const response = await fetch(`/api/io/templates/${entityType}.xlsx`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`,
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const blob = await response.blob();
-      return {
-        success: true,
-        data: blob
-      };
-    } catch (error) {
-      console.error('Template download failed:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Template download failed'
-      };
-    }
+    // Use client-side service for now since backend APIs are not available
+    return clientSideImportExportService.downloadTemplate(entityType);
   }
 
   /**
@@ -74,66 +53,22 @@ class ImportExportService {
       };
     }
 
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('entityType', entityType);
-
-      const response = await fetch(`/api/io/import/${entityType}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`,
-        },
-        body: formData
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || `HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      return {
-        success: true,
-        data: result
-      };
-    } catch (error) {
-      console.error('File upload failed:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'File upload failed'
-      };
-    }
+    // Use client-side service for now since backend APIs are not available
+    return clientSideImportExportService.uploadForImport(entityType, file);
   }
 
   /**
    * Get import job status and details
    */
   async getImportJob(jobId: string): Promise<ApiResponse<ImportJob>> {
-    try {
-      return await apiService.get(`/api/io/import/${jobId}`);
-    } catch (error) {
-      return {
-        success: false,
-        data: null,
-        error: error instanceof Error ? error.message : 'Failed to fetch import job'
-      };
-    }
+    return clientSideImportExportService.getImportJob(jobId);
   }
 
   /**
    * Commit import job (finalize valid rows)
    */
   async commitImport(jobId: string, mapping: ColumnMapping): Promise<ApiResponse<ImportJob>> {
-    try {
-      return await apiService.post(`/api/io/import/${jobId}/commit`, { mapping });
-    } catch (error) {
-      return {
-        success: false,
-        data: null,
-        error: error instanceof Error ? error.message : 'Failed to commit import'
-      };
-    }
+    return clientSideImportExportService.commitImport(jobId, mapping);
   }
 
   /**
@@ -155,15 +90,7 @@ class ImportExportService {
    * Get pending records for a job
    */
   async getPendingRecords(jobId: string): Promise<ApiResponse<PendingRecord[]>> {
-    try {
-      return await apiService.get(`/api/io/import/${jobId}/pending`);
-    } catch (error) {
-      return {
-        success: false,
-        data: [],
-        error: error instanceof Error ? error.message : 'Failed to fetch pending records'
-      };
-    }
+    return clientSideImportExportService.getPendingRecords(jobId);
   }
 
   /**
@@ -177,60 +104,21 @@ class ImportExportService {
       };
     }
 
-    try {
-      const response = await apiService.post(`/api/io/export/${request.entityType}`, request);
-      return response as ExportResponse;
-    } catch (error) {
-      return {
-        success: false,
-        data: undefined,
-        error: error instanceof Error ? error.message : 'Export failed'
-      };
-    }
+    return clientSideImportExportService.exportData(request);
   }
 
   /**
    * Get export job status
    */
   async getExportJob(jobId: string): Promise<ApiResponse<ExportJob>> {
-    try {
-      return await apiService.get(`/api/io/export/${jobId}`);
-    } catch (error) {
-      return {
-        success: false,
-        data: null,
-        error: error instanceof Error ? error.message : 'Failed to fetch export job'
-      };
-    }
+    return clientSideImportExportService.getExportJob(jobId);
   }
 
   /**
    * Download exported file
    */
   async downloadExport(jobId: string): Promise<TemplateResponse> {
-    try {
-      const response = await fetch(`/api/io/export/${jobId}/download`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`,
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const blob = await response.blob();
-      return {
-        success: true,
-        data: blob
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Download failed'
-      };
-    }
+    return clientSideImportExportService.downloadExport(jobId);
   }
 
   /**
