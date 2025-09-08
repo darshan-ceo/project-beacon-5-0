@@ -30,8 +30,8 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
   const [formData, setFormData] = useState({
     name: '',
     type: 'pdf',
-    caseId: '',
-    folderId: selectedFolderId || '',
+    caseId: 'none',
+    folderId: selectedFolderId || 'none',
     tags: [] as string[],
     isShared: false,
     file: null as File | null
@@ -59,8 +59,8 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
       setFormData({
         name: documentData.name,
         type: documentData.type,
-        caseId: documentData.caseId || '',
-        folderId: (documentData as any).folderId || '',
+        caseId: documentData.caseId || 'none',
+        folderId: (documentData as any).folderId || 'none',
         tags: documentData.tags,
         isShared: documentData.isShared,
         file: null
@@ -69,8 +69,8 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
       setFormData({
         name: '',
         type: 'pdf',
-        caseId: '',
-        folderId: selectedFolderId || '',
+        caseId: 'none',
+        folderId: selectedFolderId || 'none',
         tags: [],
         isShared: false,
         file: null
@@ -96,15 +96,15 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
         if (onUpload) {
           // Use the parent component's upload handler
           await onUpload(formData.file, {
-            folderId: formData.folderId,
-            caseId: formData.caseId || undefined,
+            folderId: formData.folderId === "none" ? undefined : formData.folderId,
+            caseId: formData.caseId === "none" ? undefined : formData.caseId,
             tags: formData.tags
           });
         } else {
           // Fallback to direct upload
           const uploadOptions = {
-            folderId: formData.folderId,
-            caseId: formData.caseId || undefined,
+            folderId: formData.folderId === "none" ? undefined : formData.folderId,
+            caseId: formData.caseId === "none" ? undefined : formData.caseId,
             tags: formData.tags,
             existingDocuments: state.documents
           };
@@ -256,7 +256,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
                 <SelectValue placeholder="Select folder" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No folder</SelectItem>
+                <SelectItem value="none">No folder</SelectItem>
                 {folders.map((folder) => (
                   <SelectItem key={folder.id} value={folder.id}>
                     {folder.name}
@@ -278,7 +278,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
                 <SelectValue placeholder="Select case (optional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No Case Association</SelectItem>
+                <SelectItem value="none">No Case Association</SelectItem>
                 {state.cases.map((case_) => (
                   <SelectItem key={case_.id} value={case_.id}>
                     {case_.caseNumber} - {case_.title}
