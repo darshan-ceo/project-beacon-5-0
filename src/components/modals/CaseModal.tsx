@@ -174,7 +174,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl" data-tour="case-form">
         <DialogHeader>
           <DialogTitle>
             {mode === 'create' && 'Create New Case'}
@@ -243,6 +243,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
                     updateContext({ clientId: value });
                   }}
                   disabled={mode === 'view'}
+                  data-tour="client-selector"
                 />
               )}
             </div>
@@ -252,6 +253,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
                 value={formData.currentStage} 
                 onValueChange={(value) => setFormData(prev => ({ ...prev, currentStage: value as any }))}
                 disabled={mode === 'view'}
+                data-tour="lifecycle-selector"
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -310,7 +312,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
               </Button>
             )}
             {mode !== 'view' && (
-              <Button type="submit">
+              <Button type="submit" data-tour="save-case-button">
                 {mode === 'create' ? 'Create Case' : 'Update Case'}
               </Button>
             )}

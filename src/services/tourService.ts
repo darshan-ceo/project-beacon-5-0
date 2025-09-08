@@ -318,6 +318,13 @@ class TourService {
     }
 
     try {
+      // Check if required DOM elements exist for this tour
+      const missingElements = this.checkTourElementsExist(tour);
+      if (missingElements.length > 0) {
+        console.warn(`Tour "${tourId}" has missing DOM elements:`, missingElements);
+        // Still allow tour to start but log warnings
+      }
+
       // Create Shepherd tour instance
       this.activeTour = new Shepherd.Tour({
         useModalOverlay: true,
@@ -379,11 +386,43 @@ class TourService {
               if (step.beforeShow) {
                 step.beforeShow();
               }
+              
+              // Check if the target element exists before showing this step
+              if (step.attachTo?.element) {
+                const element = document.querySelector(step.attachTo.element);
+                if (!element) {
+                  console.warn(`Tour step "${step.id}" target element not found: ${step.attachTo.element}`);
+                }
+              }
+              
               // Small delay to ensure DOM elements are ready
               setTimeout(resolve, 100);
             });
           },
-          when: step.when
+          when: {
+            ...step.when,
+            show: () => {
+              if (step.attachTo?.element) {
+                const element = document.querySelector(step.attachTo.element);
+                if (element) {
+                  element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  // Highlight the element
+                  element.classList.add('tour-highlight');
+                  setTimeout(() => element.classList.remove('tour-highlight'), 3000);
+                }
+              }
+              if (step.when?.show) step.when.show();
+            },
+            hide: () => {
+              if (step.attachTo?.element) {
+                const element = document.querySelector(step.attachTo.element);
+                if (element) {
+                  element.classList.remove('tour-highlight');
+                }
+              }
+              if (step.when?.hide) step.when.hide();
+            }
+          }
         });
       });
 
@@ -402,11 +441,30 @@ class TourService {
       // Start the tour
       this.activeTour.start();
       
+      console.log(`Tour "${tourId}" started successfully`);
       return true;
     } catch (error) {
       console.error('Failed to start tour:', error);
       return false;
     }
+  }
+
+  /**
+   * Check if required DOM elements exist for a tour
+   */
+  private checkTourElementsExist(tour: Tour): string[] {
+    const missingElements: string[] = [];
+    
+    tour.steps.forEach(step => {
+      if (step.attachTo?.element) {
+        const element = document.querySelector(step.attachTo.element);
+        if (!element) {
+          missingElements.push(step.attachTo.element);
+        }
+      }
+    });
+    
+    return missingElements;
   }
 
   /**

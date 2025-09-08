@@ -295,6 +295,7 @@ export const HearingsCalendar: React.FC<HearingsCalendarProps> = ({
               setDrawerMode('create');
               setDrawerOpen(true);
             }}
+            data-tour="new-hearing-button"
           >
             <Plus className="h-4 w-4 mr-2" />
             New Hearing

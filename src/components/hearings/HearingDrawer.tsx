@@ -282,6 +282,7 @@ export const HearingDrawer: React.FC<HearingDrawerProps> = ({
                         value={formData.case_id}
                         onValueChange={(value) => setFormData(prev => ({ ...prev, case_id: value }))}
                         disabled={mode === 'edit'}
+                        data-tour="hearing-case-selector"
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select case" />
@@ -304,6 +305,7 @@ export const HearingDrawer: React.FC<HearingDrawerProps> = ({
                           type="date"
                           value={formData.date}
                           onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                          data-tour="hearing-datetime"
                         />
                       </div>
                       <div>
@@ -322,6 +324,7 @@ export const HearingDrawer: React.FC<HearingDrawerProps> = ({
                       <Select
                         value={formData.purpose}
                         onValueChange={(value) => setFormData(prev => ({ ...prev, purpose: value as any }))}
+                        data-tour="hearing-type"
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -372,6 +375,7 @@ export const HearingDrawer: React.FC<HearingDrawerProps> = ({
                       <Select
                         value={formData.court_id}
                         onValueChange={(value) => setFormData(prev => ({ ...prev, court_id: value }))}
+                        data-tour="hearing-court"
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select court" />

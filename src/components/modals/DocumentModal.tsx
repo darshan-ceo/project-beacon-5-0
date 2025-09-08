@@ -150,7 +150,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({ isOpen, onClose, d
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl" data-tour="document-metadata">
         <DialogHeader>
           <DialogTitle>
             {mode === 'upload' && 'Upload Document'}
@@ -214,6 +214,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({ isOpen, onClose, d
               value={formData.caseId} 
               onValueChange={(value) => setFormData(prev => ({ ...prev, caseId: value }))}
               disabled={mode === 'view'}
+              data-tour="case-selector-dms"
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select case (optional)" />

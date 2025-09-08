@@ -368,6 +368,7 @@ export const CaseManagement: React.FC = () => {
           <Button 
             className="bg-primary hover:bg-primary-hover"
             onClick={() => setCaseModal({ isOpen: true, mode: 'create', case: null })}
+            data-tour="new-case-button"
           >
             <Plus className="mr-2 h-4 w-4" />
             New Case
