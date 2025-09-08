@@ -28,13 +28,15 @@ interface ExportWizardProps {
   onClose: () => void;
   entityType: EntityType;
   currentFilters?: Partial<ExportFilter>;
+  currentData?: any[]; // Current filtered data from the parent component
 }
 
 export const ExportWizard: React.FC<ExportWizardProps> = ({
   isOpen,
   onClose,
   entityType,
-  currentFilters = {}
+  currentFilters = {},
+  currentData
 }) => {
   const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
   const [exportFormat, setExportFormat] = useState<'xlsx' | 'csv'>('xlsx');

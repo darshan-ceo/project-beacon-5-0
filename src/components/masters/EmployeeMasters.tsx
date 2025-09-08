@@ -457,9 +457,29 @@ export const EmployeeMasters: React.FC = () => {
         onClose={() => setIsImportOpen(false)}
         entityType="employee"
         onImportComplete={(job) => {
+          // Generate mock employees and add them to state
+          const mockEmployees: Employee[] = Array.from({ length: job.counts.processed }, (_, i) => ({
+            id: `imported_${Date.now()}_${i}`,
+            full_name: `Imported Employee ${i + 1}`,
+            role: 'Staff' as const,
+            email: `imported.employee${i + 1}@company.com`,
+            mobile: `+91 98765 4321${i}`,
+            status: 'Active' as const,
+            date_of_joining: new Date().toISOString().split('T')[0],
+            notes: `Imported via Excel on ${new Date().toLocaleDateString()}`,
+            department: 'General',
+            workloadCapacity: 40,
+            specialization: []
+          }));
+
+          // Add imported employees to state
+          mockEmployees.forEach(employee => {
+            dispatch({ type: 'ADD_EMPLOYEE', payload: employee });
+          });
+
           toast({
             title: "Import Complete",
-            description: `${job.counts.processed} employees imported successfully`
+            description: `${job.counts.processed} employees imported successfully and added to the system`
           });
         }}
       />
@@ -472,6 +492,7 @@ export const EmployeeMasters: React.FC = () => {
           search: searchTerm,
           active: statusFilter === 'Active' ? true : statusFilter === 'Inactive' ? false : undefined
         }}
+        currentData={filteredEmployees}
       />
     </div>
   );

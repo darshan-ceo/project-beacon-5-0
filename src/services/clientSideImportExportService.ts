@@ -27,14 +27,29 @@ class ClientSideImportExportService {
    */
   async downloadTemplate(entityType: EntityType): Promise<TemplateResponse> {
     try {
+      console.log('downloadTemplate called for:', entityType);
+      
+      // Check if entityType is valid
+      if (!['court', 'client', 'judge', 'employee'].includes(entityType)) {
+        throw new Error(`Invalid entity type: ${entityType}`);
+      }
+      
       const template = await entityTemplatesService.getTemplate(entityType);
+      console.log('Template retrieved:', template);
+      
+      if (!template || !template.columns || template.columns.length === 0) {
+        throw new Error(`No template found for entity type: ${entityType}`);
+      }
       
       // Create workbook
       const wb = XLSX.utils.book_new();
       
       // Prepare headers and sample data
       const headers = template.columns.map(col => col.label);
-      const sampleData = template.columns.map(col => col.examples[0] || '');
+      const sampleData = template.columns.map(col => col.examples && col.examples[0] ? col.examples[0] : 'Sample Data');
+      
+      console.log('Headers:', headers);
+      console.log('Sample data:', sampleData);
       
       // Create worksheet with headers and sample row
       const wsData = [headers, sampleData];
@@ -60,6 +75,7 @@ class ClientSideImportExportService {
       const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
       const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       
+      console.log('Template blob created successfully, size:', blob.size);
       return {
         success: true,
         data: blob
