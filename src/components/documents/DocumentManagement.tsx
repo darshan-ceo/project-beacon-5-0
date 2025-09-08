@@ -205,7 +205,7 @@ export const DocumentManagement: React.FC = () => {
   const loadFolders = async () => {
     try {
       const folderList = await dmsService.folders.list();
-      setFolders([...state.folders, ...folderList]);
+      setFolders(folderList);
     } catch (error) {
       console.error('Failed to load folders:', error);
     }
@@ -324,9 +324,14 @@ export const DocumentManagement: React.FC = () => {
     }
   };
 
-  const handleFolderCreated = (newFolder: any) => {
+  const handleFolderCreated = async (newFolder: any) => {
     dispatch({ type: 'ADD_FOLDER', payload: newFolder });
-    setFolders(prev => [...prev, newFolder]);
+    // Refresh folders from service to ensure UI is up to date
+    await loadFolders();
+    // Also refresh current folder contents if we're in a folder
+    if (selectedFolder) {
+      await loadFolderContents(selectedFolder);
+    }
   };
 
   const handleDocumentView = async (doc: any) => {

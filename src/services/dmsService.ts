@@ -75,71 +75,94 @@ interface DocumentFilter {
 }
 
 // Predefined folder structure for better organization
-let mockFolders: Folder[] = [
-  {
-    id: 'litigation-docs',
-    name: 'Litigation Documents',
-    documentCount: 0,
-    size: 0,
-    createdAt: '2024-01-01',
-    lastAccess: new Date().toISOString(),
-    description: 'Court filings, pleadings, and legal documents',
-    path: '/folders/litigation-docs'
-  },
-  {
-    id: 'gstat-docs', 
-    name: 'GST Assessment',
-    parentId: 'litigation-docs',
-    documentCount: 0,
-    size: 0,
-    createdAt: '2024-01-01',
-    lastAccess: new Date().toISOString(),
-    description: 'GSTAT and GST assessment documents',
-    path: '/folders/litigation-docs/gstat'
-  },
-  {
-    id: 'appeals-docs',
-    name: 'Appeals',
-    parentId: 'litigation-docs', 
-    documentCount: 0,
-    size: 0,
-    createdAt: '2024-01-01',
-    lastAccess: new Date().toISOString(),
-    description: 'Appeal documents and orders',
-    path: '/folders/litigation-docs/appeals'
-  },
-  {
-    id: 'client-uploads',
-    name: 'Client Documents',
-    documentCount: 0,
-    size: 0,
-    createdAt: '2024-01-01',
-    lastAccess: new Date().toISOString(),
-    description: 'Documents uploaded by clients',
-    path: '/folders/client-uploads'
-  },
-  {
-    id: 'internal-docs',
-    name: 'Internal Documents', 
-    documentCount: 0,
-    size: 0,
-    createdAt: '2024-01-01',
-    lastAccess: new Date().toISOString(),
-    description: 'Templates, research, and internal documents',
-    path: '/folders/internal-docs'
-  },
-  {
-    id: 'templates',
-    name: 'Templates',
-    parentId: 'internal-docs',
-    documentCount: 0,
-    size: 0,
-    createdAt: '2024-01-01',
-    lastAccess: new Date().toISOString(),
-    description: 'Document templates and forms',
-    path: '/folders/internal-docs/templates'
+// Initialize mock data with persistence
+const initializeMockFolders = (): Folder[] => {
+  const stored = localStorage.getItem('mockFolders');
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch (error) {
+      console.warn('Failed to parse stored folders, using defaults');
+    }
   }
-];
+  
+  return [
+    {
+      id: 'litigation-docs',
+      name: 'Litigation Documents',
+      documentCount: 0,
+      size: 0,
+      createdAt: '2024-01-01',
+      lastAccess: new Date().toISOString(),
+      description: 'Court filings, pleadings, and legal documents',
+      path: '/folders/litigation-docs'
+    },
+    {
+      id: 'gstat-docs', 
+      name: 'GST Assessment',
+      parentId: 'litigation-docs',
+      documentCount: 0,
+      size: 0,
+      createdAt: '2024-01-01',
+      lastAccess: new Date().toISOString(),
+      description: 'GSTAT and GST assessment documents',
+      path: '/folders/litigation-docs/gstat'
+    },
+    {
+      id: 'appeals-docs',
+      name: 'Appeals',
+      parentId: 'litigation-docs', 
+      documentCount: 0,
+      size: 0,
+      createdAt: '2024-01-01',
+      lastAccess: new Date().toISOString(),
+      description: 'Appeal documents and orders',
+      path: '/folders/litigation-docs/appeals'
+    },
+    {
+      id: 'client-uploads',
+      name: 'Client Documents',
+      documentCount: 0,
+      size: 0,
+      createdAt: '2024-01-01',
+      lastAccess: new Date().toISOString(),
+      description: 'Documents uploaded by clients',
+      path: '/folders/client-uploads'
+    },
+    {
+      id: 'internal-docs',
+      name: 'Internal Documents', 
+      documentCount: 0,
+      size: 0,
+      createdAt: '2024-01-01',
+      lastAccess: new Date().toISOString(),
+      description: 'Templates, research, and internal documents',
+      path: '/folders/internal-docs'
+    },
+    {
+      id: 'templates',
+      name: 'Templates',
+      parentId: 'internal-docs',
+      documentCount: 0,
+      size: 0,
+      createdAt: '2024-01-01',
+      lastAccess: new Date().toISOString(),
+      description: 'Document templates and forms',
+      path: '/folders/internal-docs/templates'
+    }
+  ];
+};
+
+let mockFolders: Folder[] = initializeMockFolders();
+
+// Save to localStorage whenever mockFolders changes
+const saveMockFolders = () => {
+  try {
+    localStorage.setItem('mockFolders', JSON.stringify(mockFolders));
+  } catch (error) {
+    console.warn('Failed to save folders to localStorage:', error);
+  }
+};
 
 let mockTags: Tag[] = [
   { id: '1', name: 'urgent', color: '#ef4444', createdAt: '2024-01-10', usageCount: 12 },
@@ -186,6 +209,7 @@ export const dmsService = {
       };
 
       mockFolders.push(newFolder);
+      saveMockFolders(); // Persist to localStorage
       log('success', 'DMS', 'createFolder', { folderId: newFolder.id, name });
       
       toast({
@@ -209,6 +233,7 @@ export const dmsService = {
       }
 
       folder.name = newName;
+      saveMockFolders(); // Persist to localStorage
       log('success', 'DMS', 'renameFolder', { folderId, newName });
       
       toast({
@@ -233,6 +258,7 @@ export const dmsService = {
       }
 
       mockFolders = mockFolders.filter(f => f.id !== folderId);
+      saveMockFolders(); // Persist to localStorage
       log('success', 'DMS', 'deleteFolder', { folderId });
       
       toast({
