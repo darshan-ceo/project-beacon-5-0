@@ -37,7 +37,6 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
     file: null as File | null
   });
   const [newTag, setNewTag] = useState('');
-  const [folders, setFolders] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -45,7 +44,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
     const loadFolders = async () => {
       try {
         const folderList = await dmsService.folders.list();
-        setFolders(folderList);
+        dispatch({ type: 'SET_FOLDERS', payload: folderList });
       } catch (error) {
         console.error('Failed to load folders:', error);
       }
@@ -257,7 +256,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">No folder</SelectItem>
-                {folders.map((folder) => (
+                {state.folders.map((folder) => (
                   <SelectItem key={folder.id} value={folder.id}>
                     {folder.name}
                   </SelectItem>
