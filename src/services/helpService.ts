@@ -1,4 +1,4 @@
-interface HelpContent {
+export interface HelpContent {
   id: string;
   title: string;
   description: string;
@@ -9,7 +9,7 @@ interface HelpContent {
   lastUpdated: string;
 }
 
-interface GlossaryTerm {
+export interface GlossaryTerm {
   term: string;
   definition: string;
   technicalNote?: string;
@@ -17,7 +17,7 @@ interface GlossaryTerm {
   category: 'legal' | 'technical' | 'process' | 'compliance';
 }
 
-interface Tour {
+export interface Tour {
   id: string;
   title: string;
   description: string;
@@ -26,7 +26,7 @@ interface Tour {
   roles: string[];
 }
 
-interface TourStep {
+export interface TourStep {
   target: string;
   title: string;
   content: string;

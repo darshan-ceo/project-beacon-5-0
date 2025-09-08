@@ -72,6 +72,33 @@ class FeatureFlagService {
       isEnabled: true, // ON in UAT
       version: 'v1'
     });
+
+    // Help & Knowledge Center Features (UAT enabled)
+    this.flags.set('help_module_v1', {
+      key: 'help_module_v1',
+      isEnabled: true, // ON in UAT
+      version: 'v1'
+    });
+
+    this.flags.set('help_inline_v1', {
+      key: 'help_inline_v1',
+      isEnabled: true, // ON in UAT
+      version: 'v1'
+    });
+
+    this.flags.set('help_tours_v1', {
+      key: 'help_tours_v1',
+      isEnabled: true, // ON in UAT
+      version: 'v1'
+    });
+
+    // Help Diagnostics (dev-only)
+    const qaMode = import.meta.env.VITE_QA_MODE || 'off';
+    this.flags.set('help_diagnostics', {
+      key: 'help_diagnostics',
+      isEnabled: qaMode === 'on',
+      version: qaMode === 'on' ? 'v1' : undefined
+    });
   }
 
   /**
