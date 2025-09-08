@@ -205,8 +205,9 @@ export const DocumentManagement: React.FC = () => {
 
   const loadFolders = async () => {
     try {
-      const folderList = await dmsService.folders.list();
+      const folderList = await dmsService.folders.listAll();
       dispatch({ type: 'SET_FOLDERS', payload: folderList });
+      console.log('Folders loaded:', folderList.length);
     } catch (error) {
       console.error('Failed to load folders:', error);
     }

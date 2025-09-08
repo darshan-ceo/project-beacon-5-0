@@ -190,6 +190,11 @@ export const dmsService = {
       return mockFolders.filter(f => f.parentId === parentId);
     },
 
+    listAll: async (): Promise<Folder[]> => {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      return [...mockFolders];
+    },
+
     create: async (name: string, parentId?: string, caseId?: string): Promise<Folder> => {
       await new Promise(resolve => setTimeout(resolve, 500));
       

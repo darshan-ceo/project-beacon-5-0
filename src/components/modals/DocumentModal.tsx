@@ -43,7 +43,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
     // Load folders on component mount
     const loadFolders = async () => {
       try {
-        const folderList = await dmsService.folders.list();
+        const folderList = await dmsService.folders.listAll();
         dispatch({ type: 'SET_FOLDERS', payload: folderList });
       } catch (error) {
         console.error('Failed to load folders:', error);
