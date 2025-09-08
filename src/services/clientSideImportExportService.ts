@@ -71,9 +71,11 @@ class ClientSideImportExportService {
       // Add worksheet to workbook
       XLSX.utils.book_append_sheet(wb, ws, entityType.charAt(0).toUpperCase() + entityType.slice(1));
       
-      // Generate blob
-      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-      const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      // Generate blob with correct MIME type and buffer
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
+      const blob = new Blob([wbout], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=utf-8' 
+      });
       
       console.log('Template blob created successfully, size:', blob.size);
       return {
@@ -344,9 +346,9 @@ class ClientSideImportExportService {
       
       XLSX.utils.book_append_sheet(wb, ws, 'Export Data');
       
-      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
       const blob = new Blob([wbout], { 
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=utf-8' 
       });
       
       return {
