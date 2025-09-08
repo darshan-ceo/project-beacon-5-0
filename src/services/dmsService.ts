@@ -13,9 +13,12 @@ interface Document {
   uploadedById: string;
   uploadedByName: string;
   uploadedAt: string;
+  createdAt?: string; // Make optional for backwards compatibility
   tags: string[];
   isShared: boolean;
   path: string;
+  content?: string; // Base64 encoded file content
+  folderId?: string; // Associated folder ID
 }
 
 // New Folder interface
@@ -301,11 +304,6 @@ export const dmsService = {
         throw new Error('File size too large. Please upload files smaller than 50MB.');
       }
 
-      // Require folder assignment for better organization
-      if (!options.folderId) {
-        throw new Error('Please select a folder for this document. Proper organization prevents duplication.');
-      }
-
       // Check for duplicates
       const existingDocs = options.existingDocuments || [];
       const duplicateCheck = await HashService.checkDuplicate(file, existingDocs);
@@ -323,7 +321,11 @@ export const dmsService = {
 
       // Get folder path for proper organization
       const folder = mockFolders.find(f => f.id === options.folderId);
-      const documentPath = folder ? folder.path : '/folders/unorganized';
+      const documentPath = folder ? `${folder.path}/${file.name}` : `/documents/${file.name}`;
+
+      // Convert file content to base64 for storage
+      const arrayBuffer = await file.arrayBuffer();
+      const base64Content = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
 
       const newDocument: Document = {
         id: `doc-${Date.now()}`,
@@ -335,9 +337,12 @@ export const dmsService = {
         uploadedById: 'emp-1',
         uploadedByName: 'Current User',
         uploadedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
         tags: options.tags || [],
         isShared: false,
-        path: `${documentPath}/${file.name}` // Proper path assignment
+        path: documentPath,
+        content: base64Content,
+        folderId: options.folderId
       };
 
       dispatch({ type: 'ADD_DOCUMENT', payload: newDocument });
@@ -347,6 +352,7 @@ export const dmsService = {
         folder.documentCount++;
         folder.size += file.size;
         folder.lastAccess = new Date().toISOString();
+        saveMockFolders();
       }
 
       log('success', 'DMS', 'uploadFile', { 
@@ -358,7 +364,7 @@ export const dmsService = {
 
       toast({
         title: "File Uploaded",
-        description: `${file.name} has been uploaded to ${folder?.name || 'folder'}.`,
+        description: `${file.name} has been uploaded to ${folder?.name || 'Documents'}.`,
       });
 
       return {
@@ -411,9 +417,11 @@ export const dmsService = {
           uploadedById: 'emp-1',
           uploadedByName: 'Current User',
           uploadedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
           tags: [...new Set([...existingDoc.tags, ...(options.tags || [])])],
           isShared: false,
-          path: `${documentPath}/${versionedName}`
+          path: `${documentPath}/${versionedName}`,
+          folderId: options.folderId
         };
 
         dispatch({ type: 'ADD_DOCUMENT', payload: newDocument });
@@ -454,8 +462,23 @@ export const dmsService = {
     getPreviewUrl: async (documentId: string): Promise<string> => {
       await new Promise(resolve => setTimeout(resolve, 200));
       
-      // Create mock PDF blob for preview
-      const pdfContent = '%PDF-1.4\n1 0 obj\n<<\n/Type /Catalog\n/Pages 2 0 R\n>>\nendobj\n2 0 obj\n<<\n/Type /Pages\n/Kids [3 0 R]\n/Count 1\n>>\nendobj\n3 0 obj\n<<\n/Type /Page\n/Parent 2 0 R\n/MediaBox [0 0 612 792]\n>>\nendobj\nxref\n0 4\n0000000000 65535 f \n0000000009 00000 n \n0000000074 00000 n \n0000000120 00000 n \ntrailer\n<<\n/Size 4\n/Root 1 0 R\n>>\nstartxref\n178\n%%EOF';
+      // Get the document from state to retrieve actual content
+      const documents = JSON.parse(localStorage.getItem('appState') || '{}').documents || [];
+      const document = documents.find((doc: Document) => doc.id === documentId);
+      
+      if (document && document.content) {
+        // Convert base64 back to blob
+        const binaryString = atob(document.content);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: document.type || 'application/octet-stream' });
+        return URL.createObjectURL(blob);
+      }
+      
+      // Fallback to mock content if no stored content
+      const pdfContent = '%PDF-1.4\n1 0 obj\n<<\n/Type /Catalog\n/Pages 2 0 R\n>>\nendobj\n2 0 obj\n<<\n/Type /Pages\n/Kids [3 0 R]\n/Count 1\n>>\nendobj\n3 0 obj\n<<\n/Type /Page\n/Parent 2 0 R\n/MediaBox [0 0 612 792]\n/Contents 4 0 R\n>>\nendobj\n4 0 obj\n<<\n/Length 28\n>>\nstream\nBT\n/F1 12 Tf\n100 700 Td\n(No Content) Tj\nET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f \n0000000009 00000 n \n0000000074 00000 n \n0000000120 00000 n \n0000000179 00000 n \ntrailer\n<<\n/Size 5\n/Root 1 0 R\n>>\nstartxref\n251\n%%EOF';
       const blob = new Blob([pdfContent], { type: 'application/pdf' });
       return URL.createObjectURL(blob);
     },
@@ -474,11 +497,25 @@ export const dmsService = {
         // Simulate API call delay
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        // Create a proper PDF blob
-        const pdfContent = '%PDF-1.4\n1 0 obj\n<<\n/Type /Catalog\n/Pages 2 0 R\n>>\nendobj\n2 0 obj\n<<\n/Type /Pages\n/Kids [3 0 R]\n/Count 1\n>>\nendobj\n3 0 obj\n<<\n/Type /Page\n/Parent 2 0 R\n/MediaBox [0 0 612 792]\n/Contents 4 0 R\n>>\nendobj\n4 0 obj\n<<\n/Length 44\n>>\nstream\nBT\n/F1 12 Tf\n100 700 Td\n(Sample Document) Tj\nET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f \n0000000009 00000 n \n0000000074 00000 n \n0000000120 00000 n \n0000000179 00000 n \ntrailer\n<<\n/Size 5\n/Root 1 0 R\n>>\nstartxref\n269\n%%EOF';
+        // Get the document from state to retrieve actual content
+        const documents = JSON.parse(localStorage.getItem('appState') || '{}').documents || [];
+        const document = documents.find((doc: Document) => doc.id === documentId);
         
-        // Create blob with proper content type
-        const blob = new Blob([pdfContent], { type: 'application/pdf' });
+        let blob: Blob;
+        
+        if (document && document.content) {
+          // Convert base64 back to blob with original content
+          const binaryString = atob(document.content);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          blob = new Blob([bytes], { type: document.type || 'application/octet-stream' });
+        } else {
+          // Fallback to mock content
+          const mockContent = `Document: ${fileName}\nThis is sample content for ${fileName}\nGenerated on: ${new Date().toLocaleString()}`;
+          blob = new Blob([mockContent], { type: 'text/plain' });
+        }
         
         // Validate blob
         if (blob.size === 0) {

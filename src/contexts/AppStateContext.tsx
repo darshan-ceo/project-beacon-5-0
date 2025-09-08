@@ -143,9 +143,12 @@ interface Document {
   uploadedById: string; // FK to Employee.id
   uploadedByName: string; // Display name derived from Employee
   uploadedAt: string;
+  createdAt?: string; // Make optional for backwards compatibility
   tags: string[];
   isShared: boolean;
   path: string;
+  content?: string; // Base64 encoded file content
+  folderId?: string; // Associated folder ID
 }
 
 // Employee interface for universal assignment system

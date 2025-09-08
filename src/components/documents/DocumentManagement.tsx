@@ -6,6 +6,7 @@ import { NewFolderModal } from './NewFolderModal';
 import { DocumentFilters } from './DocumentFilters';
 import { DuplicateHandlerModal } from './DuplicateHandlerModal';
 import { OrganizationGuide } from './OrganizationGuide';
+import { RecentDocuments } from './RecentDocuments';
 import { motion } from 'framer-motion';
 import { dmsService } from '@/services/dmsService';
 import { useAppState } from '@/contexts/AppStateContext';
@@ -192,7 +193,8 @@ export const DocumentManagement: React.FC = () => {
       type: doc.type || 'pdf',
       size: doc.size || 0,
       uploadedByName: doc.uploadedByName || 'Unknown',
-      uploadedBy: doc.uploadedByName || 'Unknown'
+      uploadedBy: doc.uploadedByName || 'Unknown',
+      createdAt: (doc as any).createdAt || doc.uploadedAt
     }));
     setFilteredDocuments(convertedDocs);
   }, [state.documents]);
@@ -220,24 +222,34 @@ export const DocumentManagement: React.FC = () => {
     }
   };
 
-  const applyFilters = () => {
+  const applyFilters = async () => {
     // Convert state documents to local format for filtering
     const convertedDocs = state.documents.map(doc => ({
       ...doc,
       type: doc.type || 'pdf',
       size: doc.size || 0,
       uploadedByName: doc.uploadedByName || 'Unknown',
-      uploadedBy: doc.uploadedByName || 'Unknown'
+      uploadedBy: doc.uploadedByName || 'Unknown',
+      createdAt: (doc as any).createdAt || doc.uploadedAt
     }));
     
     let filtered = [...convertedDocs];
 
-    // Search filter
+    // Search filter - improved to handle tag-specific searches
     if (searchTerm) {
-      filtered = filtered.filter(doc => 
-        doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        doc.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(doc => {
+        // Search in document name
+        const nameMatch = doc.name.toLowerCase().includes(searchLower);
+        
+        // Search in tags
+        const tagMatch = doc.tags.some(tag => tag.toLowerCase().includes(searchLower));
+        
+        // Search in case ID/number if available
+        const caseMatch = doc.caseId?.toLowerCase().includes(searchLower);
+        
+        return nameMatch || tagMatch || caseMatch;
+      });
     }
 
     // Apply active filters
@@ -256,6 +268,15 @@ export const DocumentManagement: React.FC = () => {
       );
     }
 
+    // Filter by selected folder if in folder view
+    if (selectedFolder) {
+      filtered = filtered.filter(doc => 
+        (doc as any).folderId === selectedFolder || 
+        doc.path?.includes(`folder-${selectedFolder}`) ||
+        doc.path?.includes(`folders/${selectedFolder}`)
+      );
+    }
+
     setFilteredDocuments(filtered as any[]);
   };
 
@@ -267,14 +288,20 @@ export const DocumentManagement: React.FC = () => {
       setCurrentSubfolders(subfolders);
       
       // Load files in this folder (filter from state documents)
-      const folderFiles = state.documents.filter(doc => 
-        folderId ? doc.path?.includes(`folder-${folderId}`) : !doc.path?.includes('folder-')
-      ).map(doc => ({
+      const folderFiles = state.documents.filter(doc => {
+        const docWithFolder = doc as any;
+        return folderId 
+          ? docWithFolder.folderId === folderId ||
+            doc.path?.includes(`folder-${folderId}`) ||
+            doc.path?.includes(`folders/${folderId}`)
+          : !docWithFolder.folderId && !doc.path?.includes('folder-');
+      }).map(doc => ({
         ...doc,
         type: doc.type || 'pdf',
         size: doc.size || 0,
         uploadedByName: doc.uploadedByName || 'Unknown',
-        uploadedBy: doc.uploadedByName || 'Unknown'
+        uploadedBy: doc.uploadedByName || 'Unknown',
+        createdAt: (doc as any).createdAt || doc.uploadedAt
       }));
       
       setCurrentFolderFiles(folderFiles as LocalDocument[]);
@@ -804,9 +831,12 @@ export const DocumentManagement: React.FC = () => {
                               <div className="flex-1 min-w-0">
                                 <h4 className="font-medium text-foreground truncate">{doc.name}</h4>
                                 <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                                  <span>{typeof doc.size === 'number' ? `${(doc.size / 1024).toFixed(1)} KB` : doc.size}</span>
-                                  <span>Uploaded by {doc.uploadedByName}</span>
-                                  <span>{new Date(doc.uploadedAt).toLocaleDateString()}</span>
+                               <span>{typeof doc.size === 'number' ? (doc.size / 1024).toFixed(1) + 'KB' : String(doc.size)}</span>
+                               <span>Uploaded by {doc.uploadedByName}</span>
+                               <span>{new Date(doc.uploadedAt).toLocaleDateString()}</span>
+                               {(doc as any).createdAt && (
+                                 <span>Created {new Date((doc as any).createdAt).toLocaleDateString()}</span>
+                               )}
                                 </div>
                                 <div className="flex items-center space-x-2 mt-1">
                                   {doc.tags.map(tag => (
@@ -1057,16 +1087,13 @@ export const DocumentManagement: React.FC = () => {
           >
             <Card>
               <CardHeader>
-                <CardTitle>Recently Accessed</CardTitle>
+                <CardTitle>Recent Documents</CardTitle>
                 <CardDescription>
-                  Documents you've viewed or modified recently
+                  Documents you've recently uploaded or accessed
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-12">
-                  <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">Recent documents will appear here</p>
-                </div>
+                <RecentDocuments documents={state.documents} />
               </CardContent>
             </Card>
           </motion.div>
@@ -1089,6 +1116,8 @@ export const DocumentManagement: React.FC = () => {
         isOpen={documentModal.isOpen}
         mode={documentModal.mode}
         document={documentModal.document}
+        selectedFolderId={selectedFolder || undefined}
+        onUpload={handleDocumentUpload}
         onClose={() => setDocumentModal({ isOpen: false, mode: 'upload', document: null })}
       />
 
