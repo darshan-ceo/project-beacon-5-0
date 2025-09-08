@@ -1,5 +1,6 @@
 import { AppAction } from '@/contexts/AppStateContext';
 import { toast } from '@/hooks/use-toast';
+import { HashService } from './hashService';
 
 // Use the Document interface from AppStateContext
 interface Document {
@@ -40,6 +41,25 @@ interface Tag {
   usageCount: number;
 }
 
+// New upload result type for handling duplicates
+export interface UploadResult {
+  success: boolean;
+  document?: Document;
+  duplicate?: {
+    action: 'replace' | 'version';
+    existingDoc: Document;
+  };
+}
+
+// Enhanced upload options with existing documents for duplicate checking
+interface UploadOptions {
+  folderId?: string;
+  caseId?: string;
+  stage?: string;
+  tags?: string[];
+  existingDocuments?: Document[];
+}
+
 // Filter options for document search
 interface DocumentFilter {
   caseId?: string;
@@ -54,38 +74,70 @@ interface DocumentFilter {
   };
 }
 
-// Mock storage for folders and tags (in real app, this would be backend calls)
+// Predefined folder structure for better organization
 let mockFolders: Folder[] = [
   {
-    id: '1',
-    name: 'Litigation Docs',
-    documentCount: 15,
-    size: 25600000,
-    createdAt: '2024-01-10',
-    lastAccess: '2024-01-25',
-    description: 'Legal documents for litigation cases',
+    id: 'litigation-docs',
+    name: 'Litigation Documents',
+    documentCount: 0,
+    size: 0,
+    createdAt: '2024-01-01',
+    lastAccess: new Date().toISOString(),
+    description: 'Court filings, pleadings, and legal documents',
     path: '/folders/litigation-docs'
   },
   {
-    id: '2', 
-    name: 'GSTAT',
-    parentId: '1',
-    documentCount: 8,
-    size: 12800000,
-    createdAt: '2024-01-15',
-    lastAccess: '2024-01-24',
-    description: 'GSTAT related documents',
+    id: 'gstat-docs', 
+    name: 'GST Assessment',
+    parentId: 'litigation-docs',
+    documentCount: 0,
+    size: 0,
+    createdAt: '2024-01-01',
+    lastAccess: new Date().toISOString(),
+    description: 'GSTAT and GST assessment documents',
     path: '/folders/litigation-docs/gstat'
   },
   {
-    id: '3',
-    name: 'Client Uploads',
-    documentCount: 23,
-    size: 35200000,
-    createdAt: '2024-01-05',
-    lastAccess: '2024-01-25',
+    id: 'appeals-docs',
+    name: 'Appeals',
+    parentId: 'litigation-docs', 
+    documentCount: 0,
+    size: 0,
+    createdAt: '2024-01-01',
+    lastAccess: new Date().toISOString(),
+    description: 'Appeal documents and orders',
+    path: '/folders/litigation-docs/appeals'
+  },
+  {
+    id: 'client-uploads',
+    name: 'Client Documents',
+    documentCount: 0,
+    size: 0,
+    createdAt: '2024-01-01',
+    lastAccess: new Date().toISOString(),
     description: 'Documents uploaded by clients',
     path: '/folders/client-uploads'
+  },
+  {
+    id: 'internal-docs',
+    name: 'Internal Documents', 
+    documentCount: 0,
+    size: 0,
+    createdAt: '2024-01-01',
+    lastAccess: new Date().toISOString(),
+    description: 'Templates, research, and internal documents',
+    path: '/folders/internal-docs'
+  },
+  {
+    id: 'templates',
+    name: 'Templates',
+    parentId: 'internal-docs',
+    documentCount: 0,
+    size: 0,
+    createdAt: '2024-01-01',
+    lastAccess: new Date().toISOString(),
+    description: 'Document templates and forms',
+    path: '/folders/internal-docs/templates'
   }
 ];
 
@@ -199,9 +251,9 @@ export const dmsService = {
   files: {
     upload: async (
       file: File,
-      options: { folderId?: string; caseId?: string; stage?: string; tags?: string[] },
+      options: UploadOptions,
       dispatch: React.Dispatch<AppAction>
-    ): Promise<Document> => {
+    ): Promise<UploadResult> => {
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Validate file type - Extended support for AI drafts
@@ -223,6 +275,30 @@ export const dmsService = {
         throw new Error('File size too large. Please upload files smaller than 50MB.');
       }
 
+      // Require folder assignment for better organization
+      if (!options.folderId) {
+        throw new Error('Please select a folder for this document. Proper organization prevents duplication.');
+      }
+
+      // Check for duplicates
+      const existingDocs = options.existingDocuments || [];
+      const duplicateCheck = await HashService.checkDuplicate(file, existingDocs);
+      
+      if (duplicateCheck.isDuplicate) {
+        // Return duplicate info for user decision
+        return {
+          success: false,
+          duplicate: {
+            action: 'replace',
+            existingDoc: duplicateCheck.existingDoc!
+          }
+        };
+      }
+
+      // Get folder path for proper organization
+      const folder = mockFolders.find(f => f.id === options.folderId);
+      const documentPath = folder ? folder.path : '/folders/unorganized';
+
       const newDocument: Document = {
         id: `doc-${Date.now()}`,
         name: file.name,
@@ -235,33 +311,100 @@ export const dmsService = {
         uploadedAt: new Date().toISOString(),
         tags: options.tags || [],
         isShared: false,
-        path: URL.createObjectURL(file)
+        path: `${documentPath}/${file.name}` // Proper path assignment
       };
 
       dispatch({ type: 'ADD_DOCUMENT', payload: newDocument });
 
-      // Update folder document count if uploaded to folder
-      if (options.folderId) {
-        const folder = mockFolders.find(f => f.id === options.folderId);
-        if (folder) {
-          folder.documentCount++;
-          folder.size += file.size;
-          folder.lastAccess = new Date().toISOString();
-        }
+      // Update folder statistics
+      if (folder) {
+        folder.documentCount++;
+        folder.size += file.size;
+        folder.lastAccess = new Date().toISOString();
       }
 
       log('success', 'DMS', 'uploadFile', { 
         documentId: newDocument.id, 
         fileName: file.name,
-        folderId: options.folderId
+        folderId: options.folderId,
+        path: documentPath
       });
 
       toast({
         title: "File Uploaded",
-        description: `${file.name} has been uploaded successfully.`,
+        description: `${file.name} has been uploaded to ${folder?.name || 'folder'}.`,
       });
 
-      return newDocument;
+      return {
+        success: true,
+        document: newDocument
+      };
+    },
+
+    // Handle duplicate file resolution
+    handleDuplicate: async (
+      file: File,
+      action: 'replace' | 'version',
+      existingDoc: Document,
+      options: UploadOptions,
+      dispatch: React.Dispatch<AppAction>
+    ): Promise<Document> => {
+      const folder = mockFolders.find(f => f.id === options.folderId);
+      const documentPath = folder ? folder.path : '/folders/unorganized';
+
+      if (action === 'replace') {
+        // Update existing document
+        const updatedDoc = {
+          ...existingDoc,
+          size: file.size,
+          uploadedAt: new Date().toISOString(),
+          path: `${documentPath}/${file.name}`,
+          tags: [...new Set([...existingDoc.tags, ...(options.tags || [])])] // Merge tags
+        };
+
+        dispatch({ type: 'UPDATE_DOCUMENT', payload: updatedDoc });
+
+        toast({
+          title: "File Replaced",
+          description: `${file.name} has been updated with the new version.`,
+        });
+
+        return updatedDoc;
+      } else {
+        // Create new version
+        const existingDocs = options.existingDocuments || [];
+        const versionedName = HashService.getVersionedName(file.name, existingDocs);
+
+        const newDocument: Document = {
+          id: `doc-${Date.now()}`,
+          name: versionedName,
+          type: file.type,
+          size: file.size,
+          caseId: options.caseId || '',
+          clientId: '',
+          uploadedById: 'emp-1',
+          uploadedByName: 'Current User',
+          uploadedAt: new Date().toISOString(),
+          tags: [...new Set([...existingDoc.tags, ...(options.tags || [])])],
+          isShared: false,
+          path: `${documentPath}/${versionedName}`
+        };
+
+        dispatch({ type: 'ADD_DOCUMENT', payload: newDocument });
+
+        if (folder) {
+          folder.documentCount++;
+          folder.size += file.size;
+          folder.lastAccess = new Date().toISOString();
+        }
+
+        toast({
+          title: "New Version Created",
+          description: `Created ${versionedName} as a new version.`,
+        });
+
+        return newDocument;
+      }
     },
 
     updateMetadata: async (
@@ -429,7 +572,17 @@ export const dmsService = {
     stageId: string, 
     dispatch: React.Dispatch<AppAction>
   ): Promise<Document> => {
-    return dmsService.files.upload(file, { caseId, stage: stageId, tags: [stageId] }, dispatch);
+    const result = await dmsService.files.upload(
+      file, 
+      { caseId, stage: stageId, tags: [stageId] }, 
+      dispatch
+    );
+    
+    if (result.success && result.document) {
+      return result.document;
+    } else {
+      throw new Error('Upload failed or resulted in duplicate');
+    }
   },
 
   deleteDocument: async (documentId: string, dispatch: React.Dispatch<AppAction>): Promise<void> => {

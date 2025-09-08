@@ -4,6 +4,8 @@ import { toast } from '@/hooks/use-toast';
 import { DocumentModal } from '@/components/modals/DocumentModal';
 import { NewFolderModal } from './NewFolderModal';
 import { DocumentFilters } from './DocumentFilters';
+import { DuplicateHandlerModal } from './DuplicateHandlerModal';
+import { OrganizationGuide } from './OrganizationGuide';
 import { motion } from 'framer-motion';
 import { dmsService } from '@/services/dmsService';
 import { useAppState } from '@/contexts/AppStateContext';
@@ -124,6 +126,12 @@ export const DocumentManagement: React.FC = () => {
   });
   const [newFolderModal, setNewFolderModal] = useState(false);
   const [tags, setTags] = useState<any[]>([]);
+  const [duplicateModal, setDuplicateModal] = useState<{
+    isOpen: boolean;
+    file?: File;
+    existingDoc?: any;
+    options?: any;
+  }>({ isOpen: false });
 
   const getStageColor = (stage: string) => {
     switch (stage) {
@@ -347,12 +355,94 @@ export const DocumentManagement: React.FC = () => {
     }
   };
 
+  const handleDocumentUpload = async (file: File, options: any = {}) => {
+    try {
+      // Prepare options with existing documents for duplicate checking
+      const uploadOptions = {
+        ...options,
+        existingDocuments: state.documents
+      };
+
+      const result = await dmsService.files.upload(file, uploadOptions, dispatch);
+      
+      if (result.success && result.document) {
+        // Successful upload
+        await loadFolderContents(selectedFolder);
+        await loadFolders();
+      } else if (result.duplicate) {
+        // Handle duplicate
+        setDuplicateModal({
+          isOpen: true,
+          file,
+          existingDoc: result.duplicate.existingDoc,
+          options: uploadOptions
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Upload Failed",
+        description: error.message || "Failed to upload file",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDuplicateReplace = async () => {
+    if (duplicateModal.file && duplicateModal.existingDoc && duplicateModal.options) {
+      try {
+        await dmsService.files.handleDuplicate(
+          duplicateModal.file,
+          'replace',
+          duplicateModal.existingDoc,
+          duplicateModal.options,
+          dispatch
+        );
+        await loadFolderContents(selectedFolder);
+        setDuplicateModal({ isOpen: false });
+      } catch (error: any) {
+        toast({
+          title: "Replace Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const handleDuplicateVersion = async () => {
+    if (duplicateModal.file && duplicateModal.existingDoc && duplicateModal.options) {
+      try {
+        await dmsService.files.handleDuplicate(
+          duplicateModal.file,
+          'version',
+          duplicateModal.existingDoc,
+          duplicateModal.options,
+          dispatch
+        );
+        await loadFolderContents(selectedFolder);
+        setDuplicateModal({ isOpen: false });
+      } catch (error: any) {
+        toast({
+          title: "Version Creation Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const handleDuplicateCancel = () => {
+    setDuplicateModal({ isOpen: false });
+  };
+
   const handleDocumentDelete = async (doc: any) => {
     if (confirm(`Are you sure you want to delete ${doc.name}? This action cannot be undone.`)) {
       try {
         await dmsService.files.delete(doc.id, dispatch);
         // Remove from filtered list immediately
         setFilteredDocuments(prev => prev.filter(d => d.id !== doc.id));
+        // Reload current folder
+        await loadFolderContents(selectedFolder);
       } catch (error) {
         // Error already handled in service
       }
@@ -585,6 +675,9 @@ export const DocumentManagement: React.FC = () => {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Organization Guide */}
+      <OrganizationGuide />
 
       {/* Search and Filters */}
       <motion.div 
@@ -829,9 +922,9 @@ export const DocumentManagement: React.FC = () => {
           >
             <Card>
               <CardHeader>
-                <CardTitle>Document Library</CardTitle>
+                <CardTitle>Organized Document Library</CardTitle>
                 <CardDescription>
-                  All documents with advanced search and filtering
+                  Browse all documents organized in folders. Use the search and filters to find specific documents.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -842,8 +935,19 @@ export const DocumentManagement: React.FC = () => {
                       <p className="text-muted-foreground">
                         {searchTerm || Object.keys(activeFilters).length > 0 
                           ? 'No documents match your search criteria' 
-                          : 'No documents found'}
+                          : 'No organized documents found. Use folders to organize your documents properly.'}
                       </p>
+                      {!searchTerm && Object.keys(activeFilters).length === 0 && (
+                        <div className="mt-4">
+                          <Button 
+                            onClick={() => setDocumentModal({ isOpen: true, mode: 'upload', document: null })}
+                            className="mr-2"
+                          >
+                            <Upload className="mr-2 h-4 w-4" />
+                            Upload to Folder
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     filteredDocuments.map((doc, index) => (
@@ -972,16 +1076,29 @@ export const DocumentManagement: React.FC = () => {
       <NewFolderModal
         isOpen={newFolderModal}
         onClose={() => setNewFolderModal(false)}
-        parentId={selectedFolder}
         onFolderCreated={handleFolderCreated}
+        parentId={selectedFolder}
       />
-
+      
       <DocumentModal
         isOpen={documentModal.isOpen}
-        onClose={() => setDocumentModal({ isOpen: false, mode: 'upload', document: null })}
         mode={documentModal.mode}
         document={documentModal.document}
+        onClose={() => setDocumentModal({ isOpen: false, mode: 'upload', document: null })}
       />
+
+      <DuplicateHandlerModal
+        isOpen={duplicateModal.isOpen}
+        onClose={() => setDuplicateModal({ isOpen: false })}
+        file={duplicateModal.file!}
+        existingDoc={duplicateModal.existingDoc!}
+        onReplace={handleDuplicateReplace}
+        onCreateVersion={handleDuplicateVersion}
+        onCancel={handleDuplicateCancel}
+      />
+
+      {/* Page Help */}
+      <PageHelp pageId="document-management" />
     </div>
   );
 };

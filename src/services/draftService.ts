@@ -90,7 +90,12 @@ class DraftService {
 
       const uploadResult = await dmsService.files.upload(file, uploadOptions, dispatch);
 
-      console.log(`[DraftSave] Upload successful: ${uploadResult.id}`);
+      if (!uploadResult.success || !uploadResult.document) {
+        throw new Error('Failed to upload draft document');
+      }
+
+      const document = uploadResult.document;
+      console.log(`[DraftSave] Upload successful: ${document.id}`);
 
       // Step 5: Create timeline entry
       await this.addTimelineEntry(caseId, {
@@ -106,8 +111,8 @@ class DraftService {
 
       // Step 6: Return result
       const result: DraftSaveResult = {
-        fileId: uploadResult.id,
-        url: uploadResult.path,
+        fileId: document.id,
+        url: document.path,
         version,
         fileName
       };
