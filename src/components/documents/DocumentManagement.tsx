@@ -280,11 +280,13 @@ export const DocumentManagement: React.FC = () => {
     setFilteredDocuments(filtered as any[]);
   };
 
-  const loadFolderContents = async (folderId: string | null) => {
+   const loadFolderContents = async (folderId: string | null) => {
     setLoading(true);
+    console.log(`Loading folder contents for: ${folderId || 'root'}`);
     try {
       // Load subfolders
       const subfolders = await dmsService.folders.list(folderId || undefined);
+      console.log(`Found ${subfolders.length} subfolders:`, subfolders.map(f => f.name));
       setCurrentSubfolders(subfolders);
       
       // Load files in this folder (filter from state documents)
@@ -352,12 +354,12 @@ export const DocumentManagement: React.FC = () => {
   };
 
   const handleFolderCreated = async (newFolder: any) => {
+    console.log('Folder created:', newFolder);
     // Refresh folders from service to ensure UI is up to date
     await loadFolders();
-    // Also refresh current folder contents if we're in a folder
-    if (selectedFolder) {
-      await loadFolderContents(selectedFolder);
-    }
+    // Always refresh current folder contents to update the view
+    await loadFolderContents(selectedFolder);
+    console.log('Folder contents refreshed after creation');
   };
 
   const handleDocumentView = async (doc: any) => {
