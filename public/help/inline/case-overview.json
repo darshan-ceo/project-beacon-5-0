@@ -1,53 +1,12 @@
 {
-  "default": {
-    "title": "Case Overview",
-    "content": "Track case progress, manage deadlines, and coordinate with team members on case activities. The case overview provides a comprehensive view of all case elements including timeline, documents, tasks, and team assignments.",
-    "learnMoreUrl": "/help#case-management",
-    "quickTips": [
-      "Review case status regularly",
-      "Monitor upcoming deadlines",
-      "Track team member assignments",
-      "Update case progress frequently"
-    ],
-    "relatedArticles": [
-      {
-        "title": "Case Management Best Practices",
-        "url": "/help#case-management-guide"
-      },
-      {
-        "title": "Timeline Management",
-        "url": "/help#timeline-guide"
-      }
-    ]
+  "case-overview-basics": {
+    "title": "Case Overview Basics",
+    "content": "Monitor case progress, SLA status, and take quick actions from the central case overview dashboard.",
+    "learnMoreUrl": "/help/case-creation-tutorial"
   },
-  "timeline-management": {
-    "title": "Case Timeline",
-    "content": "Manage important dates, deadlines, and milestones throughout the case lifecycle. Set up automatic reminders and track SLA compliance.",
-    "quickTips": [
-      "Add all critical deadlines",
-      "Set up reminder notifications",
-      "Track milestone completion",
-      "Monitor SLA compliance"
-    ]
-  },
-  "team-coordination": {
-    "title": "Team Coordination",
-    "content": "Assign team members to cases, delegate tasks, and track individual contributions. Ensure proper communication and accountability.",
-    "quickTips": [
-      "Assign clear responsibilities",
-      "Use task assignments effectively",
-      "Monitor team workload",
-      "Facilitate team communication"
-    ]
-  },
-  "status-tracking": {
-    "title": "Status Tracking",
-    "content": "Monitor case progress through defined stages from intake to resolution. Update status to reflect current case activities and milestones.",
-    "quickTips": [
-      "Update status promptly",
-      "Use consistent status definitions",
-      "Track progress milestones",
-      "Communicate status changes"
-    ]
+  "case-lifecycle-manage-stage": {
+    "title": "Managing Case Stages", 
+    "content": "Advance cases through legal stages with built-in validation and requirement checking.",
+    "learnMoreUrl": "/help/manage-stage-checklist"
   }
 }

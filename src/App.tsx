@@ -31,6 +31,8 @@ import { HearingsCalendar } from "./components/hearings/HearingsCalendar";
 import { HearingsList } from "./components/hearings/HearingsList";
 import { HelpCenter } from "./pages/HelpCenter";
 import { PendingRecordsPage } from "./pages/PendingRecordsPage";
+import { HelpDiagnostics } from "./pages/HelpDiagnostics";
+import { EnhancedHelpCenter } from "./components/help/EnhancedHelpCenter";
 
 import { AppWithPersistence } from "./components/AppWithPersistence";
 
@@ -149,7 +151,17 @@ const App = () => (
               } />
               <Route path="/help" element={
                 <AdminLayout currentUser={currentUser}>
-                  <HelpCenter />
+                  <EnhancedHelpCenter userRole={currentUser.role} />
+                </AdminLayout>
+              } />
+              <Route path="/help/:slug" element={
+                <AdminLayout currentUser={currentUser}>
+                  <EnhancedHelpCenter userRole={currentUser.role} />
+                </AdminLayout>
+              } />
+              <Route path="/help/diagnostics" element={
+                <AdminLayout currentUser={currentUser}>
+                  <HelpDiagnostics />
                 </AdminLayout>
               } />
               <Route path="/pending-records" element={

@@ -1,53 +1,7 @@
 {
-  "default": {
-    "title": "Document Management",
-    "content": "Upload, organize, and share case-related documents with proper version control and access permissions. Use consistent folder structures and naming conventions for easy document retrieval.",
-    "learnMoreUrl": "/help#document-management",
-    "quickTips": [
-      "Use consistent naming conventions",
-      "Organize documents in logical folders",
-      "Set appropriate access permissions",
-      "Add descriptive tags and metadata"
-    ],
-    "relatedArticles": [
-      {
-        "title": "Document Organization Best Practices",
-        "url": "/help#document-organization"
-      },
-      {
-        "title": "Version Control Guide",
-        "url": "/help#version-control"
-      }
-    ]
-  },
-  "folder-organization": {
-    "title": "Folder Organization",
-    "content": "Create and maintain a logical folder structure for each case. Use standard categories like Pleadings, Discovery, Evidence, and Correspondence for consistency.",
-    "quickTips": [
-      "Follow standard folder conventions",
-      "Create subfolders for complex cases",
-      "Use descriptive folder names",
-      "Maintain consistent structure across cases"
-    ]
-  },
-  "document-sharing": {
-    "title": "Document Sharing",
-    "content": "Share documents securely with team members, clients, and external parties. Control access permissions and track document sharing activities.",
-    "quickTips": [
-      "Set appropriate sharing permissions",
-      "Use time-limited sharing when needed",
-      "Track document access",
-      "Maintain privilege protection"
-    ]
-  },
-  "version-control": {
-    "title": "Version Control",
-    "content": "Manage document versions to track changes and maintain document history. Use proper versioning conventions and approval workflows.",
-    "quickTips": [
-      "Use clear version numbering",
-      "Track document changes",
-      "Maintain version history",
-      "Implement approval workflows"
-    ]
+  "dms-upload": {
+    "title": "Document Upload",
+    "content": "Upload and organize legal documents with version control and secure sharing.",
+    "learnMoreUrl": "/help/document-management-guide"
   }
 }

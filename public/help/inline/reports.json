@@ -1,53 +1,7 @@
 {
-  "default": {
-    "title": "Report Generation",
-    "content": "Create comprehensive reports on case progress, billing, and performance metrics. Use filters and customization options to generate exactly the information you need.",
-    "learnMoreUrl": "/help#reporting",
-    "quickTips": [
-      "Use date filters to focus on specific periods",
-      "Select relevant data fields for cleaner reports",
-      "Schedule regular reports for key stakeholders",
-      "Export reports in appropriate formats"
-    ],
-    "relatedArticles": [
-      {
-        "title": "Custom Report Creation",
-        "url": "/help#custom-reports"
-      },
-      {
-        "title": "Automated Reporting Setup",
-        "url": "/help#automated-reports"
-      }
-    ]
-  },
-  "case-reports": {
-    "title": "Case Reporting",
-    "content": "Generate detailed reports on case status, progress, and outcomes. Track case metrics and identify trends across your practice.",
-    "quickTips": [
-      "Include key performance indicators",
-      "Track case resolution times",
-      "Monitor SLA compliance",
-      "Analyze case outcome patterns"
-    ]
-  },
-  "billing-reports": {
-    "title": "Billing Reports",
-    "content": "Create time and billing reports for client invoicing and internal analysis. Track billable hours, rates, and revenue by case or attorney.",
-    "quickTips": [
-      "Verify time entries before billing",
-      "Group charges by billing category",
-      "Include detailed descriptions",
-      "Review billing rates regularly"
-    ]
-  },
-  "performance-analytics": {
-    "title": "Performance Analytics",
-    "content": "Analyze team performance, case efficiency, and business metrics. Use analytics to identify improvement opportunities and track goals.",
-    "quickTips": [
-      "Set performance benchmarks",
-      "Track key performance indicators",
-      "Compare period-over-period performance",
-      "Identify bottlenecks and inefficiencies"
-    ]
+  "reports-overview": {
+    "title": "Reports & Analytics",
+    "content": "Generate comprehensive reports on cases, clients, and performance metrics.",
+    "learnMoreUrl": "/help/case-creation-tutorial"
   }
 }

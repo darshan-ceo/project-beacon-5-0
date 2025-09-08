@@ -12,7 +12,11 @@ import { tourService } from '@/services/tourService';
 import { GuidedTour } from './GuidedTour';
 import { cn } from '@/lib/utils';
 
-export const EnhancedHelpCenter: React.FC = () => {
+interface EnhancedHelpCenterProps {
+  userRole: string;
+}
+
+export const EnhancedHelpCenter: React.FC<EnhancedHelpCenterProps> = ({ userRole }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -26,16 +30,17 @@ export const EnhancedHelpCenter: React.FC = () => {
   }
 
   const availableTabs = useMemo(() => {
-    const tabs = [
-      { id: 'users', label: 'Users', icon: Users, roles: ['Users', 'Admin'] },
+    const allTabs = [
+      { id: 'users', label: 'Users', icon: Users, roles: ['all'] },
       { id: 'admin', label: 'Admin', icon: Settings, roles: ['Admin'] },
-      { id: 'developers', label: 'Developers', icon: Code, roles: ['Admin'] }
+      { id: 'developers', label: 'Developers', icon: Code, roles: ['Admin', 'Developer'] }
     ];
-
-    return tabs.filter(tab => 
-      tab.roles.includes(currentUser?.role || 'Users')
+    
+    return allTabs.filter(tab => 
+      tab.roles.includes('all') || 
+      tab.roles.includes(userRole)
     );
-  }, [currentUser]);
+  }, [userRole]);
 
   const handleSearch = async (query: string) => {
     if (!query.trim()) {
@@ -45,7 +50,10 @@ export const EnhancedHelpCenter: React.FC = () => {
 
     setIsSearching(true);
     try {
-      const results = await enhancedHelpService.search(query, currentUser?.role || 'Users');
+      const results = await enhancedHelpService.search(query, userRole, {
+        limit: 10,
+        threshold: 0.6
+      });
       setSearchResults(results);
     } catch (error) {
       console.error('Search failed:', error);
