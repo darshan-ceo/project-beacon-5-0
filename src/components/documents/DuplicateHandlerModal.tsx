@@ -8,8 +8,8 @@ import { formatDistanceToNow } from 'date-fns';
 interface DuplicateHandlerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  file: File;
-  existingDoc: any;
+  file?: File;
+  existingDoc?: any;
   onReplace: () => void;
   onCreateVersion: () => void;
   onCancel: () => void;
@@ -31,6 +31,11 @@ export const DuplicateHandlerModal: React.FC<DuplicateHandlerModalProps> = ({
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
+
+  // Don't render if required data is missing
+  if (!file || !existingDoc) {
+    return null;
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

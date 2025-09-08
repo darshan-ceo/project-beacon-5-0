@@ -1090,8 +1090,8 @@ export const DocumentManagement: React.FC = () => {
       <DuplicateHandlerModal
         isOpen={duplicateModal.isOpen}
         onClose={() => setDuplicateModal({ isOpen: false })}
-        file={duplicateModal.file!}
-        existingDoc={duplicateModal.existingDoc!}
+        file={duplicateModal.file}
+        existingDoc={duplicateModal.existingDoc}
         onReplace={handleDuplicateReplace}
         onCreateVersion={handleDuplicateVersion}
         onCancel={handleDuplicateCancel}
