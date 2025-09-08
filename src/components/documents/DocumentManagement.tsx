@@ -115,7 +115,6 @@ export const DocumentManagement: React.FC = () => {
   const [currentPath, setCurrentPath] = useState<string[]>([]);
   const [activeView, setActiveView] = useState<'grid' | 'list'>('list');
   const [activeFilters, setActiveFilters] = useState<any>({});
-  const [folders, setFolders] = useState<any[]>([]);
   const [currentFolderFiles, setCurrentFolderFiles] = useState<LocalDocument[]>([]);
   const [currentSubfolders, setCurrentSubfolders] = useState<any[]>([]);
   const [filteredDocuments, setFilteredDocuments] = useState<LocalDocument[]>([]);
@@ -207,7 +206,7 @@ export const DocumentManagement: React.FC = () => {
   const loadFolders = async () => {
     try {
       const folderList = await dmsService.folders.list();
-      setFolders(folderList);
+      dispatch({ type: 'SET_FOLDERS', payload: folderList });
     } catch (error) {
       console.error('Failed to load folders:', error);
     }
@@ -352,7 +351,6 @@ export const DocumentManagement: React.FC = () => {
   };
 
   const handleFolderCreated = async (newFolder: any) => {
-    dispatch({ type: 'ADD_FOLDER', payload: newFolder });
     // Refresh folders from service to ensure UI is up to date
     await loadFolders();
     // Also refresh current folder contents if we're in a folder
@@ -899,7 +897,7 @@ export const DocumentManagement: React.FC = () => {
               {/* Empty State */}
               {currentSubfolders.length === 0 && currentFolderFiles.length === 0 && !selectedFolder && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {folders.map((folder, index) => (
+                  {state.folders.map((folder, index) => (
                     <motion.div
                       key={folder.id}
                       initial={{ opacity: 0, scale: 0.9 }}

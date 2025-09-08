@@ -279,6 +279,7 @@ export type AppAction =
   | { type: 'ADD_DOCUMENT'; payload: Document }
   | { type: 'UPDATE_DOCUMENT'; payload: Partial<Document> & { id: string } }
   | { type: 'DELETE_DOCUMENT'; payload: string }
+  | { type: 'SET_FOLDERS'; payload: Folder[] }
   | { type: 'ADD_FOLDER'; payload: Folder }
   | { type: 'UPDATE_FOLDER'; payload: Partial<Folder> & { id: string } }
   | { type: 'DELETE_FOLDER'; payload: string }
@@ -1974,6 +1975,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         documents: state.documents.filter(d => d.id !== action.payload)
       };
+    case 'SET_FOLDERS':
+      return { ...state, folders: action.payload };
     case 'ADD_FOLDER':
       return { ...state, folders: [...state.folders, action.payload] };
     case 'UPDATE_FOLDER':
