@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Book, Users, Settings, Code, HelpCircle, ExternalLink } from 'lucide-react';
+import { Search, Book, Users, Settings, Code, HelpCircle, ExternalLink, BookOpen } from 'lucide-react';
 import { useRBAC } from '@/hooks/useRBAC';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,16 +10,21 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { helpService } from '@/services/helpService';
+import { enhancedHelpService } from '@/services/enhancedHelpService';
+import { tourService } from '@/services/tourService';
 import { HelpSearchBar } from '@/components/help/HelpSearchBar';
 import { GlossaryTooltip } from '@/components/help/GlossaryTooltip';
 import { CaseStudyViewer } from '@/components/help/CaseStudyViewer';
 import { GuidedTour } from '@/components/help/GuidedTour';
+import { ArticleViewer } from '@/components/help/ArticleViewer';
+import { featureFlagService } from '@/services/featureFlagService';
 
 interface HelpContent {
   id: string;
   title: string;
   description: string;
-  category: 'faq' | 'tutorial' | 'guide' | 'case-study' | 'best-practice';
+  category: string;
+  slug?: string;
   roles: string[];
   content: string;
   tags: string[];
@@ -30,20 +35,33 @@ export const HelpCenter: React.FC = () => {
   const { currentUser, hasPermission } = useRBAC();
   const [searchQuery, setSearchQuery] = useState('');
   const [helpContent, setHelpContent] = useState<HelpContent[]>([]);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState('users');
   const [selectedContent, setSelectedContent] = useState<HelpContent | null>(null);
   const [showTours, setShowTours] = useState(false);
 
-  // Load help content based on user role
+  // Load help content from content.json
   useEffect(() => {
     const loadHelpContent = async () => {
       try {
         setLoading(true);
-        const content = await helpService.getHelpContent(currentUser?.role || 'Staff');
-        setHelpContent(content);
+        // Load content from public/help/content.json
+        const response = await fetch('/help/content.json');
+        if (response.ok) {
+          const content = await response.json();
+          setHelpContent(content);
+        } else {
+          // Fallback to helpService
+          const content = await helpService.getHelpContent(currentUser?.role || 'all');
+          setHelpContent(content);
+        }
       } catch (error) {
         console.error('Failed to load help content:', error);
+        // Use fallback content
+        const content = await helpService.getHelpContent(currentUser?.role || 'all');
+        setHelpContent(content);
       } finally {
         setLoading(false);
       }
@@ -52,81 +70,119 @@ export const HelpCenter: React.FC = () => {
     loadHelpContent();
   }, [currentUser?.role]);
 
-  // Filter content based on search and selected tab
+  // Handle search functionality
+  const handleSearch = async (query: string) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const results = await enhancedHelpService.search(query, currentUser?.role || 'all', {
+        limit: 10,
+        threshold: 0.6
+      });
+      setSearchResults(results);
+    } catch (error) {
+      console.error('Search failed:', error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Debounced search
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      handleSearch(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  // Filter content based on selected tab and role
   const filteredContent = useMemo(() => {
     let filtered = helpContent;
 
     // Filter by tab (role-based)
-    if (selectedTab === 'admin' && !hasPermission('administration', 'read')) {
-      filtered = [];
-    } else if (selectedTab === 'developers' && !hasPermission('development', 'read')) {
-      filtered = [];
-    }
-
-    // Filter by search query
-    if (searchQuery) {
-      filtered = filtered.filter(item =>
-        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+    if (selectedTab === 'admin') {
+      filtered = filtered.filter(item => 
+        item.roles.includes('Admin') || item.roles.includes('admin')
+      );
+    } else if (selectedTab === 'developers') {
+      filtered = filtered.filter(item => 
+        item.roles.includes('Developer') || item.roles.includes('developer')
+      );
+    } else {
+      // Users tab - show content for general users (all, users, staff)
+      filtered = filtered.filter(item => 
+        item.roles.includes('all') || 
+        item.roles.includes('users') || 
+        item.roles.includes('Staff') ||
+        (!item.roles.includes('Admin') && !item.roles.includes('admin') && 
+         !item.roles.includes('Developer') && !item.roles.includes('developer'))
       );
     }
 
     return filtered;
-  }, [helpContent, searchQuery, selectedTab, hasPermission]);
+  }, [helpContent, selectedTab]);
 
-  // Get available tabs based on user permissions
+  // Get available tabs - all users can see all tabs for now
   const availableTabs = useMemo(() => {
-    const tabs = [
-      { id: 'users', label: 'Users', icon: Users, available: true },
-      { id: 'admin', label: 'Administration', icon: Settings, available: hasPermission('administration', 'read') },
-      { id: 'developers', label: 'Developers', icon: Code, available: hasPermission('development', 'read') }
+    return [
+      { id: 'users', label: 'Users', icon: Users },
+      { id: 'admin', label: 'Admin', icon: Settings },
+      { id: 'developers', label: 'Developers', icon: Code }
     ];
-
-    return tabs.filter(tab => tab.available);
-  }, [hasPermission]);
+  }, []);
 
   const quickActions = [
     {
       title: 'Start Guided Tour',
       description: 'Walk through key features step-by-step',
       icon: HelpCircle,
-      action: () => setShowTours(true),
-      roles: ['all']
+      action: () => setShowTours(true)
     },
     {
-      title: 'View Glossary',
-      description: 'Understand legal and technical terms',
-      icon: Book,
-      action: () => window.open('/help/glossary', '_blank'),
-      roles: ['all']
+      title: 'Getting Started',
+      description: 'Learn the basics of the system',
+      icon: BookOpen,
+      action: () => {
+        const gettingStarted = helpContent.find(item => item.id === 'getting-started');
+        if (gettingStarted) setSelectedContent(gettingStarted);
+      }
     },
     {
-      title: 'API Documentation',
-      description: 'Integration guides and endpoints',
-      icon: Code,
-      action: () => setSelectedTab('developers'),
-      roles: ['Admin', 'Partner/CA']
-    },
-    {
-      title: 'Best Practices',
-      description: 'Recommended workflows and tips',
+      title: 'Case Management',
+      description: 'Create and manage legal cases',
       icon: Users,
-      action: () => setSearchQuery('best practice'),
-      roles: ['all']
+      action: () => {
+        const caseGuide = helpContent.find(item => item.id === 'case-creation-tutorial');
+        if (caseGuide) setSelectedContent(caseGuide);
+      }
+    },
+    {
+      title: 'Document Management',
+      description: 'Upload and organize documents',
+      icon: Book,
+      action: () => {
+        const docGuide = helpContent.find(item => item.id === 'document-management-guide');
+        if (docGuide) setSelectedContent(docGuide);
+      }
     }
   ];
 
-  const filteredQuickActions = quickActions.filter(action =>
-    action.roles.includes('all') || action.roles.includes(currentUser?.role || 'Staff')
-  );
-
   const renderContentCard = (content: HelpContent) => (
-    <Card key={content.id} className="cursor-pointer hover:shadow-md transition-shadow">
+    <Card 
+      key={content.id} 
+      className="cursor-pointer hover:shadow-md transition-shadow"
+      onClick={() => setSelectedContent(content)}
+    >
       <CardHeader>
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <CardTitle className="text-lg">{content.title}</CardTitle>
+            <CardTitle className="text-lg hover:text-primary">{content.title}</CardTitle>
             <CardDescription className="mt-1">{content.description}</CardDescription>
           </div>
           <Badge variant="outline" className="ml-2">
@@ -148,13 +204,7 @@ export const HelpCenter: React.FC = () => {
               </Badge>
             )}
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSelectedContent(content)}
-          >
-            <ExternalLink className="h-4 w-4" />
-          </Button>
+          <ExternalLink className="h-4 w-4 text-muted-foreground" />
         </div>
         <p className="text-xs text-muted-foreground mt-2">
           Updated {new Date(content.lastUpdated).toLocaleDateString()}
@@ -195,15 +245,60 @@ export const HelpCenter: React.FC = () => {
         </div>
 
         {/* Search Bar */}
-        <HelpSearchBar
-          value={searchQuery}
-          onChange={setSearchQuery}
-          placeholder="Search help articles, tutorials, and guides..."
-        />
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search help articles, guides, and glossary..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+          {isSearching && (
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+            </div>
+          )}
+        </div>
+
+        {/* Search Results */}
+        {searchQuery && searchResults.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Search Results</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {searchResults.slice(0, 8).map((result, index) => (
+                <div 
+                  key={index} 
+                  className="p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
+                  onClick={() => {
+                    if (result.type === 'article') {
+                      setSelectedContent(result.item);
+                    }
+                  }}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-medium">
+                        {result.type === 'glossary' ? result.item.term : result.item.title}
+                      </h4>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {result.type === 'glossary' ? result.item.definition : result.item.description}
+                      </p>
+                    </div>
+                    <Badge variant={result.type === 'glossary' ? 'secondary' : 'default'}>
+                      {result.type}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {filteredQuickActions.map((action, index) => (
+          {quickActions.map((action, index) => (
             <Card key={index} className="cursor-pointer hover:shadow-md transition-shadow" onClick={action.action}>
               <CardHeader className="text-center pb-4">
                 <action.icon className="h-8 w-8 mx-auto text-primary" />
@@ -230,13 +325,7 @@ export const HelpCenter: React.FC = () => {
           {availableTabs.map(tab => (
             <TabsContent key={tab.id} value={tab.id} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredContent
-                  .filter(content => {
-                    if (tab.id === 'admin') return content.roles.includes('Admin');
-                    if (tab.id === 'developers') return content.roles.includes('Developer');
-                    return !content.roles.includes('Admin') && !content.roles.includes('Developer');
-                  })
-                  .map(renderContentCard)}
+                {filteredContent.map(renderContentCard)}
               </div>
 
               {filteredContent.length === 0 && (
@@ -244,7 +333,7 @@ export const HelpCenter: React.FC = () => {
                   <HelpCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                   <h3 className="text-lg font-medium">No content found</h3>
                   <p className="text-muted-foreground">
-                    {searchQuery ? 'Try adjusting your search terms.' : 'Content is being prepared for this section.'}
+                    Content is being prepared for this section.
                   </p>
                 </div>
               )}
@@ -252,16 +341,16 @@ export const HelpCenter: React.FC = () => {
           ))}
         </Tabs>
 
-        {/* Content Viewer Modal */}
+        {/* Article Viewer Modal */}
         {selectedContent && (
-          <CaseStudyViewer
-            content={selectedContent}
+          <ArticleViewer
+            article={selectedContent as any}
             onClose={() => setSelectedContent(null)}
           />
         )}
 
         {/* Guided Tours */}
-        {showTours && (
+        {showTours && featureFlagService.isEnabled('help_tours_v1') && (
           <GuidedTour
             onClose={() => setShowTours(false)}
             userRole={currentUser?.role || 'Staff'}

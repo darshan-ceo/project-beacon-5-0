@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { helpService } from '@/services/helpService';
+import { tourService } from '@/services/tourService';
 import { cn } from '@/lib/utils';
 
 interface Tour {
@@ -41,6 +42,7 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({
   const [currentStep, setCurrentStep] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [tourStats, setTourStats] = useState({ completed: new Set() });
 
   useEffect(() => {
     const loadTours = async () => {
@@ -57,10 +59,13 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({
     loadTours();
   }, [userRole, module]);
 
-  const startTour = (tour: Tour) => {
-    setSelectedTour(tour);
-    setCurrentStep(0);
-    setIsRunning(true);
+  const handleStartTour = async (tourId: string) => {
+    try {
+      await tourService.startTour(tourId);
+      onClose();
+    } catch (error) {
+      console.error('Failed to start tour:', error);
+    }
   };
 
   const nextStep = () => {
@@ -145,7 +150,7 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({
                     ~{Math.ceil(tour.steps.length * 1.5)} min
                   </span>
                 </div>
-                <Button onClick={() => startTour(tour)}>
+                <Button onClick={() => handleStartTour(tour.id)}>
                   <Play className="h-4 w-4 mr-2" />
                   Start Tour
                 </Button>

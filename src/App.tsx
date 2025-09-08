@@ -8,32 +8,29 @@ import { RBACProvider } from "@/hooks/useRBAC";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { AdminLayout } from "./components/layout/AdminLayout";
-import { DashboardOverview } from "./components/dashboard/DashboardOverview";
-import { ClientMasters } from "./components/masters/ClientMasters";
-import { CourtMasters } from "./components/masters/CourtMasters";
-import { JudgeMasters } from "./components/masters/JudgeMasters";
-import { EmployeeMasters } from "./components/masters/EmployeeMasters";
-import { CaseManagement } from "./components/cases/CaseManagement";
-import { TaskManagement } from "./components/tasks/TaskManagement";
-import { DocumentManagement } from "./components/documents/DocumentManagement";
-import { RBACManagement } from "./components/admin/RBACManagement";
-import { GlobalParameters } from "./components/admin/GlobalParameters";
-import { UserProfile } from "./components/admin/UserProfile";
-import { ProfileErrorBoundary } from "./components/admin/ProfileErrorBoundary";
+import { EnhancedDashboard } from "@/components/dashboard/EnhancedDashboard";
+import { ClientMasters } from "@/components/masters/ClientMasters";
+import { CourtMasters } from "@/components/masters/CourtMasters";
+import { JudgeMasters } from "@/components/masters/JudgeMasters";
+import { EmployeeMasters } from "@/components/masters/EmployeeMasters";
+import { CaseManagement } from "@/components/cases/CaseManagement";
+import { TaskManagement } from "@/components/tasks/TaskManagement";
+import { DocumentManagement } from "@/components/documents/DocumentManagement";
+import { RBACManagement } from "@/components/admin/RBACManagement";
+import { GlobalParameters } from "@/components/admin/GlobalParameters";
+import { UserProfile } from "@/components/admin/UserProfile";
+import { ProfileErrorBoundary } from "@/components/admin/ProfileErrorBoundary";
+import { ReportsModule } from "@/components/reports/ReportsModule";
+import { GSTDebugPage } from "@/components/debug/GSTDebugPage";
+import { QADashboard } from "@/pages/QADashboard";
+import { HearingsCalendar } from "@/components/hearings/HearingsCalendar";
+import { HearingsList } from "@/components/hearings/HearingsList";
+import { HelpCenter } from "@/pages/HelpCenter";
+import { HelpDiagnostics } from "@/pages/HelpDiagnostics";
+import { PendingRecordsPage } from "@/pages/PendingRecordsPage";
 import { ClientPortal } from "./components/portal/ClientPortal";
 import { ClientLayout } from "./components/layout/ClientLayout";
 import { ClientRouteGuard } from "./components/ui/client-route-guard";
-import { EnhancedDashboard } from "./components/dashboard/EnhancedDashboard";
-import { ReportsModule } from "./components/reports/ReportsModule";
-import { GSTDebugPage } from "./components/debug/GSTDebugPage";
-import { QADashboard } from "./pages/QADashboard";
-import { HearingsCalendar } from "./components/hearings/HearingsCalendar";
-import { HearingsList } from "./components/hearings/HearingsList";
-import { HelpCenter } from "./pages/HelpCenter";
-import { PendingRecordsPage } from "./pages/PendingRecordsPage";
-import { HelpDiagnostics } from "./pages/HelpDiagnostics";
-import { EnhancedHelpCenter } from "./components/help/EnhancedHelpCenter";
-
 import { AppWithPersistence } from "./components/AppWithPersistence";
 
 const queryClient = new QueryClient();
@@ -151,12 +148,12 @@ const App = () => (
               } />
               <Route path="/help" element={
                 <AdminLayout currentUser={currentUser}>
-                  <EnhancedHelpCenter userRole={currentUser.role} />
+                  <HelpCenter />
                 </AdminLayout>
               } />
               <Route path="/help/:slug" element={
                 <AdminLayout currentUser={currentUser}>
-                  <EnhancedHelpCenter userRole={currentUser.role} />
+                  <HelpCenter />
                 </AdminLayout>
               } />
               <Route path="/help/diagnostics" element={
