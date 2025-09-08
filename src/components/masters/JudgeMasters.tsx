@@ -10,14 +10,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, Scale, Clock, Phone, Mail, Search, Filter, Plus, Edit, Eye, Calendar } from 'lucide-react';
+import { User, Scale, Clock, Phone, Mail, Search, Filter, Plus, Edit, Eye, Calendar, Upload, Download } from 'lucide-react';
 import { JudgeModal } from '@/components/modals/JudgeModal';
+import { ImportWizard } from '@/components/importExport/ImportWizard';
+import { ExportWizard } from '@/components/importExport/ExportWizard';
 import { Judge, useAppState } from '@/contexts/AppStateContext';
 import { judgesService } from '@/services/judgesService';
+import { useRBAC } from '@/hooks/useRBAC';
 
 
 export const JudgeMasters: React.FC = () => {
   const { state, dispatch } = useAppState();
+  const { hasPermission } = useRBAC();
   const [searchTerm, setSearchTerm] = useState('');
   const [judgeModal, setJudgeModal] = useState<{ isOpen: boolean; mode: 'create' | 'edit' | 'view'; judge?: Judge | null }>({
     isOpen: false,
@@ -28,6 +32,8 @@ export const JudgeMasters: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterAvailability, setFilterAvailability] = useState<string>('all');
   const [isAddJudgeOpen, setIsAddJudgeOpen] = useState(false);
+  const [importWizardOpen, setImportWizardOpen] = useState(false);
+  const [exportWizardOpen, setExportWizardOpen] = useState(false);
 
   const getCourtName = (courtId: string) => {
     return state.courts.find(c => c.id === courtId)?.name || 'Unknown Court';
@@ -90,6 +96,28 @@ export const JudgeMasters: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold text-foreground">Judge Masters</h1>
           <p className="text-muted-foreground mt-2">Manage judge profiles, assignments, and availability</p>
+        </div>
+        <div className="flex gap-2">
+          {hasPermission('data_io:judge:import', 'read') && (
+            <Button 
+              variant="outline" 
+              className="gap-2"
+              onClick={() => setImportWizardOpen(true)}
+            >
+              <Upload className="h-4 w-4" />
+              Import Judges
+            </Button>
+          )}
+          {hasPermission('data_io:judge:export', 'read') && (
+            <Button 
+              variant="outline" 
+              className="gap-2"
+              onClick={() => setExportWizardOpen(true)}
+            >
+              <Download className="h-4 w-4" />
+              Export Judges
+            </Button>
+          )}
         </div>
         <Dialog open={isAddJudgeOpen} onOpenChange={setIsAddJudgeOpen}>
           <DialogTrigger asChild>
@@ -480,6 +508,22 @@ export const JudgeMasters: React.FC = () => {
         onClose={() => setJudgeModal({ isOpen: false, mode: 'create', judge: null })}
         judge={judgeModal.judge}
         mode={judgeModal.mode}
+      />
+
+      <ImportWizard
+        isOpen={importWizardOpen}
+        onClose={() => setImportWizardOpen(false)}
+        entityType="judge"
+        onImportComplete={(job) => {
+          console.log('Judge import completed:', job);
+          // Refresh data if needed
+        }}
+      />
+
+      <ExportWizard
+        isOpen={exportWizardOpen}
+        onClose={() => setExportWizardOpen(false)}
+        entityType="judge"
       />
     </div>
   );

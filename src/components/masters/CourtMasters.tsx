@@ -10,14 +10,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Building2, MapPin, Phone, Mail, Search, Filter, Plus, Edit, Eye, Users } from 'lucide-react';
+import { Building2, MapPin, Phone, Mail, Search, Filter, Plus, Edit, Eye, Users, Upload, Download } from 'lucide-react';
 import { CourtModal } from '@/components/modals/CourtModal';
+import { ImportWizard } from '@/components/importExport/ImportWizard';
+import { ExportWizard } from '@/components/importExport/ExportWizard';
 import { Court, useAppState } from '@/contexts/AppStateContext';
 import { courtsService } from '@/services/courtsService';
+import { useRBAC } from '@/hooks/useRBAC';
 
 
 export const CourtMasters: React.FC = () => {
   const { state, dispatch } = useAppState();
+  const { hasPermission } = useRBAC();
   const [searchTerm, setSearchTerm] = useState('');
   const [courtModal, setCourtModal] = useState<{ isOpen: boolean; mode: 'create' | 'edit' | 'view'; court?: Court | null }>({
     isOpen: false,
@@ -26,6 +30,8 @@ export const CourtMasters: React.FC = () => {
   });
   const [filterType, setFilterType] = useState<string>('all');
   const [filterJurisdiction, setFilterJurisdiction] = useState<string>('all');
+  const [importWizardOpen, setImportWizardOpen] = useState(false);
+  const [exportWizardOpen, setExportWizardOpen] = useState(false);
 
   // Filter courts based on search and filters
   const filteredCourts = (state.courts || []).filter(court => {
@@ -68,17 +74,39 @@ export const CourtMasters: React.FC = () => {
           <h1 className="text-3xl font-bold text-foreground">Court Masters</h1>
           <p className="text-muted-foreground mt-2">Manage court information and jurisdictions</p>
         </div>
-        <Button 
-          className="gap-2"
-          onClick={() => setCourtModal({ 
-            isOpen: true, 
-            mode: 'create', 
-            court: null 
-          })}
-        >
-          <Plus className="h-4 w-4" />
-          Add New Court
-        </Button>
+        <div className="flex gap-2">
+          {hasPermission('data_io:court:import', 'read') && (
+            <Button 
+              variant="outline" 
+              className="gap-2"
+              onClick={() => setImportWizardOpen(true)}
+            >
+              <Upload className="h-4 w-4" />
+              Import Courts
+            </Button>
+          )}
+          {hasPermission('data_io:court:export', 'read') && (
+            <Button 
+              variant="outline" 
+              className="gap-2"
+              onClick={() => setExportWizardOpen(true)}
+            >
+              <Download className="h-4 w-4" />
+              Export Courts
+            </Button>
+          )}
+          <Button 
+            className="gap-2"
+            onClick={() => setCourtModal({ 
+              isOpen: true, 
+              mode: 'create', 
+              court: null 
+            })}
+          >
+            <Plus className="h-4 w-4" />
+            Add New Court
+          </Button>
+        </div>
       </motion.div>
 
       {/* Summary Cards */}
@@ -332,6 +360,22 @@ export const CourtMasters: React.FC = () => {
         onClose={() => setCourtModal({ isOpen: false, mode: 'create', court: null })}
         court={courtModal.court}
         mode={courtModal.mode}
+      />
+
+      <ImportWizard
+        isOpen={importWizardOpen}
+        onClose={() => setImportWizardOpen(false)}
+        entityType="court"
+        onImportComplete={(job) => {
+          console.log('Court import completed:', job);
+          // Refresh data if needed
+        }}
+      />
+
+      <ExportWizard
+        isOpen={exportWizardOpen}
+        onClose={() => setExportWizardOpen(false)}
+        entityType="court"
       />
     </div>
   );

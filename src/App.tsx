@@ -30,6 +30,7 @@ import { QADashboard } from "./pages/QADashboard";
 import { HearingsCalendar } from "./components/hearings/HearingsCalendar";
 import { HearingsList } from "./components/hearings/HearingsList";
 import { HelpCenter } from "./pages/HelpCenter";
+import { PendingRecordsPage } from "./pages/PendingRecordsPage";
 
 import { AppWithPersistence } from "./components/AppWithPersistence";
 
@@ -149,6 +150,11 @@ const App = () => (
               <Route path="/help" element={
                 <AdminLayout currentUser={currentUser}>
                   <HelpCenter />
+                </AdminLayout>
+              } />
+              <Route path="/pending-records" element={
+                <AdminLayout currentUser={currentUser}>
+                  <PendingRecordsPage />
                 </AdminLayout>
               } />
               <Route path="*" element={<NotFound />} />
