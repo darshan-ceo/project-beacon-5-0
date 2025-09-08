@@ -27,6 +27,10 @@ import { HearingsCalendar } from "@/components/hearings/HearingsCalendar";
 import { HearingsList } from "@/components/hearings/HearingsList";
 import { HelpCenter } from "@/pages/HelpCenter";
 import { HelpDiagnostics } from "@/pages/HelpDiagnostics";
+import { GlossaryPage } from "@/pages/help/GlossaryPage";
+import { APIDocsPage } from "@/pages/help/APIDocsPage";
+import { BestPracticesPage } from "@/pages/help/BestPracticesPage";
+import { ArticlePage } from "@/pages/help/ArticlePage";
 import { PendingRecordsPage } from "@/pages/PendingRecordsPage";
 import { ClientPortal } from "./components/portal/ClientPortal";
 import { ClientLayout } from "./components/layout/ClientLayout";
@@ -151,9 +155,24 @@ const App = () => (
                   <HelpCenter />
                 </AdminLayout>
               } />
-              <Route path="/help/:slug" element={
+              <Route path="/help/glossary" element={
                 <AdminLayout currentUser={currentUser}>
-                  <HelpCenter />
+                  <GlossaryPage />
+                </AdminLayout>
+              } />
+              <Route path="/help/api" element={
+                <AdminLayout currentUser={currentUser}>
+                  <APIDocsPage />
+                </AdminLayout>
+              } />
+              <Route path="/help/best-practices" element={
+                <AdminLayout currentUser={currentUser}>
+                  <BestPracticesPage />
+                </AdminLayout>
+              } />
+              <Route path="/help/articles/:slug" element={
+                <AdminLayout currentUser={currentUser}>
+                  <ArticlePage />
                 </AdminLayout>
               } />
               <Route path="/help/diagnostics" element={

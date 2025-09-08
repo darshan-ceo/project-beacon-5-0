@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Book, Users, Settings, Code, HelpCircle, ExternalLink, BookOpen } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useRBAC } from '@/hooks/useRBAC';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,7 +17,6 @@ import { HelpSearchBar } from '@/components/help/HelpSearchBar';
 import { GlossaryTooltip } from '@/components/help/GlossaryTooltip';
 import { CaseStudyViewer } from '@/components/help/CaseStudyViewer';
 import { GuidedTour } from '@/components/help/GuidedTour';
-import { ArticleViewer } from '@/components/help/ArticleViewer';
 import { featureFlagService } from '@/services/featureFlagService';
 
 interface HelpContent {
@@ -33,14 +33,28 @@ interface HelpContent {
 
 export const HelpCenter: React.FC = () => {
   const { currentUser, hasPermission } = useRBAC();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [helpContent, setHelpContent] = useState<HelpContent[]>([]);
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState('users');
-  const [selectedContent, setSelectedContent] = useState<HelpContent | null>(null);
   const [showTours, setShowTours] = useState(false);
+
+  console.log('[help-fix] Help Center initialized with feature flags');
+
+  // Handle deep-link query parameters
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const openParam = urlParams.get('open');
+    const slugParam = urlParams.get('slug');
+    
+    if (openParam === 'article' && slugParam) {
+      console.log('[help-fix] Deep-link navigation to:', slugParam);
+      navigate(`/help/articles/${slugParam}`, { replace: true });
+    }
+  }, [navigate]);
 
   // Load help content from content.json
   useEffect(() => {
@@ -145,30 +159,30 @@ export const HelpCenter: React.FC = () => {
       action: () => setShowTours(true)
     },
     {
-      title: 'Getting Started',
-      description: 'Learn the basics of the system',
+      title: 'View Glossary',
+      description: 'Browse legal and technical terms',
       icon: BookOpen,
       action: () => {
-        const gettingStarted = helpContent.find(item => item.id === 'getting-started');
-        if (gettingStarted) setSelectedContent(gettingStarted);
+        console.log('[help-fix] Navigating to glossary');
+        navigate('/help/glossary');
       }
     },
     {
-      title: 'Case Management',
-      description: 'Create and manage legal cases',
+      title: 'API Documentation',
+      description: 'System integration and API reference',
+      icon: Code,
+      action: () => {
+        console.log('[help-fix] Navigating to API docs');
+        navigate('/help/api');
+      }
+    },
+    {
+      title: 'Best Practices',
+      description: 'Expert guidance and workflows',
       icon: Users,
       action: () => {
-        const caseGuide = helpContent.find(item => item.id === 'case-creation-tutorial');
-        if (caseGuide) setSelectedContent(caseGuide);
-      }
-    },
-    {
-      title: 'Document Management',
-      description: 'Upload and organize documents',
-      icon: Book,
-      action: () => {
-        const docGuide = helpContent.find(item => item.id === 'document-management-guide');
-        if (docGuide) setSelectedContent(docGuide);
+        console.log('[help-fix] Navigating to best practices');
+        navigate('/help/best-practices');
       }
     }
   ];
@@ -177,7 +191,10 @@ export const HelpCenter: React.FC = () => {
     <Card 
       key={content.id} 
       className="cursor-pointer hover:shadow-md transition-shadow"
-      onClick={() => setSelectedContent(content)}
+      onClick={() => {
+        console.log('[help-fix] Navigating to article:', content.slug || content.id);
+        navigate(`/help/articles/${content.slug || content.id}?from=/help`);
+      }}
     >
       <CardHeader>
         <div className="flex items-start justify-between">
@@ -273,7 +290,8 @@ export const HelpCenter: React.FC = () => {
                   className="p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
                   onClick={() => {
                     if (result.type === 'article') {
-                      setSelectedContent(result.item);
+                      console.log('[help-fix] Navigating to search result:', result.item.slug || result.item.id);
+                      navigate(`/help/articles/${result.item.slug || result.item.id}?from=/help`);
                     }
                   }}
                 >
@@ -341,13 +359,7 @@ export const HelpCenter: React.FC = () => {
           ))}
         </Tabs>
 
-        {/* Article Viewer Modal */}
-        {selectedContent && (
-          <ArticleViewer
-            article={selectedContent as any}
-            onClose={() => setSelectedContent(null)}
-          />
-        )}
+        {/* Modal-based ArticleViewer removed - now using routes */}
 
         {/* Guided Tours */}
         {showTours && featureFlagService.isEnabled('help_tours_v1') && (

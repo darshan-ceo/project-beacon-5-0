@@ -99,6 +99,37 @@ class FeatureFlagService {
       isEnabled: qaMode === 'on',
       version: qaMode === 'on' ? 'v1' : undefined
     });
+
+    // New Help Center Features (UAT enabled)
+    this.flags.set('help_center_v1', {
+      key: 'help_center_v1',
+      isEnabled: true, // ON in UAT
+      version: 'v1'
+    });
+
+    this.flags.set('help_routes_fix_v1', {
+      key: 'help_routes_fix_v1',
+      isEnabled: true, // ON in UAT
+      version: 'v1'
+    });
+
+    this.flags.set('help_glossary_fix_v1', {
+      key: 'help_glossary_fix_v1',
+      isEnabled: true, // ON in UAT
+      version: 'v1'
+    });
+
+    this.flags.set('help_tour_fix_v1', {
+      key: 'help_tour_fix_v1',
+      isEnabled: true, // ON in UAT
+      version: 'v1'
+    });
+
+    this.flags.set('tooltips_v1', {
+      key: 'tooltips_v1',
+      isEnabled: true, // ON in UAT
+      version: 'v1'
+    });
   }
 
   /**

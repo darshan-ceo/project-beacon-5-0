@@ -1,0 +1,121 @@
+# API Documentation
+
+## Overview
+
+The Legal Case Management System provides RESTful APIs for integration with external systems and custom applications.
+
+## Authentication
+
+All API requests require authentication using JWT tokens.
+
+```bash
+curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+     -H "Content-Type: application/json" \
+     https://api.example.com/v1/cases
+```
+
+## Base URL
+
+Production: `https://api.legalsystem.com/v1`
+Staging: `https://staging-api.legalsystem.com/v1`
+
+## Rate Limiting
+
+- 1000 requests per hour per API key
+- 429 status code returned when limit exceeded
+
+## Cases API
+
+### List Cases
+
+```http
+GET /v1/cases
+```
+
+**Parameters:**
+- `limit` (optional): Number of results (default: 50, max: 100)
+- `offset` (optional): Pagination offset (default: 0)
+- `status` (optional): Filter by case status
+
+**Response:**
+```json
+{
+  "data": [
+    {
+      "id": "case-123",
+      "title": "Sample Case",
+      "status": "active",
+      "clientId": "client-456",
+      "createdAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-15T10:00:00Z"
+    }
+  ],
+  "pagination": {
+    "total": 100,
+    "limit": 50,
+    "offset": 0
+  }
+}
+```
+
+### Create Case
+
+```http
+POST /v1/cases
+```
+
+**Request Body:**
+```json
+{
+  "title": "New Case Title",
+  "clientId": "client-456",
+  "caseType": "litigation",
+  "priority": "high",
+  "description": "Case description"
+}
+```
+
+## Documents API
+
+### Upload Document
+
+```http
+POST /v1/documents
+Content-Type: multipart/form-data
+```
+
+### Get Document
+
+```http
+GET /v1/documents/{documentId}
+```
+
+## Error Handling
+
+All errors return JSON with error details:
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid input parameters",
+    "details": [
+      {
+        "field": "clientId",
+        "message": "Client ID is required"
+      }
+    ]
+  }
+}
+```
+
+## Status Codes
+
+- `200` - Success
+- `201` - Created
+- `400` - Bad Request
+- `401` - Unauthorized
+- `403` - Forbidden
+- `404` - Not Found
+- `429` - Rate Limited
+- `500` - Internal Server Error
