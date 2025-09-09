@@ -4,17 +4,18 @@ interface Document {
   name: string;
   type: string;
   size: number;
-  caseId?: string;
-  clientId?: string;
-  uploadedBy: string;
-  uploadedById?: string;
-  uploadedByName?: string;
+  caseId: string; // Required to match AppStateContext
+  clientId: string; // Required to match AppStateContext
+  uploadedById: string; // Required to match AppStateContext
+  uploadedByName: string; // Required to match AppStateContext
   uploadedAt: string;
   tags: string[];
-  shared: boolean;
-  isShared?: boolean;
+  isShared: boolean;
   path: string;
   folderId?: string;
+  // Legacy support
+  uploadedBy?: string;
+  shared?: boolean;
 }
 
 interface Folder {
@@ -213,14 +214,18 @@ class MockDataProvider implements DataProvider {
         name: file.name,
         type: file.type,
         size: file.size,
-        caseId: options.caseId,
-        clientId: options.clientId,
-        uploadedBy: 'current-user',
+        caseId: options.caseId || 'default-case',
+        clientId: options.clientId || 'default-client',
+        uploadedById: 'current-user-id',
+        uploadedByName: 'Current User',
         uploadedAt: new Date().toISOString(),
         tags: options.tags || [],
-        shared: false,
+        isShared: false,
         path: options.folderId ? `folder-${options.folderId}/${file.name}` : `/${file.name}`,
-        folderId: options.folderId
+        folderId: options.folderId,
+        // Legacy support
+        uploadedBy: 'current-user',
+        shared: false
       };
       
       documents.push(newDoc);

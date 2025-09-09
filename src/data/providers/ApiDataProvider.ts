@@ -5,17 +5,18 @@ interface Document {
   name: string;
   type: string;
   size: number;
-  caseId?: string;
-  clientId?: string;
-  uploadedBy: string;
-  uploadedById?: string;
-  uploadedByName?: string;
+  caseId: string; // Required to match AppStateContext
+  clientId: string; // Required to match AppStateContext
+  uploadedById: string; // Required to match AppStateContext
+  uploadedByName: string; // Required to match AppStateContext
   uploadedAt: string;
   tags: string[];
-  shared: boolean;
-  isShared?: boolean;
+  isShared: boolean;
   path: string;
   folderId?: string;
+  // Legacy support
+  uploadedBy?: string;
+  shared?: boolean;
 }
 
 interface Folder {
