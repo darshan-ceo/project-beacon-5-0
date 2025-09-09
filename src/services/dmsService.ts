@@ -187,12 +187,22 @@ export const dmsService = {
   folders: {
     list: async (parentId?: string): Promise<Folder[]> => {
       await new Promise(resolve => setTimeout(resolve, 300));
-      return mockFolders.filter(f => f.parentId === parentId);
+      
+      // Load folders from localStorage to get all folders including user-created ones
+      const storedFolders = localStorage.getItem('dms_folders');
+      const allFolders = storedFolders ? JSON.parse(storedFolders) : mockFolders;
+      
+      return allFolders.filter(f => f.parentId === parentId);
     },
 
     listAll: async (): Promise<Folder[]> => {
       await new Promise(resolve => setTimeout(resolve, 300));
-      return [...mockFolders];
+      
+      // Load folders from localStorage to get all folders including user-created ones
+      const storedFolders = localStorage.getItem('dms_folders');
+      const allFolders = storedFolders ? JSON.parse(storedFolders) : mockFolders;
+      
+      return [...allFolders];
     },
 
     create: async (
