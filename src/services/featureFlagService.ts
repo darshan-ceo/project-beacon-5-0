@@ -130,6 +130,13 @@ class FeatureFlagService {
       isEnabled: true, // ON in UAT
       version: 'v1'
     });
+
+    // Stage Context Open in New Tab Feature (UAT enabled)
+    this.flags.set('stage_context_open_newtab_v1', {
+      key: 'stage_context_open_newtab_v1',
+      isEnabled: true, // ON in UAT
+      version: 'v1'
+    });
   }
 
   /**

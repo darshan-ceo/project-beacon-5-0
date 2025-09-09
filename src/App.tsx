@@ -32,6 +32,7 @@ import { APIDocsPage } from "@/pages/help/APIDocsPage";
 import { BestPracticesPage } from "@/pages/help/BestPracticesPage";
 import { ArticlePage } from "@/pages/help/ArticlePage";
 import { PendingRecordsPage } from "@/pages/PendingRecordsPage";
+import StageContextPage from "@/pages/StageContextPage";
 import { ClientPortal } from "./components/portal/ClientPortal";
 import { ClientLayout } from "./components/layout/ClientLayout";
 import { ClientRouteGuard } from "./components/ui/client-route-guard";
@@ -174,6 +175,9 @@ const App = () => (
                 <AdminLayout currentUser={currentUser}>
                   <ArticlePage />
                 </AdminLayout>
+              } />
+              <Route path="/cases/:caseId/stages/:instanceId/context" element={
+                <StageContextPage />
               } />
               <Route path="/help/diagnostics" element={
                 <AdminLayout currentUser={currentUser}>

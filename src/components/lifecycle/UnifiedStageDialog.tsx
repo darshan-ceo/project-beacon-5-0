@@ -18,8 +18,10 @@ import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { featureFlagService } from '@/services/featureFlagService';
+import { contextService } from '@/services/contextService';
+import { ContextPanel } from './ContextPanel';
+import { ContextSplitButton } from './ContextSplitButton';
 import { lifecycleService } from '@/services/lifecycleService';
-import { ContextPanel } from '@/components/lifecycle/ContextPanel';
 import { TransitionType, ChecklistItem, OrderDetails, ReasonEnum, LifecycleState } from '@/types/lifecycle';
 import { 
   ArrowRight, 
@@ -70,6 +72,7 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
   const lifecycleCyclesEnabled = featureFlagService.isEnabled('lifecycle_cycles_v1');
   const checklistEnabled = featureFlagService.isEnabled('stage_checklist_v1');
   const contextSnapshotEnabled = featureFlagService.isEnabled('stage_context_snapshot_v1');
+  const contextNewTabEnabled = featureFlagService.isEnabled('stage_context_open_newtab_v1');
 
   console.log('UnifiedStageDialog feature flags:', {
     lifecycleCyclesEnabled,
@@ -99,6 +102,7 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
     itemLabel: '',
     note: ''
   });
+  const [inlineContextOpen, setInlineContextOpen] = useState(false);
   const { toast } = useToast();
 
   // Load lifecycle data
@@ -319,12 +323,23 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
           <DialogHeader>
             <div className="flex items-center justify-between">
               <DialogTitle>Manage Case Stage</DialogTitle>
-              {/* Context Panel Integration */}
+              {/* Context Integration */}
               {contextSnapshotEnabled && caseId && (
-                <ContextPanel 
-                  caseId={caseId}
-                  stageInstanceId={lifecycleState?.currentInstance?.id || 'temp-instance-id'}
-                />
+                <>
+                  {contextNewTabEnabled ? (
+                    <ContextSplitButton
+                      caseId={caseId}
+                      stageInstanceId={lifecycleState?.currentInstance?.id || 'temp-instance-id'}
+                      onOpenInline={() => setInlineContextOpen(!inlineContextOpen)}
+                      isInlineOpen={inlineContextOpen}
+                    />
+                  ) : (
+                    <ContextPanel 
+                      caseId={caseId}
+                      stageInstanceId={lifecycleState?.currentInstance?.id || 'temp-instance-id'}
+                    />
+                  )}
+                </>
               )}
             </div>
           </DialogHeader>
