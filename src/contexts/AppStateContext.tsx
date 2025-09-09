@@ -117,20 +117,46 @@ interface Judge {
   id: string;
   name: string;
   designation: string;
+  status: 'Active' | 'On Leave' | 'Retired' | 'Transferred' | 'Deceased';
   courtId: string; // FK to Court.id
+  bench?: string;
+  jurisdiction?: string;
+  city?: string;
+  state?: string;
   appointmentDate: string;
-  specialization: string[];
-  totalCases: number;
-  avgDisposalTime: string;
-  retirementDate: string;
-  status: 'Active' | 'On Leave' | 'Retired';
-  contactInfo: {
+  retirementDate?: string;
+  yearsOfService?: number; // computed field
+  specialization: string[]; // from Admin taxonomy
+  chambers?: string;
+  email?: string;
+  phone?: string;
+  assistant?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+  };
+  address?: any; // Support both legacy string and enhanced address for address master integration
+  availability?: {
+    days?: ('Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat')[];
+    startTime?: string; // 24h format
+    endTime?: string; // 24h format
+    notes?: string;
+  };
+  tags?: string[];
+  notes?: string;
+  // Legacy fields for backwards compatibility
+  totalCases?: number;
+  avgDisposalTime?: string;
+  contactInfo?: {
     chambers: string;
     phone?: string;
     email?: string;
   };
-  address?: any; // Support both legacy string and enhanced address for address master integration
   addressId?: string; // For address master integration
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: string;
+  updatedBy?: string;
 }
 
 interface Document {

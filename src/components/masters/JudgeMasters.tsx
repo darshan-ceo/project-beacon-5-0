@@ -20,6 +20,9 @@ import { useRBAC } from '@/hooks/useRBAC';
 import { featureFlagService } from '@/services/featureFlagService';
 
 
+import { JudgeForm } from '@/components/masters/judges/JudgeForm';
+import { FilterDropdown } from '@/components/ui/filter-dropdown';
+
 export const JudgeMasters: React.FC = () => {
   const { state, dispatch } = useAppState();
   const { hasPermission } = useRBAC();
@@ -31,8 +34,8 @@ export const JudgeMasters: React.FC = () => {
   });
   const [filterCourt, setFilterCourt] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [filterAvailability, setFilterAvailability] = useState<string>('all');
-  const [isAddJudgeOpen, setIsAddJudgeOpen] = useState(false);
+  const [filterDesignation, setFilterDesignation] = useState<string>('all');
+  const [filterSpecialization, setFilterSpecialization] = useState<string>('all');
   const [importWizardOpen, setImportWizardOpen] = useState(false);
   const [exportWizardOpen, setExportWizardOpen] = useState(false);
 
@@ -46,12 +49,365 @@ export const JudgeMasters: React.FC = () => {
     const matchesSearch = judge.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          judge.designation.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          courtName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         judge.specialization.some(spec => spec.toLowerCase().includes(searchTerm.toLowerCase()));
+                         judge.specialization?.some(spec => spec.toLowerCase().includes(searchTerm.toLowerCase()));
     
+    const matchesCourt = filterCourt === 'all' || courtName === filterCourt;
     const matchesStatus = filterStatus === 'all' || judge.status === filterStatus;
+    const matchesDesignation = filterDesignation === 'all' || judge.designation === filterDesignation;
+    const matchesSpecialization = filterSpecialization === 'all' || 
+                                  judge.specialization?.includes(filterSpecialization);
     
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesCourt && matchesStatus && matchesDesignation && matchesSpecialization;
   });
+
+  const calculateYearsOfService = (appointmentDate: string) => {
+    if (!appointmentDate) return 0;
+    const now = new Date();
+    const appointment = new Date(appointmentDate);
+    return Math.floor((now.getTime() - appointment.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'Active': return 'bg-success text-success-foreground';
+      case 'On Leave': return 'bg-warning text-warning-foreground';
+      case 'Retired': return 'bg-muted text-muted-foreground';
+      case 'Transferred': return 'bg-info text-info-foreground';
+      case 'Deceased': return 'bg-destructive text-destructive-foreground';
+      default: return 'bg-muted text-muted-foreground';
+    }
+  };
+
+  const uniqueCourtNames = [...new Set(state.judges.map(judge => getCourtName(judge.courtId)))];
+  const uniqueDesignations = [...new Set(state.judges.map(judge => judge.designation))];
+  const uniqueSpecializations = [...new Set(state.judges.flatMap(judge => judge.specialization || []))];
+
+  const handleJudgeAction = (judge: Judge, action: 'view' | 'edit') => {
+    setJudgeModal({
+      isOpen: true,
+      mode: action,
+      judge
+    });
+  };
+
+  const handleAddJudge = () => {
+    setJudgeModal({
+      isOpen: true,
+      mode: 'create',
+      judge: null
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex justify-between items-center"
+      >
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Judge Masters</h1>
+          <p className="text-muted-foreground mt-2">Manage judge profiles, assignments, and specializations</p>
+        </div>
+        <div className="flex gap-2">
+          {featureFlagService.isEnabled('data_io_v1') && hasPermission('masters.judges.export', 'write') && (
+            <Button 
+              variant="outline" 
+              className="gap-2"
+              onClick={() => setImportWizardOpen(true)}
+            >
+              <Upload className="h-4 w-4" />
+              Import Judges
+            </Button>
+          )}
+          {featureFlagService.isEnabled('data_io_v1') && hasPermission('masters.judges.export', 'write') && (
+            <Button 
+              variant="outline" 
+              className="gap-2"
+              onClick={() => setExportWizardOpen(true)}
+            >
+              <Download className="h-4 w-4" />
+              Export Judges
+            </Button>
+          )}
+          <Button onClick={handleAddJudge} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Add New Judge
+          </Button>
+        </div>
+      </motion.div>
+
+      {/* Summary Cards */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="grid grid-cols-1 md:grid-cols-4 gap-6"
+      >
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Judges</CardTitle>
+            <User className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{state.judges.length}</div>
+            <p className="text-xs text-muted-foreground">
+              Across all courts
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Judges</CardTitle>
+            <Scale className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {state.judges.filter(j => j.status === 'Active').length}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Currently serving
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Available Now</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {state.judges.filter(j => j.status === 'Active').length}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Ready for hearings
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Average Experience</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {state.judges.length > 0 ? 
+                Math.round(state.judges.reduce((acc, j) => acc + calculateYearsOfService(j.appointmentDate), 0) / state.judges.length) : 0}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Years of service
+            </p>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Enhanced Filters */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="flex flex-col lg:flex-row gap-4"
+      >
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search judges by name, designation, court, or specialization..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        
+        <div className="flex flex-wrap gap-3">
+          <FilterDropdown
+            label="Court"
+            value={filterCourt}
+            options={uniqueCourtNames.map(name => ({ label: name, value: name }))}
+            onChange={setFilterCourt}
+          />
+          
+          <FilterDropdown
+            label="Status"
+            value={filterStatus}
+            options={[
+              { label: 'Active', value: 'Active' },
+              { label: 'On Leave', value: 'On Leave' },
+              { label: 'Retired', value: 'Retired' },
+              { label: 'Transferred', value: 'Transferred' }
+            ]}
+            onChange={setFilterStatus}
+          />
+
+          <FilterDropdown
+            label="Designation"
+            value={filterDesignation}
+            options={uniqueDesignations.map(designation => ({ label: designation, value: designation }))}
+            onChange={setFilterDesignation}
+          />
+
+          <FilterDropdown
+            label="Specialization"
+            value={filterSpecialization}
+            options={uniqueSpecializations.map(spec => ({ label: spec, value: spec }))}
+            onChange={setFilterSpecialization}
+          />
+        </div>
+      </motion.div>
+
+      {/* Judges Table */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle>Judges Directory</CardTitle>
+            <CardDescription>
+              Comprehensive list of judges with court assignments, specializations, and performance metrics
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Court & Bench</TableHead>
+                  <TableHead>City/State</TableHead>
+                  <TableHead>Designation</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Years of Service</TableHead>
+                  <TableHead>Specializations</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredJudges.map((judge, index) => (
+                  <motion.tr
+                    key={judge.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="hover:bg-muted/50"
+                  >
+                    <TableCell>
+                      <div className="flex items-center space-x-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src="" alt={judge.name} />
+                          <AvatarFallback className="text-xs">
+                            {judge.name.split(' ').map(n => n[0]).join('')}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="font-medium">{judge.name}</div>
+                          <div className="text-sm text-muted-foreground">{judge.chambers || judge.contactInfo?.chambers}</div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{getCourtName(judge.courtId)}</div>
+                        {judge.bench && <div className="text-sm text-muted-foreground">{judge.bench}</div>}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        {[judge.city, judge.state].filter(Boolean).join(', ') || 'Not specified'}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{judge.designation}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getStatusColor(judge.status)}>
+                        {judge.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {calculateYearsOfService(judge.appointmentDate)} years
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {judge.specialization?.slice(0, 2).map((spec) => (
+                          <Badge 
+                            key={spec} 
+                            variant="secondary" 
+                            className={`text-xs ${spec === 'GST/Indirect Tax' ? 'border-primary text-primary' : ''}`}
+                          >
+                            {spec}
+                          </Badge>
+                        ))}
+                        {judge.specialization && judge.specialization.length > 2 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{judge.specialization.length - 2}
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleJudgeAction(judge, 'view')}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleJudgeAction(judge, 'edit')}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </motion.tr>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Judge Modal */}
+      <JudgeModal
+        isOpen={judgeModal.isOpen}
+        onClose={() => setJudgeModal(prev => ({ ...prev, isOpen: false }))}
+        judge={judgeModal.judge}
+        mode={judgeModal.mode}
+      />
+
+      {/* Import/Export Wizards */}
+      {importWizardOpen && (
+        <ImportWizard
+          open={importWizardOpen}
+          onClose={() => setImportWizardOpen(false)}
+          entityType="judges"
+          onImportComplete={(data) => {
+            // Handle judge import
+            console.log('Imported judges:', data);
+            setImportWizardOpen(false);
+          }}
+        />
+      )}
+
+      {exportWizardOpen && (
+        <ExportWizard
+          open={exportWizardOpen}
+          onClose={() => setExportWizardOpen(false)}
+          entityType="judges"
+          data={filteredJudges}
+          filename={`judges-export-${new Date().toISOString().split('T')[0]}`}
+        />
+      )}
+    </div>
+  );
+};
 
   const getCourtTypeColor = (type: string) => {
     switch (type) {

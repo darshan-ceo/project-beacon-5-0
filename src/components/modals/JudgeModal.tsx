@@ -25,183 +25,116 @@ interface JudgeModalProps {
   mode: 'create' | 'edit' | 'view';
 }
 
+import { JudgeForm } from '@/components/masters/judges/JudgeForm';
+
+interface JudgeModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  judge?: Judge | null;
+  mode: 'create' | 'edit' | 'view';
+}
+
 export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: judgeData, mode }) => {
-  const { state, dispatch } = useAppState();
-  const [formData, setFormData] = useState<{
-    name: string;
-    designation: string;
-    court: string;
-    appointmentDate: Date;
-    specialization: string[];
-    retirementDate: Date;
-    status: 'Active' | 'On Leave' | 'Retired';
-    chambers: string;
-    phone: string;
-    email: string;
-    address?: EnhancedAddressData;
-  }>({
-    name: '',
-    designation: '',
-    court: '',
-    appointmentDate: new Date(),
-    specialization: [],
-    retirementDate: new Date(),
-    status: 'Active',
-    chambers: '',
-    phone: '',
-    email: '',
-    address: {
-      line1: '',
-      line2: '',
-      locality: '',
-      district: '',
-      cityId: '',
-      stateId: '',
-      pincode: '',
-      countryId: 'IN',
-      source: 'manual'
-    } as EnhancedAddressData
-  });
-  const [isAddressMasterEnabled, setIsAddressMasterEnabled] = useState(false);
+  const { dispatch } = useAppState();
 
-  useEffect(() => {
-    setIsAddressMasterEnabled(featureFlagService.isEnabled('address_master_v1'));
-    
-    if (judgeData && (mode === 'edit' || mode === 'view')) {
-      setFormData({
-        name: judgeData.name,
-        designation: judgeData.designation,
-        court: judgeData.courtId,
-        appointmentDate: new Date(judgeData.appointmentDate),
-        specialization: judgeData.specialization,
-        retirementDate: new Date(judgeData.retirementDate),
-        status: judgeData.status,
-        chambers: judgeData.contactInfo.chambers,
-        phone: judgeData.contactInfo.phone || '',
-        email: judgeData.contactInfo.email || '',
-        address: (judgeData as any).address || {
-          line1: '',
-          line2: '',
-          locality: '',
-          district: '',
-          cityId: '',
-          stateId: '',
-          pincode: '',
-          countryId: 'IN',
-          source: 'manual'
-        }
-      });
-    } else if (mode === 'create') {
-      setFormData({
-        name: '',
-        designation: '',
-        court: '',
-        appointmentDate: new Date(),
-        specialization: [],
-        retirementDate: new Date(),
-        status: 'Active',
-        chambers: '',
-        phone: '',
-        email: '',
-        address: {
-          line1: '',
-          line2: '',
-          locality: '',
-          district: '',
-          cityId: '',
-          stateId: '',
-          pincode: '',
-          countryId: 'IN',
-          source: 'manual'
-        }
-      });
-    }
-  }, [judgeData, mode]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (mode === 'create') {
-      const newJudge: Judge = {
-        id: Date.now().toString(),
-        name: formData.name,
-        designation: formData.designation,
-        courtId: formData.court,
-        appointmentDate: formData.appointmentDate.toISOString().split('T')[0],
-        specialization: formData.specialization,
-        totalCases: 0,
-        avgDisposalTime: '6 months',
-        retirementDate: formData.retirementDate.toISOString().split('T')[0],
-        status: formData.status,
-        contactInfo: {
+  const handleSubmit = async (formData: any) => {
+    try {
+      if (mode === 'create') {
+        const newJudge: Judge = {
+          id: Date.now().toString(),
+          name: formData.name,
+          designation: formData.designation,
+          status: formData.status,
+          courtId: formData.courtId,
+          bench: formData.bench,
+          jurisdiction: formData.jurisdiction,
+          city: formData.city,
+          state: formData.state,
+          appointmentDate: formData.appointmentDate?.toISOString().split('T')[0] || '',
+          retirementDate: formData.retirementDate?.toISOString().split('T')[0],
+          yearsOfService: formData.appointmentDate ? 
+            Math.floor((new Date().getTime() - formData.appointmentDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : 0,
+          specialization: formData.specializations || [],
           chambers: formData.chambers,
+          email: formData.email,
           phone: formData.phone,
-          email: formData.email
-        },
-        ...(isAddressMasterEnabled && { address: formData.address })
-      };
+          assistant: formData.assistant,
+          address: formData.address,
+          availability: formData.availability,
+          tags: formData.tags,
+          notes: formData.notes,
+          // Legacy fields
+          totalCases: 0,
+          avgDisposalTime: '0 days',
+          contactInfo: {
+            chambers: formData.chambers || '',
+            phone: formData.phone,
+            email: formData.email
+          },
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          createdBy: 'system',
+          updatedBy: 'system'
+        };
 
-      dispatch({ type: 'ADD_JUDGE', payload: newJudge });
-      toast({
-        title: "Judge Added",
-        description: `Judge "${formData.name}" has been added successfully.`,
-      });
-    } else if (mode === 'edit' && judgeData) {
-      const updatedJudge: Judge = {
-        ...judgeData,
-        name: formData.name,
-        designation: formData.designation,
-        courtId: formData.court,
-        appointmentDate: formData.appointmentDate.toISOString().split('T')[0],
-        specialization: formData.specialization,
-        retirementDate: formData.retirementDate.toISOString().split('T')[0],
-        status: formData.status,
-        contactInfo: {
+        dispatch({ type: 'ADD_JUDGE', payload: newJudge });
+        toast({
+          title: "Judge Added",
+          description: `Judge "${formData.name}" has been added successfully.`,
+        });
+      } else if (mode === 'edit' && judgeData) {
+        const updatedJudge: Judge = {
+          ...judgeData,
+          name: formData.name,
+          designation: formData.designation,
+          status: formData.status,
+          courtId: formData.courtId,
+          bench: formData.bench,
+          jurisdiction: formData.jurisdiction,
+          city: formData.city,
+          state: formData.state,
+          appointmentDate: formData.appointmentDate?.toISOString().split('T')[0] || judgeData.appointmentDate,
+          retirementDate: formData.retirementDate?.toISOString().split('T')[0],
+          yearsOfService: formData.appointmentDate ? 
+            Math.floor((new Date().getTime() - formData.appointmentDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : judgeData.yearsOfService,
+          specialization: formData.specializations || [],
           chambers: formData.chambers,
+          email: formData.email,
           phone: formData.phone,
-          email: formData.email
-        },
-        ...(isAddressMasterEnabled && { address: formData.address })
-      };
+          assistant: formData.assistant,
+          address: formData.address,
+          availability: formData.availability,
+          tags: formData.tags,
+          notes: formData.notes,
+          contactInfo: {
+            chambers: formData.chambers || '',
+            phone: formData.phone,
+            email: formData.email
+          },
+          updatedAt: new Date().toISOString(),
+          updatedBy: 'system'
+        };
 
-      dispatch({ type: 'UPDATE_JUDGE', payload: updatedJudge });
-      toast({
-        title: "Judge Updated",
-        description: `Judge "${formData.name}" has been updated successfully.`,
-      });
-    }
+        dispatch({ type: 'UPDATE_JUDGE', payload: updatedJudge });
+        toast({
+          title: "Judge Updated",
+          description: `Judge "${formData.name}" has been updated successfully.`,
+        });
+      }
 
-    onClose();
-  };
-
-  const handleDelete = () => {
-    if (judgeData) {
-      dispatch({ type: 'DELETE_JUDGE', payload: judgeData.id });
-      toast({
-        title: "Judge Deleted",
-        description: `Judge "${judgeData.name}" has been deleted.`,
-      });
       onClose();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save judge. Please try again.",
+        variant: "destructive"
+      });
     }
   };
-
-  const handleSpecializationChange = (specialization: string) => {
-    setFormData(prev => ({
-      ...prev,
-      specialization: prev.specialization.includes(specialization)
-        ? prev.specialization.filter(s => s !== specialization)
-        : [...prev.specialization, specialization]
-    }));
-  };
-
-  const specializationOptions = [
-    'Tax Law', 'Corporate Law', 'Civil Law', 'Criminal Law', 'Constitutional Law',
-    'Commercial Law', 'Property Law', 'Family Law', 'Labour Law', 'Environmental Law'
-  ];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {mode === 'create' && 'Add New Judge'}
@@ -210,229 +143,12 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="name">Judge Name</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                disabled={mode === 'view'}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="designation">Designation</Label>
-              <Select 
-                value={formData.designation} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, designation: value }))}
-                disabled={mode === 'view'}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select designation" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Chief Justice">Chief Justice</SelectItem>
-                  <SelectItem value="Justice">Justice</SelectItem>
-                  <SelectItem value="Additional Judge">Additional Judge</SelectItem>
-                  <SelectItem value="Judicial Member">Judicial Member</SelectItem>
-                  <SelectItem value="Technical Member">Technical Member</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="court">Court</Label>
-            <Select 
-              value={formData.court} 
-              onValueChange={(value) => setFormData(prev => ({ ...prev, court: value }))}
-              disabled={mode === 'view'}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select court" />
-              </SelectTrigger>
-              <SelectContent>
-                {state.courts.map((court) => (
-                  <SelectItem key={court.id} value={court.name}>
-                    {court.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Appointment Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !formData.appointmentDate && "text-muted-foreground"
-                    )}
-                    disabled={mode === 'view'}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.appointmentDate ? format(formData.appointmentDate, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={formData.appointmentDate}
-                    onSelect={(date) => date && setFormData(prev => ({ ...prev, appointmentDate: date }))}
-                    initialFocus
-                    className="pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div>
-              <Label>Retirement Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !formData.retirementDate && "text-muted-foreground"
-                    )}
-                    disabled={mode === 'view'}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.retirementDate ? format(formData.retirementDate, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={formData.retirementDate}
-                    onSelect={(date) => date && setFormData(prev => ({ ...prev, retirementDate: date }))}
-                    initialFocus
-                    className="pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="status">Status</Label>
-            <Select 
-              value={formData.status} 
-              onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as any }))}
-              disabled={mode === 'view'}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Active">Active</SelectItem>
-                <SelectItem value="On Leave">On Leave</SelectItem>
-                <SelectItem value="Retired">Retired</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label>Specialization</Label>
-            <div className="grid grid-cols-3 gap-2 mt-2">
-              {specializationOptions.map((spec) => (
-                <div key={spec} className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id={spec}
-                    checked={formData.specialization.includes(spec)}
-                    onChange={() => handleSpecializationChange(spec)}
-                    disabled={mode === 'view'}
-                    className="rounded"
-                  />
-                  <Label htmlFor={spec} className="text-sm">{spec}</Label>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="chambers">Chambers</Label>
-            <Input
-              id="chambers"
-              value={formData.chambers}
-              onChange={(e) => setFormData(prev => ({ ...prev, chambers: e.target.value }))}
-              disabled={mode === 'view'}
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="phone">Phone</Label>
-              <Input
-                id="phone"
-                value={formData.phone}
-                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                disabled={mode === 'view'}
-              />
-            </div>
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                disabled={mode === 'view'}
-              />
-            </div>
-          </div>
-
-          {/* Address Information */}
-          {isAddressMasterEnabled && (
-            <>
-              <Separator />
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium flex items-center space-x-2">
-                  <MapPin className="h-4 w-4" />
-                  <span>Address Information</span>
-                </h3>
-                
-                {mode !== 'view' ? (
-                  <AddressView 
-                    address={formData.address} 
-                    showSource={true}
-                    className="border rounded-lg p-4"
-                  />
-                ) : (
-                  <AddressView 
-                    address={formData.address} 
-                    showSource={true}
-                    className="border rounded-lg p-4"
-                  />
-                )}
-              </div>
-            </>
-          )}
-
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              {mode === 'view' ? 'Close' : 'Cancel'}
-            </Button>
-            {mode === 'edit' && (
-              <Button type="button" variant="destructive" onClick={handleDelete}>
-                Delete Judge
-              </Button>
-            )}
-            {mode !== 'view' && (
-              <Button type="submit">
-                {mode === 'create' ? 'Add Judge' : 'Update Judge'}
-              </Button>
-            )}
-          </div>
-        </form>
+        <JudgeForm
+          initialData={judgeData}
+          onSubmit={handleSubmit}
+          onCancel={onClose}
+          mode={mode}
+        />
       </DialogContent>
     </Dialog>
   );
