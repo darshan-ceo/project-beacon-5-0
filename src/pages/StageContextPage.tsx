@@ -105,7 +105,7 @@ const StageContextPage: React.FC = () => {
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Link to="/cases" className="hover:text-foreground">Cases</Link>
               <span>/</span>
-              <Link to={`/cases/${caseId}`} className="hover:text-foreground">
+              <Link to="/cases" state={{ highlightCaseId: caseId }} className="hover:text-foreground">
                 {currentCase?.title || 'Case Details'}
               </Link>
               <span>/</span>
@@ -118,7 +118,7 @@ const StageContextPage: React.FC = () => {
               </Badge>
             </div>
           </div>
-          <Button variant="outline" onClick={() => navigate(`/cases/${caseId}`)}>
+          <Button variant="outline" onClick={() => navigate('/cases', { state: { highlightCaseId: caseId } })}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Case
           </Button>
