@@ -183,7 +183,7 @@ const log = (level: 'success' | 'error', tab: string, action: string, details?: 
 };
 
 export const dmsService = {
-  // Folder Management
+// Folder Management
   folders: {
     list: async (parentId?: string): Promise<Folder[]> => {
       await new Promise(resolve => setTimeout(resolve, 300));
@@ -195,7 +195,12 @@ export const dmsService = {
       return [...mockFolders];
     },
 
-    create: async (name: string, parentId?: string, caseId?: string): Promise<Folder> => {
+    create: async (
+      name: string, 
+      parentId?: string, 
+      caseId?: string,
+      dispatch?: React.Dispatch<AppAction>
+    ): Promise<Folder> => {
       await new Promise(resolve => setTimeout(resolve, 500));
       
       // Validate unique name within parent
@@ -218,6 +223,12 @@ export const dmsService = {
 
       mockFolders.push(newFolder);
       saveMockFolders(); // Persist to localStorage
+      
+      // Sync with AppStateContext for persistence
+      if (dispatch) {
+        dispatch({ type: 'ADD_FOLDER', payload: newFolder });
+      }
+      
       log('success', 'DMS', 'createFolder', { folderId: newFolder.id, name });
       
       toast({
@@ -228,7 +239,11 @@ export const dmsService = {
       return newFolder;
     },
 
-    rename: async (folderId: string, newName: string): Promise<void> => {
+    rename: async (
+      folderId: string, 
+      newName: string,
+      dispatch?: React.Dispatch<AppAction>
+    ): Promise<void> => {
       await new Promise(resolve => setTimeout(resolve, 300));
       
       const folder = mockFolders.find(f => f.id === folderId);
@@ -242,6 +257,12 @@ export const dmsService = {
 
       folder.name = newName;
       saveMockFolders(); // Persist to localStorage
+      
+      // Sync with AppStateContext for persistence
+      if (dispatch) {
+        dispatch({ type: 'UPDATE_FOLDER', payload: { id: folderId, name: newName } });
+      }
+      
       log('success', 'DMS', 'renameFolder', { folderId, newName });
       
       toast({
@@ -250,7 +271,10 @@ export const dmsService = {
       });
     },
 
-    delete: async (folderId: string): Promise<void> => {
+    delete: async (
+      folderId: string,
+      dispatch?: React.Dispatch<AppAction>
+    ): Promise<void> => {
       await new Promise(resolve => setTimeout(resolve, 300));
       
       const folder = mockFolders.find(f => f.id === folderId);
@@ -267,6 +291,12 @@ export const dmsService = {
 
       mockFolders = mockFolders.filter(f => f.id !== folderId);
       saveMockFolders(); // Persist to localStorage
+      
+      // Sync with AppStateContext for persistence
+      if (dispatch) {
+        dispatch({ type: 'DELETE_FOLDER', payload: folderId });
+      }
+      
       log('success', 'DMS', 'deleteFolder', { folderId });
       
       toast({

@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
 import { dmsService } from '@/services/dmsService';
+import { useAppState } from '@/contexts/AppStateContext';
 
 interface NewFolderModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ export const NewFolderModal: React.FC<NewFolderModalProps> = ({
   caseId,
   onFolderCreated
 }) => {
+  const { dispatch } = useAppState();
   const [formData, setFormData] = useState({
     name: '',
     description: ''
@@ -42,7 +44,7 @@ export const NewFolderModal: React.FC<NewFolderModalProps> = ({
 
     setIsCreating(true);
     try {
-      const newFolder = await dmsService.folders.create(formData.name.trim(), parentId, caseId);
+      const newFolder = await dmsService.folders.create(formData.name.trim(), parentId, caseId, dispatch);
       onFolderCreated?.(newFolder);
       setFormData({ name: '', description: '' });
       onClose();
