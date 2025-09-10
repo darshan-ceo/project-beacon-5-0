@@ -368,9 +368,26 @@ export const dmsService = {
       const folder = mockFolders.find(f => f.id === options.folderId);
       const documentPath = folder ? `${folder.path}/${file.name}` : `/documents/${file.name}`;
 
-      // Convert file content to base64 for storage
-      const arrayBuffer = await file.arrayBuffer();
-      const base64Content = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      // Convert file content to base64 for storage - use proper method for binary files
+      let base64Content: string;
+      if (file.type.startsWith('image/') || file.type.includes('application/')) {
+        // For binary files (images, PDFs, Office docs), use FileReader for proper encoding
+        base64Content = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result as string;
+            // Remove data URL prefix to get just the base64 content
+            const base64 = result.split(',')[1] || result;
+            resolve(base64);
+          };
+          reader.onerror = () => reject(new Error('Failed to read file'));
+          reader.readAsDataURL(file);
+        });
+      } else {
+        // For text files, use the existing method
+        const arrayBuffer = await file.arrayBuffer();
+        base64Content = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      }
 
       const newDocument: Document = {
         id: `doc-${Date.now()}`,
@@ -514,15 +531,24 @@ export const dmsService = {
         const foundDocument = documents.find((doc: Document) => doc.id === documentId);
         
         if (foundDocument && foundDocument.content) {
-          log('success', 'DMS', 'getPreviewUrl', { documentId, hasContent: true, size: foundDocument.size });
+          log('success', 'DMS', 'getPreviewUrl', { documentId, hasContent: true, size: foundDocument.size, type: foundDocument.type });
           
-          // Convert base64 back to blob
-          const binaryString = atob(foundDocument.content);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
+          // For images and binary files, create blob from base64 data URL
+          let blob: Blob;
+          if (foundDocument.type.startsWith('image/') || foundDocument.type.includes('application/')) {
+            // Content is already properly base64 encoded, create data URL and then blob
+            const dataUrl = `data:${foundDocument.type};base64,${foundDocument.content}`;
+            const response = await fetch(dataUrl);
+            blob = await response.blob();
+          } else {
+            // For text files, use the original method
+            const binaryString = atob(foundDocument.content);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+              bytes[i] = binaryString.charCodeAt(i);
+            }
+            blob = new Blob([bytes], { type: foundDocument.type || 'application/octet-stream' });
           }
-          const blob = new Blob([bytes], { type: foundDocument.type || 'application/octet-stream' });
           
           if (blob.size === 0) {
             throw new Error('Document content is empty');
@@ -533,10 +559,46 @@ export const dmsService = {
         
         log('error', 'DMS', 'getPreviewUrl', { documentId, reason: 'Document not found or no content' });
         
-        // Fallback to mock content if no stored content
-        const pdfContent = '%PDF-1.4\n1 0 obj\n<<\n/Type /Catalog\n/Pages 2 0 R\n>>\nendobj\n2 0 obj\n<<\n/Type /Pages\n/Kids [3 0 R]\n/Count 1\n>>\nendobj\n3 0 obj\n<<\n/Type /Page\n/Parent 2 0 R\n/MediaBox [0 0 612 792]\n/Contents 4 0 R\n>>\nendobj\n4 0 obj\n<<\n/Length 44\n>>\nstream\nBT\n/F1 12 Tf\n100 700 Td\n(Document Preview Unavailable) Tj\nET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f \n0000000009 00000 n \n0000000074 00000 n \n0000000120 00000 n \n0000000179 00000 n \ntrailer\n<<\n/Size 5\n/Root 1 0 R\n>>\nstartxref\n267\n%%EOF';
-        const blob = new Blob([pdfContent], { type: 'application/pdf' });
-        return URL.createObjectURL(blob);
+        // Get document info for fallback content
+        const appData2 = JSON.parse(localStorage.getItem('lawfirm_app_data') || '{}');
+        const documents2 = appData2.documents || [];
+        const docInfo = documents2.find((doc: Document) => doc.id === documentId);
+        
+        // Create appropriate fallback based on file type
+        if (docInfo?.type.startsWith('image/')) {
+          // Create a simple placeholder image
+          const canvas = globalThis.document.createElement('canvas');
+          canvas.width = 400;
+          canvas.height = 300;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.fillStyle = '#f3f4f6';
+            ctx.fillRect(0, 0, 400, 300);
+            ctx.fillStyle = '#6b7280';
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Image Preview Unavailable', 200, 150);
+            ctx.fillText(docInfo.name || 'Unknown Image', 200, 180);
+          }
+          
+          return new Promise(resolve => {
+            canvas.toBlob(blob => {
+              if (blob) {
+                resolve(URL.createObjectURL(blob));
+              } else {
+                // Fallback to PDF if canvas fails
+                const pdfContent = '%PDF-1.4\n1 0 obj\n<<\n/Type /Catalog\n/Pages 2 0 R\n>>\nendobj\n2 0 obj\n<<\n/Type /Pages\n/Kids [3 0 R]\n/Count 1\n>>\nendobj\n3 0 obj\n<<\n/Type /Page\n/Parent 2 0 R\n/MediaBox [0 0 612 792]\n/Contents 4 0 R\n>>\nendobj\n4 0 obj\n<<\n/Length 44\n>>\nstream\nBT\n/F1 12 Tf\n100 700 Td\n(Image Preview Unavailable) Tj\nET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f \n0000000009 00000 n \n0000000074 00000 n \n0000000120 00000 n \n0000000179 00000 n \ntrailer\n<<\n/Size 5\n/Root 1 0 R\n>>\nstartxref\n267\n%%EOF';
+                const pdfBlob = new Blob([pdfContent], { type: 'application/pdf' });
+                resolve(URL.createObjectURL(pdfBlob));
+              }
+            }, 'image/png');
+          });
+        } else {
+          // Fallback to PDF for non-image files
+          const pdfContent = '%PDF-1.4\n1 0 obj\n<<\n/Type /Catalog\n/Pages 2 0 R\n>>\nendobj\n2 0 obj\n<<\n/Type /Pages\n/Kids [3 0 R]\n/Count 1\n>>\nendobj\n3 0 obj\n<<\n/Type /Page\n/Parent 2 0 R\n/MediaBox [0 0 612 792]\n/Contents 4 0 R\n>>\nendobj\n4 0 obj\n<<\n/Length 44\n>>\nstream\nBT\n/F1 12 Tf\n100 700 Td\n(Document Preview Unavailable) Tj\nET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f \n0000000009 00000 n \n0000000074 00000 n \n0000000120 00000 n \n0000000179 00000 n \ntrailer\n<<\n/Size 5\n/Root 1 0 R\n>>\nstartxref\n267\n%%EOF';
+          const blob = new Blob([pdfContent], { type: 'application/pdf' });
+          return URL.createObjectURL(blob);
+        }
       } catch (error) {
         log('error', 'DMS', 'getPreviewUrl', { documentId, error: error.message });
         
@@ -569,29 +631,60 @@ export const dmsService = {
         let blob: Blob;
         
         if (foundDocument && foundDocument.content) {
-          log('success', 'DMS', 'downloadFile', { documentId, hasStoredContent: true, originalSize: foundDocument.size });
+          log('success', 'DMS', 'downloadFile', { documentId, hasStoredContent: true, originalSize: foundDocument.size, type: foundDocument.type });
           
-          // Convert base64 back to blob with original content  
-          const binaryString = atob(foundDocument.content);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
+          // Handle different file types properly
+          if (foundDocument.type.startsWith('image/') || foundDocument.type.includes('application/')) {
+            // For binary files, content is properly base64 encoded - convert to blob via data URL
+            const dataUrl = `data:${foundDocument.type};base64,${foundDocument.content}`;
+            const response = await fetch(dataUrl);
+            blob = await response.blob();
+          } else {
+            // For text files, use the original method
+            const binaryString = atob(foundDocument.content);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+              bytes[i] = binaryString.charCodeAt(i);
+            }
+            blob = new Blob([bytes], { type: foundDocument.type || 'application/octet-stream' });
           }
-          blob = new Blob([bytes], { type: foundDocument.type || 'application/octet-stream' });
         } else {
           log('error', 'DMS', 'downloadFile', { documentId, reason: 'No document found or no content, using fallback' });
           
           // Generate realistic file content based on file type
-          let mockContent: string;
           const fileExt = fileName.split('.').pop()?.toLowerCase();
           
           if (fileExt === 'pdf') {
             // Generate a simple PDF with actual content
-            mockContent = '%PDF-1.4\n1 0 obj\n<<\n/Type /Catalog\n/Pages 2 0 R\n>>\nendobj\n2 0 obj\n<<\n/Type /Pages\n/Kids [3 0 R]\n/Count 1\n>>\nendobj\n3 0 obj\n<<\n/Type /Page\n/Parent 2 0 R\n/MediaBox [0 0 612 792]\n/Contents 4 0 R\n>>\nendobj\n4 0 obj\n<<\n/Length 120\n>>\nstream\nBT\n/F1 12 Tf\n50 700 Td\n(' + fileName + ') Tj\n0 -20 Td\n(Document generated on: ' + new Date().toLocaleString() + ') Tj\n0 -20 Td\n(This is a mock document for testing purposes.) Tj\nET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f \n0000000009 00000 n \n0000000074 00000 n \n0000000120 00000 n \n0000000179 00000 n \ntrailer\n<<\n/Size 5\n/Root 1 0 R\n>>\nstartxref\n343\n%%EOF';
+            const mockContent = '%PDF-1.4\n1 0 obj\n<<\n/Type /Catalog\n/Pages 2 0 R\n>>\nendobj\n2 0 obj\n<<\n/Type /Pages\n/Kids [3 0 R]\n/Count 1\n>>\nendobj\n3 0 obj\n<<\n/Type /Page\n/Parent 2 0 R\n/MediaBox [0 0 612 792]\n/Contents 4 0 R\n>>\nendobj\n4 0 obj\n<<\n/Length 120\n>>\nstream\nBT\n/F1 12 Tf\n50 700 Td\n(' + fileName + ') Tj\n0 -20 Td\n(Document generated on: ' + new Date().toLocaleString() + ') Tj\n0 -20 Td\n(This is a mock document for testing purposes.) Tj\nET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f \n0000000009 00000 n \n0000000074 00000 n \n0000000120 00000 n \n0000000179 00000 n \ntrailer\n<<\n/Size 5\n/Root 1 0 R\n>>\nstartxref\n343\n%%EOF';
             blob = new Blob([mockContent], { type: 'application/pdf' });
+          } else if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(fileExt || '')) {
+            // Generate placeholder image for missing image files
+            const canvas = globalThis.document.createElement('canvas');
+            canvas.width = 400;
+            canvas.height = 300;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              // Create a colorful placeholder
+              ctx.fillStyle = '#e5e7eb';
+              ctx.fillRect(0, 0, 400, 300);
+              ctx.fillStyle = '#6b7280';
+              ctx.font = '16px Arial';
+              ctx.textAlign = 'center';
+              ctx.fillText('Placeholder Image', 200, 140);
+              ctx.fillText(fileName, 200, 160);
+              ctx.fillText(`Generated: ${new Date().toLocaleDateString()}`, 200, 180);
+            }
+            
+            // Convert canvas to blob
+            blob = await new Promise(resolve => {
+              canvas.toBlob(canvasBlob => {
+                resolve(canvasBlob || new Blob([''], { type: 'image/png' }));
+              }, `image/${fileExt === 'jpg' ? 'jpeg' : fileExt}`);
+            });
           } else {
-            // Plain text fallback
-            mockContent = `Document: ${fileName}\nThis is sample content for ${fileName}\nGenerated on: ${new Date().toLocaleString()}\n\nThis is a mock document created for testing purposes.\nThe original document content was not available in storage.`;
+            // Plain text fallback for other file types
+            const mockContent = `Document: ${fileName}\nThis is sample content for ${fileName}\nGenerated on: ${new Date().toLocaleString()}\n\nThis is a mock document created for testing purposes.\nThe original document content was not available in storage.`;
             blob = new Blob([mockContent], { type: 'text/plain' });
           }
         }
