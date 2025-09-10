@@ -28,31 +28,22 @@ export const conflictDetector = {
       // Simulate some conflicts for demonstration
       const mockConflicts = this.getMockConflicts(hearingData);
       
-      // Check for judge conflicts
+      // Check for counsel conflicts
       if (judge_ids.length > 0) {
-        const judgeConflicts = mockConflicts.filter(c => 
-          c.type === 'judge' && 
-          judge_ids.some(judgeId => c.conflicting_items.includes(judgeId))
+        const counselConflicts = mockConflicts.filter(c => 
+          c.conflict_type === 'counsel_overlap' && 
+          judge_ids.some(judgeId => c.counsel_id === judgeId)
         );
-        conflicts.push(...judgeConflicts);
+        conflicts.push(...counselConflicts);
       }
       
-      // Check for courtroom conflicts
+      // Check for court conflicts
       if (court_id && courtroom) {
-        const courtroomConflicts = mockConflicts.filter(c => 
-          c.type === 'courtroom' && 
-          c.conflicting_items.includes(`${court_id}-${courtroom}`)
+        const courtConflicts = mockConflicts.filter(c => 
+          c.conflict_type === 'court_overlap' && 
+          c.counsel_id === `${court_id}-${courtroom}`
         );
-        conflicts.push(...courtroomConflicts);
-      }
-      
-      // Check for advocate conflicts
-      if (internal_counsel_ids && internal_counsel_ids.length > 0) {
-        const advocateConflicts = mockConflicts.filter(c => 
-          c.type === 'advocate' && 
-          internal_counsel_ids.some(counselId => c.conflicting_items.includes(counselId))
-        );
-        conflicts.push(...advocateConflicts);
+        conflicts.push(...courtConflicts);
       }
       
       return conflicts;
@@ -73,10 +64,13 @@ export const conflictDetector = {
     if (date === '2024-03-15' && start_time >= '10:00' && start_time <= '12:00') {
       return [
         {
-          message: 'Judge R.K. Sharma has another hearing scheduled at 10:30 AM',
-          conflicting_items: ['1'], // Judge ID
+          id: 'conflict-001',
+          hearing_id: 'hearing-001',
+          conflicting_hearing_id: 'hearing-002',
+          counsel_id: '1',
+          conflict_type: 'counsel_overlap',
           severity: 'medium',
-          hearing_id: 'hearing-001'
+          message: 'Judge R.K. Sharma has another hearing scheduled at 10:30 AM'
         }
       ];
     }
@@ -84,11 +78,13 @@ export const conflictDetector = {
     if (date === '2024-03-16' && start_time >= '14:00' && start_time <= '16:00') {
       return [
         {
-          type: 'courtroom',
-          message: 'Court Room 3 is already booked for another hearing at 2:00 PM',
-          conflicting_items: ['2-Court Room 3'], // Court-Courtroom combination
+          id: 'conflict-002',
+          hearing_id: 'hearing-002',
+          conflicting_hearing_id: 'hearing-003',
+          counsel_id: '2',
+          conflict_type: 'court_overlap',
           severity: 'medium',
-          hearing_id: 'hearing-002'
+          message: 'Court Room 3 is already booked for another hearing at 2:00 PM'
         }
       ];
     }
@@ -100,13 +96,11 @@ export const conflictDetector = {
    * Format conflict messages for display
    */
   formatConflictMessage(conflict: HearingConflict): string {
-    switch (conflict.type) {
-      case 'judge':
-        return `⚠️ Judge Conflict: ${conflict.message}`;
-      case 'courtroom':
-        return `⚠️ Courtroom Conflict: ${conflict.message}`;
-      case 'advocate':
-        return `⚠️ Advocate Conflict: ${conflict.message}`;
+    switch (conflict.conflict_type) {
+      case 'counsel_overlap':
+        return `⚠️ Counsel Conflict: ${conflict.message}`;
+      case 'court_overlap':
+        return `⚠️ Court Conflict: ${conflict.message}`;
       default:
         return `⚠️ ${conflict.message}`;
     }

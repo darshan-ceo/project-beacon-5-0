@@ -160,7 +160,7 @@ export const HearingFilters: React.FC<HearingFiltersProps> = ({
   const caseOptions = state.cases.map(c => ({ label: `${c.caseNumber} - ${c.title}`, value: c.id }));
   const courtOptions = state.courts.map(c => ({ label: c.name, value: c.id }));
   const judgeOptions = state.judges.map(j => ({ label: j.name, value: j.id }));
-  const employeeOptions = state.employees.map(e => ({ label: e.name || `${e.firstName} ${e.lastName}`, value: e.id }));
+  const employeeOptions = state.employees.map(e => ({ label: e.full_name, value: e.id }));
 
   const hearingTypeOptions = [
     { label: 'Mention', value: 'mention' },
