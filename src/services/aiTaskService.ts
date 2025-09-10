@@ -44,7 +44,7 @@ class AITaskService {
   constructor() {
     // Check if we're in a Supabase environment
     this.isSupabaseConnected = !!window.location.hostname.includes('supabase') || 
-                               !!process.env.VITE_SUPABASE_URL;
+                               !!import.meta.env.VITE_SUPABASE_URL;
   }
 
   setApiKey(key: string) {
