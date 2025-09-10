@@ -32,6 +32,7 @@ import { BestPracticesPage } from "@/pages/help/BestPracticesPage";
 import { ArticlePage } from "@/pages/help/ArticlePage";
 import { PendingRecordsPage } from "@/pages/PendingRecordsPage";
 import StageContextPage from "@/pages/StageContextPage";
+import { DevModeDashboard } from "@/pages/DevModeDashboard";
 import { ClientPortal } from "./components/portal/ClientPortal";
 import { ClientLayout } from "./components/layout/ClientLayout";
 import { ClientRouteGuard } from "./components/ui/client-route-guard";
@@ -138,6 +139,11 @@ const App = () => (
               <Route path="/qa" element={
                 <AdminLayout currentUser={currentUser}>
                   <QADashboard />
+                </AdminLayout>
+              } />
+              <Route path="/dev-dashboard" element={
+                <AdminLayout currentUser={currentUser}>
+                  <DevModeDashboard />
                 </AdminLayout>
               } />
               <Route path="/hearings/*" element={

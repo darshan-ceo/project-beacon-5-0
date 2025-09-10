@@ -107,6 +107,17 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
   // Add QA and Debug items to main menu based on environment
   const dynamicMainItems = [...mainMenuItems];
   
+  // Add Dev Mode Dashboard when any dev features are enabled
+  if (envConfig.QA_ON || envConfig.GST_ENABLED || envConfig.MOCK_ON) {
+    dynamicMainItems.push({ 
+      icon: TestTube, 
+      label: 'Dev Mode Dashboard', 
+      href: '/dev-dashboard', 
+      roles: ['Admin'],
+      badge: 'DEV'
+    });
+  }
+  
   if (envConfig.QA_ON) {
     dynamicMainItems.push({ 
       icon: Bug, 
