@@ -99,9 +99,10 @@ export const hearingsService = {
       // Fallback to local storage when API fails (development mode)
       const offlineHearing: Hearing = {
         ...hearingData,
+        judge_ids: hearingData.judge_ids || [], // Ensure judge_ids is always an array
         // Add legacy compatibility fields
         clientId: data.case_id.split('-')[0], // Extract from case_id
-        judgeId: data.judge_ids[0],
+        judgeId: (hearingData.judge_ids || [])[0] || '',
         time: data.start_time,
         type: 'Preliminary' as const,
         agenda: data.notes || 'New hearing',

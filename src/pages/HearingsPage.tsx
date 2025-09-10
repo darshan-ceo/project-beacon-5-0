@@ -40,9 +40,10 @@ const HearingsList: React.FC<{ hearings: Hearing[]; onEdit: (h: Hearing) => void
   return (
     <div className="space-y-4">
       {hearings.map((hearing) => {
+        console.log('Processing hearing:', hearing.id, 'judge_ids:', hearing.judge_ids);
         const case_ = state.cases.find(c => c.id === hearing.case_id);
         const court = state.courts.find(c => c.id === hearing.court_id);
-        const judges = state.judges.filter(j => hearing.judge_ids.includes(j.id));
+        const judges = state.judges.filter(j => (hearing.judge_ids || []).includes(j.id));
         
         return (
           <div key={hearing.id} className="border rounded-lg p-4">
@@ -53,7 +54,7 @@ const HearingsList: React.FC<{ hearings: Hearing[]; onEdit: (h: Hearing) => void
                   {hearing.date} at {hearing.start_time} | {court?.name}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Judges: {judges.map(j => j.name).join(', ')}
+                  Judges: {judges.length > 0 ? judges.map(j => j.name).join(', ') : 'No judges assigned'}
                 </p>
               </div>
               <div className="flex gap-2">
@@ -68,7 +69,6 @@ const HearingsList: React.FC<{ hearings: Hearing[]; onEdit: (h: Hearing) => void
   );
 };
 
-// Simplified Calendar Component  
 const HearingsCalendar: React.FC<{ hearings: Hearing[]; onEdit: (h: Hearing) => void; onView: (h: Hearing) => void }> = ({ hearings, onEdit, onView }) => {
   return (
     <div className="border rounded-lg p-4">
