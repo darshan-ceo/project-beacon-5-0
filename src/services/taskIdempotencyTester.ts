@@ -82,8 +82,8 @@ class TaskIdempotencyTester {
           clientId: 'client_idem_001',
           assignedToId: 'emp_idem_001',
           assignedToName: 'Test Associate',
-          currentStage: 'SCRUTINY',
-          targetStage: 'SCRUTINY'
+          currentStage: 'ASMT-10 Notice Received',
+          targetStage: 'ASMT-10 Notice Received'
         },
         iterations: 5,
         expectedBehavior: {
@@ -108,8 +108,8 @@ class TaskIdempotencyTester {
           clientId: 'client_idem_002',
           assignedToId: 'emp_idem_002',
           assignedToName: 'Test Senior',
-          currentStage: 'DEMAND',
-          targetStage: 'ADJUDICATION'
+          currentStage: 'DRC-01 SCN Received',
+          targetStage: 'Hearing Scheduled'
         },
         iterations: 10,
         expectedBehavior: {
@@ -137,8 +137,8 @@ class TaskIdempotencyTester {
           clientId: 'client_idem_003',
           assignedToId: 'emp_idem_003',
           assignedToName: 'Test Partner',
-          currentStage: 'APPEALS',
-          targetStage: 'GSTAT'
+          currentStage: 'Appeal Filed – APL-01',
+          targetStage: 'Appeal Hearing'
         },
         iterations: 3,
         expectedBehavior: {
@@ -167,8 +167,8 @@ class TaskIdempotencyTester {
           clientId: 'client_idem_004',
           assignedToId: 'emp_idem_004',
           assignedToName: 'Test Manager',
-          currentStage: 'SCRUTINY',
-          targetStage: 'DEMAND',
+          currentStage: 'ASMT-10 Notice Received',
+          targetStage: 'DRC-01 SCN Received',
           templateId: 'template_v1'
         },
         iterations: 4,
@@ -197,8 +197,8 @@ class TaskIdempotencyTester {
           clientId: 'client_idem_005',
           assignedToId: 'emp_idem_005',
           assignedToName: 'Test Director',
-          currentStage: 'ADJUDICATION',
-          targetStage: 'APPEALS'
+          currentStage: 'Hearing Scheduled',
+          targetStage: 'Appeal Filed – APL-01'
         },
         iterations: 3,
         expectedBehavior: {
@@ -488,9 +488,9 @@ class TaskIdempotencyTester {
 
   private async cleanupTestEnvironment(caseId: string): Promise<void> {
     await Promise.all([
-      idbStorage.remove(`test-case-${caseId}`),
-      idbStorage.remove(`${this.FOOTPRINTS_KEY}-${caseId}`),
-      idbStorage.remove(`stage-instance-${caseId}`)
+      idbStorage.delete(`test-case-${caseId}`),
+      idbStorage.delete(`${this.FOOTPRINTS_KEY}-${caseId}`),
+      idbStorage.delete(`stage-instance-${caseId}`)
     ]);
   }
 
@@ -565,16 +565,16 @@ class TaskIdempotencyTester {
   private async simulateDataCorruption(caseId: string, corruptionType: string): Promise<void> {
     const footprints = await this.getFootprints(caseId);
     
-    switch (corruptionType) {
-      case 'MALFORMED_JSON':
-        await idbStorage.set(`${this.FOOTPRINTS_KEY}-${caseId}`, '{"malformed": json}');
-        break;
-      case 'MISSING_FIELDS':
-        if (footprints.length > 0) {
-          const corrupted = footprints.map(fp => ({ id: fp.id })); // Remove other fields
-          await idbStorage.set(`${this.FOOTPRINTS_KEY}-${caseId}`, corrupted);
-        }
-        break;
+      switch (corruptionType) {
+        case 'MALFORMED_JSON':
+          await idbStorage.set(`${this.FOOTPRINTS_KEY}-${caseId}`, '{"malformed": json}');
+          break;
+        case 'MISSING_FIELDS':
+          if (footprints.length > 0) {
+            const corrupted = footprints.map(fp => ({ caseId: fp.caseId })); // Remove other fields
+            await idbStorage.set(`${this.FOOTPRINTS_KEY}-${caseId}`, corrupted);
+          }
+          break;
       case 'INVALID_DATES':
         if (footprints.length > 0) {
           const corrupted = footprints.map(fp => ({ ...fp, createdAt: 'invalid-date' }));
