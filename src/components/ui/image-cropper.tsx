@@ -168,7 +168,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
         <div 
           ref={containerRef}
           className="relative border rounded-lg overflow-hidden bg-muted"
-          style={{ height: '400px' }}
+          style={{ height: '300px' }}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
