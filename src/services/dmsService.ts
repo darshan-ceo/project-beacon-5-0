@@ -507,25 +507,44 @@ export const dmsService = {
     getPreviewUrl: async (documentId: string): Promise<string> => {
       await new Promise(resolve => setTimeout(resolve, 200));
       
-      // Get the document from state to retrieve actual content
-      const documents = JSON.parse(localStorage.getItem('appState') || '{}').documents || [];
-      const document = documents.find((doc: Document) => doc.id === documentId);
-      
-      if (document && document.content) {
-        // Convert base64 back to blob
-        const binaryString = atob(document.content);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
+      try {
+        // Get the document from state to retrieve actual content
+        const appData = JSON.parse(localStorage.getItem('lawfirm_app_data') || '{}');
+        const documents = appData.documents || [];
+        const foundDocument = documents.find((doc: Document) => doc.id === documentId);
+        
+        if (foundDocument && foundDocument.content) {
+          log('success', 'DMS', 'getPreviewUrl', { documentId, hasContent: true, size: foundDocument.size });
+          
+          // Convert base64 back to blob
+          const binaryString = atob(foundDocument.content);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          const blob = new Blob([bytes], { type: foundDocument.type || 'application/octet-stream' });
+          
+          if (blob.size === 0) {
+            throw new Error('Document content is empty');
+          }
+          
+          return URL.createObjectURL(blob);
         }
-        const blob = new Blob([bytes], { type: document.type || 'application/octet-stream' });
+        
+        log('error', 'DMS', 'getPreviewUrl', { documentId, reason: 'Document not found or no content' });
+        
+        // Fallback to mock content if no stored content
+        const pdfContent = '%PDF-1.4\n1 0 obj\n<<\n/Type /Catalog\n/Pages 2 0 R\n>>\nendobj\n2 0 obj\n<<\n/Type /Pages\n/Kids [3 0 R]\n/Count 1\n>>\nendobj\n3 0 obj\n<<\n/Type /Page\n/Parent 2 0 R\n/MediaBox [0 0 612 792]\n/Contents 4 0 R\n>>\nendobj\n4 0 obj\n<<\n/Length 44\n>>\nstream\nBT\n/F1 12 Tf\n100 700 Td\n(Document Preview Unavailable) Tj\nET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f \n0000000009 00000 n \n0000000074 00000 n \n0000000120 00000 n \n0000000179 00000 n \ntrailer\n<<\n/Size 5\n/Root 1 0 R\n>>\nstartxref\n267\n%%EOF';
+        const blob = new Blob([pdfContent], { type: 'application/pdf' });
+        return URL.createObjectURL(blob);
+      } catch (error) {
+        log('error', 'DMS', 'getPreviewUrl', { documentId, error: error.message });
+        
+        // Final fallback
+        const errorPdfContent = '%PDF-1.4\n1 0 obj\n<<\n/Type /Catalog\n/Pages 2 0 R\n>>\nendobj\n2 0 obj\n<<\n/Type /Pages\n/Kids [3 0 R]\n/Count 1\n>>\nendobj\n3 0 obj\n<<\n/Type /Page\n/Parent 2 0 R\n/MediaBox [0 0 612 792]\n/Contents 4 0 R\n>>\nendobj\n4 0 obj\n<<\n/Length 28\n>>\nstream\nBT\n/F1 12 Tf\n100 700 Td\n(Preview Error) Tj\nET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f \n0000000009 00000 n \n0000000074 00000 n \n0000000120 00000 n \n0000000179 00000 n \ntrailer\n<<\n/Size 5\n/Root 1 0 R\n>>\nstartxref\n251\n%%EOF';
+        const blob = new Blob([errorPdfContent], { type: 'application/pdf' });
         return URL.createObjectURL(blob);
       }
-      
-      // Fallback to mock content if no stored content
-      const pdfContent = '%PDF-1.4\n1 0 obj\n<<\n/Type /Catalog\n/Pages 2 0 R\n>>\nendobj\n2 0 obj\n<<\n/Type /Pages\n/Kids [3 0 R]\n/Count 1\n>>\nendobj\n3 0 obj\n<<\n/Type /Page\n/Parent 2 0 R\n/MediaBox [0 0 612 792]\n/Contents 4 0 R\n>>\nendobj\n4 0 obj\n<<\n/Length 28\n>>\nstream\nBT\n/F1 12 Tf\n100 700 Td\n(No Content) Tj\nET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f \n0000000009 00000 n \n0000000074 00000 n \n0000000120 00000 n \n0000000179 00000 n \ntrailer\n<<\n/Size 5\n/Root 1 0 R\n>>\nstartxref\n251\n%%EOF';
-      const blob = new Blob([pdfContent], { type: 'application/pdf' });
-      return URL.createObjectURL(blob);
     },
 
     getDownloadUrl: async (documentId: string): Promise<string> => {
@@ -536,30 +555,45 @@ export const dmsService = {
     },
 
     download: async (documentId: string, fileName: string): Promise<void> => {
-      log('success', 'DMS', 'downloadFile', { documentId, fileName });
-      
       try {
+        log('success', 'DMS', 'downloadFile', { documentId, fileName, action: 'start' });
+        
         // Simulate API call delay
         await new Promise(resolve => setTimeout(resolve, 500));
         
         // Get the document from state to retrieve actual content
-        const documents = JSON.parse(localStorage.getItem('appState') || '{}').documents || [];
-        const document = documents.find((doc: Document) => doc.id === documentId);
+        const appData = JSON.parse(localStorage.getItem('lawfirm_app_data') || '{}');
+        const documents = appData.documents || [];
+        const foundDocument = documents.find((doc: Document) => doc.id === documentId);
         
         let blob: Blob;
         
-        if (document && document.content) {
-          // Convert base64 back to blob with original content
-          const binaryString = atob(document.content);
+        if (foundDocument && foundDocument.content) {
+          log('success', 'DMS', 'downloadFile', { documentId, hasStoredContent: true, originalSize: foundDocument.size });
+          
+          // Convert base64 back to blob with original content  
+          const binaryString = atob(foundDocument.content);
           const bytes = new Uint8Array(binaryString.length);
           for (let i = 0; i < binaryString.length; i++) {
             bytes[i] = binaryString.charCodeAt(i);
           }
-          blob = new Blob([bytes], { type: document.type || 'application/octet-stream' });
+          blob = new Blob([bytes], { type: foundDocument.type || 'application/octet-stream' });
         } else {
-          // Fallback to mock content
-          const mockContent = `Document: ${fileName}\nThis is sample content for ${fileName}\nGenerated on: ${new Date().toLocaleString()}`;
-          blob = new Blob([mockContent], { type: 'text/plain' });
+          log('error', 'DMS', 'downloadFile', { documentId, reason: 'No document found or no content, using fallback' });
+          
+          // Generate realistic file content based on file type
+          let mockContent: string;
+          const fileExt = fileName.split('.').pop()?.toLowerCase();
+          
+          if (fileExt === 'pdf') {
+            // Generate a simple PDF with actual content
+            mockContent = '%PDF-1.4\n1 0 obj\n<<\n/Type /Catalog\n/Pages 2 0 R\n>>\nendobj\n2 0 obj\n<<\n/Type /Pages\n/Kids [3 0 R]\n/Count 1\n>>\nendobj\n3 0 obj\n<<\n/Type /Page\n/Parent 2 0 R\n/MediaBox [0 0 612 792]\n/Contents 4 0 R\n>>\nendobj\n4 0 obj\n<<\n/Length 120\n>>\nstream\nBT\n/F1 12 Tf\n50 700 Td\n(' + fileName + ') Tj\n0 -20 Td\n(Document generated on: ' + new Date().toLocaleString() + ') Tj\n0 -20 Td\n(This is a mock document for testing purposes.) Tj\nET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f \n0000000009 00000 n \n0000000074 00000 n \n0000000120 00000 n \n0000000179 00000 n \ntrailer\n<<\n/Size 5\n/Root 1 0 R\n>>\nstartxref\n343\n%%EOF';
+            blob = new Blob([mockContent], { type: 'application/pdf' });
+          } else {
+            // Plain text fallback
+            mockContent = `Document: ${fileName}\nThis is sample content for ${fileName}\nGenerated on: ${new Date().toLocaleString()}\n\nThis is a mock document created for testing purposes.\nThe original document content was not available in storage.`;
+            blob = new Blob([mockContent], { type: 'text/plain' });
+          }
         }
         
         // Validate blob
@@ -567,17 +601,21 @@ export const dmsService = {
           throw new Error('Generated file is empty');
         }
         
-        // Create download link
+        log('success', 'DMS', 'downloadFile', { documentId, blobSize: blob.size, blobType: blob.type });
+        
+        // Create download link using global document object
         const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        const downloadLink = globalThis.document.createElement('a');
+        downloadLink.href = url;
+        downloadLink.download = fileName;
+        globalThis.document.body.appendChild(downloadLink);
+        downloadLink.click();
+        globalThis.document.body.removeChild(downloadLink);
         
         // Clean up
         setTimeout(() => URL.revokeObjectURL(url), 1000);
+        
+        log('success', 'DMS', 'downloadFile', { documentId, fileName, action: 'complete' });
         
         toast({
           title: "Download Complete",
@@ -585,10 +623,10 @@ export const dmsService = {
         });
         
       } catch (error) {
-        log('error', 'DMS', 'downloadFile', error);
+        log('error', 'DMS', 'downloadFile', { documentId, fileName, error: error.message });
         toast({
           title: "Download Failed",
-          description: "Failed to download file. The file may be corrupted or unavailable.",
+          description: `Failed to download ${fileName}. ${error.message}`,
           variant: "destructive",
         });
         throw error;
@@ -619,7 +657,8 @@ export const dmsService = {
       await new Promise(resolve => setTimeout(resolve, 300));
       
       // Get documents from localStorage (app state)
-      const documents: Document[] = JSON.parse(localStorage.getItem('appState') || '{}').documents || [];
+      const appData = JSON.parse(localStorage.getItem('lawfirm_app_data') || '{}');
+      const documents: Document[] = appData.documents || [];
       
       // Apply filters
       let filteredDocs = documents;
