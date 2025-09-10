@@ -74,6 +74,12 @@ class RBACService {
     { module: 'io.import', action: 'write' },
     { module: 'io.export', action: 'write' },
     
+    // Masters - Judges
+    { module: 'masters.judges', action: 'read' },
+    { module: 'masters.judges', action: 'write' },
+    { module: 'masters.judges', action: 'delete' },
+    { module: 'masters.judges', action: 'admin' },
+    
     // Import/Export - Module-specific permissions
     { module: 'io.import.court', action: 'write' },
     { module: 'io.import.client', action: 'write' },
