@@ -31,6 +31,8 @@ import {
   FieldConfig 
 } from '@/services/addressConfigService';
 import { toast } from 'sonner';
+import { featureFlagService } from '@/services/featureFlagService';
+import { apiService } from '@/services/apiService';
 
 const MODULE_LABELS: Record<ModuleName, string> = {
   employee: 'Employees',
@@ -74,11 +76,28 @@ export const AddressSettings: React.FC = () => {
   const loadConfigurations = async () => {
     setIsLoading(true);
     try {
-      const result = await addressConfigService.getAllConfigs();
-      if (result.success) {
-        setConfigs(result.data as Record<ModuleName, AddressFieldConfig>);
+      if (featureFlagService.isEnabled('address_settings_v2')) {
+        // Use real API endpoints
+        const response = await apiService.get<Record<ModuleName, AddressFieldConfig>>('/api/settings/address');
+        if (response.success && response.data) {
+          setConfigs(response.data);
+        } else {
+          // Fallback to service if API fails
+          const result = await addressConfigService.getAllConfigs();
+          if (result.success) {
+            setConfigs(result.data as Record<ModuleName, AddressFieldConfig>);
+          } else {
+            toast.error('Failed to load configurations');
+          }
+        }
       } else {
-        toast.error('Failed to load configurations');
+        // Use existing service
+        const result = await addressConfigService.getAllConfigs();
+        if (result.success) {
+          setConfigs(result.data as Record<ModuleName, AddressFieldConfig>);
+        } else {
+          toast.error('Failed to load configurations');
+        }
       }
     } catch (error) {
       toast.error('Error loading configurations');
@@ -109,18 +128,30 @@ export const AddressSettings: React.FC = () => {
   const saveConfigurations = async () => {
     setSaving(true);
     try {
-      const promises = Object.entries(configs).map(([moduleName, config]) =>
-        addressConfigService.updateModuleConfig(moduleName as ModuleName, config)
-      );
-
-      const results = await Promise.all(promises);
-      const hasErrors = results.some(result => !result.success);
-
-      if (hasErrors) {
-        toast.error('Some configurations failed to save');
+      if (featureFlagService.isEnabled('address_settings_v2')) {
+        // Use real API endpoint
+        const response = await apiService.post('/api/settings/address', configs);
+        if (response.success) {
+          toast.success('Configurations saved successfully');
+          setHasChanges(false);
+        } else {
+          toast.error(response.error || 'Failed to save configurations');
+        }
       } else {
-        toast.success('Configurations saved successfully');
-        setHasChanges(false);
+        // Use existing service
+        const promises = Object.entries(configs).map(([moduleName, config]) =>
+          addressConfigService.updateModuleConfig(moduleName as ModuleName, config)
+        );
+
+        const results = await Promise.all(promises);
+        const hasErrors = results.some(result => !result.success);
+
+        if (hasErrors) {
+          toast.error('Some configurations failed to save');
+        } else {
+          toast.success('Configurations saved successfully');
+          setHasChanges(false);
+        }
       }
     } catch (error) {
       toast.error('Error saving configurations');
@@ -374,14 +405,16 @@ export const AddressSettings: React.FC = () => {
               <h4 className="font-medium mb-2">Visible Fields</h4>
               <div className="space-y-1">
                 {Object.entries(FIELD_LABELS).map(([fieldName, label]) => {
-                  const fieldConfig = configs[activeModule]?.[fieldName as AddressFieldName];
-                  if (fieldConfig?.visible) {
+                  const fieldConfig = configs[activeModule]?.[fieldName as AddressFieldName] || { visible: true, required: false, editable: true };
+                  if (fieldConfig.visible) {
                     return (
                       <div key={fieldName} className="flex items-center gap-2 text-sm">
                         <Badge variant={fieldConfig.required ? "destructive" : "outline"} className="text-xs">
                           {fieldConfig.required ? "Required" : "Optional"}
                         </Badge>
-                        {label}
+                        <span className={fieldConfig.editable ? "" : "text-muted-foreground"}>
+                          {label} {!fieldConfig.editable && "(Read-only)"}
+                        </span>
                       </div>
                     );
                   }
@@ -394,8 +427,8 @@ export const AddressSettings: React.FC = () => {
               <h4 className="font-medium mb-2">Hidden Fields</h4>
               <div className="space-y-1">
                 {Object.entries(FIELD_LABELS).map(([fieldName, label]) => {
-                  const fieldConfig = configs[activeModule]?.[fieldName as AddressFieldName];
-                  if (!fieldConfig?.visible) {
+                  const fieldConfig = configs[activeModule]?.[fieldName as AddressFieldName] || { visible: true, required: false, editable: true };
+                  if (!fieldConfig.visible) {
                     return (
                       <div key={fieldName} className="text-sm text-muted-foreground">
                         {label}

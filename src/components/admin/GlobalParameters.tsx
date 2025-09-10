@@ -27,6 +27,7 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
 import { CalendarIntegrationPanel } from './CalendarIntegrationPanel';
 import { AddressSettings } from './AddressSettings';
+import { featureFlagService } from '@/services/featureFlagService';
 
 interface SystemParameter {
   id: string;
@@ -193,15 +194,48 @@ export const GlobalParameters: React.FC = () => {
       )}
 
       <Tabs defaultValue="system" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-7">
-          <TabsTrigger value="system">System</TabsTrigger>
-          <TabsTrigger value="security">Security</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="legal">Legal</TabsTrigger>
-          <TabsTrigger value="integrations">Integrations</TabsTrigger>
-          <TabsTrigger value="ai-communications">AI & Communications</TabsTrigger>
-          <TabsTrigger value="address-config">Address Configuration</TabsTrigger>
-        </TabsList>
+        {featureFlagService.isEnabled('tabs_overflow_fix_v1') ? (
+          <div className="relative">
+            <div className="overflow-x-auto">
+              <TabsList className="flex w-max min-w-full">
+                <TabsTrigger value="system" className="whitespace-nowrap max-w-[160px] truncate" title="System Configuration">
+                  System
+                </TabsTrigger>
+                <TabsTrigger value="security" className="whitespace-nowrap max-w-[160px] truncate" title="Security Settings">
+                  Security
+                </TabsTrigger>
+                <TabsTrigger value="notifications" className="whitespace-nowrap max-w-[160px] truncate" title="Notifications">
+                  Notifications
+                </TabsTrigger>
+                <TabsTrigger value="legal" className="whitespace-nowrap max-w-[160px] truncate" title="Legal Configuration">
+                  Legal
+                </TabsTrigger>
+                <TabsTrigger value="integrations" className="whitespace-nowrap max-w-[160px] truncate" title="Integrations">
+                  Integrations
+                </TabsTrigger>
+                <TabsTrigger value="ai-communications" className="whitespace-nowrap max-w-[160px] truncate" title="AI & Communications">
+                  AI & Comms
+                </TabsTrigger>
+                <TabsTrigger value="address-config" className="whitespace-nowrap max-w-[160px] truncate" title="Address Configuration">
+                  Addr Config
+                </TabsTrigger>
+              </TabsList>
+            </div>
+            {/* Fade edges to indicate scrollability */}
+            <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background to-transparent pointer-events-none" />
+            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent pointer-events-none" />
+          </div>
+        ) : (
+          <TabsList className="grid w-full grid-cols-7">
+            <TabsTrigger value="system">System</TabsTrigger>
+            <TabsTrigger value="security">Security</TabsTrigger>
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            <TabsTrigger value="legal">Legal</TabsTrigger>
+            <TabsTrigger value="integrations">Integrations</TabsTrigger>
+            <TabsTrigger value="ai-communications">AI & Communications</TabsTrigger>
+            <TabsTrigger value="address-config">Address Configuration</TabsTrigger>
+          </TabsList>
+        )}
 
         <TabsContent value="system" className="space-y-6">
           <div className="grid gap-6 md:grid-cols-2">

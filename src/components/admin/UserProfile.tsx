@@ -34,6 +34,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { toast } from '@/hooks/use-toast';
 import { profileService } from '@/services/profileService';
 import { useAppState } from '@/contexts/AppStateContext';
+import { featureFlagService } from '@/services/featureFlagService';
+import { FileDropzone } from '@/components/ui/file-dropzone';
+import { ImageCropper } from '@/components/ui/image-cropper';
 
 interface UserProfileData {
   id: string;
@@ -176,6 +179,9 @@ export const UserProfile: React.FC = () => {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
   const [sessions, setSessions] = useState(mockSessions);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | undefined>();
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [showCropper, setShowCropper] = useState(false);
 
   const handleSaveProfile = async () => {
     try {
@@ -217,10 +223,53 @@ export const UserProfile: React.FC = () => {
     });
   };
 
-  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const handleAvatarFileSelect = (file: File) => {
+    if (featureFlagService.isEnabled('profile_avatar_v1')) {
+      setSelectedImageFile(file);
+      setShowCropper(true);
+    } else {
+      // Fallback to basic upload
+      handleBasicAvatarUpload(file);
+    }
+  };
 
+  const handleAvatarError = (error: string) => {
+    toast({
+      title: "File Error",
+      description: error,
+      variant: "destructive"
+    });
+  };
+
+  const handleCroppedImage = async (croppedFile: File) => {
+    try {
+      setIsUploading(true);
+      setShowCropper(false);
+      setSelectedImageFile(null);
+      
+      const avatarUrl = await profileService.uploadAvatar(croppedFile, setUploadProgress);
+      
+      // Update user profile with new avatar
+      await profileService.updateProfile({ avatar: avatarUrl });
+      setUser(prev => ({ ...prev, avatar: avatarUrl }));
+      
+      toast({
+        title: "Avatar Updated",
+        description: "Your profile photo has been updated successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Upload Failed",
+        description: error.message || "Failed to upload avatar. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(undefined);
+    }
+  };
+
+  const handleBasicAvatarUpload = async (file: File) => {
     try {
       setIsUploading(true);
       const avatarUrl = await profileService.uploadAvatar(file);
@@ -238,6 +287,24 @@ export const UserProfile: React.FC = () => {
       });
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    try {
+      await profileService.deleteAvatar();
+      setUser(prev => ({ ...prev, avatar: '/placeholder.svg' }));
+      
+      toast({
+        title: "Avatar Removed",
+        description: "Your profile photo has been removed.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to remove avatar.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -281,29 +348,76 @@ export const UserProfile: React.FC = () => {
               <Card>
                 <CardContent className="pt-6">
                   <div className="flex flex-col items-center space-y-4">
-                    <div className="relative">
-                      <Avatar className="h-24 w-24">
-                        <AvatarImage src={user.avatar} alt={user.name} />
-                        <AvatarFallback>{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                      </Avatar>
-                      <div className="relative">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleAvatarUpload}
-                          className="hidden"
-                          id="avatar-upload"
-                        />
-                        <Button 
-                          size="sm" 
-                          className="absolute -bottom-2 -right-2 rounded-full h-8 w-8 p-0"
-                          onClick={() => document.getElementById('avatar-upload')?.click()}
+                    {showCropper && selectedImageFile ? (
+                      <div className="w-full">
+                        <ImageCropper
+                          imageFile={selectedImageFile}
+                          onCrop={handleCroppedImage}
+                          onCancel={() => {
+                            setShowCropper(false);
+                            setSelectedImageFile(null);
+                          }}
                           disabled={isUploading}
-                        >
-                          <Camera className="h-4 w-4" />
-                        </Button>
+                        />
                       </div>
-                    </div>
+                    ) : (
+                      <>
+                        <div className="relative">
+                          <Avatar className="h-24 w-24">
+                            <AvatarImage 
+                              src={user.avatar} 
+                              alt={user.name}
+                              onError={() => setUser(prev => ({ ...prev, avatar: '/placeholder.svg' }))}
+                            />
+                            <AvatarFallback>{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                          </Avatar>
+                          <Button 
+                            size="sm" 
+                            className="absolute -bottom-2 -right-2 rounded-full h-8 w-8 p-0"
+                            onClick={() => document.getElementById('avatar-upload')?.click()}
+                            disabled={isUploading}
+                            aria-label="Upload profile photo"
+                          >
+                            <Camera className="h-4 w-4" />
+                          </Button>
+                        </div>
+
+                        {featureFlagService.isEnabled('profile_avatar_v1') ? (
+                          <div className="w-full max-w-sm">
+                            <FileDropzone
+                              onFileSelect={handleAvatarFileSelect}
+                              onError={handleAvatarError}
+                              accept="image/jpeg,image/png,image/webp"
+                              maxSize={2}
+                              disabled={isUploading}
+                              progress={uploadProgress}
+                            />
+                            {user.avatar !== '/placeholder.svg' && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleRemoveAvatar}
+                                disabled={isUploading}
+                                className="w-full mt-2"
+                              >
+                                Remove Photo
+                              </Button>
+                            )}
+                          </div>
+                        ) : (
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleBasicAvatarUpload(file);
+                            }}
+                            className="hidden"
+                            id="avatar-upload"
+                          />
+                        )}
+                      </>
+                    )}
                     <div className="text-center">
                       <h3 className="text-lg font-semibold">{user.name}</h3>
                       <Badge variant="outline">{user.role}</Badge>

@@ -137,6 +137,27 @@ class FeatureFlagService {
       isEnabled: true, // ON in UAT
       version: 'v1'
     });
+
+    // Profile Avatar Upload v1 (UAT enabled)
+    this.flags.set('profile_avatar_v1', {
+      key: 'profile_avatar_v1',
+      isEnabled: true, // ON in UAT
+      version: 'v1'
+    });
+
+    // Tabs Overflow Fix v1 (UAT enabled)
+    this.flags.set('tabs_overflow_fix_v1', {
+      key: 'tabs_overflow_fix_v1',
+      isEnabled: true, // ON in UAT
+      version: 'v1'
+    });
+
+    // Address Settings v2 (UAT enabled)
+    this.flags.set('address_settings_v2', {
+      key: 'address_settings_v2',
+      isEnabled: true, // ON in UAT
+      version: 'v2'
+    });
   }
 
   /**
