@@ -195,7 +195,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" data-tour="upload-form">
           {mode === 'upload' && (
             <div>
               <Label htmlFor="file">Select File</Label>

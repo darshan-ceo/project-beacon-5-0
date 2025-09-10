@@ -372,7 +372,7 @@ export const CaseManagement: React.FC = () => {
           <Button 
             className="bg-primary hover:bg-primary-hover"
             onClick={() => setCaseModal({ isOpen: true, mode: 'create', case: null })}
-            data-tour="new-case-button"
+            data-tour="new-case-btn"
           >
             <Plus className="mr-2 h-4 w-4" />
             New Case
@@ -586,6 +586,7 @@ export const CaseManagement: React.FC = () => {
                 </div>
               </motion.div>
             )}
+            <div data-tour="case-list">
             {state.cases.map((caseItem, index) => {
               const isSelected = selectedCase?.id === caseItem.id;
               return (
@@ -597,7 +598,7 @@ export const CaseManagement: React.FC = () => {
                 >
                   <Card 
                     className={`hover-lift cursor-pointer transition-all duration-200 ${
-                      isSelected 
+                      isSelected
                         ? 'border-l-4 border-l-primary bg-primary/5 shadow-md ring-1 ring-primary/20' 
                         : 'hover:border-l-4 hover:border-l-secondary hover:bg-secondary/5'
                     }`}
@@ -700,7 +701,7 @@ export const CaseManagement: React.FC = () => {
                             <span>•</span>
                             <span>Updated: {caseItem.lastUpdated}</span>
                           </div>
-                          <div className="flex items-center space-x-2">
+                          <div className="flex items-center space-x-2" data-tour="case-actions">
                             <Button 
                               variant="ghost" 
                               size="sm"
@@ -751,7 +752,8 @@ export const CaseManagement: React.FC = () => {
                   </Card>
                 </motion.div>
               );
-            })}
+             })}
+            </div>
           </motion.div>
         </TabsContent>
 

@@ -183,7 +183,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" data-tour="case-form">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="caseNumber">Case Number</Label>
@@ -247,7 +247,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
                 />
               )}
             </div>
-            <div>
+            <div data-tour="case-timeline">
               <Label htmlFor="currentStage">Current Stage</Label>
               <Select 
                 value={formData.currentStage} 
@@ -271,7 +271,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
             </div>
           </div>
 
-          <div>
+          <div data-tour="case-team-assignment">
             <EmployeeSelector
               label="Case Owner"
               value={formData.assignedToId}
@@ -312,7 +312,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
               </Button>
             )}
             {mode !== 'view' && (
-              <Button type="submit" data-tour="save-case-button">
+              <Button type="submit" data-tour="save-case-btn">
                 {mode === 'create' ? 'Create Case' : 'Update Case'}
               </Button>
             )}

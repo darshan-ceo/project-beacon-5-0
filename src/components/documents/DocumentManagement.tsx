@@ -650,7 +650,7 @@ export const DocumentManagement: React.FC = () => {
             onClick={() => {
               setDocumentModal({ isOpen: true, mode: 'upload', document: null });
             }}
-            data-tour="upload-area"
+            data-tour="upload-btn"
           >
             <Upload className="mr-2 h-4 w-4" />
             Upload Documents
