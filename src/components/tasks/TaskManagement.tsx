@@ -30,6 +30,8 @@ import { EscalationMatrix } from './EscalationMatrix';
 import { TaskTemplates } from './TaskTemplates';
 import { TaskAnalytics } from './TaskAnalytics';
 import { TaskInsights } from './TaskInsights';
+import { AITaskAssistant } from './AITaskAssistant';
+import { TaskCollaboration } from './TaskCollaboration';
 import { TaskModal } from '@/components/modals/TaskModal';
 import { FilterDropdown } from '@/components/ui/filter-dropdown';
 import { Task, useAppState } from '@/contexts/AppStateContext';
@@ -434,13 +436,15 @@ export const TaskManagement: React.FC = () => {
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="board">Board</TabsTrigger>
           <TabsTrigger value="automation">Automation</TabsTrigger>
           <TabsTrigger value="escalation">Escalation</TabsTrigger>
           <TabsTrigger value="templates">Templates</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="insights">Insights</TabsTrigger>
+          <TabsTrigger value="ai-assistant">AI Assistant</TabsTrigger>
+          <TabsTrigger value="collaboration">Collaboration</TabsTrigger>
         </TabsList>
 
         <TabsContent value="board" className="mt-6">
@@ -468,6 +472,14 @@ export const TaskManagement: React.FC = () => {
 
         <TabsContent value="insights" className="mt-6">
           <TaskInsights tasks={state.tasks} />
+        </TabsContent>
+
+        <TabsContent value="ai-assistant" className="mt-6">
+          <AITaskAssistant />
+        </TabsContent>
+
+        <TabsContent value="collaboration" className="mt-6">
+          <TaskCollaboration tasks={state.tasks} />
         </TabsContent>
 
         <TabsContent value="legacy-analytics" className="mt-6">
