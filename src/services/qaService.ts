@@ -3,6 +3,9 @@
  */
 
 import { envConfig } from '@/utils/envConfig';
+import { seedDataService } from './seedDataService';
+import { stageTransitionQA } from './stageTransitionQA';
+import { taskIdempotencyTester } from './taskIdempotencyTester';
 
 export interface QATest {
   name: string;
@@ -23,6 +26,7 @@ class QAService {
 
   constructor() {
     this.registerDefaultTests();
+    this.registerPhase6To8Tests();
   }
 
   private registerDefaultTests() {
@@ -357,6 +361,93 @@ class QAService {
     if (typeof localStorage !== 'undefined') {
       localStorage.removeItem('qa-errors');
     }
+  }
+
+  private registerPhase6To8Tests() {
+    // Phase 6: Comprehensive Seed Data
+    this.addTest({
+      name: 'Comprehensive GST Seed Data',
+      description: 'Validates comprehensive seed data generation with proper GST case mix',
+      run: async () => {
+        try {
+          await seedDataService.generateComprehensiveSeedData();
+          const seedData = await seedDataService.getSeedData();
+          
+          const caseTypeVariety = new Set(seedData.cases.map(c => c.type)).size;
+          const industryVariety = new Set(seedData.cases.map(c => c.industry)).size;
+          const stageDistribution = new Set(seedData.cases.map(c => c.currentStage)).size;
+          
+          const isValid = caseTypeVariety >= 5 && industryVariety >= 4 && stageDistribution >= 3;
+          
+          return {
+            status: isValid ? 'pass' : 'fail',
+            message: `Generated ${seedData.cases.length} cases with ${caseTypeVariety} case types, ${industryVariety} industries, ${stageDistribution} stage distribution`,
+            details: {
+              cases: seedData.cases.length,
+              clients: seedData.clients.length,
+              caseTypes: caseTypeVariety,
+              industries: industryVariety,
+              stages: stageDistribution
+            }
+          };
+        } catch (error) {
+          return {
+            status: 'fail',
+            message: `Seed data generation failed: ${error.message}`,
+            details: error
+          };
+        }
+      }
+    });
+
+    // Phase 7: Stage Transition QA Tests
+    const stageTransitionTests = stageTransitionQA.getQATests();
+    stageTransitionTests.forEach(test => this.addTest(test));
+
+    // Phase 8: Idempotency Tests
+    const idempotencyTests = taskIdempotencyTester.getQATests();
+    idempotencyTests.forEach(test => this.addTest(test));
+
+    // Comprehensive Network & Performance Test
+    this.addTest({
+      name: 'Network & Performance Integration',
+      description: 'Tests system performance under comprehensive data load with network simulation',
+      run: async () => {
+        const startTime = Date.now();
+        
+        try {
+          // Generate seed data
+          await seedDataService.generateComprehensiveSeedData();
+          
+          // Run stage transition tests
+          const transitionResults = await stageTransitionQA.runAllTransitionTests();
+          
+          // Run idempotency tests
+          const idempotencyResults = await taskIdempotencyTester.runAllIdempotencyTests();
+          
+          const duration = Date.now() - startTime;
+          const allPassed = [...transitionResults, ...idempotencyResults].every(r => r.status === 'pass');
+          
+          return {
+            status: allPassed ? 'pass' : 'fail',
+            message: `Comprehensive test suite completed in ${duration}ms`,
+            duration,
+            details: {
+              transitionTests: transitionResults.length,
+              idempotencyTests: idempotencyResults.length,
+              allPassed,
+              performanceAcceptable: duration < 30000 // 30 seconds threshold
+            }
+          };
+        } catch (error) {
+          return {
+            status: 'fail',
+            message: `Integration test failed: ${error.message}`,
+            details: error
+          };
+        }
+      }
+    });
   }
 }
 
