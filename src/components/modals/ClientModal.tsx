@@ -24,6 +24,7 @@ import { envConfig } from '../../utils/envConfig';
 import { AddressForm } from '@/components/ui/AddressForm';
 import { AddressView } from '@/components/ui/AddressView';
 import { EnhancedAddressData, addressMasterService } from '@/services/addressMasterService';
+import { FieldTooltip } from '@/components/ui/field-tooltip';
 
 interface ClientModalProps {
   isOpen: boolean;
@@ -500,7 +501,10 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="name">Client Name *</Label>
+                    <div className="flex items-center gap-1">
+                      <Label htmlFor="name">Client Name *</Label>
+                      <FieldTooltip formId="client-master" fieldId="name" />
+                    </div>
                     <Input
                       id="name"
                       value={formData.name}
@@ -515,7 +519,10 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                   </div>
                   
                   <div>
-                    <Label htmlFor="type">Client Type *</Label>
+                    <div className="flex items-center gap-1">
+                      <Label htmlFor="type">Client Type *</Label>
+                      <FieldTooltip formId="client-master" fieldId="type" />
+                    </div>
                     <Select 
                       value={formData.type} 
                       onValueChange={(value) => setFormData(prev => ({ ...prev, type: value as any }))}
@@ -572,7 +579,10 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="pan">PAN Number *</Label>
+                    <div className="flex items-center gap-1">
+                      <Label htmlFor="pan">PAN Number *</Label>
+                      <FieldTooltip formId="client-master" fieldId="pan" />
+                    </div>
                     <Input
                       id="pan"
                       value={formData.pan}
@@ -589,7 +599,10 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                   </div>
                   
                   <div>
-                    <Label htmlFor="gstin">GSTIN</Label>
+                    <div className="flex items-center gap-1">
+                      <Label htmlFor="gstin">GSTIN</Label>
+                      <FieldTooltip formId="client-master" fieldId="gstin" />
+                    </div>
                     <Input
                       id="gstin"
                       value={formData.gstin}

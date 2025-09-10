@@ -1,0 +1,86 @@
+{
+  "title": "Help & Knowledge Center",
+  "description": "Comprehensive help system for legal case management",
+  "overview": "The Help & Knowledge Center provides contextual assistance, tutorials, and documentation to help you navigate the legal case management system effectively.",
+  "keyFeatures": [
+    {
+      "title": "Contextual Help",
+      "description": "Get help specific to the page or task you're working on",
+      "icon": "help-circle"
+    },
+    {
+      "title": "Field-Level Tooltips",
+      "description": "Hover over form fields to see helpful guidance and best practices",
+      "icon": "info"
+    },
+    {
+      "title": "Guided Tours",
+      "description": "Step-by-step walkthroughs for key workflows and processes",
+      "icon": "play-circle"
+    },
+    {
+      "title": "Glossary Integration",
+      "description": "Automatic tooltips for legal and technical terms throughout the application",
+      "icon": "book-open"
+    },
+    {
+      "title": "Search & Discovery",
+      "description": "Powerful search across all help content, articles, and documentation",
+      "icon": "search"
+    }
+  ],
+  "quickStart": [
+    {
+      "step": 1,
+      "title": "Access Help",
+      "description": "Click the Help & Knowledge Base link in the sidebar or look for ? icons throughout the application"
+    },
+    {
+      "step": 2,
+      "title": "Search for Content", 
+      "description": "Use the search bar to find specific help articles, tutorials, or glossary terms"
+    },
+    {
+      "step": 3,
+      "title": "Start a Tour",
+      "description": "Click 'Start Tour' buttons to get guided walkthroughs of key features"
+    },
+    {
+      "step": 4,
+      "title": "Use Field Tooltips",
+      "description": "Hover over ? icons next to form fields for context-specific guidance"
+    }
+  ],
+  "commonTasks": [
+    {
+      "title": "Find Help for Current Page",
+      "description": "Look for Page Help buttons in the header of each module"
+    },
+    {
+      "title": "Learn Legal Terms",
+      "description": "Hover over highlighted terms to see glossary definitions"
+    },
+    {
+      "title": "Get Form Field Help", 
+      "description": "Click the ? icon next to any form field for detailed guidance"
+    },
+    {
+      "title": "Access Guided Tours",
+      "description": "Use Start Tour buttons to learn workflows step-by-step"
+    }
+  ],
+  "relatedArticles": [
+    {
+      "title": "Getting Started Guide",
+      "url": "/help/articles/getting-started"
+    },
+    {
+      "title": "Best Practices for Case Management",
+      "url": "/help/best-practices"
+    },
+    {
+      "title": "API Documentation",
+      "url": "/help/api-docs"
+    }
+  ]
+}

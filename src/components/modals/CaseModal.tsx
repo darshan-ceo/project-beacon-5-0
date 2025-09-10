@@ -12,6 +12,7 @@ import { EmployeeSelector } from '@/components/ui/employee-selector';
 import { ContextBadge } from '@/components/ui/context-badge';
 import { useRelationships } from '@/hooks/useRelationships';
 import { useContextualForms } from '@/hooks/useContextualForms';
+import { FieldTooltip } from '@/components/ui/field-tooltip';
 
 interface CaseModalProps {
   isOpen: boolean;
@@ -186,7 +187,10 @@ export const CaseModal: React.FC<CaseModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4" data-tour="case-form">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="caseNumber">Case Number</Label>
+              <div className="flex items-center gap-1">
+                <Label htmlFor="caseNumber">Case Number</Label>
+                <FieldTooltip formId="create-case" fieldId="case-number" />
+              </div>
               <Input
                 id="caseNumber"
                 value={formData.caseNumber}
@@ -195,7 +199,10 @@ export const CaseModal: React.FC<CaseModalProps> = ({
               />
             </div>
             <div>
-              <Label htmlFor="priority">Priority</Label>
+              <div className="flex items-center gap-1">
+                <Label htmlFor="priority">Priority</Label>
+                <FieldTooltip formId="create-case" fieldId="priority" />
+              </div>
               <Select 
                 value={formData.priority} 
                 onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value as any }))}
@@ -214,7 +221,10 @@ export const CaseModal: React.FC<CaseModalProps> = ({
           </div>
 
           <div>
-            <Label htmlFor="title">Case Title</Label>
+            <div className="flex items-center gap-1">
+              <Label htmlFor="title">Case Title</Label>
+              <FieldTooltip formId="create-case" fieldId="title" />
+            </div>
             <Input
               id="title"
               value={formData.title}
@@ -248,7 +258,10 @@ export const CaseModal: React.FC<CaseModalProps> = ({
               )}
             </div>
             <div data-tour="case-timeline">
-              <Label htmlFor="currentStage">Current Stage</Label>
+              <div className="flex items-center gap-1">
+                <Label htmlFor="currentStage">Current Stage</Label>
+                <FieldTooltip formId="create-case" fieldId="stage" />
+              </div>
               <Select 
                 value={formData.currentStage} 
                 onValueChange={(value) => setFormData(prev => ({ ...prev, currentStage: value as any }))}
@@ -272,8 +285,12 @@ export const CaseModal: React.FC<CaseModalProps> = ({
           </div>
 
           <div data-tour="case-team-assignment">
+            <div className="flex items-center gap-1 mb-2">
+              <span className="text-sm font-medium">Case Owner</span>
+              <FieldTooltip formId="create-case" fieldId="assignee" />
+            </div>
             <EmployeeSelector
-              label="Case Owner"
+              label=""
               value={formData.assignedToId}
               onValueChange={(value) => {
                 const employee = state.employees.find(e => e.id === value);

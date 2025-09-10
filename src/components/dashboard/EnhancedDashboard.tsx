@@ -35,6 +35,7 @@ import { BarChart, Bar, XAxis, YAxis, PieChart as RechartsPieChart, Cell, LineCh
 import { InlineHelp } from '@/components/help/InlineHelp';
 import { PageHelp } from '@/components/help/PageHelp';
 import { QuickActionsPanel } from '@/components/qa/QuickActionsPanel';
+import { GlossaryText, GlossaryDescription } from '@/components/ui/glossary-enhanced';
 
 interface DashboardFilters {
   clientId?: string;
@@ -185,8 +186,8 @@ export const EnhancedDashboard: React.FC = () => {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <PageHelp pageId="dashboard" variant="floating" />
             <InlineHelp module="dashboard" />
-            <PageHelp pageId="dashboard" />
           </div>
         </div>
         

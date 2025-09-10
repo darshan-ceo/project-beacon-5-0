@@ -46,6 +46,7 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 import { InlineHelp } from '@/components/help/InlineHelp';
 import { PageHelp } from '@/components/help/PageHelp';
 import { tourService } from '@/services/tourService';
+import { GlossaryText, GlossaryDescription } from '@/components/ui/glossary-enhanced';
 
 export const CaseManagement: React.FC = () => {
   const { state, dispatch } = useAppState();
@@ -348,27 +349,36 @@ export const CaseManagement: React.FC = () => {
         transition={{ duration: 0.3 }}
         className="flex justify-between items-center"
       >
-        <div className="flex items-center gap-3">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Case Management</h1>
-            <p className="text-muted-foreground mt-2">
-              Comprehensive case lifecycle with SLA tracking and hearing management
-            </p>
+          <div className="flex items-center gap-3">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Case Management</h1>
+              <GlossaryDescription className="text-muted-foreground mt-2">
+                Comprehensive case lifecycle with SLA tracking and hearing management
+              </GlossaryDescription>
+            </div>
           </div>
           <div className="flex items-center gap-2">
-            <InlineHelp module="case-overview" />
-            <PageHelp pageId="case-management" />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => tourService.startTour('case-management')}
+              className="flex items-center gap-2"
+            >
+              <HelpCircle className="w-4 h-4" />
+              Start Tour
+            </Button>
+            <PageHelp pageId="case-management" variant="floating" />
+            <InlineHelp module="case-management" />
           </div>
-        </div>
         <div className="flex gap-2">
-          <Button 
-            variant="outline"
-            onClick={() => tourService.startTour('create-case')}
-            className="text-xs"
-          >
-            <HelpCircle className="mr-2 h-3 w-3" />
-            Start Tour
-          </Button>
+            <Button 
+              variant="outline"
+              onClick={() => tourService.startTour('case-management')}
+              size="sm"
+            >
+              <HelpCircle className="mr-2 h-4 w-4" />
+              Start Tour
+            </Button>
           <Button 
             className="bg-primary hover:bg-primary-hover"
             onClick={() => setCaseModal({ isOpen: true, mode: 'create', case: null })}
