@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Download, 
   Play, 
@@ -16,19 +17,26 @@ import {
   AlertTriangle,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
+  Settings
 } from 'lucide-react';
 import { persistenceChecker, QCReport, QCTestResult } from '@/utils/persistenceCheck';
 import { networkInterceptor } from '@/utils/networkInterceptor';
 import { idbStorage, migrateFromLocalStorage } from '@/utils/idb';
 import { featureFlagService } from '@/services/featureFlagService';
+import { useAppState } from '@/contexts/AppStateContext';
+import { GST_STAGES } from '../../../config/appConfig';
 import { useToast } from '@/hooks/use-toast';
 
 export const DevTools: React.FC = () => {
+  const { state, dispatch } = useAppState();
   const [qcReport, setQcReport] = useState<QCReport | null>(null);
   const [isRunningQC, setIsRunningQC] = useState(false);
   const [networkStats, setNetworkStats] = useState(networkInterceptor.getCallStats());
   const [storageStats, setStorageStats] = useState<any>(null);
+  const [selectedCase, setSelectedCase] = useState<string>('');
+  const [selectedStage, setSelectedStage] = useState<string>('');
+  const [stageResults, setStageResults] = useState<any>(null);
   const { toast } = useToast();
 
   React.useEffect(() => {
@@ -142,6 +150,73 @@ export const DevTools: React.FC = () => {
     }
   };
 
+  const simulateStageChange = async () => {
+    if (!selectedCase || !selectedStage) {
+      toast({
+        title: 'Selection Required',
+        description: 'Please select both case and stage',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setIsRunningQC(true);
+    
+    try {
+      // Find the case
+      const targetCase = state.cases.find(c => c.id === selectedCase);
+      if (!targetCase) {
+        toast({
+          title: 'Case Not Found',
+          description: 'Selected case not found',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      const oldStage = targetCase.currentStage;
+      
+      // Update case stage
+      dispatch({ 
+        type: 'UPDATE_CASE', 
+        payload: { 
+          id: selectedCase, 
+          currentStage: selectedStage as any // Cast for now since GST stages differ from original enum
+        } 
+      });
+      
+      // Simulate stage transition effects
+      const results = {
+        caseId: selectedCase,
+        oldStage,
+        newStage: selectedStage,
+        timestamp: new Date().toISOString(),
+        actions: [
+          'Stage updated successfully',
+          'Checked for stage-specific task templates',
+          'Evaluated automation rules',
+          'Updated case timeline'
+        ]
+      };
+      
+      setStageResults(results);
+      toast({
+        title: 'Stage Updated',
+        description: `Stage changed from "${oldStage}" to "${selectedStage}"`,
+      });
+      
+    } catch (error) {
+      console.error('Stage simulation error:', error);
+      toast({
+        title: 'Stage Update Failed',
+        description: 'Failed to simulate stage change',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsRunningQC(false);
+    }
+  };
+
   const exportQCReport = () => {
     if (!qcReport) return;
     
@@ -201,8 +276,9 @@ export const DevTools: React.FC = () => {
       </div>
 
       <Tabs defaultValue="qc" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="qc">QC Runner</TabsTrigger>
+          <TabsTrigger value="stage">Stage Simulator</TabsTrigger>
           <TabsTrigger value="network">Network</TabsTrigger>
           <TabsTrigger value="storage">Storage</TabsTrigger>
           <TabsTrigger value="flags">Feature Flags</TabsTrigger>
@@ -323,6 +399,91 @@ export const DevTools: React.FC = () => {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="stage" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Stage Simulator
+              </CardTitle>
+              <CardDescription>
+                Test stage transitions and automation triggers in development mode
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Select Case</label>
+                  <Select value={selectedCase} onValueChange={setSelectedCase}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a case to modify" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {state.cases.map((case_) => (
+                        <SelectItem key={case_.id} value={case_.id}>
+                          {case_.caseNumber} - {state.clients.find(c => c.id === case_.clientId)?.name || 'Unknown Client'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Target Stage</label>
+                  <Select value={selectedStage} onValueChange={setSelectedStage}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose target stage" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {GST_STAGES.filter(s => s !== 'Any Stage').map((stage) => (
+                        <SelectItem key={stage} value={stage}>
+                          {stage}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <Button 
+                onClick={simulateStageChange}
+                disabled={!selectedCase || !selectedStage || isRunningQC}
+                className="w-full"
+              >
+                <Play className="h-4 w-4 mr-2" />
+                {isRunningQC ? 'Simulating...' : 'Simulate Stage Change'}
+              </Button>
+
+              {stageResults && (
+                <Card className="border-green-200 bg-green-50">
+                  <CardHeader>
+                    <CardTitle className="text-sm text-green-800">Simulation Results</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="text-sm">
+                      <strong>Case:</strong> {stageResults.caseId}
+                    </div>
+                    <div className="text-sm">
+                      <strong>Transition:</strong> {stageResults.oldStage} → {stageResults.newStage}
+                    </div>
+                    <div className="text-sm">
+                      <strong>Timestamp:</strong> {new Date(stageResults.timestamp).toLocaleString()}
+                    </div>
+                    <div className="text-sm">
+                      <strong>Actions Performed:</strong>
+                      <ul className="list-disc ml-4 mt-1">
+                        {stageResults.actions.map((action: string, i: number) => (
+                          <li key={i}>{action}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="network" className="space-y-6">

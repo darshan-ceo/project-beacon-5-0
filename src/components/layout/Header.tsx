@@ -7,8 +7,10 @@ import {
   Shield,
   LogOut,
   User,
-  Settings
+  Settings,
+  AlertTriangle
 } from 'lucide-react';
+import { envConfig } from '@/utils/envConfig';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -58,6 +60,14 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
 
       {/* Right Section */}
       <div className="flex items-center space-x-4">
+        {/* Dev Mode Badge */}
+        {(envConfig.QA_ON || !envConfig.API_SET || envConfig.MOCK_ON) && (
+          <Badge variant="destructive" className="flex items-center gap-1 animate-pulse">
+            <AlertTriangle className="h-3 w-3" />
+            DEV MODE
+          </Badge>
+        )}
+        
         {/* Role Selector */}
         <RoleSelector />
         
