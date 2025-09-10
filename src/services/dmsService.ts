@@ -615,6 +615,54 @@ export const dmsService = {
       }
     },
 
+    list: async (filter: DocumentFilter): Promise<Document[]> => {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Get documents from localStorage (app state)
+      const documents: Document[] = JSON.parse(localStorage.getItem('appState') || '{}').documents || [];
+      
+      // Apply filters
+      let filteredDocs = documents;
+      
+      if (filter.caseId) {
+        filteredDocs = filteredDocs.filter(doc => doc.caseId === filter.caseId);
+      }
+      
+      if (filter.folderId) {
+        filteredDocs = filteredDocs.filter(doc => doc.folderId === filter.folderId);
+      }
+      
+      if (filter.stage) {
+        filteredDocs = filteredDocs.filter(doc => doc.tags.includes(filter.stage));
+      }
+      
+      if (filter.fileType) {
+        filteredDocs = filteredDocs.filter(doc => doc.type === filter.fileType);
+      }
+      
+      if (filter.tags && filter.tags.length > 0) {
+        filteredDocs = filteredDocs.filter(doc => 
+          filter.tags!.some(tag => doc.tags.includes(tag))
+        );
+      }
+      
+      if (filter.uploadedBy) {
+        filteredDocs = filteredDocs.filter(doc => doc.uploadedById === filter.uploadedBy);
+      }
+      
+      if (filter.dateRange) {
+        const start = new Date(filter.dateRange.start);
+        const end = new Date(filter.dateRange.end);
+        filteredDocs = filteredDocs.filter(doc => {
+          const uploadDate = new Date(doc.uploadedAt);
+          return uploadDate >= start && uploadDate <= end;
+        });
+      }
+      
+      log('success', 'DMS', 'listFiles', { filter, count: filteredDocs.length });
+      return filteredDocs;
+    },
+
     search: async (filter: DocumentFilter): Promise<Document[]> => {
       await new Promise(resolve => setTimeout(resolve, 400));
       

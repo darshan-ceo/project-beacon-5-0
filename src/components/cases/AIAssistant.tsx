@@ -48,6 +48,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ selectedCase }) => {
   const [isEditingDraft, setIsEditingDraft] = useState(false);
   const [editedDraftContent, setEditedDraftContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [outputFormat, setOutputFormat] = useState<'pdf' | 'docx'>('pdf');
 
   // Summarizer State
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
@@ -146,7 +147,8 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ selectedCase }) => {
         stageId: selectedCase.currentStage,
         templateCode: generatedDraft.noticeType,
         html: htmlContent,
-        output: 'pdf' // Default to PDF, can be made configurable
+        output: outputFormat,
+        version
       }, dispatch);
       
       // Update local state
@@ -423,23 +425,37 @@ ${summary.extractedEntities.map(entity =>
                         {isEditingDraft ? 'Preview' : 'Edit'}
                       </Button>
                       {isEditingDraft && (
-                         <Button 
-                          size="sm" 
-                          onClick={handleSaveDraft}
-                          disabled={isSaving}
-                        >
-                          {isSaving ? (
-                            <>
-                              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                              Saving...
-                            </>
-                          ) : (
-                            <>
-                              <Save className="mr-1 h-4 w-4" />
-                              Save as PDF
-                            </>
-                          )}
-                        </Button>
+                        <div className="flex gap-2">
+                          <Select 
+                            value={outputFormat} 
+                            onValueChange={(value: 'pdf' | 'docx') => setOutputFormat(value)}
+                          >
+                            <SelectTrigger className="w-20">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pdf">PDF</SelectItem>
+                              <SelectItem value="docx">DOCX</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button 
+                            size="sm" 
+                            onClick={handleSaveDraft}
+                            disabled={isSaving}
+                          >
+                            {isSaving ? (
+                              <>
+                                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                                Saving...
+                              </>
+                            ) : (
+                              <>
+                                <Save className="mr-1 h-4 w-4" />
+                                Save as {outputFormat.toUpperCase()}
+                              </>
+                            )}
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </div>
