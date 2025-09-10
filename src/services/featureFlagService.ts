@@ -158,6 +158,48 @@ class FeatureFlagService {
       isEnabled: true, // ON in UAT
       version: 'v2'
     });
+
+    // Masters Import/Export v1 (UAT enabled)
+    this.flags.set('masters_import_export_v1', {
+      key: 'masters_import_export_v1',
+      isEnabled: true, // ON in UAT - fully implemented
+      version: 'v1'
+    });
+
+    // Audit Logs v1 (UAT enabled)
+    this.flags.set('audit_logs_v1', {
+      key: 'audit_logs_v1',
+      isEnabled: true, // ON in UAT - implemented
+      version: 'v1'
+    });
+
+    // Tasks Board v2 (UAT enabled)
+    this.flags.set('tasks_board_v2', {
+      key: 'tasks_board_v2',
+      isEnabled: true, // ON in UAT - TaskBoard is working
+      version: 'v2'
+    });
+
+    // Tasks List View v1 (UAT disabled)
+    this.flags.set('tasks_list_view_v1', {
+      key: 'tasks_list_view_v1',
+      isEnabled: false, // OFF in UAT - might conflict with v2
+      version: 'v1'
+    });
+
+    // Task Notify on Assign v1 (UAT enabled)
+    this.flags.set('task_notify_on_assign_v1', {
+      key: 'task_notify_on_assign_v1',
+      isEnabled: true, // ON in UAT - escalation service handles this
+      version: 'v1'
+    });
+
+    // UI Brand Refresh v1 (UAT disabled)
+    this.flags.set('ui_brand_refresh_v1', {
+      key: 'ui_brand_refresh_v1',
+      isEnabled: false, // OFF in UAT - needs investigation
+      version: 'v1'
+    });
   }
 
   /**
