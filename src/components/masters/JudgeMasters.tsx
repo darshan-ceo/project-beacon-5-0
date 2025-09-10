@@ -123,7 +123,7 @@ const JudgeMasters: React.FC = () => {
               </CardDescription>
             </div>
             <div className="flex gap-2">
-              {featureFlagService.isEnabled('data_io_v1') && hasPermission('masters.judges', 'write') && (
+              {featureFlagService.isEnabled('data_io_v1') && hasPermission('judges', 'write') && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -133,7 +133,7 @@ const JudgeMasters: React.FC = () => {
                   Import
                 </Button>
               )}
-              {featureFlagService.isEnabled('data_io_v1') && hasPermission('masters.judges', 'write') && (
+              {featureFlagService.isEnabled('data_io_v1') && hasPermission('judges', 'write') && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -143,7 +143,7 @@ const JudgeMasters: React.FC = () => {
                   Export
                 </Button>
               )}
-              {hasPermission('masters.judges', 'write') && (
+              {hasPermission('judges', 'write') && (
                 <Button
                   onClick={handleAddJudge}
                   size="sm"
@@ -279,7 +279,7 @@ const JudgeMasters: React.FC = () => {
                       <Eye className="h-3 w-3 mr-1" />
                       View
                     </Button>
-                    {hasPermission('masters.judges', 'write') && (
+                    {hasPermission('judges', 'write') && (
                       <Button
                         variant="outline"
                         size="sm"
