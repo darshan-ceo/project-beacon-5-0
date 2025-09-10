@@ -4,6 +4,8 @@
  */
 
 import { StageInstance, StageTransition, ChecklistItem, TransitionType, OrderDetails, LifecycleState } from '@/types/lifecycle';
+import { stageTransitionService } from './stageTransitionService';
+import { GSTStage } from '../../config/appConfig';
 import { toast } from '@/hooks/use-toast';
 import React from 'react';
 
@@ -81,6 +83,8 @@ class LifecycleService {
         const slaStatus = request.toStageKey === 'Adjudication' ? 'Amber' : 
                          request.toStageKey === 'HC' ? 'Green' : 'Green';
 
+        const oldStage = 'Unknown'; // Would be retrieved from current case state in real implementation
+        
         request.dispatch({
           type: 'UPDATE_CASE',
           payload: {
@@ -90,6 +94,38 @@ class LifecycleService {
             lastUpdated: new Date().toISOString()
           }
         });
+
+        // Trigger stage transition automation (Phase 2)
+        try {
+          // Mock case data - in real implementation, this would be fetched
+          const caseData = {
+            id: request.caseId,
+            caseNumber: `CASE-${request.caseId.slice(-4)}`,
+            clientId: 'client-1',
+            assignedToId: 'emp-1',
+            assignedToName: 'Current User',
+            currentStage: request.toStageKey
+          };
+          
+          const result = await stageTransitionService.processStageTransition(
+            caseData,
+            oldStage,
+            request.toStageKey as GSTStage
+          );
+          
+          if (result.createdTasks.length > 0) {
+            console.log(`[LifecycleService] Stage transition created ${result.createdTasks.length} automated tasks`);
+          }
+          
+          if (result.suggestedTasks.length > 0) {
+            console.log(`[LifecycleService] Stage transition suggests ${result.suggestedTasks.length} tasks`);
+            // In real implementation, this would trigger a suggestion drawer
+          }
+          
+        } catch (error) {
+          console.error('[LifecycleService] Failed to process stage transition automation:', error);
+          // Don't fail the stage transition itself, just log the error
+        }
       }
 
       toast({

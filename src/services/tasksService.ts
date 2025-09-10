@@ -15,6 +15,7 @@ export interface CreateTaskData {
   assignedByName: string;
   dueDate: string;
   estimatedHours: number;
+  tags?: string[];
 }
 
 export interface UpdateTaskData extends Partial<CreateTaskData> {

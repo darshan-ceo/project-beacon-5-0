@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { 
@@ -12,7 +12,10 @@ import {
   Target,
   Settings,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  Layers,
+  Zap,
+  Bell
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +24,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -30,6 +34,22 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { TaskTemplate } from '@/types/taskTemplate';
+import { taskTemplatesService } from '@/services/taskTemplatesService';
+import { GST_STAGES, EMPLOYEE_ROLES } from '../../../config/appConfig';
 
 interface TaskBundle {
   id: string;
@@ -40,132 +60,169 @@ interface TaskBundle {
   sequenceRequired: boolean;
 }
 
-interface TaskTemplate {
-  id: string;
-  title: string;
-  description: string;
-  estimatedHours: number;
-  priority: 'Critical' | 'High' | 'Medium' | 'Low';
-  role: string;
-  category: string;
-  dependencies?: string[];
-  isActive: boolean;
-  usageCount: number;
-}
-
 interface TaskTemplatesProps {
   bundles: TaskBundle[];
 }
 
-const taskTemplates: TaskTemplate[] = [
-  {
-    id: 'draft-response',
-    title: 'Draft Response to Notice',
-    description: 'Prepare comprehensive response addressing all points raised in the notice',
-    estimatedHours: 16,
-    priority: 'Critical',
-    role: 'Senior Associate',
-    category: 'Legal Drafting',
-    isActive: true,
-    usageCount: 45
-  },
-  {
-    id: 'prepare-annexures',
-    title: 'Prepare Supporting Annexures',
-    description: 'Compile all required supporting documents and evidence',
-    estimatedHours: 8,
-    priority: 'High',
-    role: 'Junior Associate',
-    category: 'Documentation',
-    dependencies: ['draft-response'],
-    isActive: true,
-    usageCount: 38
-  },
-  {
-    id: 'legal-review',
-    title: 'Legal Review',
-    description: 'Review legal arguments and ensure compliance with regulations',
-    estimatedHours: 6,
-    priority: 'High',
-    role: 'Partner',
-    category: 'Review',
-    dependencies: ['draft-response'],
-    isActive: true,
-    usageCount: 52
-  },
-  {
-    id: 'client-approval',
-    title: 'Client Approval',
-    description: 'Obtain client approval for the prepared response',
-    estimatedHours: 2,
-    priority: 'Medium',
-    role: 'Senior Associate',
-    category: 'Client Management',
-    dependencies: ['legal-review'],
-    isActive: true,
-    usageCount: 41
-  },
-  {
-    id: 'file-response',
-    title: 'File Response with Authority',
-    description: 'Submit the approved response to the relevant tax authority',
-    estimatedHours: 4,
-    priority: 'High',
-    role: 'Junior Associate',
-    category: 'Filing',
-    dependencies: ['client-approval'],
-    isActive: true,
-    usageCount: 29
-  },
-  {
-    id: 'evidence-compilation',
-    title: 'Evidence Compilation',
-    description: 'Compile and organize all evidence supporting the case',
-    estimatedHours: 12,
-    priority: 'Medium',
-    role: 'Paralegal',
-    category: 'Documentation',
-    isActive: true,
-    usageCount: 33
-  },
-  {
-    id: 'hearing-prep',
-    title: 'Hearing Preparation',
-    description: 'Prepare arguments and documentation for upcoming hearing',
-    estimatedHours: 20,
-    priority: 'Critical',
-    role: 'Partner',
-    category: 'Hearing Prep',
-    isActive: true,
-    usageCount: 18
-  },
-  {
-    id: 'precedent-research',
-    title: 'Legal Precedent Research',
-    description: 'Research relevant case law and legal precedents',
-    estimatedHours: 14,
-    priority: 'Medium',
-    role: 'Research Associate',
-    category: 'Research',
-    isActive: true,
-    usageCount: 26
-  }
-];
-
-const categories = ['All', 'Legal Drafting', 'Documentation', 'Review', 'Client Management', 'Filing', 'Hearing Prep', 'Research'];
-const roles = ['All', 'Partner', 'Senior Associate', 'Junior Associate', 'Paralegal', 'Research Associate'];
+const categories = ['All', 'Legal Drafting', 'Documentation', 'Review', 'Client Management', 'Filing', 'Hearing Prep', 'Research', 'General'];
 
 export const TaskTemplates: React.FC<TaskTemplatesProps> = ({ bundles }) => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedRole, setSelectedRole] = useState('All');
   const [isCreateTemplateOpen, setIsCreateTemplateOpen] = useState(false);
+  const [isEditTemplateOpen, setIsEditTemplateOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<TaskTemplate | null>(null);
+  const [templates, setTemplates] = useState<TaskTemplate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<any>(null);
 
-  const filteredTemplates = taskTemplates.filter(template => {
+  // Form state for create/edit
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    estimatedHours: 8,
+    priority: 'Medium' as 'Critical' | 'High' | 'Medium' | 'Low',
+    assignedRole: 'Associate',
+    category: 'General',
+    stageScope: [] as string[],
+    suggestOnStageChange: false,
+    autoCreateOnStageChange: false,
+    noticeTypes: [] as string[],
+    clientTiers: [] as string[]
+  });
+
+  const [stageScopeOpen, setStageScopeOpen] = useState(false);
+
+  const roles = ['All', ...EMPLOYEE_ROLES];
+
+  useEffect(() => {
+    loadTemplates();
+  }, []);
+
+  const loadTemplates = async () => {
+    try {
+      setLoading(true);
+      const [templatesData, statsData] = await Promise.all([
+        taskTemplatesService.getAll(),
+        taskTemplatesService.getTemplateStats()
+      ]);
+      setTemplates(templatesData);
+      setStats(statsData);
+    } catch (error) {
+      console.error('Failed to load templates:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load task templates',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredTemplates = templates.filter(template => {
     const matchesCategory = selectedCategory === 'All' || template.category === selectedCategory;
-    const matchesRole = selectedRole === 'All' || template.role === selectedRole;
+    const matchesRole = selectedRole === 'All' || template.assignedRole === selectedRole;
     return matchesCategory && matchesRole && template.isActive;
   });
+
+  const resetForm = () => {
+    setFormData({
+      title: '',
+      description: '',
+      estimatedHours: 8,
+      priority: 'Medium',
+      assignedRole: 'Associate',
+      category: 'General',
+      stageScope: ['Any Stage'],
+      suggestOnStageChange: false,
+      autoCreateOnStageChange: false,
+      noticeTypes: [],
+      clientTiers: []
+    });
+  };
+
+  const handleCreateTemplate = async () => {
+    try {
+      const templateData = {
+        ...formData,
+        stageScope: formData.stageScope.length > 0 ? formData.stageScope as any[] : ['Any Stage'],
+        conditions: {
+          ...(formData.noticeTypes.length > 0 && { noticeType: formData.noticeTypes as any[] }),
+          ...(formData.clientTiers.length > 0 && { clientTier: formData.clientTiers as any[] })
+        }
+      };
+
+      await taskTemplatesService.create(templateData);
+      await loadTemplates();
+      setIsCreateTemplateOpen(false);
+      resetForm();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to create template',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleEditTemplate = async () => {
+    if (!selectedTemplate) return;
+    
+    try {
+      const updates = {
+        ...formData,
+        stageScope: formData.stageScope.length > 0 ? formData.stageScope as any[] : ['Any Stage'],
+        conditions: {
+          ...(formData.noticeTypes.length > 0 && { noticeType: formData.noticeTypes as any[] }),
+          ...(formData.clientTiers.length > 0 && { clientTier: formData.clientTiers as any[] })
+        }
+      };
+
+      await taskTemplatesService.update(selectedTemplate.id, updates);
+      await loadTemplates();
+      setIsEditTemplateOpen(false);
+      setSelectedTemplate(null);
+      resetForm();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update template',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleCloneTemplate = async (template: TaskTemplate) => {
+    try {
+      await taskTemplatesService.clone(template.id);
+      await loadTemplates();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to clone template',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const openEditDialog = (template: TaskTemplate) => {
+    setSelectedTemplate(template);
+    setFormData({
+      title: template.title,
+      description: template.description,
+      estimatedHours: template.estimatedHours,
+      priority: template.priority,
+      assignedRole: template.assignedRole,
+      category: template.category,
+      stageScope: template.stageScope,
+      suggestOnStageChange: template.suggestOnStageChange,
+      autoCreateOnStageChange: template.autoCreateOnStageChange,
+      noticeTypes: template.conditions?.noticeType || [],
+      clientTiers: template.conditions?.clientTier || []
+    });
+    setIsEditTemplateOpen(true);
+  };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -216,11 +273,45 @@ export const TaskTemplates: React.FC<TaskTemplatesProps> = ({ bundles }) => {
               </Badge>
             </div>
 
+            {/* Stage Scope */}
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Stage Scope:</p>
+              <div className="flex flex-wrap gap-1">
+                {template.stageScope.slice(0, 2).map((stage) => (
+                  <Badge key={stage} variant="outline" className="text-xs bg-blue-50 text-blue-700">
+                    <Layers className="h-3 w-3 mr-1" />
+                    {stage === 'Any Stage' ? 'Any' : stage.substring(0, 10)}...
+                  </Badge>
+                ))}
+                {template.stageScope.length > 2 && (
+                  <Badge variant="outline" className="text-xs">
+                    +{template.stageScope.length - 2} more
+                  </Badge>
+                )}
+              </div>
+            </div>
+
+            {/* Automation Badges */}
+            <div className="flex gap-2">
+              {template.suggestOnStageChange && (
+                <Badge variant="secondary" className="text-xs bg-yellow-50 text-yellow-700">
+                  <Bell className="h-3 w-3 mr-1" />
+                  Suggest
+                </Badge>
+              )}
+              {template.autoCreateOnStageChange && (
+                <Badge variant="secondary" className="text-xs bg-green-50 text-green-700">
+                  <Zap className="h-3 w-3 mr-1" />
+                  Auto-create
+                </Badge>
+              )}
+            </div>
+
             {/* Metadata */}
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-muted-foreground">Role</p>
-                <p className="font-medium">{template.role}</p>
+                <p className="font-medium">{template.assignedRole}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Estimated Hours</p>
@@ -245,7 +336,7 @@ export const TaskTemplates: React.FC<TaskTemplatesProps> = ({ bundles }) => {
                 <p className="text-xs text-muted-foreground mb-1">Dependencies:</p>
                 <div className="flex flex-wrap gap-1">
                   {template.dependencies.slice(0, 2).map((depId) => {
-                    const dep = taskTemplates.find(t => t.id === depId);
+                    const dep = templates.find(t => t.id === depId);
                     return dep ? (
                       <Badge key={depId} variant="outline" className="text-xs">
                         {dep.title.substring(0, 20)}...
@@ -263,11 +354,27 @@ export const TaskTemplates: React.FC<TaskTemplatesProps> = ({ bundles }) => {
 
             {/* Actions */}
             <div className="flex space-x-2 pt-2">
-              <Button variant="outline" size="sm" className="flex-1">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex-1"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openEditDialog(template);
+                }}
+              >
                 <Edit className="mr-2 h-3 w-3" />
                 Edit
               </Button>
-              <Button variant="outline" size="sm" className="flex-1">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex-1"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCloneTemplate(template);
+                }}
+              >
                 <Copy className="mr-2 h-3 w-3" />
                 Clone
               </Button>
@@ -399,7 +506,7 @@ export const TaskTemplates: React.FC<TaskTemplatesProps> = ({ bundles }) => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Templates</p>
-                <p className="text-2xl font-bold text-foreground">{taskTemplates.length}</p>
+                <p className="text-2xl font-bold text-foreground">{templates.length}</p>
               </div>
               <FileText className="h-8 w-8 text-primary" />
             </div>
@@ -485,7 +592,7 @@ export const TaskTemplates: React.FC<TaskTemplatesProps> = ({ bundles }) => {
         </div>
         
         <div className="ml-auto text-sm text-muted-foreground">
-          Showing {filteredTemplates.length} of {taskTemplates.length} templates
+          Showing {filteredTemplates.length} of {templates.length} templates
         </div>
       </motion.div>
 
