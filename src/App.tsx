@@ -23,8 +23,7 @@ import { ProfileErrorBoundary } from "@/components/admin/ProfileErrorBoundary";
 import { ReportsModule } from "@/components/reports/ReportsModule";
 import { GSTDebugPage } from "@/components/debug/GSTDebugPage";
 import { QADashboard } from "@/pages/QADashboard";
-import { HearingsCalendar } from "@/components/hearings/HearingsCalendar";
-import { HearingsList } from "@/components/hearings/HearingsList";
+import { HearingsPage } from "@/pages/HearingsPage";
 import { HelpCenter } from "@/pages/HelpCenter";
 import { HelpDiagnostics } from "@/pages/HelpDiagnostics";
 import { GlossaryPage } from "@/pages/help/GlossaryPage";
@@ -141,14 +140,19 @@ const App = () => (
                   <QADashboard />
                 </AdminLayout>
               } />
+              <Route path="/hearings/*" element={
+                <AdminLayout currentUser={currentUser}>
+                  <HearingsPage />
+                </AdminLayout>
+              } />
               <Route path="/hearings/calendar" element={
                 <AdminLayout currentUser={currentUser}>
-                  <HearingsCalendar />
+                  <HearingsPage />
                 </AdminLayout>
               } />
               <Route path="/hearings/list" element={
                 <AdminLayout currentUser={currentUser}>
-                  <HearingsList />
+                  <HearingsPage />
                 </AdminLayout>
               } />
               <Route path="/help" element={

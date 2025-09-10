@@ -21,7 +21,15 @@ export const HearingForm: React.FC<HearingFormProps> = ({
 }) => {
   const { state } = useAppState();
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    case_id: string;
+    date: string;
+    start_time: string;
+    court_id: string;
+    judge_ids: string[];
+    purpose: 'PH' | 'mention' | 'final' | 'other';
+    notes: string;
+  }>({
     case_id: hearing?.case_id || '',
     date: hearing?.date || new Date().toISOString().split('T')[0],
     start_time: hearing?.start_time || '10:00',
@@ -134,7 +142,7 @@ export const HearingForm: React.FC<HearingFormProps> = ({
         <Label>Purpose</Label>
         <Select 
           value={formData.purpose} 
-          onValueChange={(value) => setFormData(prev => ({ ...prev, purpose: value }))}
+          onValueChange={(value: 'PH' | 'mention' | 'final' | 'other') => setFormData(prev => ({ ...prev, purpose: value }))}
           disabled={disabled}
         >
           <SelectTrigger>
