@@ -368,25 +368,79 @@ export const dmsService = {
       const folder = mockFolders.find(f => f.id === options.folderId);
       const documentPath = folder ? `${folder.path}/${file.name}` : `/documents/${file.name}`;
 
-      // Convert file content to base64 for storage - use proper method for binary files
+      // Convert file content to base64 for storage with comprehensive validation
       let base64Content: string;
-      if (file.type.startsWith('image/') || file.type.includes('application/')) {
-        // For binary files (images, PDFs, Office docs), use FileReader for proper encoding
-        base64Content = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => {
-            const result = reader.result as string;
-            // Remove data URL prefix to get just the base64 content
-            const base64 = result.split(',')[1] || result;
-            resolve(base64);
-          };
-          reader.onerror = () => reject(new Error('Failed to read file'));
-          reader.readAsDataURL(file);
+      
+      try {
+        if (file.type.startsWith('image/') || file.type.includes('application/')) {
+          // For binary files (images, PDFs, Office docs), use FileReader for proper encoding
+          base64Content = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              const result = reader.result as string;
+              if (!result) {
+                reject(new Error('FileReader returned empty result'));
+                return;
+              }
+              
+              // Remove data URL prefix to get just the base64 content
+              const base64 = result.includes(',') ? result.split(',')[1] : result;
+              
+              // Validate base64 content
+              if (!base64 || base64.length === 0) {
+                reject(new Error('Base64 content is empty after processing'));
+                return;
+              }
+              
+              // Test if base64 is valid by trying to decode a small portion
+              try {
+                atob(base64.substring(0, Math.min(100, base64.length)));
+                log('success', 'DMS', 'uploadFileEncoding', { 
+                  fileName: file.name, 
+                  originalSize: file.size, 
+                  base64Size: base64.length,
+                  type: file.type 
+                });
+                resolve(base64);
+              } catch (decodeError) {
+                reject(new Error(`Invalid base64 content: ${decodeError.message}`));
+              }
+            };
+            reader.onerror = () => reject(new Error('Failed to read file content'));
+            reader.readAsDataURL(file);
+          });
+        } else {
+          // For text files, use array buffer method
+          const arrayBuffer = await file.arrayBuffer();
+          const uint8Array = new Uint8Array(arrayBuffer);
+          base64Content = btoa(String.fromCharCode(...uint8Array));
+          
+          // Validate text file base64
+          if (!base64Content || base64Content.length === 0) {
+            throw new Error('Text file base64 encoding resulted in empty content');
+          }
+          
+          log('success', 'DMS', 'uploadFileEncoding', { 
+            fileName: file.name, 
+            originalSize: file.size, 
+            base64Size: base64Content.length,
+            type: file.type,
+            method: 'arrayBuffer' 
+          });
+        }
+        
+        // Final validation
+        if (!base64Content) {
+          throw new Error('Base64 content is undefined after encoding');
+        }
+        
+      } catch (encodingError) {
+        log('error', 'DMS', 'uploadFileEncoding', { 
+          fileName: file.name, 
+          error: encodingError.message,
+          type: file.type 
         });
-      } else {
-        // For text files, use the existing method
-        const arrayBuffer = await file.arrayBuffer();
-        base64Content = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+        throw new Error(`File encoding failed: ${encodingError.message}`);
       }
 
       const newDocument: Document = {
@@ -531,30 +585,66 @@ export const dmsService = {
         const foundDocument = documents.find((doc: Document) => doc.id === documentId);
         
         if (foundDocument && foundDocument.content) {
-          log('success', 'DMS', 'getPreviewUrl', { documentId, hasContent: true, size: foundDocument.size, type: foundDocument.type });
+          log('success', 'DMS', 'getPreviewUrl', { 
+            documentId, 
+            hasContent: true, 
+            size: foundDocument.size, 
+            type: foundDocument.type,
+            contentLength: foundDocument.content.length 
+          });
           
-          // For images and binary files, create blob from base64 data URL
           let blob: Blob;
-          if (foundDocument.type.startsWith('image/') || foundDocument.type.includes('application/')) {
-            // Content is already properly base64 encoded, create data URL and then blob
-            const dataUrl = `data:${foundDocument.type};base64,${foundDocument.content}`;
-            const response = await fetch(dataUrl);
-            blob = await response.blob();
-          } else {
-            // For text files, use the original method
-            const binaryString = atob(foundDocument.content);
-            const bytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-              bytes[i] = binaryString.charCodeAt(i);
+          
+          try {
+            if (foundDocument.type.startsWith('image/') || foundDocument.type.includes('application/')) {
+              // For binary files, validate and create blob from base64
+              if (!foundDocument.content || foundDocument.content.trim() === '') {
+                throw new Error('Base64 content is empty');
+              }
+              
+              // Validate base64 format
+              try {
+                atob(foundDocument.content.substring(0, 100)); // Test decode small portion
+              } catch (decodeError) {
+                throw new Error(`Invalid base64 content: ${decodeError.message}`);
+              }
+              
+              // Create data URL and convert to blob
+              const dataUrl = `data:${foundDocument.type};base64,${foundDocument.content}`;
+              const response = await fetch(dataUrl);
+              blob = await response.blob();
+              
+              if (blob.size === 0) {
+                throw new Error('Blob conversion resulted in empty blob');
+              }
+              
+            } else {
+              // For text files, decode base64 directly
+              const binaryString = atob(foundDocument.content);
+              const bytes = new Uint8Array(binaryString.length);
+              for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+              }
+              blob = new Blob([bytes], { type: foundDocument.type || 'application/octet-stream' });
             }
-            blob = new Blob([bytes], { type: foundDocument.type || 'application/octet-stream' });
+            
+            log('success', 'DMS', 'getPreviewUrl', { 
+              documentId, 
+              blobSize: blob.size, 
+              blobType: blob.type,
+              originalSize: foundDocument.size 
+            });
+            
+            return URL.createObjectURL(blob);
+            
+          } catch (blobError) {
+            log('error', 'DMS', 'getPreviewUrl', { 
+              documentId, 
+              error: 'Blob creation failed', 
+              details: blobError.message 
+            });
+            throw new Error(`Failed to create blob: ${blobError.message}`);
           }
-          
-          if (blob.size === 0) {
-            throw new Error('Document content is empty');
-          }
-          
-          return URL.createObjectURL(blob);
         }
         
         log('error', 'DMS', 'getPreviewUrl', { documentId, reason: 'Document not found or no content' });
@@ -630,23 +720,57 @@ export const dmsService = {
         
         let blob: Blob;
         
-        if (foundDocument && foundDocument.content) {
-          log('success', 'DMS', 'downloadFile', { documentId, hasStoredContent: true, originalSize: foundDocument.size, type: foundDocument.type });
+        if (foundDocument && foundDocument.content && foundDocument.content.trim() !== '') {
+          log('success', 'DMS', 'downloadFile', { 
+            documentId, 
+            hasStoredContent: true, 
+            originalSize: foundDocument.size, 
+            type: foundDocument.type,
+            contentLength: foundDocument.content.length 
+          });
           
-          // Handle different file types properly
-          if (foundDocument.type.startsWith('image/') || foundDocument.type.includes('application/')) {
-            // For binary files, content is properly base64 encoded - convert to blob via data URL
-            const dataUrl = `data:${foundDocument.type};base64,${foundDocument.content}`;
-            const response = await fetch(dataUrl);
-            blob = await response.blob();
-          } else {
-            // For text files, use the original method
-            const binaryString = atob(foundDocument.content);
-            const bytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-              bytes[i] = binaryString.charCodeAt(i);
+          try {
+            // Validate base64 content first
+            try {
+              atob(foundDocument.content.substring(0, 100)); // Test decode small portion
+            } catch (decodeError) {
+              throw new Error(`Invalid base64 content in storage: ${decodeError.message}`);
             }
-            blob = new Blob([bytes], { type: foundDocument.type || 'application/octet-stream' });
+            
+            if (foundDocument.type.startsWith('image/') || foundDocument.type.includes('application/')) {
+              // For binary files, content is properly base64 encoded - convert to blob via data URL
+              const dataUrl = `data:${foundDocument.type};base64,${foundDocument.content}`;
+              const response = await fetch(dataUrl);
+              blob = await response.blob();
+              
+              if (blob.size === 0) {
+                throw new Error('Data URL conversion resulted in empty blob');
+              }
+              
+            } else {
+              // For text files, decode base64 directly
+              const binaryString = atob(foundDocument.content);
+              const bytes = new Uint8Array(binaryString.length);
+              for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+              }
+              blob = new Blob([bytes], { type: foundDocument.type || 'application/octet-stream' });
+            }
+            
+            log('success', 'DMS', 'downloadFile', { 
+              documentId, 
+              blobCreated: true, 
+              blobSize: blob.size, 
+              expectedSize: foundDocument.size 
+            });
+            
+          } catch (contentError) {
+            log('error', 'DMS', 'downloadFile', { 
+              documentId, 
+              error: 'Content processing failed', 
+              details: contentError.message 
+            });
+            throw new Error(`Failed to process stored content: ${contentError.message}`);
           }
         } else {
           log('error', 'DMS', 'downloadFile', { documentId, reason: 'No document found or no content, using fallback' });
