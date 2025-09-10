@@ -649,7 +649,7 @@ export const TaskTemplates: React.FC<TaskTemplatesProps> = ({ bundles }) => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Role</Label>
-                  <p className="font-medium mt-1">{selectedTemplate.role}</p>
+                  <p className="font-medium mt-1">{selectedTemplate.assignedRole}</p>
                 </div>
                 <div>
                   <Label>Category</Label>
@@ -671,7 +671,7 @@ export const TaskTemplates: React.FC<TaskTemplatesProps> = ({ bundles }) => {
                   <Label>Dependencies</Label>
                   <div className="mt-2 space-y-2">
                     {selectedTemplate.dependencies.map((depId) => {
-                      const dep = taskTemplates.find(t => t.id === depId);
+                      const dep = templates.find(t => t.id === depId);
                       return dep ? (
                         <div key={depId} className="flex items-center justify-between p-2 bg-muted/50 rounded">
                           <span className="text-sm">{dep.title}</span>
