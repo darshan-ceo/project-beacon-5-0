@@ -1,0 +1,169 @@
+{
+  "title": "Task Automation & Management",
+  "description": "Automate repetitive tasks and reminders for litigation GST cases with intelligent workflows",
+  "overview": "The Task Automation & Management page provides comprehensive automation tools for creating, managing, and tracking tasks throughout your legal practice. It enables rule-based automation, escalation workflows, template management, and intelligent task scheduling to ensure no deadlines are missed and work flows efficiently.",
+  "keyFeatures": [
+    {
+      "title": "Automation Rules",
+      "description": "Create trigger-based rules to automatically generate tasks based on case events",
+      "icon": "zap"
+    },
+    {
+      "title": "Task Templates & Bundles", 
+      "description": "Pre-configured task sets for common legal workflows and case stages",
+      "icon": "layout-template"
+    },
+    {
+      "title": "Escalation Matrix",
+      "description": "Automatic escalation of overdue tasks with SLA monitoring and alerts",
+      "icon": "alert-triangle"
+    },
+    {
+      "title": "AI Task Assistant",
+      "description": "Smart task suggestions and automated task creation based on case context",
+      "icon": "brain"
+    },
+    {
+      "title": "Analytics & Insights",
+      "description": "Performance tracking, completion rates, and workflow optimization insights",
+      "icon": "trending-up"
+    },
+    {
+      "title": "Collaboration Tools",
+      "description": "Team task management, assignment workflows, and progress tracking",
+      "icon": "users"
+    }
+  ],
+  "tabGuide": {
+    "board": {
+      "title": "Task Board",
+      "description": "Kanban-style view of all tasks organized by status",
+      "whenToUse": "Daily task management, status updates, and visual workflow tracking"
+    },
+    "automation": {
+      "title": "Automation Rules",
+      "description": "Create and manage automation rules for automatic task generation",
+      "whenToUse": "Setting up new automation workflows, editing existing rules, viewing automation logs"
+    },
+    "escalation": {
+      "title": "Escalation Matrix", 
+      "description": "Configure and monitor task escalation policies and SLA breaches",
+      "whenToUse": "Managing overdue tasks, setting up escalation rules, monitoring SLA compliance"
+    },
+    "templates": {
+      "title": "Task Templates",
+      "description": "Manage reusable task templates and bundles for common workflows",
+      "whenToUse": "Creating new templates, editing existing ones, applying templates to cases"
+    },
+    "analytics": {
+      "title": "Task Analytics",
+      "description": "Performance metrics, completion rates, and productivity insights",
+      "whenToUse": "Monthly reviews, team performance analysis, workflow optimization"
+    },
+    "insights": {
+      "title": "Task Insights",
+      "description": "AI-powered recommendations and workflow improvement suggestions",
+      "whenToUse": "Strategic planning, process improvement, identifying bottlenecks"
+    },
+    "ai-assistant": {
+      "title": "AI Assistant",
+      "description": "Intelligent task creation and management assistance",
+      "whenToUse": "Complex task planning, automated task generation, smart scheduling"
+    },
+    "collaboration": {
+      "title": "Team Collaboration",
+      "description": "Team-based task management and collaboration features",
+      "whenToUse": "Multi-user cases, team assignments, collaborative workflows"
+    }
+  },
+  "buttonGuide": {
+    "createTask": {
+      "title": "Create Task",
+      "description": "Manually create a new task with custom parameters",
+      "action": "Opens task creation modal"
+    },
+    "newRule": {
+      "title": "New Rule", 
+      "description": "Create a new automation rule with triggers and actions",
+      "action": "Opens automation rule builder"
+    },
+    "enableDisable": {
+      "title": "Enable/Disable",
+      "description": "Toggle automation rules on or off",
+      "action": "Activates or deactivates selected rule"
+    },
+    "testRule": {
+      "title": "Test Rule",
+      "description": "Run automation rule on sample data to verify behavior",
+      "action": "Executes rule in test mode with preview"
+    },
+    "viewLogs": {
+      "title": "View Logs",
+      "description": "Check automation execution history and errors",
+      "action": "Opens logs panel with filterable history"
+    },
+    "escalations": {
+      "title": "Escalations",
+      "description": "Quick access to escalation management",
+      "action": "Switches to escalation tab"
+    }
+  },
+  "quickStart": [
+    {
+      "step": 1,
+      "title": "Review Current Tasks",
+      "description": "Check the task board for pending work and overdue items"
+    },
+    {
+      "step": 2,
+      "title": "Set Up Basic Automation",
+      "description": "Go to Automation tab → New Rule to create your first automation"
+    },
+    {
+      "step": 3,
+      "title": "Configure Templates",
+      "description": "Set up task templates for common workflows in Templates tab"
+    },
+    {
+      "step": 4,
+      "title": "Monitor Performance",
+      "description": "Use Analytics tab to track task completion and team performance"
+    },
+    {
+      "step": 5,
+      "title": "Enable AI Assistant",
+      "description": "Let AI help with task creation and scheduling optimization"
+    }
+  ],
+  "relatedTours": [
+    {
+      "id": "task-automation-setup",
+      "title": "Task Automation Setup",
+      "description": "Learn to create automation rules and templates"
+    },
+    {
+      "id": "escalation-management",
+      "title": "Escalation Management",
+      "description": "Set up and monitor task escalation workflows"
+    },
+    {
+      "id": "task-collaboration",
+      "title": "Team Task Management",
+      "description": "Collaborate effectively on tasks and assignments"
+    }
+  ],
+  "relatedArticles": [
+    {
+      "title": "Task Automation Best Practices",
+      "url": "/help/articles/task-automation-best-practices"
+    },
+    {
+      "title": "Escalation Matrix Setup Guide",
+      "url": "/help/articles/escalation-setup-guide" 
+    },
+    {
+      "title": "Task Template Management",
+      "url": "/help/articles/task-template-guide"
+    }
+  ]
+}

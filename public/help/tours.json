@@ -353,5 +353,71 @@
         "action": "none"
       }
     ]
+  },
+  {
+    "id": "task-automation-setup",
+    "title": "Task Automation Setup",
+    "description": "Learn to create automation rules and templates for efficient task management",
+    "module": "tasks",
+    "roles": ["admin", "manager", "advocate"],
+    "estimatedTime": "8 minutes",
+    "steps": [
+      {
+        "id": "automation-overview",
+        "title": "Task Automation Overview",
+        "content": "Welcome to Task Automation! This powerful feature helps you automate repetitive tasks and ensure nothing falls through the cracks.",
+        "target": "[data-tour='task-automation-header']",
+        "placement": "bottom"
+      },
+      {
+        "id": "automation-tab",
+        "title": "Automation Rules Tab",
+        "content": "Click the Automation tab to access rule creation and management. This is where you'll set up triggers and actions.",
+        "target": "[data-testid='automation-tab']",
+        "placement": "bottom"
+      },
+      {
+        "id": "new-rule-button",
+        "title": "Create New Rule",
+        "content": "Click 'New Rule' to create your first automation rule. We'll walk you through the process step by step.",
+        "target": "[data-tour='new-rule-button']",
+        "placement": "bottom"
+      },
+      {
+        "id": "rule-triggers",
+        "title": "Choose a Trigger",
+        "content": "Select when this automation should run. Common triggers include 'Hearing Updated', 'Document Uploaded', or 'Task Overdue'.",
+        "target": "[data-tour='rule-trigger-selector']",
+        "placement": "right"
+      },
+      {
+        "id": "rule-conditions",
+        "title": "Set Conditions",
+        "content": "Add conditions to filter when the rule runs. For example, 'Next Hearing Date in 3 days' or 'Case Status = Active'.",
+        "target": "[data-tour='rule-conditions']",
+        "placement": "right"
+      },
+      {
+        "id": "rule-actions",
+        "title": "Define Actions",
+        "content": "Specify what should happen when triggered. You can create tasks, send notifications, or update case status.",
+        "target": "[data-tour='rule-actions']",
+        "placement": "left"
+      },
+      {
+        "id": "test-rule",
+        "title": "Test Before Enabling",
+        "content": "Always test your rule with sample data before enabling it. This prevents issues with live cases.",
+        "target": "[data-tour='test-rule-button']",
+        "placement": "top"
+      },
+      {
+        "id": "templates-tab",
+        "title": "Task Templates",
+        "content": "Visit the Templates tab to create reusable task bundles for common workflows like 'Hearing Preparation' or 'Appeal Filing'.",
+        "target": "[data-testid='templates-tab']",
+        "placement": "bottom"
+      }
+    ]
   }
 ]

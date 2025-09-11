@@ -194,6 +194,60 @@ const fieldHelpRegistry: Record<string, Record<string, { title: string; content:
       title: 'Billing Information',
       content: 'Billing contact and preferences. May differ from primary contact for corporate clients.',
     },
+  },
+  'automation-rule-form': {
+    'ruleName': {
+      title: 'Rule Name',
+      content: 'Descriptive name for this automation rule. Use clear naming like "Hearing Reminder - 3 Days" or "Order Upload - Client Notification".',
+      learnMoreUrl: '/help/articles/task-automation-best-practices'
+    },
+    'trigger': {
+      title: 'Trigger Event',
+      content: 'System event that starts this automation. Common triggers: Case Created, Hearing Updated, Document Uploaded, Task Overdue.',
+      learnMoreUrl: '/help/articles/automation-triggers-guide'
+    },
+    'conditions': {
+      title: 'Rule Conditions',
+      content: 'Filters that must be true for the rule to execute. Use conditions to target specific cases, priorities, or timeframes.',
+      learnMoreUrl: '/help/articles/task-automation-best-practices'
+    },
+    'actions': {
+      title: 'Actions to Execute',
+      content: 'What the system should do when triggered. Can create tasks, send notifications, update status, or assign ownership.',
+      learnMoreUrl: '/help/articles/task-automation-best-practices'
+    },
+    'enabled': {
+      title: 'Enable Rule',
+      content: 'Toggle to activate or deactivate this automation rule. Always test rules before enabling for live cases.',
+      learnMoreUrl: '/help/articles/task-automation-best-practices'
+    }
+  },
+  'task-template-form': {
+    'templateName': {
+      title: 'Template Name',
+      content: 'Name for this task template. Use descriptive names like "Hearing Preparation Bundle" or "Appeal Filing Checklist".',
+      learnMoreUrl: '/help/articles/task-template-guide'
+    },
+    'stage': {
+      title: 'Associated Stage',
+      content: 'Legal case stage where this template applies (Demand, Adjudication, Appeals, etc.). Templates auto-trigger for matching stages.',
+      learnMoreUrl: '/help/articles/task-template-guide'
+    },
+    'tasks': {
+      title: 'Template Tasks',
+      content: 'List of tasks included in this template. Each task will be created when the template is applied to a case.',
+      learnMoreUrl: '/help/articles/task-template-guide'
+    },
+    'autoTrigger': {
+      title: 'Auto-Trigger',
+      content: 'Automatically create these tasks when a case reaches the associated stage. Helps ensure consistency.',
+      learnMoreUrl: '/help/articles/task-template-guide'
+    },
+    'sequenceRequired': {
+      title: 'Sequence Required',
+      content: 'Whether tasks must be completed in order. Enable for dependent workflows like document review → approval → filing.',
+      learnMoreUrl: '/help/articles/task-template-guide'
+    }
   }
 };
 

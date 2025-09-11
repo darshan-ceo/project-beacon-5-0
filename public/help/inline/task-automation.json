@@ -1,0 +1,32 @@
+{
+  "automation-rules-basics": {
+    "title": "Automation Rules",
+    "content": "Create trigger-based rules to automatically generate tasks when specific events occur (hearing updated, document uploaded, case stage changed).",
+    "learnMoreUrl": "/help/articles/task-automation-best-practices"
+  },
+  "task-templates-intro": {
+    "title": "Task Templates",
+    "content": "Pre-configured task sets for common legal workflows. Templates ensure consistency and save time when creating repetitive task sequences.",
+    "learnMoreUrl": "/help/articles/task-template-guide"
+  },
+  "escalation-matrix-basics": {
+    "title": "Escalation Matrix",
+    "content": "Automatic escalation of overdue tasks to supervisors with configurable SLA thresholds and notification channels.",
+    "learnMoreUrl": "/help/articles/escalation-setup-guide"
+  },
+  "task-bundles-concept": {
+    "title": "Task Bundles",
+    "content": "Groups of related tasks that are created together for specific case stages, with optional sequence requirements and dependencies.",
+    "learnMoreUrl": "/help/articles/task-template-guide"
+  },
+  "ai-task-suggestions": {
+    "title": "AI Task Assistant",
+    "content": "Intelligent task creation based on case context, deadline analysis, and workload optimization for your team.",
+    "learnMoreUrl": "/help/articles/ai-task-assistant"
+  },
+  "automation-triggers": {
+    "title": "Automation Triggers", 
+    "content": "System events that can start automation rules: Case Created, Hearing Updated, Document Uploaded, Task Overdue, Stage Changed.",
+    "learnMoreUrl": "/help/articles/automation-triggers-guide"
+  }
+}

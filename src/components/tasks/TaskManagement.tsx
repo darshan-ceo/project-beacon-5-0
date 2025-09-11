@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { PageHelp } from '@/components/help/PageHelp';
+import { StartTourButton } from '@/components/help/StartTourButton';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -287,6 +289,8 @@ export const TaskManagement: React.FC = () => {
           </p>
         </div>
         <div className="flex gap-2">
+          <PageHelp pageId="task-automation" />
+          <StartTourButton tourId="task-automation-setup" text="Take Tour" />
           <Button 
             variant="outline"
             onClick={() => {
