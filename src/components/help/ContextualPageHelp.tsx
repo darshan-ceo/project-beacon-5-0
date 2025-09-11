@@ -28,9 +28,14 @@ interface ContextualHelpContent {
   tabSpecificHelp?: {
     title: string;
     description: string;
-    buttons: Array<{
+    buttons?: Array<{
       name: string;
       purpose: string;
+      gstExample: string;
+    }>;
+    sections?: Array<{
+      name: string;
+      description: string;
       gstExample: string;
     }>;
     philosophy: string;
@@ -190,24 +195,47 @@ export const ContextualPageHelp: React.FC<ContextualPageHelpProps> = ({
           <CardDescription>{tabSpecificHelp.description}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Buttons Guide */}
-          <div>
-            <h4 className="font-semibold mb-2 flex items-center gap-2">
-              <AlertCircle className="h-4 w-4" />
-              Button Actions
-            </h4>
-            <div className="space-y-2">
-              {tabSpecificHelp.buttons.map((button, index) => (
-                <div key={index} className="p-3 bg-muted/50 rounded-lg">
-                  <div className="font-medium">{button.name}</div>
-                  <div className="text-sm text-muted-foreground">{button.purpose}</div>
-                  <div className="text-xs text-primary mt-1">
-                    <strong>GST Example:</strong> {button.gstExample}
-                  </div>
+            {/* Buttons Guide */}
+            {tabSpecificHelp.buttons && tabSpecificHelp.buttons.length > 0 && (
+              <div>
+                <h4 className="font-semibold mb-2 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" />
+                  Interactive Elements
+                </h4>
+                <div className="space-y-2">
+                  {tabSpecificHelp.buttons.map((button, index) => (
+                    <div key={index} className="p-3 bg-muted/50 rounded-lg">
+                      <div className="font-medium">{button.name}</div>
+                      <div className="text-sm text-muted-foreground">{button.purpose}</div>
+                      <div className="text-xs text-primary mt-1">
+                        <strong>GST Example:</strong> {button.gstExample}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
+            )}
+
+            {/* Sections Guide */}
+            {tabSpecificHelp.sections && tabSpecificHelp.sections.length > 0 && (
+              <div>
+                <h4 className="font-semibold mb-2 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" />
+                  Main Sections
+                </h4>
+                <div className="space-y-2">
+                  {tabSpecificHelp.sections.map((section, index) => (
+                    <div key={index} className="p-3 bg-muted/50 rounded-lg">
+                      <div className="font-medium">{section.name}</div>
+                      <div className="text-sm text-muted-foreground">{section.description}</div>
+                      <div className="text-xs text-primary mt-1">
+                        <strong>GST Example:</strong> {section.gstExample}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
           {/* Philosophy */}
           <div>

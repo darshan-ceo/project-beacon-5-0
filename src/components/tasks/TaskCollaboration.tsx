@@ -603,7 +603,107 @@ export const TaskCollaboration: React.FC<TaskCollaborationProps> = ({ tasks }) =
             </div>
           </CardContent>
         </Card>
-      </motion.div>
+        </motion.div>
+
+        {/* Team Performance Summary */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.4 }}
+          className="lg:col-span-3"
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Activity className="mr-2 h-5 w-5" />
+                Team Performance Summary
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="ml-2 h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Monitor real-time collaboration metrics and team productivity indicators for GST litigation efficiency</p>
+                  </TooltipContent>
+                </Tooltip>
+              </CardTitle>
+              <CardDescription>
+                Key collaboration metrics and productivity indicators
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="text-center p-4 bg-primary/5 rounded-lg border border-primary/20 cursor-help">
+                      <div className="text-2xl font-bold text-primary">4</div>
+                      <div className="text-sm text-muted-foreground">Active Collaborations</div>
+                      <div className="text-xs text-primary mt-1">GST Cases in Progress</div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Number of GST cases with active team collaboration and ongoing task discussions</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="text-center p-4 bg-success/5 rounded-lg border border-success/20 cursor-help">
+                      <div className="text-2xl font-bold text-success">15m</div>
+                      <div className="text-sm text-muted-foreground">Avg Response Time</div>
+                      <div className="text-xs text-success mt-1">Team Communication</div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Average time between task updates and team member responses in GST case workflows</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="text-center p-4 bg-warning/5 rounded-lg border border-warning/20 cursor-help">
+                      <div className="text-2xl font-bold text-warning">85%</div>
+                      <div className="text-sm text-muted-foreground">Task Completion Rate</div>
+                      <div className="text-xs text-warning mt-1">This Week</div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Percentage of GST-related tasks completed within assigned deadlines and SLA requirements</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="text-center p-4 bg-secondary/5 rounded-lg border border-secondary/20 cursor-help">
+                      <div className="text-2xl font-bold text-secondary">92%</div>
+                      <div className="text-sm text-muted-foreground">Team Engagement</div>
+                      <div className="text-xs text-secondary mt-1">Collaboration Score</div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Overall team engagement score based on active participation in GST case discussions and task updates</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+
+              <Separator className="my-4" />
+
+              <div className="flex justify-between items-center text-sm text-muted-foreground">
+                <span>Updated every 5 minutes</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" className="cursor-help">
+                      <Eye className="mr-2 h-4 w-4" />
+                      View Detailed Analytics
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Access comprehensive collaboration analytics and performance trends for GST team optimization</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
     </TooltipProvider>
   );

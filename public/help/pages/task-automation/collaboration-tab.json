@@ -1,6 +1,18 @@
 {
   "title": "Team Collaboration",
-  "description": "Real-time task collaboration with team presence indicators, activity feeds, and task-specific communication for GST litigation workflows.",
+  "description": "Real-time task collaboration with team presence indicators, activity feeds, task-specific communication, and performance monitoring for GST litigation workflows.",
+  "buttons": [
+    {
+      "name": "Share Workspace",
+      "purpose": "Invite team members and control access to GST case collaboration workspace",
+      "gstExample": "Invite external GST consultant to review assessment order while maintaining confidentiality controls"
+    },
+    {
+      "name": "View Detailed Analytics", 
+      "purpose": "Access comprehensive collaboration analytics and performance trends",
+      "gstExample": "Analyze team response times during GST appeal deadlines to optimize workflow efficiency"
+    }
+  ],
   "sections": [
     {
       "name": "Active Users",
