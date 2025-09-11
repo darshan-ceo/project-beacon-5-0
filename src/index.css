@@ -178,14 +178,25 @@ All colors MUST be HSL. Professional legal theme with accessibility focus.
     border-left: 2px solid hsl(var(--brand-active-border));
     background-color: hsl(var(--brand-active-bg));
     color: hsl(var(--brand-active));
-    @apply font-medium;
+    @apply font-medium transition-all duration-200 ease-in-out;
   }
   
   .brand-active-tab {
     border-bottom: 2px solid hsl(var(--brand-active-border));
     color: hsl(var(--brand-active));
     background-color: hsl(var(--brand-active-bg));
-    @apply font-medium;
+    @apply font-medium transition-all duration-200 ease-in-out;
+  }
+  
+  /* Universal Navigation Active States */
+  .nav-active {
+    color: hsl(var(--brand-active));
+    background-color: hsl(var(--brand-active-bg));
+    @apply font-medium transition-all duration-200 ease-in-out;
+  }
+  
+  .nav-hover {
+    @apply transition-all duration-150 ease-in-out hover:bg-muted/50;
   }
 }
 
