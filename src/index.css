@@ -175,17 +175,17 @@ All colors MUST be HSL. Professional legal theme with accessibility focus.
   
   /* Brand Active State Utilities */
   .brand-active-sidebar {
-    border-left: 2px solid hsl(var(--brand-active-border));
-    background-color: hsl(var(--brand-active-bg));
-    color: hsl(var(--brand-active));
-    @apply font-medium transition-all duration-200 ease-in-out;
+    border-left: 3px solid hsl(var(--primary));
+    background-color: hsl(var(--primary) / 0.15);
+    color: hsl(var(--primary));
+    @apply font-semibold transition-all duration-200 ease-in-out;
   }
   
   .brand-active-tab {
-    border-bottom: 2px solid hsl(var(--brand-active-border));
-    color: hsl(var(--brand-active));
-    background-color: hsl(var(--brand-active-bg));
-    @apply font-medium transition-all duration-200 ease-in-out;
+    border-bottom: 3px solid hsl(var(--primary));
+    color: hsl(var(--primary));
+    background-color: hsl(var(--primary) / 0.1);
+    @apply font-semibold transition-all duration-200 ease-in-out shadow-sm;
   }
   
   /* Universal Navigation Active States */
