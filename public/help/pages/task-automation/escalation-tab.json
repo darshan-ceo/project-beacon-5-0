@@ -1,0 +1,156 @@
+{
+  "title": "Escalation Management",
+  "description": "Monitor and manage task escalation rules, SLA compliance, and automated notifications to ensure critical GST deadlines are never missed and client expectations are consistently met.",
+  "buttons": [
+    {
+      "name": "Create Escalation Rule",
+      "purpose": "Define new escalation triggers based on task age, priority, or client importance for proactive issue management",
+      "gstExample": "Auto-escalate GST appeal filing tasks to partner level when 48 hours remain before 30-day statutory deadline"
+    },
+    {
+      "name": "SLA Monitor",
+      "purpose": "Track service level agreement compliance across all GST cases and identify potential deadline risks",
+      "gstExample": "Monitor all GST assessment response tasks to ensure 30-day reply deadlines are met with 5-day early warning alerts"
+    },
+    {
+      "name": "Escalation History",
+      "purpose": "Review past escalations to identify patterns and improve workflow efficiency and deadline management",
+      "gstExample": "Analyze GST hearing preparation escalations to identify bottlenecks in document compilation processes"
+    },
+    {
+      "name": "Override Escalation",
+      "purpose": "Manually escalate critical tasks or pause escalation rules when special circumstances require immediate attention",
+      "gstExample": "Immediately escalate GST refund claim worth ₹50 lakhs to senior partner when government issues new policy clarification"
+    },
+    {
+      "name": "Team Notification Settings",
+      "purpose": "Configure escalation notification preferences for different team members based on expertise and availability",
+      "gstExample": "Route GST audit notice escalations to tax specialists while sending hearing date conflicts to litigation team leads"
+    }
+  ],
+  "philosophy": "In GST litigation, escalation management is not just operational efficiency—it's professional survival. GST cases involve unforgiving statutory deadlines where missing a 30-day appeal window or 60-day response period can result in significant financial losses for clients and potential negligence claims against practitioners. Our escalation system ensures that no critical deadline slips through organizational cracks and that appropriate expertise is engaged before problems become crises.",
+  "examples": [
+    {
+      "scenario": "GST Assessment Appeal Deadline Risk",
+      "solution": "Escalation rule triggers: (1) 7-day warning to case handler, (2) 3-day escalation to senior associate, (3) 1-day emergency alert to partner, (4) Same-day client notification of risk status, (5) Automatic calendar blocking for priority handling",
+      "benefit": "Zero missed appeal deadlines, clear accountability chain, client confidence, malpractice risk mitigation, systematic deadline protection"
+    },
+    {
+      "scenario": "High-Value GST Refund Claim Stalling",
+      "solution": "Value-based escalation: Claims above ₹25 lakhs auto-escalate after 48 hours of inactivity, trigger partner review, activate client communication protocol, engage additional resources for expedited processing",
+      "benefit": "Faster refund recovery, improved client satisfaction, competitive advantage, reduced opportunity cost for high-value matters"
+    },
+    {
+      "scenario": "GST Hearing Preparation Bottleneck",
+      "solution": "Workflow escalation: When hearing preparation tasks remain in 'document collection' stage for 3+ days, escalate to document team lead, notify case partner, trigger backup resource allocation, activate expedited review process",
+      "benefit": "Comprehensive hearing preparation, no last-minute scrambling, professional court appearance, improved case outcomes"
+    },
+    {
+      "scenario": "Client Communication Breakdown",
+      "solution": "Communication escalation: When client emails remain unanswered for 24 hours, escalate to relationship manager, trigger immediate response protocol, generate client communication summary, schedule follow-up call",
+      "benefit": "Maintained client relationships, professional service standards, reduced client churn, enhanced reputation management"
+    },
+    {
+      "scenario": "Team Overload Management",
+      "solution": "Capacity escalation: When individual task loads exceed 85% capacity, trigger workload rebalancing, escalate to team lead for resource reallocation, activate backup team protocols, adjust new case intake",
+      "benefit": "Balanced team workload, maintained service quality, reduced burnout risk, sustainable practice growth, consistent performance"
+    }
+  ],
+  "escalationLevels": [
+    {
+      "level": "Level 1: Early Warning",
+      "trigger": "Task aging beyond 50% of deadline",
+      "action": "Email notification to assigned team member and immediate supervisor",
+      "gstExample": "GST appeal draft completion reminder sent when 15 of 30 days have elapsed"
+    },
+    {
+      "level": "Level 2: Supervisor Alert",
+      "trigger": "Task aging beyond 75% of deadline or high-priority task delay",
+      "action": "Supervisor notification with task summary and resource allocation options",
+      "gstExample": "Senior associate alerted when GST audit response has only 7 days remaining for completion"
+    },
+    {
+      "level": "Level 3: Partner Intervention",
+      "trigger": "Critical deadline risk or high-value case issues",
+      "action": "Partner notification with immediate action recommendations and client impact assessment",
+      "gstExample": "Partner alerted when ₹1 crore GST refund claim faces potential deadline miss with immediate intervention options"
+    },
+    {
+      "level": "Level 4: Emergency Protocol",
+      "trigger": "Imminent deadline miss or critical client relationship risk",
+      "action": "All-hands escalation with immediate resource reallocation and crisis management protocols",
+      "gstExample": "Emergency response when GST appeal filing has less than 24 hours remaining with incomplete documentation"
+    }
+  ],
+  "bestPractices": [
+    {
+      "title": "Proactive Escalation Rules",
+      "description": "Set escalation triggers well before actual deadlines to allow adequate time for resolution",
+      "gstApplication": "Escalate GST appeal tasks at 50%, 75%, and 90% of the 30-day deadline rather than waiting until the last moment"
+    },
+    {
+      "title": "Value-Based Prioritization",
+      "description": "Configure escalation rules to consider case value and client importance for appropriate resource allocation",
+      "gstApplication": "High-value GST cases (₹50+ lakhs) receive faster escalation timelines and senior-level involvement from day one"
+    },
+    {
+      "title": "Clear Escalation Ownership",
+      "description": "Define clear responsibility chains so everyone knows who handles escalated tasks at each level",
+      "gstApplication": "GST audit escalations go to tax specialists first, then litigation team, then partner—never ambiguous routing"
+    },
+    {
+      "title": "Client Communication Integration",
+      "description": "Include client notification protocols in escalation workflows to maintain transparency and trust",
+      "gstApplication": "Automatically inform clients when GST case escalates to partner level, explaining enhanced attention and expected outcomes"
+    },
+    {
+      "title": "Performance Analytics",
+      "description": "Regularly review escalation patterns to identify systemic issues and improve baseline workflows",
+      "gstApplication": "Monthly analysis of GST deadline escalations to identify process improvements and training needs"
+    }
+  ],
+  "troubleshooting": [
+    {
+      "issue": "Too many false escalations",
+      "solution": "Adjust escalation thresholds and add buffer time for complex GST cases that naturally require more time",
+      "gstContext": "GST tribunal cases may need longer preparation times than assessment appeals—adjust rules accordingly"
+    },
+    {
+      "issue": "Escalations not reaching right people",
+      "solution": "Review team structure mappings and update escalation routing based on current expertise and availability",
+      "gstContext": "Ensure GST indirect tax escalations reach customs experts when cases involve both GST and customs issues"
+    },
+    {
+      "issue": "Client complaints about surprise escalations",
+      "solution": "Implement client notification protocols and explanation templates for escalation communications",
+      "gstContext": "Explain to GST clients that escalation means enhanced attention, not case problems—position it positively"
+    },
+    {
+      "issue": "Team resistance to escalation protocols",
+      "solution": "Provide training on escalation benefits and implement recognition for proactive escalation management",
+      "gstContext": "Emphasize how GST escalation protocols protect both client interests and professional reputation"
+    }
+  ],
+  "slaMetrics": [
+    {
+      "metric": "Escalation Response Time",
+      "description": "Average time from escalation trigger to first response action",
+      "gstTarget": "Level 1: 2 hours, Level 2: 1 hour, Level 3: 30 minutes, Level 4: Immediate"
+    },
+    {
+      "metric": "Deadline Compliance Rate",
+      "description": "Percentage of tasks completed before statutory deadlines despite escalation",
+      "gstTarget": "99.5% compliance rate for all GST statutory deadlines including appeals and responses"
+    },
+    {
+      "metric": "Escalation Resolution Rate",
+      "description": "Percentage of escalated tasks successfully resolved without deadline miss",
+      "gstTarget": "95% of escalated GST tasks resolved successfully with client satisfaction maintained"
+    },
+    {
+      "metric": "Client Satisfaction Impact",
+      "description": "Client feedback scores for cases that underwent escalation protocols",
+      "gstTarget": "Maintain 4.5/5 client satisfaction rating even for escalated GST matters"
+    }
+  ]
+}
