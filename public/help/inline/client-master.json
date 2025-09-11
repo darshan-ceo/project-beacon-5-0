@@ -2,6 +2,6 @@
   "client-master-basics": {
     "title": "Client Master Management",
     "content": "Manage client information with GSTIN autofill and integrated case linking.",
-    "learnMoreUrl": "/help/client-gstin-autofill"
+    "learnMoreUrl": "/help/articles/client-gstin-autofill"
   }
 }
