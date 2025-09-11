@@ -42,19 +42,35 @@ interface TabSpecificHelpContent {
 
 class EnhancedHelpService {
   private cache = new Map<string, any>();
+  private cacheTimestamps = new Map<string, number>();
+  private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in dev mode
 
-  async getContextualPageHelp(pageId: string): Promise<ContextualHelpContent> {
+  private isCacheValid(cacheKey: string): boolean {
+    const timestamp = this.cacheTimestamps.get(cacheKey);
+    if (!timestamp) return false;
+    return Date.now() - timestamp < this.CACHE_DURATION;
+  }
+
+  private setCacheWithTimestamp(cacheKey: string, content: any): void {
+    this.cache.set(cacheKey, content);
+    this.cacheTimestamps.set(cacheKey, Date.now());
+  }
+
+  async getContextualPageHelp(pageId: string, forceRefresh: boolean = false): Promise<ContextualHelpContent> {
     const cacheKey = `contextual-${pageId}`;
     
-    if (this.cache.has(cacheKey)) {
+    if (!forceRefresh && this.cache.has(cacheKey) && this.isCacheValid(cacheKey)) {
+      console.log(`Loading contextual help for ${pageId} from cache`);
       return this.cache.get(cacheKey);
     }
 
     try {
+      console.log(`Fetching fresh contextual help for ${pageId}`);
       const response = await fetch(`/help/pages/${pageId}/contextual.json`);
       if (response.ok) {
         const content = await response.json();
-        this.cache.set(cacheKey, content);
+        this.setCacheWithTimestamp(cacheKey, content);
+        console.log(`Successfully loaded contextual help for ${pageId}`);
         return content;
       }
     } catch (error) {
@@ -62,30 +78,36 @@ class EnhancedHelpService {
     }
 
     const fallbackContent = this.getFallbackContextualContent(pageId);
-    this.cache.set(cacheKey, fallbackContent);
+    this.setCacheWithTimestamp(cacheKey, fallbackContent);
     return fallbackContent;
   }
 
-  async getTabSpecificHelp(pageId: string, tabId: string): Promise<TabSpecificHelpContent | null> {
+  async getTabSpecificHelp(pageId: string, tabId: string, forceRefresh: boolean = false): Promise<TabSpecificHelpContent | null> {
     const cacheKey = `tab-${pageId}-${tabId}`;
     
-    if (this.cache.has(cacheKey)) {
+    if (!forceRefresh && this.cache.has(cacheKey) && this.isCacheValid(cacheKey)) {
+      console.log(`Loading tab help for ${pageId}/${tabId} from cache`);
       return this.cache.get(cacheKey);
     }
 
     try {
+      console.log(`Fetching fresh tab help for ${pageId}/${tabId}`);
       const response = await fetch(`/help/pages/${pageId}/${tabId}-tab.json`);
       if (response.ok) {
         const content = await response.json();
-        this.cache.set(cacheKey, content);
+        this.setCacheWithTimestamp(cacheKey, content);
+        console.log(`Successfully loaded tab help for ${pageId}/${tabId}:`, content.title);
         return content;
+      } else {
+        console.log(`Failed to fetch tab help for ${pageId}/${tabId} - Status: ${response.status}`);
       }
     } catch (error) {
-      console.log(`No tab-specific help found for ${pageId}/${tabId}`);
+      console.log(`Error fetching tab help for ${pageId}/${tabId}:`, error);
     }
 
     const fallbackContent = this.generateTabFallback(pageId, tabId);
-    this.cache.set(cacheKey, fallbackContent);
+    this.setCacheWithTimestamp(cacheKey, fallbackContent);
+    console.log(`Using fallback content for ${pageId}/${tabId}`);
     return fallbackContent;
   }
 
@@ -141,6 +163,30 @@ class EnhancedHelpService {
 
   clearCache(): void {
     this.cache.clear();
+    this.cacheTimestamps.clear();
+    console.log('Help service cache cleared');
+  }
+
+  clearSpecificCache(pageId: string, tabId?: string): void {
+    if (tabId) {
+      const cacheKey = `tab-${pageId}-${tabId}`;
+      this.cache.delete(cacheKey);
+      this.cacheTimestamps.delete(cacheKey);
+      console.log(`Cleared cache for ${pageId}/${tabId}`);
+    } else {
+      const contextualKey = `contextual-${pageId}`;
+      this.cache.delete(contextualKey);
+      this.cacheTimestamps.delete(contextualKey);
+      console.log(`Cleared contextual cache for ${pageId}`);
+    }
+  }
+
+  refreshContent(pageId: string, tabId?: string): Promise<any> {
+    if (tabId) {
+      return this.getTabSpecificHelp(pageId, tabId, true);
+    } else {
+      return this.getContextualPageHelp(pageId, true);
+    }
   }
 }
 
