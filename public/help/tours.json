@@ -373,7 +373,7 @@
         "id": "automation-tab",
         "title": "Automation Rules Tab",
         "content": "Click the Automation tab to access rule creation and management. This is where you'll set up triggers and actions.",
-        "target": "[data-testid='automation-tab']",
+        "target": "[data-tour='automation-tab']",
         "placement": "bottom"
       },
       {

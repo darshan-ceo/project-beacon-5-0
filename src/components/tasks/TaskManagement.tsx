@@ -296,6 +296,7 @@ export const TaskManagement: React.FC = () => {
             onClick={() => {
               setActiveTab('escalation');
             }}
+            data-tour="escalations-button"
           >
             <Bell className="mr-2 h-4 w-4" />
             Escalations
@@ -303,6 +304,7 @@ export const TaskManagement: React.FC = () => {
           <Button 
             className="bg-primary hover:bg-primary-hover"
             onClick={() => setTaskModal({ isOpen: true, mode: 'create', task: null })}
+            data-tour="create-task-button"
           >
             <Plus className="mr-2 h-4 w-4" />
             Create Task
@@ -440,15 +442,15 @@ export const TaskManagement: React.FC = () => {
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-8">
-          <TabsTrigger value="board">Board</TabsTrigger>
-          <TabsTrigger value="automation">Automation</TabsTrigger>
-          <TabsTrigger value="escalation">Escalation</TabsTrigger>
-          <TabsTrigger value="templates">Templates</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="insights">Insights</TabsTrigger>
-          <TabsTrigger value="ai-assistant">AI Assistant</TabsTrigger>
-          <TabsTrigger value="collaboration">Collaboration</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-8" data-tour="task-automation-tabs">
+          <TabsTrigger value="board" data-tour="board-tab">Board</TabsTrigger>
+          <TabsTrigger value="automation" data-tour="automation-tab">Automation</TabsTrigger>
+          <TabsTrigger value="escalation" data-tour="escalation-tab">Escalation</TabsTrigger>
+          <TabsTrigger value="templates" data-tour="templates-tab">Templates</TabsTrigger>
+          <TabsTrigger value="analytics" data-tour="analytics-tab">Analytics</TabsTrigger>
+          <TabsTrigger value="insights" data-tour="insights-tab">Insights</TabsTrigger>
+          <TabsTrigger value="ai-assistant" data-tour="ai-assistant-tab">AI Assistant</TabsTrigger>
+          <TabsTrigger value="collaboration" data-tour="collaboration-tab">Collaboration</TabsTrigger>
         </TabsList>
 
         <TabsContent value="board" className="mt-6">

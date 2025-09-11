@@ -99,16 +99,16 @@ export const TaskAutomation: React.FC<TaskAutomationProps> = ({ bundles, onBundl
             Manage automated task creation and workflow triggers
           </p>
         </div>
-        <Button onClick={() => openBundleEditor('create')}>
+        <Button onClick={() => openBundleEditor('create')} data-tour="new-rule-button">
           <Plus className="mr-2 h-4 w-4" />
-          Create Bundle
+          New Rule
         </Button>
       </div>
 
-      <Tabs defaultValue="rules">
+      <Tabs defaultValue="rules" data-tour="automation-subtabs">
         <TabsList>
-          <TabsTrigger value="rules">Automation Rules</TabsTrigger>
-          <TabsTrigger value="bundles">Task Bundles</TabsTrigger>
+          <TabsTrigger value="rules" data-tour="rules-tab">Automation Rules</TabsTrigger>
+          <TabsTrigger value="bundles" data-tour="bundles-tab">Task Bundles</TabsTrigger>
         </TabsList>
 
         <TabsContent value="rules">

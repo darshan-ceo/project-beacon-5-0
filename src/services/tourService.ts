@@ -366,18 +366,24 @@ class TourService {
 
     switch (module) {
       case 'cases':
+      case 'case-management':
         targetPath = '/';
         break;
       case 'documents':
+      case 'document-management':
         targetPath = '/';
         break;
       case 'hearings':
-        targetPath = '/';
+      case 'hearing-scheduler':
+        targetPath = '/hearings';
         break;
       case 'tasks':
-        targetPath = '/';
+      case 'task-management':
+      case 'task-automation':
+        targetPath = '/tasks';
         break;
       case 'reports':
+      case 'reports-analytics':
         targetPath = '/';
         break;
       case 'client-portal':
@@ -391,8 +397,17 @@ class TourService {
       window.history.pushState({}, '', targetPath);
       // Dispatch a custom event to trigger route change if using React Router
       window.dispatchEvent(new PopStateEvent('popstate'));
-      // Wait for navigation
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Wait for navigation and DOM updates
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // For task automation, switch to automation tab
+      if (module === 'task-automation') {
+        const automationTab = document.querySelector('[data-tour="automation-tab"]') as HTMLElement;
+        if (automationTab) {
+          automationTab.click();
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
     }
   }
 

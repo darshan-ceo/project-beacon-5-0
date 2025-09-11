@@ -167,10 +167,13 @@ class HelpService {
       try {
         const response = await fetch(`/help/pages/${pageId}.json`);
         if (!response.ok) {
-          throw new Error(`Failed to fetch page help for ${pageId}`);
+          console.warn(`Page help file not found for ${pageId}, using fallback`);
+          return this.getFallbackPageHelp(pageId);
         }
         
-        return await response.json();
+        const data = await response.json();
+        console.log(`Loaded page help for ${pageId}:`, data);
+        return data;
       } catch (error) {
         console.warn(`Failed to fetch page help for ${pageId}:`, error);
         return this.getFallbackPageHelp(pageId);
@@ -184,6 +187,43 @@ class HelpService {
 
   getFallbackPageHelp(pageId: string): any {
     const fallbackContent: Record<string, any> = {
+      'task-automation': {
+        title: 'Task Automation & Management',
+        description: 'Automate repetitive tasks and reminders in Litigation GST CRM',
+        overview: 'Automates repetitive tasks and reminders like creating tasks after a hearing, sending deadline alerts, or assigning follow-ups to the right user.',
+        keyFeatures: [
+          { title: 'Automation Rules', description: 'Create trigger-based rules for automatic task generation' },
+          { title: 'Task Templates', description: 'Pre-configured task sets for common legal workflows' },
+          { title: 'Escalation Matrix', description: 'Automatic escalation of overdue tasks to supervisors' },
+          { title: 'AI Assistant', description: 'Intelligent task creation based on case context' }
+        ],
+        tabGuide: [
+          { tab: 'Rules', description: 'Create/edit automation rules (trigger → conditions → action)', whenToUse: 'When setting up automated workflows' },
+          { tab: 'Bundles', description: 'Pre-configured task sets for common workflows', whenToUse: 'For repetitive task sequences' },
+          { tab: 'Logs', description: 'View automation execution history and troubleshooting', whenToUse: 'When debugging rules or checking execution status' },
+          { tab: 'Templates', description: 'Save/reuse message and task templates', whenToUse: 'For standardizing communications and tasks' }
+        ],
+        buttonGuide: [
+          { button: 'New Rule', description: 'Create a new automation rule', action: 'Opens rule builder wizard' },
+          { button: 'Enable/Disable', description: 'Toggle rule active state', action: 'Activates or deactivates selected rule' },
+          { button: 'Test Rule', description: 'Run rule on sample data', action: 'Preview rule outcome without affecting live data' },
+          { button: 'View Logs', description: 'Check rule execution history', action: 'Opens detailed execution logs and error reports' }
+        ],
+        quickStart: [
+          { step: 1, title: 'Go to Automation → Rules', description: 'Access the automation section' },
+          { step: 2, title: 'Click "New Rule"', description: 'Start creating your first automation' },
+          { step: 3, title: 'Select Trigger', description: 'Choose what event starts the automation' },
+          { step: 4, title: 'Add Conditions', description: 'Set when the rule should execute' },
+          { step: 5, title: 'Choose Actions', description: 'Define what should happen' },
+          { step: 6, title: 'Test & Enable', description: 'Verify the rule works and activate it' }
+        ],
+        commonTasks: [
+          { title: 'Create Auto-Task for Hearing', description: 'Automatically create tasks when hearings are updated' },
+          { title: 'Send Client WhatsApp', description: 'Auto-send messages when documents are uploaded' },
+          { title: 'Escalate Overdue Tasks', description: 'Notify supervisors when tasks exceed SLA' },
+          { title: 'Use Task Templates', description: 'Create standardized task sets for common workflows' }
+        ]
+      },
       'case-management': {
         title: 'Case Management',
         description: 'Manage your legal cases from creation to completion',
