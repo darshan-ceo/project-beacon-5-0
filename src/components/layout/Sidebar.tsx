@@ -147,7 +147,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
   const { open } = useSidebar();
 
   const getNavClasses = (isActive: boolean) =>
-    isActive ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : "hover:bg-sidebar-accent/50";
+    isActive ? "brand-active-sidebar bg-red-50/50" : "hover:bg-sidebar-accent/50";
 
   const renderMenuItem = (item: MenuItem) => {
     const isActive = location.pathname === item.href;

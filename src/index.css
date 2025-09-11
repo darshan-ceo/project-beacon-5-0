@@ -68,6 +68,12 @@ All colors MUST be HSL. Professional legal theme with accessibility focus.
     --legal-pending: 38 92% 50%;     /* Amber for pending */
     --legal-approved: 142 71% 45%;   /* Green for approved */
     --legal-draft: 220 14% 71%;      /* Gray for drafts */
+    
+    /* Brand Active State System */
+    --brand-active: 0 84% 60%;       /* Red highlighting for active states */
+    --brand-active-foreground: 0 0% 100%;
+    --brand-active-border: 0 84% 60%;
+    --brand-active-bg: 0 84% 95%;    /* Light red background */
 }
 
 @layer utilities {
@@ -165,6 +171,15 @@ All colors MUST be HSL. Professional legal theme with accessibility focus.
   
   .status-draft {
     @apply bg-gray-50 text-gray-700 border-gray-200;
+  }
+  
+  /* Brand Active State Utilities */
+  .brand-active-sidebar {
+    @apply border-l-2 border-l-red-500 bg-red-50/50 text-red-600 font-medium;
+  }
+  
+  .brand-active-tab {
+    @apply border-b-2 border-b-red-500 text-red-600 bg-red-50/30;
   }
 }
 
