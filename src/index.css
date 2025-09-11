@@ -70,10 +70,10 @@ All colors MUST be HSL. Professional legal theme with accessibility focus.
     --legal-draft: 220 14% 71%;      /* Gray for drafts */
     
     /* Brand Active State System */
-    --brand-active: 0 84% 60%;       /* Red highlighting for active states */
+    --brand-active: 221 83% 53%;     /* Primary blue for active states */
     --brand-active-foreground: 0 0% 100%;
-    --brand-active-border: 0 84% 60%;
-    --brand-active-bg: 0 84% 95%;    /* Light red background */
+    --brand-active-border: 221 83% 53%;
+    --brand-active-bg: 221 83% 95%;  /* Light blue background */
 }
 
 @layer utilities {
@@ -175,11 +175,17 @@ All colors MUST be HSL. Professional legal theme with accessibility focus.
   
   /* Brand Active State Utilities */
   .brand-active-sidebar {
-    @apply border-l-2 border-l-red-500 bg-red-50/50 text-red-600 font-medium;
+    @apply border-l-2 bg-blue-50/50 text-blue-600 font-medium;
+    border-left-color: hsl(var(--brand-active-border));
+    background-color: hsl(var(--brand-active-bg));
+    color: hsl(var(--brand-active));
   }
   
   .brand-active-tab {
-    @apply border-b-2 border-b-red-500 text-red-600 bg-red-50/30;
+    @apply border-b-2 bg-blue-50/30;
+    border-bottom-color: hsl(var(--brand-active-border));
+    background-color: hsl(var(--brand-active-bg));
+    color: hsl(var(--brand-active));
   }
 }
 
