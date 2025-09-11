@@ -1,0 +1,137 @@
+{
+  "title": "Team Collaboration",
+  "description": "Coordinate GST litigation tasks across your legal team with real-time collaboration tools designed for law firm workflows.",
+  "buttons": [
+    {
+      "name": "Share Workspace",
+      "purpose": "Invite team members to collaborate on GST case tasks with role-based access control",
+      "gstExample": "Share GST audit case workspace with junior advocate and paralegal while restricting client billing access to senior partners only"
+    },
+    {
+      "name": "Add Comment",
+      "purpose": "Communicate about specific tasks with threaded discussions and @ mentions for team coordination",
+      "gstExample": "Comment on GST appeal filing task: '@junior-advocate Please review draft grounds of appeal before client meeting tomorrow'"
+    },
+    {
+      "name": "Upload File",
+      "purpose": "Attach relevant documents, notes, or resources directly to task discussions for team reference",
+      "gstExample": "Upload GST assessment order to hearing preparation task so all team members can access the same document version"
+    },
+    {
+      "name": "Assign Task",
+      "purpose": "Delegate specific tasks to team members with clear deadlines and responsibility tracking",
+      "gstExample": "Assign 'GST case law research' task to junior advocate with 3-day deadline for appeal preparation"
+    },
+    {
+      "name": "Mark Complete",
+      "purpose": "Update task status with completion notes and hand-off information for workflow continuity",
+      "gstExample": "Mark 'Client GST documents collection' complete with note: 'All IT returns collected, GST-3B for last 2 years pending from accountant'"
+    }
+  ],
+  "philosophy": "GST litigation success depends on seamless team coordination. In tax law, where technical expertise and procedural compliance must align perfectly, our collaboration system ensures every team member has real-time access to case progress, deadlines, and critical information. This prevents the communication gaps that often lead to missed deadlines in complex GST proceedings.",
+  "examples": [
+    {
+      "scenario": "Multi-Stage GST Appeal Coordination",
+      "solution": "Senior advocate manages overall strategy while junior advocate handles research, paralegal manages documentation, and clerk tracks deadlines. All communicate through task comments with automatic notifications ensuring everyone stays informed of progress and changes.",
+      "benefit": "Comprehensive case coverage, clear accountability, no missed communications, efficient resource allocation across expertise levels"
+    },
+    {
+      "scenario": "Client Document Collection for GST Audit",
+      "solution": "Create shared task for document collection with checklist visible to all team members. Client services coordinator updates status, tax consultant adds technical requirements, and advocate reviews for legal sufficiency - all in real-time collaboration.",
+      "benefit": "Complete documentation, reduced client follow-ups, faster audit response preparation, improved team efficiency"
+    },
+    {
+      "scenario": "GST Hearing Preparation with Remote Team",
+      "solution": "Distributed team collaborates on hearing preparation: research team uploads case law summaries, local counsel provides court-specific insights, senior advocate reviews and comments on strategy - all tracked in shared workspace.",
+      "benefit": "Leverages distributed expertise, maintains quality control, ensures consistent preparation standards, reduces travel and coordination costs"
+    },
+    {
+      "scenario": "Urgent GST Compliance Deadline Management",
+      "solution": "When GST return deadline approaches, automated task assignments trigger team collaboration: accountant uploads return drafts, tax consultant reviews for accuracy, advocate approves for submission, all with real-time status updates.",
+      "benefit": "Prevents last-minute scrambling, ensures quality review process, maintains compliance standards, reduces penalty risks"
+    },
+    {
+      "scenario": "GST Case Handover Between Advocates",
+      "solution": "When case transfers between advocates, complete collaboration history provides context: all task discussions, document uploads, strategic notes, and client communications are accessible to new team member.",
+      "benefit": "Seamless case transitions, preserved institutional knowledge, maintained client service quality, reduced onboarding time"
+    }
+  ],
+  "activeUserFeatures": [
+    {
+      "feature": "Real-time Presence",
+      "description": "See which team members are currently working on tasks",
+      "gstUseCase": "Know when senior advocate is reviewing GST appeal draft to coordinate discussions"
+    },
+    {
+      "feature": "Activity Notifications",
+      "description": "Receive instant updates when tasks are updated or commented on",
+      "gstUseCase": "Get notified immediately when GST assessment order is uploaded by client services"
+    },
+    {
+      "feature": "Typing Indicators",
+      "description": "See when team members are adding comments or updating tasks",
+      "gstUseCase": "Avoid conflicting edits when multiple advocates are working on GST case strategy"
+    }
+  ],
+  "recentActivityFeatures": [
+    {
+      "feature": "Task Updates Feed",
+      "description": "Chronological view of all task status changes and completions",
+      "gstUseCase": "Track daily progress on GST appeal preparation across all team members"
+    },
+    {
+      "feature": "Comment History",
+      "description": "Complete record of team discussions and decisions",
+      "gstUseCase": "Review strategic discussions about GST case approach before client meetings"
+    },
+    {
+      "feature": "File Upload Log",
+      "description": "Track all document additions and updates with version control",
+      "gstUseCase": "Ensure all team members have latest version of GST assessment order and amendments"
+    }
+  ],
+  "bestPractices": [
+    {
+      "title": "Use @ Mentions Strategically",
+      "description": "Tag specific team members for urgent items requiring immediate attention",
+      "gstApplication": "Use @senior-partner for GST settlement discussions requiring partner approval"
+    },
+    {
+      "title": "Document Key Decisions",
+      "description": "Record important strategic decisions in task comments for future reference",
+      "gstApplication": "Document reasons for GST appeal grounds selection in task comments for case history"
+    },
+    {
+      "title": "Maintain Clear Handoffs",
+      "description": "Always provide context when assigning tasks to ensure smooth transitions",
+      "gstApplication": "When delegating GST research, include specific legal questions and client background"
+    },
+    {
+      "title": "Regular Status Updates",
+      "description": "Update task progress regularly to keep team informed of developments",
+      "gstApplication": "Daily updates on GST document collection progress to prevent last-minute delays"
+    }
+  ],
+  "troubleshooting": [
+    {
+      "issue": "Team member not receiving notifications",
+      "solution": "Check notification settings and ensure team member has proper workspace access permissions",
+      "gstContext": "Verify junior advocate has notification access for GST deadline alerts"
+    },
+    {
+      "issue": "Cannot see recent activity updates",
+      "solution": "Refresh workspace view and check if user has appropriate role permissions for activity visibility",
+      "gstContext": "Ensure paralegal can view GST case progress updates from all team members"
+    },
+    {
+      "issue": "File uploads not visible to team",
+      "solution": "Verify file sharing permissions and ensure files are attached to correct task context",
+      "gstContext": "Check that GST assessment order uploaded to case is visible to all assigned team members"
+    },
+    {
+      "issue": "Task assignments not working",
+      "solution": "Confirm assignee has active workspace access and proper role permissions for task types",
+      "gstContext": "Verify junior advocate can be assigned GST research tasks and receive assignment notifications"
+    }
+  ]
+}

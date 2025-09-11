@@ -1,0 +1,130 @@
+{
+  "title": "Task Board",
+  "description": "Visual kanban-style board for managing GST litigation tasks across different stages with drag-and-drop workflow management.",
+  "buttons": [
+    {
+      "name": "Create Task",
+      "purpose": "Add new tasks directly to the board with appropriate stage assignment and priority levels",
+      "gstExample": "Create 'Review GST assessment order' task in 'In Progress' column with high priority for urgent appeal deadline"
+    },
+    {
+      "name": "Filter Tasks",
+      "purpose": "Filter board view by case, priority, assignee, or deadline to focus on specific work streams",
+      "gstExample": "Filter to show only 'High Priority' GST tasks due within next 7 days for deadline management"
+    },
+    {
+      "name": "Drag to Move",
+      "purpose": "Move tasks between board columns to update status and trigger workflow automations",
+      "gstExample": "Drag 'GST appeal filing' from 'In Progress' to 'Completed' to automatically update case timeline"
+    },
+    {
+      "name": "Quick Edit",
+      "purpose": "Modify task details directly from board view without opening full task modal",
+      "gstExample": "Update GST hearing preparation task deadline when court reschedules hearing date"
+    },
+    {
+      "name": "Bulk Actions",
+      "purpose": "Select multiple tasks for batch operations like reassignment or status updates",
+      "gstExample": "Bulk assign all GST document review tasks to junior advocate when senior advocate is in court"
+    }
+  ],
+  "philosophy": "The GST litigation task board transforms complex legal workflows into visual, manageable processes. In tax law where cases involve multiple parallel tracks (appeals, refunds, audits, compliance), visual organization prevents important tasks from being overlooked and ensures systematic progress toward successful case resolution.",
+  "examples": [
+    {
+      "scenario": "GST Appeal Case Workflow Management",
+      "solution": "Board columns: 'Backlog' (new tasks), 'In Progress' (active work), 'Review' (completed work awaiting approval), 'Completed' (finalized tasks). Tasks flow systematically through stages with clear ownership and deadlines.",
+      "benefit": "Visual case progress tracking, clear workflow stages, systematic quality control, improved team coordination"
+    },
+    {
+      "scenario": "Multi-Case Priority Management",
+      "solution": "Board shows all GST cases with color-coded priority levels: Red (urgent deadlines within 7 days), Orange (upcoming deadlines within 30 days), Green (routine tasks). Team can quickly identify priority work.",
+      "benefit": "Immediate priority visibility, reduced deadline stress, efficient resource allocation, improved case outcomes"
+    },
+    {
+      "scenario": "Team Workload Balancing",
+      "solution": "Board view filtered by assignee shows individual workloads. Supervisors can quickly identify overloaded team members and redistribute GST tasks for optimal efficiency.",
+      "benefit": "Balanced team workloads, prevented burnout, consistent work quality, improved team satisfaction"
+    },
+    {
+      "scenario": "Client Status Communication",
+      "solution": "Board provides real-time view of client case progress. During client meetings, advocates can show exactly where each GST matter stands and next steps in the workflow.",
+      "benefit": "Transparent client communication, professional service delivery, improved client confidence, competitive advantage"
+    },
+    {
+      "scenario": "Bottleneck Identification",
+      "solution": "Board analytics show which stages accumulate tasks (e.g., 'Review' column consistently full). This identifies process bottlenecks for workflow optimization.",
+      "benefit": "Process improvement insights, reduced workflow delays, increased team efficiency, better case throughput"
+    }
+  ],
+  "boardColumns": [
+    {
+      "column": "Backlog",
+      "purpose": "New tasks awaiting assignment or scheduling",
+      "gstExample": "GST notice response tasks created by automation rules awaiting advocate review and priority assignment"
+    },
+    {
+      "column": "In Progress", 
+      "purpose": "Tasks currently being worked on by team members",
+      "gstExample": "GST appeal drafting, document collection, client meetings - all active work streams"
+    },
+    {
+      "column": "Review",
+      "purpose": "Completed work awaiting quality review or approval",
+      "gstExample": "Draft GST appeal ready for senior advocate review before filing with appellate authority"
+    },
+    {
+      "column": "Completed",
+      "purpose": "Finalized tasks with all requirements met",
+      "gstExample": "GST appeal successfully filed, acknowledgment received, next hearing date scheduled"
+    },
+    {
+      "column": "Blocked",
+      "purpose": "Tasks waiting for external dependencies or client input",
+      "gstExample": "GST refund claim preparation waiting for client to provide missing purchase invoices"
+    }
+  ],
+  "visualIndicators": [
+    {
+      "indicator": "Color Coding",
+      "meaning": "Priority levels and task types",
+      "gstApplication": "Red for urgent GST deadlines, blue for routine compliance, green for completed items"
+    },
+    {
+      "indicator": "Progress Bars",
+      "meaning": "Task completion percentage for complex workflows",
+      "gstApplication": "GST hearing preparation showing 75% complete with document collection and research finished"
+    },
+    {
+      "indicator": "Avatar Icons",
+      "meaning": "Task assignee identification",
+      "gstApplication": "Quickly see which advocate is handling each GST matter without opening task details"
+    },
+    {
+      "indicator": "Deadline Badges",
+      "meaning": "Time remaining until task deadlines",
+      "gstApplication": "'3 days' badge on GST appeal task showing urgent deadline approaching"
+    }
+  ],
+  "bestPractices": [
+    {
+      "title": "Consistent Column Usage",
+      "description": "Train team to use board columns consistently for accurate workflow tracking",
+      "gstApplication": "Ensure all team members move GST tasks through same column progression for consistency"
+    },
+    {
+      "title": "Regular Board Cleanup",
+      "description": "Archive completed tasks periodically to maintain board clarity",
+      "gstApplication": "Weekly archive of completed GST tasks to keep board focused on active work"
+    },
+    {
+      "title": "Priority Visualization",
+      "description": "Use color coding and labels consistently to communicate priority levels",
+      "gstApplication": "Standardize GST task priority colors across all team members for clear communication"
+    },
+    {
+      "title": "WIP Limits",
+      "description": "Limit work-in-progress to prevent team overload and ensure quality",
+      "gstApplication": "Limit each advocate to maximum 5 active GST tasks to maintain quality and prevent burnout"
+    }
+  ]
+}

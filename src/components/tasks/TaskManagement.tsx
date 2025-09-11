@@ -573,6 +573,13 @@ export const TaskManagement: React.FC = () => {
         task={taskModal.task}
         mode={taskModal.mode}
       />
+
+      <ContextualPageHelp 
+        pageId="task-automation"
+        activeTab={activeTab}
+        variant="resizable"
+        className="fixed bottom-4 right-4 z-50"
+      />
     </div>
   );
 };
