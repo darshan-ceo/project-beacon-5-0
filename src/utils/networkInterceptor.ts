@@ -20,9 +20,18 @@ class NetworkInterceptor {
   }
 
   private setupInterceptor() {
+    // Store reference to original fetch with proper binding
+    const originalFetch = this.originalFetch.bind(window);
+    
     window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
       const url = typeof input === 'string' ? input : input.toString();
       const method = init?.method || 'GET';
+      
+      // Skip interception for help content files
+      if (this.isHelpContentPath(url)) {
+        console.log(`[NetworkInterceptor] Bypassing help content:`, url);
+        return originalFetch(input, init);
+      }
       
       const call: NetworkCall = {
         url,
@@ -63,9 +72,9 @@ class NetworkInterceptor {
 
       this.calls.push(call);
       
-      // Allow the call to proceed
+      // Allow the call to proceed with proper binding
       try {
-        const response = await this.originalFetch(input, init);
+        const response = await originalFetch(input, init);
         console.log(`[NetworkInterceptor] Allowed call:`, { url, method, status: response.status });
         return response;
       } catch (error) {
@@ -73,6 +82,21 @@ class NetworkInterceptor {
         throw error;
       }
     };
+  }
+
+  private isHelpContentPath(url: string): boolean {
+    // Bypass interception for all help content paths
+    const helpPaths = [
+      '/help/',
+      '/public/help/',
+      'help.json',
+      'contextual.json',
+      '-tab.json',
+      'tours.json',
+      'glossary.json'
+    ];
+    
+    return helpPaths.some(path => url.includes(path));
   }
 
   private shouldBlockCall(url: string): boolean {

@@ -91,18 +91,29 @@ class EnhancedHelpService {
     }
 
     try {
-      console.log(`Fetching fresh tab help for ${pageId}/${tabId}`);
-      const response = await fetch(`/help/pages/${pageId}/${tabId}-tab.json`);
+      console.log(`[EnhancedHelpService] Fetching fresh tab help for ${pageId}/${tabId}`);
+      
+      // Verify file exists first
+      const helpUrl = `/help/pages/${pageId}/${tabId}-tab.json`;
+      console.log(`[EnhancedHelpService] Attempting to fetch: ${helpUrl}`);
+      
+      const response = await fetch(helpUrl, { 
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+      });
+      
+      console.log(`[EnhancedHelpService] Response status: ${response.status}`);
+      
       if (response.ok) {
         const content = await response.json();
         this.setCacheWithTimestamp(cacheKey, content);
-        console.log(`Successfully loaded tab help for ${pageId}/${tabId}:`, content.title);
+        console.log(`[EnhancedHelpService] Successfully loaded tab help for ${pageId}/${tabId}:`, content.title);
         return content;
       } else {
-        console.log(`Failed to fetch tab help for ${pageId}/${tabId} - Status: ${response.status}`);
+        console.warn(`[EnhancedHelpService] Failed to fetch tab help for ${pageId}/${tabId} - Status: ${response.status}`);
       }
     } catch (error) {
-      console.log(`Error fetching tab help for ${pageId}/${tabId}:`, error);
+      console.error(`[EnhancedHelpService] Error fetching tab help for ${pageId}/${tabId}:`, error);
     }
 
     const fallbackContent = this.generateTabFallback(pageId, tabId);
