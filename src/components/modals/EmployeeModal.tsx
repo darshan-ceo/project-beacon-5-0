@@ -17,6 +17,7 @@ import { AddressView } from '@/components/ui/AddressView';
 import { EnhancedAddressData, addressMasterService } from '@/services/addressMasterService';
 import { featureFlagService } from '@/services/featureFlagService';
 import { Mail, Phone, Calendar, MapPin, User, Building, X } from 'lucide-react';
+import { FieldTooltip } from '@/components/ui/field-tooltip';
 
 interface EmployeeModalProps {
   isOpen: boolean;
@@ -147,9 +148,12 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="full_name">
-                  Full Name <span className="text-destructive">*</span>
-                </Label>
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="full_name">
+                    Full Name <span className="text-destructive">*</span>
+                  </Label>
+                  <FieldTooltip formId="create-employee" fieldId="name" />
+                </div>
                 <Input
                   id="full_name"
                   value={formData.full_name || ''}
@@ -160,9 +164,12 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="role">
-                  Role <span className="text-destructive">*</span>
-                </Label>
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="role">
+                    Role <span className="text-destructive">*</span>
+                  </Label>
+                  <FieldTooltip formId="create-employee" fieldId="role" />
+                </div>
                 <Select
                   value={formData.role || ''}
                   onValueChange={(value) => handleInputChange('role', value)}
@@ -186,9 +193,12 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="email">
-                  Email <span className="text-destructive">*</span>
-                </Label>
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="email">
+                    Email <span className="text-destructive">*</span>
+                  </Label>
+                  <FieldTooltip formId="create-employee" fieldId="email" />
+                </div>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
@@ -227,7 +237,10 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="department">Department</Label>
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="department">Department</Label>
+                  <FieldTooltip formId="create-employee" fieldId="department" />
+                </div>
                 <Select
                   value={formData.department || ''}
                   onValueChange={(value) => handleInputChange('department', value)}
@@ -262,7 +275,10 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="workloadCapacity">Workload Capacity (hours/week)</Label>
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="workloadCapacity">Workload Capacity (hours/week)</Label>
+                  <FieldTooltip formId="create-employee" fieldId="workload" />
+                </div>
                 <Input
                   id="workloadCapacity"
                   type="number"

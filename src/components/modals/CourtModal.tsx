@@ -15,6 +15,7 @@ import { AddressView } from '@/components/ui/AddressView';
 import { EnhancedAddressData, addressMasterService } from '@/services/addressMasterService';
 import { featureFlagService } from '@/services/featureFlagService';
 import { MapPin, Phone, Mail } from 'lucide-react';
+import { FieldTooltip } from '@/components/ui/field-tooltip';
 
 interface CourtModalProps {
   isOpen: boolean;
@@ -231,7 +232,10 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <Label htmlFor="name">Court Name</Label>
+            <div className="flex items-center gap-1">
+              <Label htmlFor="name">Court Name</Label>
+              <FieldTooltip formId="create-court" fieldId="name" />
+            </div>
             <Input
               id="name"
               value={formData.name}
@@ -243,7 +247,10 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="type">Court Type</Label>
+              <div className="flex items-center gap-1">
+                <Label htmlFor="type">Court Type</Label>
+                <FieldTooltip formId="create-court" fieldId="type" />
+              </div>
               <Select 
                 value={formData.type} 
                 onValueChange={(value) => setFormData(prev => ({ ...prev, type: value as any }))}
@@ -262,7 +269,10 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
               </Select>
             </div>
             <div>
-              <Label htmlFor="jurisdiction">Jurisdiction</Label>
+              <div className="flex items-center gap-1">
+                <Label htmlFor="jurisdiction">Jurisdiction</Label>
+                <FieldTooltip formId="create-court" fieldId="jurisdiction" />
+              </div>
               <Input
                 id="jurisdiction"
                 value={formData.jurisdiction}
@@ -358,7 +368,10 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
               />
             </div>
             <div>
-              <Label htmlFor="totalJudges">Total Judges</Label>
+              <div className="flex items-center gap-1">
+                <Label htmlFor="totalJudges">Total Judges</Label>
+                <FieldTooltip formId="create-court" fieldId="total-judges" />
+              </div>
               <Input
                 id="totalJudges"
                 type="number"

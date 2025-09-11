@@ -17,6 +17,7 @@ import { ContextBadge } from '@/components/ui/context-badge';
 import { useRelationships } from '@/hooks/useRelationships';
 import { useContextualForms } from '@/hooks/useContextualForms';
 import { EmployeeSelector } from '@/components/ui/employee-selector';
+import { FieldTooltip } from '@/components/ui/field-tooltip';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -197,7 +198,10 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="title">Task Title</Label>
+            <div className="flex items-center gap-1">
+              <Label htmlFor="title">Task Title</Label>
+              <FieldTooltip formId="create-task" fieldId="title" />
+            </div>
             <Input
               id="title"
               value={formData.title}
@@ -209,7 +213,10 @@ export const TaskModal: React.FC<TaskModalProps> = ({
           </div>
 
           <div>
-            <Label htmlFor="description">Description</Label>
+            <div className="flex items-center gap-1">
+              <Label htmlFor="description">Description</Label>
+              <FieldTooltip formId="create-task" fieldId="description" />
+            </div>
             <Textarea
               id="description"
               value={formData.description}
@@ -275,7 +282,10 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="priority">Priority</Label>
+              <div className="flex items-center gap-1">
+                <Label htmlFor="priority">Priority</Label>
+                <FieldTooltip formId="create-task" fieldId="priority" />
+              </div>
               <Select 
                 value={formData.priority} 
                 onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value as any }))}
@@ -293,7 +303,10 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               </Select>
             </div>
             <div>
-              <Label htmlFor="status">Status</Label>
+              <div className="flex items-center gap-1">
+                <Label htmlFor="status">Status</Label>
+                <FieldTooltip formId="create-task" fieldId="status" />
+              </div>
               <Select 
                 value={formData.status} 
                 onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as any }))}
@@ -329,9 +342,13 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 required
                 showWorkload
               />
+              <FieldTooltip formId="create-task" fieldId="assignee" />
             </div>
             <div>
-              <Label htmlFor="estimatedHours">Estimated Hours</Label>
+              <div className="flex items-center gap-1">
+                <Label htmlFor="estimatedHours">Estimated Hours</Label>
+                <FieldTooltip formId="create-task" fieldId="estimated-hours" />
+              </div>
               <Input
                 id="estimatedHours"
                 type="number"
@@ -345,7 +362,10 @@ export const TaskModal: React.FC<TaskModalProps> = ({
           </div>
 
           <div>
-            <Label>Due Date</Label>
+            <div className="flex items-center gap-1">
+              <Label>Due Date</Label>
+              <FieldTooltip formId="create-task" fieldId="due-date" />
+            </div>
             <Popover>
               <PopoverTrigger asChild>
                 <Button

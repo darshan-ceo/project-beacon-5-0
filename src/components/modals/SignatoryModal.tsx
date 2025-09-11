@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import type { Signatory } from '@/contexts/AppStateContext';
+import { FieldTooltip } from '@/components/ui/field-tooltip';
 
 interface SignatoryModalProps {
   isOpen: boolean;
@@ -144,7 +145,10 @@ export const SignatoryModal: React.FC<SignatoryModalProps> = ({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="fullName">Full Name *</Label>
+            <div className="flex items-center gap-1">
+              <Label htmlFor="fullName">Full Name *</Label>
+              <FieldTooltip formId="create-signatory" fieldId="name" />
+            </div>
             <Input
               id="fullName"
               value={formData.fullName}
@@ -172,7 +176,10 @@ export const SignatoryModal: React.FC<SignatoryModalProps> = ({
           </div>
 
           <div>
-            <Label htmlFor="email">Email Address *</Label>
+            <div className="flex items-center gap-1">
+              <Label htmlFor="email">Email Address *</Label>
+              <FieldTooltip formId="create-signatory" fieldId="email" />
+            </div>
             <Input
               id="email"
               type="email"
@@ -201,7 +208,10 @@ export const SignatoryModal: React.FC<SignatoryModalProps> = ({
           </div>
 
           <div>
-            <Label htmlFor="scope">Scope of Authority</Label>
+            <div className="flex items-center gap-1">
+              <Label htmlFor="scope">Scope of Authority</Label>
+              <FieldTooltip formId="create-signatory" fieldId="scope" />
+            </div>
             <Select 
               value={formData.scope} 
               onValueChange={(value) => setFormData(prev => ({ ...prev, scope: value as any }))}

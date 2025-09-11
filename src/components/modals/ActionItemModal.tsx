@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAppState } from '@/contexts/AppStateContext';
 import { useToast } from '@/hooks/use-toast';
 import { AlertTriangle, Plus, Clock, User } from 'lucide-react';
+import { FieldTooltip } from '@/components/ui/field-tooltip';
 
 interface ActionItemModalProps {
   isOpen: boolean;
@@ -127,7 +128,10 @@ export const ActionItemModal: React.FC<ActionItemModalProps> = ({
           </Card>
 
           <div className="space-y-2">
-            <Label htmlFor="title">Task Title *</Label>
+            <div className="flex items-center gap-1">
+              <Label htmlFor="title">Task Title *</Label>
+              <FieldTooltip formId="create-action-item" fieldId="title" />
+            </div>
             <Input
               id="title"
               value={formData.title}
@@ -137,7 +141,10 @@ export const ActionItemModal: React.FC<ActionItemModalProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <div className="flex items-center gap-1">
+              <Label htmlFor="description">Description</Label>
+              <FieldTooltip formId="create-action-item" fieldId="description" />
+            </div>
             <Textarea
               id="description"
               value={formData.description}
@@ -148,7 +155,10 @@ export const ActionItemModal: React.FC<ActionItemModalProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="assignee">Assign To *</Label>
+            <div className="flex items-center gap-1">
+              <Label htmlFor="assignee">Assign To *</Label>
+              <FieldTooltip formId="create-action-item" fieldId="assignee" />
+            </div>
             <Select value={formData.assignee} onValueChange={(value) => setFormData({ ...formData, assignee: value })}>
               <SelectTrigger>
                 <SelectValue placeholder="Select assignee" />

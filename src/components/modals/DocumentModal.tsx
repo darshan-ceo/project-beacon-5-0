@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { Document, useAppState } from '@/contexts/AppStateContext';
 import { dmsService } from '@/services/dmsService';
+import { FieldTooltip } from '@/components/ui/field-tooltip';
 
 interface DocumentModalProps {
   isOpen: boolean;
@@ -198,7 +199,10 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4" data-tour="upload-form">
           {mode === 'upload' && (
             <div>
-              <Label htmlFor="file">Select File</Label>
+              <div className="flex items-center gap-1">
+                <Label htmlFor="file">Select File</Label>
+                <FieldTooltip formId="upload-document" fieldId="file" />
+              </div>
               <Input
                 id="file"
                 type="file"
@@ -234,7 +238,10 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
           )}
 
           <div>
-            <Label htmlFor="name">Document Name</Label>
+            <div className="flex items-center gap-1">
+              <Label htmlFor="name">Document Name</Label>
+              <FieldTooltip formId="upload-document" fieldId="name" />
+            </div>
             <Input
               id="name"
               value={formData.name}
@@ -245,7 +252,10 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
           </div>
 
           <div>
-            <Label htmlFor="folderId">Folder</Label>
+            <div className="flex items-center gap-1">
+              <Label htmlFor="folderId">Folder</Label>
+              <FieldTooltip formId="upload-document" fieldId="folder" />
+            </div>
             <Select 
               value={formData.folderId} 
               onValueChange={(value) => setFormData(prev => ({ ...prev, folderId: value }))}
@@ -266,7 +276,10 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
           </div>
 
           <div>
-            <Label htmlFor="caseId">Associated Case</Label>
+            <div className="flex items-center gap-1">
+              <Label htmlFor="caseId">Associated Case</Label>
+              <FieldTooltip formId="upload-document" fieldId="case-association" />
+            </div>
             <Select 
               value={formData.caseId} 
               onValueChange={(value) => setFormData(prev => ({ ...prev, caseId: value }))}
@@ -288,7 +301,10 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
           </div>
 
           <div>
-            <Label>Tags</Label>
+            <div className="flex items-center gap-1">
+              <Label>Tags</Label>
+              <FieldTooltip formId="upload-document" fieldId="tags" />
+            </div>
             <div className="flex gap-2 mb-2">
               <Input
                 value={newTag}

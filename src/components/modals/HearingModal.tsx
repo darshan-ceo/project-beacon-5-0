@@ -19,6 +19,7 @@ import { AddressView } from '@/components/ui/AddressView';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { featureFlagService } from '@/services/featureFlagService';
 import { hearingsService } from '@/services/hearingsService';
+import { FieldTooltip } from '@/components/ui/field-tooltip';
 
 interface HearingModalProps {
   isOpen: boolean;
@@ -247,7 +248,10 @@ export const HearingModal: React.FC<HearingModalProps> = ({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Hearing Date</Label>
+              <div className="flex items-center gap-1">
+                <Label>Hearing Date</Label>
+                <FieldTooltip formId="create-hearing" fieldId="date" />
+              </div>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -274,7 +278,10 @@ export const HearingModal: React.FC<HearingModalProps> = ({
             </div>
             
             <div>
-              <Label htmlFor="time">Time</Label>
+              <div className="flex items-center gap-1">
+                <Label htmlFor="time">Time</Label>
+                <FieldTooltip formId="create-hearing" fieldId="time" />
+              </div>
               <Input
                 id="time"
                 type="time"
@@ -319,7 +326,10 @@ export const HearingModal: React.FC<HearingModalProps> = ({
           })()}
 
           <div>
-            <Label htmlFor="agenda">Agenda</Label>
+            <div className="flex items-center gap-1">
+              <Label htmlFor="agenda">Agenda</Label>
+              <FieldTooltip formId="create-hearing" fieldId="agenda" />
+            </div>
             <Textarea
               id="agenda"
               value={formData.agenda}
