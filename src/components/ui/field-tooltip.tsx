@@ -248,6 +248,52 @@ const fieldHelpRegistry: Record<string, Record<string, { title: string; content:
       content: 'Whether tasks must be completed in order. Enable for dependent workflows like document review → approval → filing.',
       learnMoreUrl: '/help/articles/task-template-guide'
     }
+  },
+  'task-bundle': {
+    'name': {
+      title: 'Bundle Name',
+      content: 'Unique identifier for this task bundle template'
+    },
+    'stage': {
+      title: 'Target Stage',
+      content: 'Case stage where this bundle will be triggered automatically'
+    },
+    'description': {
+      title: 'Description',
+      content: 'Brief overview of what this bundle accomplishes'
+    },
+    'execution': {
+      title: 'Execution Mode',
+      content: 'Sequential creates tasks one after another; Parallel creates all tasks simultaneously'
+    },
+    'autoTrigger': {
+      title: 'Auto-trigger',
+      content: 'Automatically create these tasks when entering the target stage'
+    },
+    'task-title': {
+      title: 'Task Title',
+      content: 'Clear, actionable name for the task to be created'
+    },
+    'assigned-role': {
+      title: 'Assigned Role',
+      content: 'Team member role responsible for completing this task'
+    },
+    'task-description': {
+      title: 'Task Description',
+      content: 'Detailed instructions for completing this task'
+    },
+    'due-offset': {
+      title: 'Due Offset',
+      content: 'Time from bundle creation to task deadline (e.g., +2d = 2 days later)'
+    },
+    'priority': {
+      title: 'Priority Level',
+      content: 'Task urgency level affecting scheduling and notifications'
+    },
+    'estimated-hours': {
+      title: 'Estimated Hours',
+      content: 'Expected time needed to complete this task for workload planning'
+    }
   }
 };
 

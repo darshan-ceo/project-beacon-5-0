@@ -22,6 +22,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { FieldTooltipWrapper } from '@/components/help/FieldTooltipWrapper';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -277,67 +278,88 @@ export const BundleEditor: React.FC<BundleEditorProps> = ({
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Bundle Name *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="e.g., ASMT-10 Response Bundle"
-                    className={errors.name ? 'border-red-500' : ''}
-                  />
+                  <FieldTooltipWrapper 
+                    formId="task-bundle" 
+                    fieldId="name" 
+                    label="Bundle Name" 
+                    required={true}
+                  >
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="e.g., ASMT-10 Response Bundle"
+                      className={errors.name ? 'border-red-500' : ''}
+                    />
+                  </FieldTooltipWrapper>
                   {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="stage">Target Stage</Label>
-                  <Select value={formData.stage} onValueChange={(value) => setFormData(prev => ({ ...prev, stage: value }))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {GST_STAGES.map((stage) => (
-                        <SelectItem key={stage} value={stage}>
-                          {stage}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FieldTooltipWrapper 
+                    formId="task-bundle" 
+                    fieldId="stage" 
+                    label="Target Stage"
+                  >
+                    <Select value={formData.stage} onValueChange={(value) => setFormData(prev => ({ ...prev, stage: value }))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {GST_STAGES.map((stage) => (
+                          <SelectItem key={stage} value={stage}>
+                            {stage}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FieldTooltipWrapper>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Describe the purpose and workflow of this bundle..."
-                  rows={3}
-                />
+                <FieldTooltipWrapper 
+                  formId="task-bundle" 
+                  fieldId="description" 
+                  label="Description"
+                >
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Describe the purpose and workflow of this bundle..."
+                    rows={3}
+                  />
+                </FieldTooltipWrapper>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="execution">Execution Mode</Label>
-                  <Select value={formData.executionMode} onValueChange={(value: 'Sequential' | 'Parallel') => setFormData(prev => ({ ...prev, executionMode: value }))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Sequential">
-                        <div className="flex items-center gap-2">
-                          <List className="h-4 w-4" />
-                          Sequential
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="Parallel">
-                        <div className="flex items-center gap-2">
-                          <ArrowRight className="h-4 w-4" />
-                          Parallel
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FieldTooltipWrapper 
+                    formId="task-bundle" 
+                    fieldId="execution" 
+                    label="Execution Mode"
+                  >
+                    <Select value={formData.executionMode} onValueChange={(value: 'Sequential' | 'Parallel') => setFormData(prev => ({ ...prev, executionMode: value }))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Sequential">
+                          <div className="flex items-center gap-2">
+                            <List className="h-4 w-4" />
+                            Sequential
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="Parallel">
+                          <div className="flex items-center gap-2">
+                            <ArrowRight className="h-4 w-4" />
+                            Parallel
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FieldTooltipWrapper>
                 </div>
 
                 <div className="flex items-center space-x-2 pt-8">
@@ -346,10 +368,14 @@ export const BundleEditor: React.FC<BundleEditorProps> = ({
                     checked={formData.autoTrigger}
                     onCheckedChange={(checked) => setFormData(prev => ({ ...prev, autoTrigger: checked }))}
                   />
-                  <Label htmlFor="autoTrigger" className="flex items-center gap-2">
+                  <FieldTooltipWrapper 
+                    formId="task-bundle" 
+                    fieldId="autoTrigger" 
+                    label="Auto-trigger on stage change"
+                    className="flex items-center gap-2"
+                  >
                     <Zap className="h-4 w-4" />
-                    Auto-trigger on stage change
-                  </Label>
+                  </FieldTooltipWrapper>
                 </div>
               </div>
             </CardContent>
@@ -404,54 +430,75 @@ export const BundleEditor: React.FC<BundleEditorProps> = ({
 
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label>Task Title *</Label>
-                          <Input
-                            value={task.title}
-                            onChange={(e) => updateTask(index, { title: e.target.value })}
-                            placeholder="e.g., Draft response document"
-                            className={errors[`task_${index}_title`] ? 'border-red-500' : ''}
-                          />
+                          <FieldTooltipWrapper 
+                            formId="task-bundle" 
+                            fieldId="task-title" 
+                            label="Task Title" 
+                            required={true}
+                          >
+                            <Input
+                              value={task.title}
+                              onChange={(e) => updateTask(index, { title: e.target.value })}
+                              placeholder="e.g., Draft response document"
+                              className={errors[`task_${index}_title`] ? 'border-red-500' : ''}
+                            />
+                          </FieldTooltipWrapper>
                           {errors[`task_${index}_title`] && (
                             <p className="text-sm text-red-500">{errors[`task_${index}_title`]}</p>
                           )}
                         </div>
 
                         <div className="space-y-2">
-                          <Label>Assigned Role</Label>
-                          <Select value={task.assignedRole} onValueChange={(value) => updateTask(index, { assignedRole: value })}>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {EMPLOYEE_ROLES.map((role) => (
-                                <SelectItem key={role} value={role}>
-                                  {role}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <FieldTooltipWrapper 
+                            formId="task-bundle" 
+                            fieldId="assigned-role" 
+                            label="Assigned Role"
+                          >
+                            <Select value={task.assignedRole} onValueChange={(value) => updateTask(index, { assignedRole: value })}>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {EMPLOYEE_ROLES.map((role) => (
+                                  <SelectItem key={role} value={role}>
+                                    {role}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </FieldTooltipWrapper>
                         </div>
                       </div>
 
                       <div className="space-y-2">
-                        <Label>Description</Label>
-                        <Textarea
-                          value={task.description}
-                          onChange={(e) => updateTask(index, { description: e.target.value })}
-                          placeholder="Detailed task description..."
-                          rows={2}
-                        />
+                        <FieldTooltipWrapper 
+                          formId="task-bundle" 
+                          fieldId="task-description" 
+                          label="Description"
+                        >
+                          <Textarea
+                            value={task.description}
+                            onChange={(e) => updateTask(index, { description: e.target.value })}
+                            placeholder="Detailed task description..."
+                            rows={2}
+                          />
+                        </FieldTooltipWrapper>
                       </div>
 
                       <div className="grid grid-cols-3 gap-4">
                         <div className="space-y-2">
-                          <Label>Due Offset</Label>
-                          <Input
-                            value={task.dueOffset}
-                            onChange={(e) => updateTask(index, { dueOffset: e.target.value })}
-                            placeholder="+2d"
-                            className={errors[`task_${index}_offset`] ? 'border-red-500' : ''}
-                          />
+                          <FieldTooltipWrapper 
+                            formId="task-bundle" 
+                            fieldId="due-offset" 
+                            label="Due Offset"
+                          >
+                            <Input
+                              value={task.dueOffset}
+                              onChange={(e) => updateTask(index, { dueOffset: e.target.value })}
+                              placeholder="+2d"
+                              className={errors[`task_${index}_offset`] ? 'border-red-500' : ''}
+                            />
+                          </FieldTooltipWrapper>
                           {errors[`task_${index}_offset`] && (
                             <p className="text-sm text-red-500">{errors[`task_${index}_offset`]}</p>
                           )}
@@ -459,29 +506,39 @@ export const BundleEditor: React.FC<BundleEditorProps> = ({
                         </div>
 
                         <div className="space-y-2">
-                          <Label>Priority</Label>
-                          <Select value={task.priority} onValueChange={(value: any) => updateTask(index, { priority: value })}>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Critical">Critical</SelectItem>
-                              <SelectItem value="High">High</SelectItem>
-                              <SelectItem value="Medium">Medium</SelectItem>
-                              <SelectItem value="Low">Low</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <FieldTooltipWrapper 
+                            formId="task-bundle" 
+                            fieldId="priority" 
+                            label="Priority"
+                          >
+                            <Select value={task.priority} onValueChange={(value: any) => updateTask(index, { priority: value })}>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Critical">Critical</SelectItem>
+                                <SelectItem value="High">High</SelectItem>
+                                <SelectItem value="Medium">Medium</SelectItem>
+                                <SelectItem value="Low">Low</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FieldTooltipWrapper>
                         </div>
 
                         <div className="space-y-2">
-                          <Label>Estimated Hours</Label>
-                          <Input
-                            type="number"
-                            value={task.estimatedHours}
-                            onChange={(e) => updateTask(index, { estimatedHours: parseInt(e.target.value) || 0 })}
-                            min="1"
-                            max="100"
-                          />
+                          <FieldTooltipWrapper 
+                            formId="task-bundle" 
+                            fieldId="estimated-hours" 
+                            label="Estimated Hours"
+                          >
+                            <Input
+                              type="number"
+                              value={task.estimatedHours}
+                              onChange={(e) => updateTask(index, { estimatedHours: parseInt(e.target.value) || 0 })}
+                              min="1"
+                              max="100"
+                            />
+                          </FieldTooltipWrapper>
                         </div>
                       </div>
                     </motion.div>
