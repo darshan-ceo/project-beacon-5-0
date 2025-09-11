@@ -1,0 +1,98 @@
+{
+  "overview": "Automate your GST litigation workflows to ensure compliance deadlines are never missed and reduce manual errors in tax proceedings. This comprehensive task management system provides intelligent automation, deadline tracking, and escalation workflows specifically designed for GST legal practice requirements.",
+  "keyFeatures": [
+    {
+      "title": "Intelligent Task Automation",
+      "description": "Create rules that automatically generate tasks based on case events, stage changes, and deadlines",
+      "gstRelevance": "Prevents GST penalty accumulation by automating deadline tracking and ensuring no 30-day appeal window is missed"
+    },
+    {
+      "title": "SLA & Deadline Management",
+      "description": "Track statutory deadlines and service level agreements with automated reminders and escalations", 
+      "gstRelevance": "Ensures all GST hearing preparations are completed on time and compliance requirements are met systematically"
+    },
+    {
+      "title": "Task Templates & Bundles",
+      "description": "Pre-configured task sequences for common legal workflows with dependency management",
+      "gstRelevance": "Reduces risk of missing GST appeal deadlines with automated, comprehensive workflow templates"
+    },
+    {
+      "title": "Escalation Matrix",
+      "description": "Automated escalation of overdue tasks to supervisors with configurable thresholds",
+      "gstRelevance": "Streamlines GST document preparation with template automation and ensures critical tasks don't fall through cracks"
+    },
+    {
+      "title": "AI Task Assistant",
+      "description": "Intelligent task creation and optimization based on case context and historical data",
+      "gstRelevance": "Provides GST-specific task suggestions based on case type, stage, and regulatory requirements"
+    },
+    {
+      "title": "Team Collaboration",
+      "description": "Shared task boards, comments, and real-time updates for legal teams",
+      "gstRelevance": "Ensures coordinated GST case handling across advocates, clerks, and support staff"
+    }
+  ],
+  "quickStart": [
+    {
+      "step": 1,
+      "action": "Start with the Automation tab to create your first automation rule",
+      "gstContext": "Essential for GST practices with high case volumes - begin with hearing deadline automation"
+    },
+    {
+      "step": 2,
+      "action": "Configure GST-specific task templates for common procedures",
+      "gstContext": "Start with hearing automation for critical GST deadlines and assessment response workflows"
+    },
+    {
+      "step": 3,
+      "action": "Set up escalation matrix for overdue task management",
+      "gstContext": "Configure SLA tracking for 30-day GST response windows and penalty prevention"
+    },
+    {
+      "step": 4,
+      "action": "Use the Task Board to monitor all active tasks and deadlines",
+      "gstContext": "Monitor GST case progression and ensure no statutory deadlines are approaching"
+    },
+    {
+      "step": 5,
+      "action": "Review Analytics to optimize your automation workflows",
+      "gstContext": "Track GST case success rates and identify opportunities for process improvement"
+    }
+  ],
+  "philosophy": {
+    "title": "GST Legal Workflow Philosophy",
+    "description": "In GST litigation, timing is everything. Our automation system embodies the principle that systematic, technology-driven processes prevent human error and ensure comprehensive compliance. This system transforms expert legal knowledge into repeatable, reliable workflows.",
+    "principles": [
+      "Automate repetitive GST compliance tasks to focus legal expertise on strategy and advocacy",
+      "SLA tracking prevents costly GST penalties and interest charges that can devastate client businesses",
+      "Task bundles ensure comprehensive GST case preparation covering all procedural and substantive requirements",
+      "Real-time monitoring of GST proceeding deadlines protects practices from malpractice risks and client losses",
+      "Standardized workflows ensure consistent quality regardless of case complexity or team member experience",
+      "Data-driven insights from task analytics improve practice efficiency and client outcomes over time"
+    ]
+  },
+  "relatedTours": [
+    "task-automation-setup",
+    "automation-rules-creation",
+    "task-templates-usage",
+    "escalation-configuration"
+  ],
+  "relatedArticles": [
+    {
+      "title": "GST Automation Best Practices",
+      "url": "/help/articles/gst-automation-best-practices"
+    },
+    {
+      "title": "Setting Up Effective SLA Tracking",
+      "url": "/help/articles/sla-tracking-setup"
+    },
+    {
+      "title": "Task Template Design Guidelines",
+      "url": "/help/articles/task-template-guidelines"
+    },
+    {
+      "title": "Escalation Matrix Configuration",
+      "url": "/help/articles/escalation-matrix-setup"
+    }
+  ]
+}

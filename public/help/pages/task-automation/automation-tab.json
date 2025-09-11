@@ -1,0 +1,98 @@
+{
+  "title": "Automation Rules",
+  "description": "Create intelligent automation rules to handle repetitive GST litigation tasks automatically and ensure no critical deadlines are missed.",
+  "buttons": [
+    {
+      "name": "New Rule",
+      "purpose": "Create a new automation rule with custom triggers and actions for specific GST scenarios",
+      "gstExample": "Auto-create hearing preparation tasks when GST assessment order is uploaded to ensure 30-day appeal deadline compliance"
+    },
+    {
+      "name": "Enable/Disable Toggle", 
+      "purpose": "Activate or deactivate automation rules based on current requirements or seasonal changes",
+      "gstExample": "Disable automated hearing reminders during court vacation periods but keep assessment deadline tracking active"
+    },
+    {
+      "name": "View Logs",
+      "purpose": "Monitor automation rule execution history and troubleshoot any issues with rule performance",
+      "gstExample": "Verify that GST deadline reminder emails were sent successfully to clients before statutory deadlines"
+    },
+    {
+      "name": "Edit Rule",
+      "purpose": "Modify existing automation rules to adapt to changing GST regulations or practice requirements",
+      "gstExample": "Update appeal filing task template when GST appeal process changes require additional documentation"
+    },
+    {
+      "name": "Test Rule",
+      "purpose": "Simulate automation rule execution to verify correct behavior before activating in live environment",
+      "gstExample": "Test GST audit response automation with sample data to ensure all required tasks are created properly"
+    }
+  ],
+  "philosophy": "Automation in GST litigation is not just convenience—it's essential risk management. GST cases involve strict statutory timelines (30-day appeal windows, 60-day refund claim responses) where missing deadlines can result in significant financial penalties for clients and potential malpractice exposure for practitioners. Our automation ensures systematic compliance with all GST procedural requirements.",
+  "examples": [
+    {
+      "scenario": "GST Assessment Order Received",
+      "solution": "Automation rule triggers: (1) Creates appeal filing task with 30-day deadline, (2) Generates client notification with case summary, (3) Schedules document collection tasks, (4) Sets up timeline reminders at 7, 14, and 21 days",
+      "benefit": "Zero missed appeal deadlines, improved client communication, systematic case preparation, reduced practice liability"
+    },
+    {
+      "scenario": "GST Hearing Date Notification",
+      "solution": "Automation creates: (1) Hearing preparation checklist, (2) Document compilation task, (3) Client meeting scheduling, (4) Advocate brief preparation, (5) Travel arrangement reminders",
+      "benefit": "Comprehensive hearing preparation, no last-minute scrambling, professional client service, improved case outcomes"
+    },
+    {
+      "scenario": "GST Refund Claim Filed",
+      "solution": "Automated follow-up sequence: (1) 60-day status check task, (2) 90-day escalation review, (3) 180-day legal notice preparation, (4) Client progress updates at each milestone",
+      "benefit": "Proactive refund tracking, improved recovery rates, systematic client communication, competitive advantage"
+    },
+    {
+      "scenario": "GST Audit Notice Received", 
+      "solution": "Automation triggers: (1) Audit response preparation tasks, (2) Document compilation checklist, (3) Client conference scheduling, (4) Deadline tracking for all submission requirements",
+      "benefit": "Organized audit response, complete documentation, timely compliance, reduced audit penalties"
+    },
+    {
+      "scenario": "GST Compliance Calendar Updates",
+      "solution": "Monthly automation: (1) Reviews upcoming GST return deadlines, (2) Creates client reminder tasks, (3) Generates compliance checklists, (4) Schedules review meetings",
+      "benefit": "Proactive compliance management, reduced penalty exposure, improved client relationships, practice differentiation"
+    }
+  ],
+  "bestPractices": [
+    {
+      "title": "Start Simple",
+      "description": "Begin with basic deadline tracking rules before implementing complex workflow automation",
+      "gstApplication": "Start with GST appeal deadline tracking before automating entire case workflows"
+    },
+    {
+      "title": "Test Thoroughly", 
+      "description": "Always test automation rules with sample data before deploying in live cases",
+      "gstApplication": "Test GST automation with closed cases to verify all required tasks are generated correctly"
+    },
+    {
+      "title": "Monitor Performance",
+      "description": "Regularly review automation logs to ensure rules are working as expected",
+      "gstApplication": "Weekly review of GST deadline automation to catch any missed notifications or task creation failures"
+    },
+    {
+      "title": "Keep Rules Updated",
+      "description": "Update automation rules when regulations or internal processes change",
+      "gstApplication": "Update GST automation when appeal procedures change or new compliance requirements are introduced"
+    }
+  ],
+  "troubleshooting": [
+    {
+      "issue": "Rule not triggering",
+      "solution": "Check trigger conditions and ensure all required fields are populated in the case data",
+      "gstContext": "Verify GST case type and stage fields are correctly set for automation triggers"
+    },
+    {
+      "issue": "Tasks created with wrong deadlines",
+      "solution": "Review date calculation logic in rule configuration and adjust for business days/holidays",
+      "gstContext": "Ensure GST deadline calculations account for court holidays and weekend exclusions"
+    },
+    {
+      "issue": "Duplicate tasks being created",
+      "solution": "Check for multiple rules with similar triggers and implement task deduplication logic",
+      "gstContext": "Prevent duplicate GST hearing preparation tasks when multiple automation rules trigger simultaneously"
+    }
+  ]
+}

@@ -1,0 +1,129 @@
+{
+  "title": "Task Templates & Bundles",
+  "description": "Pre-configured task sequences for common GST litigation workflows that ensure consistent case handling and comprehensive compliance coverage.",
+  "buttons": [
+    {
+      "name": "Create Template",
+      "purpose": "Design new task templates for recurring GST workflows with customizable task sequences and deadlines",
+      "gstExample": "Create 'GST Assessment Appeal' template with tasks for notice analysis, grounds preparation, evidence collection, and filing"
+    },
+    {
+      "name": "Apply Template",
+      "purpose": "Apply existing templates to new cases or when cases advance to specific stages",
+      "gstExample": "Apply 'GST Audit Response' template immediately when audit notice is received to ensure all compliance requirements are addressed"
+    },
+    {
+      "name": "Edit Template",
+      "purpose": "Modify existing templates to adapt to regulation changes or improved practice procedures",
+      "gstExample": "Update 'GST Refund Claim' template when new documentation requirements are introduced by tax authorities"
+    },
+    {
+      "name": "Clone Template",
+      "purpose": "Create variations of existing templates for similar but distinct GST scenarios",
+      "gstExample": "Clone 'GST Assessment Appeal' template to create 'GST Penalty Challenge' template with modified task priorities"
+    },
+    {
+      "name": "View Usage Analytics",
+      "purpose": "Track template performance and identify opportunities for workflow optimization",
+      "gstExample": "Analyze 'GST Hearing Preparation' template success rates to optimize task sequences and timing"
+    }
+  ],
+  "philosophy": "Task templates embody institutional knowledge and best practices in GST litigation. They transform expert knowledge into systematic workflows that ensure junior practitioners follow the same high standards as senior advocates. In GST practice, where procedural compliance is critical and deadlines are non-negotiable, templates provide the consistency and completeness that distinguish professional practices.",
+  "examples": [
+    {
+      "scenario": "GST Assessment Order Challenge",
+      "solution": "Template includes: (1) Assessment order analysis task, (2) Grounds identification and legal research, (3) Supporting document compilation, (4) Appeal drafting with precedent review, (5) Filing and service tasks with deadline tracking",
+      "benefit": "Comprehensive appeal preparation, consistent quality, no missed procedural requirements, improved success rates"
+    },
+    {
+      "scenario": "GST Refund Claim Processing",
+      "solution": "Template sequence: (1) Eligibility verification task, (2) Documentation compilation checklist, (3) Application preparation and review, (4) Filing and acknowledgment tracking, (5) Follow-up milestone tasks at 60/90/180 days",
+      "benefit": "Systematic refund processing, proactive follow-up, improved recovery timelines, client satisfaction"
+    },
+    {
+      "scenario": "GST Audit Response Management",
+      "solution": "Comprehensive template: (1) Audit notice analysis, (2) Document inventory and compilation, (3) Response strategy development, (4) Draft response preparation, (5) Client consultation and approval, (6) Submission and follow-up tracking",
+      "benefit": "Organized audit response, complete documentation, strategic approach, reduced penalty exposure"
+    },
+    {
+      "scenario": "GST Search and Seizure Response",
+      "solution": "Emergency template: (1) Immediate client notification, (2) Advocate dispatch coordination, (3) Document protection strategy, (4) Rights advisement and representation, (5) Post-search follow-up and challenge preparation",
+      "benefit": "Rapid response capability, client protection, procedural compliance, minimized business disruption"
+    },
+    {
+      "scenario": "GST Registration Cancellation Challenge",
+      "solution": "Template workflow: (1) Cancellation order analysis, (2) Compliance status verification, (3) Revival application preparation, (4) Supporting documentation assembly, (5) Hearing preparation and representation tasks",
+      "benefit": "Swift registration restoration, business continuity protection, comprehensive compliance review"
+    }
+  ],
+  "templateTypes": [
+    {
+      "category": "Procedural Templates",
+      "description": "Standard workflows for common GST procedural requirements",
+      "examples": ["Appeal Filing", "Hearing Preparation", "Application Submission"],
+      "gstRelevance": "Ensures compliance with GST procedural timelines and requirements"
+    },
+    {
+      "category": "Compliance Templates",
+      "description": "Systematic approaches to GST compliance and audit scenarios",
+      "examples": ["Audit Response", "Voluntary Disclosure", "Compliance Review"],
+      "gstRelevance": "Reduces penalty exposure and ensures comprehensive compliance coverage"
+    },
+    {
+      "category": "Litigation Templates", 
+      "description": "Complete workflows for GST dispute resolution and litigation",
+      "examples": ["Assessment Challenge", "Refund Claim", "Penalty Contest"],
+      "gstRelevance": "Maximizes litigation success through systematic case preparation"
+    },
+    {
+      "category": "Advisory Templates",
+      "description": "Structured approaches for GST advisory and planning services",
+      "examples": ["Transaction Review", "Structure Planning", "Risk Assessment"],
+      "gstRelevance": "Provides comprehensive advisory services and proactive risk management"
+    }
+  ],
+  "bestPractices": [
+    {
+      "title": "Standard Operating Procedures",
+      "description": "Use templates to embed your practice's standard operating procedures for consistent service delivery",
+      "gstApplication": "Ensure all GST assessment challenges follow the same thorough analysis and preparation process"
+    },
+    {
+      "title": "Deadline Management",
+      "description": "Build appropriate buffer time into template deadlines to account for complexity and review cycles",
+      "gstApplication": "Set GST appeal tasks to complete 5 days before actual deadline to allow for final review and filing"
+    },
+    {
+      "title": "Quality Control",
+      "description": "Include review and approval tasks in templates to maintain quality standards",
+      "gstApplication": "Mandatory senior advocate review for all GST appeal submissions before filing"
+    },
+    {
+      "title": "Continuous Improvement",
+      "description": "Regularly update templates based on case outcomes and process improvements",
+      "gstApplication": "Update GST audit response templates when new documentation requirements or procedures are introduced"
+    }
+  ],
+  "customization": [
+    {
+      "option": "Task Dependencies",
+      "description": "Configure which tasks must be completed before others can begin",
+      "gstExample": "GST assessment analysis must be completed before appeal grounds can be drafted"
+    },
+    {
+      "option": "Conditional Tasks",
+      "description": "Include tasks that are only created based on specific case characteristics",
+      "gstExample": "Add penalty challenge tasks only when assessment includes penalty charges"
+    },
+    {
+      "option": "Role Assignment",
+      "description": "Automatically assign tasks to appropriate team members based on expertise",
+      "gstExample": "Assign research tasks to junior associates and court appearances to senior advocates"
+    },
+    {
+      "option": "Client Communication",
+      "description": "Include automated client updates at key milestones in the template workflow",
+      "gstExample": "Send client progress updates when GST appeal is filed and when hearing date is received"
+    }
+  ]
+}
