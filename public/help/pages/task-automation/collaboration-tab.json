@@ -1,31 +1,66 @@
 {
   "title": "Team Collaboration",
-  "description": "Coordinate GST litigation tasks across your legal team with real-time collaboration tools designed for law firm workflows.",
-  "buttons": [
+  "description": "Real-time task collaboration with team presence indicators, activity feeds, and task-specific communication for GST litigation workflows.",
+  "sections": [
+    {
+      "name": "Active Users",
+      "purpose": "Monitor team member availability and current work status in real-time",
+      "description": "See which colleagues are online, busy, or away, along with their current tasks to coordinate effectively",
+      "gstExample": "Check if senior advocate is online before requesting urgent review of GST appeal draft - shows 'Online - Draft Response to DRC-01' status",
+      "features": [
+        "Real-time presence indicators (online/busy/away status)",
+        "Current task visibility for active team members", 
+        "Last activity timestamps for offline members",
+        "Profile avatars with status badges"
+      ]
+    },
+    {
+      "name": "Recent Activity",
+      "purpose": "Track all task updates and team interactions in chronological order",
+      "description": "Comprehensive activity feed showing status changes, comments, assignments, and priority updates across all tasks",
+      "gstExample": "Monitor GST hearing preparation progress: 'Sarah changed DRC-01 Response status to Review (2m ago)', 'Mike commented on GSTAT Filing: Please prioritize (5m ago)'",
+      "features": [
+        "Real-time activity updates with icons and timestamps",
+        "Task title links for direct navigation",
+        "User names and roles for each activity",
+        "Activity type indicators (comment, status change, assignment, priority, deadline)"
+      ]
+    },
+    {
+      "name": "Task Comments",
+      "purpose": "Collaborate on specific tasks with threaded discussions and team communication",
+      "description": "Select any task to view existing comments and add new ones for team coordination and knowledge sharing",
+      "gstExample": "Select 'Draft Response to DRC-01' task, view existing comments, add: '@junior-advocate Please include Section 73 reference in grounds paragraph'",
+      "features": [
+        "Task selection dropdown with all available tasks",
+        "Scrollable comments history with timestamps",
+        "Real-time comment posting with Enter key support",
+        "User identification and time tracking for each comment"
+      ]
+    },
     {
       "name": "Share Workspace",
-      "purpose": "Invite team members to collaborate on GST case tasks with role-based access control",
-      "gstExample": "Share GST audit case workspace with junior advocate and paralegal while restricting client billing access to senior partners only"
+      "purpose": "Invite team members and control access to GST case collaboration workspace",
+      "description": "Manage team invitations and workspace sharing for seamless GST litigation collaboration",
+      "gstExample": "Invite external GST consultant to review assessment order while maintaining confidentiality controls",
+      "features": [
+        "Team member invitation system",
+        "Role-based access control",
+        "Workspace sharing settings",
+        "Collaboration permissions management"
+      ]
     },
     {
-      "name": "Add Comment",
-      "purpose": "Communicate about specific tasks with threaded discussions and @ mentions for team coordination",
-      "gstExample": "Comment on GST appeal filing task: '@junior-advocate Please review draft grounds of appeal before client meeting tomorrow'"
-    },
-    {
-      "name": "Upload File",
-      "purpose": "Attach relevant documents, notes, or resources directly to task discussions for team reference",
-      "gstExample": "Upload GST assessment order to hearing preparation task so all team members can access the same document version"
-    },
-    {
-      "name": "Assign Task",
-      "purpose": "Delegate specific tasks to team members with clear deadlines and responsibility tracking",
-      "gstExample": "Assign 'GST case law research' task to junior advocate with 3-day deadline for appeal preparation"
-    },
-    {
-      "name": "Mark Complete",
-      "purpose": "Update task status with completion notes and hand-off information for workflow continuity",
-      "gstExample": "Mark 'Client GST documents collection' complete with note: 'All IT returns collected, GST-3B for last 2 years pending from accountant'"
+      "name": "Team Performance Summary", 
+      "purpose": "Monitor real-time collaboration metrics and team productivity indicators",
+      "description": "Key performance indicators showing active collaborations, response times, task completion rates, and engagement metrics",
+      "gstExample": "Track team metrics: '4 Active Collaborations', '15 min Avg Response Time', '85% Task Completion Rate', '92% Team Engagement'",
+      "features": [
+        "Active collaboration counters",
+        "Average response time tracking",
+        "Task completion rate monitoring", 
+        "Team engagement percentage"
+      ]
     }
   ],
   "philosophy": "GST litigation success depends on seamless team coordination. In tax law, where technical expertise and procedural compliance must align perfectly, our collaboration system ensures every team member has real-time access to case progress, deadlines, and critical information. This prevents the communication gaps that often lead to missed deadlines in complex GST proceedings.",

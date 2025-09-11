@@ -11,7 +11,8 @@ import {
   UserPlus,
   Share,
   Activity,
-  Zap
+  Zap,
+  HelpCircle
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Task } from '@/contexts/AppStateContext';
 
 interface TaskCollaborationProps {
@@ -260,30 +262,38 @@ export const TaskCollaboration: React.FC<TaskCollaborationProps> = ({ tasks }) =
   const taskComments = comments.filter(c => c.taskId === selectedTaskForComments);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <motion.div 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="flex justify-between items-center"
-      >
-        <div>
-          <h2 className="text-2xl font-bold text-foreground flex items-center">
-            <Users className="mr-2 h-6 w-6" />
-            Team Collaboration
-          </h2>
-          <p className="text-muted-foreground mt-1">
-            Real-time task collaboration and team activity
-          </p>
-        </div>
-        <Button variant="outline">
-          <Share className="mr-2 h-4 w-4" />
-          Share Workspace
-        </Button>
-      </motion.div>
+    <TooltipProvider>
+      <div className="space-y-6">
+        {/* Header */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="flex justify-between items-center"
+        >
+          <div>
+            <h2 className="text-2xl font-bold text-foreground flex items-center">
+              <Users className="mr-2 h-6 w-6" />
+              Team Collaboration
+            </h2>
+            <p className="text-muted-foreground mt-1">
+              Real-time task collaboration and team activity
+            </p>
+          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline">
+                <Share className="mr-2 h-4 w-4" />
+                Share Workspace
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Invite team members to collaborate on GST cases with role-based access control</p>
+            </TooltipContent>
+          </Tooltip>
+        </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Active Users */}
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
@@ -295,6 +305,14 @@ export const TaskCollaboration: React.FC<TaskCollaborationProps> = ({ tasks }) =
               <CardTitle className="flex items-center">
                 <Eye className="mr-2 h-5 w-5" />
                 Active Users
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="ml-2 h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Monitor team member availability and current work status in real-time for GST case coordination</p>
+                  </TooltipContent>
+                </Tooltip>
               </CardTitle>
               <CardDescription>
                 Team members currently online
@@ -310,15 +328,22 @@ export const TaskCollaboration: React.FC<TaskCollaborationProps> = ({ tasks }) =
                     transition={{ duration: 0.3, delay: index * 0.1 }}
                     className="flex items-center space-x-3"
                   >
-                    <div className="relative">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={user.avatar} />
-                        <AvatarFallback>{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                      </Avatar>
-                      <div 
-                        className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-background ${getStatusColor(user.status)}`}
-                      />
-                    </div>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="relative">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={user.avatar} />
+                            <AvatarFallback>{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                          </Avatar>
+                          <div 
+                            className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-background ${getStatusColor(user.status)}`}
+                          />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{user.status} - {user.currentTask || `Last seen ${user.lastActivity}`}</p>
+                      </TooltipContent>
+                    </Tooltip>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">{user.name}</p>
                       {user.currentTask ? (
@@ -327,9 +352,16 @@ export const TaskCollaboration: React.FC<TaskCollaborationProps> = ({ tasks }) =
                         <p className="text-xs text-muted-foreground">{user.lastActivity}</p>
                       )}
                     </div>
-                    <Badge variant="outline" className="text-xs">
-                      {user.status}
-                    </Badge>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge variant="outline" className="text-xs cursor-help">
+                          {user.status}
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Status: {user.status} - Click to change availability</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </motion.div>
                 ))}
               </div>
@@ -348,6 +380,14 @@ export const TaskCollaboration: React.FC<TaskCollaborationProps> = ({ tasks }) =
               <CardTitle className="flex items-center">
                 <Activity className="mr-2 h-5 w-5" />
                 Recent Activity
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="ml-2 h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Track all task updates and team interactions in chronological order for GST case progress</p>
+                  </TooltipContent>
+                </Tooltip>
               </CardTitle>
               <CardDescription>
                 Latest task updates and changes
@@ -367,9 +407,16 @@ export const TaskCollaboration: React.FC<TaskCollaborationProps> = ({ tasks }) =
                         transition={{ duration: 0.3, delay: index * 0.05 }}
                         className="flex items-start space-x-3 p-2 rounded-lg hover:bg-muted/30 transition-colors"
                       >
-                        <div className={`p-1 rounded ${getActivityColor(activity.type)}`}>
-                          <Icon className="h-4 w-4" />
-                        </div>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className={`p-1 rounded ${getActivityColor(activity.type)} cursor-help`}>
+                              <Icon className="h-4 w-4" />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Activity type: {activity.type.replace('_', ' ')}</p>
+                          </TooltipContent>
+                        </Tooltip>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-foreground">
                             {activity.user.name}
@@ -404,6 +451,14 @@ export const TaskCollaboration: React.FC<TaskCollaborationProps> = ({ tasks }) =
               <CardTitle className="flex items-center">
                 <MessageSquare className="mr-2 h-5 w-5" />
                 Task Comments
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="ml-2 h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Select a task to view and add comments for team coordination on GST litigation matters</p>
+                  </TooltipContent>
+                </Tooltip>
               </CardTitle>
               <CardDescription>
                 Collaborate on specific tasks
@@ -412,18 +467,25 @@ export const TaskCollaboration: React.FC<TaskCollaborationProps> = ({ tasks }) =
             <CardContent>
               <div className="space-y-4">
                 {/* Task Selector */}
-                <select 
-                  value={selectedTaskForComments}
-                  onChange={(e) => setSelectedTaskForComments(e.target.value)}
-                  className="w-full p-2 border border-border rounded-md bg-background text-foreground text-sm"
-                >
-                  <option value="">Select a task...</option>
-                  {tasks.slice(0, 5).map(task => (
-                    <option key={task.id} value={task.id}>
-                      {task.title}
-                    </option>
-                  ))}
-                </select>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <select 
+                      value={selectedTaskForComments}
+                      onChange={(e) => setSelectedTaskForComments(e.target.value)}
+                      className="w-full p-2 border border-border rounded-md bg-background text-foreground text-sm cursor-pointer"
+                    >
+                      <option value="">Select a task...</option>
+                      {tasks.slice(0, 5).map(task => (
+                        <option key={task.id} value={task.id}>
+                          {task.title}
+                        </option>
+                      ))}
+                    </select>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Choose a task to view existing comments and add new ones for team coordination</p>
+                  </TooltipContent>
+                </Tooltip>
 
                 {selectedTaskForComments && (
                   <>
@@ -460,20 +522,34 @@ export const TaskCollaboration: React.FC<TaskCollaborationProps> = ({ tasks }) =
 
                     {/* Add Comment */}
                     <div className="flex space-x-2">
-                      <Input
-                        placeholder="Add a comment..."
-                        value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && addComment()}
-                        className="flex-1"
-                      />
-                      <Button 
-                        size="sm" 
-                        onClick={addComment}
-                        disabled={!newComment.trim()}
-                      >
-                        Send
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Input
+                            placeholder="Add a comment..."
+                            value={newComment}
+                            onChange={(e) => setNewComment(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && addComment()}
+                            className="flex-1"
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Type your comment and press Enter or click Send. Use @ mentions for urgent items.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            size="sm" 
+                            onClick={addComment}
+                            disabled={!newComment.trim()}
+                          >
+                            Send
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Send comment to task discussion (Enter key also works)</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                   </>
                 )}
@@ -491,7 +567,17 @@ export const TaskCollaboration: React.FC<TaskCollaborationProps> = ({ tasks }) =
       >
         <Card>
           <CardHeader>
-            <CardTitle>Team Performance Summary</CardTitle>
+            <CardTitle className="flex items-center">
+              Team Performance Summary
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="ml-2 h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Monitor real-time collaboration metrics and team productivity for GST litigation performance</p>
+                </TooltipContent>
+              </Tooltip>
+            </CardTitle>
             <CardDescription>
               Real-time collaboration metrics and team productivity
             </CardDescription>
@@ -518,6 +604,7 @@ export const TaskCollaboration: React.FC<TaskCollaborationProps> = ({ tasks }) =
           </CardContent>
         </Card>
       </motion.div>
-    </div>
+      </div>
+    </TooltipProvider>
   );
 };
