@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Book, Users, Settings, Code, HelpCircle, ExternalLink, BookOpen } from 'lucide-react';
+import { Search, Book, Users, Settings, Code, HelpCircle, ExternalLink, BookOpen, Layers } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useRBAC } from '@/hooks/useRBAC';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,6 +41,7 @@ export const HelpCenter: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState('users');
   const [showTours, setShowTours] = useState(false);
+  const [moduleHelpContent, setModuleHelpContent] = useState<any>({});
 
   console.log('[help-fix] Help Center initialized with feature flags');
 
@@ -83,6 +84,20 @@ export const HelpCenter: React.FC = () => {
 
     loadHelpContent();
   }, [currentUser?.role]);
+
+  // Load module help content
+  useEffect(() => {
+    const loadModuleHelp = async () => {
+      try {
+        const moduleHelp = await enhancedHelpService.getAllModuleHelp();
+        setModuleHelpContent(moduleHelp);
+      } catch (error) {
+        console.error('Failed to load module help:', error);
+      }
+    };
+
+    loadModuleHelp();
+  }, []);
 
   // Handle search functionality
   const handleSearch = async (query: string) => {
@@ -146,6 +161,7 @@ export const HelpCenter: React.FC = () => {
   const availableTabs = useMemo(() => {
     return [
       { id: 'users', label: 'Users', icon: Users },
+      { id: 'modules', label: 'Module Help', icon: Layers },
       { id: 'admin', label: 'Admin', icon: Settings },
       { id: 'developers', label: 'Developers', icon: Code }
     ];
@@ -331,7 +347,7 @@ export const HelpCenter: React.FC = () => {
 
         {/* Content Tabs */}
         <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-          <TabsList className="grid w-full max-w-md grid-cols-3">
+          <TabsList className="grid w-full max-w-2xl grid-cols-4">
             {availableTabs.map(tab => (
               <TabsTrigger key={tab.id} value={tab.id} className="flex items-center gap-2">
                 <tab.icon className="h-4 w-4" />
@@ -340,7 +356,98 @@ export const HelpCenter: React.FC = () => {
             ))}
           </TabsList>
 
-          {availableTabs.map(tab => (
+          {/* Module Help Tab */}
+          <TabsContent value="modules" className="space-y-4">
+            <div className="space-y-6">
+              <div className="text-sm text-muted-foreground">
+                Browse contextual help content for each module and tab in the system.
+              </div>
+              
+              {Object.entries(moduleHelpContent).map(([moduleId, tabs]) => (
+                <Card key={moduleId}>
+                  <CardHeader>
+                    <CardTitle className="text-xl capitalize flex items-center gap-2">
+                      <Layers className="h-5 w-5" />
+                      {moduleId.replace('-', ' ')}
+                    </CardTitle>
+                    <CardDescription>
+                      Tab-specific help content for the {moduleId.replace('-', ' ')} module
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {Object.entries(tabs as any).map(([tabId, content]: [string, any]) => (
+                        <Card key={tabId} className="cursor-pointer hover:shadow-md transition-shadow border-muted">
+                          <CardHeader className="pb-3">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <CardTitle className="text-sm font-medium">
+                                  {content?.title || `${tabId.charAt(0).toUpperCase() + tabId.slice(1)} Tab`}
+                                </CardTitle>
+                                <CardDescription className="text-xs mt-1">
+                                  {content?.description || `Help for ${tabId} functionality`}
+                                </CardDescription>
+                              </div>
+                              <Badge variant="outline" className="text-xs">
+                                {tabId}
+                              </Badge>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="pt-0">
+                            <div className="text-xs text-muted-foreground">
+                              {content?.buttons?.length || 0} interactive elements • 
+                              {content?.examples?.length || 0} examples
+                            </div>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="w-full mt-2 h-7 text-xs"
+                              onClick={() => {
+                                console.log(`[help] Navigate to ${moduleId}/${tabId} contextual help`);
+                                // Navigate to the actual page with help context
+                                if (moduleId === 'task-automation') {
+                                  navigate('/tasks?help=true&tab=' + tabId);
+                                } else if (moduleId === 'case-management') {
+                                  navigate('/cases?help=true&tab=' + tabId);
+                                } else if (moduleId === 'document-management') {
+                                  navigate('/documents?help=true&tab=' + tabId);
+                                } else if (moduleId === 'dashboard') {
+                                  navigate('/?help=true&tab=' + tabId);
+                                }
+                              }}
+                            >
+                              <ExternalLink className="h-3 w-3 mr-1" />
+                              View in Context
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                    
+                    {Object.keys(tabs as any).length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <HelpCircle className="h-8 w-8 mx-auto mb-2" />
+                        <p className="text-sm">No tab-specific help available for this module</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+              
+              {Object.keys(moduleHelpContent).length === 0 && (
+                <div className="text-center py-12">
+                  <HelpCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium">Loading module help content...</h3>
+                  <p className="text-muted-foreground">
+                    Gathering contextual help from all modules.
+                  </p>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* Other Tabs */}
+          {availableTabs.filter(tab => tab.id !== 'modules').map(tab => (
             <TabsContent key={tab.id} value={tab.id} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredContent.map(renderContentCard)}

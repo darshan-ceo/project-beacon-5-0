@@ -167,6 +167,45 @@ class EnhancedHelpService {
     };
   }
 
+  async getAllModuleHelp(): Promise<{ [moduleId: string]: { [tabId: string]: TabSpecificHelpContent } }> {
+    const moduleHelpContent: { [moduleId: string]: { [tabId: string]: TabSpecificHelpContent } } = {};
+    
+    // Define available modules and their tabs
+    const moduleStructure = {
+      'task-automation': [
+        'board', 'automation', 'templates', 'collaboration', 
+        'escalation', 'analytics', 'insights', 'ai-assistant'
+      ],
+      'case-management': [
+        'overview', 'timeline', 'documents', 'communications'
+      ],
+      'document-management': [
+        'library', 'templates', 'organization'
+      ],
+      'dashboard': [
+        'overview', 'analytics', 'reports'
+      ]
+    };
+
+    // Fetch all tab-specific help content
+    for (const [moduleId, tabs] of Object.entries(moduleStructure)) {
+      moduleHelpContent[moduleId] = {};
+      
+      for (const tabId of tabs) {
+        try {
+          const content = await this.getTabSpecificHelp(moduleId, tabId, false);
+          if (content) {
+            moduleHelpContent[moduleId][tabId] = content;
+          }
+        } catch (error) {
+          console.warn(`Failed to load help for ${moduleId}/${tabId}:`, error);
+        }
+      }
+    }
+
+    return moduleHelpContent;
+  }
+
   async search(query: string, userRole: string = 'Users', options: any = {}) {
     // Delegate to original help service
     return await helpService.searchContent(query, userRole);
