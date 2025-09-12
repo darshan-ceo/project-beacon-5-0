@@ -283,7 +283,9 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
           stageKey: 'Scrutiny',
           cycleNo: 1,
           startedAt: new Date().toISOString(),
-          status: 'Active'
+          status: 'Active',
+          createdBy: 'system',
+          createdAt: new Date().toISOString()
         },
         {
           id: createdCase.id,
