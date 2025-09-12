@@ -55,7 +55,7 @@ interface ContextualHelpContent {
     description: string;
     principles: string[];
   };
-  relatedTours: string[];
+  relatedTours: Array<string | { id: string; title?: string; description?: string } >;
   relatedArticles: Array<{
     title: string;
     url: string;
@@ -404,18 +404,24 @@ export const ContextualPageHelp: React.FC<ContextualPageHelpProps> = ({
           <div>
             <h3 className="text-lg font-semibold mb-3">Guided Tours</h3>
             <div className="flex flex-wrap gap-2">
-              {content.relatedTours.map((tourId, index) => (
-                <Button
-                  key={index}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleStartTour(tourId)}
-                  className="flex items-center gap-2"
-                >
-                  <BookOpen className="h-4 w-4" />
-                  Start {tourId.replace('-', ' ')} Tour
-                </Button>
-              ))}
+              {content.relatedTours.map((tour, index) => {
+                const id = typeof tour === 'string' ? tour : tour.id;
+                const label = typeof tour === 'string' 
+                  ? tour.replace('-', ' ')
+                  : (tour.title || id.replace('-', ' '));
+                return (
+                  <Button
+                    key={index}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleStartTour(id)}
+                    className="flex items-center gap-2"
+                  >
+                    <BookOpen className="h-4 w-4" />
+                    Start {label} Tour
+                  </Button>
+                );
+              })}
             </div>
           </div>
         )}
