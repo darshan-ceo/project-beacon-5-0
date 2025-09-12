@@ -48,6 +48,9 @@ import { PageHelp } from '@/components/help/PageHelp';
 import { ContextualPageHelp } from '@/components/help/ContextualPageHelp';
 import { tourService } from '@/services/tourService';
 import { GlossaryText, GlossaryDescription } from '@/components/ui/glossary-enhanced';
+import { NoticeIntakeWizard } from '@/components/notices/NoticeIntakeWizard';
+import { featureFlagService } from '@/services/featureFlagService';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 
 export const CaseManagement: React.FC = () => {
   const { state, dispatch } = useAppState();
@@ -89,6 +92,7 @@ export const CaseManagement: React.FC = () => {
     template: null,
     caseId: ''
   });
+  const [noticeIntakeModal, setNoticeIntakeModal] = useState(false);
 
   // Handle URL parameters and return context
   useEffect(() => {
@@ -384,14 +388,32 @@ export const CaseManagement: React.FC = () => {
               <HelpCircle className="mr-2 h-4 w-4" />
               Start Tour
             </Button>
-          <Button 
-            className="bg-primary hover:bg-primary-hover"
-            onClick={() => setCaseModal({ isOpen: true, mode: 'create', case: null })}
-            data-tour="new-case-btn"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            New Case
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                className="bg-primary hover:bg-primary-hover"
+                data-tour="new-case-btn"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                New Case
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setCaseModal({ isOpen: true, mode: 'create', case: null })}>
+                <Scale className="mr-2 h-4 w-4" />
+                Create Case
+              </DropdownMenuItem>
+              {featureFlagService.isEnabled('notice_intake_v1') && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setNoticeIntakeModal(true)}>
+                    <FileText className="mr-2 h-4 w-4" />
+                    From Notice
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </motion.div>
 
@@ -837,6 +859,14 @@ export const CaseManagement: React.FC = () => {
           onClose={() => setFormTemplateModal({ isOpen: false, template: null, caseId: '' })}
           template={formTemplateModal.template}
           selectedCaseId={formTemplateModal.caseId}
+        />
+      )}
+
+      {/* Notice Intake Wizard */}
+      {featureFlagService.isEnabled('notice_intake_v1') && (
+        <NoticeIntakeWizard
+          isOpen={noticeIntakeModal}
+          onClose={() => setNoticeIntakeModal(false)}
         />
       )}
     </div>

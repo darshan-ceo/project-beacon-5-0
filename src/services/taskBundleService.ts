@@ -132,6 +132,40 @@ class TaskBundleService {
         isActive: true
       });
     });
+
+    // Add ASMT-10 specific task bundle
+    this.bundles.push({
+      id: 'bundle_asmt10_notice_intake',
+      name: 'ASMT-10 Notice Intake Tasks',
+      trigger: 'OnStageEnter',
+      stageKey: 'Scrutiny',
+      tasks: [
+        {
+          title: 'Acknowledge Receipt of ASMT-10',
+          description: 'File acknowledgment of assessment notice receipt with the department',
+          priority: 'High',
+          estimatedHours: 2,
+          isMandatory: true
+        },
+        {
+          title: 'Reconciliation Analysis',
+          description: 'Analyze assessment against books and identify discrepancies',
+          priority: 'High',
+          estimatedHours: 8,
+          isMandatory: true,
+          dependencies: ['Acknowledge Receipt of ASMT-10']
+        },
+        {
+          title: 'Draft ASMT-11 Reply',
+          description: 'Prepare response to assessment order addressing identified issues',
+          priority: 'Medium',
+          estimatedHours: 12,
+          isMandatory: false,
+          dependencies: ['Reconciliation Analysis']
+        }
+      ],
+      isActive: true
+    });
   }
 
   /**

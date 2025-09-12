@@ -48,6 +48,8 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 import { InlineHelp } from '@/components/help/InlineHelp';
 import { ContextualPageHelp } from '@/components/help/ContextualPageHelp';
 import { tourService } from '@/services/tourService';
+import { NoticeIntakeWizard } from '@/components/notices/NoticeIntakeWizard';
+import { featureFlagService } from '@/services/featureFlagService';
 
 interface LocalDocument {
   id: string;
@@ -131,6 +133,7 @@ export const DocumentManagement: React.FC = () => {
     existingDoc?: any;
     options?: any;
   }>({ isOpen: false });
+  const [noticeIntakeModal, setNoticeIntakeModal] = useState(false);
 
   const getStageColor = (stage: string) => {
     switch (stage) {
@@ -1052,6 +1055,14 @@ export const DocumentManagement: React.FC = () => {
         onCreateVersion={handleDuplicateVersion}
         onCancel={handleDuplicateCancel}
       />
+
+      {/* Notice Intake Wizard */}
+      {featureFlagService.isEnabled('notice_intake_v1') && (
+        <NoticeIntakeWizard
+          isOpen={noticeIntakeModal}
+          onClose={() => setNoticeIntakeModal(false)}
+        />
+      )}
     </div>
   );
 };

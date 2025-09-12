@@ -200,6 +200,13 @@ class FeatureFlagService {
       isEnabled: false, // OFF in UAT - needs investigation
       version: 'v1'
     });
+
+    // Notice Intake v1 (UAT enabled)
+    this.flags.set('notice_intake_v1', {
+      key: 'notice_intake_v1',
+      isEnabled: true, // ON in UAT
+      version: 'v1'
+    });
   }
 
   /**
