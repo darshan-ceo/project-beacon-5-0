@@ -6,6 +6,7 @@ import { noticeExtractionService, ExtractedNoticeData } from '@/services/noticeE
 import { casesService } from '@/services/casesService';
 import { taskBundleService } from '@/services/taskBundleService';
 import { dmsService } from '@/services/dmsService';
+import { clientsService } from '@/services/clientsService';
 import { 
   Upload, 
   FileText, 
@@ -53,6 +54,7 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [existingDocument, setExistingDocument] = useState<any>(null);
   const [extractedData, setExtractedData] = useState<ExtractedNoticeData | null>(null);
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const [caseData, setCaseData] = useState({
@@ -117,14 +119,31 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
       const result = await noticeExtractionService.extractFromPDF(uploadedFile);
       
       if (result.success && result.data) {
+        // Validate and warn if needed
+        const validation = noticeExtractionService.validateExtractedData(result.data);
+        if (!validation.isValid) {
+          toast({
+            title: "Validation warnings",
+            description: validation.errors.join('; '),
+          });
+        }
+
         setExtractedData(result.data);
         setCurrentStep(3);
         
         // Prefill case data
+        const title = `ASMT-10 Assessment - ${result.data?.din || result.data?.gstin || 'Unknown'}`;
+        const description = [
+          `Assessment notice for period ${result.data?.period || 'Unknown'}`,
+          `Issuing office: ${result.data?.office || 'Unknown office'}`,
+          result.data?.dueDate ? `Due date: ${result.data.dueDate}` : undefined,
+          result.data?.amount ? `Amount: ₹${result.data.amount}` : undefined,
+        ].filter(Boolean).join('\n');
+
         setCaseData(prev => ({
           ...prev,
-          title: `ASMT-10 Assessment - ${result.data?.din || 'Unknown DIN'}`,
-          description: `Assessment notice for period ${result.data?.period || 'Unknown'} from ${result.data?.office || 'Unknown office'}`
+          title,
+          description
         }));
       } else {
         toast({
@@ -156,18 +175,22 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
 
     setLoading(true);
     try {
+      const gstin = extractedData.gstin.trim().toUpperCase();
+      const gstinValidation = clientsService.validateGSTIN(gstin);
+      if (!gstinValidation.isValid) {
+        toast({
+          title: "Invalid GSTIN",
+          description: gstinValidation.errors.join(', '),
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Search for existing client by GSTIN
-      const existingClient = state.clients.find(client => 
-        client.gstin === extractedData.gstin
-      );
+      const existingClient = state.clients.find(client => client.gstin?.toUpperCase() === gstin);
 
       if (existingClient) {
         setSelectedClient(existingClient);
-        setCaseData(prev => ({
-          ...prev,
-          assignedToId: existingClient.id || '',
-          assignedToName: existingClient.name
-        }));
         setCurrentStep(4);
         
         toast({
@@ -175,29 +198,32 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
           description: `Found existing client: ${existingClient.name}`,
         });
       } else {
-        // Show client creation dialog or automatically create
-        const newClient = {
-          name: `Client for GSTIN ${extractedData.gstin}`,
-          gstin: extractedData.gstin,
+        // Derive PAN from GSTIN (positions 3-12)
+        const pan = gstin.slice(2, 12).toUpperCase();
+
+        const newClient = await clientsService.create({
+          name: `Client ${gstin.slice(-4)}`,
+          type: 'Company',
+          gstin,
+          pan,
+          address: { line1: '', city: '', state: '', pincode: '', country: 'India' },
           status: 'Active',
-          type: 'Corporate',
-          primaryContactName: 'Primary Contact',
-          primaryContactEmail: '',
-          primaryContactPhone: ''
-        };
+          assignedCAId: state.userProfile?.id || '',
+          assignedCAName: state.userProfile?.name || ''
+        }, dispatch);
         
         setSelectedClient(newClient);
         setCurrentStep(4);
         
         toast({
-          title: "New Client Created",
-          description: "A new client will be created for this GSTIN.",
+          title: "Client Created",
+          description: `${newClient.name} created and selected.`,
         });
       }
     } catch (error) {
       toast({
         title: "Client Matching Failed",
-        description: "Could not match or create client.",
+        description: error instanceof Error ? error.message : "Could not match or create client.",
         variant: "destructive",
       });
     } finally {
@@ -206,16 +232,35 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
   };
 
   const handleCreateCase = async () => {
-    if (!selectedClient || !extractedData) return;
+    if (!selectedClient || !extractedData) {
+      toast({
+        title: "Missing Data",
+        description: "Client and extracted notice data are required.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setLoading(true);
     try {
+      const amountInDispute = extractedData.amount ? Number(extractedData.amount.replace(/,/g, '')) : undefined;
+      const title = caseData.title?.trim() || `ASMT-10 - ${extractedData.din || extractedData.gstin || 'Notice'}`;
+      const description = caseData.description?.trim() || [
+        `DIN: ${extractedData.din || 'NA'}`,
+        `GSTIN: ${extractedData.gstin || 'NA'}`,
+        `Period: ${extractedData.period || 'NA'}`,
+        `Due Date: ${extractedData.dueDate || 'NA'}`,
+        `Office: ${extractedData.office || 'NA'}`
+      ].join('\n');
+
       const newCase = await casesService.create({
-        ...caseData,
-        clientId: selectedClient.id || `client_${Date.now()}`,
+        title,
+        description,
+        clientId: selectedClient.id,
         currentStage: 'Scrutiny',
+        priority: caseData.priority,
         slaStatus: 'Green',
-        caseNumber: `CASE-${Date.now()}`
+        amountInDispute
       }, dispatch);
 
       setCreatedCase(newCase);
@@ -228,7 +273,7 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
     } catch (error) {
       toast({
         title: "Case Creation Failed",
-        description: "Could not create the case.",
+        description: error instanceof Error ? error.message : "Could not create the case.",
         variant: "destructive",
       });
     } finally {
@@ -237,16 +282,44 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
   };
 
   const handleLinkDocument = async () => {
-    if (!uploadedFile || !createdCase) return;
+    if (!uploadedFile || !createdCase) {
+      toast({
+        title: "Missing Data",
+        description: "Upload a notice and create a case first.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setLoading(true);
     try {
-      // Upload and link the document
-      await handleDocumentUpload(uploadedFile, {
+      const tags = ['Notice', 'ASMT-10', extractedData?.din || ''].filter(Boolean) as string[];
+      const options = {
         caseId: createdCase.id,
-        tags: ['Notice', 'ASMT-10', extractedData?.din || ''],
-        category: 'Legal Notice'
-      });
+        tags,
+        folderId: 'gstat-docs',
+        existingDocuments: state.documents as any
+      };
+
+      const result = await dmsService.files.upload(uploadedFile, options, dispatch);
+      let doc = result.document;
+
+      if (!result.success && result.duplicate) {
+        doc = await dmsService.files.handleDuplicate(
+          uploadedFile,
+          'version',
+          result.duplicate.existingDoc as any,
+          options,
+          dispatch
+        );
+      }
+
+      if (doc) {
+        // Ensure document has client association
+        dispatch({ type: 'UPDATE_DOCUMENT', payload: { id: doc.id, clientId: createdCase.clientId } });
+        // Increment documents count on case
+        dispatch({ type: 'UPDATE_CASE', payload: { id: createdCase.id, documents: (createdCase.documents || 0) + 1 } });
+      }
 
       setCurrentStep(6);
       
@@ -257,7 +330,7 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
     } catch (error) {
       toast({
         title: "Document Linking Failed",
-        description: "Could not link the document to the case.",
+        description: error instanceof Error ? error.message : "Could not link the document to the case.",
         variant: "destructive",
       });
     } finally {
