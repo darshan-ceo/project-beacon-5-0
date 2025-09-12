@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { FileText, Calendar, AlertTriangle, CheckSquare, Users, MessageSquare, Settings, Save, HelpCircle } from 'lucide-react';
-import { InlineHelp } from '@/components/help/InlineHelp';
+import { ContextualPageHelp } from '@/components/help/ContextualPageHelp';
 import { usePermission } from '@/hooks/useRBAC';
 
 // Import individual report tab components
@@ -131,7 +131,11 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({ userRole }) => {
               Generate, filter, and export operational reports across all modules
             </p>
           </div>
-          <InlineHelp module="reports" />
+          <ContextualPageHelp 
+            pageId="reports" 
+            activeTab={activeTab}
+            variant="floating" 
+          />
         </div>
         <div className="flex items-center gap-3">
           <Button

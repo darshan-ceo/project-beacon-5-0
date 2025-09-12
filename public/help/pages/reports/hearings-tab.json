@@ -1,0 +1,48 @@
+{
+  "title": "Hearings & Cause List",
+  "description": "Track upcoming hearings, cause list management, and hearing outcomes",
+  "quickStart": [
+    "Select date range for hearing schedule",
+    "Filter by court or judge if needed",
+    "View upcoming hearings and preparation status",
+    "Export cause lists for court submissions"
+  ],
+  "interactiveElements": [
+    {
+      "name": "Hearing Calendar",
+      "purpose": "Visual representation of scheduled hearings",
+      "example": "See all hearings for next week across all cases"
+    },
+    {
+      "name": "Court Filter",
+      "purpose": "Focus on specific court's hearing schedule",
+      "example": "Show only High Court hearings for preparation planning"
+    },
+    {
+      "name": "Preparation Status",
+      "purpose": "Track readiness for upcoming hearings",
+      "example": "Identify hearings requiring document preparation"
+    }
+  ],
+  "philosophy": {
+    "title": "Proactive Hearing Management",
+    "description": "Systematic hearing tracking ensures adequate preparation time and prevents missed appearances",
+    "principles": [
+      "Early preparation improves outcomes",
+      "Systematic tracking prevents oversights",
+      "Clear scheduling reduces conflicts"
+    ]
+  },
+  "examples": [
+    {
+      "scenario": "Weekly hearing preparation",
+      "solution": "Review upcoming hearings and preparation checklist",
+      "benefit": "Well-prepared arguments and complete documentation"
+    },
+    {
+      "scenario": "Court scheduling conflicts",
+      "solution": "View consolidated hearing calendar across all courts",
+      "benefit": "Early identification and resolution of scheduling issues"
+    }
+  ]
+}

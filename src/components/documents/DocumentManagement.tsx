@@ -46,7 +46,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { InlineHelp } from '@/components/help/InlineHelp';
-import { PageHelp } from '@/components/help/PageHelp';
+import { ContextualPageHelp } from '@/components/help/ContextualPageHelp';
 import { tourService } from '@/services/tourService';
 
 interface LocalDocument {
@@ -634,7 +634,7 @@ export const DocumentManagement: React.FC = () => {
               <HelpCircle className="w-4 h-4" />
               Start Tour
             </Button>
-            <PageHelp pageId="document-management" variant="floating" />
+            <ContextualPageHelp pageId="document-management" variant="floating" />
             <InlineHelp module="documents" />
           </div>
         </div>
@@ -1147,7 +1147,11 @@ export const DocumentManagement: React.FC = () => {
       />
 
       {/* Page Help */}
-      <PageHelp pageId="document-management" />
+      <ContextualPageHelp 
+        pageId="document-management" 
+        activeTab="overview"
+        variant="resizable" 
+      />
     </div>
   );
 };

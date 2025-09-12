@@ -294,6 +294,44 @@ const fieldHelpRegistry: Record<string, Record<string, { title: string; content:
       title: 'Estimated Hours',
       content: 'Expected time needed to complete this task for workload planning'
     }
+  },
+  
+  'hearing-form': {
+    'case_id': {
+      title: 'Case Selection',
+      content: 'Select the case for which this hearing is scheduled. The case should be created before scheduling hearings.',
+      learnMoreUrl: '/help/case-management/overview'
+    },
+    'date': {
+      title: 'Hearing Date',
+      content: 'Select the date when the hearing is scheduled. Ensure the date is accurate to avoid conflicts and missed appearances.',
+      learnMoreUrl: '/help/hearings/calendar'
+    },
+    'start_time': {
+      title: 'Hearing Time',
+      content: 'Set the time when the hearing begins. Use 24-hour format for clarity. Consider travel time when scheduling multiple hearings.',
+      learnMoreUrl: '/help/hearings/calendar'
+    },
+    'court_id': {
+      title: 'Court Selection',
+      content: 'Choose the court where the hearing will take place. Ensure the correct jurisdiction and court hierarchy.',
+      learnMoreUrl: '/help/masters/courts'
+    },
+    'judge_ids': {
+      title: 'Judge Assignment',
+      content: 'Select the judge who will preside over the hearing. This information helps in case preparation and strategy.',
+      learnMoreUrl: '/help/masters/judges'
+    },
+    'purpose': {
+      title: 'Hearing Purpose',
+      content: 'Specify the purpose of the hearing (Mention, Final Hearing, etc.). This affects preparation requirements and expected outcomes.',
+      learnMoreUrl: '/help/hearings/preparation'
+    },
+    'notes': {
+      title: 'Hearing Notes',
+      content: 'Add any additional information relevant to the hearing such as special instructions, preparation reminders, or case-specific details.',
+      learnMoreUrl: '/help/hearings/preparation'
+    }
   }
 };
 

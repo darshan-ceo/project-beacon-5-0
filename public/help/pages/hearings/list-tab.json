@@ -1,0 +1,53 @@
+{
+  "title": "Hearings List",
+  "description": "Comprehensive list view of all scheduled hearings with filtering and search capabilities",
+  "quickStart": [
+    "View all scheduled hearings in chronological order",
+    "Use search to find specific case hearings",
+    "Apply filters by court, judge, or hearing type",
+    "Click any hearing to view or edit details"
+  ],
+  "interactiveElements": [
+    {
+      "name": "Search Bar",
+      "purpose": "Find hearings by case number, court, or judge name",
+      "example": "Search 'GST-2024-001' to find all hearings for that case"
+    },
+    {
+      "name": "Filter Options",
+      "purpose": "Narrow down hearings by specific criteria",
+      "example": "Filter by 'High Court' to see only appellate hearings"
+    },
+    {
+      "name": "Hearing Actions",
+      "purpose": "Quick actions for each hearing (View, Edit, Cancel)",
+      "example": "Click 'Edit' to reschedule or update hearing details"
+    },
+    {
+      "name": "Status Indicators",
+      "purpose": "Visual status of hearing preparation and outcomes",
+      "example": "Green indicates completed hearings, amber shows pending preparation"
+    }
+  ],
+  "philosophy": {
+    "title": "Organized Scheduling",
+    "description": "A clear list view enables efficient hearing management and prevents scheduling conflicts",
+    "principles": [
+      "Chronological organization aids planning",
+      "Quick filtering saves time",
+      "Status visibility ensures preparation"
+    ]
+  },
+  "examples": [
+    {
+      "scenario": "Weekly hearing review",
+      "solution": "Filter hearings for next 7 days and check preparation status",
+      "benefit": "Proactive preparation and no missed hearings"
+    },
+    {
+      "scenario": "Court-specific preparation",
+      "solution": "Filter by specific court to batch prepare similar hearings",
+      "benefit": "Efficient preparation and travel planning"
+    }
+  ]
+}

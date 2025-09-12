@@ -1,0 +1,53 @@
+{
+  "title": "Hearings Calendar",
+  "description": "Visual calendar view of all scheduled hearings with drag-and-drop rescheduling",
+  "quickStart": [
+    "Switch to calendar view to see hearings by date",
+    "Click on any date to see scheduled hearings",
+    "Drag hearings to reschedule (if permitted)",
+    "Use month/week view toggle for different perspectives"
+  ],
+  "interactiveElements": [
+    {
+      "name": "Calendar Navigation",
+      "purpose": "Move between months and years to view different periods",
+      "example": "Click next month to see upcoming hearing schedule"
+    },
+    {
+      "name": "View Toggles",
+      "purpose": "Switch between month, week, and day views",
+      "example": "Use week view for detailed daily scheduling"
+    },
+    {
+      "name": "Hearing Blocks",
+      "purpose": "Visual representation of scheduled hearings",
+      "example": "Color-coded blocks show different hearing types or courts"
+    },
+    {
+      "name": "Quick Add",
+      "purpose": "Click any date to quickly schedule a new hearing",
+      "example": "Click empty date slot to open hearing scheduling form"
+    }
+  ],
+  "philosophy": {
+    "title": "Visual Planning",
+    "description": "Calendar view provides intuitive scheduling and helps identify conflicts or gaps",
+    "principles": [
+      "Visual layout aids planning",
+      "Color coding improves recognition",
+      "Quick scheduling saves time"
+    ]
+  },
+  "examples": [
+    {
+      "scenario": "Monthly planning session",
+      "solution": "Review full month calendar to identify busy periods",
+      "benefit": "Better resource allocation and conflict prevention"
+    },
+    {
+      "scenario": "Same-day scheduling",
+      "solution": "Use day view to manage multiple hearings on busy days",
+      "benefit": "Efficient time management and travel coordination"
+    }
+  ]
+}

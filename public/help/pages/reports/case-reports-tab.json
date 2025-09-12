@@ -1,0 +1,48 @@
+{
+  "title": "Case Reports",
+  "description": "Comprehensive case analysis including aging, outcomes, and performance metrics",
+  "quickStart": [
+    "Select date range for report period",
+    "Choose case status filters (Active, Closed, etc.)",
+    "Apply client or practice area filters if needed",
+    "Click 'Generate Report' to view results"
+  ],
+  "interactiveElements": [
+    {
+      "name": "Date Range Picker",
+      "purpose": "Define reporting period for case analysis",
+      "example": "Select 'Last 6 months' to analyze recent case trends"
+    },
+    {
+      "name": "Status Filters",
+      "purpose": "Filter cases by current litigation status",
+      "example": "Show only 'Active' cases to focus on ongoing matters"
+    },
+    {
+      "name": "Export Options",
+      "purpose": "Download reports in various formats",
+      "example": "Export to Excel for detailed analysis or PDF for presentations"
+    }
+  ],
+  "philosophy": {
+    "title": "Data-Driven Insights",
+    "description": "Regular case analysis helps identify trends, bottlenecks, and opportunities for improvement",
+    "principles": [
+      "Metrics reveal hidden patterns",
+      "Regular analysis improves decision making",
+      "Historical data guides future strategy"
+    ]
+  },
+  "examples": [
+    {
+      "scenario": "Monthly case review",
+      "solution": "Generate case aging report to identify stalled matters",
+      "benefit": "Proactive case management and improved client service"
+    },
+    {
+      "scenario": "Client billing preparation",
+      "solution": "Run case activity report for specific client",
+      "benefit": "Accurate billing and transparent client communication"
+    }
+  ]
+}

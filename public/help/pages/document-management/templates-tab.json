@@ -1,0 +1,48 @@
+{
+  "title": "Document Templates",
+  "description": "Pre-built templates for legal documents, forms, and standard correspondence",
+  "quickStart": [
+    "Browse available templates by category",
+    "Select a template and click 'Use Template'",
+    "Fill in the template fields with case-specific information",
+    "Save the completed document to appropriate folder"
+  ],
+  "interactiveElements": [
+    {
+      "name": "Template Categories",
+      "purpose": "Browse templates by type (Appeals, Notices, Replies, etc.)",
+      "example": "Click 'GST Appeals' to see all GST-related template forms"
+    },
+    {
+      "name": "Use Template Button",
+      "purpose": "Create a new document from selected template",
+      "example": "Generate a fresh GST Appeal form with pre-filled headers"
+    },
+    {
+      "name": "Preview Template",
+      "purpose": "View template structure before using",
+      "example": "See the layout and required fields of an appeal template"
+    }
+  ],
+  "philosophy": {
+    "title": "Standardized Documentation",
+    "description": "Templates ensure consistency, compliance, and efficiency in legal document preparation",
+    "principles": [
+      "Standardization reduces errors",
+      "Pre-built formats save time",
+      "Compliance requirements are built-in"
+    ]
+  },
+  "examples": [
+    {
+      "scenario": "Filing GST appeal",
+      "solution": "Use GST Appeal template with pre-filled sections",
+      "benefit": "Ensures all required information is included and properly formatted"
+    },
+    {
+      "scenario": "Client correspondence",
+      "solution": "Use standard letter templates for consistent communication",
+      "benefit": "Professional appearance and complete information"
+    }
+  ]
+}

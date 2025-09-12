@@ -1,0 +1,53 @@
+{
+  "title": "Document Overview",
+  "description": "Central hub for all document management activities with smart organization and search",
+  "quickStart": [
+    "Upload documents via drag-and-drop or click 'Upload'",
+    "Use folders to organize documents by case, client, or type",
+    "Search documents by name, tags, or content",
+    "Apply filters to find specific document types or dates"
+  ],
+  "interactiveElements": [
+    {
+      "name": "Upload Button",
+      "purpose": "Upload new documents to the system",
+      "example": "Click to upload legal briefs, evidence, or client correspondence"
+    },
+    {
+      "name": "New Folder",
+      "purpose": "Create organized folder structures",
+      "example": "Create folders like 'Case-2024-001' or 'Client-Agreements'"
+    },
+    {
+      "name": "Search Bar",
+      "purpose": "Find documents quickly using keywords",
+      "example": "Search 'GST notice' to find all related documents"
+    },
+    {
+      "name": "Filter Dropdown",
+      "purpose": "Filter documents by type, date, or status",
+      "example": "Show only PDF files uploaded this week"
+    }
+  ],
+  "philosophy": {
+    "title": "Organized Documentation",
+    "description": "A well-organized document system ensures quick access to critical information and maintains compliance with legal documentation standards",
+    "principles": [
+      "Systematic organization reduces search time",
+      "Proper tagging enables cross-referencing",
+      "Version control prevents document confusion"
+    ]
+  },
+  "examples": [
+    {
+      "scenario": "Case file preparation",
+      "solution": "Use folder structure to organize all case-related documents",
+      "benefit": "Quick access to all relevant documents during hearings"
+    },
+    {
+      "scenario": "Client document sharing",
+      "solution": "Tag documents with client names and case numbers",
+      "benefit": "Easy filtering and sharing of client-specific documents"
+    }
+  ]
+}

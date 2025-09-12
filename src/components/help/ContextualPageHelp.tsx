@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { HelpCircle, BookOpen, Lightbulb, Target, AlertCircle, Maximize2, Minimize2, Move, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { HelpCircle, BookOpen, Lightbulb, Target, AlertCircle, Maximize2, Minimize2, Move, X, ChevronLeft, ChevronRight, RefreshCw, Pin, ChevronUp, ChevronDown } from 'lucide-react';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';

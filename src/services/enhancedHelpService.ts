@@ -94,16 +94,27 @@ class EnhancedHelpService {
     try {
       console.log(`[EnhancedHelpService] Fetching fresh tab help for ${pageId}/${tabId}`);
       
-      // Verify file exists first
-      const helpUrl = `/help/pages/${pageId}/${tabId}-tab.json`;
+      // First try the standard tab-specific path
+      let helpUrl = `/help/pages/${pageId}/${tabId}-tab.json`;
       console.log(`[EnhancedHelpService] Attempting to fetch: ${helpUrl}`);
       
-      const response = await fetch(helpUrl, { 
+      let response = await fetch(helpUrl, { 
         method: 'GET',
         headers: { 'Accept': 'application/json' }
       });
       
       console.log(`[EnhancedHelpService] Response status: ${response.status}`);
+      
+      if (!response.ok) {
+        // Fallback: try without -tab suffix
+        helpUrl = `/help/pages/${pageId}/${tabId}.json`;
+        console.log(`[EnhancedHelpService] Fallback attempt: ${helpUrl}`);
+        response = await fetch(helpUrl, { 
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
+        });
+        console.log(`[EnhancedHelpService] Fallback response status: ${response.status}`);
+      }
       
       if (response.ok) {
         const content = await response.json();
@@ -111,7 +122,7 @@ class EnhancedHelpService {
         console.log(`[EnhancedHelpService] Successfully loaded tab help for ${pageId}/${tabId}:`, content.title);
         return content;
       } else {
-        console.warn(`[EnhancedHelpService] Failed to fetch tab help for ${pageId}/${tabId} - Status: ${response.status}`);
+        console.warn(`[EnhancedHelpService] Failed to fetch tab help for ${pageId}/${tabId} - Both attempts failed`);
       }
     } catch (error) {
       console.error(`[EnhancedHelpService] Error fetching tab help for ${pageId}/${tabId}:`, error);
@@ -178,10 +189,16 @@ class EnhancedHelpService {
         'escalation', 'analytics', 'insights', 'ai-assistant'
       ],
       'case-management': [
-        'overview', 'timeline', 'documents', 'communications'
+        'overview', 'lifecycle'
       ],
       'document-management': [
-        'library', 'templates', 'organization'
+        'overview', 'templates'
+      ],
+      'reports': [
+        'case-reports', 'hearings', 'sla-compliance', 'tasks', 'client-summary', 'communications'
+      ],
+      'hearings': [
+        'list', 'calendar'
       ],
       'dashboard': [
         'overview', 'analytics', 'reports'

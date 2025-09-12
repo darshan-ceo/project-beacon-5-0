@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Calendar, List } from 'lucide-react';
+import { Plus, Calendar, List, HelpCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,6 +11,7 @@ import { toast } from '@/hooks/use-toast';
 import { HearingForm } from '@/components/hearings/HearingForm';
 import { HearingFilters, HearingFiltersState } from '@/components/hearings/HearingFilters';
 import { hearingsService } from '@/services/hearingsService';
+import { ContextualPageHelp } from '@/components/help/ContextualPageHelp';
 
 interface HearingFormData {
   case_id: string;
@@ -201,9 +202,16 @@ export const HearingsPage: React.FC = () => {
       
       {/* Header */}
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold">Hearings</h1>
-          <p className="text-muted-foreground">Manage court hearings and schedules</p>
+        <div className="flex items-center gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">Hearings</h1>
+            <p className="text-muted-foreground">Manage court hearings and schedules</p>
+          </div>
+          <ContextualPageHelp 
+            pageId="hearings" 
+            activeTab={activeTab}
+            variant="floating" 
+          />
         </div>
         
         <Button onClick={handleCreateHearing}>

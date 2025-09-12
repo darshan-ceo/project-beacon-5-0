@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAppState, Hearing } from '@/contexts/AppStateContext';
+import { FieldTooltipWrapper } from '@/components/help/FieldTooltipWrapper';
 
 interface HearingFormProps {
   hearing?: Hearing;
@@ -56,8 +57,12 @@ export const HearingForm: React.FC<HearingFormProps> = ({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       
-      <div>
-        <Label>Case</Label>
+      <FieldTooltipWrapper
+        formId="hearing-form"
+        fieldId="case_id"
+        label="Case"
+        required
+      >
         <Select 
           value={formData.case_id} 
           onValueChange={(value) => setFormData(prev => ({ ...prev, case_id: value }))}
@@ -74,32 +79,44 @@ export const HearingForm: React.FC<HearingFormProps> = ({
             ))}
           </SelectContent>
         </Select>
-      </div>
+      </FieldTooltipWrapper>
 
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label>Date</Label>
+        <FieldTooltipWrapper
+          formId="hearing-form"
+          fieldId="date"
+          label="Date"
+          required
+        >
           <Input
             type="date"
             value={formData.date}
             onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
             disabled={disabled}
           />
-        </div>
+        </FieldTooltipWrapper>
         
-        <div>
-          <Label>Time</Label>
+        <FieldTooltipWrapper
+          formId="hearing-form"
+          fieldId="start_time"
+          label="Time"
+          required
+        >
           <Input
             type="time"
             value={formData.start_time}
             onChange={(e) => setFormData(prev => ({ ...prev, start_time: e.target.value }))}
             disabled={disabled}
           />
-        </div>
+        </FieldTooltipWrapper>
       </div>
 
-      <div>
-        <Label>Court</Label>
+      <FieldTooltipWrapper
+        formId="hearing-form"
+        fieldId="court_id"
+        label="Court"
+        required
+      >
         <Select 
           value={formData.court_id} 
           onValueChange={(value) => setFormData(prev => ({ ...prev, court_id: value }))}
@@ -116,10 +133,13 @@ export const HearingForm: React.FC<HearingFormProps> = ({
             ))}
           </SelectContent>
         </Select>
-      </div>
+      </FieldTooltipWrapper>
 
-      <div>
-        <Label>Judge</Label>
+      <FieldTooltipWrapper
+        formId="hearing-form"
+        fieldId="judge_ids"
+        label="Judge"
+      >
         <Select 
           value={formData.judge_ids[0] || ''} 
           onValueChange={(value) => setFormData(prev => ({ ...prev, judge_ids: [value] }))}
@@ -136,10 +156,14 @@ export const HearingForm: React.FC<HearingFormProps> = ({
             ))}
           </SelectContent>
         </Select>
-      </div>
+      </FieldTooltipWrapper>
 
-      <div>
-        <Label>Purpose</Label>
+      <FieldTooltipWrapper
+        formId="hearing-form"
+        fieldId="purpose"
+        label="Purpose"
+        required
+      >
         <Select 
           value={formData.purpose} 
           onValueChange={(value: 'PH' | 'mention' | 'final' | 'other') => setFormData(prev => ({ ...prev, purpose: value }))}
@@ -154,17 +178,20 @@ export const HearingForm: React.FC<HearingFormProps> = ({
             <SelectItem value="other">Other</SelectItem>
           </SelectContent>
         </Select>
-      </div>
+      </FieldTooltipWrapper>
 
-      <div>
-        <Label>Notes</Label>
+      <FieldTooltipWrapper
+        formId="hearing-form"
+        fieldId="notes"
+        label="Notes"
+      >
         <Textarea
           value={formData.notes}
           onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
           disabled={disabled}
           rows={3}
         />
-      </div>
+      </FieldTooltipWrapper>
 
       <div className="flex justify-end space-x-2 pt-4">
         <Button type="button" variant="outline" onClick={onCancel}>

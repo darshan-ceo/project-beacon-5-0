@@ -1,0 +1,81 @@
+{
+  "title": "Hearings Management",
+  "description": "Schedule, track, and manage all court hearings and legal proceedings",
+  "overview": "The Hearings module provides comprehensive management of court schedules, hearing preparation, and outcome tracking. It integrates with case management to ensure all hearing-related activities are properly documented and tracked.",
+  "keyFeatures": [
+    {
+      "name": "Hearing Scheduling",
+      "description": "Schedule new hearings with complete details including court, judge, and purpose",
+      "benefit": "Centralized hearing calendar with all relevant information"
+    },
+    {
+      "name": "Calendar Integration",
+      "description": "Sync hearings with external calendars and receive notifications",
+      "benefit": "Never miss a hearing date with automated reminders"
+    },
+    {
+      "name": "Preparation Tracking",
+      "description": "Track preparation status and required documents for each hearing",
+      "benefit": "Ensures thorough preparation and professional presentation"
+    },
+    {
+      "name": "Outcome Recording",
+      "description": "Record hearing results and next steps",
+      "benefit": "Complete case history and follow-up action tracking"
+    }
+  ],
+  "philosophy": {
+    "title": "Punctual & Prepared",
+    "description": "Effective hearing management combines timely scheduling with thorough preparation",
+    "principles": [
+      "Systematic scheduling prevents conflicts",
+      "Adequate preparation time improves outcomes", 
+      "Complete documentation supports appeals"
+    ]
+  },
+  "quickStartGuides": [
+    {
+      "title": "Schedule Your First Hearing",
+      "steps": [
+        "Click 'Schedule Hearing' button",
+        "Select the case from dropdown",
+        "Choose date, time, and court",
+        "Assign judge and set hearing purpose",
+        "Add any special notes or requirements",
+        "Save to confirm the hearing"
+      ]
+    },
+    {
+      "title": "Prepare for Upcoming Hearings",
+      "steps": [
+        "Review hearing list for next week",
+        "Check preparation status for each hearing", 
+        "Verify all required documents are ready",
+        "Confirm court location and timing",
+        "Set reminders for final preparation"
+      ]
+    }
+  ],
+  "relatedTours": [
+    {
+      "id": "hearings-basic",
+      "title": "Basic Hearing Management",
+      "description": "Learn to schedule and manage hearings"
+    },
+    {
+      "id": "hearings-calendar",
+      "title": "Calendar Integration",
+      "description": "Sync hearings with external calendars"
+    }
+  ],
+  "relatedArticles": [
+    {
+      "title": "Best Practices for Hearing Preparation",
+      "url": "/help/best-practices/hearing-preparation"
+    },
+    {
+      "title": "Court Calendar Management",
+      "url": "/help/best-practices/court-scheduling"
+    }
+  ]
+}
