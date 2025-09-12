@@ -66,7 +66,8 @@ class EnhancedHelpService {
 
     try {
       console.log(`Fetching fresh contextual help for ${pageId}`);
-      const response = await fetch(`/help/pages/${pageId}/contextual.json`);
+      // Try the new standardized help structure first
+      const response = await fetch(`/help/pages/${pageId}.json`);
       if (response.ok) {
         const content = await response.json();
         this.setCacheWithTimestamp(cacheKey, content);

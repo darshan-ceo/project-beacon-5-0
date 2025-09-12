@@ -1,0 +1,49 @@
+{
+  "title": "Case Overview",
+  "description": "Comprehensive view of all cases with filtering, search, and bulk operations",
+  "buttons": [
+    {
+      "name": "New Case",
+      "purpose": "Create a new case with complete initial setup",
+      "gstExample": "Create new GST notice case with GSTIN, amount, and stage details"
+    },
+    {
+      "name": "Search Cases",
+      "purpose": "Find cases by number, client name, or keywords",
+      "gstExample": "Search for 'DRC-01' or client GSTIN to find specific GST cases"
+    },
+    {
+      "name": "Filter by Stage",
+      "purpose": "Show cases at specific litigation stages",
+      "gstExample": "Filter to show only cases at 'Adjudication' or 'Appeals' stage"
+    },
+    {
+      "name": "Filter by SLA",
+      "purpose": "Focus on cases based on deadline status",
+      "gstExample": "Show GST cases with Red SLA status requiring immediate attention"
+    },
+    {
+      "name": "Export Cases",
+      "purpose": "Download case list in various formats",
+      "gstExample": "Export GST case register for client reporting or compliance"
+    }
+  ],
+  "philosophy": "The overview provides a command center for managing your entire case portfolio, ensuring nothing falls through the cracks",
+  "examples": [
+    {
+      "scenario": "Daily case review",
+      "solution": "Use SLA filter to identify cases needing immediate attention",
+      "benefit": "Prevents deadline violations and maintains client trust"
+    },
+    {
+      "scenario": "Client portfolio analysis",
+      "solution": "Filter by client and review case distribution and status",
+      "benefit": "Better resource allocation and client relationship management"
+    },
+    {
+      "scenario": "Court hearing preparation",
+      "solution": "Filter by upcoming hearing dates and case stage",
+      "benefit": "Efficient hearing preparation and calendar management"
+    }
+  ]
+}

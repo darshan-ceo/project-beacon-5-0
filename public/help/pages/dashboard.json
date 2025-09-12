@@ -1,152 +1,173 @@
 {
-  "title": "Dashboard",
-  "description": "Real-time overview of your practice performance and key metrics",
-  "overview": "The Dashboard provides a comprehensive command center for your legal practice. It displays real-time metrics, pending tasks, upcoming deadlines, performance analytics, and quick access to common operations. Customizable widgets and role-based views ensure you see the most relevant information for your responsibilities.",
+  "title": "Practice Analytics Dashboard",
+  "description": "Comprehensive business intelligence and performance metrics for legal practice",
+  "overview": "The Dashboard provides real-time insights into your legal practice performance. Monitor case progress, team productivity, client satisfaction, and financial metrics through interactive charts and customizable widgets designed specifically for legal professionals.",
   "keyFeatures": [
     {
       "title": "Real-time Metrics",
-      "description": "Live updates on case status, task completion, and practice performance",
-      "icon": "activity"
+      "description": "Live updates of key performance indicators",
+      "gstRelevance": "Track GST case volumes, success rates, and deadline compliance",
+      "icon": "Activity"
     },
     {
-      "title": "Quick Actions Panel",
-      "description": "Shortcuts to frequently used operations like creating cases and scheduling hearings",
-      "icon": "zap"
+      "title": "Case Analytics",
+      "description": "Deep insights into case progression and outcomes",
+      "gstRelevance": "Analyze GST case stages, resolution times, and appeal success rates",
+      "icon": "BarChart3"
     },
     {
-      "title": "Task Management",
-      "description": "Overview of pending tasks, overdue items, and upcoming deadlines",
-      "icon": "check-circle"
+      "title": "Team Performance",
+      "description": "Monitor individual and team productivity metrics",
+      "gstRelevance": "Track lawyer performance on GST cases and specializations",
+      "icon": "Users"
     },
     {
-      "title": "Performance Analytics",
-      "description": "Charts and graphs showing practice trends, productivity, and key metrics",
-      "icon": "trending-up"
+      "title": "SLA Monitoring",
+      "description": "Service level agreement compliance tracking",
+      "gstRelevance": "Ensure GST notice reply deadlines are met consistently",
+      "icon": "Clock"
     },
     {
-      "title": "Calendar Integration",
-      "description": "Upcoming hearings, deadlines, and appointments at a glance",
-      "icon": "calendar"
+      "title": "Financial Overview",
+      "description": "Revenue, billing, and profitability analysis",
+      "gstRelevance": "Track GST practice profitability and client billing",
+      "icon": "DollarSign"
     },
     {
-      "title": "Customizable Widgets",
-      "description": "Personalize your dashboard with relevant widgets and information",
-      "icon": "layout-grid"
+      "title": "Client Insights",
+      "description": "Client portfolio analysis and satisfaction metrics",
+      "gstRelevance": "Monitor GST client relationships and service quality",
+      "icon": "UserCheck"
     }
   ],
   "quickStart": [
     {
       "step": 1,
-      "title": "Review Key Metrics",
-      "description": "Check the overview cards showing active cases, pending tasks, and deadlines"
+      "action": "Review key metrics cards for practice overview",
+      "gstContext": "Check active GST cases, SLA compliance, and upcoming deadlines"
     },
     {
       "step": 2,
-      "title": "Check Recent Activity",
-      "description": "Review the activity feed for recent case updates and system notifications"
+      "action": "Use filters to focus on specific time periods or practice areas",
+      "gstContext": "Filter by GST case types, clients, or date ranges"
     },
     {
       "step": 3,
-      "title": "Use Quick Actions",
-      "description": "Access frequently used features through the Quick Actions panel"
+      "action": "Analyze charts for trends and patterns",
+      "gstContext": "Identify GST case volume trends and seasonal patterns"
     },
     {
       "step": 4,
-      "title": "Review Analytics",
-      "description": "Analyze performance charts to understand practice trends and productivity"
+      "action": "Set up alerts for critical metrics",
+      "gstContext": "Get notified of SLA breaches or case deadline approaches"
     },
     {
       "step": 5,
-      "title": "Check Calendar",
-      "description": "View upcoming hearings, deadlines, and appointments"
-    },
-    {
-      "step": 6,
-      "title": "Customize Layout",
-      "description": "Arrange widgets and customize the dashboard to match your workflow"
+      "action": "Export reports for client meetings or management review",
+      "gstContext": "Create summary reports for GST practice performance"
     }
   ],
+  "philosophy": {
+    "title": "Data-Driven Practice Management",
+    "description": "Make informed decisions based on real data rather than intuition. Track what matters and optimize for better outcomes",
+    "principles": [
+      "Measure what matters for legal practice success",
+      "Use data to identify improvement opportunities",
+      "Monitor trends to predict future needs",
+      "Track SLA compliance to ensure client satisfaction",
+      "Analyze team performance for better resource allocation"
+    ]
+  },
   "commonTasks": [
     {
-      "title": "Create New Case",
-      "description": "Start a new legal case directly from the dashboard",
-      "action": "new-case"
+      "task": "Daily Performance Review",
+      "description": "Check key metrics and SLA status each morning",
+      "frequency": "Daily"
     },
     {
-      "title": "Schedule Hearing",
-      "description": "Book a court hearing with calendar integration",
-      "action": "schedule-hearing"
+      "task": "Weekly Trend Analysis",
+      "description": "Review charts and identify patterns or issues",
+      "frequency": "Weekly"
     },
     {
-      "title": "Review Tasks",
-      "description": "Check and manage pending tasks and assignments",
-      "action": "review-tasks"
+      "task": "Monthly Report Generation",
+      "description": "Create comprehensive reports for stakeholders",
+      "frequency": "Monthly"
     },
     {
-      "title": "Generate Reports",
-      "description": "Create practice performance and case reports",
-      "action": "generate-reports"
+      "task": "Quarterly Goal Setting",
+      "description": "Set targets based on historical performance data",
+      "frequency": "Quarterly"
+    }
+  ],
+  "tabGuide": [
+    {
+      "tab": "Overview",
+      "purpose": "High-level practice performance summary with key metrics",
+      "whenToUse": "Daily practice health check and quick status review"
     },
     {
-      "title": "Upload Documents",
-      "description": "Add new documents to the system",
-      "action": "upload-documents"
+      "tab": "Analytics",
+      "purpose": "Detailed charts and trending analysis for deeper insights",
+      "whenToUse": "Weekly performance review and trend identification"
     },
     {
-      "title": "Client Communication",
-      "description": "Send updates and notifications to clients",
-      "action": "client-communication"
+      "tab": "Reports",
+      "purpose": "Generate and schedule automated reports for stakeholders",
+      "whenToUse": "Monthly reporting, client updates, and management reviews"
+    }
+  ],
+  "buttonGuide": [
+    {
+      "name": "Filter by Client",
+      "purpose": "Focus dashboard metrics on specific client portfolio",
+      "action": "Filters all charts and metrics for selected client"
+    },
+    {
+      "name": "Date Range",
+      "purpose": "Adjust time period for analysis and trending",
+      "action": "Updates all dashboard data for selected date range"
+    },
+    {
+      "name": "Export Dashboard",
+      "purpose": "Download current dashboard view as report",
+      "action": "Generates PDF or Excel export of dashboard data"
+    },
+    {
+      "name": "Refresh Data",
+      "purpose": "Update dashboard with latest information",
+      "action": "Reloads all metrics and charts with current data"
+    },
+    {
+      "name": "Customize View",
+      "purpose": "Personalize dashboard layout and metrics",
+      "action": "Opens dashboard customization panel"
     }
   ],
   "relatedTours": [
-    {
-      "id": "dashboard-overview-tour",
-      "title": "Dashboard Overview",
-      "description": "Learn to navigate and use the main dashboard effectively"
-    },
-    {
-      "id": "quick-actions-tour",
-      "title": "Quick Actions Tour",
-      "description": "Discover shortcuts and time-saving features"
-    },
-    {
-      "id": "analytics-tour",
-      "title": "Analytics & Reporting",
-      "description": "Understand performance metrics and reporting features"
-    }
+    "dashboard-overview",
+    "metrics-understanding",
+    "filtering-and-analysis",
+    "report-generation"
   ],
   "relatedArticles": [
     {
       "title": "Dashboard Customization Guide",
-      "url": "/help/guides/dashboard-customization"
+      "url": "/help/articles/dashboard-customization"
     },
     {
-      "title": "Understanding Analytics",
-      "url": "/help/faqs/analytics-explained"
+      "title": "Understanding Legal KPIs",
+      "url": "/help/articles/legal-kpis"
     },
     {
-      "title": "Quick Actions Reference",
-      "url": "/help/reference/quick-actions"
+      "title": "Report Automation Setup",
+      "url": "/help/articles/report-automation"
     }
   ],
   "whatsNew": [
-    {
-      "title": "Enhanced Analytics",
-      "description": "New performance charts and productivity insights with AI-powered recommendations",
-      "date": "December 2024",
-      "badge": "New"
-    },
-    {
-      "title": "Mobile Dashboard",
-      "description": "Optimized mobile experience with responsive design",
-      "date": "November 2024",
-      "badge": "Enhancement"
-    },
-    {
-      "title": "Widget Customization",
-      "description": "Drag-and-drop widget arrangement with more layout options",
-      "date": "October 2024",
-      "badge": "Enhancement"
-    }
+    "Real-time SLA tracking with predictive alerts",
+    "Enhanced financial analytics with profitability insights",
+    "Custom dashboard layouts and widget configuration",
+    "Automated report scheduling and delivery"
   ]
 }

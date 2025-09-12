@@ -45,6 +45,7 @@ import { FormRenderModal } from '@/components/documents/FormRenderModal';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { InlineHelp } from '@/components/help/InlineHelp';
 import { PageHelp } from '@/components/help/PageHelp';
+import { ContextualPageHelp } from '@/components/help/ContextualPageHelp';
 import { tourService } from '@/services/tourService';
 import { GlossaryText, GlossaryDescription } from '@/components/ui/glossary-enhanced';
 
@@ -367,7 +368,11 @@ export const CaseManagement: React.FC = () => {
               <HelpCircle className="w-4 h-4" />
               Start Tour
             </Button>
-            <PageHelp pageId="case-management" variant="floating" />
+            <ContextualPageHelp 
+              pageId="case-management" 
+              activeTab={activeTab}
+              variant="floating" 
+            />
             <InlineHelp module="case-management" />
           </div>
         <div className="flex gap-2">

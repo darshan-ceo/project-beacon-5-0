@@ -1,152 +1,183 @@
 {
-  "title": "Document Management",
-  "description": "Secure storage, organization, and collaboration for all legal documents",
-  "overview": "The Document Management System (DMS) provides a comprehensive solution for storing, organizing, and managing all your legal documents. With enterprise-grade security, version control, template libraries, and seamless integration with cases and clients, the DMS ensures your documents are always organized, accessible, and secure.",
+  "title": "Document Management System",
+  "description": "Comprehensive document lifecycle management with organization, versioning, and collaboration",
+  "overview": "The Document Management System (DMS) provides secure, organized storage and retrieval of legal documents. Built specifically for legal practice needs, it ensures document integrity, version control, and easy access for case preparation and client service.",
   "keyFeatures": [
     {
-      "title": "Secure Cloud Storage",
-      "description": "Bank-level encryption with role-based access controls and audit trails",
-      "icon": "shield"
+      "title": "Smart Organization",
+      "description": "Hierarchical folder structure with intelligent categorization",
+      "gstRelevance": "Organize GST notices, replies, evidence by case and stage",
+      "icon": "FolderOpen"
     },
     {
       "title": "Version Control",
-      "description": "Track document versions, changes, and maintain complete revision history",
-      "icon": "clock"
+      "description": "Track document versions with complete change history",
+      "gstRelevance": "Maintain audit trail for GST reply drafts and submissions",
+      "icon": "FileText"
     },
     {
-      "title": "Template Library",
-      "description": "Pre-built legal document templates with smart field population",
-      "icon": "file-text"
-    },
-    {
-      "title": "Folder Organization",
-      "description": "Hierarchical folder structure with custom tags and metadata",
-      "icon": "folder-open"
-    },
-    {
-      "title": "Advanced Search",
-      "description": "Full-text search across documents with advanced filtering options",
-      "icon": "search"
+      "title": "Template Management",
+      "description": "Pre-built legal document templates for faster drafting",
+      "gstRelevance": "GST-specific templates for appeals, representations, and replies",
+      "icon": "Layout"
     },
     {
       "title": "Collaboration Tools",
-      "description": "Share documents, collect signatures, and collaborate in real-time",
-      "icon": "users"
+      "description": "Real-time collaboration with team members and clients",
+      "gstRelevance": "Share draft documents with clients for review and approval",
+      "icon": "Users"
+    },
+    {
+      "title": "Search & Discovery",
+      "description": "Advanced search across content, metadata, and tags",
+      "gstRelevance": "Quickly find precedents, similar cases, and reference materials",
+      "icon": "Search"
+    },
+    {
+      "title": "Security & Compliance",
+      "description": "Role-based access control and audit trails",
+      "gstRelevance": "Protect sensitive client and case information",
+      "icon": "Shield"
     }
   ],
   "quickStart": [
     {
       "step": 1,
-      "title": "Navigate to Documents",
-      "description": "Access the Document Management module from the main navigation"
+      "action": "Create folder structure for your practice areas",
+      "gstContext": "Organize by client, case type, or GST classification"
     },
     {
       "step": 2,
-      "title": "Create Folder Structure",
-      "description": "Set up folders to organize documents by client, case, or document type"
+      "action": "Upload documents using drag-and-drop interface",
+      "gstContext": "Start with notices, client agreements, and case files"
     },
     {
       "step": 3,
-      "title": "Upload Documents",
-      "description": "Drag and drop files or use the upload button to add documents"
+      "action": "Apply tags and metadata for better organization",
+      "gstContext": "Tag by GST section, notice type, urgency level"
     },
     {
       "step": 4,
-      "title": "Add Metadata",
-      "description": "Tag documents with relevant information for easy searching and filtering"
+      "action": "Set up document templates for common filing types",
+      "gstContext": "Create templates for appeals, replies, and representations"
     },
     {
       "step": 5,
-      "title": "Set Permissions",
-      "description": "Control who can view, edit, or share specific documents"
-    },
-    {
-      "step": 6,
-      "title": "Link to Cases",
-      "description": "Associate documents with relevant cases and clients for better organization"
+      "action": "Configure sharing permissions for team collaboration",
+      "gstContext": "Ensure appropriate access levels for staff and clients"
     }
   ],
+  "philosophy": {
+    "title": "Organized Legal Practice",
+    "description": "A well-organized document system is the foundation of effective legal practice, ensuring quick access to information when needed most",
+    "principles": [
+      "Every document has a logical place and purpose",
+      "Version control prevents confusion and errors",
+      "Smart organization reduces time spent searching",
+      "Collaboration tools improve team efficiency",
+      "Security ensures client confidentiality"
+    ]
+  },
   "commonTasks": [
     {
-      "title": "Upload New Documents",
-      "description": "Add files individually or in bulk with automatic organization",
-      "action": "upload-files"
+      "task": "Upload Case Documents",
+      "description": "Add new documents to existing cases with proper categorization",
+      "frequency": "Daily"
     },
     {
-      "title": "Create Folder",
-      "description": "Organize documents into logical folder structures",
-      "action": "create-folder"
+      "task": "Create Document Templates",
+      "description": "Build reusable templates for common legal documents",
+      "frequency": "Weekly"
     },
     {
-      "title": "Generate from Template",
-      "description": "Create new documents using pre-built legal templates",
-      "action": "use-template"
+      "task": "Organize Folder Structure",
+      "description": "Maintain clean, logical folder hierarchy",
+      "frequency": "Monthly"
     },
     {
-      "title": "Share with Client",
-      "description": "Provide secure client access to specific documents",
-      "action": "share-client"
+      "task": "Review Access Permissions",
+      "description": "Ensure appropriate document access for team members",
+      "frequency": "Monthly"
+    }
+  ],
+  "tabGuide": [
+    {
+      "tab": "Library",
+      "purpose": "Browse and manage your complete document collection",
+      "whenToUse": "Finding existing documents, organizing files, bulk operations"
     },
     {
-      "title": "Version Management",
-      "description": "Upload new versions and track document changes",
-      "action": "manage-versions"
+      "tab": "Upload",
+      "purpose": "Add new documents with metadata and categorization",
+      "whenToUse": "Adding case files, client documents, or reference materials"
     },
     {
-      "title": "Bulk Operations",
-      "description": "Perform actions on multiple documents simultaneously",
-      "action": "bulk-actions"
+      "tab": "Templates",
+      "purpose": "Manage document templates and create new documents from templates",
+      "whenToUse": "Drafting standard legal documents, appeals, or replies"
+    },
+    {
+      "tab": "Recent",
+      "purpose": "Quick access to recently accessed or modified documents",
+      "whenToUse": "Continuing work on active documents or quick references"
+    },
+    {
+      "tab": "Shared",
+      "purpose": "Documents shared with team members or clients",
+      "whenToUse": "Collaboration, client review, and team document sharing"
+    }
+  ],
+  "buttonGuide": [
+    {
+      "name": "Upload Documents",
+      "purpose": "Add new files to the document management system",
+      "action": "Opens upload dialog with drag-and-drop interface"
+    },
+    {
+      "name": "Create Folder",
+      "purpose": "Add new organizational folders to structure documents",
+      "action": "Creates new folder with configurable permissions"
+    },
+    {
+      "name": "New Template",
+      "purpose": "Create reusable document templates",
+      "action": "Opens template builder with formatting options"
+    },
+    {
+      "name": "Share Document",
+      "purpose": "Grant access to specific documents for collaboration",
+      "action": "Opens sharing dialog with permission settings"
+    },
+    {
+      "name": "Download",
+      "purpose": "Download selected documents to local system",
+      "action": "Initiates secure download with audit trail"
     }
   ],
   "relatedTours": [
-    {
-      "id": "dms-overview-tour",
-      "title": "Document Management Overview",
-      "description": "Learn the basics of document storage and organization"
-    },
-    {
-      "id": "template-library-tour",
-      "title": "Template Library Tour",
-      "description": "Discover how to use and customize document templates"
-    },
-    {
-      "id": "document-sharing-tour",
-      "title": "Document Sharing",
-      "description": "Master secure document sharing and collaboration"
-    }
+    "document-upload-basics",
+    "template-management",
+    "folder-organization",
+    "collaboration-features"
   ],
   "relatedArticles": [
     {
       "title": "Document Organization Best Practices",
-      "url": "/help/best-practices/document-organization"
+      "url": "/help/articles/document-organization"
     },
     {
-      "title": "Template Customization Guide",
-      "url": "/help/guides/template-customization"
+      "title": "Template Creation Guide",
+      "url": "/help/articles/template-guide"
     },
     {
-      "title": "Security and Access Controls",
-      "url": "/help/security/access-controls"
+      "title": "Version Control Workflow",
+      "url": "/help/articles/version-control"
     }
   ],
   "whatsNew": [
-    {
-      "title": "AI Document Analysis",
-      "description": "Automatic document categorization and metadata extraction using AI",
-      "date": "December 2024",
-      "badge": "New"
-    },
-    {
-      "title": "Enhanced Template Editor",
-      "description": "Improved template builder with more field types and conditional logic",
-      "date": "November 2024",
-      "badge": "Enhancement"
-    },
-    {
-      "title": "Bulk Upload Improvements",
-      "description": "Faster bulk uploads with progress tracking and error handling",
-      "date": "October 2024",
-      "badge": "Enhancement"
-    }
+    "AI-powered document categorization",
+    "Enhanced search with OCR text recognition",
+    "Real-time collaboration with inline comments",
+    "Automated backup and disaster recovery"
   ]
 }

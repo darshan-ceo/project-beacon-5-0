@@ -1,0 +1,49 @@
+{
+  "title": "Case Lifecycle Management",
+  "description": "Deep dive into individual case progression through legal stages with stage-specific actions",
+  "buttons": [
+    {
+      "name": "Advance Stage",
+      "purpose": "Move case to the next legal stage with validation",
+      "gstExample": "Advance from 'Demand' to 'Adjudication' after filing reply"
+    },
+    {
+      "name": "Add Milestone",
+      "purpose": "Record significant case events and achievements",
+      "gstExample": "Mark 'Reply Filed' or 'Hearing Attended' milestones"
+    },
+    {
+      "name": "Generate Tasks",
+      "purpose": "Create stage-specific tasks automatically",
+      "gstExample": "Auto-generate appeal filing tasks when case reaches Appeals stage"
+    },
+    {
+      "name": "View Prerequisites",
+      "purpose": "Check requirements before stage advancement",
+      "gstExample": "Ensure all documents are ready before advancing to hearing stage"
+    },
+    {
+      "name": "Stage Timeline",
+      "purpose": "Visual representation of case progression",
+      "gstExample": "See complete GST litigation journey from notice to resolution"
+    }
+  ],
+  "philosophy": "Every case follows a structured lifecycle that ensures consistency, compliance, and optimal outcomes through systematic progression",
+  "examples": [
+    {
+      "scenario": "GST notice received",
+      "solution": "Start case at 'Scrutiny' stage and follow systematic review process",
+      "benefit": "Systematic approach ensures no critical details are missed"
+    },
+    {
+      "scenario": "Ready to file appeal",
+      "solution": "Use stage advancement to move from 'Adjudication' to 'Appeals'",
+      "benefit": "Automated task generation ensures all appeal requirements are met"
+    },
+    {
+      "scenario": "Complex multi-stage case",
+      "solution": "Track progress through lifecycle timeline visualization",
+      "benefit": "Clear understanding of case status and next steps"
+    }
+  ]
+}

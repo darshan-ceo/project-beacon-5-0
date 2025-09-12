@@ -1,0 +1,188 @@
+{
+  "title": "Reports & Analytics",
+  "description": "Comprehensive reporting system for operational insights and compliance tracking",
+  "overview": "The Reports module provides detailed analytics and customizable reports across all practice areas. Generate compliance reports, performance analytics, and operational insights with advanced filtering and export capabilities designed for legal practice management.",
+  "keyFeatures": [
+    {
+      "title": "Multi-Format Export",
+      "description": "Export reports in PDF, Excel, CSV, and print formats",
+      "gstRelevance": "Generate GST compliance reports for authority submissions",
+      "icon": "Download"
+    },
+    {
+      "title": "Advanced Filtering",
+      "description": "Sophisticated filter combinations for precise reporting",
+      "gstRelevance": "Filter GST cases by notice type, stage, amount, and timeline",
+      "icon": "Filter"
+    },
+    {
+      "title": "Scheduled Reports",
+      "description": "Automate report generation and delivery",
+      "gstRelevance": "Schedule monthly GST case status reports for clients",
+      "icon": "Calendar"
+    },
+    {
+      "title": "Custom Templates",
+      "description": "Create reusable report templates for consistent formatting",
+      "gstRelevance": "Standardize GST compliance and performance reports",
+      "icon": "Layout"
+    },
+    {
+      "title": "Data Visualization",
+      "description": "Interactive charts and graphs for better insights",
+      "gstRelevance": "Visualize GST case trends and success patterns",
+      "icon": "BarChart3"
+    },
+    {
+      "title": "Compliance Tracking",
+      "description": "Specialized reports for regulatory compliance",
+      "gstRelevance": "Track GST deadline compliance and SLA performance",
+      "icon": "Shield"
+    }
+  ],
+  "quickStart": [
+    {
+      "step": 1,
+      "action": "Select the appropriate report category from the tabs",
+      "gstContext": "Choose Case Reports for GST case analysis"
+    },
+    {
+      "step": 2,
+      "action": "Apply filters to narrow down the data scope",
+      "gstContext": "Filter by client, date range, or GST notice type"
+    },
+    {
+      "step": 3,
+      "action": "Preview the report data in the results table",
+      "gstContext": "Review GST cases that match your criteria"
+    },
+    {
+      "step": 4,
+      "action": "Customize columns and formatting as needed",
+      "gstContext": "Include relevant GST-specific fields and metrics"
+    },
+    {
+      "step": 5,
+      "action": "Export or schedule the report for delivery",
+      "gstContext": "Share GST compliance reports with clients or authorities"
+    }
+  ],
+  "philosophy": {
+    "title": "Informed Decision Making",
+    "description": "Transform raw data into actionable insights through comprehensive reporting and analytics",
+    "principles": [
+      "Data accuracy is paramount for reliable reporting",
+      "Consistent formatting ensures professional presentation",
+      "Automated reporting saves time and ensures regularity",
+      "Visual representation makes complex data understandable",
+      "Role-based access ensures data security and relevance"
+    ]
+  },
+  "commonTasks": [
+    {
+      "task": "Generate Monthly Case Report",
+      "description": "Create monthly summary of case progress and outcomes",
+      "frequency": "Monthly"
+    },
+    {
+      "task": "SLA Compliance Report",
+      "description": "Track deadline compliance and identify areas for improvement",
+      "frequency": "Weekly"
+    },
+    {
+      "task": "Client Portfolio Analysis",
+      "description": "Analyze client case distribution and performance metrics",
+      "frequency": "Quarterly"
+    },
+    {
+      "task": "Financial Performance Report",
+      "description": "Track revenue, billing, and profitability by practice area",
+      "frequency": "Monthly"
+    }
+  ],
+  "tabGuide": [
+    {
+      "tab": "Case Reports",
+      "purpose": "Comprehensive case analysis including registry, aging, and outcomes",
+      "whenToUse": "Case performance review, client reporting, practice analysis"
+    },
+    {
+      "tab": "Hearings & Cause List",
+      "purpose": "Hearing schedules, cause lists, and calendar management reports",
+      "whenToUse": "Court preparation, calendar planning, hearing analysis"
+    },
+    {
+      "tab": "SLA / Compliance",
+      "purpose": "Service level agreement tracking and compliance monitoring",
+      "whenToUse": "Quality assurance, deadline tracking, performance monitoring"
+    },
+    {
+      "tab": "Task & Escalation",
+      "purpose": "Task management and escalation analytics",
+      "whenToUse": "Team performance review, workflow optimization"
+    },
+    {
+      "tab": "Client Summary",
+      "purpose": "Client-focused reports including portfolio and satisfaction metrics",
+      "whenToUse": "Client meetings, business development, relationship management"
+    },
+    {
+      "tab": "Communications",
+      "purpose": "Communication delivery analytics and correspondence tracking",
+      "whenToUse": "Client service review, communication effectiveness analysis"
+    }
+  ],
+  "buttonGuide": [
+    {
+      "name": "Generate Report",
+      "purpose": "Create report based on current filters and settings",
+      "action": "Processes data and displays results in chosen format"
+    },
+    {
+      "name": "Export to Excel",
+      "purpose": "Download report data in Excel format for further analysis",
+      "action": "Creates downloadable Excel file with formatted data"
+    },
+    {
+      "name": "Schedule Report",
+      "purpose": "Set up automated report generation and delivery",
+      "action": "Opens scheduling wizard for recurring reports"
+    },
+    {
+      "name": "Save Template",
+      "purpose": "Save current report configuration for future use",
+      "action": "Creates reusable template with filters and formatting"
+    },
+    {
+      "name": "Print Report",
+      "purpose": "Generate print-friendly version of the report",
+      "action": "Opens print dialog with optimized formatting"
+    }
+  ],
+  "relatedTours": [
+    "reports-basics",
+    "advanced-filtering",
+    "export-options",
+    "scheduling-automation"
+  ],
+  "relatedArticles": [
+    {
+      "title": "Advanced Report Filtering",
+      "url": "/help/articles/advanced-filtering"
+    },
+    {
+      "title": "Report Automation Guide",
+      "url": "/help/articles/report-automation"
+    },
+    {
+      "title": "Custom Template Creation",
+      "url": "/help/articles/custom-templates"
+    }
+  ],
+  "whatsNew": [
+    "Interactive dashboard widgets for reports",
+    "Enhanced export options with custom formatting",
+    "Real-time collaboration on shared reports",
+    "Advanced data visualization with drill-down capabilities"
+  ]
+}
