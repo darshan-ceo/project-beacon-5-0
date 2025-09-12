@@ -371,7 +371,7 @@ export const CaseManagement: React.FC = () => {
             <ContextualPageHelp 
               pageId="case-management" 
               activeTab={activeTab}
-              variant="floating" 
+              variant="resizable" 
             />
             <InlineHelp module="case-management" />
           </div>

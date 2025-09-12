@@ -27,12 +27,21 @@ interface ContextualHelpContent {
 interface TabSpecificHelpContent {
   title: string;
   description: string;
-  buttons: Array<{
+  interactiveElements?: Array<{
     name: string;
     purpose: string;
-    gstExample: string;
+    example?: string;
   }>;
-  philosophy: string;
+  buttons?: Array<{
+    name: string;
+    purpose: string;
+    gstExample?: string;
+  }>;
+  philosophy?: {
+    title: string;
+    description: string;
+    principles: string[];
+  } | string | null;
   examples: Array<{
     scenario: string;
     solution: string;
@@ -118,9 +127,10 @@ class EnhancedHelpService {
       
       if (response.ok) {
         const content = await response.json();
-        this.setCacheWithTimestamp(cacheKey, content);
-        console.log(`[EnhancedHelpService] Successfully loaded tab help for ${pageId}/${tabId}:`, content.title);
-        return content;
+        const normalizedContent = this.normalizeHelpContent(content);
+        this.setCacheWithTimestamp(cacheKey, normalizedContent);
+        console.log(`[EnhancedHelpService] Successfully loaded tab help for ${pageId}/${tabId}:`, normalizedContent.title);
+        return normalizedContent;
       } else {
         console.warn(`[EnhancedHelpService] Failed to fetch tab help for ${pageId}/${tabId} - Both attempts failed`);
       }
@@ -161,14 +171,18 @@ class EnhancedHelpService {
     return {
       title: `${tabId.charAt(0).toUpperCase() + tabId.slice(1)} Help`,
       description: `Learn how to use the ${tabId} features effectively.`,
-      buttons: [
+      interactiveElements: [
         {
           name: "Primary Action",
           purpose: "Main action for this tab",
-          gstExample: "Example: Create new GST-related item"
+          example: "Example: Create new GST-related item"
         }
       ],
-      philosophy: "This feature streamlines your workflow.",
+      philosophy: {
+        title: "Feature Philosophy",
+        description: "This feature streamlines your workflow.",
+        principles: ["Improved efficiency", "Better organization"]
+      },
       examples: [
         {
           scenario: "Common scenario",
@@ -177,6 +191,38 @@ class EnhancedHelpService {
         }
       ]
     };
+  }
+
+  private normalizeHelpContent(content: any): TabSpecificHelpContent {
+    const normalized: TabSpecificHelpContent = {
+      title: content.title || 'Help',
+      description: content.description || '',
+      interactiveElements: content.interactiveElements || content.buttons || [],
+      examples: content.examples || []
+    };
+
+    // Handle philosophy field
+    if (content.philosophy) {
+      if (typeof content.philosophy === 'string') {
+        normalized.philosophy = {
+          title: "Philosophy",
+          description: content.philosophy,
+          principles: []
+        };
+      } else if (typeof content.philosophy === 'object') {
+        normalized.philosophy = {
+          title: String(content.philosophy.title || 'Philosophy'),
+          description: String(content.philosophy.description || ''),
+          principles: Array.isArray(content.philosophy.principles) 
+            ? content.philosophy.principles.map(p => String(p))
+            : []
+        };
+      }
+    } else {
+      normalized.philosophy = null;
+    }
+
+    return normalized;
   }
 
   async getAllModuleHelp(): Promise<{ [moduleId: string]: { [tabId: string]: TabSpecificHelpContent } }> {

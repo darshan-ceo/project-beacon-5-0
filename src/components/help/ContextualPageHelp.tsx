@@ -31,14 +31,14 @@ interface ContextualHelpContent {
     buttons?: Array<{
       name: string;
       purpose: string;
-      gstExample: string;
+      gstExample?: string;
     }>;
     sections?: Array<{
       name: string;
       description: string;
       gstExample: string;
     }>;
-    philosophy: string;
+    philosophy?: string | { title: string; description: string; principles: string[]; };
     examples: Array<{
       scenario: string;
       solution: string;
@@ -243,7 +243,11 @@ export const ContextualPageHelp: React.FC<ContextualPageHelpProps> = ({
               <Lightbulb className="h-4 w-4" />
               Why This Matters
             </h4>
-            <p className="text-sm text-muted-foreground">{tabSpecificHelp.philosophy}</p>
+            <p className="text-sm text-muted-foreground">
+              {typeof tabSpecificHelp.philosophy === 'string' 
+                ? tabSpecificHelp.philosophy 
+                : tabSpecificHelp.philosophy?.description || 'No philosophy available'}
+            </p>
           </div>
 
           {/* Examples */}

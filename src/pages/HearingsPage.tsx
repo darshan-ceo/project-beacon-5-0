@@ -95,6 +95,13 @@ export const HearingsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   
   const [activeTab, setActiveTab] = useState(searchParams.get('view') || 'list');
+
+  // Update URL when tab changes
+  useEffect(() => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('view', activeTab);
+    setSearchParams(newParams, { replace: true });
+  }, [activeTab, setSearchParams]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedHearing, setSelectedHearing] = useState<Hearing | null>(null);
   const [formMode, setFormMode] = useState<'create' | 'edit' | 'view'>('create');
@@ -210,7 +217,7 @@ export const HearingsPage: React.FC = () => {
           <ContextualPageHelp 
             pageId="hearings" 
             activeTab={activeTab}
-            variant="floating" 
+            variant="resizable" 
           />
         </div>
         

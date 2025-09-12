@@ -104,8 +104,6 @@ const mockFolders: Folder[] = [
   }
 ];
 
-// Remove the old mock data - we'll use the state data now
-
 export const DocumentManagement: React.FC = () => {
   const { state, dispatch } = useAppState();
   const [searchParams] = useSearchParams();
@@ -114,6 +112,7 @@ export const DocumentManagement: React.FC = () => {
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [currentPath, setCurrentPath] = useState<string[]>([]);
   const [activeView, setActiveView] = useState<'grid' | 'list'>('list');
+  const [activeTab, setActiveTab] = useState('overview');
   const [activeFilters, setActiveFilters] = useState<any>({});
   const [currentFolderFiles, setCurrentFolderFiles] = useState<LocalDocument[]>([]);
   const [currentSubfolders, setCurrentSubfolders] = useState<any[]>([]);
@@ -634,7 +633,11 @@ export const DocumentManagement: React.FC = () => {
               <HelpCircle className="w-4 h-4" />
               Start Tour
             </Button>
-            <ContextualPageHelp pageId="document-management" variant="floating" />
+            <ContextualPageHelp 
+              pageId="document-management" 
+              activeTab={activeTab} 
+              variant="resizable" 
+            />
             <InlineHelp module="documents" />
           </div>
         </div>
@@ -775,13 +778,65 @@ export const DocumentManagement: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <Tabs defaultValue="folders" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="folders">Folders</TabsTrigger>
           <TabsTrigger value="documents">All Documents</TabsTrigger>
-          <TabsTrigger value="recent">Recent</TabsTrigger>
           <TabsTrigger value="templates">Form Templates</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="overview" className="mt-6">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-6"
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle>Document Management Overview</CardTitle>
+                <CardDescription>
+                  Central hub for all document management activities
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="font-medium mb-3">Quick Actions</h3>
+                    <div className="space-y-2">
+                      <Button variant="outline" size="sm" className="w-full justify-start">
+                        <Upload className="mr-2 h-4 w-4" />
+                        Upload Documents
+                      </Button>
+                      <Button variant="outline" size="sm" className="w-full justify-start">
+                        <FolderOpen className="mr-2 h-4 w-4" />
+                        Create New Folder
+                      </Button>
+                      <Button variant="outline" size="sm" className="w-full justify-start">
+                        <Search className="mr-2 h-4 w-4" />
+                        Advanced Search
+                      </Button>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="font-medium mb-3">Recent Activity</h3>
+                    <div className="text-sm text-muted-foreground space-y-1">
+                      <div>5 documents uploaded today</div>
+                      <div>3 folders created this week</div>
+                      <div>12 documents shared</div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <RecentDocuments documents={filteredDocuments.slice(0, 10).map(doc => ({ 
+              ...doc, 
+              type: String(doc.type),
+              size: typeof doc.size === 'string' ? parseInt(doc.size) || 0 : doc.size
+            }))} />
+          </motion.div>
+        </TabsContent>
 
         <TabsContent value="folders" className="mt-6">
           {loading ? (
@@ -798,166 +853,79 @@ export const DocumentManagement: React.FC = () => {
               {/* Current Folder Subfolders */}
               {currentSubfolders.length > 0 && (
                 <div>
-                  <h3 className="text-lg font-semibold mb-4">Folders</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {currentSubfolders.map((folder, index) => (
-                      <motion.div
-                        key={folder.id}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.3, delay: index * 0.1 }}
-                        whileHover={{ y: -2 }}
-                        className="cursor-pointer"
+                  <h3 className="text-lg font-medium mb-4">Folders</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {currentSubfolders.map((folder) => (
+                      <Card 
+                        key={folder.id} 
+                        className="cursor-pointer hover:shadow-md transition-shadow"
                         onClick={() => handleFolderClick(folder.id)}
                       >
-                        <Card className="hover:shadow-lg transition-all duration-200">
-                          <CardContent className="p-6">
-                            <div className="flex items-start justify-between mb-4">
-                              <FolderOpen className="h-8 w-8 text-primary" />
-                              <Badge variant="secondary" className="text-xs">
-                                {folder.documentCount} files
-                              </Badge>
+                        <CardContent className="p-4">
+                          <div className="flex items-center gap-3">
+                            <FolderOpen className="h-8 w-8 text-primary" />
+                            <div className="flex-1">
+                              <h4 className="font-medium">{folder.name}</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {folder.fileCount || 0} files
+                              </p>
                             </div>
-                            <h3 className="font-semibold text-foreground mb-2">{folder.name}</h3>
-                            <p className="text-sm text-muted-foreground mb-3">{folder.description}</p>
-                            <div className="flex items-center text-xs text-muted-foreground">
-                              <Clock className="mr-1 h-3 w-3" />
-                              Last accessed {folder.lastAccess}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </motion.div>
+                          </div>
+                        </CardContent>
+                      </Card>
                     ))}
                   </div>
                 </div>
               )}
-
+              
               {/* Current Folder Files */}
               {currentFolderFiles.length > 0 && (
                 <div>
-                  <h3 className="text-lg font-semibold mb-4">Files</h3>
-                  <Card>
-                    <CardContent className="p-0">
-                      <div className="space-y-0">
-                        {currentFolderFiles.map((doc, index) => (
-                          <div key={doc.id} className={`flex items-center justify-between p-4 hover:bg-muted/50 transition-colors ${index !== currentFolderFiles.length - 1 ? 'border-b' : ''}`}>
-                            <div className="flex items-center space-x-4 flex-1">
-                              <div className="text-2xl">{getFileIcon(String(doc.type))}</div>
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-medium text-foreground truncate">{doc.name}</h4>
-                                <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                               <span>{typeof doc.size === 'number' ? (doc.size / 1024).toFixed(1) + 'KB' : String(doc.size)}</span>
-                               <span>Uploaded by {doc.uploadedByName}</span>
-                               <span>{new Date(doc.uploadedAt).toLocaleDateString()}</span>
-                               {(doc as any).createdAt && (
-                                 <span>Created {new Date((doc as any).createdAt).toLocaleDateString()}</span>
-                               )}
-                                </div>
-                                <div className="flex items-center space-x-2 mt-1">
-                                  {doc.tags.map(tag => (
-                                    <Badge key={tag} variant="outline" className="text-xs">
-                                      {tag}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDocumentView(doc)}
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDocumentDownload(doc)}
-                              >
-                                <Download className="h-4 w-4" />
-                              </Button>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm">
-                                    <Edit className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent>
-                                  <DropdownMenuItem onClick={() => setDocumentModal({ isOpen: true, mode: 'edit', document: doc })}>
-                                    <Edit className="mr-2 h-4 w-4" />
-                                    Edit Details
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleAddTag(doc, 'urgent')}>
-                                    <Tag className="mr-2 h-4 w-4" />
-                                    Add Tag
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem 
-                                    onClick={() => handleDocumentDelete(doc)}
-                                    className="text-destructive"
-                                  >
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Delete
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
+                  <h3 className="text-lg font-medium mb-4">Files</h3>
+                  <div className="space-y-2">
+                    {currentFolderFiles.map((doc) => (
+                      <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">{getFileIcon(String(doc.type))}</span>
+                          <div>
+                            <h4 className="font-medium">{doc.name}</h4>
+                            <p className="text-sm text-muted-foreground">
+                              {doc.uploadedByName} • {doc.uploadedAt}
+                            </p>
                           </div>
-                        ))}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button size="sm" variant="outline" onClick={() => handleDocumentView(doc)}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => handleDocumentDownload(doc)}>
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                    </CardContent>
-                  </Card>
+                    ))}
+                  </div>
                 </div>
               )}
-
-              {/* Empty State */}
-              {currentSubfolders.length === 0 && currentFolderFiles.length === 0 && !selectedFolder && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {state.folders.map((folder, index) => (
-                    <motion.div
-                      key={folder.id}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.3, delay: index * 0.1 }}
-                      whileHover={{ y: -2 }}
-                      className="cursor-pointer"
-                      onClick={() => handleFolderClick(folder.id)}
-                    >
-                      <Card className="hover:shadow-lg transition-all duration-200">
-                        <CardContent className="p-6">
-                          <div className="flex items-start justify-between mb-4">
-                            <FolderOpen className="h-8 w-8 text-primary" />
-                            <Badge variant="secondary" className="text-xs">
-                              {folder.documentCount} files
-                            </Badge>
-                          </div>
-                          <h3 className="font-semibold text-foreground mb-2">{folder.name}</h3>
-                          <p className="text-sm text-muted-foreground mb-3">{folder.description}</p>
-                          <div className="flex items-center text-xs text-muted-foreground">
-                            <Clock className="mr-1 h-3 w-3" />
-                            Last accessed {folder.lastAccess}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-
-              {/* Empty folder state */}
-              {currentSubfolders.length === 0 && currentFolderFiles.length === 0 && selectedFolder && (
+              
+              {/* Empty state */}
+              {currentSubfolders.length === 0 && currentFolderFiles.length === 0 && (
                 <div className="text-center py-12">
                   <FolderOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">This folder is empty</h3>
-                  <p className="text-muted-foreground mb-4">Start by uploading some documents</p>
-                  <Button 
-                    onClick={() => setDocumentModal({ isOpen: true, mode: 'upload', document: null })}
-                    className="bg-primary hover:bg-primary-hover"
-                  >
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Documents
-                  </Button>
+                  <h3 className="text-lg font-medium text-foreground mb-2">No items found</h3>
+                  <p className="text-muted-foreground mb-4">
+                    This folder is empty. Start by uploading documents or creating subfolders.
+                  </p>
+                  <div className="flex gap-2 justify-center">
+                    <Button onClick={() => setDocumentModal({ isOpen: true, mode: 'upload' })}>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload Documents
+                    </Button>
+                    <Button variant="outline" onClick={() => setNewFolderModal(true)}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      New Folder
+                    </Button>
+                  </div>
                 </div>
               )}
             </motion.div>
@@ -969,148 +937,89 @@ export const DocumentManagement: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
+            className="space-y-6"
           >
-            <Card>
-              <CardHeader>
-                <CardTitle>Organized Document Library</CardTitle>
-                <CardDescription>
-                  Browse all documents organized in folders. Use the search and filters to find specific documents.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {filteredDocuments.length === 0 ? (
-                    <div className="text-center py-12">
-                      <File className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-muted-foreground">
-                        {searchTerm || Object.keys(activeFilters).length > 0 
-                          ? 'No documents match your search criteria' 
-                          : 'No organized documents found. Use folders to organize your documents properly.'}
-                      </p>
-                      {!searchTerm && Object.keys(activeFilters).length === 0 && (
-                        <div className="mt-4">
-                          <Button 
-                            onClick={() => setDocumentModal({ isOpen: true, mode: 'upload', document: null })}
-                            className="mr-2"
-                          >
-                            <Upload className="mr-2 h-4 w-4" />
-                            Upload to Folder
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    filteredDocuments.map((doc, index) => (
-                      <motion.div
-                        key={doc.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.3, delay: index * 0.1 }}
-                        className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex items-center space-x-4">
-                          <div className="text-2xl">{getFileIcon(String(doc.type))}</div>
-                          <div className="space-y-1">
-                            <div className="flex items-center space-x-2">
-                              <p className="font-medium text-foreground">{doc.name}</p>
-                              <Star className="h-4 w-4 text-warning" />
-                            </div>
-                            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                              <span>{typeof doc.size === 'number' ? (doc.size / 1024).toFixed(1) + 'KB' : String(doc.size)}</span>
+            {filteredDocuments.length > 0 ? (
+              <div className="space-y-2">
+                {filteredDocuments.map((doc) => (
+                  <div key={doc.id} className="flex items-center justify-between p-4 border rounded-lg hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-4">
+                      <span className="text-2xl">{getFileIcon(String(doc.type))}</span>
+                      <div className="flex-1">
+                        <h4 className="font-medium">{doc.name}</h4>
+                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                          <span>{doc.uploadedByName}</span>
+                          <span>•</span>
+                          <span>{doc.uploadedAt}</span>
+                          {doc.tags.length > 0 && (
+                            <>
                               <span>•</span>
-                              <span>v1.0</span>
-                              <span>•</span>
-                              <div className="flex items-center">
-                                <User className="mr-1 h-3 w-3" />
-                                {doc.uploadedByName || 'Unknown'}
+                              <div className="flex gap-1">
+                                {doc.tags.slice(0, 3).map((tag) => (
+                                  <Badge key={tag} variant="secondary" className="text-xs">
+                                    {tag}
+                                  </Badge>
+                                ))}
+                                {doc.tags.length > 3 && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    +{doc.tags.length - 3}
+                                  </Badge>
+                                )}
                               </div>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Badge variant="secondary" className="bg-primary text-primary-foreground">
-                                Active
-                              </Badge>
-                              {doc.tags.map((tag) => (
-                                <Badge key={tag} variant="outline" className="text-xs">
-                                  {tag}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
+                            </>
+                          )}
                         </div>
-                        
-                        <div className="flex items-center space-x-2">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleDocumentView(doc)}
-                          >
-                            <Eye className="h-4 w-4" />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" variant="outline" onClick={() => handleDocumentView(doc)}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => handleDocumentDownload(doc)}>
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="sm" variant="outline">
+                            <Edit className="h-4 w-4" />
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleDocumentDownload(doc)}
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuItem onClick={() => setDocumentModal({ isOpen: true, mode: 'edit', document: doc })}>
+                            Edit Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => console.log('Add tag', doc)}>
+                            Add Tag
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            onClick={() => handleDocumentDelete(doc)}
+                            className="text-destructive"
                           >
-                            <Download className="h-4 w-4" />
-                          </Button>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                •••
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setDocumentModal({ isOpen: true, mode: 'edit', document: doc as any });
-                              }}
-                            >
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleAddTag(doc, 'new-tag')}
-                              >
-                                <Tag className="mr-2 h-4 w-4" />
-                                Add Tags
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem 
-                                className="text-destructive"
-                                onClick={() => handleDocumentDelete(doc)}
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </motion.div>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </TabsContent>
-
-        <TabsContent value="recent" className="mt-6">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Documents</CardTitle>
-                <CardDescription>
-                  Documents you've recently uploaded or accessed
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <RecentDocuments documents={state.documents} />
-              </CardContent>
-            </Card>
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <File className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-2">No documents found</h3>
+                <p className="text-muted-foreground mb-4">
+                  {searchTerm || Object.keys(activeFilters).length > 0 
+                    ? "Try adjusting your search or filters" 
+                    : "Start by uploading your first document"
+                  }
+                </p>
+                <Button onClick={() => setDocumentModal({ isOpen: true, mode: 'upload' })}>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload Documents
+                </Button>
+              </div>
+            )}
           </motion.div>
         </TabsContent>
 
@@ -1120,37 +1029,28 @@ export const DocumentManagement: React.FC = () => {
       </Tabs>
 
       {/* Modals */}
-      <NewFolderModal
-        isOpen={newFolderModal}
-        onClose={() => setNewFolderModal(false)}
-        onFolderCreated={handleFolderCreated}
-        parentId={selectedFolder}
-      />
-      
       <DocumentModal
         isOpen={documentModal.isOpen}
         mode={documentModal.mode}
         document={documentModal.document}
-        selectedFolderId={selectedFolder || undefined}
-        onUpload={handleDocumentUpload}
         onClose={() => setDocumentModal({ isOpen: false, mode: 'upload', document: null })}
+        onUpload={handleDocumentUpload}
+      />
+
+      <NewFolderModal
+        isOpen={newFolderModal}
+        onClose={() => setNewFolderModal(false)}
+        onFolderCreated={handleFolderCreated}
       />
 
       <DuplicateHandlerModal
         isOpen={duplicateModal.isOpen}
-        onClose={() => setDuplicateModal({ isOpen: false })}
         file={duplicateModal.file}
         existingDoc={duplicateModal.existingDoc}
+        onClose={handleDuplicateCancel}
         onReplace={handleDuplicateReplace}
         onCreateVersion={handleDuplicateVersion}
         onCancel={handleDuplicateCancel}
-      />
-
-      {/* Page Help */}
-      <ContextualPageHelp 
-        pageId="document-management" 
-        activeTab="overview"
-        variant="resizable" 
       />
     </div>
   );

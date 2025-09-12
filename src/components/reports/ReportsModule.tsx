@@ -131,10 +131,10 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({ userRole }) => {
               Generate, filter, and export operational reports across all modules
             </p>
           </div>
-          <ContextualPageHelp 
+            <ContextualPageHelp 
             pageId="reports" 
             activeTab={activeTab}
-            variant="floating" 
+            variant="resizable" 
           />
         </div>
         <div className="flex items-center gap-3">
