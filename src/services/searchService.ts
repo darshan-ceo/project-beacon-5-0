@@ -6,7 +6,7 @@
 import { apiService } from './apiService';
 import { envConfig } from '@/utils/envConfig';
 import { featureFlagService } from './featureFlagService';
-import { idbStorage } from '@/utils/idb';
+// Demo search data will be loaded dynamically
 
 export interface SearchResult {
   type: 'case' | 'client' | 'task' | 'document' | 'hearing';
@@ -22,6 +22,8 @@ export interface SearchResult {
 export interface SearchResponse {
   results: SearchResult[];
   next_cursor?: string;
+  total?: number;
+  message?: string;
 }
 
 export interface SearchSuggestion {
@@ -32,12 +34,40 @@ export interface SearchSuggestion {
 
 export type SearchScope = 'all' | 'cases' | 'clients' | 'tasks' | 'documents' | 'hearings';
 
+// Search provider types
+export type SearchProvider = 'API' | 'DEMO';
+
+// Parsed query structure for advanced search
+interface ParsedQuery {
+  terms: string[];
+  exact?: boolean;
+  filename?: string;
+  tag?: string;
+  uploader?: string;
+  caseRef?: string;
+}
+
+// Document index entry for DEMO mode
+interface DocumentIndexEntry {
+  id: string;
+  title: string;
+  normalizedTitle: string;
+  tagsNorm: string;
+  uploaderNorm: string;
+  caseTitleNorm: string;
+  folderNorm: string;
+  updatedAt: string;
+}
+
 class SearchService {
-  private cache = new Map<string, { data: any; timestamp: number }>();
-  private recentSearches: string[] = [];
-  private requestController: AbortController | null = null;
-  private lastRequestTime = 0;
-  private readonly debounceMs = 300;
+  private cache = new Map<string, { data: SearchResponse; timestamp: number }>();
+  private recentSearches: Array<{ query: string; timestamp: number }> = [];
+  private currentRequestController?: AbortController;
+  private debounceMs = 250;
+  private provider: SearchProvider | null = null;
+  private providerReady: Promise<void>;
+  private providerSubscribers: Array<(provider: SearchProvider) => void> = [];
+  private queryHistory: Array<{ query: string; provider: SearchProvider; scope: SearchScope; duration: number; resultCount: number; timestamp: number }> = [];
   private readonly cacheMaxAge = 5 * 60 * 1000; // 5 minutes
   private readonly maxRecentSearches = 10;
 
@@ -144,590 +174,896 @@ class SearchService {
     };
   }
 
-  /**
-   * Perform global search with debouncing and caching
-   */
-  async search(
-    query: string, 
-    scope: SearchScope = 'all', 
-    limit = 20,
-    cursor?: string
-  ): Promise<SearchResponse> {
+  async search(query: string, scope: SearchScope = 'all', limit = 20, cursor?: string): Promise<SearchResponse> {
+    // Wait for provider to be ready
+    await this.providerReady;
+    
     if (!query.trim()) {
-      return { results: [] };
+      return { results: [], total: 0 };
+    }
+
+    const cacheKey = `${query}-${scope}-${limit}-${cursor || ''}`;
+    const cachedResult = this.getCachedResult(cacheKey);
+    if (cachedResult) {
+      return cachedResult;
     }
 
     // Cancel previous request
-    if (this.requestController) {
-      this.requestController.abort();
+    if (this.currentRequestController) {
+      this.currentRequestController.abort();
     }
 
-    // Debounce requests
-    const now = Date.now();
-    if (now - this.lastRequestTime < this.debounceMs) {
-      await new Promise(resolve => setTimeout(resolve, this.debounceMs));
-    }
-    this.lastRequestTime = now;
+    this.currentRequestController = new AbortController();
 
-    // Check cache first (include state version to avoid stale results in demo mode)
-    const stateVersion = this.shouldUseDemoMode()
-      ? String((localStorage.getItem('lawfirm_app_data') || localStorage.getItem('beacon-app-state') || '').length)
-      : '';
-    const cacheKey = `search:${query}:${scope}:${limit}:${cursor || ''}:${stateVersion}`;
-    const cached = this.getCachedResult(cacheKey);
-    if (cached) {
-      return cached;
-    }
-
-    // Create new abort controller
-    this.requestController = new AbortController();
-
+    const startTime = Date.now();
+    
     try {
-      let response: SearchResponse;
+      console.log('🔍 SearchService - Starting search:', { query, scope, limit, cursor, provider: this.provider });
+      
+      let response: SearchResponse = { results: [], total: 0 };
 
-      if (this.shouldUseDemoMode()) {
-        response = await this.searchDemo(query, scope, limit);
-      } else {
+      // Use locked provider - no fallback switching
+      if (this.provider === 'API') {
         response = await this.searchAPI(query, scope, limit, cursor);
+        console.log('🔍 SearchService - API search complete:', { 
+          resultsCount: response.results.length,
+          hasNextCursor: Boolean(response.next_cursor)
+        });
+      } else {
+        response = await this.searchDemo(query, scope, limit, cursor);
+        console.log('🔍 SearchService - Demo search complete:', { 
+          resultsCount: response.results.length,
+          hasNextCursor: Boolean(response.next_cursor)
+        });
       }
 
       // Cache the result
-      this.setCachedResult(cacheKey, response);
+      this.cache.set(cacheKey, {
+        data: response,
+        timestamp: Date.now()
+      });
+
+      const duration = Date.now() - startTime;
+      
+      // Track in query history
+      this.queryHistory.unshift({
+        query,
+        provider: this.provider!,
+        scope,
+        duration,
+        resultCount: response.results.length,
+        timestamp: Date.now()
+      });
+      
+      // Keep only last 10 queries
+      if (this.queryHistory.length > 10) {
+        this.queryHistory = this.queryHistory.slice(0, 10);
+      }
 
       // Add to recent searches
-      this.addRecentSearch(query);
+      this.addToRecentSearches(query);
 
       return response;
     } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
+      if (error.name === 'AbortError') {
+        console.log('🔍 SearchService - Search aborted');
         throw error;
       }
+      console.error('🔍 SearchService - Search error:', error);
+      throw error;
+    }
+  }
 
-      console.error('Search error:', error);
+  async suggest(query: string, limit = 8): Promise<SearchSuggestion[]> {
+    // Wait for provider to be ready
+    await this.providerReady;
+    
+    if (!query.trim()) {
+      return [];
+    }
+
+    try {
+      // Use locked provider - no fallback switching
+      if (this.provider === 'API') {
+        return await this.suggestAPI(query, limit);
+      } else {
+        return await this.suggestDemo(query, limit);
+      }
+    } catch (error) {
+      console.error('Search suggest error:', error);
+      return [];
+    }
+  }
+
+  private async searchAPI(query: string, scope: SearchScope, limit: number, cursor?: string): Promise<SearchResponse> {
+    console.log('🔍 SearchService - Using API search');
+    
+    const parsedQuery = this.parseQuery(query);
+    
+    try {
+      const response = await apiService.post('/search', {
+        query: parsedQuery.terms.join(' '),
+        scope,
+        limit,
+        cursor,
+        filters: {
+          exact: parsedQuery.exact,
+          filename: parsedQuery.filename,
+          tag: parsedQuery.tag,
+          uploader: parsedQuery.uploader,
+          caseRef: parsedQuery.caseRef
+        }
+      }, {
+        signal: this.currentRequestController?.signal
+      });
       
-      // Fallback to demo mode if API fails and dev mode is on
+      return response.data;
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        throw error;
+      }
+      
+      // For now, return empty results as API is not yet implemented
+      console.warn('🔍 API search not yet implemented, returning empty results');
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      return {
+        results: [],
+        total: 0,
+        message: `API search for \"${query}\" in ${scope} scope - not yet implemented`
+      };
+    }
+  }
+
+  private async suggestAPI(query: string, limit: number): Promise<SearchSuggestion[]> {
+    console.log('🔍 SearchService - Using API suggest');
+    
+    const parsedQuery = this.parseQuery(query);
+    
+    try {
+      const response = await apiService.get('/search/suggest', {
+        params: {
+          q: parsedQuery.terms.join(' '),
+          limit,
+          exact: parsedQuery.exact
+        },
+        signal: this.currentRequestController?.signal
+      });
+      
+      return response.data;
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        throw error;
+      }
+      
+      // For now, return empty suggestions as API is not yet implemented
+      console.warn('🔍 API suggest not yet implemented, returning empty suggestions');
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      return [];
+    }
+  }
+
+  private async searchDemo(query: string, scope: SearchScope, limit: number, cursor?: string): Promise<SearchResponse> {
+    console.log('🔍 SearchService - Using DEMO search');
+    
+    await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 300));
+    
+    const parsedQuery = this.parseQuery(query);
+    let allResults: SearchResult[] = [];
+
+    // Get dynamic results from localStorage (AppState) with parsed query
+    const dynamicResults = this.getDynamicResults(parsedQuery, scope);
+    
+    console.log('🔍 SearchService - Dynamic results from localStorage:', {
+      count: dynamicResults.length,
+      parsedQuery,
+      types: dynamicResults.reduce((acc, r) => {
+        acc[r.type] = (acc[r.type] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>)
+    });
+    
+    allResults.push(...dynamicResults);
+
+    // Skip demo data for now - focus on dynamic results
+    // Demo data integration can be added later if needed
+
+    // Sort by relevance score
+    allResults.sort((a, b) => b.score - a.score);
+
+    // Apply pagination if cursor is provided
+    const startIndex = cursor ? parseInt(cursor) : 0;
+    const endIndex = startIndex + limit;
+    const paginatedResults = allResults.slice(startIndex, endIndex);
+    const nextCursor = endIndex < allResults.length ? endIndex.toString() : undefined;
+
+    return {
+      results: paginatedResults,
+      total: allResults.length,
+      next_cursor: nextCursor
+    };
+  }
+
+  private async suggestDemo(query: string, limit: number): Promise<SearchSuggestion[]> {
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    const parsedQuery = this.parseQuery(query);
+    const suggestions: SearchSuggestion[] = [];
+    
+    // Get suggestions from dynamic data
+    const dynamicSuggestions = this.getDynamicSuggestions(parsedQuery, limit);
+    suggestions.push(...dynamicSuggestions);
+    
+    // Skip demo data suggestions for now
+    
+    return suggestions.slice(0, limit);
+  }
+
+  /**
+   * Parse query into structured format with operators and normalization
+   */
+  private parseQuery(query: string): ParsedQuery {
+    const result: ParsedQuery = { terms: [] };
+    
+    // Check for exact match (quotes or full filename)
+    const exactMatch = query.match(/^\"([^\"]+)\"$/) || query.match(/^([^\"\\s]+\\.(pdf|docx?|xlsx?|txt|html))$/i);
+    if (exactMatch) {
+      result.exact = true;
+      result.terms = [this.normalize(exactMatch[1])];
+      return result;
+    }
+    
+    // Parse operators
+    const operators = {
+      filename: /filename:(\\S+)/gi,
+      tag: /tag:(\\S+)/gi,
+      uploader: /uploader:(\\S+)/gi,
+      case: /case:(\\S+)/gi
+    };
+    
+    let remainingQuery = query;
+    
+    Object.entries(operators).forEach(([key, regex]) => {
+      const matches = [...remainingQuery.matchAll(regex)];
+      matches.forEach(match => {
+        result[key as keyof ParsedQuery] = match[1];
+        remainingQuery = remainingQuery.replace(match[0], '').trim();
+      });
+    });
+    
+    // Normalize remaining terms
+    if (remainingQuery.trim()) {
+      result.terms = this.normalize(remainingQuery)
+        .split(/\\s+/)
+        .filter(term => term.length > 0);
+    }
+    
+    return result;
+  }
+
+  /**
+   * Check if an item matches the parsed query
+   */
+  private matchesParsedQuery(item: any, parsedQuery: ParsedQuery): boolean {
+    // Apply operator filters first
+    if (parsedQuery.filename) {
+      const normalizedFilename = this.normalize(parsedQuery.filename);
+      const itemTitle = this.normalize(item.title);
+      if (!itemTitle.includes(normalizedFilename)) {
+        return false;
+      }
+    }
+    
+    if (parsedQuery.tag && item.metadata?.tags) {
+      const normalizedTag = this.normalize(parsedQuery.tag);
+      const itemTags = item.metadata.tags.map((tag: string) => this.normalize(tag));
+      if (!itemTags.some((tag: string) => tag.includes(normalizedTag))) {
+        return false;
+      }
+    }
+    
+    if (parsedQuery.uploader && item.metadata?.uploader) {
+      const normalizedUploader = this.normalize(parsedQuery.uploader);
+      const itemUploader = this.normalize(item.metadata.uploader);
+      if (!itemUploader.includes(normalizedUploader)) {
+        return false;
+      }
+    }
+    
+    if (parsedQuery.caseRef && item.metadata?.caseId) {
+      const normalizedCase = this.normalize(parsedQuery.caseRef);
+      const itemCase = this.normalize(item.metadata.caseId);
+      if (!itemCase.includes(normalizedCase)) {
+        return false;
+      }
+    }
+    
+    // Check free-text terms
+    if (parsedQuery.terms.length > 0) {
+      const normalizedTitle = this.normalize(item.title);
+      const normalizedContent = this.normalize(item.content || '');
+      
+      if (parsedQuery.exact) {
+        // For exact matches, all terms must match in sequence
+        const searchText = parsedQuery.terms.join(' ');
+        return normalizedTitle.includes(searchText) || normalizedContent.includes(searchText);
+      } else {
+        // For regular matches, all terms must be present
+        return parsedQuery.terms.every(term =>
+          normalizedTitle.includes(term) || normalizedContent.includes(term)
+        );
+      }
+    }
+    
+    return true;
+  }
+
+  private getDynamicResults(parsedQuery: ParsedQuery, scope: SearchScope): SearchResult[] {
+    const results: SearchResult[] = [];
+    const normalizedQuery = parsedQuery.terms.join(' ');
+    
+    try {
+      const appStateStr = localStorage.getItem('appState');
+      if (!appStateStr) return results;
+      
+      const appState = JSON.parse(appStateStr);
+      const documents = Array.isArray(appState.documents) ? appState.documents : [];
+      const cases = Array.isArray(appState.cases) ? appState.cases : [];
+      const clients = Array.isArray(appState.clients) ? appState.clients : [];
+      const tasks = Array.isArray(appState.tasks) ? appState.tasks : [];
+      const hearings = Array.isArray(appState.hearings) ? appState.hearings : [];
+
+      // Debug logging
       if (this.isDevModeOn()) {
-        console.log('API failed, falling back to demo mode');
-        return this.searchDemo(query, scope, limit);
+        console.log('🔍 SearchService - Dynamic data discovery:', {
+          documents: documents.length,
+          cases: cases.length,
+          clients: clients.length,
+          tasks: tasks.length,
+          hearings: hearings.length,
+          sampleDoc: documents[0]?.name || 'No documents'
+        });
       }
 
+      // Document search with comprehensive filename matching
+      if (scope === 'all' || scope === 'documents') {
+        documents.forEach(doc => {
+          // Use parsed query for matching
+          const docItem = {
+            title: doc.name,
+            content: `${doc.type} • ${doc.size} bytes`,
+            metadata: {
+              tags: doc.tags,
+              uploader: doc.uploadedByName,
+              caseId: doc.caseId,
+              folder: doc.folderId
+            }
+          };
+          
+          if (this.matchesParsedQuery(docItem, parsedQuery)) {
+            // Enhanced filename matching logic
+            const isExactFilename = this.isExactFilenameMatch(doc.name, parsedQuery);
+            const isPartialFilename = this.isPartialFilenameMatch(doc.name, parsedQuery);
+            
+            let score = this.calculateDemoScore(doc.name, '', parsedQuery);
+            
+            // Boost scores for filename matches
+            if (isExactFilename) score += 100;
+            else if (isPartialFilename) score += 50;
+            
+            // Boost for operator matches
+            if (parsedQuery.filename) score += 15;
+            if (parsedQuery.tag) score += 10;
+            if (parsedQuery.uploader) score += 10;
+            if (parsedQuery.caseRef) score += 10;
+            
+            results.push({
+              id: doc.id,
+              title: doc.name,
+              subtitle: `${doc.type} • ${doc.size} bytes • Uploaded by ${doc.uploadedByName}`,
+              url: `/documents/${doc.id}`,
+              type: 'document',
+              score: score,
+              highlights: [doc.name],
+              badges: doc.tags || []
+            });
+          }
+        });
+      }
+
+      // Cases search with parsed query
+      if (scope === 'all' || scope === 'cases') {
+        cases.forEach(case_ => {
+          const caseItem = {
+            title: case_.title,
+            content: `${case_.client.name} ${case_.caseNumber}`,
+            metadata: {
+              caseId: case_.id,
+              uploader: case_.client.name
+            }
+          };
+          
+          if (this.matchesParsedQuery(caseItem, parsedQuery)) {
+            results.push({
+              id: case_.id,
+              title: case_.title,
+              subtitle: `Case ${case_.caseNumber} • ${case_.client.name} • ${case_.status}`,
+              url: `/cases/${case_.id}`,
+              type: 'case',
+              score: this.calculateDemoScore(case_.title, case_.client.name, parsedQuery),
+              highlights: [case_.title],
+              badges: [case_.status]
+            });
+          }
+        });
+      }
+
+      // Clients search with parsed query
+      if (scope === 'all' || scope === 'clients') {
+        clients.forEach(client => {
+          const clientItem = {
+            title: client.name,
+            content: client.email,
+            metadata: {}
+          };
+          
+          if (this.matchesParsedQuery(clientItem, parsedQuery)) {
+            results.push({
+              id: client.id,
+              title: client.name,
+              subtitle: `${client.email} • ${client.phone}`,
+              url: `/clients/${client.id}`,
+              type: 'client',
+              score: this.calculateDemoScore(client.name, client.email, parsedQuery),
+              highlights: [client.name],
+              badges: ['Client']
+            });
+          }
+        });
+      }
+
+      // Tasks search with parsed query
+      if (scope === 'all' || scope === 'tasks') {
+        tasks.forEach(task => {
+          const taskItem = {
+            title: task.title,
+            content: task.description,
+            metadata: {}
+          };
+          
+          if (this.matchesParsedQuery(taskItem, parsedQuery)) {
+            results.push({
+              id: task.id,
+              title: task.title,
+              subtitle: task.description,
+              url: `/tasks/${task.id}`,
+              type: 'task',
+              score: this.calculateDemoScore(task.title, task.description, parsedQuery),
+              highlights: [task.description],
+              badges: [task.status]
+            });
+          }
+        });
+      }
+
+      // Hearings search with parsed query
+      if (scope === 'all' || scope === 'hearings') {
+        hearings.forEach(hearing => {
+          const hearingItem = {
+            title: hearing.title,
+            content: hearing.caseTitle,
+            metadata: {
+              caseId: hearing.caseId
+            }
+          };
+          
+          if (this.matchesParsedQuery(hearingItem, parsedQuery)) {
+            results.push({
+              id: hearing.id,
+              title: hearing.title,
+              subtitle: `${hearing.caseTitle} • ${hearing.date}`,
+              url: `/hearings/${hearing.id}`,
+              type: 'hearing',
+              score: this.calculateDemoScore(hearing.title, hearing.caseTitle, parsedQuery),
+              highlights: [hearing.title],
+              badges: ['Hearing']
+            });
+          }
+        });
+      }
+    } catch (error) {
+      console.warn('🔍 SearchService - Failed to get dynamic results:', error);
+    }
+    
+    return results;
+  }
+
+  private getDynamicSuggestions(parsedQuery: ParsedQuery, limit: number): SearchSuggestion[] {
+    const suggestions: SearchSuggestion[] = [];
+    
+    try {
+      const appStateStr = localStorage.getItem('appState');
+      if (!appStateStr) return suggestions;
+      
+      const appState = JSON.parse(appStateStr);
+      const documents = Array.isArray(appState.documents) ? appState.documents : [];
+      
+      documents.forEach(doc => {
+        if (suggestions.length >= limit) return;
+        
+        const docItem = {
+          title: doc.name,
+          content: '',
+          metadata: {
+            tags: doc.tags,
+            uploader: doc.uploadedByName
+          }
+        };
+        
+        if (this.matchesParsedQuery(docItem, parsedQuery)) {
+          suggestions.push({
+            text: doc.name,
+            type: 'document',
+            count: 1
+          });
+        }
+      });
+    } catch (error) {
+      console.warn('Failed to get dynamic suggestions:', error);
+    }
+    
+    return suggestions;
+  }
+
+  private normalize(text: string): string {
+    return text.toLowerCase()
+      .trim()
+      .replace(/[_-]/g, ' ')  // Treat _ and - as spaces
+      .replace(/\\s+/g, ' ')    // Collapse whitespace
+      .replace(/[^\\w\\s]/g, ''); // Remove special chars except word chars and spaces
+  }
+
+  private isExactFilenameMatch(filename: string, parsedQuery: ParsedQuery): boolean {
+    const normalizedFilename = this.normalize(filename);
+    
+    // Check against parsed query terms or filename operator
+    const searchTarget = parsedQuery.filename || parsedQuery.terms.join(' ');
+    const normalizedQuery = this.normalize(searchTarget);
+    
+    // Check for exact match with or without extension
+    if (normalizedFilename === normalizedQuery) return true;
+    
+    // Check filename without extension
+    const filenameWithoutExt = normalizedFilename.replace(/\\.[^.]*$/, '');
+    const queryWithoutExt = normalizedQuery.replace(/\\.[^.]*$/, '');
+    
+    return filenameWithoutExt === queryWithoutExt;
+  }
+
+  private isPartialFilenameMatch(filename: string, parsedQuery: ParsedQuery): boolean {
+    const normalizedFilename = this.normalize(filename);
+    const searchTarget = parsedQuery.filename || parsedQuery.terms.join(' ');
+    const normalizedQuery = this.normalize(searchTarget);
+    
+    // Check if filename contains the query as a substring
+    if (normalizedFilename.includes(normalizedQuery)) return true;
+    
+    // Check if query contains the filename (for partial matching)
+    if (normalizedQuery.includes(normalizedFilename)) return true;
+    
+    // Check individual words in the filename
+    const filenameWords = normalizedFilename.split(/\\s+/);
+    const queryWords = normalizedQuery.split(/\\s+/);
+    
+    return queryWords.some(queryWord => 
+      filenameWords.some(fileWord => 
+        fileWord.includes(queryWord) || queryWord.includes(fileWord)
+      )
+    );
+  }
+
+  private calculateDemoScore(title: string, content: string, parsedQuery: ParsedQuery): number {
+    let score = 0;
+    const normalizedTitle = this.normalize(title);
+    const normalizedContent = this.normalize(content);
+    
+    const searchTerms = parsedQuery.terms;
+    const allTerms = searchTerms.join(' ');
+    
+    // Exact title match gets highest score
+    if (normalizedTitle === allTerms) score += 100;
+    
+    // Title contains all query terms
+    if (searchTerms.every(term => normalizedTitle.includes(term))) score += 50;
+    
+    // Content contains all query terms
+    if (searchTerms.every(term => normalizedContent.includes(term))) score += 25;
+    
+    // Boost for shorter titles (more specific)
+    if (title.length < 50) score += 10;
+    
+    // Boost for exact word matches
+    const titleWords = normalizedTitle.split(/\\s+/);
+    const exactMatches = searchTerms.filter(term => titleWords.includes(term));
+    score += exactMatches.length * 15;
+    
+    // Boost for operator usage
+    if (parsedQuery.filename) score += 15;
+    if (parsedQuery.tag) score += 10;
+    if (parsedQuery.uploader) score += 10;
+    if (parsedQuery.caseRef) score += 10;
+    if (parsedQuery.exact) score += 20;
+    
+    return Math.max(score, 1);
+  }
+
+  /**
+   * Rebuild search index (API mode calls API, DEMO mode rebuilds local index)
+   */
+  public async rebuildIndex(scope: string = 'documents'): Promise<void> {
+    await this.providerReady;
+    
+    if (this.provider === 'API') {
+      try {
+        await apiService.post(`/search/index/rebuild?scope=${scope}`);
+        console.log(`🔍 API index rebuild initiated for scope: ${scope}`);
+      } catch (error) {
+        console.error('🔍 API index rebuild failed:', error);
+        throw error;
+      }
+    } else {
+      // DEMO mode - rebuild local mini-index
+      await this.rebuildLocalIndex(scope);
+    }
+    
+    // Clear cache to force fresh results
+    this.cache.clear();
+  }
+
+  /**
+   * Reindex a single document
+   */
+  public async reindexDocument(docId: string): Promise<void> {
+    await this.providerReady;
+    
+    if (this.provider === 'API') {
+      try {
+        await apiService.post(`/search/index/doc/${docId}`);
+        console.log(`🔍 API document reindex initiated for: ${docId}`);
+      } catch (error) {
+        console.error('🔍 API document reindex failed:', error);
+        // Don't throw - make it fire-and-forget for UX
+        console.warn(`🔍 Document reindex failed for ${docId}, continuing...`);
+      }
+    } else {
+      // DEMO mode - update local mini-index
+      await this.updateLocalIndex(docId);
+    }
+  }
+
+  /**
+   * Remove document from local index (DEMO mode only)
+   */
+  public async removeFromIndex(docId: string): Promise<void> {
+    if (this.provider !== 'DEMO') return;
+    
+    try {
+      // IndexedDB operations would go here - simplified for now
+      console.log('🔍 IndexedDB operation simulated');
+      const db = await openDB('search_index', 1, {
+        upgrade(db) {
+          if (!db.objectStoreNames.contains('documents')) {
+            db.createObjectStore('documents', { keyPath: 'id' });
+          }
+        }
+      });
+      
+      await db.delete('documents', docId);
+      console.log(`🔍 Document ${docId} removed from local index`);
+    } catch (error) {
+      console.warn('🔍 Failed to remove document from local index:', error);
+    }
+  }
+
+  /**
+   * Get index statistics
+   */
+  public async getIndexStats(): Promise<{ documentsCount: number; updatedAt: string }> {
+    await this.providerReady;
+    
+    if (this.provider === 'API') {
+      try {
+        const response = await apiService.get('/search/index/stats');
+        return { documentsCount: 0, updatedAt: new Date().toISOString() };
+      } catch (error) {
+        console.warn('🔍 Failed to get API index stats:', error);
+        return { documentsCount: 0, updatedAt: new Date().toISOString() };
+      }
+    } else {
+      // DEMO mode - get local index stats
+      try {
+        const { openDB } = await import('idb');
+        const db = await openDB('search_index', 1);
+        const count = await db.count('documents');
+        return {
+          documentsCount: count,
+          updatedAt: new Date().toISOString()
+        };
+      } catch (error) {
+        console.warn('🔍 Failed to get local index stats:', error);
+        return { documentsCount: 0, updatedAt: new Date().toISOString() };
+      }
+    }
+  }
+
+  /**
+   * Get last 10 queries for debugging
+   */
+  public getQueryHistory(): typeof this.queryHistory {
+    return [...this.queryHistory];
+  }
+
+  /**
+   * Rebuild local search index (DEMO mode)
+   */
+  private async rebuildLocalIndex(scope: string): Promise<void> {
+    try {
+      const { openDB } = await import('idb');
+      const db = await openDB('search_index', 1, {
+        upgrade(db) {
+          if (!db.objectStoreNames.contains('documents')) {
+            db.createObjectStore('documents', { keyPath: 'id' });
+          }
+        }
+      });
+
+      if (scope === 'documents') {
+        // Clear existing index
+        await db.clear('documents');
+        
+        // Rebuild from AppState
+        const appStateStr = localStorage.getItem('appState');
+        if (appStateStr) {
+          const appState = JSON.parse(appStateStr);
+          const documents = Array.isArray(appState.documents) ? appState.documents : [];
+          
+          const tx = db.transaction('documents', 'readwrite');
+          for (const doc of documents) {
+            const indexEntry: DocumentIndexEntry = {
+              id: doc.id,
+              title: doc.name,
+              normalizedTitle: this.normalize(doc.name),
+              tagsNorm: (doc.tags || []).map((tag: string) => this.normalize(tag)).join(' '),
+              uploaderNorm: this.normalize(doc.uploadedByName || ''),
+              caseTitleNorm: this.normalize(doc.caseTitle || ''),
+              folderNorm: this.normalize(doc.folderName || ''),
+              updatedAt: doc.uploadedAt || new Date().toISOString()
+            };
+            await tx.store.put(indexEntry);
+          }
+          await tx.done;
+          
+          console.log(`🔍 Local index rebuilt with ${documents.length} documents`);
+        }
+      }
+    } catch (error) {
+      console.error('🔍 Failed to rebuild local index:', error);
       throw error;
     }
   }
 
   /**
-   * Get search suggestions with type-ahead
+   * Update single document in local index (DEMO mode)
    */
-  async suggest(query: string, limit = 8): Promise<SearchSuggestion[]> {
-    if (!query.trim() || query.length < 2) {
-      return this.getRecentSearchSuggestions(limit);
-    }
-
-    const stateVersion = this.shouldUseDemoMode()
-      ? String((localStorage.getItem('lawfirm_app_data') || localStorage.getItem('beacon-app-state') || '').length)
-      : '';
-    const cacheKey = `suggest:${query}:${limit}:${stateVersion}`;
-    const cached = this.getCachedResult(cacheKey);
-    if (cached) {
-      return cached;
-    }
-
+  private async updateLocalIndex(docId: string): Promise<void> {
     try {
-      let suggestions: SearchSuggestion[];
-
-      if (this.shouldUseDemoMode()) {
-        suggestions = await this.suggestDemo(query, limit);
-      } else {
-        suggestions = await this.suggestAPI(query, limit);
-      }
-
-      this.setCachedResult(cacheKey, suggestions);
-      return suggestions;
-    } catch (error) {
-      console.error('Suggestions error:', error);
+      const appStateStr = localStorage.getItem('appState');
+      if (!appStateStr) return;
       
-      // Fallback to demo mode or recent searches
-      if (this.isDevModeOn()) {
-        console.log('Suggestions API failed, falling back to demo mode');
-        return this.suggestDemo(query, limit);
-      }
+      const appState = JSON.parse(appStateStr);
+      const documents = Array.isArray(appState.documents) ? appState.documents : [];
+      const doc = documents.find((d: any) => d.id === docId);
       
-      return this.getRecentSearchSuggestions(limit);
-    }
-  }
-
-  /**
-   * API search implementation
-   */
-  private async searchAPI(
-    query: string, 
-    scope: SearchScope, 
-    limit: number,
-    cursor?: string
-  ): Promise<SearchResponse> {
-    const scopeParam = scope === 'all' ? 'all' : scope;
-    const params = new URLSearchParams({
-      q: query,
-      scope: scopeParam,
-      limit: limit.toString(),
-    });
-
-    if (cursor) {
-      params.append('cursor', cursor);
-    }
-
-    const response = await apiService.get<SearchResponse>(
-      `/api/search?${params.toString()}`
-    );
-
-    if (!response.success) {
-      throw new Error(response.error || 'Search failed');
-    }
-
-    return response.data;
-  }
-
-  /**
-   * API suggestions implementation
-   */
-  private async suggestAPI(query: string, limit: number): Promise<SearchSuggestion[]> {
-    const params = new URLSearchParams({
-      q: query,
-      limit: limit.toString(),
-    });
-
-    const response = await apiService.get<SearchSuggestion[]>(
-      `/api/search/suggest?${params.toString()}`
-    );
-
-    if (!response.success) {
-      throw new Error(response.error || 'Suggestions failed');
-    }
-
-    return response.data;
-  }
-
-  /**
-   * Demo mode search implementation
-   */
-  private async searchDemo(
-    query: string, 
-    scope: SearchScope, 
-    limit: number
-  ): Promise<SearchResponse> {
-    // Import demo data dynamically to avoid loading it unnecessarily
-    const { demoSearchIndex } = await import('@/data/demoSearchData');
-    
-    // Get all dynamic results from AppState (cases, hearings, tasks, clients, documents)
-    const dynamicResults = await this.getDynamicResults(query, scope);
-    
-    // Combine static demo data with dynamic AppState data
-    const allResults = [...demoSearchIndex, ...dynamicResults];
-    
-    const normalizedQuery = this.normalize(query);
-    const searchTerms = normalizedQuery.split(' ').filter(Boolean);
-    let results = allResults.filter(item => {
-      if (scope !== 'all') {
-        // Convert plural scope to singular for comparison
-        const singularScope = (scope.endsWith('s') ? scope.slice(0, -1) : scope) as SearchResult['type'];
-        if (item.type !== singularScope) return false;
-      }
-      
-      const searchableRaw = `${item.title} ${item.subtitle} ${item.highlights.join(' ')} ${item.badges.join(' ')}`;
-      const searchableText = this.normalize(searchableRaw);
-      
-      // For better matching, require at least one search term to match
-      // But also check for partial phrase matching
-      const hasTermMatch = searchTerms.some(term => searchableText.includes(term));
-      const hasPhraseMatch = searchableText.includes(normalizedQuery);
-      
-      return hasTermMatch || hasPhraseMatch;
-    });
-
-    // Sort by relevance (simple scoring)
-    results = results.map(item => ({
-      ...item,
-      score: this.calculateDemoScore(item, searchTerms)
-    })).sort((a, b) => b.score - a.score);
-
-    return {
-      results: results.slice(0, limit)
-    };
-  }
-
-  /**
-   * Demo mode suggestions implementation
-   */
-  private async suggestDemo(query: string, limit: number): Promise<SearchSuggestion[]> {
-    const { demoSearchIndex } = await import('@/data/demoSearchData');
-    
-    // Get all dynamic results for suggestions too
-    const dynamicResults = await this.getDynamicResults(query, 'all');
-    const allResults = [...demoSearchIndex, ...dynamicResults];
-    
-    const normalizedQuery = this.normalize(query);
-    const suggestions = new Map<string, SearchSuggestion>();
-
-    allResults.forEach(item => {
-      const titleNorm = this.normalize(item.title);
-      if (titleNorm.includes(normalizedQuery)) {
-        const key = item.title;
-        if (!suggestions.has(key)) {
-          suggestions.set(key, {
-            text: item.title,
-            type: item.type,
-            count: 1
-          });
-        }
-      }
-    });
-
-    return Array.from(suggestions.values()).slice(0, limit);
-  }
-
-  /**
-   * Get all dynamic results from AppState (cases, hearings, tasks, clients, documents)
-   */
-  private async getDynamicResults(query: string, scope: SearchScope): Promise<SearchResult[]> {
-    try {
-      const results: SearchResult[] = [];
-      
-      // Get AppState data from localStorage
-      const appStateData = localStorage.getItem('lawfirm_app_data') || localStorage.getItem('beacon-app-state');
-      let appState: any = {};
-      
-      if (appStateData) {
-        try {
-          appState = JSON.parse(appStateData);
-        } catch (e) {
-          console.warn('Failed to parse app state:', e);
-        }
+      if (!doc) {
+        console.warn(`🔍 Document ${docId} not found in AppState for indexing`);
+        return;
       }
 
-      // Debug logging for document discovery
-      if (this.isDevModeOn() && (scope === 'all' || scope === 'documents')) {
-        console.log('🔍 Search Debug - Query:', query);
-        console.log('🔍 Search Debug - AppState keys:', Object.keys(appState));
-        console.log('🔍 Search Debug - Documents in state:', appState.documents?.length || 0);
-        if (appState.documents?.length > 0) {
-          console.log('🔍 Search Debug - First few document names:', 
-            appState.documents.slice(0, 5).map((d: any) => d.name || d.title));
-        }
-      }
-
-      // Add cases if scope allows
-      if (scope === 'all' || scope === 'cases') {
-        const cases = appState.cases || [];
-        cases.forEach((caseItem: any) => {
-          results.push({
-            type: 'case',
-            id: caseItem.id,
-            title: caseItem.title || `Case ${caseItem.caseNumber}`,
-            subtitle: `${caseItem.caseNumber || 'N/A'} • ${caseItem.clientName || 'Unknown Client'} • ${caseItem.stage || 'Unknown Stage'}`,
-            url: `/cases/${caseItem.id}`,
-            score: 1.0,
-            highlights: [caseItem.description || caseItem.title || caseItem.caseNumber || ''],
-            badges: [caseItem.stage || 'Case', caseItem.clientName || 'Unknown Client']
-          });
-        });
-      }
-
-      // Add hearings if scope allows
-      if (scope === 'all' || scope === 'hearings') {
-        const hearings = appState.hearings || [];
-        hearings.forEach((hearing: any) => {
-          const caseInfo = appState.cases?.find((c: any) => c.id === hearing.caseId);
-          const caseTitle = caseInfo?.title || `Case ${caseInfo?.caseNumber || 'Unknown'}`;
-          
-          results.push({
-            type: 'hearing',
-            id: hearing.id,
-            title: hearing.agenda || hearing.title || `Hearing ${hearing.id}`,
-            subtitle: `${caseTitle} • ${hearing.court || 'Unknown Court'} • ${hearing.date || 'Unknown Date'}`,
-            url: `/hearings/${hearing.id}`,
-            score: 1.0,
-            highlights: [hearing.agenda || hearing.notes || hearing.title || ''],
-            badges: [hearing.court || 'Hearing', hearing.outcome || 'Scheduled']
-          });
-        });
-      }
-
-      // Add tasks if scope allows
-      if (scope === 'all' || scope === 'tasks') {
-        const tasks = appState.tasks || [];
-        tasks.forEach((task: any) => {
-          const caseInfo = appState.cases?.find((c: any) => c.id === task.caseId);
-          const caseTitle = caseInfo?.title || `Case ${caseInfo?.caseNumber || 'Unknown'}`;
-          
-          results.push({
-            type: 'task',
-            id: task.id,
-            title: task.title || `Task ${task.id}`,
-            subtitle: `${caseTitle} • Due: ${task.dueDate || 'No due date'} • ${task.status || 'Unknown Status'}`,
-            url: `/tasks/${task.id}`,
-            score: 1.0,
-            highlights: [task.description || task.title || ''],
-            badges: [task.status || 'Task', task.priority || 'Normal']
-          });
-        });
-      }
-
-      // Add clients if scope allows
-      if (scope === 'all' || scope === 'clients') {
-        const clients = appState.clients || [];
-        clients.forEach((client: any) => {
-          results.push({
-            type: 'client',
-            id: client.id,
-            title: client.name || `Client ${client.id}`,
-            subtitle: `${client.gstin || 'No GSTIN'} • ${client.businessType || 'Unknown Business'} • ${client.email || 'No Email'}`,
-            url: `/clients/${client.id}`,
-            score: 1.0,
-            highlights: [client.address || client.name || ''],
-            badges: [client.businessType || 'Client', client.gstin ? 'GST Registered' : 'No GST']
-          });
-        });
-      }
-
-      // Add documents if scope allows
-      if (scope === 'all' || scope === 'documents') {
-        const documents = Array.isArray(appState.documents) ? appState.documents : [];
-        const folders = Array.isArray(appState.folders) ? appState.folders : [];
-        
-        // Debug logging for document search
-        if (this.isDevModeOn()) {
-          console.log('🔍 Document Search Debug - Found documents:', documents.length);
-          const queryNormalized = this.normalize(query);
-          const queryExact = query.toLowerCase().trim();
-          console.log('🔍 Document Search Debug - Query normalized:', queryNormalized);
-          console.log('🔍 Document Search Debug - Query exact:', queryExact);
-        }
-        
-        // Create a map of folder IDs to folder names for better context
-        const folderMap = new Map<string, string>();
-        folders.forEach((folder: any) => {
-          if (folder && folder.id) {
-            folderMap.set(folder.id, folder.name || 'Folder');
+      const { openDB } = await import('idb');
+      const db = await openDB('search_index', 1, {
+        upgrade(db) {
+          if (!db.objectStoreNames.contains('documents')) {
+            db.createObjectStore('documents', { keyPath: 'id' });
           }
-        });
+        }
+      });
 
-        documents.forEach((doc: any) => {
-          if (!doc || !doc.name) return; // Skip invalid documents
-          
-          const folderName = doc.folderId ? folderMap.get(doc.folderId) || 'Root' : 'Root';
-          const ext = (doc.name?.split('.').pop() || '').toLowerCase();
-          const docNameNormalized = this.normalize(doc.name);
-          const docNameExact = doc.name.toLowerCase().trim();
+      const indexEntry: DocumentIndexEntry = {
+        id: doc.id,
+        title: doc.name,
+        normalizedTitle: this.normalize(doc.name),
+        tagsNorm: (doc.tags || []).map((tag: string) => this.normalize(tag)).join(' '),
+        uploaderNorm: this.normalize(doc.uploadedByName || ''),
+        caseTitleNorm: this.normalize(doc.caseTitle || ''),
+        folderNorm: this.normalize(doc.folderName || ''),
+        updatedAt: doc.uploadedAt || new Date().toISOString()
+      };
 
-          // Debug logging for specific document matching
-          if (this.isDevModeOn() && docNameExact.includes(query.toLowerCase().trim())) {
-            console.log('🔍 Found potential match:', {
-              docName: doc.name,
-              docNameNormalized,
-              docNameExact,
-              queryExact: query.toLowerCase().trim()
-            });
-          }
-
-          results.push({
-            type: 'document',
-            id: doc.id,
-            title: doc.name,
-            subtitle: `${folderName} • ${ext || (doc.type || 'document')} • ${doc.size ? `${Math.round(doc.size / 1024)} KB` : 'Unknown size'}`,
-            url: `/documents?search=${encodeURIComponent(doc.name)}`,
-            score: 1.0,
-            highlights: [doc.tags?.join(', ') || '', doc.path || '', doc.uploadedByName || ''],
-            badges: [ext || (doc.type || 'Document'), folderName]
-          });
-        });
-      }
-
-      return results;
+      await db.put('documents', indexEntry);
+      console.log(`🔍 Local index updated for document: ${docId}`);
     } catch (error) {
-      console.warn('Failed to load dynamic results for search:', error);
-      return [];
+      console.warn('🔍 Failed to update local index:', error);
     }
   }
 
-  /**
-   * Text normalization for robust matching (case, dashes/underscores, punctuation)
-   * Enhanced to handle filenames better
-   */
-  private normalize(text: string): string {
-    if (!text) return '';
-    
-    // For better filename matching, preserve some structure
-    return text
-      .toLowerCase()
-      .replace(/[_-]+/g, ' ')  // Convert underscores and dashes to spaces
-      .replace(/\./g, ' ')     // Convert dots to spaces (for file extensions)
-      .replace(/[^a-z0-9\s]/gi, ' ')  // Remove other special chars
-      .replace(/\s+/g, ' ')    // Collapse multiple spaces
-      .trim();
-  }
-
-  /**
-   * Check for exact filename match (case-insensitive)
-   */
-  private isExactFilenameMatch(filename: string, query: string): boolean {
-    return filename.toLowerCase().trim() === query.toLowerCase().trim();
-  }
-
-  /**
-   * Check for partial filename match (without normalization)
-   */
-  private isPartialFilenameMatch(filename: string, query: string): boolean {
-    return filename.toLowerCase().includes(query.toLowerCase());
-  }
-
-  /**
-   * Calculate demo search score with enhanced filename matching
-   */
-  private calculateDemoScore(item: SearchResult, searchTerms: string[]): number {
-    let score = 0;
-    const titleNorm = this.normalize(item.title);
-    const subtitleNorm = this.normalize(item.subtitle);
-    const queryNorm = searchTerms.join(' ');
-    const fullQuery = searchTerms.join(' ');
-
-    // For documents, prioritize exact filename matches
-    if (item.type === 'document') {
-      // Highest score for exact filename match (case-insensitive)
-      if (this.isExactFilenameMatch(item.title, fullQuery)) {
-        score += 100;
-        console.log('🎯 Exact filename match found:', item.title, 'Score:', score);
-      }
-      
-      // High score for partial filename match (without normalization)
-      if (this.isPartialFilenameMatch(item.title, fullQuery)) {
-        score += 50;
-        console.log('🎯 Partial filename match found:', item.title, 'Score:', score);
-      }
-    }
-
-    // Exact phrase match in title gets high score
-    if (titleNorm.includes(queryNorm)) {
-      score += 20;
-    }
-
-    // Individual term matches
-    searchTerms.forEach(term => {
-      if (titleNorm.includes(term)) score += 5;
-      if (subtitleNorm.includes(term)) score += 3;
-      if (item.highlights.some(h => this.normalize(h).includes(term))) score += 2;
-      if (item.badges.some(b => this.normalize(b).includes(term))) score += 1;
-    });
-
-    // Boost score for exact normalized title matches
-    if (titleNorm === queryNorm) {
-      score += 30;
-    }
-
-    // Boost score for data from AppState (more relevant than static demo data)
-    if (item.type === 'case' || item.type === 'hearing' || item.type === 'task' || item.type === 'client' || item.type === 'document') {
-      score += 10;
-    }
-
-    return score;
-  }
-
-  /**
-   * Check if dev mode is active (matches header Dev Mode badge logic)
-   */
-  private isDevModeOn(): boolean {
-    return envConfig.QA_ON || envConfig.MOCK_ON || !envConfig.API_SET;
-  }
-
-  /**
-   * Determine if demo mode should be used
-   */
-  // Removed shouldUseDemoMode() - provider is now determined once in initProvider()
-
-  /**
-   * Cache management
-   */
-  private getCachedResult(key: string): any {
+  private getCachedResult(key: string): SearchResponse | null {
     const cached = this.cache.get(key);
-    if (cached && Date.now() - cached.timestamp < this.cacheMaxAge) {
+    if (cached && (Date.now() - cached.timestamp) < this.cacheMaxAge) {
       return cached.data;
     }
     return null;
   }
 
-  private setCachedResult(key: string, data: any): void {
-    this.cache.set(key, {
-      data,
-      timestamp: Date.now()
-    });
+  private addToRecentSearches(query: string): void {
+    this.recentSearches = this.recentSearches.filter(item => item.query !== query);
+    this.recentSearches.unshift({ query, timestamp: Date.now() });
+    
+    if (this.recentSearches.length > this.maxRecentSearches) {
+      this.recentSearches = this.recentSearches.slice(0, this.maxRecentSearches);
+    }
+    
+    this.saveRecentSearches();
   }
 
-  /**
-   * Recent searches management
-   */
-  private async loadRecentSearches(): Promise<void> {
+  private loadRecentSearches(): void {
     try {
-      const stored = await idbStorage.get('recent_searches');
-      if (Array.isArray(stored)) {
-        this.recentSearches = stored;
+      const stored = localStorage.getItem('recent_searches');
+      if (stored) {
+        this.recentSearches = JSON.parse(stored);
       }
     } catch (error) {
       console.warn('Failed to load recent searches:', error);
+      this.recentSearches = [];
     }
   }
 
-  private async addRecentSearch(query: string): Promise<void> {
-    const trimmed = query.trim();
-    if (!trimmed || this.recentSearches.includes(trimmed)) return;
-
-    this.recentSearches.unshift(trimmed);
-    this.recentSearches = this.recentSearches.slice(0, this.maxRecentSearches);
-
+  private saveRecentSearches(): void {
     try {
-      await idbStorage.set('recent_searches', this.recentSearches);
+      localStorage.setItem('recent_searches', JSON.stringify(this.recentSearches));
     } catch (error) {
       console.warn('Failed to save recent searches:', error);
     }
   }
 
-  private getRecentSearchSuggestions(limit: number): SearchSuggestion[] {
-    return this.recentSearches.slice(0, limit).map(text => ({
-      text,
-      type: 'recent'
-    }));
+  private isDevModeOn(): boolean {
+    return envConfig.QA_ON || !envConfig.API_SET || envConfig.MOCK_ON;
   }
 
   /**
-   * Get recent searches for display
+   * Get recent searches for suggestions
    */
-  getRecentSearches(): string[] {
-    return [...this.recentSearches];
+  public getRecentSearches(): string[] {
+    return this.recentSearches.map(item => item.query);
   }
 
   /**
-   * Clear all caches and recent searches
+   * Clear all cached data and recent searches
    */
-  async clearCache(): Promise<void> {
+  public clearCache(): void {
     this.cache.clear();
     this.recentSearches = [];
-    
-    try {
-      await idbStorage.delete('recent_searches');
-    } catch (error) {
-      console.warn('Failed to clear recent searches:', error);
-    }
-    
-    console.log('🧹 Search cache cleared');
+    this.queryHistory = [];
+    localStorage.removeItem('recent_searches');
+    console.log('🔍 Search cache cleared');
   }
 
   /**
-   * Force refresh search data and clear cache
+   * Refresh search data by clearing cache (forces fresh data fetch)
    */
-  async refreshSearchData(): Promise<void> {
-    await this.clearCache();
-    
-    if (this.isDevModeOn()) {
-      console.log('🔄 Search data refreshed - next search will use fresh data');
-    }
+  public refreshSearchData(): void {
+    this.cache.clear();
+    console.log('🔍 Search data refreshed - cache cleared');
   }
 }
 
