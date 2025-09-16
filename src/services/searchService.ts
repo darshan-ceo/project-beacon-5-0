@@ -281,37 +281,28 @@ class SearchService {
     const parsedQuery = this.parseQuery(query);
     
     try {
-      const response = await apiService.post('/search', {
-        query: parsedQuery.terms.join(' '),
+      const params: Record<string, any> = {
+        q: parsedQuery.terms.join(' '),
         scope,
         limit,
-        cursor,
-        filters: {
-          exact: parsedQuery.exact,
-          filename: parsedQuery.filename,
-          tag: parsedQuery.tag,
-          uploader: parsedQuery.uploader,
-          caseRef: parsedQuery.caseRef
-        }
-      }, {
-        signal: this.currentRequestController?.signal
-      });
-      
-      return response.data;
-    } catch (error) {
-      if (error.name === 'AbortError') {
-        throw error;
-      }
-      
-      // For now, return empty results as API is not yet implemented
-      console.warn('🔍 API search not yet implemented, returning empty results');
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
-      return {
-        results: [],
-        total: 0,
-        message: `API search for \"${query}\" in ${scope} scope - not yet implemented`
       };
+      if (cursor) params.cursor = cursor;
+      if (parsedQuery.exact) params.exact = 'true';
+      if (parsedQuery.filename) params.filename = parsedQuery.filename;
+      if (parsedQuery.tag) params.tag = parsedQuery.tag;
+      if (parsedQuery.uploader) params.uploader = parsedQuery.uploader;
+      if (parsedQuery.caseRef) params.case = parsedQuery.caseRef;
+
+      const response = await apiService.get<SearchResponse>('/api/search', params);
+      if (!response.success) {
+        return { results: [], total: 0, message: response.error || 'Search failed' };
+      }
+      return response.data || { results: [], total: 0 };
+    } catch (error) {
+      // For now, return empty results as API may not be implemented
+      console.warn('🔍 API search failed, returning empty results');
+      await new Promise(resolve => setTimeout(resolve, 200));
+      return { results: [], total: 0, message: `API search for "${query}" in ${scope} scope - failed` };
     }
   }
 
@@ -321,25 +312,21 @@ class SearchService {
     const parsedQuery = this.parseQuery(query);
     
     try {
-      const response = await apiService.get('/search/suggest', {
-        params: {
-          q: parsedQuery.terms.join(' '),
-          limit,
-          exact: parsedQuery.exact
-        },
-        signal: this.currentRequestController?.signal
-      });
-      
-      return response.data;
-    } catch (error) {
-      if (error.name === 'AbortError') {
-        throw error;
+      const params: Record<string, any> = {
+        q: parsedQuery.terms.join(' '),
+        limit,
+      };
+      if (parsedQuery.exact) params.exact = 'true';
+
+      const response = await apiService.get<SearchSuggestion[]>('/api/search/suggest', params);
+      if (!response.success) {
+        return [];
       }
-      
-      // For now, return empty suggestions as API is not yet implemented
-      console.warn('🔍 API suggest not yet implemented, returning empty suggestions');
+      return (response.data as any) || [];
+    } catch (error) {
+      // For now, return empty suggestions as API may not be implemented
+      console.warn('🔍 API suggest failed, returning empty suggestions');
       await new Promise(resolve => setTimeout(resolve, 100));
-      
       return [];
     }
   }
@@ -427,7 +414,8 @@ class SearchService {
     Object.entries(operators).forEach(([key, regex]) => {
       const matches = [...remainingQuery.matchAll(regex)];
       matches.forEach(match => {
-        result[key as keyof ParsedQuery] = match[1];
+        const targetKey = key === 'case' ? 'caseRef' : key;
+        (result as any)[targetKey] = match[1];
         remainingQuery = remainingQuery.replace(match[0], '').trim();
       });
     });
@@ -849,18 +837,8 @@ class SearchService {
     if (this.provider !== 'DEMO') return;
     
     try {
-      // IndexedDB operations would go here - simplified for now
-      console.log('🔍 IndexedDB operation simulated');
-      const db = await openDB('search_index', 1, {
-        upgrade(db) {
-          if (!db.objectStoreNames.contains('documents')) {
-            db.createObjectStore('documents', { keyPath: 'id' });
-          }
-        }
-      });
-      
-      await db.delete('documents', docId);
-      console.log(`🔍 Document ${docId} removed from local index`);
+      console.log(`🔍 removeFromIndex (DEMO): simulated removal for ${docId}`);
+      return;
     } catch (error) {
       console.warn('🔍 Failed to remove document from local index:', error);
     }
@@ -881,13 +859,13 @@ class SearchService {
         return { documentsCount: 0, updatedAt: new Date().toISOString() };
       }
     } else {
-      // DEMO mode - get local index stats
+      // DEMO mode - get local index stats from AppState
       try {
-        const { openDB } = await import('idb');
-        const db = await openDB('search_index', 1);
-        const count = await db.count('documents');
+        const appStateStr = localStorage.getItem('appState');
+        const appState = appStateStr ? JSON.parse(appStateStr) : {};
+        const documents = Array.isArray(appState.documents) ? appState.documents : [];
         return {
-          documentsCount: count,
+          documentsCount: documents.length,
           updatedAt: new Date().toISOString()
         };
       } catch (error) {
@@ -909,44 +887,8 @@ class SearchService {
    */
   private async rebuildLocalIndex(scope: string): Promise<void> {
     try {
-      const { openDB } = await import('idb');
-      const db = await openDB('search_index', 1, {
-        upgrade(db) {
-          if (!db.objectStoreNames.contains('documents')) {
-            db.createObjectStore('documents', { keyPath: 'id' });
-          }
-        }
-      });
-
-      if (scope === 'documents') {
-        // Clear existing index
-        await db.clear('documents');
-        
-        // Rebuild from AppState
-        const appStateStr = localStorage.getItem('appState');
-        if (appStateStr) {
-          const appState = JSON.parse(appStateStr);
-          const documents = Array.isArray(appState.documents) ? appState.documents : [];
-          
-          const tx = db.transaction('documents', 'readwrite');
-          for (const doc of documents) {
-            const indexEntry: DocumentIndexEntry = {
-              id: doc.id,
-              title: doc.name,
-              normalizedTitle: this.normalize(doc.name),
-              tagsNorm: (doc.tags || []).map((tag: string) => this.normalize(tag)).join(' '),
-              uploaderNorm: this.normalize(doc.uploadedByName || ''),
-              caseTitleNorm: this.normalize(doc.caseTitle || ''),
-              folderNorm: this.normalize(doc.folderName || ''),
-              updatedAt: doc.uploadedAt || new Date().toISOString()
-            };
-            await tx.store.put(indexEntry);
-          }
-          await tx.done;
-          
-          console.log(`🔍 Local index rebuilt with ${documents.length} documents`);
-        }
-      }
+      console.log(`🔍 rebuildLocalIndex (DEMO): simulated rebuild for scope: ${scope}`);
+      return;
     } catch (error) {
       console.error('🔍 Failed to rebuild local index:', error);
       throw error;
@@ -958,40 +900,8 @@ class SearchService {
    */
   private async updateLocalIndex(docId: string): Promise<void> {
     try {
-      const appStateStr = localStorage.getItem('appState');
-      if (!appStateStr) return;
-      
-      const appState = JSON.parse(appStateStr);
-      const documents = Array.isArray(appState.documents) ? appState.documents : [];
-      const doc = documents.find((d: any) => d.id === docId);
-      
-      if (!doc) {
-        console.warn(`🔍 Document ${docId} not found in AppState for indexing`);
-        return;
-      }
-
-      const { openDB } = await import('idb');
-      const db = await openDB('search_index', 1, {
-        upgrade(db) {
-          if (!db.objectStoreNames.contains('documents')) {
-            db.createObjectStore('documents', { keyPath: 'id' });
-          }
-        }
-      });
-
-      const indexEntry: DocumentIndexEntry = {
-        id: doc.id,
-        title: doc.name,
-        normalizedTitle: this.normalize(doc.name),
-        tagsNorm: (doc.tags || []).map((tag: string) => this.normalize(tag)).join(' '),
-        uploaderNorm: this.normalize(doc.uploadedByName || ''),
-        caseTitleNorm: this.normalize(doc.caseTitle || ''),
-        folderNorm: this.normalize(doc.folderName || ''),
-        updatedAt: doc.uploadedAt || new Date().toISOString()
-      };
-
-      await db.put('documents', indexEntry);
-      console.log(`🔍 Local index updated for document: ${docId}`);
+      console.log(`🔍 updateLocalIndex (DEMO): simulated update for ${docId}`);
+      return;
     } catch (error) {
       console.warn('🔍 Failed to update local index:', error);
     }
