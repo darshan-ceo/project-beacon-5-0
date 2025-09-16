@@ -342,10 +342,10 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
                           </div>
 
                           {/* Highlights */}
-                          {result.highlights.length > 0 && (
+                          {(result.highlights?.length ?? 0) > 0 && (
                             <div className="mt-2">
                               <div className="text-sm text-muted-foreground line-clamp-2">
-                                {result.highlights.join(' • ')}
+                                {(result.highlights ?? []).join(' • ')}
                               </div>
                             </div>
                           )}
@@ -358,15 +358,15 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
                             >
                               {result.type.charAt(0).toUpperCase() + result.type.slice(1)}
                             </Badge>
-                            {result.badges.map((badge, badgeIndex) => (
-                              <Badge 
-                                key={badgeIndex} 
-                                variant="secondary" 
-                                className="text-xs"
-                              >
-                                {badge}
-                              </Badge>
-                            ))}
+                              {(result.badges ?? []).map((badge, badgeIndex) => (
+                                <Badge 
+                                  key={badgeIndex} 
+                                  variant="secondary" 
+                                  className="text-xs"
+                                >
+                                  {badge}
+                                </Badge>
+                              ))}
                             {result.score && (
                               <Badge variant="outline" className="text-xs text-muted-foreground">
                                 {Math.round(result.score * 100)}% match
