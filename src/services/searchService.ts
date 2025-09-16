@@ -213,8 +213,14 @@ class SearchService {
     // Import demo data dynamically to avoid loading it unnecessarily
     const { demoSearchIndex } = await import('@/data/demoSearchData');
     
+    // Get dynamic DMS documents
+    const dynamicResults = await this.getDynamicDocumentResults(query, scope);
+    
+    // Combine static demo data with dynamic DMS documents
+    const allResults = [...demoSearchIndex, ...dynamicResults];
+    
     const searchTerms = query.toLowerCase().split(' ');
-    let results = demoSearchIndex.filter(item => {
+    let results = allResults.filter(item => {
       if (scope !== 'all') {
         // Convert plural scope to singular for comparison
         const singularScope = scope.endsWith('s') ? scope.slice(0, -1) : scope;
@@ -242,10 +248,14 @@ class SearchService {
   private async suggestDemo(query: string, limit: number): Promise<SearchSuggestion[]> {
     const { demoSearchIndex } = await import('@/data/demoSearchData');
     
+    // Get dynamic DMS documents for suggestions too
+    const dynamicResults = await this.getDynamicDocumentResults(query, 'all');
+    const allResults = [...demoSearchIndex, ...dynamicResults];
+    
     const queryLower = query.toLowerCase();
     const suggestions = new Map<string, SearchSuggestion>();
 
-    demoSearchIndex.forEach(item => {
+    allResults.forEach(item => {
       const title = item.title.toLowerCase();
       if (title.includes(queryLower)) {
         const key = title;
@@ -260,6 +270,45 @@ class SearchService {
     });
 
     return Array.from(suggestions.values()).slice(0, limit);
+  }
+
+  /**
+   * Get dynamic DMS documents from localStorage for search
+   */
+  private async getDynamicDocumentResults(query: string, scope: SearchScope): Promise<SearchResult[]> {
+    try {
+      // Only include documents if scope is 'all' or 'documents'
+      if (scope !== 'all' && scope !== 'documents') {
+        return [];
+      }
+
+      const documents = await idbStorage.get('documents') || [];
+      const folders = await idbStorage.get('folders') || [];
+      
+      // Create a map of folder IDs to folder names for better context
+      const folderMap = new Map();
+      folders.forEach((folder: any) => {
+        folderMap.set(folder.id, folder.name);
+      });
+
+      return documents.map((doc: any) => {
+        const folderName = doc.folderId ? folderMap.get(doc.folderId) : 'Root';
+        
+        return {
+          type: 'document' as const,
+          id: doc.id,
+          title: doc.name,
+          subtitle: `${folderName} • ${doc.type || 'Document'} • ${doc.size || 'Unknown size'}`,
+          url: `/documents?document=${doc.id}`,
+          score: 1.0,
+          highlights: [doc.description || doc.name],
+          badges: [doc.type || 'Document', folderName]
+        };
+      });
+    } catch (error) {
+      console.warn('Failed to load dynamic documents for search:', error);
+      return [];
+    }
   }
 
   /**

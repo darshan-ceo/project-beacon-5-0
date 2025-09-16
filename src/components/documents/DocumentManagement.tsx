@@ -166,6 +166,9 @@ export const DocumentManagement: React.FC = () => {
     
     if (search) {
       setSearchTerm(search);
+      setDocumentSearchTerm(search);
+      // Switch to "All Documents" tab to show search results
+      setActiveTab('all-documents');
     }
     
     if (caseId) {
