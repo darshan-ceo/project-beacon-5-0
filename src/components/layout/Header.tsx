@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { RoleSelector } from '@/components/dashboard/RoleSelector';
+import { GlobalSearch } from '@/components/search/GlobalSearch';
 
 interface HeaderProps {
   user: {
@@ -47,15 +48,9 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
 
   return (
     <div className="flex items-center justify-between w-full">
-      {/* Left Section - Search */}
+      {/* Left Section - Global Search */}
       <div className="flex items-center space-x-4 flex-1">
-        <div className="relative max-w-md w-full">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search cases, clients, tasks..."
-            className="pl-10 bg-muted/50 border-0 focus-visible:ring-1"
-          />
-        </div>
+        <GlobalSearch />
       </div>
 
       {/* Right Section */}

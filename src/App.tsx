@@ -37,6 +37,7 @@ import { ClientPortal } from "./components/portal/ClientPortal";
 import { ClientLayout } from "./components/layout/ClientLayout";
 import { ClientRouteGuard } from "./components/ui/client-route-guard";
 import { AppWithPersistence } from "./components/AppWithPersistence";
+import { SearchResultsPage } from "./pages/SearchResultsPage";
 
 const queryClient = new QueryClient();
 
@@ -197,6 +198,11 @@ const App = () => (
               <Route path="/pending-records" element={
                 <AdminLayout currentUser={currentUser}>
                   <PendingRecordsPage />
+                </AdminLayout>
+              } />
+              <Route path="/search" element={
+                <AdminLayout currentUser={currentUser}>
+                  <SearchResultsPage />
                 </AdminLayout>
               } />
               <Route path="*" element={<NotFound />} />

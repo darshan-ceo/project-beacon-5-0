@@ -207,6 +207,13 @@ class FeatureFlagService {
       isEnabled: true, // ON in UAT
       version: 'v1'
     });
+
+    // Global Search v1 (UAT enabled)
+    this.flags.set('global_search_v1', {
+      key: 'global_search_v1',
+      isEnabled: true, // ON in UAT
+      version: 'v1'
+    });
   }
 
   /**
