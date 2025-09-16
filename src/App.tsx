@@ -38,6 +38,7 @@ import { ClientLayout } from "./components/layout/ClientLayout";
 import { ClientRouteGuard } from "./components/ui/client-route-guard";
 import { AppWithPersistence } from "./components/AppWithPersistence";
 import { SearchResultsPage } from "./pages/SearchResultsPage";
+import { DebugSearchInspector } from "./pages/DebugSearchInspector";
 
 const queryClient = new QueryClient();
 
@@ -203,6 +204,11 @@ const App = () => (
               <Route path="/search" element={
                 <AdminLayout currentUser={currentUser}>
                   <SearchResultsPage />
+                </AdminLayout>
+              } />
+              <Route path="/debug/search" element={
+                <AdminLayout currentUser={currentUser}>
+                  <DebugSearchInspector />
                 </AdminLayout>
               } />
               <Route path="*" element={<NotFound />} />

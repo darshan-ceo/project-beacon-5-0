@@ -43,6 +43,105 @@ class SearchService {
 
   constructor() {
     this.loadRecentSearches();
+    this.providerReady = this.initProvider();
+  }
+
+  /**
+   * Initialize search provider once on boot and persist decision
+   */
+  public async initProvider(): Promise<void> {
+    // Check if provider is already determined in this session
+    const sessionProvider = sessionStorage.getItem('search_provider') as SearchProvider;
+    if (sessionProvider && (sessionProvider === 'API' || sessionProvider === 'DEMO')) {
+      this.provider = sessionProvider;
+      console.log(`🔍 Search provider loaded from session:`, this.provider);
+      return;
+    }
+
+    // Determine provider based on API availability
+    let provider: SearchProvider = 'DEMO';
+    
+    if (envConfig.API_SET) {
+      try {
+        // Test API reachability with 1500ms timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 1500);
+        
+        try {
+          // Try search ping endpoint first, fallback to health check
+          let pingUrl = `${envConfig.API}/api/search/ping`;
+          let response = await fetch(pingUrl, { 
+            method: 'GET',
+            signal: controller.signal 
+          });
+          
+          if (!response.ok) {
+            // Fallback to health endpoint
+            pingUrl = `${envConfig.API}/api/health`;
+            response = await fetch(pingUrl, { 
+              method: 'GET',
+              signal: controller.signal 
+            });
+          }
+          
+          if (!response.ok) {
+            // Last fallback - try a small search request
+            pingUrl = `${envConfig.API}/api/search/suggest?q=ping&limit=1`;
+            response = await fetch(pingUrl, { 
+              method: 'GET',
+              signal: controller.signal 
+            });
+          }
+          
+          clearTimeout(timeoutId);
+          
+          if (response.ok) {
+            provider = 'API';
+            console.log(`🔍 API reachable at ${pingUrl}, using API provider`);
+          } else {
+            console.log(`🔍 API not responsive (${response.status}), falling back to DEMO`);
+          }
+        } catch (fetchError) {
+          clearTimeout(timeoutId);
+          console.log(`🔍 API unreachable, falling back to DEMO:`, fetchError.message);
+        }
+      } catch (error) {
+        console.log(`🔍 API ping failed, using DEMO provider:`, error.message);
+      }
+    } else if (envConfig.QA_ON || envConfig.MOCK_ON || !envConfig.API_SET) {
+      provider = 'DEMO';
+      console.log(`🔍 Using DEMO provider due to environment config`);
+    }
+
+    this.provider = provider;
+    sessionStorage.setItem('search_provider', provider);
+    console.log(`🔍 Search provider determined and persisted:`, provider);
+    
+    // Notify subscribers
+    this.providerSubscribers.forEach(callback => callback(provider));
+  }
+
+  /**
+   * Get current search provider
+   */
+  public getProvider(): SearchProvider | null {
+    return this.provider;
+  }
+
+  /**
+   * Subscribe to provider changes
+   */
+  public subscribeProvider(callback: (provider: SearchProvider) => void): () => void {
+    this.providerSubscribers.push(callback);
+    if (this.provider) {
+      callback(this.provider);
+    }
+    return () => {
+      const index = this.providerSubscribers.indexOf(callback);
+      if (index > -1) {
+        this.providerSubscribers.splice(index, 1);
+      }
+    };
   }
 
   /**
@@ -542,23 +641,7 @@ class SearchService {
   /**
    * Determine if demo mode should be used
    */
-  private shouldUseDemoMode(): boolean {
-    const isFeatureEnabled = featureFlagService.isEnabled('global_search_v1');
-    const isDemoMode = envConfig.QA_ON && !envConfig.API_SET;
-    const shouldUseDemo = !isFeatureEnabled || isDemoMode;
-    
-    if (this.isDevModeOn()) {
-      console.log('🔍 Search Mode Selection:', {
-        isFeatureEnabled,
-        isDemoMode,
-        QA_ON: envConfig.QA_ON,
-        API_SET: envConfig.API_SET,
-        shouldUseDemo
-      });
-    }
-    
-    return shouldUseDemo;
-  }
+  // Removed shouldUseDemoMode() - provider is now determined once in initProvider()
 
   /**
    * Cache management

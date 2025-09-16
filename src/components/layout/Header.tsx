@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Bell, 
@@ -8,7 +8,9 @@ import {
   LogOut,
   User,
   Settings,
-  AlertTriangle
+  AlertTriangle,
+  Database,
+  TestTube
 } from 'lucide-react';
 import { envConfig } from '@/utils/envConfig';
 import { Button } from '@/components/ui/button';
@@ -25,6 +27,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { RoleSelector } from '@/components/dashboard/RoleSelector';
 import { GlobalSearch } from '@/components/search/GlobalSearch';
+import { searchService, SearchProvider } from '@/services/searchService';
 
 interface HeaderProps {
   user: {
@@ -36,6 +39,21 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ user }) => {
+  const [searchProvider, setSearchProvider] = useState<SearchProvider | null>(null);
+
+  useEffect(() => {
+    // Subscribe to search provider changes
+    const unsubscribe = searchService.subscribeProvider?.(setSearchProvider);
+    
+    // Get initial provider if available
+    const currentProvider = searchService.getProvider?.();
+    if (currentProvider) {
+      setSearchProvider(currentProvider);
+    }
+    
+    return unsubscribe;
+  }, []);
+
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'Admin': return 'bg-primary text-primary-foreground';
@@ -60,6 +78,21 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
           <Badge variant="destructive" className="flex items-center gap-1 animate-pulse">
             <AlertTriangle className="h-3 w-3" />
             DEV MODE
+          </Badge>
+        )}
+        
+        {/* Search Provider Badge */}
+        {searchProvider && (
+          <Badge 
+            variant={searchProvider === 'API' ? 'default' : 'secondary'} 
+            className="flex items-center gap-1"
+          >
+            {searchProvider === 'API' ? (
+              <Database className="h-3 w-3" />
+            ) : (
+              <TestTube className="h-3 w-3" />
+            )}
+            Search: {searchProvider}
           </Badge>
         )}
         
