@@ -88,15 +88,16 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
       setError(null);
 
       const response = await searchService.search(searchQuery, searchScope, 20, cursor);
+      const responseResults = Array.isArray(response?.results) ? response.results : [];
       
       if (append) {
-        setResults(prev => [...prev, ...response.results]);
+        setResults(prev => ([...(Array.isArray(prev) ? prev : []), ...responseResults]));
       } else {
-        setResults(response.results);
+        setResults(responseResults);
       }
       
-      setNextCursor(response.next_cursor);
-      setHasMore(Boolean(response.next_cursor));
+      setNextCursor(response?.next_cursor ?? undefined);
+      setHasMore(Boolean(response?.next_cursor));
     } catch (err) {
       console.error('Search error:', err);
       setError(err instanceof Error ? err.message : 'Search failed');
@@ -173,7 +174,7 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
   }, [navigate, onClose]);
 
   const activeScopeOption = scopeOptions.find(option => option.value === localScope);
-  const resultCount = results.length;
+  const resultCount = Array.isArray(results) ? results.length : 0;
   const hasResults = resultCount > 0;
 
   return (
@@ -274,7 +275,7 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
         )}
 
         {/* Loading State */}
-        {isLoading && results.length === 0 && (
+        {isLoading && (Array.isArray(results) ? results.length === 0 : true) && (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
