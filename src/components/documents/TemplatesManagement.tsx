@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { OrganizationGuide } from './OrganizationGuide';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -274,6 +275,9 @@ export const TemplatesManagement: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Organization Guide */}
+      <OrganizationGuide />
+      
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

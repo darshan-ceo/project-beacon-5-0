@@ -846,6 +846,9 @@ export const DocumentManagement: React.FC = () => {
               transition={{ duration: 0.3 }}
               className="space-y-6"
             >
+              {/* Organization Guide */}
+              <OrganizationGuide />
+              
               {/* Unified Search for Folders */}
               <UnifiedDocumentSearch
                 onSearch={(query) => setDocumentSearchTerm(query)}
@@ -944,6 +947,9 @@ export const DocumentManagement: React.FC = () => {
             transition={{ duration: 0.3 }}
             className="space-y-6"
           >
+            {/* Organization Guide */}
+            <OrganizationGuide />
+            
             {/* Unified Search for All Documents */}
             <UnifiedDocumentSearch
               onSearch={(query) => setDocumentSearchTerm(query)}
