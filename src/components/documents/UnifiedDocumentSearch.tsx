@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Filter, X, Tag, User, Calendar as CalendarIcon, FileType } from 'lucide-react';
+import { Search, Filter, X, Tag, User, Calendar, FileType } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -322,7 +322,7 @@ export const UnifiedDocumentSearch: React.FC<UnifiedDocumentSearchProps> = ({
           
           {activeFilters.dateRange && (
             <Badge variant="secondary" className="flex items-center gap-1">
-              <CalendarIcon className="h-3 w-3" />
+              <Calendar className="h-3 w-3" />
               Date Range
               <X 
                 className="h-3 w-3 cursor-pointer" 
