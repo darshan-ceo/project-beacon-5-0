@@ -70,8 +70,11 @@ class SearchService {
     }
     this.lastRequestTime = now;
 
-    // Check cache first
-    const cacheKey = `search:${query}:${scope}:${limit}:${cursor || ''}`;
+    // Check cache first (include state version to avoid stale results in demo mode)
+    const stateVersion = this.shouldUseDemoMode()
+      ? String((localStorage.getItem('lawfirm_app_data') || localStorage.getItem('beacon-app-state') || '').length)
+      : '';
+    const cacheKey = `search:${query}:${scope}:${limit}:${cursor || ''}:${stateVersion}`;
     const cached = this.getCachedResult(cacheKey);
     if (cached) {
       return cached;
@@ -121,7 +124,10 @@ class SearchService {
       return this.getRecentSearchSuggestions(limit);
     }
 
-    const cacheKey = `suggest:${query}:${limit}`;
+    const stateVersion = this.shouldUseDemoMode()
+      ? String((localStorage.getItem('lawfirm_app_data') || localStorage.getItem('beacon-app-state') || '').length)
+      : '';
+    const cacheKey = `suggest:${query}:${limit}:${stateVersion}`;
     const cached = this.getCachedResult(cacheKey);
     if (cached) {
       return cached;
@@ -219,20 +225,22 @@ class SearchService {
     // Combine static demo data with dynamic AppState data
     const allResults = [...demoSearchIndex, ...dynamicResults];
     
-    const searchTerms = query.toLowerCase().split(' ').filter(term => term.length > 0);
+    const normalizedQuery = this.normalize(query);
+    const searchTerms = normalizedQuery.split(' ').filter(Boolean);
     let results = allResults.filter(item => {
       if (scope !== 'all') {
         // Convert plural scope to singular for comparison
-        const singularScope = scope.endsWith('s') ? scope.slice(0, -1) : scope;
+        const singularScope = (scope.endsWith('s') ? scope.slice(0, -1) : scope) as SearchResult['type'];
         if (item.type !== singularScope) return false;
       }
       
-      const searchableText = `${item.title} ${item.subtitle} ${item.highlights.join(' ')} ${item.badges.join(' ')}`.toLowerCase();
+      const searchableRaw = `${item.title} ${item.subtitle} ${item.highlights.join(' ')} ${item.badges.join(' ')}`;
+      const searchableText = this.normalize(searchableRaw);
       
       // For better matching, require at least one search term to match
       // But also check for partial phrase matching
       const hasTermMatch = searchTerms.some(term => searchableText.includes(term));
-      const hasPhraseMatch = searchableText.includes(query.toLowerCase());
+      const hasPhraseMatch = searchableText.includes(normalizedQuery);
       
       return hasTermMatch || hasPhraseMatch;
     });
@@ -258,13 +266,13 @@ class SearchService {
     const dynamicResults = await this.getDynamicResults(query, 'all');
     const allResults = [...demoSearchIndex, ...dynamicResults];
     
-    const queryLower = query.toLowerCase();
+    const normalizedQuery = this.normalize(query);
     const suggestions = new Map<string, SearchSuggestion>();
 
     allResults.forEach(item => {
-      const title = item.title.toLowerCase();
-      if (title.includes(queryLower)) {
-        const key = title;
+      const titleNorm = this.normalize(item.title);
+      if (titleNorm.includes(normalizedQuery)) {
+        const key = item.title;
         if (!suggestions.has(key)) {
           suggestions.set(key, {
             text: item.title,
@@ -286,7 +294,7 @@ class SearchService {
       const results: SearchResult[] = [];
       
       // Get AppState data from localStorage
-      const appStateData = localStorage.getItem('beacon-app-state');
+      const appStateData = localStorage.getItem('lawfirm_app_data') || localStorage.getItem('beacon-app-state');
       let appState: any = {};
       
       if (appStateData) {
@@ -373,27 +381,30 @@ class SearchService {
 
       // Add documents if scope allows
       if (scope === 'all' || scope === 'documents') {
-        const documents = await idbStorage.get('documents') || [];
-        const folders = await idbStorage.get('folders') || [];
+        const documents = Array.isArray(appState.documents) ? appState.documents : [];
+        const folders = Array.isArray(appState.folders) ? appState.folders : [];
         
         // Create a map of folder IDs to folder names for better context
-        const folderMap = new Map();
+        const folderMap = new Map<string, string>();
         folders.forEach((folder: any) => {
-          folderMap.set(folder.id, folder.name);
+          if (folder && folder.id) {
+            folderMap.set(folder.id, folder.name || 'Folder');
+          }
         });
 
         documents.forEach((doc: any) => {
-          const folderName = doc.folderId ? folderMap.get(doc.folderId) : 'Root';
-          
+          const folderName = doc.folderId ? folderMap.get(doc.folderId) || 'Root' : 'Root';
+          const ext = (doc.name?.split('.').pop() || '').toLowerCase();
+
           results.push({
             type: 'document',
             id: doc.id,
             title: doc.name,
-            subtitle: `${folderName} • ${doc.type || 'Document'} • ${doc.size || 'Unknown size'}`,
-            url: `/documents?document=${doc.id}`,
+            subtitle: `${folderName} • ${ext || (doc.type || 'document')} • ${doc.size ? `${Math.round(doc.size / 1024)} KB` : 'Unknown size'}`,
+            url: `/documents?search=${encodeURIComponent(doc.name)}`,
             score: 1.0,
-            highlights: [doc.description || doc.name],
-            badges: [doc.type || 'Document', folderName]
+            highlights: [doc.tags?.join(', ') || '', doc.path || '', doc.uploadedByName || ''],
+            badges: [ext || (doc.type || 'Document'), folderName]
           });
         });
       }
@@ -406,34 +417,46 @@ class SearchService {
   }
 
   /**
+   * Text normalization for robust matching (case, dashes/underscores, punctuation)
+   */
+  private normalize(text: string): string {
+    return (text || '')
+      .toLowerCase()
+      .replace(/[_-]+/g, ' ')
+      .replace(/[^a-z0-9\s]+/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  /**
    * Calculate demo search score
    */
   private calculateDemoScore(item: SearchResult, searchTerms: string[]): number {
     let score = 0;
-    const titleLower = item.title.toLowerCase();
-    const subtitleLower = item.subtitle.toLowerCase();
-    const queryLower = searchTerms.join(' ');
+    const titleNorm = this.normalize(item.title);
+    const subtitleNorm = this.normalize(item.subtitle);
+    const queryNorm = searchTerms.join(' ');
 
     // Exact phrase match in title gets highest score
-    if (titleLower.includes(queryLower)) {
+    if (titleNorm.includes(queryNorm)) {
       score += 10;
     }
 
     // Individual term matches
     searchTerms.forEach(term => {
-      if (titleLower.includes(term)) score += 3;
-      if (subtitleLower.includes(term)) score += 2;
-      if (item.highlights.some(h => h.toLowerCase().includes(term))) score += 1;
-      if (item.badges.some(b => b.toLowerCase().includes(term))) score += 0.5;
+      if (titleNorm.includes(term)) score += 3;
+      if (subtitleNorm.includes(term)) score += 2;
+      if (item.highlights.some(h => this.normalize(h).includes(term))) score += 1;
+      if (item.badges.some(b => this.normalize(b).includes(term))) score += 0.5;
     });
 
-    // Boost score for exact title matches
-    if (titleLower === queryLower) {
+    // Boost score for exact normalized title matches
+    if (titleNorm === queryNorm) {
       score += 20;
     }
 
     // Boost score for data from AppState (more relevant than static demo data)
-    if (item.type === 'case' || item.type === 'hearing' || item.type === 'task' || item.type === 'client') {
+    if (item.type === 'case' || item.type === 'hearing' || item.type === 'task' || item.type === 'client' || item.type === 'document') {
       score += 5;
     }
 
