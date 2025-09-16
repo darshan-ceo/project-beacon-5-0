@@ -51,6 +51,7 @@ export const TemplatesManagement: React.FC = () => {
   const [builderOpen, setBuilderOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<FormTemplate | null>(null);
   const [activeTab, setActiveTab] = useState('standard');
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
 
   const canEdit = hasPermission('admin', 'admin');
   const canGenerate = hasPermission('documents', 'write') || hasPermission('admin', 'admin');
@@ -58,6 +59,21 @@ export const TemplatesManagement: React.FC = () => {
   useEffect(() => {
     loadTemplates();
     loadCustomTemplates();
+  }, []);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+F focuses template search
+      if (e.ctrlKey && e.key === 'f') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+      // / key opens global search (handled by header component)
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   const loadTemplates = async () => {
@@ -280,12 +296,13 @@ export const TemplatesManagement: React.FC = () => {
         )}
       </div>
 
-      {/* Search and Filters */}
+      {/* Unified Template Search */}
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search templates..."
+            ref={searchInputRef}
+            placeholder="Search templates by title, code, content... (Press / for global search)"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"

@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { DocumentModal } from '@/components/modals/DocumentModal';
 import { NewFolderModal } from './NewFolderModal';
-import { DocumentFilters } from './DocumentFilters';
+import { UnifiedDocumentSearch } from './UnifiedDocumentSearch';
 import { DuplicateHandlerModal } from './DuplicateHandlerModal';
 import { OrganizationGuide } from './OrganizationGuide';
 import { RecentDocuments } from './RecentDocuments';
@@ -111,6 +111,7 @@ export const DocumentManagement: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const [documentSearchTerm, setDocumentSearchTerm] = useState('');
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [currentPath, setCurrentPath] = useState<string[]>([]);
   const [activeView, setActiveView] = useState<'grid' | 'list'>('list');
@@ -203,7 +204,7 @@ export const DocumentManagement: React.FC = () => {
   // Apply filters when documents or filters change
   useEffect(() => {
     applyFilters();
-  }, [state.documents, searchTerm, activeFilters]);
+  }, [state.documents, documentSearchTerm, activeFilters]);
 
   const loadFolders = async () => {
     try {
@@ -243,8 +244,8 @@ export const DocumentManagement: React.FC = () => {
     let filtered = [...convertedDocs];
 
     // Search filter - improved to handle tag-specific searches
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
+    if (documentSearchTerm) {
+      const searchLower = documentSearchTerm.toLowerCase();
       filtered = filtered.filter(doc => {
         // Search in document name
         const nameMatch = doc.name.toLowerCase().includes(searchLower);
@@ -732,26 +733,18 @@ export const DocumentManagement: React.FC = () => {
       {/* Organization Guide */}
       <OrganizationGuide />
 
-      {/* Search and Filters */}
+      {/* Unified Document Search */}
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.2 }}
-        className="flex flex-col sm:flex-row gap-4 items-center justify-between"
       >
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search documents, tags, or content..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        
-        <DocumentFilters
+        <UnifiedDocumentSearch
+          onSearch={(query) => setDocumentSearchTerm(query)}
           onFiltersChange={setActiveFilters}
           activeFilters={activeFilters}
+          searchTerm={documentSearchTerm}
+          onSearchTermChange={setDocumentSearchTerm}
         />
       </motion.div>
 
@@ -853,6 +846,15 @@ export const DocumentManagement: React.FC = () => {
               transition={{ duration: 0.3 }}
               className="space-y-6"
             >
+              {/* Unified Search for Folders */}
+              <UnifiedDocumentSearch
+                onSearch={(query) => setDocumentSearchTerm(query)}
+                onFiltersChange={setActiveFilters}
+                activeFilters={activeFilters}
+                searchTerm={documentSearchTerm}
+                onSearchTermChange={setDocumentSearchTerm}
+                placeholder="Search folder contents by title, tag, content... (Press / for global search)"
+              />
               {/* Current Folder Subfolders */}
               {currentSubfolders.length > 0 && (
                 <div>
@@ -942,6 +944,15 @@ export const DocumentManagement: React.FC = () => {
             transition={{ duration: 0.3 }}
             className="space-y-6"
           >
+            {/* Unified Search for All Documents */}
+            <UnifiedDocumentSearch
+              onSearch={(query) => setDocumentSearchTerm(query)}
+              onFiltersChange={setActiveFilters}
+              activeFilters={activeFilters}
+              searchTerm={documentSearchTerm}
+              onSearchTermChange={setDocumentSearchTerm}
+              placeholder="Search all documents by title, tag, content... (Press / for global search)"
+            />
             {filteredDocuments.length > 0 ? (
               <div className="space-y-2">
                 {filteredDocuments.map((doc) => (
@@ -1012,7 +1023,7 @@ export const DocumentManagement: React.FC = () => {
                 <File className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-foreground mb-2">No documents found</h3>
                 <p className="text-muted-foreground mb-4">
-                  {searchTerm || Object.keys(activeFilters).length > 0 
+                  {documentSearchTerm || Object.keys(activeFilters).length > 0 
                     ? "Try adjusting your search or filters" 
                     : "Start by uploading your first document"
                   }
