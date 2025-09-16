@@ -57,6 +57,8 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   
+  console.log('🔍 SearchResults - Component rendered with query:', searchParams.get('q'));
+  
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -83,12 +85,20 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
       return;
     }
 
+    console.log('🔍 SearchResults - Starting search:', { searchQuery, searchScope, cursor, append });
+
     try {
       setIsLoading(true);
       setError(null);
 
       const response = await searchService.search(searchQuery, searchScope, 20, cursor);
       const responseResults = Array.isArray(response?.results) ? response.results : [];
+      
+      console.log('🔍 SearchResults - Got response:', { 
+        resultsCount: responseResults.length, 
+        hasNextCursor: Boolean(response?.next_cursor),
+        firstFewResults: responseResults.slice(0, 3).map(r => ({ type: r.type, title: r.title }))
+      });
       
       if (append) {
         setResults(prev => ([...(Array.isArray(prev) ? prev : []), ...responseResults]));
@@ -118,6 +128,7 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
 
   // Initial search and URL param changes
   useEffect(() => {
+    console.log('🔍 SearchResults - Effect triggered with:', { query, scope });
     if (query) {
       performSearch(query, scope);
     }

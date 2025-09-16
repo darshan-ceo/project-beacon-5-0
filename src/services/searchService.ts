@@ -545,7 +545,19 @@ class SearchService {
   private shouldUseDemoMode(): boolean {
     const isFeatureEnabled = featureFlagService.isEnabled('global_search_v1');
     const isDemoMode = envConfig.QA_ON && !envConfig.API_SET;
-    return !isFeatureEnabled || isDemoMode;
+    const shouldUseDemo = !isFeatureEnabled || isDemoMode;
+    
+    if (this.isDevModeOn()) {
+      console.log('🔍 Search Mode Selection:', {
+        isFeatureEnabled,
+        isDemoMode,
+        QA_ON: envConfig.QA_ON,
+        API_SET: envConfig.API_SET,
+        shouldUseDemo
+      });
+    }
+    
+    return shouldUseDemo;
   }
 
   /**
