@@ -213,13 +213,13 @@ class SearchService {
     // Import demo data dynamically to avoid loading it unnecessarily
     const { demoSearchIndex } = await import('@/data/demoSearchData');
     
-    // Get dynamic DMS documents
-    const dynamicResults = await this.getDynamicDocumentResults(query, scope);
+    // Get all dynamic results from AppState (cases, hearings, tasks, clients, documents)
+    const dynamicResults = await this.getDynamicResults(query, scope);
     
-    // Combine static demo data with dynamic DMS documents
+    // Combine static demo data with dynamic AppState data
     const allResults = [...demoSearchIndex, ...dynamicResults];
     
-    const searchTerms = query.toLowerCase().split(' ');
+    const searchTerms = query.toLowerCase().split(' ').filter(term => term.length > 0);
     let results = allResults.filter(item => {
       if (scope !== 'all') {
         // Convert plural scope to singular for comparison
@@ -227,8 +227,14 @@ class SearchService {
         if (item.type !== singularScope) return false;
       }
       
-      const searchableText = `${item.title} ${item.subtitle} ${item.highlights.join(' ')}`.toLowerCase();
-      return searchTerms.some(term => searchableText.includes(term));
+      const searchableText = `${item.title} ${item.subtitle} ${item.highlights.join(' ')} ${item.badges.join(' ')}`.toLowerCase();
+      
+      // For better matching, require at least one search term to match
+      // But also check for partial phrase matching
+      const hasTermMatch = searchTerms.some(term => searchableText.includes(term));
+      const hasPhraseMatch = searchableText.includes(query.toLowerCase());
+      
+      return hasTermMatch || hasPhraseMatch;
     });
 
     // Sort by relevance (simple scoring)
@@ -248,8 +254,8 @@ class SearchService {
   private async suggestDemo(query: string, limit: number): Promise<SearchSuggestion[]> {
     const { demoSearchIndex } = await import('@/data/demoSearchData');
     
-    // Get dynamic DMS documents for suggestions too
-    const dynamicResults = await this.getDynamicDocumentResults(query, 'all');
+    // Get all dynamic results for suggestions too
+    const dynamicResults = await this.getDynamicResults(query, 'all');
     const allResults = [...demoSearchIndex, ...dynamicResults];
     
     const queryLower = query.toLowerCase();
@@ -273,40 +279,128 @@ class SearchService {
   }
 
   /**
-   * Get dynamic DMS documents from localStorage for search
+   * Get all dynamic results from AppState (cases, hearings, tasks, clients, documents)
    */
-  private async getDynamicDocumentResults(query: string, scope: SearchScope): Promise<SearchResult[]> {
+  private async getDynamicResults(query: string, scope: SearchScope): Promise<SearchResult[]> {
     try {
-      // Only include documents if scope is 'all' or 'documents'
-      if (scope !== 'all' && scope !== 'documents') {
-        return [];
+      const results: SearchResult[] = [];
+      
+      // Get AppState data from localStorage
+      const appStateData = localStorage.getItem('beacon-app-state');
+      let appState: any = {};
+      
+      if (appStateData) {
+        try {
+          appState = JSON.parse(appStateData);
+        } catch (e) {
+          console.warn('Failed to parse app state:', e);
+        }
       }
 
-      const documents = await idbStorage.get('documents') || [];
-      const folders = await idbStorage.get('folders') || [];
-      
-      // Create a map of folder IDs to folder names for better context
-      const folderMap = new Map();
-      folders.forEach((folder: any) => {
-        folderMap.set(folder.id, folder.name);
-      });
+      // Add cases if scope allows
+      if (scope === 'all' || scope === 'cases') {
+        const cases = appState.cases || [];
+        cases.forEach((caseItem: any) => {
+          results.push({
+            type: 'case',
+            id: caseItem.id,
+            title: caseItem.title || `Case ${caseItem.caseNumber}`,
+            subtitle: `${caseItem.caseNumber || 'N/A'} • ${caseItem.clientName || 'Unknown Client'} • ${caseItem.stage || 'Unknown Stage'}`,
+            url: `/cases/${caseItem.id}`,
+            score: 1.0,
+            highlights: [caseItem.description || caseItem.title || caseItem.caseNumber || ''],
+            badges: [caseItem.stage || 'Case', caseItem.clientName || 'Unknown Client']
+          });
+        });
+      }
 
-      return documents.map((doc: any) => {
-        const folderName = doc.folderId ? folderMap.get(doc.folderId) : 'Root';
+      // Add hearings if scope allows
+      if (scope === 'all' || scope === 'hearings') {
+        const hearings = appState.hearings || [];
+        hearings.forEach((hearing: any) => {
+          const caseInfo = appState.cases?.find((c: any) => c.id === hearing.caseId);
+          const caseTitle = caseInfo?.title || `Case ${caseInfo?.caseNumber || 'Unknown'}`;
+          
+          results.push({
+            type: 'hearing',
+            id: hearing.id,
+            title: hearing.agenda || hearing.title || `Hearing ${hearing.id}`,
+            subtitle: `${caseTitle} • ${hearing.court || 'Unknown Court'} • ${hearing.date || 'Unknown Date'}`,
+            url: `/hearings/${hearing.id}`,
+            score: 1.0,
+            highlights: [hearing.agenda || hearing.notes || hearing.title || ''],
+            badges: [hearing.court || 'Hearing', hearing.outcome || 'Scheduled']
+          });
+        });
+      }
+
+      // Add tasks if scope allows
+      if (scope === 'all' || scope === 'tasks') {
+        const tasks = appState.tasks || [];
+        tasks.forEach((task: any) => {
+          const caseInfo = appState.cases?.find((c: any) => c.id === task.caseId);
+          const caseTitle = caseInfo?.title || `Case ${caseInfo?.caseNumber || 'Unknown'}`;
+          
+          results.push({
+            type: 'task',
+            id: task.id,
+            title: task.title || `Task ${task.id}`,
+            subtitle: `${caseTitle} • Due: ${task.dueDate || 'No due date'} • ${task.status || 'Unknown Status'}`,
+            url: `/tasks/${task.id}`,
+            score: 1.0,
+            highlights: [task.description || task.title || ''],
+            badges: [task.status || 'Task', task.priority || 'Normal']
+          });
+        });
+      }
+
+      // Add clients if scope allows
+      if (scope === 'all' || scope === 'clients') {
+        const clients = appState.clients || [];
+        clients.forEach((client: any) => {
+          results.push({
+            type: 'client',
+            id: client.id,
+            title: client.name || `Client ${client.id}`,
+            subtitle: `${client.gstin || 'No GSTIN'} • ${client.businessType || 'Unknown Business'} • ${client.email || 'No Email'}`,
+            url: `/clients/${client.id}`,
+            score: 1.0,
+            highlights: [client.address || client.name || ''],
+            badges: [client.businessType || 'Client', client.gstin ? 'GST Registered' : 'No GST']
+          });
+        });
+      }
+
+      // Add documents if scope allows
+      if (scope === 'all' || scope === 'documents') {
+        const documents = await idbStorage.get('documents') || [];
+        const folders = await idbStorage.get('folders') || [];
         
-        return {
-          type: 'document' as const,
-          id: doc.id,
-          title: doc.name,
-          subtitle: `${folderName} • ${doc.type || 'Document'} • ${doc.size || 'Unknown size'}`,
-          url: `/documents?document=${doc.id}`,
-          score: 1.0,
-          highlights: [doc.description || doc.name],
-          badges: [doc.type || 'Document', folderName]
-        };
-      });
+        // Create a map of folder IDs to folder names for better context
+        const folderMap = new Map();
+        folders.forEach((folder: any) => {
+          folderMap.set(folder.id, folder.name);
+        });
+
+        documents.forEach((doc: any) => {
+          const folderName = doc.folderId ? folderMap.get(doc.folderId) : 'Root';
+          
+          results.push({
+            type: 'document',
+            id: doc.id,
+            title: doc.name,
+            subtitle: `${folderName} • ${doc.type || 'Document'} • ${doc.size || 'Unknown size'}`,
+            url: `/documents?document=${doc.id}`,
+            score: 1.0,
+            highlights: [doc.description || doc.name],
+            badges: [doc.type || 'Document', folderName]
+          });
+        });
+      }
+
+      return results;
     } catch (error) {
-      console.warn('Failed to load dynamic documents for search:', error);
+      console.warn('Failed to load dynamic results for search:', error);
       return [];
     }
   }
@@ -318,12 +412,30 @@ class SearchService {
     let score = 0;
     const titleLower = item.title.toLowerCase();
     const subtitleLower = item.subtitle.toLowerCase();
+    const queryLower = searchTerms.join(' ');
 
+    // Exact phrase match in title gets highest score
+    if (titleLower.includes(queryLower)) {
+      score += 10;
+    }
+
+    // Individual term matches
     searchTerms.forEach(term => {
-      if (titleLower.includes(term)) score += 2;
-      if (subtitleLower.includes(term)) score += 1;
-      if (item.highlights.some(h => h.toLowerCase().includes(term))) score += 0.5;
+      if (titleLower.includes(term)) score += 3;
+      if (subtitleLower.includes(term)) score += 2;
+      if (item.highlights.some(h => h.toLowerCase().includes(term))) score += 1;
+      if (item.badges.some(b => b.toLowerCase().includes(term))) score += 0.5;
     });
+
+    // Boost score for exact title matches
+    if (titleLower === queryLower) {
+      score += 20;
+    }
+
+    // Boost score for data from AppState (more relevant than static demo data)
+    if (item.type === 'case' || item.type === 'hearing' || item.type === 'task' || item.type === 'client') {
+      score += 5;
+    }
 
     return score;
   }
