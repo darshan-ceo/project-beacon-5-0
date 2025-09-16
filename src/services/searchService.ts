@@ -104,7 +104,7 @@ class SearchService {
       console.error('Search error:', error);
       
       // Fallback to demo mode if API fails and dev mode is on
-      if (envConfig.QA_ON && !this.shouldUseDemoMode()) {
+      if (this.isDevModeOn()) {
         console.log('API failed, falling back to demo mode');
         return this.searchDemo(query, scope, limit);
       }
@@ -142,7 +142,7 @@ class SearchService {
       console.error('Suggestions error:', error);
       
       // Fallback to demo mode or recent searches
-      if (envConfig.QA_ON && !this.shouldUseDemoMode()) {
+      if (this.isDevModeOn()) {
         console.log('Suggestions API failed, falling back to demo mode');
         return this.suggestDemo(query, limit);
       }
@@ -277,6 +277,13 @@ class SearchService {
     });
 
     return score;
+  }
+
+  /**
+   * Check if dev mode is active (matches header Dev Mode badge logic)
+   */
+  private isDevModeOn(): boolean {
+    return envConfig.QA_ON || envConfig.MOCK_ON || !envConfig.API_SET;
   }
 
   /**

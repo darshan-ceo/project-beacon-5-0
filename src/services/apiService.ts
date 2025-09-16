@@ -53,27 +53,60 @@ class ApiService {
       const resolvedUrl = finalUrl.toString();
       console.log(`API GET: ${resolvedUrl}`);
 
+      // Add timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+
       const response = await fetch(resolvedUrl, {
         method: 'GET',
-        headers: this.getAuthHeaders()
+        headers: this.getAuthHeaders(),
+        signal: controller.signal
       });
 
-      const data = await response.json();
+      clearTimeout(timeoutId);
+
+      // Check if response is JSON before parsing
+      const contentType = response.headers.get('content-type') || '';
+      const isJson = contentType.includes('application/json');
+
+      let data: any = null;
+      if (isJson) {
+        try {
+          data = await response.json();
+        } catch (parseError) {
+          return {
+            success: false,
+            error: `Invalid JSON response from ${resolvedUrl}`,
+            data: null
+          };
+        }
+      } else {
+        // Non-JSON response (likely HTML error page)
+        const text = await response.text();
+        data = { message: `Non-JSON response: ${response.status} ${response.statusText}` };
+      }
       
       if (!response.ok) {
         return {
           success: false,
-          error: `${data.message || `HTTP ${response.status}`} (URL: ${resolvedUrl})`,
+          error: `${data?.message || `HTTP ${response.status}`} (URL: ${resolvedUrl})`,
           data: null
         };
       }
 
       return {
         success: true,
-        data: data.data || data,
-        message: data.message
+        data: data?.data || data,
+        message: data?.message
       };
     } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        return {
+          success: false,
+          error: 'Request timeout',
+          data: null
+        };
+      }
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Network error',
