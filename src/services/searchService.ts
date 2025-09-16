@@ -305,6 +305,17 @@ class SearchService {
         }
       }
 
+      // Debug logging for document discovery
+      if (this.isDevModeOn() && (scope === 'all' || scope === 'documents')) {
+        console.log('🔍 Search Debug - Query:', query);
+        console.log('🔍 Search Debug - AppState keys:', Object.keys(appState));
+        console.log('🔍 Search Debug - Documents in state:', appState.documents?.length || 0);
+        if (appState.documents?.length > 0) {
+          console.log('🔍 Search Debug - First few document names:', 
+            appState.documents.slice(0, 5).map((d: any) => d.name || d.title));
+        }
+      }
+
       // Add cases if scope allows
       if (scope === 'all' || scope === 'cases') {
         const cases = appState.cases || [];
@@ -384,6 +395,15 @@ class SearchService {
         const documents = Array.isArray(appState.documents) ? appState.documents : [];
         const folders = Array.isArray(appState.folders) ? appState.folders : [];
         
+        // Debug logging for document search
+        if (this.isDevModeOn()) {
+          console.log('🔍 Document Search Debug - Found documents:', documents.length);
+          const queryNormalized = this.normalize(query);
+          const queryExact = query.toLowerCase().trim();
+          console.log('🔍 Document Search Debug - Query normalized:', queryNormalized);
+          console.log('🔍 Document Search Debug - Query exact:', queryExact);
+        }
+        
         // Create a map of folder IDs to folder names for better context
         const folderMap = new Map<string, string>();
         folders.forEach((folder: any) => {
@@ -393,8 +413,22 @@ class SearchService {
         });
 
         documents.forEach((doc: any) => {
+          if (!doc || !doc.name) return; // Skip invalid documents
+          
           const folderName = doc.folderId ? folderMap.get(doc.folderId) || 'Root' : 'Root';
           const ext = (doc.name?.split('.').pop() || '').toLowerCase();
+          const docNameNormalized = this.normalize(doc.name);
+          const docNameExact = doc.name.toLowerCase().trim();
+
+          // Debug logging for specific document matching
+          if (this.isDevModeOn() && docNameExact.includes(query.toLowerCase().trim())) {
+            console.log('🔍 Found potential match:', {
+              docName: doc.name,
+              docNameNormalized,
+              docNameExact,
+              queryExact: query.toLowerCase().trim()
+            });
+          }
 
           results.push({
             type: 'document',
@@ -418,46 +452,81 @@ class SearchService {
 
   /**
    * Text normalization for robust matching (case, dashes/underscores, punctuation)
+   * Enhanced to handle filenames better
    */
   private normalize(text: string): string {
-    return (text || '')
+    if (!text) return '';
+    
+    // For better filename matching, preserve some structure
+    return text
       .toLowerCase()
-      .replace(/[_-]+/g, ' ')
-      .replace(/[^a-z0-9\s]+/gi, ' ')
-      .replace(/\s+/g, ' ')
+      .replace(/[_-]+/g, ' ')  // Convert underscores and dashes to spaces
+      .replace(/\./g, ' ')     // Convert dots to spaces (for file extensions)
+      .replace(/[^a-z0-9\s]/gi, ' ')  // Remove other special chars
+      .replace(/\s+/g, ' ')    // Collapse multiple spaces
       .trim();
   }
 
   /**
-   * Calculate demo search score
+   * Check for exact filename match (case-insensitive)
+   */
+  private isExactFilenameMatch(filename: string, query: string): boolean {
+    return filename.toLowerCase().trim() === query.toLowerCase().trim();
+  }
+
+  /**
+   * Check for partial filename match (without normalization)
+   */
+  private isPartialFilenameMatch(filename: string, query: string): boolean {
+    return filename.toLowerCase().includes(query.toLowerCase());
+  }
+
+  /**
+   * Calculate demo search score with enhanced filename matching
    */
   private calculateDemoScore(item: SearchResult, searchTerms: string[]): number {
     let score = 0;
     const titleNorm = this.normalize(item.title);
     const subtitleNorm = this.normalize(item.subtitle);
     const queryNorm = searchTerms.join(' ');
+    const fullQuery = searchTerms.join(' ');
 
-    // Exact phrase match in title gets highest score
+    // For documents, prioritize exact filename matches
+    if (item.type === 'document') {
+      // Highest score for exact filename match (case-insensitive)
+      if (this.isExactFilenameMatch(item.title, fullQuery)) {
+        score += 100;
+        console.log('🎯 Exact filename match found:', item.title, 'Score:', score);
+      }
+      
+      // High score for partial filename match (without normalization)
+      if (this.isPartialFilenameMatch(item.title, fullQuery)) {
+        score += 50;
+        console.log('🎯 Partial filename match found:', item.title, 'Score:', score);
+      }
+    }
+
+    // Exact phrase match in title gets high score
     if (titleNorm.includes(queryNorm)) {
-      score += 10;
+      score += 20;
     }
 
     // Individual term matches
     searchTerms.forEach(term => {
-      if (titleNorm.includes(term)) score += 3;
-      if (subtitleNorm.includes(term)) score += 2;
-      if (item.highlights.some(h => this.normalize(h).includes(term))) score += 1;
-      if (item.badges.some(b => this.normalize(b).includes(term))) score += 0.5;
+      if (titleNorm.includes(term)) score += 5;
+      if (subtitleNorm.includes(term)) score += 3;
+      if (item.highlights.some(h => this.normalize(h).includes(term))) score += 2;
+      if (item.badges.some(b => this.normalize(b).includes(term))) score += 1;
     });
 
     // Boost score for exact normalized title matches
     if (titleNorm === queryNorm) {
-      score += 20;
+      score += 30;
     }
 
     // Boost score for data from AppState (more relevant than static demo data)
     if (item.type === 'case' || item.type === 'hearing' || item.type === 'task' || item.type === 'client' || item.type === 'document') {
-      score += 5;
+      score += 10;
     }
 
     return score;
@@ -550,6 +619,19 @@ class SearchService {
       await idbStorage.delete('recent_searches');
     } catch (error) {
       console.warn('Failed to clear recent searches:', error);
+    }
+    
+    console.log('🧹 Search cache cleared');
+  }
+
+  /**
+   * Force refresh search data and clear cache
+   */
+  async refreshSearchData(): Promise<void> {
+    await this.clearCache();
+    
+    if (this.isDevModeOn()) {
+      console.log('🔄 Search data refreshed - next search will use fresh data');
     }
   }
 }
