@@ -20,7 +20,14 @@ class ApiService {
   private baseURL: string;
 
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+    const envBase = (import.meta.env.VITE_API_BASE_URL || '').trim();
+    const isLocalEnvBase = /^https?:\/\/(localhost|127\.0\.0\.1)/i.test(envBase);
+    const isLocalHost = typeof window !== 'undefined' && /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname);
+    
+    // Use window.location.origin if no env var or if env points to localhost but we're not on localhost
+    this.baseURL = envBase && !(isLocalEnvBase && !isLocalHost) 
+      ? envBase 
+      : (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
   }
 
   private getAuthHeaders(): Record<string, string> {

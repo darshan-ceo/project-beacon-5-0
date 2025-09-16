@@ -105,6 +105,7 @@ class SearchService {
       
       // Fallback to demo mode if API fails and dev mode is on
       if (envConfig.QA_ON && !this.shouldUseDemoMode()) {
+        console.log('API failed, falling back to demo mode');
         return this.searchDemo(query, scope, limit);
       }
 
@@ -142,6 +143,7 @@ class SearchService {
       
       // Fallback to demo mode or recent searches
       if (envConfig.QA_ON && !this.shouldUseDemoMode()) {
+        console.log('Suggestions API failed, falling back to demo mode');
         return this.suggestDemo(query, limit);
       }
       
@@ -170,7 +172,7 @@ class SearchService {
     }
 
     const response = await apiService.get<SearchResponse>(
-      `/search?${params.toString()}`
+      `/api/search?${params.toString()}`
     );
 
     if (!response.success) {
@@ -190,7 +192,7 @@ class SearchService {
     });
 
     const response = await apiService.get<SearchSuggestion[]>(
-      `/search/suggest?${params.toString()}`
+      `/api/search/suggest?${params.toString()}`
     );
 
     if (!response.success) {
