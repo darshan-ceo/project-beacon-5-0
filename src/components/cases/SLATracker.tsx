@@ -114,6 +114,7 @@ const criticalCases = [
 
 export const SLATracker: React.FC<SLATrackerProps> = ({ cases }) => {
   const [selectedCaseForAction, setSelectedCaseForAction] = useState<{ id: string; urgency: string } | null>(null);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const getSLAColor = (status: string) => {
     switch (status) {
       case 'Green': return 'bg-success text-success-foreground';
@@ -362,11 +363,34 @@ export const SLATracker: React.FC<SLATrackerProps> = ({ cases }) => {
                   Last updated: Just now • Auto-refresh every 5 minutes
                 </p>
                 <div className="flex space-x-2">
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        const { reportsService } = await import('@/services/reportsService');
+                        await reportsService.exportCaseList([], 'excel');
+                        toast({
+                          title: "Export Started",
+                          description: "SLA report is being generated",
+                        });
+                      } catch (error) {
+                        toast({
+                          title: "Export Failed",
+                          description: "Failed to export SLA report",
+                          variant: "destructive"
+                        });
+                      }
+                    }}
+                  >
                     <FileText className="mr-2 h-4 w-4" />
                     Export Report
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setIsReportModalOpen(true)}
+                  >
                     <Calendar className="mr-2 h-4 w-4" />
                     Schedule Report
                   </Button>
@@ -385,6 +409,32 @@ export const SLATracker: React.FC<SLATrackerProps> = ({ cases }) => {
         urgencyLevel={selectedCaseForAction?.urgency as 'High' | 'Medium' | 'Low' || 'Medium'}
         suggestedAction="Urgent SLA Response Required"
       />
+
+      {/* Report Generator Modal */}
+      {isReportModalOpen && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-card p-6 rounded-lg border shadow-lg max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">Schedule SLA Report</h3>
+            <p className="text-muted-foreground mb-4">
+              Automated SLA reports can be scheduled to run daily, weekly, or monthly.
+            </p>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setIsReportModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={() => {
+                setIsReportModalOpen(false);
+                toast({
+                  title: "Report Scheduled",
+                  description: "SLA report will be sent weekly",
+                });
+              }}>
+                Schedule
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

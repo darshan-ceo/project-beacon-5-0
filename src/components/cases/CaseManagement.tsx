@@ -354,40 +354,30 @@ export const CaseManagement: React.FC = () => {
         transition={{ duration: 0.3 }}
         className="flex justify-between items-center"
       >
-          <div className="flex items-center gap-3">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">Case Management</h1>
-              <GlossaryDescription className="text-muted-foreground mt-2">
-                Comprehensive case lifecycle with SLA tracking and hearing management
-              </GlossaryDescription>
-            </div>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Case Management</h1>
+            <p className="text-muted-foreground mt-2">
+              Comprehensive case lifecycle with SLA tracking and hearing management
+            </p>
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => tourService.startTour('case-management')}
-              className="flex items-center gap-2"
-            >
-              <HelpCircle className="w-4 h-4" />
-              Start Tour
-            </Button>
-            <ContextualPageHelp 
-              pageId="case-management" 
-              activeTab={activeTab}
-              variant="resizable" 
-            />
-            <InlineHelp module="case-management" />
-          </div>
-        <div className="flex gap-2">
-            <Button 
-              variant="outline"
-              onClick={() => tourService.startTour('case-management')}
-              size="sm"
-            >
-              <HelpCircle className="mr-2 h-4 w-4" />
-              Start Tour
-            </Button>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => tourService.startTour('case-management')}
+            className="flex items-center gap-2"
+          >
+            <HelpCircle className="w-4 h-4" />
+            Start Tour
+          </Button>
+          <ContextualPageHelp 
+            pageId="case-management" 
+            activeTab={activeTab}
+            variant="resizable" 
+          />
+          <InlineHelp module="case-management" />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button 

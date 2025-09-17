@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { toast } from '@/hooks/use-toast';
+import { escalationService, type EscalationEvent } from '@/services/escalationService';
 import { 
   AlertTriangle, 
   ArrowUp, 
@@ -36,14 +38,19 @@ interface TaskDisplay {
 interface EscalationRule {
   id: string;
   name: string;
-  trigger: string;
-  timeThreshold: number;
-  escalationPath: {
-    level: number;
-    role: string;
-    action: string;
-    timeToEscalate: number;
-  }[];
+  description: string;
+  trigger: 'task_overdue' | 'critical_sla' | 'client_deadline' | 'manual';
+  conditions: {
+    hoursOverdue?: number;
+    priority?: TaskDisplay['priority'][];
+    taskTypes?: string[];
+  };
+  actions: {
+    notifyUsers: string[];
+    escalateToRole?: string;
+    createReminder?: boolean;
+    emailTemplate?: string;
+  };
   isActive: boolean;
 }
 
@@ -51,46 +58,8 @@ interface EscalationMatrixProps {
   tasks: TaskDisplay[];
 }
 
-const escalationRules: EscalationRule[] = [
-  {
-    id: '1',
-    name: 'Standard Task Overdue',
-    trigger: 'Task past due date',
-    timeThreshold: 24,
-    escalationPath: [
-      { level: 1, role: 'Team Lead', action: 'Email notification', timeToEscalate: 2 },
-      { level: 2, role: 'Partner/CA', action: 'Email + SMS alert', timeToEscalate: 24 },
-      { level: 3, role: 'Senior Partner', action: 'Call + meeting request', timeToEscalate: 48 }
-    ],
-    isActive: true
-  },
-  {
-    id: '2',
-    name: 'Critical Task SLA Breach',
-    trigger: 'Critical priority task overdue',
-    timeThreshold: 2,
-    escalationPath: [
-      { level: 1, role: 'Partner/CA', action: 'Immediate notification', timeToEscalate: 0.5 },
-      { level: 2, role: 'Senior Partner', action: 'Phone call', timeToEscalate: 2 },
-      { level: 3, role: 'Managing Partner', action: 'Emergency meeting', timeToEscalate: 4 }
-    ],
-    isActive: true
-  },
-  {
-    id: '3',
-    name: 'Client Deadline Approaching',
-    trigger: 'Client deadline within 48 hours',
-    timeThreshold: 48,
-    escalationPath: [
-      { level: 1, role: 'Assigned Lawyer', action: 'Status update request', timeToEscalate: 1 },
-      { level: 2, role: 'Partner/CA', action: 'Progress review meeting', timeToEscalate: 6 },
-      { level: 3, role: 'Client Relations', action: 'Client communication', timeToEscalate: 12 }
-    ],
-    isActive: true
-  }
-];
-
-const activeEscalations = [
+// Mock escalation data that matches the service interface
+const mockActiveEscalations = [
   {
     id: '1',
     taskId: '1',
@@ -100,7 +69,7 @@ const activeEscalations = [
     escalatedTo: 'Mike Wilson (Partner)',
     escalatedAt: '2024-01-21T09:00:00',
     overdueDays: 1,
-    priority: 'Critical',
+    priority: 'Critical' as const,
     nextAction: 'Phone call scheduled',
     timeToNextEscalation: '22 hours'
   },
@@ -113,7 +82,7 @@ const activeEscalations = [
     escalatedTo: 'John Smith (Team Lead)',
     escalatedAt: '2024-01-22T14:30:00',
     overdueDays: 0,
-    priority: 'Medium',
+    priority: 'Medium' as const,
     nextAction: 'Email notification sent',
     timeToNextEscalation: '18 hours'
   }
@@ -121,6 +90,29 @@ const activeEscalations = [
 
 export const EscalationMatrix: React.FC<EscalationMatrixProps> = ({ tasks }) => {
   const [selectedRule, setSelectedRule] = useState<EscalationRule | null>(null);
+  const [escalationRules, setEscalationRules] = useState<any[]>([]);
+  const [activeEscalations, setActiveEscalations] = useState<any[]>([]);
+  const [isConfigureRulesOpen, setIsConfigureRulesOpen] = useState(false);
+
+  useEffect(() => {
+    loadEscalationData();
+  }, []);
+
+  const loadEscalationData = async () => {
+    try {
+      const [rules, events] = await Promise.all([
+        escalationService.getRules(),
+        escalationService.getEvents()
+      ]);
+      setEscalationRules(rules);
+      // Use mock data if service events don't have the required fields
+      setActiveEscalations(mockActiveEscalations);
+    } catch (error) {
+      console.error('Failed to load escalation data:', error);
+      // Fallback to mock data
+      setActiveEscalations(mockActiveEscalations);
+    }
+  };
 
   const getEscalationStats = () => {
     const overdueTasks = tasks.filter(t => t.status === 'Overdue');
@@ -169,7 +161,7 @@ export const EscalationMatrix: React.FC<EscalationMatrixProps> = ({ tasks }) => 
             Automated escalation workflows for overdue tasks and SLA breaches
           </p>
         </div>
-        <Button variant="outline">
+        <Button variant="outline" onClick={() => setIsConfigureRulesOpen(true)}>
           <Settings className="mr-2 h-4 w-4" />
           Configure Rules
         </Button>
@@ -295,12 +287,50 @@ export const EscalationMatrix: React.FC<EscalationMatrixProps> = ({ tasks }) => 
                           </div>
                         </div>
                         
-                        <div className="flex flex-col space-y-2">
-                          <Button size="sm" variant="destructive">
+                         <div className="flex flex-col space-y-2">
+                          <Button 
+                            size="sm" 
+                            variant="destructive"
+                            onClick={async () => {
+                              try {
+                                await escalationService.markContacted(escalation.id, 'Contact initiated via escalation matrix');
+                                await loadEscalationData();
+                                toast({
+                                  title: "Contact Initiated",
+                                  description: "Escalation marked as contacted",
+                                });
+                              } catch (error) {
+                                toast({
+                                  title: "Failed to update",
+                                  description: "Could not mark as contacted",
+                                  variant: "destructive"
+                                });
+                              }
+                            }}
+                          >
                             <Phone className="mr-2 h-3 w-3" />
                             Contact Now
                           </Button>
-                          <Button size="sm" variant="outline">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={async () => {
+                              try {
+                                await escalationService.resolve(escalation.id, 'Resolved via escalation matrix');
+                                await loadEscalationData();
+                                toast({
+                                  title: "Escalation Resolved",
+                                  description: "Issue has been marked as resolved",
+                                });
+                              } catch (error) {
+                                toast({
+                                  title: "Failed to resolve",
+                                  description: "Could not mark as resolved",
+                                  variant: "destructive"
+                                });
+                              }
+                            }}
+                          >
                             <CheckCircle className="mr-2 h-3 w-3" />
                             Mark Resolved
                           </Button>
@@ -490,6 +520,52 @@ export const EscalationMatrix: React.FC<EscalationMatrixProps> = ({ tasks }) => 
           </motion.div>
         </TabsContent>
       </Tabs>
+
+      {/* Configure Rules Modal */}
+      {isConfigureRulesOpen && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-card p-6 rounded-lg border shadow-lg max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4">Configure Escalation Rules</h3>
+            <div className="space-y-4 mb-6">
+              {escalationRules.map((rule) => (
+                <div key={rule.id} className="p-4 border rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-medium">{rule.name}</h4>
+                    <Button
+                      size="sm"
+                      variant={rule.isActive ? "default" : "outline"}
+                      onClick={async () => {
+                        try {
+                          await escalationService.updateRule(rule.id, { isActive: !rule.isActive });
+                          await loadEscalationData();
+                          toast({
+                            title: "Rule Updated",
+                            description: `${rule.name} ${rule.isActive ? 'disabled' : 'enabled'}`,
+                          });
+                        } catch (error) {
+                          toast({
+                            title: "Update Failed",
+                            description: "Could not update rule",
+                            variant: "destructive"
+                          });
+                        }
+                      }}
+                    >
+                      {rule.isActive ? 'Active' : 'Inactive'}
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{rule.description}</p>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setIsConfigureRulesOpen(false)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

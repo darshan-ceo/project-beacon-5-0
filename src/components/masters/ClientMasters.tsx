@@ -55,8 +55,8 @@ export const ClientMasters: React.FC = () => {
 
   const filteredClients = state.clients.filter(client => {
     const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (client.gstNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         client.panNumber.toLowerCase().includes(searchTerm.toLowerCase());
+                         (client.gstin || client.gstNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (client.pan || client.panNumber || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterStatus === 'all' || client.status === filterStatus;
     return matchesSearch && matchesFilter;
   });
@@ -295,8 +295,8 @@ export const ClientMasters: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">
-                        <p className="text-sm font-mono">{client.gstNumber || 'N/A'}</p>
-                        <p className="text-sm font-mono text-muted-foreground">{client.panNumber}</p>
+                        <p className="text-sm font-mono">{client.gstin || client.gstNumber || 'N/A'}</p>
+                        <p className="text-sm font-mono text-muted-foreground">{client.pan || client.panNumber || 'N/A'}</p>
                       </div>
                     </TableCell>
                     <TableCell>
