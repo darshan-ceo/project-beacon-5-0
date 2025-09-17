@@ -114,30 +114,28 @@ export const ClientDocumentLibrary: React.FC<ClientDocumentLibraryProps> = ({
     }
   };
 
-  const handleDownload = (document: Document) => {
-    // Mock download functionality
-    toast({
-      title: "Download Started",
-      description: `Downloading ${document.name}...`,
-    });
-
-    // Simulate download
-    const link = globalThis.document.createElement('a');
-    link.href = `data:text/plain;charset=utf-8,${encodeURIComponent(
-      `Mock document content for: ${document.name}\nType: ${document.type}\nSize: ${document.size} bytes`
-    )}`;
-    link.download = document.name;
-    globalThis.document.body.appendChild(link);
-    link.click();
-    globalThis.document.body.removeChild(link);
+  const handleDownload = async (document: Document) => {
+    try {
+      await dmsService.files.download(document.id, document.name);
+      toast({
+        title: "Download Started",
+        description: `Downloading ${document.name}...`,
+      });
+    } catch (error) {
+      toast({
+        title: "Download Failed",
+        description: "Unable to download the document. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handlePreview = (document: Document) => {
+    // For now, show the document details - in a real app this would open a viewer
     toast({
-      title: "Preview Opening",
-      description: `Opening preview for ${document.name}`,
+      title: "Document Preview",
+      description: `${document.name} - ${formatFileSize(document.size)}`,
     });
-    // In real app, would open document preview modal/window
   };
 
   const formatFileSize = (bytes: number) => {

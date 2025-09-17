@@ -716,6 +716,9 @@ export const dmsService = {
         // Get the document from state to retrieve actual content
         const appData = JSON.parse(localStorage.getItem('lawfirm_app_data') || '{}');
         const documents = appData.documents || [];
+        
+        // Import file type utilities for better content generation
+        const { generateSampleContent } = await import('@/utils/fileTypeUtils');
         const foundDocument = documents.find((doc: Document) => doc.id === documentId);
         
         let blob: Blob;
@@ -807,8 +810,9 @@ export const dmsService = {
               }, `image/${fileExt === 'jpg' ? 'jpeg' : fileExt}`);
             });
           } else {
-            // Plain text fallback for other file types
-            const mockContent = `Document: ${fileName}\nThis is sample content for ${fileName}\nGenerated on: ${new Date().toLocaleString()}\n\nThis is a mock document created for testing purposes.\nThe original document content was not available in storage.`;
+            // Use generated sample content
+            const { generateSampleContent } = await import('@/utils/fileTypeUtils');
+            const mockContent = generateSampleContent(fileName, fileExt);
             blob = new Blob([mockContent], { type: 'text/plain' });
           }
         }

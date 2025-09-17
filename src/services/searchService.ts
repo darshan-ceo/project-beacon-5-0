@@ -492,7 +492,7 @@ class SearchService {
     const normalizedQuery = parsedQuery.terms.join(' ');
     
     try {
-      const appStateStr = localStorage.getItem('appState');
+      const appStateStr = localStorage.getItem('lawfirm_app_data');
       if (!appStateStr) return results;
       
       const appState = JSON.parse(appStateStr);
@@ -550,7 +550,7 @@ class SearchService {
               id: doc.id,
               title: doc.name,
               subtitle: `${doc.type} • ${doc.size} bytes • Uploaded by ${doc.uploadedByName}`,
-              url: `/documents/${doc.id}`,
+              url: `/document-management?search=${encodeURIComponent(doc.name)}`,
               type: 'document',
               score: score,
               highlights: [doc.name],
@@ -671,7 +671,7 @@ class SearchService {
     const suggestions: SearchSuggestion[] = [];
     
     try {
-      const appStateStr = localStorage.getItem('appState');
+      const appStateStr = localStorage.getItem('lawfirm_app_data');
       if (!appStateStr) return suggestions;
       
       const appState = JSON.parse(appStateStr);
