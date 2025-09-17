@@ -35,11 +35,14 @@ export const ClientContactsSection: React.FC<ClientContactsSectionProps> = ({
   const [showCreateDrawer, setShowCreateDrawer] = useState(false);
 
   useEffect(() => {
-    if (clientId && clientId !== 'new' && mode !== 'create') {
-      fetchContacts();
-    } else if (preloadedContacts.length > 0) {
-      // Show preloaded contacts from GSP/GST
+    // Always prioritize preloaded contacts first (from GST/GSP import)
+    if (preloadedContacts.length > 0) {
       setContacts(preloadedContacts);
+    } else if (clientId && clientId !== 'new' && mode !== 'create') {
+      fetchContacts();
+    } else {
+      // Clear contacts for new client creation without preloaded data
+      setContacts([]);
     }
   }, [clientId, mode, preloadedContacts]);
 
