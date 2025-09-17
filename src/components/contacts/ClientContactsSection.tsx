@@ -48,9 +48,18 @@ export const ClientContactsSection: React.FC<ClientContactsSectionProps> = ({
     try {
       const response = await clientContactsService.getContacts(clientId);
       if (response.success && response.data) {
-        setContacts(response.data);
+        // Ensure data is an array before setting
+        if (Array.isArray(response.data)) {
+          setContacts(response.data);
+        } else {
+          console.warn('Contacts API returned non-array data:', response.data);
+          setContacts([]);
+        }
+      } else {
+        setContacts([]);
       }
     } catch (error) {
+      setContacts([]);
       toast({
         title: 'Error',
         description: 'Failed to load contacts',

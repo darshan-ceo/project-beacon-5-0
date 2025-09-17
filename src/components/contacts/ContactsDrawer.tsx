@@ -81,8 +81,15 @@ export const ContactsDrawer: React.FC<ContactsDrawerProps> = ({
       });
 
       if (response.success && response.data) {
-        setContacts(response.data);
+        // Ensure data is an array before setting
+        if (Array.isArray(response.data)) {
+          setContacts(response.data);
+        } else {
+          console.warn('Contacts API returned non-array data:', response.data);
+          setContacts([]);
+        }
       } else {
+        setContacts([]);
         toast({
           title: 'Error',
           description: response.error || 'Failed to load contacts',
@@ -90,6 +97,7 @@ export const ContactsDrawer: React.FC<ContactsDrawerProps> = ({
         });
       }
     } catch (error) {
+      setContacts([]);
       toast({
         title: 'Error',
         description: 'Network error while loading contacts',
