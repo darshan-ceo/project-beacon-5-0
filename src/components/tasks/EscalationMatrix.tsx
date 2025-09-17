@@ -351,7 +351,7 @@ export const EscalationMatrix: React.FC<EscalationMatrixProps> = ({ tasks }) => 
             transition={{ duration: 0.3 }}
             className="space-y-6"
           >
-            {escalationRules.map((rule, index) => (
+            {escalationRules.length > 0 ? escalationRules.map((rule, index) => (
               <motion.div
                 key={rule.id}
                 initial={{ opacity: 0, x: -20 }}
@@ -364,7 +364,7 @@ export const EscalationMatrix: React.FC<EscalationMatrixProps> = ({ tasks }) => 
                       <div>
                         <CardTitle className="text-lg">{rule.name}</CardTitle>
                         <CardDescription>
-                          Trigger: {rule.trigger} (within {rule.timeThreshold}h)
+                          Trigger: {rule.trigger} • {rule.description}
                         </CardDescription>
                       </div>
                       <Badge variant={rule.isActive ? "default" : "secondary"}>
@@ -374,42 +374,60 @@ export const EscalationMatrix: React.FC<EscalationMatrixProps> = ({ tasks }) => 
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      <h4 className="font-medium">Escalation Path</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {rule.escalationPath.map((level, levelIndex) => {
-                          const ActionIcon = getActionIcon(level.action);
-                          
-                          return (
-                            <div key={level.level} className="relative">
-                              {levelIndex < rule.escalationPath.length - 1 && (
-                                <div className="hidden md:block absolute top-8 right-0 w-8 h-0.5 bg-border translate-x-full" />
-                              )}
-                              
-                              <div className="p-4 rounded-lg border border-border bg-muted/30">
-                                <div className="flex items-center space-x-2 mb-2">
-                                  <Badge variant="secondary" className={getLevelColor(level.level)}>
-                                    Level {level.level}
-                                  </Badge>
-                                  <ActionIcon className="h-4 w-4" />
-                                </div>
-                                
-                                <h5 className="font-medium text-sm">{level.role}</h5>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  {level.action}
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-2">
-                                  Escalates in: {level.timeToEscalate}h
-                                </p>
-                              </div>
-                            </div>
-                          );
-                        })}
+                      <h4 className="font-medium">Escalation Configuration</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="p-4 rounded-lg border border-border bg-muted/30">
+                          <h5 className="font-medium text-sm mb-2">Conditions</h5>
+                          <div className="space-y-2 text-xs text-muted-foreground">
+                            {rule.conditions.hoursOverdue && (
+                              <p>• Overdue by {rule.conditions.hoursOverdue} hours</p>
+                            )}
+                            {rule.conditions.priority && rule.conditions.priority.length > 0 && (
+                              <p>• Priority: {rule.conditions.priority.join(', ')}</p>
+                            )}
+                            {rule.conditions.taskTypes && rule.conditions.taskTypes.length > 0 && (
+                              <p>• Task types: {rule.conditions.taskTypes.join(', ')}</p>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="p-4 rounded-lg border border-border bg-muted/30">
+                          <h5 className="font-medium text-sm mb-2">Actions</h5>
+                          <div className="space-y-2 text-xs text-muted-foreground">
+                            {rule.actions.notifyUsers && rule.actions.notifyUsers.length > 0 && (
+                              <p>• Notify: {rule.actions.notifyUsers.join(', ')}</p>
+                            )}
+                            {rule.actions.escalateToRole && (
+                              <p>• Escalate to: {rule.actions.escalateToRole}</p>
+                            )}
+                            {rule.actions.createReminder && (
+                              <p>• Create reminder</p>
+                            )}
+                            {rule.actions.emailTemplate && (
+                              <p>• Use template: {rule.actions.emailTemplate}</p>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
               </motion.div>
-            ))}
+            )) : (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <AlertTriangle className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No Escalation Rules Configured</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Set up escalation rules to automatically handle overdue tasks and SLA breaches
+                  </p>
+                  <Button onClick={() => setIsConfigureRulesOpen(true)}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    Configure Rules
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </motion.div>
         </TabsContent>
 

@@ -39,6 +39,7 @@ import { InlineHelp } from '@/components/help/InlineHelp';
 import { useRelationships } from '@/hooks/useRelationships';
 import { useRBAC } from '@/hooks/useRBAC';
 import { featureFlagService } from '@/services/featureFlagService';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 
 export const ClientMasters: React.FC = () => {
   const { state, dispatch } = useAppState();
@@ -343,7 +344,16 @@ export const ClientMasters: React.FC = () => {
                         <DropdownMenuContent>
                           <DropdownMenuItem
                             onClick={() => {
-                              setClientModal({ isOpen: true, mode: 'view', client });
+                              try {
+                                setClientModal({ isOpen: true, mode: 'view', client });
+                              } catch (error) {
+                                console.error('Error opening client view:', error);
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to open client details",
+                                  variant: "destructive"
+                                });
+                              }
                             }}
                           >
                             <Eye className="mr-2 h-4 w-4" />
@@ -351,7 +361,16 @@ export const ClientMasters: React.FC = () => {
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => {
-                              setClientModal({ isOpen: true, mode: 'edit', client });
+                              try {
+                                setClientModal({ isOpen: true, mode: 'edit', client });
+                              } catch (error) {
+                                console.error('Error opening client edit:', error);
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to open client editor",
+                                  variant: "destructive"
+                                });
+                              }
                             }}
                           >
                             <Edit className="mr-2 h-4 w-4" />
@@ -359,7 +378,16 @@ export const ClientMasters: React.FC = () => {
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => {
-                              setCaseModal({ isOpen: true, contextClientId: client.id });
+                              try {
+                                setCaseModal({ isOpen: true, contextClientId: client.id });
+                              } catch (error) {
+                                console.error('Error opening case modal:', error);
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to open new case form",
+                                  variant: "destructive"
+                                });
+                              }
                             }}
                           >
                             <Plus className="mr-2 h-4 w-4" />
@@ -369,22 +397,31 @@ export const ClientMasters: React.FC = () => {
                           <DropdownMenuItem 
                             className="text-destructive"
                             onClick={() => {
-                              const dependencies = checkDependencies('client', client.id);
-                              let confirmMessage = `Are you sure you want to delete ${client.name}? This action cannot be undone.`;
-                              
-                              if (dependencies.length > 0) {
-                                confirmMessage += `\n\nThis client has ${dependencies.join(', ')}. These will also be deleted.`;
-                              }
-                              
-                              if (confirm(confirmMessage)) {
-                                const success = safeDelete('client', client.id, dependencies.length > 0);
-                                if (success) {
-                                  toast({
-                                    title: "Client Deleted",
-                                    description: `${client.name} has been removed`,
-                                    variant: "destructive",
-                                  });
+                              try {
+                                const dependencies = checkDependencies('client', client.id);
+                                let confirmMessage = `Are you sure you want to delete ${client.name}? This action cannot be undone.`;
+                                
+                                if (dependencies.length > 0) {
+                                  confirmMessage += `\n\nThis client has ${dependencies.join(', ')}. These will also be deleted.`;
                                 }
+                                
+                                if (confirm(confirmMessage)) {
+                                  const success = safeDelete('client', client.id, dependencies.length > 0);
+                                  if (success) {
+                                    toast({
+                                      title: "Client Deleted",
+                                      description: `${client.name} has been removed`,
+                                      variant: "destructive",
+                                    });
+                                  }
+                                }
+                              } catch (error) {
+                                console.error('Error deleting client:', error);
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to delete client",
+                                  variant: "destructive"
+                                });
                               }
                             }}
                           >
@@ -402,19 +439,23 @@ export const ClientMasters: React.FC = () => {
         </Card>
       </motion.div>
 
-      <ClientModal
-        isOpen={clientModal.isOpen}
-        onClose={() => setClientModal({ isOpen: false, mode: 'create', client: null })}
-        client={clientModal.client}
-        mode={clientModal.mode}
-      />
+      <ErrorBoundary>
+        <ClientModal
+          isOpen={clientModal.isOpen}
+          onClose={() => setClientModal({ isOpen: false, mode: 'create', client: null })}
+          client={clientModal.client}
+          mode={clientModal.mode}
+        />
+      </ErrorBoundary>
 
-      <CaseModal
-        isOpen={caseModal.isOpen}
-        onClose={() => setCaseModal({ isOpen: false, contextClientId: undefined })}
-        mode="create"
-        contextClientId={caseModal.contextClientId}
-      />
+      <ErrorBoundary>
+        <CaseModal
+          isOpen={caseModal.isOpen}
+          onClose={() => setCaseModal({ isOpen: false, contextClientId: undefined })}
+          mode="create"
+          contextClientId={caseModal.contextClientId}
+        />
+      </ErrorBoundary>
 
       {/* Import/Export Wizards */}
       <ImportWizard

@@ -51,6 +51,7 @@ import { GlossaryText, GlossaryDescription } from '@/components/ui/glossary-enha
 import { NoticeIntakeWizard } from '@/components/notices/NoticeIntakeWizard';
 import { featureFlagService } from '@/services/featureFlagService';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 
 export const CaseManagement: React.FC = () => {
   const { state, dispatch } = useAppState();
@@ -511,7 +512,18 @@ export const CaseManagement: React.FC = () => {
           />
           <Button 
             variant="outline"
-            onClick={() => setHearingCalendarOpen(true)}
+            onClick={() => {
+              try {
+                setHearingCalendarOpen(true);
+              } catch (error) {
+                console.error('Error opening hearing calendar:', error);
+                toast({
+                  title: "Error",
+                  description: "Failed to open hearing calendar",
+                  variant: "destructive"
+                });
+              }
+            }}
           >
             <Calendar className="mr-2 h-4 w-4" />
             Hearing Calendar
@@ -819,10 +831,18 @@ export const CaseManagement: React.FC = () => {
         mode={caseModal.mode}
       />
 
-      <HearingCalendar
-        isOpen={hearingCalendarOpen}
-        onClose={() => setHearingCalendarOpen(false)}
-      />
+      <ErrorBoundary>
+        <HearingCalendar
+          isOpen={hearingCalendarOpen}
+          onClose={() => {
+            try {
+              setHearingCalendarOpen(false);
+            } catch (error) {
+              console.error('Error closing hearing calendar:', error);
+            }
+          }}
+        />
+      </ErrorBoundary>
 
       {advanceStageModal.caseData && (
         <AdvanceStageConfirmationModal

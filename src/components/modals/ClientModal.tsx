@@ -377,6 +377,11 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         if (isAddressMasterEnabled && addressId && createdClient) {
           await addressMasterService.linkAddress('client', createdClient.id, addressId, true);
         }
+
+        toast({
+          title: "Client Created Successfully",
+          description: `${createdClient.name} has been added to the system`,
+        });
       } else if (mode === 'edit' && clientData) {
         await clientsService.update(clientData.id, { ...clientData, ...clientToSave }, dispatch);
         
@@ -384,11 +389,21 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         if (isAddressMasterEnabled && addressId && !formData.addressId) {
           await addressMasterService.linkAddress('client', clientData.id, addressId, true);
         }
+
+        toast({
+          title: "Client Updated Successfully",
+          description: `${formData.name} has been updated`,
+        });
       }
 
       onClose();
     } catch (error) {
-      // Error handling is done in the service
+      console.error('Error saving client:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save client. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
