@@ -4,7 +4,7 @@ import { Plus, Calendar, List, HelpCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody } from '@/components/ui/dialog';
 
 import { useAppState, Hearing } from '@/contexts/AppStateContext';
 import { toast } from '@/hooks/use-toast';
@@ -265,7 +265,7 @@ export const HearingsPage: React.FC = () => {
 
       {/* Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>
               {formMode === 'create' && 'Schedule New Hearing'}
@@ -274,12 +274,14 @@ export const HearingsPage: React.FC = () => {
             </DialogTitle>
           </DialogHeader>
           
-          <HearingForm
-            hearing={selectedHearing || undefined}
-            mode={formMode}
-            onSubmit={handleFormSubmit}
-            onCancel={() => setIsFormOpen(false)}
-          />
+          <DialogBody>
+            <HearingForm
+              hearing={selectedHearing || undefined}
+              mode={formMode}
+              onSubmit={handleFormSubmit}
+              onCancel={() => setIsFormOpen(false)}
+            />
+          </DialogBody>
         </DialogContent>
       </Dialog>
 

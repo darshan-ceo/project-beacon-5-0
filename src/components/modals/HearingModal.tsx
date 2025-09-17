@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -190,170 +190,172 @@ export const HearingModal: React.FC<HearingModalProps> = ({
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Context Information */}
-          {context.clientId && (
-            <ContextBadge
-              label="Client"
-              value={getContextDetails().client?.name || 'Unknown Client'}
-              variant="outline"
-            />
-          )}
+        <DialogBody>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Context Information */}
+            {context.clientId && (
+              <ContextBadge
+                label="Client"
+                value={getContextDetails().client?.name || 'Unknown Client'}
+                variant="outline"
+              />
+            )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              {contextCaseId ? (
-                <ContextBadge
-                  label="Case"
-                  value={getContextDetails().case?.caseNumber || 'Unknown Case'}
-                  variant="outline"
-                />
-              ) : (
-                <CaseSelector
-                  cases={getAvailableCases()}
-                  value={formData.caseId}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                {contextCaseId ? (
+                  <ContextBadge
+                    label="Case"
+                    value={getContextDetails().case?.caseNumber || 'Unknown Case'}
+                    variant="outline"
+                  />
+                ) : (
+                  <CaseSelector
+                    cases={getAvailableCases()}
+                    value={formData.caseId}
+                    onValueChange={(value) => {
+                      setFormData(prev => ({ ...prev, caseId: value }));
+                      updateContext({ caseId: value });
+                    }}
+                    disabled={mode === 'view'}
+                  />
+                )}
+              </div>
+              
+              <div>
+                <CourtSelector
+                  courts={getAvailableCourts()}
+                  value={formData.courtId}
                   onValueChange={(value) => {
-                    setFormData(prev => ({ ...prev, caseId: value }));
-                    updateContext({ caseId: value });
+                    setFormData(prev => ({ ...prev, courtId: value, judgeId: '' }));
+                    updateContext({ courtId: value });
                   }}
                   disabled={mode === 'view'}
                 />
-              )}
+              </div>
             </div>
-            
+
             <div>
-              <CourtSelector
-                courts={getAvailableCourts()}
-                value={formData.courtId}
+              <JudgeSelector
+                judges={getAvailableJudges(formData.courtId)}
+                value={formData.judgeId}
                 onValueChange={(value) => {
-                  setFormData(prev => ({ ...prev, courtId: value, judgeId: '' }));
-                  updateContext({ courtId: value });
+                  setFormData(prev => ({ ...prev, judgeId: value }));
+                  updateContext({ judgeId: value });
                 }}
-                disabled={mode === 'view'}
+                disabled={mode === 'view' || !formData.courtId}
               />
             </div>
-          </div>
 
-          <div>
-            <JudgeSelector
-              judges={getAvailableJudges(formData.courtId)}
-              value={formData.judgeId}
-              onValueChange={(value) => {
-                setFormData(prev => ({ ...prev, judgeId: value }));
-                updateContext({ judgeId: value });
-              }}
-              disabled={mode === 'view' || !formData.courtId}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <div className="flex items-center gap-1">
-                <Label>Hearing Date</Label>
-                <FieldTooltip formId="create-hearing" fieldId="date" />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="flex items-center gap-1">
+                  <Label>Hearing Date</Label>
+                  <FieldTooltip formId="create-hearing" fieldId="date" />
+                </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !formData.date && "text-muted-foreground"
+                      )}
+                      disabled={mode === 'view'}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formData.date ? format(formData.date, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={formData.date}
+                      onSelect={(date) => date && setFormData(prev => ({ ...prev, date }))}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !formData.date && "text-muted-foreground"
-                    )}
-                    disabled={mode === 'view'}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.date ? format(formData.date, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={formData.date}
-                    onSelect={(date) => date && setFormData(prev => ({ ...prev, date }))}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              
+              <div>
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="time">Time</Label>
+                  <FieldTooltip formId="create-hearing" fieldId="time" />
+                </div>
+                <Input
+                  id="time"
+                  type="time"
+                  value={formData.time}
+                  onChange={(e) => setFormData(prev => ({ ...prev, time: e.target.value }))}
+                  disabled={mode === 'view'}
+                  required
+                />
+              </div>
             </div>
-            
+
+            {/* Court Address Display */}
+            {formData.courtId && isAddressMasterEnabled && (() => {
+              const selectedCourt = state.courts.find(court => court.id === formData.courtId);
+              return selectedCourt ? (
+                <Card className="bg-muted/50">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      Court Address
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    {selectedCourt.address && typeof selectedCourt.address === 'object' ? (
+                      <AddressView 
+                        address={selectedCourt.address}
+                        compact={true}
+                        showSource={false}
+                      />
+                    ) : selectedCourt.address && typeof selectedCourt.address === 'string' ? (
+                      <div className="text-sm">
+                        {selectedCourt.address}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-muted-foreground">
+                        No address information available
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ) : null;
+            })()}
+
             <div>
               <div className="flex items-center gap-1">
-                <Label htmlFor="time">Time</Label>
-                <FieldTooltip formId="create-hearing" fieldId="time" />
+                <Label htmlFor="agenda">Agenda</Label>
+                <FieldTooltip formId="create-hearing" fieldId="agenda" />
               </div>
-              <Input
-                id="time"
-                type="time"
-                value={formData.time}
-                onChange={(e) => setFormData(prev => ({ ...prev, time: e.target.value }))}
+              <Textarea
+                id="agenda"
+                value={formData.agenda}
+                onChange={(e) => setFormData(prev => ({ ...prev, agenda: e.target.value }))}
                 disabled={mode === 'view'}
+                rows={3}
                 required
               />
             </div>
-          </div>
+          </form>
+        </DialogBody>
 
-          {/* Court Address Display */}
-          {formData.courtId && isAddressMasterEnabled && (() => {
-            const selectedCourt = state.courts.find(court => court.id === formData.courtId);
-            return selectedCourt ? (
-              <Card className="bg-muted/50">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
-                    Court Address
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  {selectedCourt.address && typeof selectedCourt.address === 'object' ? (
-                    <AddressView 
-                      address={selectedCourt.address}
-                      compact={true}
-                      showSource={false}
-                    />
-                  ) : selectedCourt.address && typeof selectedCourt.address === 'string' ? (
-                    <div className="text-sm">
-                      {selectedCourt.address}
-                    </div>
-                  ) : (
-                    <div className="text-sm text-muted-foreground">
-                      No address information available
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ) : null;
-          })()}
-
-          <div>
-            <div className="flex items-center gap-1">
-              <Label htmlFor="agenda">Agenda</Label>
-              <FieldTooltip formId="create-hearing" fieldId="agenda" />
-            </div>
-            <Textarea
-              id="agenda"
-              value={formData.agenda}
-              onChange={(e) => setFormData(prev => ({ ...prev, agenda: e.target.value }))}
-              disabled={mode === 'view'}
-              rows={3}
-              required
-            />
-          </div>
-
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              {mode === 'view' ? 'Close' : 'Cancel'}
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onClose}>
+            {mode === 'view' ? 'Close' : 'Cancel'}
+          </Button>
+          {mode !== 'view' && (
+            <Button type="submit" onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting 
+                ? (mode === 'create' ? 'Scheduling...' : 'Updating...')
+                : (mode === 'create' ? 'Schedule Hearing' : 'Update Hearing')
+              }
             </Button>
-            {mode !== 'view' && (
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting 
-                  ? (mode === 'create' ? 'Scheduling...' : 'Updating...')
-                  : (mode === 'create' ? 'Schedule Hearing' : 'Update Hearing')
-                }
-              </Button>
-            )}
-          </div>
-        </form>
+          )}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -196,218 +196,220 @@ export const TaskModal: React.FC<TaskModalProps> = ({
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <div className="flex items-center gap-1">
-              <Label htmlFor="title">Task Title</Label>
-              <FieldTooltip formId="create-task" fieldId="title" />
-            </div>
-            <Input
-              id="title"
-              value={formData.title}
-              onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-              disabled={mode === 'view'}
-              required
-              autoComplete="off"
-            />
-          </div>
-
-          <div>
-            <div className="flex items-center gap-1">
-              <Label htmlFor="description">Description</Label>
-              <FieldTooltip formId="create-task" fieldId="description" />
-            </div>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              disabled={mode === 'view'}
-              rows={3}
-              autoComplete="off"
-            />
-          </div>
-
-          {/* Context Information */}
-          {context.clientId && (
-            <div className="space-y-2">
-              <ContextBadge
-                label="Client"
-                value={getContextDetails().client?.name || 'Unknown Client'}
-                variant="outline"
-              />
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-4">
+        <DialogBody>
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              {contextCaseId ? (
-                <div className="space-y-2">
-                  <ContextBadge
-                    label="Case"
-                    value={getContextDetails().case?.caseNumber || 'Unknown Case'}
-                    variant="outline"
-                  />
-                </div>
-              ) : (
-                <CaseSelector
-                  cases={getAvailableCases()}
-                  value={formData.caseId}
-                  onValueChange={(value) => {
-                    const selectedCase = state.cases.find(c => c.id === value);
-                    if (selectedCase) {
-                      setFormData(prev => ({ 
-                        ...prev, 
-                        caseId: value,
-                        stage: selectedCase.currentStage
-                      }));
-                      updateContext({ caseId: value });
-                    }
-                  }}
-                  disabled={mode === 'view'}
-                />
-              )}
-            </div>
-            <div>
-              <Label htmlFor="stage">Stage</Label>
+              <div className="flex items-center gap-1">
+                <Label htmlFor="title">Task Title</Label>
+                <FieldTooltip formId="create-task" fieldId="title" />
+              </div>
               <Input
-                id="stage"
-                value={formData.stage}
-                onChange={(e) => setFormData(prev => ({ ...prev, stage: e.target.value }))}
+                id="title"
+                value={formData.title}
+                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                 disabled={mode === 'view'}
                 required
                 autoComplete="off"
               />
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
             <div>
               <div className="flex items-center gap-1">
-                <Label htmlFor="priority">Priority</Label>
-                <FieldTooltip formId="create-task" fieldId="priority" />
+                <Label htmlFor="description">Description</Label>
+                <FieldTooltip formId="create-task" fieldId="description" />
               </div>
-              <Select 
-                value={formData.priority} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value as any }))}
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 disabled={mode === 'view'}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Critical">Critical</SelectItem>
-                  <SelectItem value="High">High</SelectItem>
-                  <SelectItem value="Medium">Medium</SelectItem>
-                  <SelectItem value="Low">Low</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <div className="flex items-center gap-1">
-                <Label htmlFor="status">Status</Label>
-                <FieldTooltip formId="create-task" fieldId="status" />
-              </div>
-              <Select 
-                value={formData.status} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as any }))}
-                disabled={mode === 'view'}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Not Started">Not Started</SelectItem>
-                  <SelectItem value="In Progress">In Progress</SelectItem>
-                  <SelectItem value="Review">Review</SelectItem>
-                  <SelectItem value="Completed">Completed</SelectItem>
-                  <SelectItem value="Overdue">Overdue</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <EmployeeSelector
-                value={formData.assignedToId}
-                onValueChange={(value) => {
-                  const employee = state.employees.find(e => e.id === value);
-                  setFormData(prev => ({ 
-                    ...prev, 
-                    assignedToId: value,
-                    assignedToName: employee?.full_name || ''
-                  }));
-                }}
-                disabled={mode === 'view'}
-                required
-                showWorkload
-              />
-              <FieldTooltip formId="create-task" fieldId="assignee" />
-            </div>
-            <div>
-              <div className="flex items-center gap-1">
-                <Label htmlFor="estimatedHours">Estimated Hours</Label>
-                <FieldTooltip formId="create-task" fieldId="estimated-hours" />
-              </div>
-              <Input
-                id="estimatedHours"
-                type="number"
-                value={formData.estimatedHours}
-                onChange={(e) => setFormData(prev => ({ ...prev, estimatedHours: parseInt(e.target.value) || 0 }))}
-                disabled={mode === 'view'}
-                min="1"
-                required
+                rows={3}
+                autoComplete="off"
               />
             </div>
-          </div>
 
-          <div>
-            <div className="flex items-center gap-1">
-              <Label>Due Date</Label>
-              <FieldTooltip formId="create-task" fieldId="due-date" />
-            </div>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
+            {/* Context Information */}
+            {context.clientId && (
+              <div className="space-y-2">
+                <ContextBadge
+                  label="Client"
+                  value={getContextDetails().client?.name || 'Unknown Client'}
                   variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !formData.dueDate && "text-muted-foreground"
-                  )}
+                />
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                {contextCaseId ? (
+                  <div className="space-y-2">
+                    <ContextBadge
+                      label="Case"
+                      value={getContextDetails().case?.caseNumber || 'Unknown Case'}
+                      variant="outline"
+                    />
+                  </div>
+                ) : (
+                  <CaseSelector
+                    cases={getAvailableCases()}
+                    value={formData.caseId}
+                    onValueChange={(value) => {
+                      const selectedCase = state.cases.find(c => c.id === value);
+                      if (selectedCase) {
+                        setFormData(prev => ({ 
+                          ...prev, 
+                          caseId: value,
+                          stage: selectedCase.currentStage
+                        }));
+                        updateContext({ caseId: value });
+                      }
+                    }}
+                    disabled={mode === 'view'}
+                  />
+                )}
+              </div>
+              <div>
+                <Label htmlFor="stage">Stage</Label>
+                <Input
+                  id="stage"
+                  value={formData.stage}
+                  onChange={(e) => setFormData(prev => ({ ...prev, stage: e.target.value }))}
+                  disabled={mode === 'view'}
+                  required
+                  autoComplete="off"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="priority">Priority</Label>
+                  <FieldTooltip formId="create-task" fieldId="priority" />
+                </div>
+                <Select 
+                  value={formData.priority} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value as any }))}
                   disabled={mode === 'view'}
                 >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {formData.dueDate ? format(formData.dueDate, "PPP") : <span>Pick a date</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={formData.dueDate}
-                  onSelect={(date) => date && setFormData(prev => ({ ...prev, dueDate: date }))}
-                  initialFocus
-                  className="pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Critical">Critical</SelectItem>
+                    <SelectItem value="High">High</SelectItem>
+                    <SelectItem value="Medium">Medium</SelectItem>
+                    <SelectItem value="Low">Low</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="status">Status</Label>
+                  <FieldTooltip formId="create-task" fieldId="status" />
+                </div>
+                <Select 
+                  value={formData.status} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as any }))}
+                  disabled={mode === 'view'}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Not Started">Not Started</SelectItem>
+                    <SelectItem value="In Progress">In Progress</SelectItem>
+                    <SelectItem value="Review">Review</SelectItem>
+                    <SelectItem value="Completed">Completed</SelectItem>
+                    <SelectItem value="Overdue">Overdue</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              {mode === 'view' ? 'Close' : 'Cancel'}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <EmployeeSelector
+                  value={formData.assignedToId}
+                  onValueChange={(value) => {
+                    const employee = state.employees.find(e => e.id === value);
+                    setFormData(prev => ({ 
+                      ...prev, 
+                      assignedToId: value,
+                      assignedToName: employee?.full_name || ''
+                    }));
+                  }}
+                  disabled={mode === 'view'}
+                  required
+                  showWorkload
+                />
+                <FieldTooltip formId="create-task" fieldId="assignee" />
+              </div>
+              <div>
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="estimatedHours">Estimated Hours</Label>
+                  <FieldTooltip formId="create-task" fieldId="estimated-hours" />
+                </div>
+                <Input
+                  id="estimatedHours"
+                  type="number"
+                  value={formData.estimatedHours}
+                  onChange={(e) => setFormData(prev => ({ ...prev, estimatedHours: parseInt(e.target.value) || 0 }))}
+                  disabled={mode === 'view'}
+                  min="1"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-1">
+                <Label>Due Date</Label>
+                <FieldTooltip formId="create-task" fieldId="due-date" />
+              </div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !formData.dueDate && "text-muted-foreground"
+                    )}
+                    disabled={mode === 'view'}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formData.dueDate ? format(formData.dueDate, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={formData.dueDate}
+                    onSelect={(date) => date && setFormData(prev => ({ ...prev, dueDate: date }))}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </form>
+        </DialogBody>
+
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onClose}>
+            {mode === 'view' ? 'Close' : 'Cancel'}
+          </Button>
+          {mode === 'edit' && (
+            <Button type="button" variant="destructive" onClick={handleDelete}>
+              Delete Task
             </Button>
-            {mode === 'edit' && (
-              <Button type="button" variant="destructive" onClick={handleDelete}>
-                Delete Task
-              </Button>
-            )}
-            {mode !== 'view' && (
-              <Button type="submit">
-                {mode === 'create' ? 'Create Task' : 'Update Task'}
-              </Button>
-            )}
-          </div>
-        </form>
+          )}
+          {mode !== 'view' && (
+            <Button type="submit" onClick={handleSubmit}>
+              {mode === 'create' ? 'Create Task' : 'Update Task'}
+            </Button>
+          )}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

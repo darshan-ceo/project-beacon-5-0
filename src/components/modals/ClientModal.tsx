@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -462,7 +462,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -490,14 +490,15 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
             </DialogTitle>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* GST Section - Moved to Top for Enhanced Workflow */}
-            <GSTSection
-              clientId={clientData?.id || 'new'}
-              formData={formData}
-              onFormDataChange={(updates) => {
-                setFormData(prev => ({ ...prev, ...updates }));
-                if (updates.gstStatus || updates.gstin) {
+          <DialogBody>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* GST Section - Moved to Top for Enhanced Workflow */}
+              <GSTSection
+                clientId={clientData?.id || 'new'}
+                formData={formData}
+                onFormDataChange={(updates) => {
+                  setFormData(prev => ({ ...prev, ...updates }));
+                  if (updates.gstStatus || updates.gstin) {
                   setGstData(updates);
                 }
               }}
@@ -979,39 +980,39 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
               hasGstData={!!gstData || !!formData.gspSignatories}
             />
 
-            {/* Validation Errors */}
-            {validationErrors.length > 0 && (
-              <Card className="border-destructive">
-                <CardContent className="pt-6">
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-destructive">Please fix the following errors:</h4>
-                    <ul className="text-sm text-destructive space-y-1">
-                      {validationErrors.map((error, index) => (
-                        <li key={index}>• {error}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+              {/* Validation Errors */}
+              {validationErrors.length > 0 && (
+                <Card className="border-destructive">
+                  <CardContent className="pt-6">
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium text-destructive">Please fix the following errors:</h4>
+                      <ul className="text-sm text-destructive space-y-1">
+                        {validationErrors.map((error, index) => (
+                          <li key={index}>• {error}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </form>
+          </DialogBody>
 
-            {/* Action Buttons */}
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button type="button" variant="outline" onClick={onClose}>
-                {mode === 'view' ? 'Close' : 'Cancel'}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              {mode === 'view' ? 'Close' : 'Cancel'}
+            </Button>
+            {mode === 'edit' && (
+              <Button type="button" variant="destructive" onClick={handleDelete}>
+                Delete Client
               </Button>
-              {mode === 'edit' && (
-                <Button type="button" variant="destructive" onClick={handleDelete}>
-                  Delete Client
-                </Button>
-              )}
-              {mode !== 'view' && (
-                <Button type="submit">
-                  {mode === 'create' ? 'Create Client' : 'Update Client'}
-                </Button>
-              )}
-            </div>
-          </form>
+            )}
+            {mode !== 'view' && (
+              <Button type="submit" onClick={handleSubmit}>
+                {mode === 'create' ? 'Create Client' : 'Update Client'}
+              </Button>
+            )}
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
