@@ -401,12 +401,12 @@ class SearchService {
       return result;
     }
     
-    // Parse operators
+    // Parse operators - fixed regex patterns (removed extra backslash escaping)
     const operators = {
-      filename: /filename:(\\S+)/gi,
-      tag: /tag:(\\S+)/gi,
-      uploader: /uploader:(\\S+)/gi,
-      case: /case:(\\S+)/gi
+      filename: /filename:(\S+)/gi,
+      tag: /tag:(\S+)/gi,
+      uploader: /uploader:(\S+)/gi,
+      case: /case:(\S+)/gi
     };
     
     let remainingQuery = query;
@@ -420,10 +420,10 @@ class SearchService {
       });
     });
     
-    // Normalize remaining terms
+    // Normalize remaining terms - fixed regex pattern
     if (remainingQuery.trim()) {
       result.terms = this.normalize(remainingQuery)
-        .split(/\\s+/)
+        .split(/\s+/)
         .filter(term => term.length > 0);
     }
     
@@ -564,24 +564,24 @@ class SearchService {
       if (scope === 'all' || scope === 'cases') {
         cases.forEach(case_ => {
           const caseItem = {
-            title: case_.title,
-            content: `${case_.client.name} ${case_.caseNumber}`,
+            title: case_.title || case_.caseNumber,
+            content: `${case_.clientName || case_.client || ''} ${case_.caseNumber || ''}`,
             metadata: {
               caseId: case_.id,
-              uploader: case_.client.name
+              uploader: case_.clientName || case_.client || ''
             }
           };
           
           if (this.matchesParsedQuery(caseItem, parsedQuery)) {
             results.push({
               id: case_.id,
-              title: case_.title,
-              subtitle: `Case ${case_.caseNumber} • ${case_.client.name} • ${case_.status}`,
+              title: case_.title || case_.caseNumber,
+              subtitle: `Case ${case_.caseNumber} • ${case_.clientName || case_.client || ''} • ${case_.status || 'Active'}`,
               url: `/cases/${case_.id}`,
               type: 'case',
-              score: this.calculateDemoScore(case_.title, case_.client.name, parsedQuery),
-              highlights: [case_.title],
-              badges: [case_.status]
+              score: this.calculateDemoScore(case_.title || case_.caseNumber, case_.clientName || case_.client || '', parsedQuery),
+              highlights: [case_.title || case_.caseNumber],
+              badges: [case_.status || 'Active']
             });
           }
         });
@@ -639,8 +639,8 @@ class SearchService {
       if (scope === 'all' || scope === 'hearings') {
         hearings.forEach(hearing => {
           const hearingItem = {
-            title: hearing.title,
-            content: hearing.caseTitle,
+            title: hearing.purpose || hearing.title || `Hearing for ${hearing.caseNumber || 'Case'}`,
+            content: `${hearing.caseNumber || ''} ${hearing.court || ''} ${hearing.purpose || ''}`,
             metadata: {
               caseId: hearing.caseId
             }
@@ -649,12 +649,12 @@ class SearchService {
           if (this.matchesParsedQuery(hearingItem, parsedQuery)) {
             results.push({
               id: hearing.id,
-              title: hearing.title,
-              subtitle: `${hearing.caseTitle} • ${hearing.date}`,
+              title: hearing.purpose || hearing.title || `Hearing for ${hearing.caseNumber || 'Case'}`,
+              subtitle: `${hearing.caseNumber || hearing.caseTitle || ''} • ${hearing.date || hearing.scheduledDate || ''}`,
               url: `/hearings/${hearing.id}`,
               type: 'hearing',
-              score: this.calculateDemoScore(hearing.title, hearing.caseTitle, parsedQuery),
-              highlights: [hearing.title],
+              score: this.calculateDemoScore(hearing.purpose || hearing.title || '', hearing.caseNumber || hearing.caseTitle || '', parsedQuery),
+              highlights: [hearing.purpose || hearing.title || ''],
               badges: ['Hearing']
             });
           }

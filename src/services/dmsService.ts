@@ -782,9 +782,10 @@ export const dmsService = {
           const fileExt = fileName.split('.').pop()?.toLowerCase();
           
           if (fileExt === 'pdf') {
-            // Generate a simple PDF with actual content
-            const mockContent = '%PDF-1.4\n1 0 obj\n<<\n/Type /Catalog\n/Pages 2 0 R\n>>\nendobj\n2 0 obj\n<<\n/Type /Pages\n/Kids [3 0 R]\n/Count 1\n>>\nendobj\n3 0 obj\n<<\n/Type /Page\n/Parent 2 0 R\n/MediaBox [0 0 612 792]\n/Contents 4 0 R\n>>\nendobj\n4 0 obj\n<<\n/Length 120\n>>\nstream\nBT\n/F1 12 Tf\n50 700 Td\n(' + fileName + ') Tj\n0 -20 Td\n(Document generated on: ' + new Date().toLocaleString() + ') Tj\n0 -20 Td\n(This is a mock document for testing purposes.) Tj\nET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f \n0000000009 00000 n \n0000000074 00000 n \n0000000120 00000 n \n0000000179 00000 n \ntrailer\n<<\n/Size 5\n/Root 1 0 R\n>>\nstartxref\n343\n%%EOF';
-            blob = new Blob([mockContent], { type: 'application/pdf' });
+          // Generate enhanced PDF content
+            const { generateSampleContent } = await import('@/utils/fileTypeUtils');
+            const pdfContent = generateSampleContent(fileName, 'application/pdf');
+            blob = new Blob([pdfContent], { type: 'application/pdf' });
           } else if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(fileExt || '')) {
             // Generate placeholder image for missing image files
             const canvas = globalThis.document.createElement('canvas');
@@ -810,10 +811,11 @@ export const dmsService = {
               }, `image/${fileExt === 'jpg' ? 'jpeg' : fileExt}`);
             });
           } else {
-            // Use generated sample content
-            const { generateSampleContent } = await import('@/utils/fileTypeUtils');
-            const mockContent = generateSampleContent(fileName, fileExt);
-            blob = new Blob([mockContent], { type: 'text/plain' });
+            // Use enhanced sample content generation
+            const { generateSampleContent, getMimeFromExtension } = await import('@/utils/fileTypeUtils');
+            const mimeType = getMimeFromExtension(fileExt || '');
+            const mockContent = generateSampleContent(fileName, mimeType);
+            blob = new Blob([mockContent], { type: mimeType });
           }
         }
         
