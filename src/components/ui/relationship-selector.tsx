@@ -1,6 +1,8 @@
 import React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
 import { ContextBadge } from './context-badge';
 import { Client, Case, Court, Judge } from '@/contexts/AppStateContext';
 
@@ -83,12 +85,54 @@ export const ClientSelector: React.FC<{
   contextValue?: string;
   onViewContext?: () => void;
   onClearContext?: () => void;
-}> = ({ clients, ...props }) => {
+  showAddNew?: boolean;
+  onAddNew?: () => void;
+}> = ({ clients, showAddNew, onAddNew, ...props }) => {
   const options = clients.map(client => ({
     id: client.id,
     label: client.name,
     subtitle: `${client.type} • ${client.email}`
   }));
+
+  if (showAddNew) {
+    return (
+      <div className="space-y-2">
+        <Label>
+          Client
+          <span className="text-destructive ml-1">*</span>
+        </Label>
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <Select value={props.value} onValueChange={props.onValueChange} disabled={props.disabled}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select client" />
+              </SelectTrigger>
+              <SelectContent>
+                {options.map((option) => (
+                  <SelectItem key={option.id} value={option.id}>
+                    <div className="flex flex-col">
+                      <span>{option.label}</span>
+                      <span className="text-xs text-muted-foreground">{option.subtitle}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={onAddNew}
+            disabled={props.disabled}
+            className="shrink-0"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <RelationshipSelector

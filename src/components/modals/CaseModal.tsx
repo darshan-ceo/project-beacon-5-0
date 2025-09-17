@@ -10,6 +10,7 @@ import { Case, useAppState } from '@/contexts/AppStateContext';
 import { ClientSelector } from '@/components/ui/relationship-selector';
 import { EmployeeSelector } from '@/components/ui/employee-selector';
 import { ContextBadge } from '@/components/ui/context-badge';
+import { ClientModal } from '@/components/modals/ClientModal';
 import { useRelationships } from '@/hooks/useRelationships';
 import { useContextualForms } from '@/hooks/useContextualForms';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
@@ -34,6 +35,9 @@ export const CaseModal: React.FC<CaseModalProps> = ({
   const { context, updateContext, getAvailableClients, getContextDetails } = useContextualForms({
     clientId: contextClientId
   });
+  
+  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+  const [clientCountBeforeAdd, setClientCountBeforeAdd] = useState(0);
   
   const [formData, setFormData] = useState<{
     caseNumber: string;
@@ -253,6 +257,11 @@ export const CaseModal: React.FC<CaseModalProps> = ({
                     updateContext({ clientId: value });
                   }}
                   disabled={mode === 'view'}
+                  showAddNew={mode !== 'view'}
+                  onAddNew={() => {
+                    setClientCountBeforeAdd(state.clients.length);
+                    setIsClientModalOpen(true);
+                  }}
                   data-tour="client-selector"
                 />
               )}
@@ -335,6 +344,24 @@ export const CaseModal: React.FC<CaseModalProps> = ({
             )}
           </div>
         </form>
+        
+        <ClientModal
+          isOpen={isClientModalOpen}
+          onClose={() => {
+            setIsClientModalOpen(false);
+            // Check if a new client was added
+            if (state.clients.length > clientCountBeforeAdd) {
+              const newClient = state.clients[state.clients.length - 1];
+              setFormData(prev => ({ ...prev, clientId: newClient.id }));
+              updateContext({ clientId: newClient.id });
+              toast({
+                title: "Client Created",
+                description: `${newClient.name} has been created and selected.`,
+              });
+            }
+          }}
+          mode="create"
+        />
       </DialogContent>
     </Dialog>
   );

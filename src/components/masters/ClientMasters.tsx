@@ -31,6 +31,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ClientModal } from '@/components/modals/ClientModal';
+import { CaseModal } from '@/components/modals/CaseModal';
 import { ImportWizard } from '@/components/importExport/ImportWizard';
 import { ExportWizard } from '@/components/importExport/ExportWizard';
 import { Client, useAppState } from '@/contexts/AppStateContext';
@@ -48,6 +49,10 @@ export const ClientMasters: React.FC = () => {
     isOpen: false,
     mode: 'create',
     client: null
+  });
+  const [caseModal, setCaseModal] = useState<{ isOpen: boolean; contextClientId?: string }>({
+    isOpen: false,
+    contextClientId: undefined
   });
   const [filterStatus, setFilterStatus] = useState<'all' | 'Active' | 'Inactive' | 'Pending'>('all');
   const [isImportOpen, setIsImportOpen] = useState(false);
@@ -352,6 +357,14 @@ export const ClientMasters: React.FC = () => {
                             <Edit className="mr-2 h-4 w-4" />
                             Edit Client
                           </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setCaseModal({ isOpen: true, contextClientId: client.id });
+                            }}
+                          >
+                            <Plus className="mr-2 h-4 w-4" />
+                            New Case
+                          </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
                             className="text-destructive"
@@ -394,6 +407,13 @@ export const ClientMasters: React.FC = () => {
         onClose={() => setClientModal({ isOpen: false, mode: 'create', client: null })}
         client={clientModal.client}
         mode={clientModal.mode}
+      />
+
+      <CaseModal
+        isOpen={caseModal.isOpen}
+        onClose={() => setCaseModal({ isOpen: false, contextClientId: undefined })}
+        mode="create"
+        contextClientId={caseModal.contextClientId}
       />
 
       {/* Import/Export Wizards */}
