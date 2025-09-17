@@ -211,6 +211,12 @@ const App = () => (
                   <DebugSearchInspector />
                 </AdminLayout>
               } />
+              {/* Redirect legacy document-management URLs */}
+              <Route path="/document-management" element={
+                <AdminLayout currentUser={currentUser}>
+                  <DocumentManagement />
+                </AdminLayout>
+              } />
               <Route path="*" element={<NotFound />} />
             </Routes>
             </BrowserRouter>

@@ -165,8 +165,8 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
 
   // Handle result click
   const handleResultClick = useCallback((result: SearchResult) => {
-    window.open(result.url, '_blank');
-  }, []);
+    navigate(result.url);
+  }, [navigate]);
 
   // Clear search
   const handleClear = useCallback(() => {

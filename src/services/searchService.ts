@@ -550,7 +550,7 @@ class SearchService {
               id: doc.id,
               title: doc.name,
               subtitle: `${doc.type} • ${doc.size} bytes • Uploaded by ${doc.uploadedByName}`,
-              url: `/document-management?search=${encodeURIComponent(doc.name)}`,
+              url: `/documents?search=${encodeURIComponent(doc.name)}`,
               type: 'document',
               score: score,
               highlights: [doc.name],
@@ -577,7 +577,7 @@ class SearchService {
               id: case_.id,
               title: case_.title || case_.caseNumber,
               subtitle: `Case ${case_.caseNumber} • ${case_.clientName || case_.client || ''} • ${case_.status || 'Active'}`,
-              url: `/cases/${case_.id}`,
+              url: `/cases?caseId=${case_.id}`,
               type: 'case',
               score: this.calculateDemoScore(case_.title || case_.caseNumber, case_.clientName || case_.client || '', parsedQuery),
               highlights: [case_.title || case_.caseNumber],
@@ -601,7 +601,7 @@ class SearchService {
               id: client.id,
               title: client.name,
               subtitle: `${client.email} • ${client.phone}`,
-              url: `/clients/${client.id}`,
+              url: `/clients?search=${encodeURIComponent(client.name)}`,
               type: 'client',
               score: this.calculateDemoScore(client.name, client.email, parsedQuery),
               highlights: [client.name],
@@ -625,7 +625,7 @@ class SearchService {
               id: task.id,
               title: task.title,
               subtitle: task.description,
-              url: `/tasks/${task.id}`,
+              url: `/tasks?highlight=${task.id}`,
               type: 'task',
               score: this.calculateDemoScore(task.title, task.description, parsedQuery),
               highlights: [task.description],
@@ -651,7 +651,7 @@ class SearchService {
               id: hearing.id,
               title: hearing.purpose || hearing.title || `Hearing for ${hearing.caseNumber || 'Case'}`,
               subtitle: `${hearing.caseNumber || hearing.caseTitle || ''} • ${hearing.date || hearing.scheduledDate || ''}`,
-              url: `/hearings/${hearing.id}`,
+              url: `/hearings?search=${encodeURIComponent(hearing.caseNumber || hearing.purpose || hearing.title || '')}`,
               type: 'hearing',
               score: this.calculateDemoScore(hearing.purpose || hearing.title || '', hearing.caseNumber || hearing.caseTitle || '', parsedQuery),
               highlights: [hearing.purpose || hearing.title || ''],
@@ -861,7 +861,7 @@ class SearchService {
     } else {
       // DEMO mode - get local index stats from AppState
       try {
-        const appStateStr = localStorage.getItem('appState');
+        const appStateStr = localStorage.getItem('lawfirm_app_data');
         const appState = appStateStr ? JSON.parse(appStateStr) : {};
         const documents = Array.isArray(appState.documents) ? appState.documents : [];
         return {
