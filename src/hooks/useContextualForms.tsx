@@ -14,6 +14,13 @@ export const useContextualForms = (initialContext?: FormContext) => {
   const { getCaseWithClient, getJudgesForCourt } = useRelationships();
   const [context, setContext] = useState<FormContext>(initialContext || {});
 
+  // Sync context with initialContext changes
+  useEffect(() => {
+    if (initialContext) {
+      setContext(initialContext);
+    }
+  }, [initialContext]);
+
   // Auto-fill context when case is selected
   useEffect(() => {
     if (context.caseId && !context.clientId) {
