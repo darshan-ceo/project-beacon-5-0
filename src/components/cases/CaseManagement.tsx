@@ -35,6 +35,7 @@ import { HearingScheduler } from './HearingScheduler';
 import { SLATracker } from './SLATracker';
 import { AIAssistant } from './AIAssistant';
 import { CommunicationHub } from './CommunicationHub';
+import { CaseDocuments } from './CaseDocuments';
 import { CaseModal } from '@/components/modals/CaseModal';
 import { HearingCalendar } from './HearingCalendar';
 import { AdvanceStageConfirmationModal } from '@/components/modals/AdvanceStageConfirmationModal';
@@ -252,7 +253,7 @@ export const CaseManagement: React.FC = () => {
 
   // Helper function to check if tabs should be disabled
   const getTabDisabled = (tabValue: string) => {
-    const caseRequiredTabs = ['lifecycle', 'timeline', 'ai-assistant', 'communications'];
+    const caseRequiredTabs = ['lifecycle', 'documents', 'timeline', 'ai-assistant', 'communications'];
     return caseRequiredTabs.includes(tabValue) && !selectedCase;
   };
 
@@ -533,7 +534,7 @@ export const CaseManagement: React.FC = () => {
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger 
             value="lifecycle" 
@@ -545,6 +546,14 @@ export const CaseManagement: React.FC = () => {
           </TabsTrigger>
           <TabsTrigger value="sla">SLA Tracker</TabsTrigger>
           <TabsTrigger value="hearings">Hearings</TabsTrigger>
+          <TabsTrigger 
+            value="documents"
+            disabled={getTabDisabled('documents')}
+            className="disabled:opacity-50 disabled:cursor-not-allowed"
+            title={getTabDisabled('documents') ? "Select a case from Overview to proceed" : ""}
+          >
+            Documents
+          </TabsTrigger>
           <TabsTrigger 
             value="timeline"
             disabled={getTabDisabled('timeline')}
@@ -685,9 +694,14 @@ export const CaseManagement: React.FC = () => {
                           
                            <div>
                              <p className="text-xs text-muted-foreground">Documents</p>
-                             <div className="flex items-center">
+                             <div className="flex items-center cursor-pointer hover:text-primary" onClick={() => {
+                               setSelectedCase(caseItem);
+                               setActiveTab('documents');
+                             }}>
                                <FileText className="mr-1 h-3 w-3" />
-                               <span className="text-sm">{caseItem.documents} files</span>
+                               <span className="text-sm">
+                                 {state.documents?.filter(doc => doc.caseId === caseItem.id).length || 0} files
+                               </span>
                              </div>
                            </div>
                            
@@ -809,6 +823,10 @@ export const CaseManagement: React.FC = () => {
 
         <TabsContent value="hearings" className="mt-6">
           <HearingScheduler cases={state.cases.map(c => ({ ...c, client: state.clients.find(cl => cl.id === c.clientId)?.name || 'Unknown' }))} />
+        </TabsContent>
+
+        <TabsContent value="documents" className="mt-6">
+          <CaseDocuments selectedCase={selectedCase} />
         </TabsContent>
 
         <TabsContent value="timeline" className="mt-6">
