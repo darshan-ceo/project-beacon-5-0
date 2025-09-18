@@ -4,7 +4,7 @@ import { persistenceService, StorageHealth } from '@/services/persistenceService
 import { idbStorage } from '@/utils/idb';
 import { toast } from '@/hooks/use-toast';
 
-const AUTO_SAVE_INTERVAL = 10000; // 10 seconds
+const AUTO_SAVE_INTERVAL = 3000; // 3 seconds for better persistence
 
 export const useEnhancedPersistence = () => {
   const { state, dispatch } = useAppState();
@@ -248,7 +248,7 @@ export const useEnhancedPersistence = () => {
     }
   }, []);
 
-  // Import data from backup
+  // Import data from backup with validation
   const importData = useCallback((file: File): Promise<boolean> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -256,14 +256,34 @@ export const useEnhancedPersistence = () => {
         try {
           const importedData = JSON.parse(e.target?.result as string);
           
-          // Validate structure
+          // Enhanced validation
           if (typeof importedData === 'object' && importedData !== null) {
+            // Check if the imported data has meaningful content
+            const hasValidEntities = (importedData.documents && Array.isArray(importedData.documents)) ||
+                                   (importedData.cases && Array.isArray(importedData.cases)) ||
+                                   (importedData.clients && Array.isArray(importedData.clients));
+            
+            if (!hasValidEntities) {
+              toast({
+                title: 'Import Failed',
+                description: 'Backup file contains no valid entity data',
+                variant: 'destructive'
+              });
+              resolve(false);
+              return;
+            }
+            
             await persistenceService.importAllData(importedData);
             
             // Reload the data into app state
             const loadedData = await loadFromStorage();
             if (loadedData) {
               dispatch({ type: 'RESTORE_STATE', payload: loadedData });
+              
+              toast({
+                title: 'Import Successful',
+                description: `Restored ${Object.values(importedData.metadata?.entityCounts || {}).reduce((a: number, b: number) => a + b, 0)} records`,
+              });
             }
             
             resolve(true);
@@ -287,6 +307,57 @@ export const useEnhancedPersistence = () => {
       };
       reader.readAsText(file);
     });
+  }, [dispatch, loadFromStorage]);
+
+  // Restore from localStorage backup (manual recovery option)
+  const restoreFromBackup = useCallback(async (): Promise<boolean> => {
+    try {
+      const backupData = localStorage.getItem('lawfirm_app_data_backup');
+      if (!backupData) {
+        toast({
+          title: 'No Backup Found',
+          description: 'No localStorage backup available to restore',
+          variant: 'destructive'
+        });
+        return false;
+      }
+
+      const parsedBackup = JSON.parse(backupData);
+      const entityCount = Object.values(parsedBackup.metadata?.entityCounts || {}).reduce((a: number, b: number) => a + b, 0);
+      
+      if (entityCount === 0) {
+        toast({
+          title: 'Empty Backup',
+          description: 'Backup contains no data to restore',
+          variant: 'destructive'
+        });
+        return false;
+      }
+
+      await persistenceService.importAllData(parsedBackup);
+      const loadedData = await loadFromStorage();
+      
+      if (loadedData) {
+        dispatch({ type: 'RESTORE_STATE', payload: loadedData });
+        
+        toast({
+          title: 'Backup Restored',
+          description: `Successfully restored ${entityCount} records from backup`,
+        });
+        
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Backup restore failed:', error);
+      toast({
+        title: 'Restore Failed',
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: 'destructive'
+      });
+      return false;
+    }
   }, [dispatch, loadFromStorage]);
 
   // Clear all data
@@ -314,13 +385,13 @@ export const useEnhancedPersistence = () => {
       // Load existing data from IndexedDB first
       const savedData = await loadFromStorage();
       
-      // Smart migration from localStorage - only if IndexedDB is empty or localStorage has newer data
+      // Enhanced smart migration with better validation
       try {
         const legacyData = localStorage.getItem('lawfirm_app_data');
         const backupData = localStorage.getItem('lawfirm_app_data_backup');
         
         if (legacyData || backupData) {
-          // Choose the most recent data source
+          // Choose the most recent and complete data source
           let selectedData = null;
           let selectedSource = '';
           
@@ -332,24 +403,59 @@ export const useEnhancedPersistence = () => {
           
           if (backupData) {
             const parsedBackup = JSON.parse(backupData);
-            // Use backup if it's newer or if main data doesn't exist
-            if (!selectedData || (parsedBackup.metadata?.lastSaved > selectedData.metadata?.lastSaved)) {
+            // Use backup if it's newer or has more complete data
+            if (!selectedData || 
+                (parsedBackup.metadata?.timestamp > (selectedData.metadata?.timestamp || selectedData.metadata?.lastSaved)) ||
+                (parsedBackup.metadata?.entityCounts && 
+                 Object.values(parsedBackup.metadata.entityCounts).reduce((a: number, b: number) => a + b, 0) > 
+                 Object.values(selectedData.metadata?.entityCounts || {}).reduce((a: number, b: number) => a + b, 0))) {
               selectedData = parsedBackup;
               selectedSource = 'localStorage backup';
             }
           }
           
           if (selectedData) {
-            // Get IndexedDB metadata separately
-            const indexedDBMetadata = await idbStorage.get('metadata');
-            const localStorageTimestamp = selectedData.metadata?.lastSaved || 0;
-            const indexedDBTimestamp = indexedDBMetadata?.lastSaved || 0;
+            // Validate backup data structure
+            const isValidBackup = selectedData && 
+              typeof selectedData === 'object' &&
+              selectedData.metadata &&
+              selectedData.metadata.entityCounts;
             
-            // Only migrate if localStorage data is newer or IndexedDB is empty
-            if (!savedData || localStorageTimestamp > indexedDBTimestamp) {
-              console.log(`📦 Migrating newer data from ${selectedSource} to IndexedDB`);
-              console.log(`   LocalStorage timestamp: ${new Date(localStorageTimestamp).toLocaleString()}`);
+            if (!isValidBackup) {
+              console.warn('📦 Invalid backup structure, skipping migration');
+              return;
+            }
+            
+            // Get IndexedDB metadata and count existing entities
+            const indexedDBMetadata = await idbStorage.get('metadata');
+            const indexedDBDocuments = await idbStorage.get('documents');
+            const indexedDBCases = await idbStorage.get('cases');
+            
+            const indexedDBEntityCount = (Array.isArray(indexedDBDocuments) ? indexedDBDocuments.length : 0) +
+                                        (Array.isArray(indexedDBCases) ? indexedDBCases.length : 0);
+            
+            const backupEntityCount: number = Object.values(selectedData.metadata.entityCounts as Record<string, number>).reduce((a: number, b: number) => a + b, 0);
+            
+            const localStorageTimestamp = selectedData.metadata?.timestamp || selectedData.metadata?.lastSaved || '0';
+            const indexedDBTimestamp = indexedDBMetadata?.lastSaved || '0';
+            const localStorageTime = new Date(localStorageTimestamp).getTime();
+            const indexedDBTime = new Date(indexedDBTimestamp).getTime();
+            
+            // Enhanced migration logic: Only migrate if backup has meaningful data and either:
+            // 1. IndexedDB is empty/corrupted, OR
+            // 2. Backup is significantly newer AND has more entities
+            const shouldMigrate = backupEntityCount > 0 && (
+              indexedDBEntityCount === 0 ||
+              (!savedData && backupEntityCount > 0) ||
+              (localStorageTime > indexedDBTime && backupEntityCount >= indexedDBEntityCount)
+            );
+            
+            if (shouldMigrate) {
+              console.log(`📦 Migrating data from ${selectedSource} to IndexedDB`);
+              console.log(`   Backup timestamp: ${new Date(localStorageTimestamp).toLocaleString()}`);
               console.log(`   IndexedDB timestamp: ${new Date(indexedDBTimestamp).toLocaleString()}`);
+              console.log(`   Backup entities: ${backupEntityCount}, IndexedDB entities: ${indexedDBEntityCount}`);
+              console.log('   Entity counts:', selectedData.metadata.entityCounts);
               
               await persistenceService.importAllData(selectedData);
               
@@ -360,14 +466,35 @@ export const useEnhancedPersistence = () => {
               // Reload data after migration
               const migratedData = await loadFromStorage();
               if (migratedData) {
-                dispatch({ type: 'RESTORE_STATE', payload: migratedData });
-                console.log(`✅ Successfully migrated ${migratedData.cases?.length || 0} cases from ${selectedSource}`);
+                // Validate migrated data before restoring
+                const hasValidData = (migratedData.documents && migratedData.documents.length > 0) ||
+                                   (migratedData.cases && migratedData.cases.length > 0) ||
+                                   (migratedData.clients && migratedData.clients.length > 0);
+                
+                if (hasValidData) {
+                  dispatch({ type: 'RESTORE_STATE', payload: migratedData });
+                  console.log(`✅ Successfully migrated and restored data:`, {
+                    cases: migratedData.cases?.length || 0,
+                    documents: migratedData.documents?.length || 0,
+                    clients: migratedData.clients?.length || 0
+                  });
+                } else {
+                  console.warn('📦 Migrated data appears empty, skipping restore');
+                }
               }
               return;
             } else {
-              console.log('📦 IndexedDB data is newer, keeping existing data');
-              console.log(`   LocalStorage timestamp: ${new Date(localStorageTimestamp).toLocaleString()}`);
+              console.log('📦 Keeping existing IndexedDB data (backup not suitable for migration)');
+              console.log(`   Backup timestamp: ${new Date(localStorageTimestamp).toLocaleString()}`);
               console.log(`   IndexedDB timestamp: ${new Date(indexedDBTimestamp).toLocaleString()}`);
+              console.log(`   Backup entities: ${backupEntityCount}, IndexedDB entities: ${indexedDBEntityCount}`);
+              
+              // Clean up old localStorage data to prevent future confusion
+              if (indexedDBEntityCount > (backupEntityCount as number)) {
+                localStorage.removeItem('lawfirm_app_data');
+                localStorage.removeItem('lawfirm_app_data_backup');
+                console.log('📦 Cleaned up inferior localStorage backup');
+              }
             }
           }
         }
@@ -396,18 +523,44 @@ export const useEnhancedPersistence = () => {
     return () => clearInterval(interval);
   }, [state, saveAllToStorage, isAutoSaving]);
 
-  // Save on page unload
+  // Enhanced save on page unload with complete backup
   useEffect(() => {
     const handleBeforeUnload = () => {
-      // Use synchronous localStorage as fallback for critical data
+      // Use synchronous localStorage as fallback for ALL critical data
       try {
-        localStorage.setItem('lawfirm_app_data_backup', JSON.stringify({
+        const completeBackup = {
           cases: state.cases,
           clients: state.clients,
-          timestamp: new Date().toISOString()
-        }));
+          courts: state.courts,
+          judges: state.judges,
+          employees: state.employees,
+          hearings: state.hearings,
+          tasks: state.tasks,
+          documents: state.documents,
+          folders: state.folders,
+          userProfile: state.userProfile,
+          metadata: {
+            backupType: 'beforeunload',
+            timestamp: new Date().toISOString(),
+            version: '1.0.0',
+            entityCounts: {
+              cases: state.cases.length,
+              clients: state.clients.length,
+              courts: state.courts.length,
+              judges: state.judges.length,
+              employees: state.employees.length,
+              hearings: state.hearings.length,
+              tasks: state.tasks.length,
+              documents: state.documents.length,
+              folders: state.folders.length,
+            }
+          }
+        };
+        
+        localStorage.setItem('lawfirm_app_data_backup', JSON.stringify(completeBackup));
+        console.log('💾 Complete backup created on unload:', completeBackup.metadata.entityCounts);
       } catch (error) {
-        console.warn('Failed to create backup on unload:', error);
+        console.warn('Failed to create complete backup on unload:', error);
       }
     };
 
@@ -430,6 +583,7 @@ export const useEnhancedPersistence = () => {
     clearAllData,
     saveToStorage: () => saveAllToStorage(state),
     checkHealth,
-    manualSave: () => saveAllToStorage(state)
+    manualSave: () => saveAllToStorage(state),
+    restoreFromBackup
   };
 };

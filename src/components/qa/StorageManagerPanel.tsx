@@ -34,13 +34,16 @@ export const StorageManagerPanel: React.FC = () => {
     importData,
     clearAllData,
     checkHealth,
-    manualSave
+    manualSave,
+    restoreFromBackup
   } = useEnhancedPersistence();
 
   const [isGeneratingDemo, setIsGeneratingDemo] = useState(false);
   const [isClearingData, setIsClearingData] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
   const [operationHistory, setOperationHistory] = useState<any[]>([]);
   const [entityCounts, setEntityCounts] = useState<Record<string, number>>({});
+  const [backupInfo, setBackupInfo] = useState<{ timestamp: string; entityCount: number } | null>(null);
 
   // Refresh entity counts
   const refreshCounts = async () => {
@@ -72,9 +75,32 @@ export const StorageManagerPanel: React.FC = () => {
     }
   };
 
+  // Check for available backup
+  const checkBackupInfo = () => {
+    try {
+      const backupData = localStorage.getItem('lawfirm_app_data_backup');
+      if (backupData) {
+        const parsed = JSON.parse(backupData);
+        if (parsed.metadata) {
+          const entityCount = Object.values(parsed.metadata.entityCounts || {}).reduce((a: number, b: number) => a + b, 0);
+          setBackupInfo({
+            timestamp: parsed.metadata.timestamp,
+            entityCount: entityCount as number
+          });
+        }
+      } else {
+        setBackupInfo(null);
+      }
+    } catch (error) {
+      console.warn('Failed to check backup info:', error);
+      setBackupInfo(null);
+    }
+  };
+
   useEffect(() => {
     refreshCounts();
     refreshOperationHistory();
+    checkBackupInfo();
   }, []);
 
   const handleGenerateDemo = async () => {
@@ -136,6 +162,22 @@ export const StorageManagerPanel: React.FC = () => {
     } finally {
       // Reset input
       event.target.value = '';
+    }
+  };
+
+  const handleRestoreFromBackup = async () => {
+    setIsRestoring(true);
+    try {
+      const success = await restoreFromBackup();
+      if (success) {
+        await refreshCounts();
+        await refreshOperationHistory();
+        checkBackupInfo();
+      }
+    } catch (error) {
+      console.error('Restore failed:', error);
+    } finally {
+      setIsRestoring(false);
     }
   };
 
@@ -252,7 +294,7 @@ export const StorageManagerPanel: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             {/* Seed Demo Data */}
             <Button
               onClick={handleGenerateDemo}
@@ -307,7 +349,37 @@ export const StorageManagerPanel: React.FC = () => {
                 className="absolute inset-0 opacity-0 cursor-pointer"
               />
             </div>
+
+            {/* Restore from Backup */}
+            <Button
+              onClick={handleRestoreFromBackup}
+              disabled={isRestoring || !backupInfo}
+              variant="secondary"
+              className="h-auto flex-col p-4"
+            >
+              {isRestoring ? (
+                <RefreshCw className="h-6 w-6 animate-spin mb-2" />
+              ) : (
+                <RefreshCw className="h-6 w-6 mb-2" />
+              )}
+              <span className="text-sm">Restore Backup</span>
+              {backupInfo && (
+                <span className="text-xs text-muted-foreground mt-1">
+                  {backupInfo.entityCount} records
+                </span>
+              )}
+            </Button>
           </div>
+          
+          {/* Backup Info */}
+          {backupInfo && (
+            <Alert className="mt-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Backup Available:</strong> {backupInfo.entityCount} records from {new Date(backupInfo.timestamp).toLocaleString()}
+              </AlertDescription>
+            </Alert>
+          )}
 
           <Separator className="my-4" />
 
