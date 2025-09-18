@@ -67,6 +67,23 @@ export const ClientMasters: React.FC = () => {
     return matchesSearch && matchesFilter;
   });
 
+  const getPrimaryContact = (client: Client) => {
+    // First, try to get from signatories (new way)
+    if (client.signatories && client.signatories.length > 0) {
+      const primarySignatory = client.signatories.find(s => s.isPrimary) || client.signatories[0];
+      return {
+        email: primarySignatory.email || 'N/A',
+        phone: primarySignatory.phone || 'N/A'
+      };
+    }
+    
+    // Fallback to legacy fields (old way)
+    return {
+      email: client.email || 'N/A',
+      phone: client.phone || 'N/A'
+    };
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Active': return 'bg-success text-success-foreground';
@@ -311,18 +328,18 @@ export const ClientMasters: React.FC = () => {
                         <span className="text-sm">{client.assignedCAName}</span>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className="flex items-center text-sm">
-                          <Mail className="mr-1 h-3 w-3 text-muted-foreground" />
-                          {client.email}
-                        </div>
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <Phone className="mr-1 h-3 w-3" />
-                          {client.phone}
-                        </div>
-                      </div>
-                    </TableCell>
+                     <TableCell>
+                       <div className="space-y-1">
+                         <div className="flex items-center text-sm">
+                           <Mail className="mr-1 h-3 w-3 text-muted-foreground" />
+                           {getPrimaryContact(client).email}
+                         </div>
+                         <div className="flex items-center text-sm text-muted-foreground">
+                           <Phone className="mr-1 h-3 w-3" />
+                           {getPrimaryContact(client).phone}
+                         </div>
+                       </div>
+                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className={getStatusColor(client.status)}>
                         {client.status}
