@@ -1,6 +1,15 @@
 import { AppAction } from '@/contexts/AppStateContext';
 import { toast } from '@/hooks/use-toast';
 import { HashService } from './hashService';
+import { idbStorage } from '@/utils/idb';
+
+const isDev = import.meta.env.DEV;
+
+const log = (tab: string, action: string, level: string = 'info', details?: any) => {
+  if (!isDev) return;
+  const color = level === 'success' ? 'color: green' : level === 'error' ? 'color: red' : 'color: blue';
+  console.log(`%c[DMS] ${tab} ${action} ${level}`, color, details);
+};
 
 // Use the Document interface from AppStateContext
 interface Document {
@@ -173,13 +182,6 @@ let mockTags: Tag[] = [
   { id: '3', name: 'evidence', color: '#10b981', createdAt: '2024-01-12', usageCount: 15 },
   { id: '4', name: 'order', color: '#f59e0b', createdAt: '2024-01-15', usageCount: 6 }
 ];
-
-import { idbStorage } from '@/utils/idb';
-
-  if (!isDev) return;
-  const color = level === 'success' ? 'color: green' : 'color: red';
-  console.log(`%c[Cases] ${tab} ${action} ${level}`, color, details);
-};
 
 export const dmsService = {
 // Folder Management
