@@ -158,10 +158,11 @@ export const DocumentManagement: React.FC = () => {
     }
   };
 
-  // Handle URL parameters for search, case filtering, and return context
+  // Handle URL parameters for search, case filtering, action, and return context
   useEffect(() => {
     const search = searchParams.get('search');
     const caseId = searchParams.get('caseId');
+    const action = searchParams.get('action');
     const returnTo = searchParams.get('returnTo');
     const returnCaseId = searchParams.get('returnCaseId');
     
@@ -174,6 +175,20 @@ export const DocumentManagement: React.FC = () => {
     
     if (caseId) {
       setActiveFilters(prev => ({ ...prev, caseId }));
+    }
+
+    // Handle action parameter to auto-open upload modal
+    if (action === 'upload') {
+      setDocumentModal({
+        isOpen: true,
+        mode: 'upload',
+        document: null
+      });
+      
+      // Clear action parameter from URL to prevent re-opening modal on refresh
+      const newSearchParams = new URLSearchParams(searchParams);
+      newSearchParams.delete('action');
+      navigate(`?${newSearchParams.toString()}`, { replace: true });
     }
 
     // Store return context if present
