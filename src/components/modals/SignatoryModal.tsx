@@ -143,150 +143,152 @@ export const SignatoryModal: React.FC<SignatoryModalProps> = ({
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <div className="flex items-center gap-1">
-              <Label htmlFor="fullName">Full Name *</Label>
-              <FieldTooltip formId="create-signatory" fieldId="name" />
-            </div>
-            <Input
-              id="fullName"
-              value={formData.fullName}
-              onChange={(e) => {
-                setFormData(prev => ({ ...prev, fullName: e.target.value }));
-                setErrors(prev => ({ ...prev, fullName: '' }));
-              }}
-              disabled={mode === 'view'}
-              className={errors.fullName ? 'border-destructive' : ''}
-            />
-            {errors.fullName && (
-              <p className="text-sm text-destructive mt-1">{errors.fullName}</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="designation">Designation</Label>
-            <Input
-              id="designation"
-              value={formData.designation}
-              onChange={(e) => setFormData(prev => ({ ...prev, designation: e.target.value }))}
-              disabled={mode === 'view'}
-              placeholder="e.g., Director, Partner, Authorized Representative"
-            />
-          </div>
-
-          <div>
-            <div className="flex items-center gap-1">
-              <Label htmlFor="email">Email Address *</Label>
-              <FieldTooltip formId="create-signatory" fieldId="email" />
-            </div>
-            <Input
-              id="email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => {
-                setFormData(prev => ({ ...prev, email: e.target.value }));
-                setErrors(prev => ({ ...prev, email: '' }));
-              }}
-              disabled={mode === 'view'}
-              className={errors.email ? 'border-destructive' : ''}
-            />
-            {errors.email && (
-              <p className="text-sm text-destructive mt-1">{errors.email}</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="phone">Phone Number</Label>
-            <Input
-              id="phone"
-              value={formData.phone}
-              onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-              disabled={mode === 'view'}
-              placeholder="+91 XXXXX XXXXX"
-            />
-          </div>
-
-          <div>
-            <div className="flex items-center gap-1">
-              <Label htmlFor="scope">Scope of Authority</Label>
-              <FieldTooltip formId="create-signatory" fieldId="scope" />
-            </div>
-            <Select 
-              value={formData.scope} 
-              onValueChange={(value) => setFormData(prev => ({ ...prev, scope: value as any }))}
-              disabled={mode === 'view'}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All Matters</SelectItem>
-                <SelectItem value="GST Filings">GST Filings Only</SelectItem>
-                <SelectItem value="Litigation">Litigation Only</SelectItem>
-                <SelectItem value="Appeals">Appeals Only</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="space-y-2">
-              <Label>Primary Signatory</Label>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  checked={formData.isPrimary}
-                  onCheckedChange={handlePrimaryChange}
-                  disabled={mode === 'view'}
-                />
-                <span className="text-sm text-muted-foreground">
-                  {formData.isPrimary ? 'Primary signatory' : 'Additional signatory'}
-                </span>
+        <DialogBody>
+          <form id="signatory-form" onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <div className="flex items-center gap-1">
+                <Label htmlFor="fullName">Full Name *</Label>
+                <FieldTooltip formId="create-signatory" fieldId="name" />
               </div>
-              {errors.isPrimary && (
-                <p className="text-sm text-destructive">{errors.isPrimary}</p>
+              <Input
+                id="fullName"
+                value={formData.fullName}
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, fullName: e.target.value }));
+                  setErrors(prev => ({ ...prev, fullName: '' }));
+                }}
+                disabled={mode === 'view'}
+                className={errors.fullName ? 'border-destructive' : ''}
+              />
+              {errors.fullName && (
+                <p className="text-sm text-destructive mt-1">{errors.fullName}</p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <div>
-                <Select 
-                  value={formData.status} 
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as any }))}
-                  disabled={mode === 'view'}
-                >
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Active">Active</SelectItem>
-                    <SelectItem value="Inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
+            <div>
+              <Label htmlFor="designation">Designation</Label>
+              <Input
+                id="designation"
+                value={formData.designation}
+                onChange={(e) => setFormData(prev => ({ ...prev, designation: e.target.value }))}
+                disabled={mode === 'view'}
+                placeholder="e.g., Director, Partner, Authorized Representative"
+              />
+            </div>
+
+            <div>
+              <div className="flex items-center gap-1">
+                <Label htmlFor="email">Email Address *</Label>
+                <FieldTooltip formId="create-signatory" fieldId="email" />
+              </div>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, email: e.target.value }));
+                  setErrors(prev => ({ ...prev, email: '' }));
+                }}
+                disabled={mode === 'view'}
+                className={errors.email ? 'border-destructive' : ''}
+              />
+              {errors.email && (
+                <p className="text-sm text-destructive mt-1">{errors.email}</p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input
+                id="phone"
+                value={formData.phone}
+                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                disabled={mode === 'view'}
+                placeholder="+91 XXXXX XXXXX"
+              />
+            </div>
+
+            <div>
+              <div className="flex items-center gap-1">
+                <Label htmlFor="scope">Scope of Authority</Label>
+                <FieldTooltip formId="create-signatory" fieldId="scope" />
+              </div>
+              <Select 
+                value={formData.scope} 
+                onValueChange={(value) => setFormData(prev => ({ ...prev, scope: value as any }))}
+                disabled={mode === 'view'}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">All Matters</SelectItem>
+                  <SelectItem value="GST Filings">GST Filings Only</SelectItem>
+                  <SelectItem value="Litigation">Litigation Only</SelectItem>
+                  <SelectItem value="Appeals">Appeals Only</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <Label>Primary Signatory</Label>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={formData.isPrimary}
+                    onCheckedChange={handlePrimaryChange}
+                    disabled={mode === 'view'}
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    {formData.isPrimary ? 'Primary signatory' : 'Additional signatory'}
+                  </span>
+                </div>
+                {errors.isPrimary && (
+                  <p className="text-sm text-destructive">{errors.isPrimary}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <div>
+                  <Select 
+                    value={formData.status} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as any }))}
+                    disabled={mode === 'view'}
+                  >
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Active">Active</SelectItem>
+                      <SelectItem value="Inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
-          </div>
 
-          {formData.isPrimary && (
-            <div className="bg-accent/50 p-3 rounded-md">
-              <p className="text-sm text-accent-foreground">
-                <strong>Primary Signatory:</strong> This person will be the main contact for all communications 
-                and will have full authority to represent the client in all matters.
-              </p>
-            </div>
-          )}
-
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              {mode === 'view' ? 'Close' : 'Cancel'}
-            </Button>
-            {mode !== 'view' && (
-              <Button type="submit">
-                {mode === 'create' ? 'Add Signatory' : 'Update Signatory'}
-              </Button>
+            {formData.isPrimary && (
+              <div className="bg-accent/50 p-3 rounded-md">
+                <p className="text-sm text-accent-foreground">
+                  <strong>Primary Signatory:</strong> This person will be the main contact for all communications 
+                  and will have full authority to represent the client in all matters.
+                </p>
+              </div>
             )}
-          </div>
-        </form>
+          </form>
+        </DialogBody>
+
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onClose}>
+            {mode === 'view' ? 'Close' : 'Cancel'}
+          </Button>
+          {mode !== 'view' && (
+            <Button type="submit" form="signatory-form">
+              {mode === 'create' ? 'Add Signatory' : 'Update Signatory'}
+            </Button>
+          )}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
