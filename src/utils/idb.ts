@@ -11,8 +11,8 @@ interface IDBStorage {
 }
 
 class IndexedDBStorage implements IDBStorage {
-  private dbName = 'lawfirm_app_db';
-  private version = 1;
+  private dbName = 'beacon_case_management_db';
+  private version = 2; // Incremented for schema update
   private db: IDBDatabase | null = null;
 
   private async openDB(): Promise<IDBDatabase> {
@@ -29,14 +29,43 @@ class IndexedDBStorage implements IDBStorage {
 
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
+        const oldVersion = event.oldVersion;
         
-        // Create object stores
+        console.log(`[IDB] Upgrading database from version ${oldVersion} to ${this.version}`);
+        
+        // Create object stores for different entity types
+        const storeConfig = { keyPath: 'key' };
+        
         if (!db.objectStoreNames.contains('data')) {
-          db.createObjectStore('data', { keyPath: 'key' });
+          db.createObjectStore('data', storeConfig);
         }
         
         if (!db.objectStoreNames.contains('blobs')) {
-          db.createObjectStore('blobs', { keyPath: 'key' });
+          db.createObjectStore('blobs', storeConfig);
+        }
+        
+        // Entity-specific stores for better organization and performance
+        const entityStores = ['cases', 'clients', 'courts', 'judges', 'employees', 'hearings', 'tasks', 'documents', 'folders'];
+        
+        entityStores.forEach(storeName => {
+          if (!db.objectStoreNames.contains(storeName)) {
+            const store = db.createObjectStore(storeName, { keyPath: 'id' });
+            // Add indexes for common queries
+            store.createIndex('timestamp', 'timestamp', { unique: false });
+            if (storeName !== 'clients' && storeName !== 'courts' && storeName !== 'judges' && storeName !== 'employees') {
+              store.createIndex('clientId', 'clientId', { unique: false });
+            }
+            if (storeName === 'tasks' || storeName === 'documents' || storeName === 'hearings') {
+              store.createIndex('caseId', 'caseId', { unique: false });
+            }
+          }
+        });
+        
+        // Operations log store
+        if (!db.objectStoreNames.contains('operations')) {
+          const opsStore = db.createObjectStore('operations', { keyPath: 'id' });
+          opsStore.createIndex('timestamp', 'timestamp', { unique: false });
+          opsStore.createIndex('entity', 'entity', { unique: false });
         }
       };
     });

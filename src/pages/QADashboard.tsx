@@ -21,6 +21,7 @@ import { SmokeTestSuite } from '@/components/qa/SmokeTestSuite';
 import { ErrorBoundary } from '@/components/qa/ErrorBoundary';
 import { EnvironmentStatus } from '@/components/qa/EnvironmentStatus';
 import { GSTMonitoringPanel } from '@/components/qa/GSTMonitoringPanel';
+import { StorageManagerPanel } from '@/components/qa/StorageManagerPanel';
 import { toast } from '@/hooks/use-toast';
 
 export const QADashboard: React.FC = () => {
@@ -177,8 +178,9 @@ export const QADashboard: React.FC = () => {
         )}
 
         <Tabs defaultValue="tests" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="tests">Smoke Tests</TabsTrigger>
+            <TabsTrigger value="storage">Storage Manager</TabsTrigger>
             <TabsTrigger value="gst-monitoring">GST Monitoring</TabsTrigger>
             <TabsTrigger value="diagnostics">System Diagnostics</TabsTrigger>
             <TabsTrigger value="fixes">Applied Fixes</TabsTrigger>
@@ -186,6 +188,10 @@ export const QADashboard: React.FC = () => {
 
           <TabsContent value="tests" className="mt-6">
             <SmokeTestSuite results={testResults} lastRun={lastRun} />
+          </TabsContent>
+
+          <TabsContent value="storage" className="mt-6">
+            <StorageManagerPanel />
           </TabsContent>
 
           <TabsContent value="gst-monitoring" className="mt-6">
