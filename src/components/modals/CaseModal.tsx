@@ -69,7 +69,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
         priority: caseData.priority,
         assignedToId: caseData.assignedToId,
         assignedToName: caseData.assignedToName,
-        description: ''
+        description: caseData.description || ''
       });
       updateContext({ clientId: caseData.clientId });
     } else if (mode === 'create') {
@@ -133,6 +133,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
         slaStatus: 'Green',
         assignedToId: formData.assignedToId,
         assignedToName: formData.assignedToName,
+        description: formData.description,
         createdDate: new Date().toISOString().split('T')[0],
         lastUpdated: new Date().toISOString().split('T')[0],
         documents: 0,
@@ -153,6 +154,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
         priority: formData.priority,
         assignedToId: formData.assignedToId,
         assignedToName: formData.assignedToName,
+        description: formData.description,
         lastUpdated: new Date().toISOString().split('T')[0]
       };
 
