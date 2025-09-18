@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState, useRef } from 'react';
 import { AppState, useAppState, AppAction } from '@/contexts/AppStateContext';
 import { persistenceService, StorageHealth } from '@/services/persistenceService';
 import { idbStorage } from '@/utils/idb';
@@ -11,6 +11,8 @@ export const useEnhancedPersistence = () => {
   const [storageHealth, setStorageHealth] = useState<StorageHealth | null>(null);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
+  const [initialized, setInitialized] = useState(false);
+  const lastNonZeroEntityCount = useRef(0);
 
   // Enhanced storage health checking with recovery options
   const checkHealth = useCallback(async () => {
@@ -105,10 +107,42 @@ export const useEnhancedPersistence = () => {
     }
   }, [checkHealth]);
 
+  // Mirror current state to localStorage for modules that rely on it
+  const mirrorLocalCache = useCallback((stateToMirror: AppState) => {
+    try {
+      localStorage.setItem('lawfirm_app_data', JSON.stringify(stateToMirror));
+      localStorage.setItem('dms_folders', JSON.stringify(stateToMirror.folders || []));
+      console.log('🪞 Local cache mirrored from IndexedDB', {
+        cases: stateToMirror.cases.length,
+        documents: stateToMirror.documents.length,
+        folders: stateToMirror.folders.length,
+      });
+    } catch (error) {
+      console.warn('Failed to mirror local cache:', error);
+    }
+  }, []);
+
   // Save all state to IndexedDB
   const saveAllToStorage = useCallback(async (stateToSave: AppState) => {
     try {
       setIsAutoSaving(true);
+
+      // Mass-drop guard: prevent overwriting IDB with empty state after boot glitches
+      const totalEntities =
+        (stateToSave.cases?.length || 0) +
+        (stateToSave.clients?.length || 0) +
+        (stateToSave.courts?.length || 0) +
+        (stateToSave.judges?.length || 0) +
+        (stateToSave.employees?.length || 0) +
+        (stateToSave.hearings?.length || 0) +
+        (stateToSave.tasks?.length || 0) +
+        (stateToSave.documents?.length || 0) +
+        (stateToSave.folders?.length || 0);
+
+      if (totalEntities === 0 && lastNonZeroEntityCount.current > 0) {
+        console.warn('🛑 Mass-drop guard: skipping autosave of empty state');
+        return;
+      }
       
       // Save each entity type separately for better performance
       const savePromises = [
@@ -142,6 +176,13 @@ export const useEnhancedPersistence = () => {
           folders: stateToSave.folders.length,
         }
       });
+
+      // Mirror to localStorage for modules depending on it
+      mirrorLocalCache(stateToSave);
+
+      if (totalEntities > 0) {
+        lastNonZeroEntityCount.current = totalEntities;
+      }
       
       setLastSaved(new Date());
       console.log('📦 All data saved to IndexedDB');
@@ -156,7 +197,7 @@ export const useEnhancedPersistence = () => {
     } finally {
       setIsAutoSaving(false);
     }
-  }, []);
+  }, [mirrorLocalCache]);
 
   // Load all state from IndexedDB
   const loadFromStorage = useCallback(async (): Promise<Partial<AppState> | null> => {
@@ -339,6 +380,12 @@ export const useEnhancedPersistence = () => {
       
       if (loadedData) {
         dispatch({ type: 'RESTORE_STATE', payload: loadedData });
+        mirrorLocalCache({
+          ...state,
+          ...loadedData,
+          userProfile: loadedData.userProfile || state.userProfile,
+        } as AppState);
+        setInitialized(true);
         
         toast({
           title: 'Backup Restored',
@@ -473,6 +520,12 @@ export const useEnhancedPersistence = () => {
                 
                 if (hasValidData) {
                   dispatch({ type: 'RESTORE_STATE', payload: migratedData });
+                  mirrorLocalCache({
+                    ...state,
+                    ...migratedData,
+                    userProfile: migratedData.userProfile || state.userProfile,
+                  } as AppState);
+                  setInitialized(true);
                   console.log(`✅ Successfully migrated and restored data:`, {
                     cases: migratedData.cases?.length || 0,
                     documents: migratedData.documents?.length || 0,
@@ -480,6 +533,7 @@ export const useEnhancedPersistence = () => {
                   });
                 } else {
                   console.warn('📦 Migrated data appears empty, skipping restore');
+                  setInitialized(true);
                 }
               }
               return;
@@ -505,15 +559,25 @@ export const useEnhancedPersistence = () => {
       // Use existing IndexedDB data if no migration occurred
       if (savedData) {
         dispatch({ type: 'RESTORE_STATE', payload: savedData });
+        mirrorLocalCache({
+          ...state,
+          ...savedData,
+          userProfile: savedData.userProfile || state.userProfile,
+        } as AppState);
+        setInitialized(true);
         console.log(`📚 Loaded ${savedData.cases?.length || 0} cases from IndexedDB`);
+      } else {
+        // Nothing to load, but mark initialized to allow normal operation
+        setInitialized(true);
       }
     };
 
     initializePersistence();
   }, [loadFromStorage, dispatch, checkHealth]);
 
-  // Auto-save mechanism
+  // Auto-save mechanism (gated until initialized)
   useEffect(() => {
+    if (!initialized) return;
     const interval = setInterval(async () => {
       if (!isAutoSaving) {
         await saveAllToStorage(state);
@@ -521,7 +585,7 @@ export const useEnhancedPersistence = () => {
     }, AUTO_SAVE_INTERVAL);
 
     return () => clearInterval(interval);
-  }, [state, saveAllToStorage, isAutoSaving]);
+  }, [state, saveAllToStorage, isAutoSaving, initialized]);
 
   // Enhanced save on page unload with complete backup
   useEffect(() => {

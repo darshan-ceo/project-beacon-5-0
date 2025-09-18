@@ -174,9 +174,8 @@ let mockTags: Tag[] = [
   { id: '4', name: 'order', color: '#f59e0b', createdAt: '2024-01-15', usageCount: 6 }
 ];
 
-const isDev = import.meta.env.DEV;
+import { idbStorage } from '@/utils/idb';
 
-const log = (level: 'success' | 'error', tab: string, action: string, details?: any) => {
   if (!isDev) return;
   const color = level === 'success' ? 'color: green' : 'color: red';
   console.log(`%c[Cases] ${tab} ${action} ${level}`, color, details);
@@ -190,9 +189,17 @@ export const dmsService = {
       
       // Load folders from localStorage to get all folders including user-created ones
       const storedFolders = localStorage.getItem('dms_folders');
-      const allFolders = storedFolders ? JSON.parse(storedFolders) : mockFolders;
+      let allFolders = storedFolders ? JSON.parse(storedFolders) : null;
+      if (!allFolders) {
+        try {
+          const idbFolders = await idbStorage.get('folders');
+          allFolders = Array.isArray(idbFolders) ? idbFolders : mockFolders;
+        } catch {
+          allFolders = mockFolders;
+        }
+      }
       
-      return allFolders.filter(f => f.parentId === parentId);
+      return allFolders.filter((f: Folder) => f.parentId === parentId);
     },
 
     listAll: async (): Promise<Folder[]> => {
@@ -200,7 +207,15 @@ export const dmsService = {
       
       // Load folders from localStorage to get all folders including user-created ones
       const storedFolders = localStorage.getItem('dms_folders');
-      const allFolders = storedFolders ? JSON.parse(storedFolders) : mockFolders;
+      let allFolders = storedFolders ? JSON.parse(storedFolders) : null;
+      if (!allFolders) {
+        try {
+          const idbFolders = await idbStorage.get('folders');
+          allFolders = Array.isArray(idbFolders) ? idbFolders : mockFolders;
+        } catch {
+          allFolders = mockFolders;
+        }
+      }
       
       return [...allFolders];
     },
@@ -598,8 +613,17 @@ export const dmsService = {
       
       try {
         // Get the document from state to retrieve actual content
-        const appData = JSON.parse(localStorage.getItem('lawfirm_app_data') || '{}');
-        const documents = appData.documents || [];
+        let appData = {} as any;
+        try {
+          appData = JSON.parse(localStorage.getItem('lawfirm_app_data') || '{}');
+        } catch {}
+        let documents = appData.documents || [];
+        if (!documents || documents.length === 0) {
+          try {
+            const idbDocs = await idbStorage.get('documents');
+            documents = Array.isArray(idbDocs) ? idbDocs : [];
+          } catch {}
+        }
         const foundDocument = documents.find((doc: Document) => doc.id === documentId);
         
         if (foundDocument && foundDocument.content) {
@@ -732,8 +756,17 @@ export const dmsService = {
         await new Promise(resolve => setTimeout(resolve, 500));
         
         // Get the document from state to retrieve actual content
-        const appData = JSON.parse(localStorage.getItem('lawfirm_app_data') || '{}');
-        const documents = appData.documents || [];
+        let appData = {} as any;
+        try {
+          appData = JSON.parse(localStorage.getItem('lawfirm_app_data') || '{}');
+        } catch {}
+        let documents = appData.documents || [];
+        if (!documents || documents.length === 0) {
+          try {
+            const idbDocs = await idbStorage.get('documents');
+            documents = Array.isArray(idbDocs) ? idbDocs : [];
+          } catch {}
+        }
         
         // Import file type utilities for better content generation
         const { generateSampleContent } = await import('@/utils/fileTypeUtils');
@@ -898,8 +931,17 @@ export const dmsService = {
       await new Promise(resolve => setTimeout(resolve, 300));
       
       // Get documents from localStorage (app state)
-      const appData = JSON.parse(localStorage.getItem('lawfirm_app_data') || '{}');
-      const documents: Document[] = appData.documents || [];
+      let appData = {} as any;
+      try {
+        appData = JSON.parse(localStorage.getItem('lawfirm_app_data') || '{}');
+      } catch {}
+      let documents: Document[] = appData.documents || [];
+      if (!documents || documents.length === 0) {
+        try {
+          const idbDocs = await idbStorage.get('documents');
+          documents = Array.isArray(idbDocs) ? idbDocs : [];
+        } catch {}
+      }
       
       // Apply filters
       let filteredDocs = documents;

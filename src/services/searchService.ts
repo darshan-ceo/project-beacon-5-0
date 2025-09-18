@@ -6,6 +6,7 @@
 import { apiService } from './apiService';
 import { envConfig } from '@/utils/envConfig';
 import { featureFlagService } from './featureFlagService';
+import { idbStorage } from '@/utils/idb';
 // Demo search data will be loaded dynamically
 
 export interface SearchResult {

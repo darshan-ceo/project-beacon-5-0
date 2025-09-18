@@ -24,6 +24,7 @@ import { seedDataService } from '@/services/seedDataService';
 import { persistenceService, StorageHealth } from '@/services/persistenceService';
 import { StorageHealthMonitor } from './StorageHealthMonitor';
 import { toast } from '@/hooks/use-toast';
+import { useAppState } from '@/contexts/AppStateContext';
 
 export const StorageManagerPanel: React.FC = () => {
   const {
@@ -38,9 +39,13 @@ export const StorageManagerPanel: React.FC = () => {
     restoreFromBackup
   } = useEnhancedPersistence();
 
+  const { dispatch, state } = useAppState();
+
+
   const [isGeneratingDemo, setIsGeneratingDemo] = useState(false);
   const [isClearingData, setIsClearingData] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [isRebuilding, setIsRebuilding] = useState(false);
   const [operationHistory, setOperationHistory] = useState<any[]>([]);
   const [entityCounts, setEntityCounts] = useState<Record<string, number>>({});
   const [backupInfo, setBackupInfo] = useState<{ timestamp: string; entityCount: number } | null>(null);
@@ -181,6 +186,25 @@ export const StorageManagerPanel: React.FC = () => {
     }
   };
 
+  const handleRebuildLocalCache = async () => {
+    setIsRebuilding(true);
+    try {
+      const data = await persistenceService.exportAllData();
+      localStorage.setItem('lawfirm_app_data', JSON.stringify(data));
+      localStorage.setItem('dms_folders', JSON.stringify(data.folders || []));
+      dispatch({ type: 'RESTORE_STATE', payload: data });
+      await refreshCounts();
+      toast({
+        title: 'Local Cache Rebuilt',
+        description: 'localStorage repopulated from IndexedDB successfully.'
+      });
+    } catch (error) {
+      console.error('Rebuild cache failed:', error);
+      toast({ title: 'Rebuild Failed', description: 'Could not rebuild local cache', variant: 'destructive' });
+    } finally {
+      setIsRebuilding(false);
+    }
+  };
   const formatBytes = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -368,6 +392,21 @@ export const StorageManagerPanel: React.FC = () => {
                   {backupInfo.entityCount} records
                 </span>
               )}
+            </Button>
+
+            {/* Rebuild Local Cache */}
+            <Button
+              onClick={handleRebuildLocalCache}
+              disabled={isRebuilding}
+              variant="outline"
+              className="h-auto flex-col p-4"
+            >
+              {isRebuilding ? (
+                <RefreshCw className="h-6 w-6 animate-spin mb-2" />
+              ) : (
+                <RefreshCw className="h-6 w-6 mb-2" />
+              )}
+              <span className="text-sm">Rebuild Local Cache</span>
             </Button>
           </div>
           
