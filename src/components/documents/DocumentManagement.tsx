@@ -912,6 +912,28 @@ export const DocumentManagement: React.FC = () => {
                           <Button size="sm" variant="outline" onClick={() => handleDocumentDownload(doc)}>
                             <Download className="h-4 w-4" />
                           </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="sm" variant="outline">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                              <DropdownMenuItem onClick={() => setDocumentModal({ isOpen: true, mode: 'edit', document: doc })}>
+                                Edit Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => console.log('Add tag', doc)}>
+                                Add Tag
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                onClick={() => handleDocumentDelete(doc)}
+                                className="text-destructive"
+                              >
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </div>
                     ))}
