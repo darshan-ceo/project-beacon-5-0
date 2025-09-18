@@ -242,23 +242,74 @@ export const useEnhancedPersistence = () => {
       // Check health first
       await checkHealth();
       
-      // Try to migrate from localStorage if needed
+      // Load existing data from IndexedDB first
+      const savedData = await loadFromStorage();
+      
+      // Smart migration from localStorage - only if IndexedDB is empty or localStorage has newer data
       try {
         const legacyData = localStorage.getItem('lawfirm_app_data');
-        if (legacyData) {
-          const parsed = JSON.parse(legacyData);
-          await persistenceService.importAllData(parsed);
-          localStorage.removeItem('lawfirm_app_data'); // Clean up
-          console.log('📦 Migrated data from localStorage to IndexedDB');
+        const backupData = localStorage.getItem('lawfirm_app_data_backup');
+        
+        if (legacyData || backupData) {
+          // Choose the most recent data source
+          let selectedData = null;
+          let selectedSource = '';
+          
+          if (legacyData) {
+            const parsed = JSON.parse(legacyData);
+            selectedData = parsed;
+            selectedSource = 'localStorage';
+          }
+          
+          if (backupData) {
+            const parsedBackup = JSON.parse(backupData);
+            // Use backup if it's newer or if main data doesn't exist
+            if (!selectedData || (parsedBackup.metadata?.lastSaved > selectedData.metadata?.lastSaved)) {
+              selectedData = parsedBackup;
+              selectedSource = 'localStorage backup';
+            }
+          }
+          
+          if (selectedData) {
+            // Get IndexedDB metadata separately
+            const indexedDBMetadata = await idbStorage.get('metadata');
+            const localStorageTimestamp = selectedData.metadata?.lastSaved || 0;
+            const indexedDBTimestamp = indexedDBMetadata?.lastSaved || 0;
+            
+            // Only migrate if localStorage data is newer or IndexedDB is empty
+            if (!savedData || localStorageTimestamp > indexedDBTimestamp) {
+              console.log(`📦 Migrating newer data from ${selectedSource} to IndexedDB`);
+              console.log(`   LocalStorage timestamp: ${new Date(localStorageTimestamp).toLocaleString()}`);
+              console.log(`   IndexedDB timestamp: ${new Date(indexedDBTimestamp).toLocaleString()}`);
+              
+              await persistenceService.importAllData(selectedData);
+              
+              // Clean up after successful migration
+              localStorage.removeItem('lawfirm_app_data');
+              localStorage.removeItem('lawfirm_app_data_backup');
+              
+              // Reload data after migration
+              const migratedData = await loadFromStorage();
+              if (migratedData) {
+                dispatch({ type: 'RESTORE_STATE', payload: migratedData });
+                console.log(`✅ Successfully migrated ${migratedData.cases?.length || 0} cases from ${selectedSource}`);
+              }
+              return;
+            } else {
+              console.log('📦 IndexedDB data is newer, keeping existing data');
+              console.log(`   LocalStorage timestamp: ${new Date(localStorageTimestamp).toLocaleString()}`);
+              console.log(`   IndexedDB timestamp: ${new Date(indexedDBTimestamp).toLocaleString()}`);
+            }
+          }
         }
       } catch (error) {
-        console.warn('Migration from localStorage failed:', error);
+        console.warn('Smart migration from localStorage failed:', error);
       }
       
-      // Load existing data
-      const savedData = await loadFromStorage();
+      // Use existing IndexedDB data if no migration occurred
       if (savedData) {
         dispatch({ type: 'RESTORE_STATE', payload: savedData });
+        console.log(`📚 Loaded ${savedData.cases?.length || 0} cases from IndexedDB`);
       }
     };
 
