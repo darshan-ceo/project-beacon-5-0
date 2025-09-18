@@ -463,6 +463,15 @@ export const dmsService = {
 
       dispatch({ type: 'ADD_DOCUMENT', payload: newDocument });
 
+      // Immediate persistence to prevent data loss
+      try {
+        const persistenceService = await import('@/services/persistenceService');
+        await persistenceService.persistenceService.create('documents', newDocument);
+        console.log('📄 Document immediately persisted:', newDocument.name);
+      } catch (persistError) {
+        console.warn('📄 Immediate persistence failed, relying on autosave:', persistError);
+      }
+
       // Update folder statistics
       if (folder) {
         folder.documentCount++;
@@ -511,6 +520,15 @@ export const dmsService = {
         };
 
         dispatch({ type: 'UPDATE_DOCUMENT', payload: updatedDoc });
+
+        // Immediate persistence for updates
+        try {
+          const persistenceService = await import('@/services/persistenceService');
+          await persistenceService.persistenceService.update('documents', updatedDoc.id, updatedDoc);
+          console.log('📄 Document update immediately persisted:', updatedDoc.name);
+        } catch (persistError) {
+          console.warn('📄 Immediate persistence failed for update, relying on autosave:', persistError);
+        }
 
         toast({
           title: "File Replaced",

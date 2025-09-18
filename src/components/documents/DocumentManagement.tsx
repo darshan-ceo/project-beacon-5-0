@@ -29,7 +29,8 @@ import {
   Home,
   Plus,
   ArrowRight,
-  HelpCircle
+  HelpCircle,
+  X
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { TemplatesManagement } from './TemplatesManagement';
@@ -207,7 +208,7 @@ export const DocumentManagement: React.FC = () => {
   // Apply filters when documents or filters change
   useEffect(() => {
     applyFilters();
-  }, [state.documents, documentSearchTerm, activeFilters]);
+  }, [state.documents, documentSearchTerm, activeFilters, selectedFolder, activeTab]);
 
   const loadFolders = async () => {
     try {
@@ -279,15 +280,24 @@ export const DocumentManagement: React.FC = () => {
       );
     }
 
-    // Filter by selected folder if in folder view
-    if (selectedFolder) {
+    // Filter by selected folder ONLY when actively in folder view (activeTab === 'folders')
+    if (selectedFolder && activeTab === 'folders') {
+      console.log(`📁 Applying folder filter: ${selectedFolder}, documents before filter:`, filtered.length);
       filtered = filtered.filter(doc => 
         (doc as any).folderId === selectedFolder || 
         doc.path?.includes(`folder-${selectedFolder}`) ||
         doc.path?.includes(`folders/${selectedFolder}`)
       );
+      console.log(`📁 Documents after folder filter:`, filtered.length);
     }
 
+    console.log(`📊 Filter results: ${filtered.length}/${convertedDocs.length} documents`, {
+      searchTerm: documentSearchTerm,
+      activeFilters,
+      selectedFolder: activeTab === 'folders' ? selectedFolder : 'ignored',
+      activeTab
+    });
+    
     setFilteredDocuments(filtered as any[]);
   };
 
@@ -513,6 +523,17 @@ export const DocumentManagement: React.FC = () => {
     await loadFolderContents(null);
   };
 
+  const handleResetFilters = () => {
+    setDocumentSearchTerm('');
+    setActiveFilters({});
+    setSelectedFolder(null);
+    console.log('🔄 All filters reset');
+    toast({
+      title: "Filters Reset",
+      description: "All document filters have been cleared.",
+    });
+  };
+
   // Return navigation handler
   const handleReturnToStageManagement = () => {
     const returnContext = JSON.parse(localStorage.getItem('navigation-context') || '{}');
@@ -651,6 +672,14 @@ export const DocumentManagement: React.FC = () => {
         <div className="flex gap-2">
           <Button 
             variant="outline"
+            onClick={handleResetFilters}
+            size="sm"
+          >
+            <X className="mr-2 h-4 w-4" />
+            Reset Filters
+          </Button>
+          <Button 
+            variant="outline"
             onClick={() => setNewFolderModal(true)}
           >
             <FolderOpen className="mr-2 h-4 w-4" />
@@ -777,7 +806,14 @@ export const DocumentManagement: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={(value) => {
+        setActiveTab(value);
+        // Clear folder selection when leaving folders tab to prevent filter issues
+        if (value !== 'folders') {
+          setSelectedFolder(null);
+          console.log(`📁 Cleared folder selection when switching to tab: ${value}`);
+        }
+      }} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="folders">Folders</TabsTrigger>
