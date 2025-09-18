@@ -22,6 +22,7 @@ import {
 import { useEnhancedPersistence } from '@/hooks/useEnhancedPersistence';
 import { seedDataService } from '@/services/seedDataService';
 import { persistenceService, StorageHealth } from '@/services/persistenceService';
+import { StorageHealthMonitor } from './StorageHealthMonitor';
 import { toast } from '@/hooks/use-toast';
 
 export const StorageManagerPanel: React.FC = () => {
@@ -157,6 +158,9 @@ export const StorageManagerPanel: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Enhanced Storage Health Monitor */}
+      <StorageHealthMonitor />
+
       {/* Storage Health Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>

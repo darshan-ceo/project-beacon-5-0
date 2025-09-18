@@ -12,29 +12,98 @@ export const useEnhancedPersistence = () => {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
 
-  // Check storage health
+  // Enhanced storage health checking with recovery options
   const checkHealth = useCallback(async () => {
-    const health = await persistenceService.checkStorageHealth();
-    setStorageHealth(health);
-    
-    if (!health.isHealthy) {
-      toast({
-        title: 'Storage Issue',
-        description: health.errors.join(', '),
-        variant: 'destructive'
-      });
+    try {
+      const health = await persistenceService.checkStorageHealth();
+      setStorageHealth(health);
+      
+      if (!health.isHealthy) {
+        console.error('[Enhanced Persistence] Storage health issues:', health.errors);
+        
+        // Provide specific error messages and recovery options
+        const errorDetails = health.errors.join('\n');
+        toast({
+          title: 'Storage Issue Detected',
+          description: `${errorDetails}\n\nTry refreshing the page or clearing browser cache.`,
+          variant: 'destructive',
+          duration: 10000, // Longer duration for important errors
+        });
+        
+        // Attempt automatic recovery for common issues
+        if (health.errors.some(err => err.includes('Read/write test failed'))) {
+          console.log('[Enhanced Persistence] Attempting automatic storage recovery...');
+          await attemptStorageRecovery();
+        }
+      }
+      
+      if (health.quotaWarning) {
+        toast({
+          title: 'Storage Space Warning',
+          description: `Storage space is running low (${Math.round(health.available / 1024 / 1024)}MB remaining). Consider clearing old data.`,
+          variant: 'destructive',
+          duration: 8000,
+        });
+      }
+      
+      return health;
+    } catch (error) {
+      console.error('[Enhanced Persistence] Health check failed:', error);
+      const fallbackHealth = {
+        isHealthy: false,
+        used: 0,
+        available: 0,
+        errors: [`Health check failed: ${error instanceof Error ? error.message : 'Unknown error'}`],
+        quotaWarning: true
+      };
+      setStorageHealth(fallbackHealth);
+      return fallbackHealth;
     }
-    
-    if (health.quotaWarning) {
-      toast({
-        title: 'Storage Warning',
-        description: 'Storage space is running low',
-        variant: 'destructive'
-      });
-    }
-    
-    return health;
   }, []);
+
+  // Automatic storage recovery
+  const attemptStorageRecovery = useCallback(async () => {
+    try {
+      console.log('[Enhanced Persistence] Starting storage recovery...');
+      
+      // Step 1: Try to clear old test data
+      const testKeys = ['health-check-test', 'health-check-recovery'];
+      for (const key of testKeys) {
+        try {
+          await idbStorage.delete(key);
+        } catch (error) {
+          console.warn(`[Recovery] Failed to clear test key ${key}:`, error);
+        }
+      }
+      
+      // Step 2: Verify storage is working with a simple test
+      const recoveryTest = { recoveryAttempt: Date.now() };
+      await idbStorage.set('health-check-recovery', recoveryTest);
+      const retrieved = await idbStorage.get('health-check-recovery');
+      await idbStorage.delete('health-check-recovery');
+      
+      if (retrieved && retrieved.recoveryAttempt === recoveryTest.recoveryAttempt) {
+        console.log('[Enhanced Persistence] Storage recovery successful');
+        toast({
+          title: 'Storage Recovered',
+          description: 'Storage issues have been automatically resolved.',
+        });
+        
+        // Re-check health
+        setTimeout(() => checkHealth(), 1000);
+      } else {
+        throw new Error('Recovery test failed');
+      }
+      
+    } catch (error) {
+      console.error('[Enhanced Persistence] Storage recovery failed:', error);
+      toast({
+        title: 'Recovery Failed',
+        description: 'Automatic storage recovery failed. Please refresh the page or contact support.',
+        variant: 'destructive',
+      });
+    }
+  }, [checkHealth]);
 
   // Save all state to IndexedDB
   const saveAllToStorage = useCallback(async (stateToSave: AppState) => {

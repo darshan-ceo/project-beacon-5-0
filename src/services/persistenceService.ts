@@ -30,47 +30,205 @@ class PersistenceService {
     this.startHealthMonitoring();
   }
 
-  // Health monitoring
+  // Health monitoring with adaptive frequency
   private startHealthMonitoring() {
+    let healthCheckFrequency = 60000; // Start with 60 seconds
+    
+    this.healthCheckInterval = setInterval(async () => {
+      const health = await this.checkStorageHealth();
+      
+      if (!health.isHealthy) {
+        console.warn('[Persistence] Storage health issues detected:', health.errors);
+        // Increase frequency when issues are detected
+        healthCheckFrequency = Math.max(10000, healthCheckFrequency * 0.5);
+        this.restartHealthMonitoring(healthCheckFrequency);
+      } else {
+        // Decrease frequency when healthy
+        healthCheckFrequency = Math.min(120000, healthCheckFrequency * 1.1);
+        if (healthCheckFrequency > 60000) {
+          this.restartHealthMonitoring(healthCheckFrequency);
+        }
+      }
+    }, healthCheckFrequency);
+  }
+
+  private restartHealthMonitoring(newFrequency: number) {
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+    }
+    
     this.healthCheckInterval = setInterval(async () => {
       const health = await this.checkStorageHealth();
       if (!health.isHealthy) {
         console.warn('[Persistence] Storage health issues detected:', health.errors);
       }
-    }, 30000); // Check every 30 seconds
+    }, newFrequency);
+    
+    console.log(`[Persistence] Health check frequency adjusted to ${newFrequency}ms`);
   }
 
-  async checkStorageHealth(): Promise<StorageHealth> {
+  async checkStorageHealth(retryCount = 0): Promise<StorageHealth> {
+    const maxRetries = 3;
+    const retryDelay = Math.pow(2, retryCount) * 1000; // Exponential backoff
+    
     try {
+      console.log(`[Storage Health] Starting health check (attempt ${retryCount + 1}/${maxRetries + 1})`);
+      
       const stats = await idbStorage.getStorageStats();
       const quotaWarning = stats.available < (1024 * 1024); // Warn if less than 1MB available
       
-      // Test read/write operation
-      const testKey = 'health-check-test';
-      const testData = { timestamp: Date.now() };
+      console.log(`[Storage Health] Storage stats - Used: ${stats.used}, Available: ${stats.available}`);
       
-      await idbStorage.set(testKey, testData);
-      const retrieved = await idbStorage.get(testKey);
-      await idbStorage.delete(testKey);
+      // Enhanced read/write test with detailed logging
+      const testKey = `health-check-${Date.now()}`;
+      const testData = { 
+        timestamp: Date.now(),
+        randomValue: Math.random(),
+        testId: crypto.randomUUID?.() || Math.random().toString(36),
+        browser: navigator.userAgent.split(' ')[0],
+        attempt: retryCount + 1
+      };
       
-      const isHealthy = retrieved && retrieved.timestamp === testData.timestamp;
+      console.log(`[Storage Health] Writing test data:`, testData);
+      
+      // Use isolated transaction for health check
+      await this.performIsolatedWrite(testKey, testData);
+      
+      console.log(`[Storage Health] Reading back test data...`);
+      const retrieved = await this.performIsolatedRead(testKey);
+      
+      console.log(`[Storage Health] Retrieved data:`, retrieved);
+      
+      // Cleanup test data
+      await this.performIsolatedDelete(testKey);
+      
+      // Validate data integrity
+      const isDataValid = this.validateTestData(testData, retrieved);
+      const errors: string[] = [];
+      
+      if (!retrieved) {
+        errors.push('Read operation returned null');
+      } else if (!isDataValid) {
+        errors.push(`Data corruption detected - Expected: ${JSON.stringify(testData)}, Got: ${JSON.stringify(retrieved)}`);
+      }
+      
+      // Check for concurrent operation conflicts
+      const hasConflicts = await this.detectConcurrentOperations();
+      if (hasConflicts) {
+        errors.push('Concurrent operation conflicts detected');
+      }
+      
+      // Browser-specific checks
+      const browserIssues = this.checkBrowserCompatibility();
+      errors.push(...browserIssues);
+      
+      const isHealthy = errors.length === 0;
+      
+      console.log(`[Storage Health] Health check complete - Healthy: ${isHealthy}, Errors: ${errors.length}`);
       
       return {
         isHealthy,
         used: stats.used,
         available: stats.available,
-        errors: isHealthy ? [] : ['Read/write test failed'],
+        errors,
         quotaWarning
       };
+      
     } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`[Storage Health] Health check failed (attempt ${retryCount + 1}):`, error);
+      
+      // Retry with exponential backoff
+      if (retryCount < maxRetries) {
+        console.log(`[Storage Health] Retrying health check in ${retryDelay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        return this.checkStorageHealth(retryCount + 1);
+      }
+      
       return {
         isHealthy: false,
         used: 0,
         available: 0,
-        errors: [error instanceof Error ? error.message : 'Unknown error'],
+        errors: [`Health check failed after ${maxRetries + 1} attempts: ${errorMsg}`],
         quotaWarning: true
       };
     }
+  }
+
+  private async performIsolatedWrite(key: string, data: any): Promise<void> {
+    try {
+      await idbStorage.set(key, data);
+    } catch (error) {
+      console.error(`[Storage Health] Isolated write failed:`, error);
+      throw new Error(`Write operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  private async performIsolatedRead(key: string): Promise<any> {
+    try {
+      return await idbStorage.get(key);
+    } catch (error) {
+      console.error(`[Storage Health] Isolated read failed:`, error);
+      throw new Error(`Read operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  private async performIsolatedDelete(key: string): Promise<void> {
+    try {
+      await idbStorage.delete(key);
+    } catch (error) {
+      console.error(`[Storage Health] Isolated delete failed:`, error);
+      // Don't throw here, as cleanup failure shouldn't fail the health check
+    }
+  }
+
+  private validateTestData(original: any, retrieved: any): boolean {
+    if (!retrieved) return false;
+    
+    return (
+      original.timestamp === retrieved.timestamp &&
+      original.randomValue === retrieved.randomValue &&
+      original.testId === retrieved.testId
+    );
+  }
+
+  private async detectConcurrentOperations(): Promise<boolean> {
+    try {
+      // Check if multiple operations are happening by examining pending transactions
+      const activeOperations = await idbStorage.get('__active_operations__') || [];
+      return Array.isArray(activeOperations) && activeOperations.length > 1;
+    } catch {
+      return false;
+    }
+  }
+
+  private checkBrowserCompatibility(): string[] {
+    const issues: string[] = [];
+    
+    // Check IndexedDB support
+    if (!window.indexedDB) {
+      issues.push('IndexedDB not supported in this browser');
+    }
+    
+    // Check if in private/incognito mode (limited storage)
+    if (navigator.storage && navigator.storage.estimate) {
+      navigator.storage.estimate().then(estimate => {
+        if (estimate.quota && estimate.quota < 50 * 1024 * 1024) { // Less than 50MB
+          console.warn('[Storage Health] Limited storage quota detected (possibly private mode)');
+        }
+      }).catch(() => {
+        // Silently handle - not critical
+      });
+    }
+    
+    // Check for known problematic browsers
+    const userAgent = navigator.userAgent;
+    if (userAgent.includes('Chrome') && userAgent.includes('Mobile')) {
+      // Mobile Chrome can have storage issues
+      console.log('[Storage Health] Mobile Chrome detected - monitoring for storage issues');
+    }
+    
+    return issues;
   }
 
   // Generic CRUD operations
