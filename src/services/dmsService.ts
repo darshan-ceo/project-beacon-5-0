@@ -132,14 +132,25 @@ const initializeMockFolders = (): Folder[] => {
       path: '/folders/litigation-docs/appeals'
     },
     {
-      id: 'client-uploads',
+      id: 'client-docs',
       name: 'Client Documents',
       documentCount: 0,
       size: 0,
       createdAt: '2024-01-01',
       lastAccess: new Date().toISOString(),
-      description: 'Documents uploaded by clients',
-      path: '/folders/client-uploads'
+      description: 'Client-related documents organized by case',
+      path: '/folders/client-docs'
+    },
+    {
+      id: 'client-uploads',
+      name: 'Client Uploads',
+      parentId: 'client-docs',
+      documentCount: 0,
+      size: 0,
+      createdAt: '2024-01-01',
+      lastAccess: new Date().toISOString(),
+      description: 'Documents uploaded by clients via portal',
+      path: '/folders/client-docs/uploads'
     },
     {
       id: 'internal-docs',

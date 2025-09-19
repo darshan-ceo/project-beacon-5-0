@@ -93,11 +93,11 @@ export const OrganizationGuide: React.FC = () => {
                 <div className="text-sm space-y-1">
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className="text-xs">Litigation Documents</Badge>
-                    <span className="text-muted-foreground">→ GSTAT, Appeals</span>
+                    <span className="text-muted-foreground">→ GST Assessment, Appeals</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className="text-xs">Client Documents</Badge>
-                    <span className="text-muted-foreground">→ Organized by case</span>
+                    <span className="text-muted-foreground">→ Client Uploads (from portal)</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className="text-xs">Internal Documents</Badge>
