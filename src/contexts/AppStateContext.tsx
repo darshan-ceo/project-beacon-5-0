@@ -1479,8 +1479,8 @@ const initialState: AppState = {
   ],
   folders: [
     {
-      id: '1',
-      name: 'Litigation Docs',
+      id: 'litigation-docs',
+      name: 'Litigation Documents',
       documentCount: 15,
       size: 25600000,
       createdAt: '2024-01-10',
@@ -1489,25 +1489,68 @@ const initialState: AppState = {
       path: '/folders/litigation-docs'
     },
     {
-      id: '2', 
-      name: 'GSTAT',
-      parentId: '1',
+      id: 'gst-assessment',
+      name: 'GST Assessment',
+      parentId: 'litigation-docs',
       documentCount: 8,
       size: 12800000,
       createdAt: '2024-01-15',
       lastAccess: '2024-01-24',
-      description: 'GSTAT related documents',
-      path: '/folders/litigation-docs/gstat'
+      description: 'GST assessment related documents',
+      path: '/folders/litigation-docs/gst-assessment'
     },
     {
-      id: '3',
-      name: 'Client Uploads',
+      id: 'appeals',
+      name: 'Appeals',
+      parentId: 'litigation-docs',
+      documentCount: 7,
+      size: 12800000,
+      createdAt: '2024-01-15',
+      lastAccess: '2024-01-24',
+      description: 'Appeal documents and submissions',
+      path: '/folders/litigation-docs/appeals'
+    },
+    {
+      id: 'client-docs',
+      name: 'Client Documents',
       documentCount: 23,
       size: 35200000,
       createdAt: '2024-01-05',
       lastAccess: '2024-01-25',
-      description: 'Documents uploaded by clients',
-      path: '/folders/client-uploads'
+      description: 'Client-related documents organized by case',
+      path: '/folders/client-docs'
+    },
+    {
+      id: 'client-uploads',
+      name: 'Client Uploads',
+      parentId: 'client-docs',
+      documentCount: 12,
+      size: 18000000,
+      createdAt: '2024-01-05',
+      lastAccess: '2024-01-25',
+      description: 'Documents uploaded by clients via portal',
+      path: '/folders/client-docs/uploads'
+    },
+    {
+      id: 'internal-docs',
+      name: 'Internal Documents',
+      documentCount: 18,
+      size: 28800000,
+      createdAt: '2024-01-01',
+      lastAccess: '2024-01-25',
+      description: 'Internal firm documents and templates',
+      path: '/folders/internal-docs'
+    },
+    {
+      id: 'templates',
+      name: 'Templates',
+      parentId: 'internal-docs',
+      documentCount: 15,
+      size: 20480000,
+      createdAt: '2024-01-01',
+      lastAccess: '2024-01-25',
+      description: 'Document templates and forms',
+      path: '/folders/internal-docs/templates'
     }
   ],
   hearings: [
