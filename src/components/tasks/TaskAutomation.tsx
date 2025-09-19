@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BundleEditor } from './BundleEditor';
+import { taskBundleService, TaskBundle as ServiceTaskBundle } from '@/services/taskBundleService';
 import { toast } from '@/hooks/use-toast';
 
 interface AutomationRule {
@@ -68,7 +69,50 @@ export const TaskAutomation: React.FC<TaskAutomationProps> = ({ bundles, onBundl
   const [bundleEditorOpen, setBundleEditorOpen] = useState(false);
   const [selectedBundle, setSelectedBundle] = useState<TaskBundle | null>(null);
   const [editorMode, setEditorMode] = useState<'create' | 'edit' | 'clone'>('create');
-  const [mockBundles, setMockBundles] = useState<TaskBundle[]>([]);
+  const [taskBundles, setTaskBundles] = useState<ServiceTaskBundle[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Convert service bundle to editor bundle format
+  const convertToEditorBundle = (serviceBundle: ServiceTaskBundle): TaskBundle => ({
+    id: serviceBundle.id,
+    name: serviceBundle.name,
+    stage: serviceBundle.stageKey,
+    description: `${serviceBundle.trigger} bundle for ${serviceBundle.stageKey}`,
+    executionMode: 'Sequential',
+    autoTrigger: serviceBundle.isActive,
+    tasks: serviceBundle.tasks.map((task, index) => ({
+      id: `task-${index}`,
+      title: task.title,
+      description: task.description,
+      assignedRole: 'Associate',
+      dueOffset: '+1d',
+      priority: task.priority as any,
+      estimatedHours: task.estimatedHours,
+      order: index
+    })),
+    conditions: {
+      triggers: [serviceBundle.trigger as any],
+      specificStages: [serviceBundle.stageKey]
+    },
+    isActive: serviceBundle.isActive,
+    createdAt: new Date().toISOString(),
+    lastModified: new Date().toISOString()
+  });
+
+  // Convert editor bundle to service bundle format
+  const convertToServiceBundle = (editorBundle: TaskBundle): Omit<ServiceTaskBundle, 'id'> => ({
+    name: editorBundle.name,
+    trigger: editorBundle.conditions.triggers[0] as any || 'OnStageEnter',
+    stageKey: editorBundle.stage,
+    tasks: editorBundle.tasks.map(task => ({
+      title: task.title,
+      description: task.description,
+      priority: task.priority as any,
+      estimatedHours: task.estimatedHours,
+      isMandatory: task.priority === 'Critical' || task.priority === 'High'
+    })),
+    isActive: editorBundle.isActive
+  });
 
   const updateAutomationRule = async (ruleId: string, updates: Partial<AutomationRule>) => {
     setAutomationRules(prev => 
@@ -80,14 +124,61 @@ export const TaskAutomation: React.FC<TaskAutomationProps> = ({ bundles, onBundl
     });
   };
 
-  const openBundleEditor = (mode: 'create' | 'edit' | 'clone', bundle?: TaskBundle) => {
+  const openBundleEditor = (mode: 'create' | 'edit' | 'clone', bundle?: ServiceTaskBundle) => {
     setEditorMode(mode);
-    setSelectedBundle(bundle || null);
+    setSelectedBundle(bundle ? convertToEditorBundle(bundle) : null);
     setBundleEditorOpen(true);
   };
 
+  // Load bundles on component mount
+  useEffect(() => {
+    loadTaskBundles();
+  }, []);
+
+  const loadTaskBundles = async () => {
+    try {
+      setLoading(true);
+      const allBundles = taskBundleService.getAllBundles();
+      setTaskBundles(allBundles);
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to load task bundles',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleBundleSave = async (bundle: TaskBundle) => {
-    setBundleEditorOpen(false);
+    toast({
+      title: 'Saving',
+      description: 'Saving task bundle...'
+    });
+
+    try {
+      const serviceBundle = convertToServiceBundle(bundle);
+      if (editorMode === 'create' || editorMode === 'clone') {
+        await taskBundleService.createBundle(serviceBundle);
+      } else if (editorMode === 'edit' && bundle.id) {
+        await taskBundleService.updateBundle(bundle.id, serviceBundle);
+      }
+      
+      await loadTaskBundles(); // Reload bundles
+      setBundleEditorOpen(false);
+      
+      toast({
+        title: 'Success',
+        description: 'Task bundle saved successfully'
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to save task bundle',
+        variant: 'destructive'
+      });
+    }
   };
 
   return (
@@ -136,28 +227,48 @@ export const TaskAutomation: React.FC<TaskAutomationProps> = ({ bundles, onBundl
 
         <TabsContent value="bundles">
           <div className="grid gap-4">
-            {mockBundles.map((bundle) => (
-              <Card key={bundle.id}>
-                <CardContent className="p-6">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <h3 className="font-semibold">{bundle.name}</h3>
-                      <p className="text-sm text-muted-foreground">{bundle.stage}</p>
+            {loading ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Loading task bundles...</p>
+              </div>
+            ) : taskBundles.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No task bundles found</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Create your first bundle to get started
+                </p>
+              </div>
+            ) : (
+              taskBundles.map((bundle) => (
+                <Card key={bundle.id}>
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="font-semibold">{bundle.name}</h3>
+                        <p className="text-sm text-muted-foreground">{bundle.stageKey}</p>
+                        <div className="flex gap-2 mt-2">
+                          <Badge variant="outline">{bundle.trigger}</Badge>
+                          <Badge variant={bundle.isActive ? 'default' : 'secondary'}>
+                            {bundle.isActive ? 'Active' : 'Inactive'}
+                          </Badge>
+                          <Badge variant="outline">{bundle.tasks.length} tasks</Badge>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => openBundleEditor('edit', bundle)}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => openBundleEditor('clone', bundle)}>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Clone
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => openBundleEditor('edit', bundle)}>
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => openBundleEditor('clone', bundle)}>
-                        <Copy className="h-4 w-4 mr-2" />
-                        Clone
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
         </TabsContent>
       </Tabs>

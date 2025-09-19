@@ -31,9 +31,25 @@ export interface TaskTemplate {
 
 class TaskBundleService {
   private bundles: TaskBundle[] = [];
+  private customBundles: TaskBundle[] = [];
 
   constructor() {
     this.initializeDefaultBundles();
+    this.loadCustomBundles();
+  }
+
+  /**
+   * Load custom bundles from IndexedDB
+   */
+  private async loadCustomBundles() {
+    try {
+      const { openDB } = await import('idb');
+      const db = await openDB('AppData', 1);
+      const customBundles = await db.getAll('taskBundles') || [];
+      this.customBundles = customBundles;
+    } catch (error) {
+      console.error('Failed to load custom bundles:', error);
+    }
   }
 
   /**
@@ -261,21 +277,88 @@ class TaskBundleService {
   }
 
   /**
-   * Get all available task bundles
+   * Get all available task bundles (default + custom)
    */
   getAllBundles(): TaskBundle[] {
-    return [...this.bundles];
+    return [...this.bundles, ...this.customBundles];
+  }
+
+  /**
+   * Create a new custom task bundle
+   */
+  async createBundle(bundle: Omit<TaskBundle, 'id'>): Promise<TaskBundle> {
+    try {
+      const newBundle: TaskBundle = {
+        ...bundle,
+        id: `custom_bundle_${Date.now()}`
+      };
+
+      const { openDB } = await import('idb');
+      const db = await openDB('AppData', 1, {
+        upgrade(db) {
+          if (!db.objectStoreNames.contains('taskBundles')) {
+            db.createObjectStore('taskBundles', { keyPath: 'id' });
+          }
+        }
+      });
+
+      await db.put('taskBundles', newBundle);
+      this.customBundles.push(newBundle);
+      return newBundle;
+    } catch (error) {
+      console.error('Failed to create bundle:', error);
+      throw new Error('Failed to save task bundle');
+    }
   }
 
   /**
    * Update task bundle configuration
    */
-  updateBundle(bundleId: string, updates: Partial<TaskBundle>): boolean {
-    const index = this.bundles.findIndex(b => b.id === bundleId);
-    if (index === -1) return false;
+  async updateBundle(bundleId: string, updates: Partial<TaskBundle>): Promise<boolean> {
+    // Check default bundles first
+    const defaultIndex = this.bundles.findIndex(b => b.id === bundleId);
+    if (defaultIndex !== -1) {
+      this.bundles[defaultIndex] = { ...this.bundles[defaultIndex], ...updates };
+      return true;
+    }
 
-    this.bundles[index] = { ...this.bundles[index], ...updates };
-    return true;
+    // Check custom bundles
+    const customIndex = this.customBundles.findIndex(b => b.id === bundleId);
+    if (customIndex === -1) return false;
+
+    try {
+      const updatedBundle = { ...this.customBundles[customIndex], ...updates };
+      
+      const { openDB } = await import('idb');
+      const db = await openDB('AppData', 1);
+      await db.put('taskBundles', updatedBundle);
+      
+      this.customBundles[customIndex] = updatedBundle;
+      return true;
+    } catch (error) {
+      console.error('Failed to update bundle:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Delete a custom task bundle
+   */
+  async deleteBundle(bundleId: string): Promise<boolean> {
+    const customIndex = this.customBundles.findIndex(b => b.id === bundleId);
+    if (customIndex === -1) return false;
+
+    try {
+      const { openDB } = await import('idb');
+      const db = await openDB('AppData', 1);
+      await db.delete('taskBundles', bundleId);
+      
+      this.customBundles.splice(customIndex, 1);
+      return true;
+    } catch (error) {
+      console.error('Failed to delete bundle:', error);
+      return false;
+    }
   }
 
   /**
