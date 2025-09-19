@@ -89,15 +89,7 @@ interface DocumentFilter {
 // Predefined folder structure for better organization
 // Initialize mock data with persistence
 const initializeMockFolders = (): Folder[] => {
-  const stored = localStorage.getItem('mockFolders');
-  if (stored) {
-    try {
-      return JSON.parse(stored);
-    } catch (error) {
-      console.warn('Failed to parse stored folders, using defaults');
-    }
-  }
-  
+  // Canonical default structure (do not read from localStorage)
   return [
     {
       id: 'litigation-docs',
@@ -110,20 +102,20 @@ const initializeMockFolders = (): Folder[] => {
       path: '/folders/litigation-docs'
     },
     {
-      id: 'gstat-docs', 
+      id: 'gst-assessment',
       name: 'GST Assessment',
       parentId: 'litigation-docs',
       documentCount: 0,
       size: 0,
       createdAt: '2024-01-01',
       lastAccess: new Date().toISOString(),
-      description: 'GSTAT and GST assessment documents',
-      path: '/folders/litigation-docs/gstat'
+      description: 'GST assessment related documents',
+      path: '/folders/litigation-docs/gst-assessment'
     },
     {
-      id: 'appeals-docs',
+      id: 'appeals',
       name: 'Appeals',
-      parentId: 'litigation-docs', 
+      parentId: 'litigation-docs',
       documentCount: 0,
       size: 0,
       createdAt: '2024-01-01',
@@ -154,7 +146,7 @@ const initializeMockFolders = (): Folder[] => {
     },
     {
       id: 'internal-docs',
-      name: 'Internal Documents', 
+      name: 'Internal Documents',
       documentCount: 0,
       size: 0,
       createdAt: '2024-01-01',
@@ -210,21 +202,13 @@ export const dmsService = {
       await new Promise(resolve => setTimeout(resolve, 300));
       
       // Try multiple sources in order: localStorage -> IndexedDB -> defaults
-      let allFolders = null;
+      let allFolders: any[] | null = null;
       
       // First try localStorage
       try {
         const storedFolders = localStorage.getItem('dms_folders');
         if (storedFolders) {
           allFolders = JSON.parse(storedFolders);
-          // Validate that we have the required default folders
-          const hasDefaults = mockFolders.every(defaultFolder => 
-            allFolders.some((f: Folder) => f.id === defaultFolder.id)
-          );
-          if (!hasDefaults) {
-            console.log('localStorage folders missing defaults, falling back to IndexedDB');
-            allFolders = null;
-          }
         }
       } catch (error) {
         console.warn('Failed to parse localStorage folders:', error);
@@ -232,44 +216,148 @@ export const dmsService = {
       }
       
       // Then try IndexedDB if localStorage failed
-      if (!allFolders) {
+      if (!allFolders || !Array.isArray(allFolders) || allFolders.length === 0) {
         try {
           const idbFolders = await idbStorage.get('folders');
           if (Array.isArray(idbFolders) && idbFolders.length > 0) {
             allFolders = idbFolders;
-            // Validate that we have the required default folders
-            const hasDefaults = mockFolders.every(defaultFolder => 
-              idbFolders.some((f: Folder) => f.id === defaultFolder.id)
-            );
-            if (!hasDefaults) {
-              console.log('IndexedDB folders missing defaults, merging with defaults');
-              // Merge with defaults, keeping existing folders and adding missing defaults
-              const existingIds = idbFolders.map((f: Folder) => f.id);
-              const missingDefaults = mockFolders.filter(df => !existingIds.includes(df.id));
-              allFolders = [...idbFolders, ...missingDefaults];
-            }
           }
         } catch (error) {
           console.warn('Failed to load folders from IndexedDB:', error);
         }
       }
       
-      // Fall back to defaults if both failed
+      // Fall back to canonical defaults if both failed
       if (!allFolders || !Array.isArray(allFolders) || allFolders.length === 0) {
-        console.log('Using default folders');
-        allFolders = [...mockFolders];
+        console.log('Using canonical default folders');
+        allFolders = [...initializeMockFolders()];
       }
       
-      // Update both storage layers with the final folder list
+      // MIGRATION: normalize to the 3-folder system and remap legacy IDs/paths without deleting user data
+      const canonicalDefaults = initializeMockFolders();
+      const allowedTopLevel = new Set(['litigation-docs', 'client-docs', 'internal-docs']);
+      const legacyIdMap: Record<string, string> = {
+        '1': 'litigation-docs',
+        '2': 'gst-assessment', // old GSTAT id
+        '3': 'client-uploads',
+        'gstat-docs': 'gst-assessment',
+        'appeals-docs': 'appeals',
+      };
+      const nameHints: Array<{ test: (n: string) => boolean; target: { id: string; parentId?: string; name?: string; path?: string } }> = [
+        { test: (n) => /gstat|gst.?assessment/i.test(n), target: { id: 'gst-assessment', parentId: 'litigation-docs', name: 'GST Assessment', path: '/folders/litigation-docs/gst-assessment' } },
+        { test: (n) => /appeal/i.test(n), target: { id: 'appeals', parentId: 'litigation-docs', name: 'Appeals', path: '/folders/litigation-docs/appeals' } },
+        { test: (n) => /client\s*uploads?/i.test(n), target: { id: 'client-uploads', parentId: 'client-docs', name: 'Client Uploads', path: '/folders/client-docs/uploads' } },
+        { test: (n) => /template/i.test(n), target: { id: 'templates', parentId: 'internal-docs', name: 'Templates', path: '/folders/internal-docs/templates' } },
+        { test: (n) => /litigation/i.test(n), target: { id: 'litigation-docs', name: 'Litigation Documents', path: '/folders/litigation-docs' } },
+      ];
+
+      // Build normalized folder map
+      const mapById = new Map<string, Folder>();
+      const upsert = (f: Folder) => {
+        mapById.set(f.id, f);
+      };
+
+      // Start with existing folders (normalize legacy ones)
+      for (const f of allFolders as Folder[]) {
+        let nf: Folder = { ...f } as Folder;
+        if (nf.id && legacyIdMap[nf.id]) {
+          const targetId = legacyIdMap[nf.id];
+          nf.id = targetId as any;
+        }
+        // Name-driven normalization
+        const hint = nameHints.find(h => h.test(nf.name || ''));
+        if (hint) {
+          nf = { ...nf, ...hint.target, createdAt: nf.createdAt || new Date().toISOString(), lastAccess: nf.lastAccess || new Date().toISOString(), documentCount: nf.documentCount ?? 0, size: nf.size ?? 0 } as Folder;
+        }
+        // Ensure subfolders have correct parents
+        if (nf.id === 'client-uploads') nf.parentId = 'client-docs';
+        if (nf.id === 'templates') nf.parentId = 'internal-docs';
+        // Ensure only 3 top-level
+        if (!nf.parentId && !allowedTopLevel.has(nf.id)) {
+          // Move unknown top-level under Client Documents by default
+          nf.parentId = 'client-docs';
+          nf.path = `/folders/client-docs/${(nf.name || 'folder').toLowerCase().replace(/\s+/g, '-')}`;
+        }
+        upsert(nf);
+      }
+
+      // Ensure canonical defaults exist
+      for (const df of canonicalDefaults) {
+        if (!mapById.has(df.id)) {
+          upsert({ ...df });
+        } else {
+          // Also ensure correct parent/path for canonical items
+          const cur = mapById.get(df.id)!;
+          const fixed = { ...cur };
+          if (df.parentId && cur.parentId !== df.parentId) fixed.parentId = df.parentId;
+          if (cur.path !== df.path) fixed.path = df.path;
+          if (cur.name !== df.name) fixed.name = df.name;
+          mapById.set(df.id, fixed);
+        }
+      }
+
+      const normalizedFolders = Array.from(mapById.values());
+
+      // Update documents to match new folder ids/paths
       try {
-        localStorage.setItem('dms_folders', JSON.stringify(allFolders));
-        await idbStorage.set('folders', allFolders);
-        console.log('Folders synchronized to both storage layers');
+        let documents = await idbStorage.get('documents');
+        if (!Array.isArray(documents)) documents = [];
+        let updated = 0;
+        const pathRewrites: Array<{ from: RegExp; to: string }> = [
+          { from: /\/folders\/litigation-docs\/gstat/gi, to: '/folders/litigation-docs/gst-assessment' },
+          { from: /\/folders\/client-uploads/gi, to: '/folders/client-docs/uploads' },
+          { from: /\/folders\/appeals-docs/gi, to: '/folders/litigation-docs/appeals' },
+        ];
+        const idMap = legacyIdMap;
+        for (const d of documents) {
+          if (d.folderId && idMap[d.folderId]) {
+            d.folderId = idMap[d.folderId];
+            updated++;
+          }
+          if (typeof d.path === 'string') {
+            let newPath = d.path;
+            for (const rw of pathRewrites) {
+              newPath = newPath.replace(rw.from, rw.to);
+            }
+            if (newPath !== d.path) {
+              d.path = newPath;
+              updated++;
+            }
+          }
+        }
+        if (updated > 0) {
+          await idbStorage.set('documents', documents);
+          // Mirror into local app state cache if present
+          try {
+            const appStr = localStorage.getItem('lawfirm_app_data');
+            if (appStr) {
+              const app = JSON.parse(appStr);
+              if (Array.isArray(app.documents)) {
+                app.documents = documents;
+                localStorage.setItem('lawfirm_app_data', JSON.stringify(app));
+              }
+            }
+          } catch {}
+          console.log(`[DMS] Migrated ${updated} document references to canonical folders`);
+        }
+      } catch (err) {
+        console.warn('Failed to migrate document folder references:', err);
+      }
+
+      // Sync normalized folders to storage and internal cache
+      const finalFolders = normalizedFolders;
+      try {
+        localStorage.setItem('dms_folders', JSON.stringify(finalFolders));
+        await idbStorage.set('folders', finalFolders);
+        // Keep internal cache in sync for path lookups
+        mockFolders = [...finalFolders];
+        saveMockFolders();
+        console.log('Folders normalized and synchronized to all storage layers');
       } catch (error) {
         console.warn('Failed to sync folders to storage:', error);
       }
       
-      return [...allFolders];
+      return [...finalFolders];
     },
 
     create: async (
