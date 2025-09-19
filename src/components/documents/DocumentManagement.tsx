@@ -227,14 +227,10 @@ export const DocumentManagement: React.FC = () => {
 
   const loadFolders = async () => {
     try {
-      // Only load and sync localStorage folders if AppStateContext folders are empty
-      if (state.folders.length === 0) {
-        const folderList = await dmsService.folders.listAll();
-        dispatch({ type: 'SET_FOLDERS', payload: folderList });
-        console.log('Initial folders loaded from localStorage:', folderList.length);
-      } else {
-        console.log('Using folders from AppStateContext:', state.folders.length);
-      }
+      // Always refresh folders to ensure we have the latest data, including defaults
+      const folderList = await dmsService.folders.listAll();
+      dispatch({ type: 'SET_FOLDERS', payload: folderList });
+      console.log('Folders loaded and synchronized:', folderList.map(f => f.name));
     } catch (error) {
       console.error('Failed to load folders:', error);
     }

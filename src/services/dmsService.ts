@@ -189,17 +189,8 @@ export const dmsService = {
     list: async (parentId?: string): Promise<Folder[]> => {
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      // Load folders from localStorage to get all folders including user-created ones
-      const storedFolders = localStorage.getItem('dms_folders');
-      let allFolders = storedFolders ? JSON.parse(storedFolders) : null;
-      if (!allFolders) {
-        try {
-          const idbFolders = await idbStorage.get('folders');
-          allFolders = Array.isArray(idbFolders) ? idbFolders : mockFolders;
-        } catch {
-          allFolders = mockFolders;
-        }
-      }
+      // Get all folders with proper fallback chain
+      let allFolders = await dmsService.folders.listAll();
       
       return allFolders.filter((f: Folder) => f.parentId === parentId);
     },
@@ -207,16 +198,64 @@ export const dmsService = {
     listAll: async (): Promise<Folder[]> => {
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      // Load folders from localStorage to get all folders including user-created ones
-      const storedFolders = localStorage.getItem('dms_folders');
-      let allFolders = storedFolders ? JSON.parse(storedFolders) : null;
+      // Try multiple sources in order: localStorage -> IndexedDB -> defaults
+      let allFolders = null;
+      
+      // First try localStorage
+      try {
+        const storedFolders = localStorage.getItem('dms_folders');
+        if (storedFolders) {
+          allFolders = JSON.parse(storedFolders);
+          // Validate that we have the required default folders
+          const hasDefaults = mockFolders.every(defaultFolder => 
+            allFolders.some((f: Folder) => f.id === defaultFolder.id)
+          );
+          if (!hasDefaults) {
+            console.log('localStorage folders missing defaults, falling back to IndexedDB');
+            allFolders = null;
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to parse localStorage folders:', error);
+        allFolders = null;
+      }
+      
+      // Then try IndexedDB if localStorage failed
       if (!allFolders) {
         try {
           const idbFolders = await idbStorage.get('folders');
-          allFolders = Array.isArray(idbFolders) ? idbFolders : mockFolders;
-        } catch {
-          allFolders = mockFolders;
+          if (Array.isArray(idbFolders) && idbFolders.length > 0) {
+            allFolders = idbFolders;
+            // Validate that we have the required default folders
+            const hasDefaults = mockFolders.every(defaultFolder => 
+              idbFolders.some((f: Folder) => f.id === defaultFolder.id)
+            );
+            if (!hasDefaults) {
+              console.log('IndexedDB folders missing defaults, merging with defaults');
+              // Merge with defaults, keeping existing folders and adding missing defaults
+              const existingIds = idbFolders.map((f: Folder) => f.id);
+              const missingDefaults = mockFolders.filter(df => !existingIds.includes(df.id));
+              allFolders = [...idbFolders, ...missingDefaults];
+            }
+          }
+        } catch (error) {
+          console.warn('Failed to load folders from IndexedDB:', error);
         }
+      }
+      
+      // Fall back to defaults if both failed
+      if (!allFolders || !Array.isArray(allFolders) || allFolders.length === 0) {
+        console.log('Using default folders');
+        allFolders = [...mockFolders];
+      }
+      
+      // Update both storage layers with the final folder list
+      try {
+        localStorage.setItem('dms_folders', JSON.stringify(allFolders));
+        await idbStorage.set('folders', allFolders);
+        console.log('Folders synchronized to both storage layers');
+      } catch (error) {
+        console.warn('Failed to sync folders to storage:', error);
       }
       
       return [...allFolders];
@@ -248,8 +287,19 @@ export const dmsService = {
         path: parentId ? `${mockFolders.find(f => f.id === parentId)?.path}/${name.toLowerCase().replace(/\s+/g, '-')}` : `/folders/${name.toLowerCase().replace(/\s+/g, '-')}`
       };
 
+      // Add to all storage layers
       mockFolders.push(newFolder);
       saveMockFolders(); // Persist to localStorage
+      
+      // Also update dms_folders for consistency
+      try {
+        const allFolders = await dmsService.folders.listAll();
+        allFolders.push(newFolder);
+        localStorage.setItem('dms_folders', JSON.stringify(allFolders));
+        await idbStorage.set('folders', allFolders);
+      } catch (error) {
+        console.warn('Failed to sync new folder to storage:', error);
+      }
       
       // Sync with AppStateContext for persistence
       if (dispatch) {
@@ -334,7 +384,8 @@ export const dmsService = {
 
     get: async (folderId: string): Promise<Folder | null> => {
       await new Promise(resolve => setTimeout(resolve, 200));
-      return mockFolders.find(f => f.id === folderId) || null;
+      const allFolders = await dmsService.folders.listAll();
+      return allFolders.find(f => f.id === folderId) || null;
     }
   },
 
