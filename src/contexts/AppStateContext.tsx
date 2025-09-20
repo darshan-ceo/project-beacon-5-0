@@ -274,6 +274,7 @@ export interface AppState {
   folders: Folder[];
   hearings: Hearing[];
   employees: Employee[];
+  tags: string[]; // Global tags for consistent usage
   userProfile: UserProfile;
   isLoading: boolean;
   error: string | null;
@@ -315,6 +316,9 @@ export type AppAction =
   | { type: 'ADD_EMPLOYEE'; payload: Employee }
   | { type: 'UPDATE_EMPLOYEE'; payload: { id: string; updates: Partial<Employee> } }
   | { type: 'DELETE_EMPLOYEE'; payload: string }
+  | { type: 'SET_TAGS'; payload: string[] }
+  | { type: 'ADD_TAG'; payload: string }
+  | { type: 'REMOVE_TAG'; payload: string }
   | { type: 'UPDATE_USER_PROFILE'; payload: Partial<UserProfile> }
   | { type: 'RESTORE_STATE'; payload: Partial<AppState> }
   | { type: 'CLEAR_ALL_DATA' };
@@ -1904,6 +1908,7 @@ const initialState: AppState = {
       specialization: ['Research', 'Documentation', 'Case Management']
     }
   ],
+  tags: [],
   isLoading: false,
   error: null
 };
@@ -2082,6 +2087,18 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         employees: state.employees.filter(e => e.id !== action.payload)
       };
+    case 'SET_TAGS':
+      return { ...state, tags: action.payload };
+    case 'ADD_TAG':
+      return {
+        ...state,
+        tags: [...state.tags, action.payload].filter((tag, index, self) => self.indexOf(tag) === index)
+      };
+    case 'REMOVE_TAG':
+      return {
+        ...state,
+        tags: state.tags.filter(tag => tag !== action.payload)
+      };
     case 'UPDATE_USER_PROFILE':
       return {
         ...state,
@@ -2101,6 +2118,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         folders: [],
         hearings: [],
         employees: [],
+        tags: [],
       };
     default:
       return state;

@@ -18,6 +18,8 @@ import { EnhancedAddressData } from '@/services/addressMasterService';
 import { specializationsService } from '@/services/specializationsService';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { TagInput } from '@/components/ui/TagInput';
+import { FieldTooltip } from '@/components/ui/field-tooltip';
 
 interface JudgeFormData {
   name: string;

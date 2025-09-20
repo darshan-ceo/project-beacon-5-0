@@ -9,6 +9,7 @@ import { toast } from '@/hooks/use-toast';
 import { Document, useAppState } from '@/contexts/AppStateContext';
 import { dmsService } from '@/services/dmsService';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
+import { TagInput } from '@/components/ui/TagInput';
 
 interface DocumentModalProps {
   isOpen: boolean;
@@ -305,36 +306,13 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
               <Label>Tags</Label>
               <FieldTooltip formId="upload-document" fieldId="tags" />
             </div>
-            <div className="flex gap-2 mb-2">
-              <Input
-                value={newTag}
-                onChange={(e) => setNewTag(e.target.value)}
-                placeholder="Add a tag"
-                disabled={mode === 'view'}
-                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
-              />
-              {mode !== 'view' && (
-                <Button type="button" onClick={handleAddTag} size="sm">
-                  Add Tag
-                </Button>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {formData.tags.map((tag) => (
-                <Badge key={tag} variant="secondary" className="text-xs">
-                  {tag}
-                  {mode !== 'view' && (
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveTag(tag)}
-                      className="ml-1 text-muted-foreground hover:text-foreground"
-                    >
-                      ×
-                    </button>
-                  )}
-                </Badge>
-              ))}
-            </div>
+            <TagInput
+              value={formData.tags}
+              onChange={(tags) => setFormData(prev => ({ ...prev, tags }))}
+              placeholder="Add tags to organize documents..."
+              disabled={mode === 'view'}
+              maxTags={8}
+            />
           </div>
 
           <div className="flex items-center space-x-2">

@@ -179,12 +179,60 @@ const saveMockFolders = () => {
   }
 };
 
-let mockTags: Tag[] = [
+// Initialize persistent tags with IndexedDB fallback
+const getDefaultTags = (): Tag[] => [
   { id: '1', name: 'urgent', color: '#ef4444', createdAt: '2024-01-10', usageCount: 12 },
   { id: '2', name: 'appeal', color: '#3b82f6', createdAt: '2024-01-10', usageCount: 8 },
   { id: '3', name: 'evidence', color: '#10b981', createdAt: '2024-01-12', usageCount: 15 },
   { id: '4', name: 'order', color: '#f59e0b', createdAt: '2024-01-15', usageCount: 6 }
 ];
+
+let mockTags: Tag[] = [];
+
+// Initialize tags from storage
+const initializeTags = async (): Promise<void> => {
+  try {
+    // Try IndexedDB first
+    const storedTags = await idbStorage.get('dms_tags');
+    if (Array.isArray(storedTags) && storedTags.length > 0) {
+      mockTags = storedTags;
+      return;
+    }
+
+    // Fallback to localStorage
+    const localTags = localStorage.getItem('dms_tags');
+    if (localTags) {
+      const parsed = JSON.parse(localTags);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        mockTags = parsed;
+        // Migrate to IndexedDB
+        await idbStorage.set('dms_tags', mockTags);
+        return;
+      }
+    }
+
+    // Use defaults if no stored tags
+    mockTags = getDefaultTags();
+    await idbStorage.set('dms_tags', mockTags);
+    localStorage.setItem('dms_tags', JSON.stringify(mockTags));
+  } catch (error) {
+    console.warn('Failed to initialize tags, using defaults:', error);
+    mockTags = getDefaultTags();
+  }
+};
+
+// Save tags to persistent storage
+const saveTags = async (): Promise<void> => {
+  try {
+    await idbStorage.set('dms_tags', mockTags);
+    localStorage.setItem('dms_tags', JSON.stringify(mockTags));
+  } catch (error) {
+    console.warn('Failed to save tags:', error);
+  }
+};
+
+// Initialize tags immediately
+initializeTags();
 
 export const dmsService = {
 // Folder Management
@@ -1152,46 +1200,79 @@ export const dmsService = {
   tags: {
     list: async (): Promise<Tag[]> => {
       await new Promise(resolve => setTimeout(resolve, 200));
+      
+      // Ensure tags are initialized
+      if (mockTags.length === 0) {
+        await initializeTags();
+      }
+      
       return [...mockTags];
     },
 
     create: async (name: string, color: string = '#3b82f6'): Promise<Tag> => {
       await new Promise(resolve => setTimeout(resolve, 300));
       
+      const normalizedName = name.toLowerCase().trim();
+      
       // Check if tag already exists
-      if (mockTags.some(t => t.name.toLowerCase() === name.toLowerCase())) {
-        throw new Error('Tag already exists');
+      if (mockTags.some(t => t.name.toLowerCase() === normalizedName)) {
+        // Return existing tag instead of throwing error
+        const existingTag = mockTags.find(t => t.name.toLowerCase() === normalizedName)!;
+        // Increment usage count
+        existingTag.usageCount++;
+        await saveTags();
+        return existingTag;
       }
 
       const newTag: Tag = {
         id: `tag-${Date.now()}`,
-        name: name.toLowerCase(),
+        name: normalizedName,
         color,
         createdAt: new Date().toISOString(),
-        usageCount: 0
+        usageCount: 1
       };
 
       mockTags.push(newTag);
-      log('success', 'DMS', 'createTag', { tagId: newTag.id, name });
+      await saveTags();
       
-      toast({
-        title: "Tag Created",
-        description: `Tag "${name}" has been created successfully.`,
-      });
+      log('success', 'DMS', 'createTag', { tagId: newTag.id, name: normalizedName });
 
       return newTag;
+    },
+
+    incrementUsage: async (tagName: string): Promise<void> => {
+      const tag = mockTags.find(t => t.name.toLowerCase() === tagName.toLowerCase());
+      if (tag) {
+        tag.usageCount++;
+        await saveTags();
+      }
     },
 
     delete: async (tagId: string): Promise<void> => {
       await new Promise(resolve => setTimeout(resolve, 300));
       
+      const tagToDelete = mockTags.find(t => t.id === tagId);
+      if (!tagToDelete) return;
+      
       mockTags = mockTags.filter(t => t.id !== tagId);
+      await saveTags();
+      
       log('success', 'DMS', 'deleteTag', { tagId });
       
       toast({
         title: "Tag Deleted",
-        description: "Tag has been deleted successfully.",
+        description: `Tag "${tagToDelete.name}" has been deleted successfully.`,
       });
+    },
+
+    getMostUsed: async (limit: number = 10): Promise<Tag[]> => {
+      if (mockTags.length === 0) {
+        await initializeTags();
+      }
+      
+      return [...mockTags]
+        .sort((a, b) => b.usageCount - a.usageCount)
+        .slice(0, limit);
     }
   },
 

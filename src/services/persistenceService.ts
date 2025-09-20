@@ -469,6 +469,7 @@ class PersistenceService {
         tasks: tasks as Task[],
         documents: documents as Document[],
         folders: folders as Folder[],
+        tags: [], // Default empty tags array
         userProfile: {
           id: 'user-1',
           name: 'Default User',

@@ -25,6 +25,7 @@ import { AddressForm } from '@/components/ui/AddressForm';
 import { AddressView } from '@/components/ui/AddressView';
 import { EnhancedAddressData, addressMasterService } from '@/services/addressMasterService';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
+import { TagInput } from '@/components/ui/TagInput';
 
 interface ClientModalProps {
   isOpen: boolean;
@@ -52,6 +53,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
     gspSignatories?: any[];
     gstData?: any;
     addressId?: string;
+    tags?: string[];
   }>({
     name: '',
     type: 'Individual',
@@ -82,9 +84,10 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
       username: '',
       passwordHash: ''
     },
-    assignedCAId: '',
-    assignedCAName: '',
-    status: 'Active'
+        assignedCAId: '',
+        assignedCAName: '',
+        status: 'Active',
+        tags: []
   });
 
   const [signatories, setSignatories] = useState<Signatory[]>([]);
@@ -164,7 +167,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         portalAccess: clientData.portalAccess || { allowLogin: false },
         assignedCAId: clientData.assignedCAId,
         assignedCAName: clientData.assignedCAName,
-        status: clientData.status
+        status: clientData.status,
+        tags: (clientData as any).tags || []
       });
       setSignatories(clientData.signatories || []);
     } else if (mode === 'create') {
@@ -979,6 +983,28 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
               preloadedContacts={preloadedContacts}
               hasGstData={!!gstData || !!formData.gspSignatories}
             />
+
+            {/* Tags Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Tags & Organization</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div>
+                  <Label htmlFor="tags">Tags</Label>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Add tags to categorize and organize clients for easier search and filtering (e.g., VIP, Manufacturing, Exporter).
+                  </p>
+                  <TagInput
+                    value={formData.tags || []}
+                    onChange={(tags) => setFormData(prev => ({ ...prev, tags }))}
+                    placeholder="Add tags to organize clients..."
+                    disabled={mode === 'view'}
+                    maxTags={8}
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
               {/* Validation Errors */}
               {validationErrors.length > 0 && (
