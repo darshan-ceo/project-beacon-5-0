@@ -25,6 +25,8 @@ export const TagInput: React.FC<TagInputProps> = ({
   className,
   maxTags = 10
 }) => {
+  // Ensure value is always an array
+  const safeValue = Array.isArray(value) ? value : [];
   const [inputValue, setInputValue] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
@@ -52,7 +54,7 @@ export const TagInput: React.FC<TagInputProps> = ({
   const addTag = async (tagName: string) => {
     const trimmedTag = tagName.trim().toLowerCase();
     
-    if (!trimmedTag || value.includes(trimmedTag) || value.length >= maxTags) {
+    if (!trimmedTag || safeValue.includes(trimmedTag) || safeValue.length >= maxTags) {
       return;
     }
 
@@ -67,14 +69,14 @@ export const TagInput: React.FC<TagInputProps> = ({
       }
     }
 
-    const newTags = [...value, trimmedTag];
+    const newTags = [...safeValue, trimmedTag];
     onChange?.(newTags);
     setInputValue('');
     setIsOpen(false);
   };
 
   const removeTag = (tagToRemove: string) => {
-    const newTags = value.filter(tag => tag !== tagToRemove);
+    const newTags = safeValue.filter(tag => tag !== tagToRemove);
     onChange?.(newTags);
   };
 
@@ -82,22 +84,22 @@ export const TagInput: React.FC<TagInputProps> = ({
     if (e.key === 'Enter' && inputValue.trim()) {
       e.preventDefault();
       addTag(inputValue);
-    } else if (e.key === 'Backspace' && !inputValue && value.length > 0) {
-      removeTag(value[value.length - 1]);
+    } else if (e.key === 'Backspace' && !inputValue && safeValue.length > 0) {
+      removeTag(safeValue[safeValue.length - 1]);
     }
   };
 
-  const filteredTags = availableTags.filter(tag => 
-    !value.includes(tag) && 
+  const filteredTags = Array.isArray(availableTags) ? availableTags.filter(tag => 
+    !safeValue.includes(tag) && 
     tag.toLowerCase().includes(inputValue.toLowerCase())
-  );
+  ) : [];
 
   return (
     <div className={cn("w-full", className)}>
       {/* Selected Tags */}
-      {value.length > 0 && (
+      {safeValue.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-2">
-          {value.map((tag) => (
+          {safeValue.map((tag) => (
             <Badge 
               key={tag} 
               variant="secondary" 
@@ -130,7 +132,7 @@ export const TagInput: React.FC<TagInputProps> = ({
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder={value.length === 0 ? placeholder : "Add another tag..."}
+                placeholder={safeValue.length === 0 ? placeholder : "Add another tag..."}
                 className="pr-8"
                 onFocus={() => setIsOpen(true)}
               />
@@ -201,9 +203,9 @@ export const TagInput: React.FC<TagInputProps> = ({
       )}
 
       {/* Tag limit indicator */}
-      {value.length > 0 && (
+      {safeValue.length > 0 && (
         <div className="text-xs text-muted-foreground mt-1">
-          {value.length} of {maxTags} tags
+          {safeValue.length} of {maxTags} tags
         </div>
       )}
     </div>
