@@ -138,9 +138,12 @@ export const TaskAutomation: React.FC<TaskAutomationProps> = ({ bundles, onBundl
   const loadTaskBundles = async () => {
     try {
       setLoading(true);
-      const allBundles = taskBundleService.getAllBundles();
+      console.log('Loading task bundles...');
+      const allBundles = await taskBundleService.getAllBundles();
+      console.log('Loaded bundles:', allBundles.length);
       setTaskBundles(allBundles);
     } catch (error) {
+      console.error('Failed to load task bundles:', error);
       toast({
         title: 'Error',
         description: 'Failed to load task bundles',

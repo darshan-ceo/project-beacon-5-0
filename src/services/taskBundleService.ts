@@ -32,24 +32,71 @@ export interface TaskTemplate {
 class TaskBundleService {
   private bundles: TaskBundle[] = [];
   private customBundles: TaskBundle[] = [];
+  private initializationPromise: Promise<void>;
+  private isInitialized = false;
 
   constructor() {
     this.initializeDefaultBundles();
-    this.loadCustomBundles();
+    this.initializationPromise = this.initialize();
+  }
+
+  /**
+   * Initialize the service with proper async setup
+   */
+  private async initialize(): Promise<void> {
+    try {
+      await this.ensureDatabaseSchema();
+      await this.loadCustomBundles();
+      this.isInitialized = true;
+      console.log('TaskBundleService initialized with', this.customBundles.length, 'custom bundles');
+    } catch (error) {
+      console.error('TaskBundleService initialization failed:', error);
+      this.isInitialized = true; // Set to true to prevent hanging
+    }
+  }
+
+  /**
+   * Ensure database schema exists before any operations
+   */
+  private async ensureDatabaseSchema(): Promise<void> {
+    try {
+      const { openDB } = await import('idb');
+      await openDB('AppData', 1, {
+        upgrade(db) {
+          if (!db.objectStoreNames.contains('taskBundles')) {
+            console.log('Creating taskBundles object store');
+            db.createObjectStore('taskBundles', { keyPath: 'id' });
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Failed to ensure database schema:', error);
+      throw error;
+    }
   }
 
   /**
    * Load custom bundles from IndexedDB
    */
-  private async loadCustomBundles() {
+  private async loadCustomBundles(): Promise<void> {
     try {
       const { openDB } = await import('idb');
       const db = await openDB('AppData', 1);
       const customBundles = await db.getAll('taskBundles') || [];
       this.customBundles = customBundles;
+      console.log('Loaded', customBundles.length, 'custom bundles from database');
     } catch (error) {
       console.error('Failed to load custom bundles:', error);
+      this.customBundles = []; // Ensure it's always an array
     }
+  }
+
+  /**
+   * Wait for service to be fully initialized
+   */
+  async waitForInitialization(): Promise<void> {
+    if (this.isInitialized) return;
+    await this.initializationPromise;
   }
 
   /**
@@ -279,31 +326,34 @@ class TaskBundleService {
   /**
    * Get all available task bundles (default + custom)
    */
-  getAllBundles(): TaskBundle[] {
-    return [...this.bundles, ...this.customBundles];
+  async getAllBundles(): Promise<TaskBundle[]> {
+    await this.waitForInitialization();
+    const allBundles = [...this.bundles, ...this.customBundles];
+    console.log('getAllBundles returning', allBundles.length, 'bundles');
+    return allBundles;
   }
 
   /**
    * Create a new custom task bundle
    */
   async createBundle(bundle: Omit<TaskBundle, 'id'>): Promise<TaskBundle> {
+    await this.waitForInitialization();
+    
     try {
       const newBundle: TaskBundle = {
         ...bundle,
         id: `custom_bundle_${Date.now()}`
       };
 
+      console.log('Creating new bundle:', newBundle.name);
+      
       const { openDB } = await import('idb');
-      const db = await openDB('AppData', 1, {
-        upgrade(db) {
-          if (!db.objectStoreNames.contains('taskBundles')) {
-            db.createObjectStore('taskBundles', { keyPath: 'id' });
-          }
-        }
-      });
-
+      const db = await openDB('AppData', 1);
       await db.put('taskBundles', newBundle);
+      
       this.customBundles.push(newBundle);
+      console.log('Bundle saved successfully. Total custom bundles:', this.customBundles.length);
+      
       return newBundle;
     } catch (error) {
       console.error('Failed to create bundle:', error);
@@ -315,16 +365,22 @@ class TaskBundleService {
    * Update task bundle configuration
    */
   async updateBundle(bundleId: string, updates: Partial<TaskBundle>): Promise<boolean> {
+    await this.waitForInitialization();
+    
     // Check default bundles first
     const defaultIndex = this.bundles.findIndex(b => b.id === bundleId);
     if (defaultIndex !== -1) {
       this.bundles[defaultIndex] = { ...this.bundles[defaultIndex], ...updates };
+      console.log('Updated default bundle:', bundleId);
       return true;
     }
 
     // Check custom bundles
     const customIndex = this.customBundles.findIndex(b => b.id === bundleId);
-    if (customIndex === -1) return false;
+    if (customIndex === -1) {
+      console.log('Bundle not found for update:', bundleId);
+      return false;
+    }
 
     try {
       const updatedBundle = { ...this.customBundles[customIndex], ...updates };
@@ -334,6 +390,7 @@ class TaskBundleService {
       await db.put('taskBundles', updatedBundle);
       
       this.customBundles[customIndex] = updatedBundle;
+      console.log('Updated custom bundle:', bundleId);
       return true;
     } catch (error) {
       console.error('Failed to update bundle:', error);
