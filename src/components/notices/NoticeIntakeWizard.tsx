@@ -366,7 +366,8 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
           clientId: createdCase.clientId,
           assignedToId: createdCase.assignedToId,
           assignedToName: createdCase.assignedToName
-        }
+        },
+        dispatch
       );
 
       toast({

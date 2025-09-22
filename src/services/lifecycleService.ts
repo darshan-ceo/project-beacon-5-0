@@ -110,7 +110,8 @@ class LifecycleService {
           const result = await stageTransitionService.processStageTransition(
             caseData,
             oldStage,
-            request.toStageKey as GSTStage
+            request.toStageKey as GSTStage,
+            request.dispatch
           );
           
           if (result.createdTasks.length > 0) {
