@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useEnhancedPersistence } from '@/hooks/useEnhancedPersistence';
+import { useUnifiedPersistence } from '@/hooks/useUnifiedPersistence';
 import { useProfilePersistence } from '@/hooks/useProfilePersistence';
 import { searchService } from '@/services/searchService';
 import { generateSampleContent } from '@/utils/fileTypeUtils';
@@ -9,7 +9,7 @@ interface AppWithPersistenceProps {
 }
 
 export const AppWithPersistence: React.FC<AppWithPersistenceProps> = ({ children }) => {
-  useEnhancedPersistence();
+  const { initialized } = useUnifiedPersistence();
   useProfilePersistence();
 
   // Initialize search provider and backfill document content on app boot

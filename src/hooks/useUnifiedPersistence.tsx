@@ -106,7 +106,7 @@ export const useUnifiedPersistence = () => {
 
   const validateDefaultFolders = async (): Promise<void> => {
     const storage = storageManager.getStorage();
-    const existingFolders = await storage.getAll('folders');
+    const existingFolders = await storage.getAll<{ id: string; name: string; path: string; is_default: boolean }>('folders');
     
     const requiredFolders = [
       { id: 'litigation-docs', name: 'Litigation Docs', path: '/Litigation Docs', is_default: true },
@@ -115,7 +115,7 @@ export const useUnifiedPersistence = () => {
     ];
 
     for (const folder of requiredFolders) {
-      const exists = existingFolders.find(f => f.id === folder.id);
+      const exists = existingFolders.find((f: any) => f.id === folder.id);
       if (!exists) {
         await storage.create('folders', {
           ...folder,

@@ -533,7 +533,7 @@ export const TaskManagement: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="automation" className="mt-6">
-          <TaskAutomation bundles={[]} />
+          <TaskAutomation />
         </TabsContent>
 
         <TabsContent value="escalation" className="mt-6">
