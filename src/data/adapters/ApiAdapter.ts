@@ -3,14 +3,14 @@
  * This will handle remote persistence when ready
  */
 
-import { StoragePort, StorageConfig } from '../ports/StoragePort';
+import { StoragePort } from '../ports/StoragePort';
 
 export class ApiAdapter implements StoragePort {
   private initialized = false;
   private baseUrl: string;
 
-  constructor(private config: StorageConfig & { apiBaseUrl?: string }) {
-    this.baseUrl = config.apiBaseUrl || 'http://localhost:3001/api';
+  constructor() {
+    this.baseUrl = process.env.API_BASE_URL || 'http://localhost:3000/api';
   }
 
   async initialize(): Promise<void> {

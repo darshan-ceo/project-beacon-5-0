@@ -3,14 +3,14 @@
  * Primary storage implementation for the application
  */
 
-import { StoragePort, StorageConfig } from '../ports/StoragePort';
+import { StoragePort } from '../ports/StoragePort';
 import { db, initializeDatabase, generateId } from '../db';
 import { Table } from 'dexie';
 
 export class IndexedDBAdapter implements StoragePort {
   private initialized = false;
 
-  constructor(private config: StorageConfig) {}
+  constructor() {}
 
   async initialize(): Promise<void> {
     if (this.initialized) return;

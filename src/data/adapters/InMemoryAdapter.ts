@@ -3,14 +3,14 @@
  * Used for testing and development
  */
 
-import { StoragePort, StorageConfig } from '../ports/StoragePort';
+import { StoragePort } from '../ports/StoragePort';
 import { generateId } from '../db';
 
 export class InMemoryAdapter implements StoragePort {
   private storage: Map<string, Map<string, any>> = new Map();
   private initialized = false;
 
-  constructor(private config: StorageConfig) {}
+  constructor() {}
 
   async initialize(): Promise<void> {
     this.initialized = true;

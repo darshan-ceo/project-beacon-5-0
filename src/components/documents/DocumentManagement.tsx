@@ -221,35 +221,7 @@ export const DocumentManagement: React.FC = () => {
     setFilteredDocuments(convertedDocs);
   }, [state.documents]);
 
-  // Apply filters when documents or filters change - use useCallback to stabilize dependencies
-  const applyFiltersStable = useCallback(() => {
-    applyFilters();
-  }, [state.documents, documentSearchTerm, activeFilters, selectedFolder, activeTab]);
-  
-  useEffect(() => {
-    applyFiltersStable();
-  }, [applyFiltersStable]);
-
-  const loadFolders = async () => {
-    try {
-      // Always refresh folders to ensure we have the latest data, including defaults
-      const folderList = await dmsService.folders.listAll();
-      dispatch({ type: 'SET_FOLDERS', payload: folderList });
-      console.log('Folders loaded and synchronized:', folderList.map(f => f.name));
-    } catch (error) {
-      console.error('Failed to load folders:', error);
-    }
-  };
-
-  const loadTags = async () => {
-    try {
-      const tagList = await dmsService.tags.list();
-      setTags(tagList);
-    } catch (error) {
-      console.error('Failed to load tags:', error);
-    }
-  };
-
+  // Define applyFilters function first
   const applyFilters = useCallback(async () => {
     // Convert state documents to local format for filtering
     const convertedDocs = state.documents.map(doc => ({
@@ -271,7 +243,7 @@ export const DocumentManagement: React.FC = () => {
         const nameMatch = doc.name.toLowerCase().includes(searchLower);
         
         // Search in tags
-        const tagMatch = doc.tags.some(tag => tag.toLowerCase().includes(searchLower));
+        const tagMatch = doc.tags?.some(tag => tag.toLowerCase().includes(searchLower));
         
         // Search in case ID/number if available
         const caseMatch = doc.caseId?.toLowerCase().includes(searchLower);
@@ -292,7 +264,7 @@ export const DocumentManagement: React.FC = () => {
     }
     if (activeFilters.tags?.length > 0) {
       filtered = filtered.filter(doc => 
-        activeFilters.tags.some((tag: string) => doc.tags.includes(tag))
+        activeFilters.tags.some((tag: string) => doc.tags?.includes(tag))
       );
     }
 
@@ -316,6 +288,33 @@ export const DocumentManagement: React.FC = () => {
     
     setFilteredDocuments(filtered as any[]);
   }, [state.documents, documentSearchTerm, activeFilters, selectedFolder, activeTab]);
+
+  // Apply filters when dependencies change
+  useEffect(() => {
+    applyFilters();
+  }, [applyFilters]);
+
+  const loadFolders = async () => {
+    try {
+      // Always refresh folders to ensure we have the latest data, including defaults
+      const folderList = await dmsService.folders.listAll();
+      dispatch({ type: 'SET_FOLDERS', payload: folderList });
+      console.log('Folders loaded and synchronized:', folderList.map(f => f.name));
+    } catch (error) {
+      console.error('Failed to load folders:', error);
+    }
+  };
+
+  const loadTags = async () => {
+    try {
+      const tagList = await dmsService.tags.list();
+      setTags(tagList);
+    } catch (error) {
+      console.error('Failed to load tags:', error);
+    }
+  };
+
+  // Remove the duplicate applyFilters function definition since it's now defined above
 
    const loadFolderContents = async (folderId: string | null) => {
     setLoading(true);
