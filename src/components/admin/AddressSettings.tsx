@@ -80,12 +80,25 @@ export const AddressSettings: React.FC = () => {
         // Use real API endpoints
         const response = await apiService.get<Record<ModuleName, AddressFieldConfig>>('/api/settings/address');
         if (response.success && response.data) {
-          setConfigs(response.data);
+          // Ensure all modules exist with proper structure
+          const safeConfigs = {
+            employee: response.data.employee || {},
+            judge: response.data.judge || {},
+            client: response.data.client || {},
+            court: response.data.court || {}
+          };
+          setConfigs(safeConfigs);
         } else {
           // Fallback to service if API fails
           const result = await addressConfigService.getAllConfigs();
-          if (result.success) {
-            setConfigs(result.data as Record<ModuleName, AddressFieldConfig>);
+          if (result.success && result.data) {
+            const safeConfigs = {
+              employee: result.data.employee || {},
+              judge: result.data.judge || {},
+              client: result.data.client || {},
+              court: result.data.court || {}
+            };
+            setConfigs(safeConfigs);
           } else {
             toast.error('Failed to load configurations');
           }
@@ -93,13 +106,20 @@ export const AddressSettings: React.FC = () => {
       } else {
         // Use existing service
         const result = await addressConfigService.getAllConfigs();
-        if (result.success) {
-          setConfigs(result.data as Record<ModuleName, AddressFieldConfig>);
+        if (result.success && result.data) {
+          const safeConfigs = {
+            employee: result.data.employee || {},
+            judge: result.data.judge || {},
+            client: result.data.client || {},
+            court: result.data.court || {}
+          };
+          setConfigs(safeConfigs);
         } else {
           toast.error('Failed to load configurations');
         }
       }
     } catch (error) {
+      console.error('Error loading address configurations:', error);
       toast.error('Error loading configurations');
     } finally {
       setIsLoading(false);
@@ -220,7 +240,8 @@ export const AddressSettings: React.FC = () => {
   };
 
   const renderFieldConfig = (moduleName: ModuleName, fieldName: AddressFieldName) => {
-    const fieldConfig = configs[moduleName]?.[fieldName] || { visible: true, required: false, editable: true };
+    const moduleConfig = configs[moduleName] || {};
+    const fieldConfig = moduleConfig[fieldName] || { visible: true, required: false, editable: true };
     const isRequired = REQUIRED_FIELDS.includes(fieldName);
     const isDisabled = isRequired && (fieldName === 'line1' || fieldName === 'stateId' || fieldName === 'countryId' || fieldName === 'pincode');
 
@@ -405,7 +426,8 @@ export const AddressSettings: React.FC = () => {
               <h4 className="font-medium mb-2">Visible Fields</h4>
               <div className="space-y-1">
                 {Object.entries(FIELD_LABELS).map(([fieldName, label]) => {
-                  const fieldConfig = configs[activeModule]?.[fieldName as AddressFieldName] || { visible: true, required: false, editable: true };
+                  const moduleConfig = configs[activeModule] || {};
+                  const fieldConfig = moduleConfig[fieldName as AddressFieldName] || { visible: true, required: false, editable: true };
                   if (fieldConfig.visible) {
                     return (
                       <div key={fieldName} className="flex items-center gap-2 text-sm">
@@ -427,7 +449,8 @@ export const AddressSettings: React.FC = () => {
               <h4 className="font-medium mb-2">Hidden Fields</h4>
               <div className="space-y-1">
                 {Object.entries(FIELD_LABELS).map(([fieldName, label]) => {
-                  const fieldConfig = configs[activeModule]?.[fieldName as AddressFieldName] || { visible: true, required: false, editable: true };
+                  const moduleConfig = configs[activeModule] || {};
+                  const fieldConfig = moduleConfig[fieldName as AddressFieldName] || { visible: true, required: false, editable: true };
                   if (!fieldConfig.visible) {
                     return (
                       <div key={fieldName} className="text-sm text-muted-foreground">
