@@ -114,13 +114,24 @@ export interface TaskBundleItem {
 export interface Document {
   id: string;
   case_id?: string;
+  client_id?: string;
   doc_type_code?: string;
   version: number;
   status: string;
   added_on: Date;
   name: string;
+  mime?: string;
+  size: number;
+  content?: string;
+  uploaded_by_id?: string;
+  uploaded_by_name?: string;
+  uploaded_at?: Date;
+  created_at: Date;
+  updated_at?: Date;
   file_refs_json?: string[];
   folder_id?: string;
+  is_shared?: boolean;
+  path?: string;
   metadata_json?: any;
 }
 
@@ -128,11 +139,14 @@ export interface Attachment {
   id: string;
   owner_type: string;
   owner_id?: string;
+  document_id?: string;
   filename: string;
   mime: string;
   size: number;
+  content?: string;
   hash?: string;
   created_at: Date;
+  updated_at?: Date;
   blob?: Blob;
   url?: string;
 }

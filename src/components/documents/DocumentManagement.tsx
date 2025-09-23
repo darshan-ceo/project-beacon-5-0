@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { DocumentModal } from '@/components/modals/DocumentModal';
@@ -9,6 +9,7 @@ import { OrganizationGuide } from './OrganizationGuide';
 import { RecentDocuments } from './RecentDocuments';
 import { motion } from 'framer-motion';
 import { dmsService } from '@/services/dmsService';
+import { storageManager } from '@/data/StorageManager';
 import { useAppState } from '@/contexts/AppStateContext';
 import { 
   Upload, 
@@ -220,10 +221,14 @@ export const DocumentManagement: React.FC = () => {
     setFilteredDocuments(convertedDocs);
   }, [state.documents]);
 
-  // Apply filters when documents or filters change
-  useEffect(() => {
+  // Apply filters when documents or filters change - use useCallback to stabilize dependencies
+  const applyFiltersStable = useCallback(() => {
     applyFilters();
   }, [state.documents, documentSearchTerm, activeFilters, selectedFolder, activeTab]);
+  
+  useEffect(() => {
+    applyFiltersStable();
+  }, [applyFiltersStable]);
 
   const loadFolders = async () => {
     try {
@@ -245,7 +250,7 @@ export const DocumentManagement: React.FC = () => {
     }
   };
 
-  const applyFilters = async () => {
+  const applyFilters = useCallback(async () => {
     // Convert state documents to local format for filtering
     const convertedDocs = state.documents.map(doc => ({
       ...doc,
@@ -310,7 +315,7 @@ export const DocumentManagement: React.FC = () => {
     });
     
     setFilteredDocuments(filtered as any[]);
-  };
+  }, [state.documents, documentSearchTerm, activeFilters, selectedFolder, activeTab]);
 
    const loadFolderContents = async (folderId: string | null) => {
     setLoading(true);
@@ -394,8 +399,24 @@ export const DocumentManagement: React.FC = () => {
     console.log('Folder contents refreshed after creation');
   };
 
-  const handleDocumentView = async (doc: any) => {
+  const handleDocumentView = useCallback(async (doc: any) => {
     try {
+      // Try unified storage first
+      const documentRepository = storageManager.getDocumentRepository();
+      const fullDoc = await documentRepository.getWithAttachments(doc.id);
+      
+      if (fullDoc && fullDoc.content) {
+        const previewUrl = documentRepository.createPreviewUrl(fullDoc);
+        window.open(previewUrl, '_blank');
+        
+        toast({
+          title: "Opening Document",
+          description: `${doc.name} opened for preview`,
+        });
+        return;
+      }
+      
+      // Fallback to legacy dmsService
       const previewUrl = await dmsService.files.getPreviewUrl(doc.id);
       window.open(previewUrl, '_blank');
       
@@ -404,21 +425,37 @@ export const DocumentManagement: React.FC = () => {
         description: `${doc.name} opened for preview`,
       });
     } catch (error) {
+      console.error('Document preview error:', error);
       toast({
         title: "Preview Error",
         description: "Unable to preview this document. Try downloading instead.",
         variant: "destructive",
       });
     }
-  };
+  }, []);
 
-  const handleDocumentDownload = async (doc: any) => {
+  const handleDocumentDownload = useCallback(async (doc: any) => {
     try {
+      // Try unified storage first
+      const documentRepository = storageManager.getDocumentRepository();
+      const fullDoc = await documentRepository.getWithAttachments(doc.id);
+      
+      if (fullDoc && fullDoc.content) {
+        documentRepository.downloadDocument(fullDoc);
+        return;
+      }
+      
+      // Fallback to legacy dmsService
       await dmsService.files.download(doc.id, doc.name);
     } catch (error) {
-      // Error handling is already done in the service
+      console.error('Document download error:', error);
+      toast({
+        title: "Download Error",
+        description: "Unable to download this document. Please try again.",
+        variant: "destructive",
+      });
     }
-  };
+  }, []);
 
   const handleDocumentUpload = async (file: File, options: any = {}) => {
     try {
