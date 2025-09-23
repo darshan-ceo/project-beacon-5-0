@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { storageManager } from '@/data/StorageManager';
+import { useUnifiedPersistence } from '@/hooks/useUnifiedPersistence';
 import type { TaskBundle, TaskBundleItem } from '@/data/db';
 
 interface TaskBundleWithItems extends TaskBundle {
@@ -32,6 +33,7 @@ interface TaskBundleWithItems extends TaskBundle {
 }
 
 export const TaskAutomation: React.FC = () => {
+  const { initialized } = useUnifiedPersistence();
   const [bundles, setBundles] = useState<TaskBundleWithItems[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editingBundle, setEditingBundle] = useState<TaskBundleWithItems | null>(null);
@@ -44,6 +46,11 @@ export const TaskAutomation: React.FC = () => {
   const [bundleItems, setBundleItems] = useState<Partial<TaskBundleItem>[]>([]);
 
   const loadBundles = useCallback(async () => {
+    if (!initialized) {
+      console.log('Storage not initialized yet, skipping bundle load');
+      return;
+    }
+
     try {
       setIsLoading(true);
       const repository = storageManager.getTaskBundleRepository();
@@ -53,19 +60,28 @@ export const TaskAutomation: React.FC = () => {
       console.error('Failed to load task bundles:', error);
       toast({
         title: "Error",
-        description: "Failed to load task bundles",
+        description: "Failed to load task bundles. Storage may not be ready.",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [initialized]);
 
   useEffect(() => {
     loadBundles();
   }, [loadBundles]);
 
   const handleCreateBundle = async () => {
+    if (!initialized) {
+      toast({
+        title: "Not Ready",
+        description: "Storage is still initializing. Please wait a moment.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       if (!bundleName || !bundleTrigger) {
         toast({
@@ -76,13 +92,22 @@ export const TaskAutomation: React.FC = () => {
         return;
       }
 
+      console.log('Creating bundle with data:', {
+        name: bundleName,
+        trigger: bundleTrigger,
+        stage_code: bundleStage || undefined,
+        items: bundleItems.filter(item => item.title)
+      });
+
       const repository = storageManager.getTaskBundleRepository();
-      await repository.createWithItems({
+      const createdBundle = await repository.createWithItems({
         name: bundleName,
         trigger: bundleTrigger,
         stage_code: bundleStage || undefined,
         items: bundleItems.filter(item => item.title) as any[]
       });
+
+      console.log('Bundle created successfully:', createdBundle);
 
       toast({
         title: "Success",
@@ -95,13 +120,22 @@ export const TaskAutomation: React.FC = () => {
       console.error('Failed to create bundle:', error);
       toast({
         title: "Error",
-        description: "Failed to create task bundle",
+        description: `Failed to create task bundle: ${error.message}`,
         variant: "destructive",
       });
     }
   };
 
   const handleUpdateBundle = async () => {
+    if (!initialized) {
+      toast({
+        title: "Not Ready",
+        description: "Storage is still initializing. Please wait a moment.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       if (!editingBundle || !bundleName || !bundleTrigger) {
         toast({
@@ -131,13 +165,22 @@ export const TaskAutomation: React.FC = () => {
       console.error('Failed to update bundle:', error);
       toast({
         title: "Error",
-        description: "Failed to update task bundle",
+        description: `Failed to update task bundle: ${error.message}`,
         variant: "destructive",
       });
     }
   };
 
   const handleDeleteBundle = async (bundleId: string) => {
+    if (!initialized) {
+      toast({
+        title: "Not Ready",
+        description: "Storage is still initializing. Please wait a moment.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const repository = storageManager.getTaskBundleRepository();
       await repository.delete(bundleId);
@@ -152,7 +195,7 @@ export const TaskAutomation: React.FC = () => {
       console.error('Failed to delete bundle:', error);
       toast({
         title: "Error",
-        description: "Failed to delete task bundle",
+        description: `Failed to delete task bundle: ${error.message}`,
         variant: "destructive",
       });
     }
@@ -211,7 +254,7 @@ export const TaskAutomation: React.FC = () => {
     { value: 'urgent', label: 'Urgent' }
   ];
 
-  if (isLoading) {
+  if (!initialized || isLoading) {
     return (
       <Card>
         <CardHeader>
@@ -224,7 +267,9 @@ export const TaskAutomation: React.FC = () => {
           <div className="flex items-center justify-center p-8">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Loading task bundles...</p>
+              <p className="text-muted-foreground">
+                {!initialized ? "Initializing storage..." : "Loading task bundles..."}
+              </p>
             </div>
           </div>
         </CardContent>
@@ -244,6 +289,7 @@ export const TaskAutomation: React.FC = () => {
             <Button 
               onClick={() => setIsCreating(true)}
               className="flex items-center gap-2"
+              disabled={!initialized}
             >
               <Plus className="h-4 w-4" />
               Create Bundle
@@ -265,7 +311,10 @@ export const TaskAutomation: React.FC = () => {
                   <p className="text-muted-foreground mb-4">
                     Create your first task bundle to automate task creation
                   </p>
-                  <Button onClick={() => setIsCreating(true)}>
+                  <Button 
+                    onClick={() => setIsCreating(true)}
+                    disabled={!initialized}
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     Create Bundle
                   </Button>
