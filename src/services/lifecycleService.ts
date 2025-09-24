@@ -5,6 +5,7 @@
 
 import { StageInstance, StageTransition, ChecklistItem, TransitionType, OrderDetails, LifecycleState } from '@/types/lifecycle';
 import { stageTransitionService } from './stageTransitionService';
+import { taskBundleTriggerService } from './taskBundleTriggerService';
 import { GSTStage } from '../../config/appConfig';
 import { toast } from '@/hooks/use-toast';
 import React from 'react';
@@ -95,7 +96,7 @@ class LifecycleService {
           }
         });
 
-        // Trigger stage transition automation (Phase 2)
+        // Trigger stage transition automation (Templates + Bundles)
         try {
           // Mock case data - in real implementation, this would be fetched
           const caseData = {
@@ -107,19 +108,30 @@ class LifecycleService {
             currentStage: request.toStageKey
           };
           
-          const result = await stageTransitionService.processStageTransition(
+          // Process task templates automation
+          const templateResult = await stageTransitionService.processStageTransition(
             caseData,
             oldStage,
             request.toStageKey as GSTStage,
             request.dispatch
           );
           
-          if (result.createdTasks.length > 0) {
-            console.log(`[LifecycleService] Stage transition created ${result.createdTasks.length} automated tasks`);
+          // Process task bundles automation
+          const bundleResult = await taskBundleTriggerService.triggerTaskBundles(
+            caseData,
+            'OnStageEnter',
+            request.toStageKey as GSTStage,
+            request.dispatch
+          );
+          
+          // Combined feedback
+          const totalCreated = templateResult.createdTasks.length + bundleResult.totalTasksCreated;
+          if (totalCreated > 0) {
+            console.log(`[LifecycleService] Stage transition created ${totalCreated} automated tasks (${templateResult.createdTasks.length} from templates, ${bundleResult.totalTasksCreated} from bundles)`);
           }
           
-          if (result.suggestedTasks.length > 0) {
-            console.log(`[LifecycleService] Stage transition suggests ${result.suggestedTasks.length} tasks`);
+          if (templateResult.suggestedTasks.length > 0) {
+            console.log(`[LifecycleService] Stage transition suggests ${templateResult.suggestedTasks.length} tasks`);
             // In real implementation, this would trigger a suggestion drawer
           }
           

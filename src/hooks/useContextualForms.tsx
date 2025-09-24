@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAppState } from '@/contexts/AppStateContext';
 import { useRelationships } from './useRelationships';
 
@@ -14,12 +14,20 @@ export const useContextualForms = (initialContext?: FormContext) => {
   const { getCaseWithClient, getJudgesForCourt } = useRelationships();
   const [context, setContext] = useState<FormContext>(initialContext || {});
 
-  // Sync context with initialContext changes
+  // Memoize initial context to prevent unnecessary re-renders
+  const memoizedInitialContext = useMemo(() => initialContext, [
+    initialContext?.clientId,
+    initialContext?.caseId,
+    initialContext?.courtId,
+    initialContext?.judgeId
+  ]);
+
+  // Sync context with initialContext changes only when it actually changes
   useEffect(() => {
-    if (initialContext) {
-      setContext(initialContext);
+    if (memoizedInitialContext) {
+      setContext(memoizedInitialContext);
     }
-  }, [initialContext]);
+  }, [memoizedInitialContext]);
 
   // Auto-fill context when case is selected
   useEffect(() => {
