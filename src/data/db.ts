@@ -109,6 +109,7 @@ export interface TaskBundleItem {
   dependencies?: string[];
   order_index: number;
   created_at: Date;
+  template_id?: string;
 }
 
 export interface Document {

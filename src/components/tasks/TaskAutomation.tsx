@@ -8,6 +8,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { 
   Plus, 
   Trash2, 
@@ -21,11 +41,15 @@ import {
   AlertCircle,
   Save,
   X,
-  Workflow
+  Workflow,
+  Search,
+  Filter
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { storageManager } from '@/data/StorageManager';
 import { useUnifiedPersistence } from '@/hooks/useUnifiedPersistence';
+import { taskTemplatesService } from '@/services/taskTemplatesService';
+import type { TaskTemplate } from '@/types/taskTemplate';
 import type { TaskBundle, TaskBundleItem } from '@/data/db';
 
 interface TaskBundleWithItems extends TaskBundle {
@@ -44,6 +68,12 @@ export const TaskAutomation: React.FC = () => {
   const [bundleTrigger, setBundleTrigger] = useState('');
   const [bundleStage, setBundleStage] = useState('');
   const [bundleItems, setBundleItems] = useState<Partial<TaskBundleItem>[]>([]);
+  
+  // Template selection states
+  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
+  const [templates, setTemplates] = useState<TaskTemplate[]>([]);
+  const [templateSearchTerm, setTemplateSearchTerm] = useState('');
+  const [selectedTemplateCategory, setSelectedTemplateCategory] = useState('All');
 
   const loadBundles = useCallback(async () => {
     if (!initialized) {
@@ -239,6 +269,84 @@ export const TaskAutomation: React.FC = () => {
     setBundleItems(bundleItems.filter((_, i) => i !== index));
   };
 
+  const addTaskFromTemplate = async () => {
+    if (!initialized) {
+      toast({
+        title: "Not Ready",
+        description: "Storage is still initializing. Please wait a moment.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const templateList = await taskTemplatesService.getAll();
+      setTemplates(templateList);
+      setIsTemplateDialogOpen(true);
+    } catch (error) {
+      console.error('Failed to load templates:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load task templates",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const addTasksFromTemplate = async (template: TaskTemplate) => {
+    try {
+      // Create task item from template
+      const newTaskItem: Partial<TaskBundleItem> = {
+        title: template.title,
+        description: template.description,
+        priority: template.priority.toLowerCase() as any,
+        estimated_hours: template.estimatedHours,
+        template_id: template.id,
+        dependencies: []
+      };
+
+      setBundleItems(prev => [...prev, newTaskItem]);
+      
+      // Increment template usage
+      await taskTemplatesService.incrementUsage(template.id);
+      
+      setIsTemplateDialogOpen(false);
+      setTemplateSearchTerm('');
+      setSelectedTemplateCategory('All');
+      
+      toast({
+        title: "Template Added",
+        description: `Task "${template.title}" has been added to the bundle`,
+      });
+    } catch (error) {
+      console.error('Failed to add template:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add template to bundle",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const filteredTemplates = templates.filter(template => {
+    const matchesSearch = template.title.toLowerCase().includes(templateSearchTerm.toLowerCase()) ||
+                         template.description.toLowerCase().includes(templateSearchTerm.toLowerCase());
+    const matchesCategory = selectedTemplateCategory === 'All' || template.category === selectedTemplateCategory;
+    return matchesSearch && matchesCategory && template.isActive;
+  });
+
+  const templateCategories = ['All', ...Array.from(new Set(templates.map(t => t.category)))];
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority.toLowerCase()) {
+      case 'critical': return 'bg-destructive text-destructive-foreground';
+      case 'high': return 'bg-orange-500 text-white';
+      case 'medium': return 'bg-primary text-primary-foreground';
+      case 'low': return 'bg-green-500 text-white';
+      default: return 'bg-muted text-muted-foreground';
+    }
+  };
+
   const triggerOptions = [
     { value: 'stage_advance', label: 'Stage Advance' },
     { value: 'hearing_scheduled', label: 'Hearing Scheduled' },
@@ -416,6 +524,99 @@ export const TaskAutomation: React.FC = () => {
         </CardContent>
       </Card>
 
+      {/* Template Selection Dialog */}
+      <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
+        <DialogContent className="sm:max-w-[700px] max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Select Task Template</DialogTitle>
+            <DialogDescription>
+              Choose a task template to add to your bundle
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Search and Filter */}
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search templates..."
+                    value={templateSearchTerm}
+                    onChange={(e) => setTemplateSearchTerm(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
+              </div>
+              <div className="w-48">
+                <Select value={selectedTemplateCategory} onValueChange={setSelectedTemplateCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templateCategories.map(category => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            {/* Templates List */}
+            <div className="max-h-96 overflow-y-auto space-y-3">
+              {filteredTemplates.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p>No templates found</p>
+                </div>
+              ) : (
+                filteredTemplates.map(template => (
+                  <Card key={template.id} className="cursor-pointer hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h4 className="font-medium">{template.title}</h4>
+                            <Badge variant="outline" className={getPriorityColor(template.priority)}>
+                              {template.priority}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+                            {template.description}
+                          </p>
+                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {template.estimatedHours}h
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <User className="h-3 w-3" />
+                              {template.assignedRole}
+                            </div>
+                            <Badge variant="outline" className="text-xs">
+                              {template.category}
+                            </Badge>
+                          </div>
+                        </div>
+                        <Button 
+                          size="sm"
+                          onClick={() => addTasksFromTemplate(template)}
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          Add
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Create/Edit Bundle Modal */}
       {isCreating && (
         <Card>
@@ -469,10 +670,16 @@ export const TaskAutomation: React.FC = () => {
             <div>
               <div className="flex items-center justify-between mb-4">
                 <Label>Tasks in Bundle</Label>
-                <Button variant="outline" size="sm" onClick={addTaskItem}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Task
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={addTaskItem}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Task
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={addTaskFromTemplate}>
+                    <FileText className="h-4 w-4 mr-2" />
+                    From Template
+                  </Button>
+                </div>
               </div>
               
               <div className="space-y-4">
@@ -482,11 +689,20 @@ export const TaskAutomation: React.FC = () => {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <Label>Task Title</Label>
-                          <Input
-                            value={item.title || ''}
-                            onChange={(e) => updateTaskItem(index, 'title', e.target.value)}
-                            placeholder="Enter task title"
-                          />
+                          <div className="flex gap-2">
+                            <Input
+                              value={item.title || ''}
+                              onChange={(e) => updateTaskItem(index, 'title', e.target.value)}
+                              placeholder="Enter task title"
+                              className="flex-1"
+                            />
+                            {item.template_id && (
+                              <Badge variant="outline" className="shrink-0">
+                                <FileText className="h-3 w-3 mr-1" />
+                                Template
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                         <div>
                           <Label>Priority</Label>

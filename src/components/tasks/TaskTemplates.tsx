@@ -417,28 +417,44 @@ export const TaskTemplates: React.FC<TaskTemplatesProps> = ({ bundles }) => {
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="title">Template Title</Label>
-                <Input id="title" placeholder="e.g., Draft Response to Notice" />
+                <Input 
+                  id="title" 
+                  value={formData.title}
+                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="e.g., Draft Response to Notice" 
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
-                <Textarea id="description" placeholder="Detailed description of the task" />
+                <Textarea 
+                  id="description" 
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Detailed description of the task" 
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="hours">Estimated Hours</Label>
-                  <Input id="hours" type="number" placeholder="16" />
+                  <Input 
+                    id="hours" 
+                    type="number" 
+                    value={formData.estimatedHours}
+                    onChange={(e) => setFormData(prev => ({ ...prev, estimatedHours: parseInt(e.target.value) || 0 }))}
+                    placeholder="16" 
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="priority">Priority</Label>
-                  <Select>
+                  <Select value={formData.priority} onValueChange={(value: any) => setFormData(prev => ({ ...prev, priority: value }))}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select priority" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="critical">Critical</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="Critical">Critical</SelectItem>
+                      <SelectItem value="High">High</SelectItem>
+                      <SelectItem value="Medium">Medium</SelectItem>
+                      <SelectItem value="Low">Low</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -446,31 +462,94 @@ export const TaskTemplates: React.FC<TaskTemplatesProps> = ({ bundles }) => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="role">Assigned Role</Label>
-                  <Select>
+                  <Select value={formData.assignedRole} onValueChange={(value) => setFormData(prev => ({ ...prev, assignedRole: value }))}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="partner">Partner</SelectItem>
-                      <SelectItem value="senior-associate">Senior Associate</SelectItem>
-                      <SelectItem value="junior-associate">Junior Associate</SelectItem>
-                      <SelectItem value="paralegal">Paralegal</SelectItem>
+                      {roles.filter(role => role !== 'All').map(role => (
+                        <SelectItem key={role} value={role}>{role}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="category">Category</Label>
-                  <Select>
+                  <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="legal-drafting">Legal Drafting</SelectItem>
-                      <SelectItem value="documentation">Documentation</SelectItem>
-                      <SelectItem value="review">Review</SelectItem>
-                      <SelectItem value="client-management">Client Management</SelectItem>
+                      {categories.filter(cat => cat !== 'All').map(category => (
+                        <SelectItem key={category} value={category}>{category}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Stage Scope</Label>
+                <Popover open={stageScopeOpen} onOpenChange={setStageScopeOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={stageScopeOpen}
+                      className="w-full justify-between"
+                    >
+                      {formData.stageScope.length > 0 
+                        ? `${formData.stageScope.length} stage(s) selected`
+                        : "Select stages..."
+                      }
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Search stages..." />
+                      <CommandEmpty>No stages found.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandList>
+                          {taskTemplatesService.getAvailableStages().map((stage) => (
+                            <CommandItem
+                              key={stage}
+                              onSelect={() => {
+                                const newStageScope = formData.stageScope.includes(stage)
+                                  ? formData.stageScope.filter(s => s !== stage)
+                                  : [...formData.stageScope, stage];
+                                setFormData(prev => ({ ...prev, stageScope: newStageScope }));
+                              }}
+                            >
+                              <Checkbox 
+                                checked={formData.stageScope.includes(stage)}
+                                className="mr-2"
+                              />
+                              {stage}
+                            </CommandItem>
+                          ))}
+                        </CommandList>
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="suggest"
+                    checked={formData.suggestOnStageChange}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, suggestOnStageChange: !!checked }))}
+                  />
+                  <Label htmlFor="suggest" className="text-sm">Suggest on stage change</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="auto"
+                    checked={formData.autoCreateOnStageChange}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, autoCreateOnStageChange: !!checked }))}
+                  />
+                  <Label htmlFor="auto" className="text-sm">Auto-create on stage change</Label>
                 </div>
               </div>
             </div>
@@ -478,16 +557,167 @@ export const TaskTemplates: React.FC<TaskTemplatesProps> = ({ bundles }) => {
               <Button variant="outline" onClick={() => setIsCreateTemplateOpen(false)}>
                 Cancel
               </Button>
-              <Button 
-                onClick={() => {
-                  toast({
-                    title: "Template Created",
-                    description: "Task template has been created successfully",
-                  });
-                  setIsCreateTemplateOpen(false);
-                }}
-              >
+              <Button onClick={handleCreateTemplate}>
                 Create Template
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Template Dialog */}
+        <Dialog open={isEditTemplateOpen} onOpenChange={setIsEditTemplateOpen}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Edit Task Template</DialogTitle>
+              <DialogDescription>
+                Update the task template settings and configuration
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-title">Template Title</Label>
+                <Input 
+                  id="edit-title" 
+                  value={formData.title}
+                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="e.g., Draft Response to Notice" 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-description">Description</Label>
+                <Textarea 
+                  id="edit-description" 
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Detailed description of the task" 
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-hours">Estimated Hours</Label>
+                  <Input 
+                    id="edit-hours" 
+                    type="number" 
+                    value={formData.estimatedHours}
+                    onChange={(e) => setFormData(prev => ({ ...prev, estimatedHours: parseInt(e.target.value) || 0 }))}
+                    placeholder="16" 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-priority">Priority</Label>
+                  <Select value={formData.priority} onValueChange={(value: any) => setFormData(prev => ({ ...prev, priority: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select priority" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Critical">Critical</SelectItem>
+                      <SelectItem value="High">High</SelectItem>
+                      <SelectItem value="Medium">Medium</SelectItem>
+                      <SelectItem value="Low">Low</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-role">Assigned Role</Label>
+                  <Select value={formData.assignedRole} onValueChange={(value) => setFormData(prev => ({ ...prev, assignedRole: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roles.filter(role => role !== 'All').map(role => (
+                        <SelectItem key={role} value={role}>{role}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-category">Category</Label>
+                  <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.filter(cat => cat !== 'All').map(category => (
+                        <SelectItem key={category} value={category}>{category}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Stage Scope</Label>
+                <Popover open={stageScopeOpen} onOpenChange={setStageScopeOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={stageScopeOpen}
+                      className="w-full justify-between"
+                    >
+                      {formData.stageScope.length > 0 
+                        ? `${formData.stageScope.length} stage(s) selected`
+                        : "Select stages..."
+                      }
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Search stages..." />
+                      <CommandEmpty>No stages found.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandList>
+                          {taskTemplatesService.getAvailableStages().map((stage) => (
+                            <CommandItem
+                              key={stage}
+                              onSelect={() => {
+                                const newStageScope = formData.stageScope.includes(stage)
+                                  ? formData.stageScope.filter(s => s !== stage)
+                                  : [...formData.stageScope, stage];
+                                setFormData(prev => ({ ...prev, stageScope: newStageScope }));
+                              }}
+                            >
+                              <Checkbox 
+                                checked={formData.stageScope.includes(stage)}
+                                className="mr-2"
+                              />
+                              {stage}
+                            </CommandItem>
+                          ))}
+                        </CommandList>
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="edit-suggest"
+                    checked={formData.suggestOnStageChange}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, suggestOnStageChange: !!checked }))}
+                  />
+                  <Label htmlFor="edit-suggest" className="text-sm">Suggest on stage change</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="edit-auto"
+                    checked={formData.autoCreateOnStageChange}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, autoCreateOnStageChange: !!checked }))}
+                  />
+                  <Label htmlFor="edit-auto" className="text-sm">Auto-create on stage change</Label>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditTemplateOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleEditTemplate}>
+                Update Template
               </Button>
             </DialogFooter>
           </DialogContent>
