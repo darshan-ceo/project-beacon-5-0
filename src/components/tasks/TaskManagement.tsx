@@ -465,70 +465,14 @@ export const TaskManagement: React.FC = () => {
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-8" data-tour="task-automation-tabs">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <TabsTrigger value="board" data-tour="board-tab">Board</TabsTrigger>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Kanban-style task board organized by GST case stages and status</p>
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <TabsTrigger value="automation" data-tour="automation-tab">Automation</TabsTrigger>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Configure automatic task creation rules for GST workflow stages</p>
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <TabsTrigger value="escalation" data-tour="escalation-tab">Escalation</TabsTrigger>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Set up escalation rules and SLA monitoring for critical GST deadlines</p>
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <TabsTrigger value="templates" data-tour="templates-tab">Templates</TabsTrigger>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Manage GST task templates and bundles for consistent workflows</p>
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <TabsTrigger value="analytics" data-tour="analytics-tab">Analytics</TabsTrigger>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>View task completion metrics and team performance analytics</p>
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <TabsTrigger value="insights" data-tour="insights-tab">Insights</TabsTrigger>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>AI-powered insights for task optimization and workflow improvements</p>
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <TabsTrigger value="ai-assistant" data-tour="ai-assistant-tab">AI Assistant</TabsTrigger>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>AI assistant for GST task suggestions and intelligent automation</p>
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <TabsTrigger value="collaboration" data-tour="collaboration-tab">Collaboration</TabsTrigger>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Real-time team collaboration with activity feeds and task comments</p>
-            </TooltipContent>
-          </Tooltip>
+          <TabsTrigger value="board" data-tour="board-tab">Board</TabsTrigger>
+          <TabsTrigger value="automation" data-tour="automation-tab">Automation</TabsTrigger>
+          <TabsTrigger value="escalation" data-tour="escalation-tab">Escalation</TabsTrigger>
+          <TabsTrigger value="templates" data-tour="templates-tab">Templates</TabsTrigger>
+          <TabsTrigger value="analytics" data-tour="analytics-tab">Analytics</TabsTrigger>
+          <TabsTrigger value="insights" data-tour="insights-tab">Insights</TabsTrigger>
+          <TabsTrigger value="ai-assistant" data-tour="ai-assistant-tab">AI Assistant</TabsTrigger>
+          <TabsTrigger value="collaboration" data-tour="collaboration-tab">Collaboration</TabsTrigger>
         </TabsList>
 
         <TabsContent value="board" className="mt-6">
