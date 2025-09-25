@@ -13,7 +13,7 @@ import { HearingModal } from '@/components/modals/HearingModal';
 import { FormRenderModal } from '@/components/documents/FormRenderModal';
 import { FormChip } from './FormChip';
 import { useAppState, Case, GeneratedForm } from '@/contexts/AppStateContext';
-import { caseService } from '@/mock/services';
+import { casesService } from '@/services/casesService';
 import { dmsService } from '@/services/dmsService';
 import { formTemplatesService } from '@/services/formTemplatesService';
 import {
@@ -208,12 +208,12 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
     if (nextStage) {
       setIsAdvancing(true);
       try {
-        const updateData = {
-          ...selectedCase,
-          currentStage: nextStage.id as any
-        };
-        delete (updateData as any).notes; // Remove notes as it's not part of the Case interface
-        await caseService.update(selectedCase.id, updateData);
+        await casesService.advanceStage({
+          caseId: selectedCase.id,
+          currentStage: selectedCase.currentStage,
+          nextStage: nextStage.id,
+          notes: `Advanced from ${selectedCase.currentStage} to ${nextStage.id}`
+        }, dispatch);
         
         // Trigger parent update callback to refresh the case in parent component
         if (onCaseUpdated) {

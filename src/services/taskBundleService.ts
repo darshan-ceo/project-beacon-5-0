@@ -64,7 +64,7 @@ class TaskBundleService {
   private async ensureDatabaseSchema(): Promise<void> {
     try {
       const { openDB } = await import('idb');
-      await openDB('beacon_case_management_db', 2, {
+      await openDB('AppData', 1, {
         upgrade(db) {
           if (!db.objectStoreNames.contains('taskBundles')) {
             console.log('Creating taskBundles object store');
@@ -84,7 +84,7 @@ class TaskBundleService {
   private async loadCustomBundles(): Promise<void> {
     try {
       const { openDB } = await import('idb');
-      const db = await openDB('beacon_case_management_db', 2);
+      const db = await openDB('AppData', 1);
       const customBundles = await db.getAll('taskBundles') || [];
       this.customBundles = customBundles;
       console.log('Loaded', customBundles.length, 'custom bundles from database');
@@ -363,7 +363,7 @@ class TaskBundleService {
       console.log('Creating new bundle:', newBundle.name);
       
       const { openDB } = await import('idb');
-      const db = await openDB('beacon_case_management_db', 2);
+      const db = await openDB('AppData', 1);
       await db.put('taskBundles', newBundle);
       
       this.customBundles.push(newBundle);
@@ -401,7 +401,7 @@ class TaskBundleService {
       const updatedBundle = { ...this.customBundles[customIndex], ...updates };
       
       const { openDB } = await import('idb');
-      const db = await openDB('beacon_case_management_db', 2);
+      const db = await openDB('AppData', 1);
       await db.put('taskBundles', updatedBundle);
       
       this.customBundles[customIndex] = updatedBundle;
@@ -422,7 +422,7 @@ class TaskBundleService {
 
     try {
       const { openDB } = await import('idb');
-      const db = await openDB('beacon_case_management_db', 2);
+      const db = await openDB('AppData', 1);
       await db.delete('taskBundles', bundleId);
       
       this.customBundles.splice(customIndex, 1);

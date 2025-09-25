@@ -24,8 +24,7 @@ import { EmployeeModal } from '@/components/modals/EmployeeModal';
 import { ImportWizard } from '@/components/importExport/ImportWizard';
 import { ExportWizard } from '@/components/importExport/ExportWizard';
 import { useAppState } from '@/contexts/AppStateContext';
-import { employeeService } from '@/mock/services';
-import type { Employee } from '@/contexts/AppStateContext';
+import { employeesService, Employee } from '@/services/employeesService';
 import { useRBAC } from '@/hooks/useRBAC';
 import { featureFlagService } from '@/services/featureFlagService';
 import { 
@@ -124,9 +123,9 @@ export const EmployeeMasters: React.FC = () => {
           return;
         }
         
-        await employeeService.update(employee.id, { ...employee, status: 'Inactive' });
+        await employeesService.deactivate(employee.id, dispatch);
       } else {
-        await employeeService.update(employee.id, { ...employee, status: 'Active' });
+        await employeesService.activate(employee.id, dispatch);
       }
     } catch (error) {
       toast({
@@ -139,8 +138,12 @@ export const EmployeeMasters: React.FC = () => {
 
   const handleDeleteEmployee = async (employee: Employee) => {
     try {
-      // Check for dependencies in demo mode
-      const dependencies: string[] = [];
+      const dependencies = employeesService.checkDependencies(
+        employee.id, 
+        state.cases, 
+        state.tasks, 
+        state.hearings
+      );
 
       if (dependencies.length > 0) {
         toast({
@@ -151,7 +154,7 @@ export const EmployeeMasters: React.FC = () => {
         return;
       }
 
-      await employeeService.delete(employee.id);
+      await employeesService.delete(employee.id, dispatch, dependencies);
     } catch (error) {
       toast({
         title: "Error",

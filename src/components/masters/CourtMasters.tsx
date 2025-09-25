@@ -15,7 +15,7 @@ import { CourtModal } from '@/components/modals/CourtModal';
 import { ImportWizard } from '@/components/importExport/ImportWizard';
 import { ExportWizard } from '@/components/importExport/ExportWizard';
 import { Court, useAppState } from '@/contexts/AppStateContext';
-import { courtService } from '@/mock/services';
+import { courtsService } from '@/services/courtsService';
 import { useRBAC } from '@/hooks/useRBAC';
 import { featureFlagService } from '@/services/featureFlagService';
 

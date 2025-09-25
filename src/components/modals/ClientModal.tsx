@@ -15,7 +15,7 @@ import { toast } from '@/hooks/use-toast';
 import { Client, useAppState, type Signatory, type Address, type Jurisdiction, type PortalAccess } from '@/contexts/AppStateContext';
 import { CASelector } from '@/components/ui/employee-selector';
 import { SignatoryModal } from './SignatoryModal';
-import { clientService } from '@/mock/services';
+import { clientsService, INDIAN_STATES } from '@/services/clientsService';
 import { GSTSection } from '@/components/gst/GSTSection';
 import { ContactsDrawer } from '@/components/contacts/ContactsDrawer';
 import { ClientContactsSection } from '@/components/contacts/ClientContactsSection';
@@ -267,27 +267,35 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
       }
     }
 
-    // Basic PAN validation
-    if (formData.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.pan)) {
-      newErrors.pan = 'Invalid PAN format';
+    // Validate using service
+    const panValidation = clientsService.validatePAN(formData.pan);
+    if (!panValidation.isValid) {
+      newErrors.pan = panValidation.errors[0];
     }
 
-    // Basic GSTIN validation  
-    if (formData.gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(formData.gstin)) {
-      newErrors.gstin = 'Invalid GSTIN format';
+    if (formData.gstin) {
+      const gstinValidation = clientsService.validateGSTIN(formData.gstin);
+      if (!gstinValidation.isValid) {
+        newErrors.gstin = gstinValidation.errors[0];
+      }
     }
 
-    // Basic pincode validation
-    if (formData.address.pincode && !/^[0-9]{6}$/.test(formData.address.pincode)) {
-      newErrors.pincode = 'Invalid pincode format';
+    if (formData.address.pincode) {
+      const pincodeValidation = clientsService.validatePincode(formData.address.pincode);
+      if (!pincodeValidation.isValid) {
+        newErrors.pincode = pincodeValidation.errors[0];
+      }
     }
 
     // Portal access validations
     if (formData.portalAccess.allowLogin) {
       if (!formData.portalAccess.email) {
         newErrors.portalEmail = 'Email is required for portal access';
-      } else if (!/\S+@\S+\.\S+/.test(formData.portalAccess.email)) {
-        newErrors.portalEmail = 'Invalid email format';
+      } else {
+        const emailValidation = clientsService.validateEmail(formData.portalAccess.email);
+        if (!emailValidation.isValid) {
+          newErrors.portalEmail = emailValidation.errors[0];
+        }
       }
 
       if (!formData.portalAccess.mobile) {
@@ -367,11 +375,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
       };
 
       if (mode === 'create') {
-        const response = await clientService.create({
-          ...clientToSave,
-          name: formData.name
-        } as any);
-        const createdClient = response.data as Client;
+        const createdClient = await clientsService.create(clientToSave, dispatch) as Client;
         
         // Link address for new client
         if (isAddressMasterEnabled && addressId && createdClient) {
@@ -383,7 +387,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
           description: `${createdClient.name} has been added to the system`,
         });
       } else if (mode === 'edit' && clientData) {
-        await clientService.update(clientData.id, { ...clientData, ...clientToSave });
+        await clientsService.update(clientData.id, { ...clientData, ...clientToSave }, dispatch);
         
         // Link address for existing client if not already linked
         if (isAddressMasterEnabled && addressId && !formData.addressId) {
@@ -410,7 +414,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
   const handleDelete = async () => {
     if (clientData) {
       try {
-        await clientService.delete(clientData.id);
+        await clientsService.delete(clientData.id, dispatch);
         onClose();
       } catch (error) {
         // Error handling is done in the service
@@ -447,7 +451,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
       portalAccess: {
         ...prev.portalAccess,
         allowLogin: enabled,
-        ...(enabled ? { username: formData.portalAccess.email, passwordHash: 'auto-generated' } : {})
+        ...(enabled ? clientsService.generateCredentials() : {})
       }
     }));
   };

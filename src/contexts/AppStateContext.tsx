@@ -2126,7 +2126,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
 }
 
 // Context
-export const AppStateContext = createContext<{
+const AppStateContext = createContext<{
   state: AppState;
   dispatch: React.Dispatch<AppAction>;
 } | null>(null);

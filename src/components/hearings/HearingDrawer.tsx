@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppState } from '@/contexts/AppStateContext';
 import { featureFlagService } from '@/services/featureFlagService';
-import { hearingService } from '@/mock/services';
+import { hearingsService } from '@/services/hearingsService';
 import { Hearing, HearingFormData, HearingConflict } from '@/types/hearings';
 import { format } from 'date-fns';
 import { CalendarDays, Clock, MapPin, Gavel, FileText, Users, AlertTriangle, ExternalLink } from 'lucide-react';
@@ -90,8 +90,13 @@ export const HearingDrawer: React.FC<HearingDrawerProps> = ({
 
   const checkConflicts = async () => {
     try {
-      // Mock conflict check - in real implementation would call hearingService
-      const conflicts: HearingConflict[] = [];
+      const conflicts = await hearingsService.checkConflicts({
+        date: formData.date,
+        start_time: formData.start_time,
+        end_time: formData.end_time,
+        judge_ids: formData.judge_ids,
+        court_id: formData.court_id
+      });
       setConflicts(conflicts);
     } catch (error) {
       console.error('Failed to check conflicts:', error);
@@ -104,13 +109,10 @@ export const HearingDrawer: React.FC<HearingDrawerProps> = ({
     setIsLoading(true);
     try {
       if (mode === 'create') {
-        await hearingService.create({
-          ...formData,
-          created_by: 'current-user'
-        });
+        await hearingsService.createHearing(formData, dispatch);
         toast({ title: 'Success', description: 'Hearing scheduled successfully.' });
       } else if (mode === 'edit' && hearing) {
-        await hearingService.update(hearing.id, formData);
+        await hearingsService.updateHearing(hearing.id, formData, dispatch);
         toast({ title: 'Success', description: 'Hearing updated successfully.' });
       }
       onOpenChange(false);
@@ -126,7 +128,7 @@ export const HearingDrawer: React.FC<HearingDrawerProps> = ({
     
     setIsLoading(true);
     try {
-      // Mock outcomes recording - would call hearingService in real implementation
+      await hearingsService.recordOutcome(hearing.id, outcome, outcomeText, nextHearingDate);
       toast({ title: 'Success', description: 'Hearing outcome recorded successfully.' });
       onOpenChange(false);
     } catch (error) {
@@ -141,7 +143,7 @@ export const HearingDrawer: React.FC<HearingDrawerProps> = ({
     
     setIsLoading(true);
     try {
-      // Mock upload - would call hearingService in real implementation
+      await hearingsService.uploadOrder(hearing.id, orderFile);
       setOrderFile(null);
     } catch (error) {
       console.error('Failed to upload order:', error);
@@ -160,11 +162,13 @@ export const HearingDrawer: React.FC<HearingDrawerProps> = ({
     
     setIsLoading(true);
     try {
-      // Mock notifications - would call hearingService in real implementation  
-      toast({ 
-        title: 'Success', 
-        description: 'Notifications sent successfully.',
+      await hearingsService.sendNotifications({
+        hearing_id: hearing.id,
+        template_id: 'default',
+        recipients: [{ type: 'client_signatory' }],
+        status: 'pending'
       });
+      // Success toast is handled by the service
     } catch (error) {
       console.error('Failed to send notifications:', error);
       toast({ 

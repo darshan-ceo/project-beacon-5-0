@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
-import { hearingService } from '@/mock/services';
+import { hearingsService } from '@/services/hearingsService';
 import { Hearing as GlobalHearing } from '@/types/hearings';
 import { motion } from 'framer-motion';
 import { 
@@ -72,12 +72,8 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases }) => 
   useEffect(() => {
     const fetchHearings = async () => {
       try {
-        const response = await hearingService.getAll();
-        const hearings = response.data || [];
-        setGlobalHearings(hearings.map(h => ({
-          ...h,
-          outcome: (h.outcome || 'pending') as any
-        })));
+        const fetchedHearings = await hearingsService.getHearings();
+        setGlobalHearings(fetchedHearings);
       } catch (error) {
         console.error('Error fetching hearings:', error);
       } finally {

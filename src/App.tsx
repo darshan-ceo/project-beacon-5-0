@@ -9,13 +9,13 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { AdminLayout } from "./components/layout/AdminLayout";
 import { EnhancedDashboard } from "@/components/dashboard/EnhancedDashboard";
-import { EnhancedCaseManagement } from "@/components/cases/EnhancedCaseManagement";
-import { EnhancedTaskManagement } from "@/components/tasks/EnhancedTaskManagement";
-import { EnhancedDocumentManagement } from "@/components/documents/EnhancedDocumentManagement";
-import { EnhancedClientMasters } from "@/components/masters/EnhancedClientMasters";
-import { EnhancedCourtMasters } from "@/components/masters/EnhancedCourtMasters";
-import { EnhancedJudgeMasters } from "@/components/masters/EnhancedJudgeMasters";
-import { EnhancedEmployeeMasters } from "@/components/masters/EnhancedEmployeeMasters";
+import { ClientMasters } from "@/components/masters/ClientMasters";
+import { CourtMasters } from "@/components/masters/CourtMasters";
+import JudgeMasters from "@/components/masters/JudgeMasters";
+import { EmployeeMasters } from "@/components/masters/EmployeeMasters";
+import { CaseManagement } from "@/components/cases/CaseManagement";
+import { TaskManagement } from "@/components/tasks/TaskManagement";
+import { DocumentManagement } from "@/components/documents/DocumentManagement";
 import { RBACManagement } from "@/components/admin/RBACManagement";
 import { GlobalParameters } from "@/components/admin/GlobalParameters";
 import { UserProfile } from "@/components/admin/UserProfile";
@@ -73,42 +73,42 @@ const App = () => (
               } />
               <Route path="/clients" element={
                 <AdminLayout currentUser={currentUser}>
-                  <EnhancedClientMasters />
+                  <ClientMasters />
                 </AdminLayout>
               } />
               <Route path="/courts" element={
                 <AdminLayout currentUser={currentUser}>
-                  <EnhancedCourtMasters />
+                  <CourtMasters />
                 </AdminLayout>
               } />
               <Route path="/judges" element={
                 <AdminLayout currentUser={currentUser}>
-                  <EnhancedJudgeMasters />
+                  <JudgeMasters />
                 </AdminLayout>
               } />
               <Route path="/employees" element={
                 <AdminLayout currentUser={currentUser}>
-                  <EnhancedEmployeeMasters />
+                  <EmployeeMasters />
                 </AdminLayout>
               } />
               <Route path="/cases" element={
                 <AdminLayout currentUser={currentUser}>
-                  <EnhancedCaseManagement />
+                  <CaseManagement />
                 </AdminLayout>
               } />
               <Route path="/tasks" element={
                 <AdminLayout currentUser={currentUser}>
-                  <EnhancedTaskManagement />
+                  <TaskManagement />
                 </AdminLayout>
               } />
               <Route path="/documents" element={
                 <AdminLayout currentUser={currentUser}>
-                  <EnhancedDocumentManagement />
+                  <DocumentManagement />
                 </AdminLayout>
               } />
               <Route path="/documents/folder/:id" element={
                 <AdminLayout currentUser={currentUser}>
-                  <EnhancedDocumentManagement />
+                  <DocumentManagement />
                 </AdminLayout>
               } />
               <Route path="/rbac" element={
@@ -214,7 +214,7 @@ const App = () => (
               {/* Redirect legacy document-management URLs */}
               <Route path="/document-management" element={
                 <AdminLayout currentUser={currentUser}>
-                  <EnhancedDocumentManagement />
+                  <DocumentManagement />
                 </AdminLayout>
               } />
               <Route path="*" element={<NotFound />} />

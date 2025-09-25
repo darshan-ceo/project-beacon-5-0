@@ -21,7 +21,7 @@ import {
   HelpCircle
 } from 'lucide-react';
 import { useRBAC } from '@/hooks/useRBAC';
-import { caseService } from '@/mock/services';
+import { casesService } from '@/services/casesService';
 import { getNextStage, validateStagePrerequisites, generateStageDefaults } from '@/utils/stageUtils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -208,8 +208,7 @@ export const CaseManagement: React.FC = () => {
     setAdvanceStageModal(prev => ({ ...prev, isLoading: true }));
 
     try {
-      // TODO: Replace with proper case service call
-      console.log('Advancing stage:', {
+      await casesService.advanceStage({
         caseId: advanceStageModal.caseData.id,
         currentStage: advanceStageModal.currentStage,
         nextStage: advanceStageModal.nextStage,
