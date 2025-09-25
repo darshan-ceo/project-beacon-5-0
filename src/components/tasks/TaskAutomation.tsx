@@ -75,7 +75,6 @@ export const TaskAutomation: React.FC = () => {
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   const [templates, setTemplates] = useState<TaskTemplate[]>([]);
   const [templateSearchTerm, setTemplateSearchTerm] = useState('');
-  const [selectedTemplateCategory, setSelectedTemplateCategory] = useState('All');
 
   // Initialize bundles on load
   useEffect(() => {
@@ -231,11 +230,8 @@ export const TaskAutomation: React.FC = () => {
   const filteredTemplates = templates.filter(template => {
     const matchesSearch = template.title.toLowerCase().includes(templateSearchTerm.toLowerCase()) ||
                          template.description.toLowerCase().includes(templateSearchTerm.toLowerCase());
-    const matchesCategory = selectedTemplateCategory === 'All' || template.category === selectedTemplateCategory;
-    return matchesSearch && matchesCategory;
+    return matchesSearch;
   });
-
-  const templateCategories = ['All', ...Array.from(new Set(templates.map(t => t.category)))];
 
   if (isLoading) {
     return (
@@ -627,19 +623,6 @@ export const TaskAutomation: React.FC = () => {
                   />
                 </div>
               </div>
-              <Select value={selectedTemplateCategory} onValueChange={setSelectedTemplateCategory}>
-                <SelectTrigger className="w-48">
-                  <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {templateCategories.map(category => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
 
             {/* Templates List */}
@@ -650,7 +633,6 @@ export const TaskAutomation: React.FC = () => {
                     <TableHead>Template</TableHead>
                     <TableHead>Priority</TableHead>
                     <TableHead>Hours</TableHead>
-                    <TableHead>Category</TableHead>
                     <TableHead>Action</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -669,7 +651,6 @@ export const TaskAutomation: React.FC = () => {
                         <Badge variant="outline">{template.priority}</Badge>
                       </TableCell>
                       <TableCell>{template.estimatedHours}h</TableCell>
-                      <TableCell>{template.category}</TableCell>
                       <TableCell>
                         <Button
                           size="sm"
