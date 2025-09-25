@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAppState } from '@/contexts/AppStateContext';
 import { useToast } from '@/hooks/use-toast';
-import { casesService } from '@/services/casesService';
+import { caseService } from '@/mock/services';
 import { ArrowRight, Clock, AlertCircle, CheckCircle } from 'lucide-react';
 
 interface StageManagementModalProps {
@@ -54,14 +54,12 @@ export const StageManagementModal: React.FC<StageManagementModalProps> = ({
     setIsAdvancing(true);
 
     try {
-      // Use the centralized casesService.advanceStage method
-      await casesService.advanceStage({
-        caseId,
-        currentStage,
-        nextStage: selectedNextStage,
-        notes: comments,
-        assignedTo: caseToUpdate.assignedToName
-      }, dispatch);
+      const updateData = {
+        ...caseToUpdate,
+        currentStage: selectedNextStage as any
+      };
+      delete (updateData as any).notes; // Remove notes as it's not part of the Case interface
+      await caseService.update(caseId, updateData);
 
       // Get the updated case from state after service call
       const updatedCase = state.cases.find(c => c.id === caseId);

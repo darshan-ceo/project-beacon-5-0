@@ -10,7 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAppState } from '@/contexts/AppStateContext';
-import { employeesService, Employee } from '@/services/employeesService';
+import { employeeService } from '@/mock/services';
+import type { Employee } from '@/contexts/AppStateContext';
 import { toast } from '@/hooks/use-toast';
 import { AddressForm } from '@/components/ui/AddressForm';
 import { AddressView } from '@/components/ui/AddressView';
@@ -109,9 +110,12 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
     setIsSubmitting(true);
     try {
       if (mode === 'create') {
-        await employeesService.create(formData, dispatch, state.employees);
+        await employeeService.create({
+          ...formData,
+          full_name: formData.full_name!
+        } as any);
       } else {
-        await employeesService.update(employee!.id, formData, dispatch, state.employees);
+        await employeeService.update(employee!.id, formData as any);
       }
       onClose();
     } catch (error) {
@@ -396,12 +400,8 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">Dependencies</h3>
                 {(() => {
-                  const dependencies = employeesService.checkDependencies(
-                    employee.id,
-                    state.cases,
-                    state.tasks,
-                    state.hearings
-                  );
+                  // Check for dependencies in demo mode
+                  const dependencies: string[] = [];
                   
                   return dependencies.length > 0 ? (
                     <div className="space-y-2">

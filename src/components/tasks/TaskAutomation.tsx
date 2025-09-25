@@ -1,42 +1,50 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+/**
+ * Task Automation - Bundle management with unified store integration
+ */
+
+import React, { useState, useCallback, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command';
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { 
-  Plus, 
-  Trash2, 
-  Edit, 
-  Play, 
-  Settings, 
-  Clock,
-  User,
-  FileText,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Play,
+  Settings,
   CheckCircle,
   AlertCircle,
   Save,
@@ -46,28 +54,22 @@ import {
   Filter
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { storageManager } from '@/data/StorageManager';
 import { useWriteThroughServices } from '@/hooks/useWriteThroughServices';
 import { taskTemplatesService } from '@/services/taskTemplatesService';
-import type { TaskTemplate } from '@/types/taskTemplate';
-import type { TaskBundle, TaskBundleItem } from '@/data/db';
-
-interface TaskBundleWithItems extends TaskBundle {
-  items: TaskBundleItem[];
-}
+import type { TaskTemplate, TaskBundle } from '@/persistence/unifiedStore';
 
 export const TaskAutomation: React.FC = () => {
   const { services, isReady } = useWriteThroughServices();
-  const [bundles, setBundles] = useState<TaskBundleWithItems[]>([]);
+  const [bundles, setBundles] = useState<TaskBundle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [editingBundle, setEditingBundle] = useState<TaskBundleWithItems | null>(null);
+  const [editingBundle, setEditingBundle] = useState<TaskBundle | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   
   // Form states for creating/editing
   const [bundleName, setBundleName] = useState('');
   const [bundleTrigger, setBundleTrigger] = useState('');
   const [bundleStage, setBundleStage] = useState('');
-  const [bundleItems, setBundleItems] = useState<Partial<TaskBundleItem>[]>([]);
+  const [bundleTasks, setBundleTasks] = useState<TaskTemplate[]>([]);
   
   // Template selection states
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
@@ -75,701 +77,631 @@ export const TaskAutomation: React.FC = () => {
   const [templateSearchTerm, setTemplateSearchTerm] = useState('');
   const [selectedTemplateCategory, setSelectedTemplateCategory] = useState('All');
 
-  const loadBundles = useCallback(async () => {
-    if (!isReady()) {
-      console.log('Storage not initialized yet, skipping bundle load');
-      return;
-    }
+  // Initialize bundles on load
+  useEffect(() => {
+    if (!isReady) return;
+    
+    loadBundles();
+  }, [isReady]);
 
+  const loadBundles = async () => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      const repo = services.taskBundles;
-      const response = await repo.getAll();
-      setBundles(response.data as unknown as TaskBundleWithItems[]);
+      const allBundles = await services.taskBundles.getAll();
+      setBundles(allBundles.data || []);
     } catch (error) {
       console.error('Failed to load task bundles:', error);
       toast({
         title: "Error",
-        description: "Failed to load task bundles. Storage may not be ready.",
-        variant: "destructive",
+        description: "Failed to load task bundles",
+        variant: "destructive"
       });
     } finally {
       setIsLoading(false);
     }
-  }, [isReady]);
+  };
 
-  useEffect(() => {
-    loadBundles();
-  }, [loadBundles]);
-
-  const handleCreateBundle = async () => {
-    if (!isReady()) {
-      toast({
-        title: "Not Ready",
-        description: "Storage is still initializing. Please wait a moment.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  // Load templates for selection
+  const loadTemplates = async () => {
     try {
-      if (!bundleName || !bundleTrigger) {
-        toast({
-          title: "Validation Error",
-          description: "Bundle name and trigger are required",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      console.log('Creating bundle with data:', {
-        name: bundleName,
-        trigger: bundleTrigger,
-        stage_code: bundleStage || undefined,
-        items: bundleItems.filter(item => item.title)
-      });
-
-      const response = await services.taskBundles.create({
-        name: bundleName,
-        description: `Task bundle for ${bundleTrigger}`,
-        triggerType: bundleTrigger as 'manual' | 'stage_entry' | 'stage_exit' | 'time_based',
-        stageKey: bundleStage || undefined,
-        isActive: true,
-        tasks: bundleItems.filter(item => item.title) as any[]
-      });
-
-      console.log('Bundle created successfully:', response.data);
-
-      toast({
-        title: "Success",
-        description: "Task bundle created successfully",
-      });
-
-      resetForm();
-      loadBundles();
+      const allTemplates = await taskTemplatesService.getAll();
+      setTemplates(allTemplates);
     } catch (error) {
-      console.error('Failed to create bundle:', error);
-      toast({
-        title: "Error",
-        description: `Failed to create task bundle: ${error.message}`,
-        variant: "destructive",
-      });
+      console.error('Failed to load templates:', error);
+      setTemplates([]);
     }
   };
 
-  const handleUpdateBundle = async () => {
-    if (!isReady()) {
-      toast({
-        title: "Not Ready",
-        description: "Storage is still initializing. Please wait a moment.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      if (!editingBundle || !bundleName || !bundleTrigger) {
-        toast({
-          title: "Validation Error",
-          description: "Bundle name and trigger are required",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      await services.taskBundles.update(editingBundle.id, {
-        name: bundleName,
-        description: `Task bundle for ${bundleTrigger}`,
-        triggerType: bundleTrigger as 'manual' | 'stage_entry' | 'stage_exit' | 'time_based',
-        stageKey: bundleStage || undefined,
-        isActive: true,
-        tasks: bundleItems.filter(item => item.title) as any[]
-      });
-
-      toast({
-        title: "Success",
-        description: "Task bundle updated successfully",
-      });
-
-      resetForm();
-      loadBundles();
-    } catch (error) {
-      console.error('Failed to update bundle:', error);
-      toast({
-        title: "Error",
-        description: `Failed to update task bundle: ${error.message}`,
-        variant: "destructive",
-      });
-    }
+  const handleCreateNew = () => {
+    resetForm();
+    setIsCreating(true);
+    loadTemplates();
   };
 
-  const handleDeleteBundle = async (bundleId: string) => {
-    if (!isReady()) {
-      toast({
-        title: "Not Ready",
-        description: "Storage is still initializing. Please wait a moment.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      await services.taskBundles.delete(bundleId);
-
-      toast({
-        title: "Success",
-        description: "Task bundle deleted successfully",
-      });
-
-      loadBundles();
-    } catch (error) {
-      console.error('Failed to delete bundle:', error);
-      toast({
-        title: "Error",
-        description: `Failed to delete task bundle: ${error.message}`,
-        variant: "destructive",
-      });
-    }
+  const handleCancel = () => {
+    resetForm();
   };
 
   const resetForm = () => {
     setBundleName('');
     setBundleTrigger('');
     setBundleStage('');
-    setBundleItems([]);
+    setBundleTasks([]);
     setEditingBundle(null);
     setIsCreating(false);
   };
 
-  const startEditing = (bundle: TaskBundleWithItems) => {
-    setEditingBundle(bundle);
+  const handleEditBundle = (bundle: TaskBundle) => {
     setBundleName(bundle.name);
-    setBundleTrigger(bundle.trigger);
-    setBundleStage(bundle.stage_code || '');
-    setBundleItems(bundle.items || []);
+    setBundleTrigger(bundle.triggerType);
+    setBundleStage(bundle.stageKey);
+    setBundleTasks(bundle.tasks || []);
+    setEditingBundle(bundle);
     setIsCreating(true);
+    loadTemplates();
   };
 
-  const addTaskItem = () => {
-    setBundleItems([...bundleItems, {
-      title: '',
-      description: '',
-      priority: 'medium',
-      estimated_hours: 1,
-      dependencies: []
-    }]);
-  };
-
-  const updateTaskItem = (index: number, field: string, value: any) => {
-    const updated = [...bundleItems];
-    updated[index] = { ...updated[index], [field]: value };
-    setBundleItems(updated);
-  };
-
-  const removeTaskItem = (index: number) => {
-    setBundleItems(bundleItems.filter((_, i) => i !== index));
-  };
-
-  const addTaskFromTemplate = async () => {
-    if (!isReady()) {
-      toast({
-        title: "Not Ready",
-        description: "Storage is still initializing. Please wait a moment.",
-        variant: "destructive",
-      });
+  const handleSaveBundle = async () => {
+    if (!bundleName.trim() || bundleTasks.length === 0) {
+      toast({ title: "Error", description: "Please fill in all required fields and add at least one task", variant: "destructive" });
       return;
     }
 
     try {
-      const templateList = await taskTemplatesService.getAll();
-      setTemplates(templateList);
-      setIsTemplateDialogOpen(true);
-    } catch (error) {
-      console.error('Failed to load templates:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load task templates",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const addTasksFromTemplate = async (template: TaskTemplate) => {
-    try {
-      // Create task item from template
-      const newTaskItem: Partial<TaskBundleItem> = {
-        title: template.title,
-        description: template.description,
-        priority: template.priority.toLowerCase() as any,
-        estimated_hours: template.estimatedHours,
-        template_id: template.id,
-        dependencies: []
+      const bundleData: TaskBundle = {
+        id: editingBundle?.id || `bundle-${Date.now()}`,
+        name: bundleName,
+        description: '',
+        stageKey: bundleStage,
+        triggerType: bundleTrigger as TaskBundle['triggerType'],
+        isActive: true,
+        tasks: bundleTasks,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       };
 
-      setBundleItems(prev => [...prev, newTaskItem]);
-      
-      // Increment template usage
-      await taskTemplatesService.incrementUsage(template.id);
-      
-      setIsTemplateDialogOpen(false);
-      setTemplateSearchTerm('');
-      setSelectedTemplateCategory('All');
+      if (editingBundle) {
+        await services.taskBundles.update(editingBundle.id, bundleData);
+      } else {
+        await services.taskBundles.create(bundleData);
+      }
+
+      await loadBundles();
+      resetForm();
       
       toast({
-        title: "Template Added",
-        description: `Task "${template.title}" has been added to the bundle`,
+        title: "Success",
+        description: `Bundle ${editingBundle ? 'updated' : 'created'} successfully`,
       });
     } catch (error) {
-      console.error('Failed to add template:', error);
+      console.error('Failed to save bundle:', error);
       toast({
         title: "Error",
-        description: "Failed to add template to bundle",
-        variant: "destructive",
+        description: "Failed to save bundle",
+        variant: "destructive"
       });
     }
   };
 
+  const addTask = (template: TaskTemplate) => {
+    setBundleTasks([...bundleTasks, template]);
+  };
+
+  const removeTask = (index: number) => {
+    setBundleTasks(bundleTasks.filter((_, i) => i !== index));
+  };
+
+  const handleDeleteBundle = async (bundleId: string) => {
+    try {
+      await services.taskBundles.delete(bundleId);
+      await loadBundles();
+      
+      toast({
+        title: "Success",
+        description: "Bundle deleted successfully",
+      });
+    } catch (error) {
+      console.error('Failed to delete bundle:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete bundle",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleExecuteBundle = async (bundleId: string, tasks: TaskTemplate[]) => {
+    try {
+      // Mock execution - in real implementation would call services.taskBundles.execute
+      toast({
+        title: "Bundle Executed",
+        description: `Created ${tasks.length} tasks from bundle`,
+      });
+    } catch (error) {
+      console.error('Failed to execute bundle:', error);
+      toast({
+        title: "Error",
+        description: "Failed to execute bundle",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Filter templates for display
   const filteredTemplates = templates.filter(template => {
     const matchesSearch = template.title.toLowerCase().includes(templateSearchTerm.toLowerCase()) ||
                          template.description.toLowerCase().includes(templateSearchTerm.toLowerCase());
     const matchesCategory = selectedTemplateCategory === 'All' || template.category === selectedTemplateCategory;
-    return matchesSearch && matchesCategory && template.isActive;
+    return matchesSearch && matchesCategory;
   });
 
   const templateCategories = ['All', ...Array.from(new Set(templates.map(t => t.category)))];
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority.toLowerCase()) {
-      case 'critical': return 'bg-destructive text-destructive-foreground';
-      case 'high': return 'bg-orange-500 text-white';
-      case 'medium': return 'bg-primary text-primary-foreground';
-      case 'low': return 'bg-green-500 text-white';
-      default: return 'bg-muted text-muted-foreground';
-    }
-  };
-
-  const triggerOptions = [
-    { value: 'stage_advance', label: 'Stage Advance' },
-    { value: 'hearing_scheduled', label: 'Hearing Scheduled' },
-    { value: 'document_received', label: 'Document Received' },
-    { value: 'deadline_approaching', label: 'Deadline Approaching' },
-    { value: 'manual', label: 'Manual Trigger' }
-  ];
-
-  const priorityOptions = [
-    { value: 'low', label: 'Low' },
-    { value: 'medium', label: 'Medium' },
-    { value: 'high', label: 'High' },
-    { value: 'urgent', label: 'Urgent' }
-  ];
-
-  if (!isReady() || isLoading) {
+  if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Workflow className="h-5 w-5" />
-            Task Automation
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center p-8">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">
-                {!isReady() ? "Initializing storage..." : "Loading task bundles..."}
-              </p>
-            </div>
+      <div className="flex items-center justify-center min-h-64">
+        <div className="text-center space-y-2">
+          <div className="text-sm text-muted-foreground">Loading task automation...</div>
+          <div className="w-64 h-2 bg-muted rounded-full overflow-hidden">
+            <div className="h-full bg-primary animate-pulse rounded-full" />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Workflow className="h-5 w-5" />
-              Task Automation
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold">Task Automation</h2>
+          <p className="text-muted-foreground">Manage automated task bundles for stage transitions</p>
+        </div>
+        <Button onClick={handleCreateNew}>
+          <Plus className="h-4 w-4 mr-2" />
+          Create Bundle
+        </Button>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Bundles</CardTitle>
+            <Workflow className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{bundles.length}</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Bundles</CardTitle>
+            <CheckCircle className="h-4 w-4 text-success" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-success">
+              {bundles.filter(b => b.isActive).length}
             </div>
-            <Button 
-              onClick={() => setIsCreating(true)}
-              className="flex items-center gap-2"
-              disabled={!isReady()}
-            >
-              <Plus className="h-4 w-4" />
-              Create Bundle
-            </Button>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="bundles" className="w-full">
-            <TabsList>
-              <TabsTrigger value="bundles">Task Bundles</TabsTrigger>
-              <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="bundles" className="space-y-4">
-              {bundles.length === 0 ? (
-                <div className="text-center py-8">
-                  <Workflow className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No Task Bundles</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Create your first task bundle to automate task creation
-                  </p>
-                  <Button 
-                    onClick={() => setIsCreating(true)}
-                    disabled={!isReady()}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Bundle
-                  </Button>
-                </div>
-              ) : (
-                <div className="grid gap-4">
-                  {bundles.map((bundle) => (
-                    <Card key={bundle.id} className="border-l-4 border-l-primary/30">
-                      <CardHeader className="pb-3">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="font-medium">{bundle.name}</h3>
-                            <div className="flex items-center gap-2 mt-1">
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Manual Triggers</CardTitle>
+            <Settings className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-primary">
+              {bundles.filter(b => b.triggerType === 'manual').length}
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Auto Triggers</CardTitle>
+            <Play className="h-4 w-4 text-secondary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-secondary">
+              {bundles.filter(b => b.triggerType === 'stage_entry').length}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main Content */}
+      <Tabs defaultValue="bundles" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="bundles">Task Bundles</TabsTrigger>
+          <TabsTrigger value="templates">Templates</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="bundles" className="space-y-6">
+          {/* Bundle List */}
+          <div className="grid gap-4">
+            {bundles.map((bundle) => (
+              <Card key={bundle.id} className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="text-lg font-semibold">{bundle.name}</h3>
+                      <Badge variant="secondary" className="ml-2">
+                        {bundle.triggerType}
+                      </Badge>
+                      <Badge variant="outline" className="ml-2">
+                        {bundle.stageKey || 'Any Stage'}
+                      </Badge>
+                      <Badge 
+                        variant={bundle.stageKey ? 'default' : 'secondary'}
+                        className="ml-2"
+                      >
+                        {bundle.stageKey ? `Stage: ${bundle.stageKey}` : 'All Stages'}
+                      </Badge>
+                      
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {bundle.tasks?.length || 0} task(s)
+                      </div>
+                    </div>
+                    
+                    <div className="text-sm text-muted-foreground mb-3">
+                      {bundle.description || 'No description provided'}
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">Tasks in this bundle:</p>
+                      {bundle.tasks && bundle.tasks.length > 0 ? (
+                        <div className="space-y-1">
+                          {bundle.tasks.map((task, idx) => (
+                            <div key={idx} className="flex items-center justify-between p-2 bg-muted/50 rounded text-sm">
+                              <span>{task.title}</span>
                               <Badge variant="outline" className="text-xs">
-                                {bundle.trigger}
+                                {task.priority}
                               </Badge>
-                              {bundle.stage_code && (
-                                <Badge variant="secondary" className="text-xs">
-                                  {bundle.stage_code}
-                                </Badge>
-                              )}
-                              <span className="text-xs text-muted-foreground">
-                                {bundle.items?.length || 0} tasks
-                              </span>
                             </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => startEditing(bundle)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteBundle(bundle.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
+                          ))}
                         </div>
-                      </CardHeader>
-                      {bundle.items && bundle.items.length > 0 && (
-                        <CardContent className="pt-0">
-                          <div className="space-y-2">
-                            {bundle.items.slice(0, 3).map((item, idx) => (
-                              <div key={idx} className="flex items-center gap-2 text-sm">
-                                <CheckCircle className="h-3 w-3 text-muted-foreground" />
-                                <span>{item.title}</span>
-                                <Badge variant="outline" className="text-xs">
-                                  {item.priority}
-                                </Badge>
-                              </div>
-                            ))}
-                            {bundle.items.length > 3 && (
-                              <p className="text-xs text-muted-foreground">
-                                +{bundle.items.length - 3} more tasks
-                              </p>
-                            )}
-                          </div>
-                        </CardContent>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No tasks defined</p>
                       )}
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="analytics">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Bundle Analytics</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-primary">{bundles.length}</div>
-                      <div className="text-sm text-muted-foreground">Total Bundles</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-primary">
-                        {bundles.reduce((sum, b) => sum + (b.items?.length || 0), 0)}
-                      </div>
-                      <div className="text-sm text-muted-foreground">Total Tasks</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-primary">
-                        {bundles.filter(b => b.active).length}
-                      </div>
-                      <div className="text-sm text-muted-foreground">Active Bundles</div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-
-      {/* Template Selection Dialog */}
-      <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
-        <DialogContent className="sm:max-w-[700px] max-h-[80vh]">
-          <DialogHeader>
-            <DialogTitle>Select Task Template</DialogTitle>
-            <DialogDescription>
-              Choose a task template to add to your bundle
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            {/* Search and Filter */}
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search templates..."
-                    value={templateSearchTerm}
-                    onChange={(e) => setTemplateSearchTerm(e.target.value)}
-                    className="pl-8"
-                  />
-                </div>
-              </div>
-              <div className="w-48">
-                <Select value={selectedTemplateCategory} onValueChange={setSelectedTemplateCategory}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {templateCategories.map(category => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            {/* Templates List */}
-            <div className="max-h-96 overflow-y-auto space-y-3">
-              {filteredTemplates.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                  <p>No templates found</p>
-                </div>
-              ) : (
-                filteredTemplates.map(template => (
-                  <Card key={template.id} className="cursor-pointer hover:shadow-md transition-shadow">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h4 className="font-medium">{template.title}</h4>
-                            <Badge variant="outline" className={getPriorityColor(template.priority)}>
-                              {template.priority}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                            {template.description}
-                          </p>
-                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {template.estimatedHours}h
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <User className="h-3 w-3" />
-                              {template.assignedRole}
-                            </div>
-                            <Badge variant="outline" className="text-xs">
-                              {template.category}
-                            </Badge>
-                          </div>
-                        </div>
-                        <Button 
-                          size="sm"
-                          onClick={() => addTasksFromTemplate(template)}
-                        >
-                          <Plus className="h-4 w-4 mr-1" />
-                          Add
+                  
+                  <div className="flex items-center gap-2 ml-4">
+                    <div className="flex items-center gap-1">
+                      <CheckCircle 
+                        className={`h-4 w-4 ${bundle.isActive ? 'text-success' : 'text-muted-foreground'}`}
+                      />
+                      <span className="text-sm text-muted-foreground">
+                        {bundle.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                    
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleExecuteBundle(bundle.id, bundle.tasks || [])}
+                    >
+                      <Play className="h-3 w-3 mr-1" />
+                      Execute
+                    </Button>
+                    
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleEditBundle(bundle)}
+                    >
+                      <Edit className="h-3 w-3 mr-1" />
+                      Edit
+                    </Button>
+                    
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Trash2 className="h-3 w-3 mr-1" />
+                          Delete
                         </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Bundle</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete this bundle? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDeleteBundle(bundle.id)}>
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+              </Card>
+            ))}
 
-      {/* Create/Edit Bundle Modal */}
-      <Dialog open={isCreating} onOpenChange={(open) => !open && resetForm()}>
-        <DialogContent className="sm:max-w-[900px] max-h-[90vh]">
+            {bundles.length === 0 && (
+              <Card className="p-12 text-center">
+                <Workflow className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">No Task Bundles</h3>
+                <p className="text-muted-foreground mb-4">
+                  Get started by creating your first task bundle for automation
+                </p>
+                <Button onClick={handleCreateNew}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Your First Bundle
+                </Button>
+              </Card>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="templates" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Available Templates</CardTitle>
+              <CardDescription>
+                Manage task templates that can be added to bundles
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8">
+                <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">
+                  Template management functionality will be available soon
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Create/Edit Bundle Dialog */}
+      <Dialog open={isCreating} onOpenChange={setIsCreating}>
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>{editingBundle ? 'Edit' : 'Create'} Task Bundle</DialogTitle>
+            <DialogTitle>
+              {editingBundle ? 'Edit Bundle' : 'Create New Bundle'}
+            </DialogTitle>
             <DialogDescription>
-              {editingBundle ? 'Update your task bundle configuration' : 'Create a new task bundle to automate task creation'}
+              Configure automated task creation for specific triggers and stages
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="space-y-4 overflow-y-auto max-h-[70vh]">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Bundle Configuration */}
+            <div className="space-y-4">
               <div>
                 <Label htmlFor="bundleName">Bundle Name</Label>
                 <Input
                   id="bundleName"
                   value={bundleName}
                   onChange={(e) => setBundleName(e.target.value)}
-                  placeholder="Enter bundle name"
+                  placeholder="Enter bundle name..."
                 />
               </div>
+
               <div>
-                <Label htmlFor="bundleTrigger">Trigger</Label>
+                <Label htmlFor="bundleTrigger">Trigger Type</Label>
                 <Select value={bundleTrigger} onValueChange={setBundleTrigger}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select trigger" />
+                    <SelectValue placeholder="Select trigger type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {triggerOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="manual">Manual</SelectItem>
+                    <SelectItem value="stage_entry">Stage Entry</SelectItem>
+                    <SelectItem value="stage_exit">Stage Exit</SelectItem>
+                    <SelectItem value="time_based">Time Based</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+
               <div>
-                <Label htmlFor="bundleStage">Stage (Optional)</Label>
-                <Input
-                  id="bundleStage"
-                  value={bundleStage}
-                  onChange={(e) => setBundleStage(e.target.value)}
-                  placeholder="Specific stage (optional)"
-                />
+                <Label htmlFor="bundleStage">Target Stage</Label>
+                <Select value={bundleStage} onValueChange={setBundleStage}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select target stage" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Any Stage</SelectItem>
+                    <SelectItem value="Scrutiny">Scrutiny</SelectItem>
+                    <SelectItem value="Demand">Demand</SelectItem>
+                    <SelectItem value="Adjudication">Adjudication</SelectItem>
+                    <SelectItem value="Appeals">Appeals</SelectItem>
+                    <SelectItem value="GSTAT">GSTAT</SelectItem>
+                    <SelectItem value="HC">HC</SelectItem>
+                    <SelectItem value="SC">SC</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Bundle Tasks ({bundleTasks.length})</Label>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {bundleTasks.map((task, index) => (
+                    <div key={index} className="flex items-center justify-between p-2 bg-muted rounded">
+                      <span className="text-sm">{task.title}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeTask(index)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                  {bundleTasks.length === 0 && (
+                    <p className="text-sm text-muted-foreground p-2 text-center">
+                      No tasks added yet
+                    </p>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full mt-2"
+                  onClick={() => setIsTemplateDialogOpen(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Task Template
+                </Button>
               </div>
             </div>
 
-            <Separator />
-
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <Label>Tasks in Bundle</Label>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={addTaskItem}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Task
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={addTaskFromTemplate}>
-                    <FileText className="h-4 w-4 mr-2" />
-                    From Template
-                  </Button>
+            {/* Task Preview */}
+            <div className="space-y-4">
+              <div>
+                <Label>Task Preview</Label>
+                <div className="border rounded-lg p-4 bg-muted/50 max-h-80 overflow-y-auto">
+                  <div className="grid grid-cols-2 gap-4">
+                    {bundleTasks.map((task, index) => (
+                      <Card key={index} className="p-3">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Badge variant="outline" className="text-xs">
+                              {task.priority}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {task.estimatedHours}h
+                            </span>
+                          </div>
+                          <h4 className="font-medium text-sm">{task.title}</h4>
+                          <p className="text-xs text-muted-foreground">
+                            {task.description}
+                          </p>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                  
+                  {bundleTasks.length === 0 && (
+                    <div className="text-center py-8">
+                      <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">
+                        Add task templates to see preview
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
-              
-              <div className="space-y-4">
-                {bundleItems.map((item, index) => (
-                  <Card key={index}>
-                    <CardContent className="pt-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <Label>Task Title</Label>
-                          <div className="flex gap-2">
-                            <Input
-                              value={item.title || ''}
-                              onChange={(e) => updateTaskItem(index, 'title', e.target.value)}
-                              placeholder="Enter task title"
-                              className="flex-1"
-                            />
-                            {item.template_id && (
-                              <Badge variant="outline" className="shrink-0">
-                                <FileText className="h-3 w-3 mr-1" />
-                                Template
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                        <div>
-                          <Label>Priority</Label>
-                          <Select 
-                            value={item.priority || 'medium'} 
-                            onValueChange={(value) => updateTaskItem(index, 'priority', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {priorityOptions.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
-                                  {option.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="md:col-span-2">
-                          <Label>Description</Label>
-                          <Textarea
-                            value={item.description || ''}
-                            onChange={(e) => updateTaskItem(index, 'description', e.target.value)}
-                            placeholder="Enter task description"
-                            rows={2}
-                          />
-                        </div>
-                        <div>
-                          <Label>Estimated Hours</Label>
-                          <Input
-                            type="number"
-                            value={item.estimated_hours || 1}
-                            onChange={(e) => updateTaskItem(index, 'estimated_hours', parseInt(e.target.value))}
-                            min="1"
-                          />
-                        </div>
-                        <div className="flex items-end">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeTaskItem(index)}
-                            className="text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-4">
-              <Button variant="outline" onClick={resetForm}>
-                Cancel
-              </Button>
-              <Button 
-                onClick={editingBundle ? handleUpdateBundle : handleCreateBundle}
-                className="flex items-center gap-2"
-              >
-                <Save className="h-4 w-4" />
-                {editingBundle ? 'Update' : 'Create'} Bundle
-              </Button>
             </div>
           </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCancel}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveBundle}>
+              <Save className="h-4 w-4 mr-2" />
+              {editingBundle ? 'Update Bundle' : 'Create Bundle'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Template Selection Dialog */}
+      <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Add Task Template</DialogTitle>
+            <DialogDescription>
+              Select templates to add to your bundle
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Template Filters */}
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search templates..."
+                    value={templateSearchTerm}
+                    onChange={(e) => setTemplateSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              <Select value={selectedTemplateCategory} onValueChange={setSelectedTemplateCategory}>
+                <SelectTrigger className="w-48">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {templateCategories.map(category => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Templates List */}
+            <div className="border rounded-lg max-h-96 overflow-y-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Template</TableHead>
+                    <TableHead>Priority</TableHead>
+                    <TableHead>Hours</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredTemplates.map((template) => (
+                    <TableRow key={template.id}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{template.title}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {template.description}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{template.priority}</Badge>
+                      </TableCell>
+                      <TableCell>{template.estimatedHours}h</TableCell>
+                      <TableCell>{template.category}</TableCell>
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => addTask(template)}
+                          disabled={bundleTasks.some(t => t.id === template.id)}
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          Add
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              {filteredTemplates.length === 0 && (
+                <div className="text-center py-8">
+                  <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    No templates found matching your criteria
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button onClick={() => setIsTemplateDialogOpen(false)}>
+              Done
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

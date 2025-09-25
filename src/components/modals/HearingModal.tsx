@@ -18,7 +18,7 @@ import { useContextualForms } from '@/hooks/useContextualForms';
 import { AddressView } from '@/components/ui/AddressView';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { featureFlagService } from '@/services/featureFlagService';
-import { hearingsService } from '@/services/hearingsService';
+import { hearingService } from '@/mock/services';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
 
 interface HearingModalProps {
@@ -148,7 +148,10 @@ export const HearingModal: React.FC<HearingModalProps> = ({
           notes: formData.notes || formData.agenda
         };
 
-        await hearingsService.createHearing(hearingFormData, dispatch);
+        await hearingService.create({
+          ...hearingFormData,
+          created_by: 'current-user'
+        });
       } else if (mode === 'edit' && hearingData) {
         // Calculate end time for updates too
         const startTime = formData.time;
@@ -167,7 +170,7 @@ export const HearingModal: React.FC<HearingModalProps> = ({
           notes: formData.notes
         };
 
-        await hearingsService.updateHearing(hearingData.id, updates, dispatch);
+        await hearingService.update(hearingData.id, updates);
       }
 
       onClose();

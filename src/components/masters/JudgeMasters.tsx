@@ -15,7 +15,7 @@ import { JudgeModal } from '@/components/modals/JudgeModal';
 import { ImportWizard } from '@/components/importExport/ImportWizard';
 import { ExportWizard } from '@/components/importExport/ExportWizard';
 import { Judge, useAppState } from '@/contexts/AppStateContext';
-import { judgesService } from '@/services/judgesService';
+import { judgeService } from '@/mock/services';
 import { useRBAC } from '@/hooks/useRBAC';
 import { featureFlagService } from '@/services/featureFlagService';
 import { JudgeForm } from '@/components/masters/judges/JudgeForm';
