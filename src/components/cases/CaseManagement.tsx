@@ -705,13 +705,17 @@ export const CaseManagement: React.FC = () => {
                              </div>
                            </div>
                            
-                           {caseItem.nextHearing && (
-                             <div>
-                               <p className="text-xs text-muted-foreground">Next Hearing</p>
-                               <p className="text-sm font-medium">{caseItem.nextHearing.date}</p>
-                               <p className="text-xs text-muted-foreground">{state.courts.find(c => c.id === caseItem.nextHearing?.courtId)?.name || 'Unknown Court'}</p>
-                             </div>
-                           )}
+                            {caseItem.nextHearing && (
+                              <div>
+                                <p className="text-xs text-muted-foreground">Next Hearing</p>
+                                <div className="cursor-pointer hover:text-primary" onClick={() => {
+                                  window.location.href = `/hearings?caseId=${caseItem.id}&hearingDate=${caseItem.nextHearing?.date}&courtId=${caseItem.nextHearing?.courtId}`;
+                                }}>
+                                  <p className="text-sm font-medium">{caseItem.nextHearing.date}</p>
+                                  <p className="text-xs text-muted-foreground">{state.courts.find(c => c.id === caseItem.nextHearing?.courtId)?.name || 'Unknown Court'}</p>
+                                </div>
+                              </div>
+                            )}
                          </div>
 
                         {/* Quick Actions for Form Templates */}

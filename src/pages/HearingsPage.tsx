@@ -27,8 +27,27 @@ interface HearingFormData {
 }
 
 // Simplified Lists Component
-const HearingsList: React.FC<{ hearings: Hearing[]; onEdit: (h: Hearing) => void; onView: (h: Hearing) => void }> = ({ hearings, onEdit, onView }) => {
+const HearingsList: React.FC<{ 
+  hearings: Hearing[]; 
+  onEdit: (h: Hearing) => void; 
+  onView: (h: Hearing) => void;
+  highlightCaseId?: string | null;
+  highlightDate?: string | null;
+  highlightCourtId?: string | null;
+}> = ({ hearings, onEdit, onView, highlightCaseId, highlightDate, highlightCourtId }) => {
   const { state } = useAppState();
+  
+  // Auto-scroll to highlighted hearing when component mounts
+  useEffect(() => {
+    if (highlightCaseId && highlightDate && highlightCourtId) {
+      setTimeout(() => {
+        const highlightedElement = document.querySelector('[data-highlighted="true"]');
+        if (highlightedElement) {
+          highlightedElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+    }
+  }, [highlightCaseId, highlightDate, highlightCourtId]);
   
   if (hearings.length === 0) {
     return (
@@ -46,8 +65,20 @@ const HearingsList: React.FC<{ hearings: Hearing[]; onEdit: (h: Hearing) => void
         const court = state.courts.find(c => c.id === hearing.court_id);
         const judges = state.judges.filter(j => (hearing.judge_ids || []).includes(j.id));
         
+        const isHighlighted = highlightCaseId === hearing.case_id && 
+                             highlightDate === hearing.date && 
+                             highlightCourtId === hearing.court_id;
+        
         return (
-          <div key={hearing.id} className="border rounded-lg p-4">
+          <div 
+            key={hearing.id} 
+            className={`border rounded-lg p-4 transition-all duration-300 ${
+              isHighlighted 
+                ? 'border-primary bg-primary/5 shadow-md ring-2 ring-primary/20' 
+                : 'border-border hover:border-primary/50'
+            }`}
+            data-highlighted={isHighlighted}
+          >
             <div className="flex justify-between items-start">
               <div>
                 <h3 className="font-medium">{case_?.caseNumber} - {case_?.title}</h3>
@@ -106,11 +137,16 @@ export const HearingsPage: React.FC = () => {
   const [selectedHearing, setSelectedHearing] = useState<Hearing | null>(null);
   const [formMode, setFormMode] = useState<'create' | 'edit' | 'view'>('create');
   
+  // Get URL parameters for contextual filtering and highlighting
+  const caseId = searchParams.get('caseId');
+  const hearingDate = searchParams.get('hearingDate');
+  const courtId = searchParams.get('courtId');
+  
   const [filters, setFilters] = useState<HearingFiltersState>({
     searchTerm: searchParams.get('search') || '',
     clientIds: searchParams.getAll('client') || [],
-    caseIds: searchParams.getAll('case') || [],
-    courtIds: searchParams.getAll('court') || [],
+    caseIds: caseId ? [caseId] : searchParams.getAll('case') || [],
+    courtIds: courtId ? [courtId] : searchParams.getAll('court') || [],
     judgeIds: searchParams.getAll('judge') || [],
     hearingTypes: searchParams.getAll('type') || [],
     statuses: searchParams.getAll('status') || [],
@@ -251,6 +287,9 @@ export const HearingsPage: React.FC = () => {
             hearings={filteredHearings}
             onEdit={handleEditHearing}
             onView={handleViewHearing}
+            highlightCaseId={caseId}
+            highlightDate={hearingDate}
+            highlightCourtId={courtId}
           />
         </TabsContent>
 
