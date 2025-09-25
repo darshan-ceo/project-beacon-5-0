@@ -618,17 +618,16 @@ export const TaskAutomation: React.FC = () => {
       </Dialog>
 
       {/* Create/Edit Bundle Modal */}
-      {isCreating && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>{editingBundle ? 'Edit' : 'Create'} Task Bundle</span>
-              <Button variant="ghost" size="sm" onClick={resetForm}>
-                <X className="h-4 w-4" />
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+      <Dialog open={isCreating} onOpenChange={(open) => !open && resetForm()}>
+        <DialogContent className="sm:max-w-[900px] max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>{editingBundle ? 'Edit' : 'Create'} Task Bundle</DialogTitle>
+            <DialogDescription>
+              {editingBundle ? 'Update your task bundle configuration' : 'Create a new task bundle to automate task creation'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 overflow-y-auto max-h-[70vh]">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="bundleName">Bundle Name</Label>
@@ -757,7 +756,7 @@ export const TaskAutomation: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2">
+            <div className="flex items-center justify-end gap-2 pt-4">
               <Button variant="outline" onClick={resetForm}>
                 Cancel
               </Button>
@@ -769,9 +768,9 @@ export const TaskAutomation: React.FC = () => {
                 {editingBundle ? 'Update' : 'Create'} Bundle
               </Button>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
