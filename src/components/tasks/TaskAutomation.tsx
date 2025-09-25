@@ -47,7 +47,7 @@ import {
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { storageManager } from '@/data/StorageManager';
-import { useUnifiedPersistence } from '@/hooks/useUnifiedPersistence';
+import { useWriteThroughServices } from '@/hooks/useWriteThroughServices';
 import { taskTemplatesService } from '@/services/taskTemplatesService';
 import type { TaskTemplate } from '@/types/taskTemplate';
 import type { TaskBundle, TaskBundleItem } from '@/data/db';
@@ -57,7 +57,7 @@ interface TaskBundleWithItems extends TaskBundle {
 }
 
 export const TaskAutomation: React.FC = () => {
-  const { initialized } = useUnifiedPersistence();
+  const { services, isReady } = useWriteThroughServices();
   const [bundles, setBundles] = useState<TaskBundleWithItems[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editingBundle, setEditingBundle] = useState<TaskBundleWithItems | null>(null);
@@ -76,16 +76,16 @@ export const TaskAutomation: React.FC = () => {
   const [selectedTemplateCategory, setSelectedTemplateCategory] = useState('All');
 
   const loadBundles = useCallback(async () => {
-    if (!initialized) {
+    if (!isReady()) {
       console.log('Storage not initialized yet, skipping bundle load');
       return;
     }
 
     try {
       setIsLoading(true);
-      const repository = storageManager.getTaskBundleRepository();
-      const bundleList = await repository.getAllWithItems();
-      setBundles(bundleList);
+      const repo = services.taskBundles;
+      const response = await repo.getAll();
+      setBundles(response.data as unknown as TaskBundleWithItems[]);
     } catch (error) {
       console.error('Failed to load task bundles:', error);
       toast({
@@ -96,14 +96,14 @@ export const TaskAutomation: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [initialized]);
+  }, [isReady]);
 
   useEffect(() => {
     loadBundles();
   }, [loadBundles]);
 
   const handleCreateBundle = async () => {
-    if (!initialized) {
+    if (!isReady()) {
       toast({
         title: "Not Ready",
         description: "Storage is still initializing. Please wait a moment.",
@@ -129,15 +129,16 @@ export const TaskAutomation: React.FC = () => {
         items: bundleItems.filter(item => item.title)
       });
 
-      const repository = storageManager.getTaskBundleRepository();
-      const createdBundle = await repository.createWithItems({
+      const response = await services.taskBundles.create({
         name: bundleName,
-        trigger: bundleTrigger,
-        stage_code: bundleStage || undefined,
-        items: bundleItems.filter(item => item.title) as any[]
+        description: `Task bundle for ${bundleTrigger}`,
+        triggerType: bundleTrigger as 'manual' | 'stage_entry' | 'stage_exit' | 'time_based',
+        stageKey: bundleStage || undefined,
+        isActive: true,
+        tasks: bundleItems.filter(item => item.title) as any[]
       });
 
-      console.log('Bundle created successfully:', createdBundle);
+      console.log('Bundle created successfully:', response.data);
 
       toast({
         title: "Success",
@@ -157,7 +158,7 @@ export const TaskAutomation: React.FC = () => {
   };
 
   const handleUpdateBundle = async () => {
-    if (!initialized) {
+    if (!isReady()) {
       toast({
         title: "Not Ready",
         description: "Storage is still initializing. Please wait a moment.",
@@ -176,12 +177,13 @@ export const TaskAutomation: React.FC = () => {
         return;
       }
 
-      const repository = storageManager.getTaskBundleRepository();
-      await repository.updateWithItems(editingBundle.id, {
+      await services.taskBundles.update(editingBundle.id, {
         name: bundleName,
-        trigger: bundleTrigger,
-        stage_code: bundleStage || undefined,
-        items: bundleItems.filter(item => item.title) as any[]
+        description: `Task bundle for ${bundleTrigger}`,
+        triggerType: bundleTrigger as 'manual' | 'stage_entry' | 'stage_exit' | 'time_based',
+        stageKey: bundleStage || undefined,
+        isActive: true,
+        tasks: bundleItems.filter(item => item.title) as any[]
       });
 
       toast({
@@ -202,7 +204,7 @@ export const TaskAutomation: React.FC = () => {
   };
 
   const handleDeleteBundle = async (bundleId: string) => {
-    if (!initialized) {
+    if (!isReady()) {
       toast({
         title: "Not Ready",
         description: "Storage is still initializing. Please wait a moment.",
@@ -212,8 +214,7 @@ export const TaskAutomation: React.FC = () => {
     }
 
     try {
-      const repository = storageManager.getTaskBundleRepository();
-      await repository.delete(bundleId);
+      await services.taskBundles.delete(bundleId);
 
       toast({
         title: "Success",
@@ -270,7 +271,7 @@ export const TaskAutomation: React.FC = () => {
   };
 
   const addTaskFromTemplate = async () => {
-    if (!initialized) {
+    if (!isReady()) {
       toast({
         title: "Not Ready",
         description: "Storage is still initializing. Please wait a moment.",
@@ -362,7 +363,7 @@ export const TaskAutomation: React.FC = () => {
     { value: 'urgent', label: 'Urgent' }
   ];
 
-  if (!initialized || isLoading) {
+  if (!isReady() || isLoading) {
     return (
       <Card>
         <CardHeader>
@@ -376,7 +377,7 @@ export const TaskAutomation: React.FC = () => {
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
               <p className="text-muted-foreground">
-                {!initialized ? "Initializing storage..." : "Loading task bundles..."}
+                {!isReady() ? "Initializing storage..." : "Loading task bundles..."}
               </p>
             </div>
           </div>
@@ -397,7 +398,7 @@ export const TaskAutomation: React.FC = () => {
             <Button 
               onClick={() => setIsCreating(true)}
               className="flex items-center gap-2"
-              disabled={!initialized}
+              disabled={!isReady()}
             >
               <Plus className="h-4 w-4" />
               Create Bundle
@@ -421,7 +422,7 @@ export const TaskAutomation: React.FC = () => {
                   </p>
                   <Button 
                     onClick={() => setIsCreating(true)}
-                    disabled={!initialized}
+                    disabled={!isReady()}
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Create Bundle
