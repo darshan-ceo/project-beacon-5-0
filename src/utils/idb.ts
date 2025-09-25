@@ -45,7 +45,7 @@ class IndexedDBStorage implements IDBStorage {
         }
         
         // Entity-specific stores for better organization and performance
-        const entityStores = ['cases', 'clients', 'courts', 'judges', 'employees', 'hearings', 'tasks', 'documents', 'folders'];
+        const entityStores = ['cases', 'clients', 'courts', 'judges', 'employees', 'hearings', 'tasks', 'documents', 'folders', 'taskBundles'];
         
         entityStores.forEach(storeName => {
           if (!db.objectStoreNames.contains(storeName)) {
