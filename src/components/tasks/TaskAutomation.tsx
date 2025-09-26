@@ -51,6 +51,7 @@ import { useUnifiedPersistence } from '@/hooks/useUnifiedPersistence';
 import { taskTemplatesService } from '@/services/taskTemplatesService';
 import type { TaskTemplate } from '@/types/taskTemplate';
 import type { TaskBundle, TaskBundleItem } from '@/data/db';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface TaskBundleWithItems extends TaskBundle {
   items: TaskBundleItem[];
@@ -66,8 +67,9 @@ export const TaskAutomation: React.FC = () => {
   // Form states for creating/editing
   const [bundleName, setBundleName] = useState('');
   const [bundleTrigger, setBundleTrigger] = useState('');
-  const [bundleStage, setBundleStage] = useState('');
+  const [bundleStages, setBundleStages] = useState<string[]>(['Any Stage']);
   const [bundleItems, setBundleItems] = useState<Partial<TaskBundleItem>[]>([]);
+  const [stageScopeOpen, setStageScopeOpen] = useState(false);
   
   // Template selection states
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
@@ -122,10 +124,12 @@ export const TaskAutomation: React.FC = () => {
         return;
       }
 
+      const stageCode = bundleStages.includes('Any Stage') ? undefined : bundleStages.join(',');
+      
       console.log('Creating bundle with data:', {
         name: bundleName,
         trigger: bundleTrigger,
-        stage_code: bundleStage || undefined,
+        stage_code: stageCode,
         items: bundleItems.filter(item => item.title)
       });
 
@@ -133,7 +137,7 @@ export const TaskAutomation: React.FC = () => {
       const createdBundle = await repository.createWithItems({
         name: bundleName,
         trigger: bundleTrigger,
-        stage_code: bundleStage || undefined,
+        stage_code: stageCode,
         items: bundleItems.filter(item => item.title) as any[]
       });
 
@@ -176,11 +180,13 @@ export const TaskAutomation: React.FC = () => {
         return;
       }
 
+      const stageCode = bundleStages.includes('Any Stage') ? undefined : bundleStages.join(',');
+      
       const repository = storageManager.getTaskBundleRepository();
       await repository.updateWithItems(editingBundle.id, {
         name: bundleName,
         trigger: bundleTrigger,
-        stage_code: bundleStage || undefined,
+        stage_code: stageCode,
         items: bundleItems.filter(item => item.title) as any[]
       });
 
@@ -234,17 +240,24 @@ export const TaskAutomation: React.FC = () => {
   const resetForm = () => {
     setBundleName('');
     setBundleTrigger('');
-    setBundleStage('');
+    setBundleStages(['Any Stage']);
     setBundleItems([]);
     setEditingBundle(null);
     setIsCreating(false);
+    setStageScopeOpen(false);
   };
 
   const startEditing = (bundle: TaskBundleWithItems) => {
     setEditingBundle(bundle);
     setBundleName(bundle.name);
     setBundleTrigger(bundle.trigger);
-    setBundleStage(bundle.stage_code || '');
+    
+    // Handle stage conversion: comma-separated string to array
+    const stages = bundle.stage_code 
+      ? bundle.stage_code.split(',').map(s => s.trim())
+      : ['Any Stage'];
+    setBundleStages(stages);
+    
     setBundleItems(bundle.items || []);
     setIsCreating(true);
   };
@@ -441,7 +454,12 @@ export const TaskAutomation: React.FC = () => {
                               </Badge>
                               {bundle.stage_code && (
                                 <Badge variant="secondary" className="text-xs">
-                                  {bundle.stage_code}
+                                  {bundle.stage_code === 'Any Stage' || !bundle.stage_code 
+                                    ? 'Any Stage' 
+                                    : bundle.stage_code.split(',').length > 1 
+                                      ? `${bundle.stage_code.split(',').length} stages`
+                                      : bundle.stage_code
+                                  }
                                 </Badge>
                               )}
                               <span className="text-xs text-muted-foreground">
@@ -654,13 +672,62 @@ export const TaskAutomation: React.FC = () => {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="bundleStage">Stage (Optional)</Label>
-                <Input
-                  id="bundleStage"
-                  value={bundleStage}
-                  onChange={(e) => setBundleStage(e.target.value)}
-                  placeholder="Specific stage (optional)"
-                />
+                <Label>Stage Scope</Label>
+                <Popover open={stageScopeOpen} onOpenChange={setStageScopeOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={stageScopeOpen}
+                      className="w-full justify-between"
+                    >
+                      {bundleStages.includes('Any Stage')
+                        ? 'Any Stage'
+                        : bundleStages.length > 0 
+                          ? `${bundleStages.length} stage(s) selected`
+                          : "Select stages..."
+                      }
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Search stages..." />
+                      <CommandEmpty>No stages found.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandList>
+                          {taskTemplatesService.getAvailableStages().map((stage) => (
+                            <CommandItem
+                              key={stage}
+                              onSelect={() => {
+                                if (stage === 'Any Stage') {
+                                  // If selecting "Any Stage", clear all other selections
+                                  setBundleStages(['Any Stage']);
+                                } else {
+                                  // If selecting a specific stage, remove "Any Stage" and toggle the stage
+                                  const newStages = bundleStages.filter(s => s !== 'Any Stage');
+                                  const stageExists = newStages.includes(stage);
+                                  
+                                  if (stageExists) {
+                                    const filtered = newStages.filter(s => s !== stage);
+                                    setBundleStages(filtered.length > 0 ? filtered : ['Any Stage']);
+                                  } else {
+                                    setBundleStages([...newStages, stage]);
+                                  }
+                                }
+                              }}
+                            >
+                              <Checkbox 
+                                checked={bundleStages.includes(stage)}
+                                className="mr-2"
+                              />
+                              {stage}
+                            </CommandItem>
+                          ))}
+                        </CommandList>
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
 
