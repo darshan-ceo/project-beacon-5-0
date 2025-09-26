@@ -111,22 +111,37 @@ export const DevModeDashboard: React.FC = () => {
   const statusBadges = envConfig.getStatusBadges();
   const overrides = envConfig.getActiveOverrides();
 
-  const applyPreset = (preset: PresetConfig) => {
+  const applyPreset = async (preset: PresetConfig) => {
     const params = new URLSearchParams();
     Object.entries(preset.params).forEach(([key, value]) => {
       params.set(key, value);
     });
     
-    const newUrl = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+    // Generate mock data for dev/test presets
+    if (preset.name !== 'Production Mode') {
+      try {
+        const { seedDataService } = await import('@/services/seedDataService');
+        await seedDataService.generateComprehensiveSeedData();
+        
+        toast({
+          title: `${preset.name} Applied`,
+          description: 'Configuration applied with comprehensive mock data generated',
+        });
+      } catch (error) {
+        console.error('Failed to generate mock data:', error);
+        toast({
+          title: `${preset.name} Applied`,
+          description: 'Configuration applied (mock data generation failed)',
+          variant: 'destructive'
+        });
+      }
+    }
     
-    toast({
-      title: `Applying ${preset.name}`,
-      description: 'Redirecting with new configuration...',
-    });
+    const newUrl = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
     
     setTimeout(() => {
       window.location.href = newUrl;
-    }, 1000);
+    }, 1500);
   };
 
   const getStatusColor = (status: string) => {
@@ -314,14 +329,42 @@ export const DevModeDashboard: React.FC = () => {
                       ))}
                     </div>
                   </div>
-                  <Button 
-                    variant={preset.variant}
-                    className="w-full"
-                    onClick={() => applyPreset(preset)}
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Apply Configuration
-                  </Button>
+                  <div className="space-y-2">
+                    <Button 
+                      variant={preset.variant}
+                      className="w-full"
+                      onClick={() => applyPreset(preset)}
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Apply Configuration
+                    </Button>
+                    {preset.name !== 'Production Mode' && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="w-full"
+                        onClick={async () => {
+                          try {
+                            const { seedDataService } = await import('@/services/seedDataService');
+                            await seedDataService.generateComprehensiveSeedData();
+                            toast({
+                              title: "Mock Data Generated",
+                              description: "Comprehensive demo data with task bundles created",
+                            });
+                          } catch (error) {
+                            toast({
+                              title: "Generation Failed",
+                              description: "Failed to generate mock data",
+                              variant: "destructive"
+                            });
+                          }
+                        }}
+                      >
+                        <Database className="h-4 w-4 mr-2" />
+                        Generate Mock Data
+                      </Button>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             ))}

@@ -78,12 +78,15 @@ class SeedDataService {
   private readonly GST_CASES_KEY = 'gst-cases-seed';
 
   async generateComprehensiveSeedData(): Promise<void> {
-    console.log('[SeedData] Generating comprehensive GST case mix...');
+    console.log('[SeedData] Generating comprehensive GST case mix with task bundles...');
     
     const clients = await this.generateClientProfiles();
     const cases = await this.generateGSTCases(clients);
     const documents = cases.map(caseProfile => this.generateDocuments(caseProfile.type));
     const tasks = cases.map(caseProfile => this.generateTasks(caseProfile.type, caseProfile.complexity));
+    
+    // Generate comprehensive task bundles
+    await this.generateTaskBundles();
     
     await Promise.all([
       this.saveClients(clients),
@@ -92,7 +95,7 @@ class SeedDataService {
       this.saveTasks(tasks)
     ]);
 
-    console.log(`[SeedData] Generated ${cases.length} GST cases across ${clients.length} clients`);
+    console.log(`[SeedData] Generated ${cases.length} GST cases, ${clients.length} clients, and comprehensive task bundles`);
   }
 
   private async generateClientProfiles() {
@@ -366,15 +369,17 @@ class SeedDataService {
     cases: GSTCaseProfile[];
     documents: DocumentProfile[];
     tasks: TaskProfile[];
+    taskBundles: any[];
   }> {
-    const [clients, cases, documents, tasks] = await Promise.all([
+    const [clients, cases, documents, tasks, taskBundles] = await Promise.all([
       idbStorage.get('seed-clients') || [],
       idbStorage.get(this.GST_CASES_KEY) || [],
       idbStorage.get('seed-documents') || [],
-      idbStorage.get('seed-tasks') || []
+      idbStorage.get('seed-tasks') || [],
+      idbStorage.get('seed-task-bundles') || []
     ]);
 
-    return { clients, cases, documents, tasks };
+    return { clients, cases, documents, tasks, taskBundles };
   }
 
   async clearSeedData(): Promise<void> {
@@ -382,8 +387,297 @@ class SeedDataService {
       idbStorage.delete('seed-clients'),
       idbStorage.delete(this.GST_CASES_KEY),
       idbStorage.delete('seed-documents'),
-      idbStorage.delete('seed-tasks')
+      idbStorage.delete('seed-tasks'),
+      idbStorage.delete('seed-task-bundles')
     ]);
+  }
+
+  /**
+   * Generate comprehensive task bundles for all GST stages and triggers
+   */
+  private async generateTaskBundles(): Promise<void> {
+    console.log('[SeedData] Generating comprehensive task bundles...');
+    
+    const bundles = [
+      // ASMT-10 Notice Received Stage
+      {
+        id: 'bundle_asmt10_entry',
+        name: 'ASMT-10 Notice Entry Tasks',
+        trigger: 'stage_advance',
+        stage_code: 'ASMT-10 Notice Received',
+        active: true,
+        is_default: true,
+        description: 'Comprehensive tasks for ASMT-10 notice handling',
+        items: [
+          {
+            title: 'Acknowledge Receipt of ASMT-10',
+            description: 'File acknowledgment of assessment notice receipt with the department',
+            priority: 'high',
+            estimated_hours: 2,
+            order_index: 0
+          },
+          {
+            title: 'Initial Case Assessment',
+            description: 'Review notice details and assess case complexity',
+            priority: 'high',
+            estimated_hours: 4,
+            order_index: 1
+          },
+          {
+            title: 'Reconciliation Analysis',
+            description: 'Analyze assessment against books and identify discrepancies',
+            priority: 'high',
+            estimated_hours: 8,
+            order_index: 2
+          },
+          {
+            title: 'Gather Supporting Documents',
+            description: 'Collect invoices, returns, and other supporting documentation',
+            priority: 'medium',
+            estimated_hours: 6,
+            order_index: 3
+          },
+          {
+            title: 'Client Communication',
+            description: 'Brief client on notice implications and required actions',
+            priority: 'medium',
+            estimated_hours: 2,
+            order_index: 4
+          }
+        ]
+      },
+      
+      // DRC-01 SCN Received Stage
+      {
+        id: 'bundle_drc01_entry',
+        name: 'DRC-01 SCN Response Tasks',
+        trigger: 'stage_advance',
+        stage_code: 'DRC-01 SCN Received',
+        active: true,
+        is_default: true,
+        description: 'Tasks for responding to Show Cause Notice',
+        items: [
+          {
+            title: 'SCN Analysis',
+            description: 'Detailed analysis of show cause notice allegations',
+            priority: 'high',
+            estimated_hours: 6,
+            order_index: 0
+          },
+          {
+            title: 'Legal Research',
+            description: 'Research relevant case laws and provisions',
+            priority: 'high',
+            estimated_hours: 8,
+            order_index: 1
+          },
+          {
+            title: 'Draft DRC-02 Reply',
+            description: 'Prepare comprehensive reply to SCN',
+            priority: 'high',
+            estimated_hours: 12,
+            order_index: 2
+          },
+          {
+            title: 'Evidence Compilation',
+            description: 'Compile supporting evidence and documentation',
+            priority: 'medium',
+            estimated_hours: 6,
+            order_index: 3
+          },
+          {
+            title: 'File Reply',
+            description: 'Submit reply within statutory timeline',
+            priority: 'high',
+            estimated_hours: 2,
+            order_index: 4
+          }
+        ]
+      },
+
+      // Hearing Scheduled Stage
+      {
+        id: 'bundle_hearing_prep',
+        name: 'Hearing Preparation Tasks',
+        trigger: 'hearing_scheduled',
+        stage_code: 'Hearing Scheduled',
+        active: true,
+        is_default: true,
+        description: 'Tasks for preparing for personal hearing',
+        items: [
+          {
+            title: 'Prepare Hearing Notes',
+            description: 'Compile case summary and key arguments for hearing',
+            priority: 'high',
+            estimated_hours: 6,
+            order_index: 0
+          },
+          {
+            title: 'Review Case File',
+            description: 'Final review of complete case documentation',
+            priority: 'high',
+            estimated_hours: 4,
+            order_index: 1
+          },
+          {
+            title: 'Client Briefing',
+            description: 'Brief client on hearing process and expectations',
+            priority: 'medium',
+            estimated_hours: 2,
+            order_index: 2
+          },
+          {
+            title: 'Prepare Additional Evidence',
+            description: 'Prepare any additional evidence to be presented',
+            priority: 'medium',
+            estimated_hours: 4,
+            order_index: 3
+          }
+        ]
+      },
+
+      // Appeal Filed Stage
+      {
+        id: 'bundle_appeal_entry',
+        name: 'Appeal Filing Tasks',
+        trigger: 'stage_advance',
+        stage_code: 'Appeal Filed – APL-01',
+        active: true,
+        is_default: true,
+        description: 'Tasks for filing and managing appeals',
+        items: [
+          {
+            title: 'Prepare Appeal Memorandum',
+            description: 'Draft comprehensive appeal memorandum with grounds',
+            priority: 'high',
+            estimated_hours: 10,
+            order_index: 0
+          },
+          {
+            title: 'Calculate Appeal Fee',
+            description: 'Calculate and arrange for pre-deposit/appeal fee',
+            priority: 'high',
+            estimated_hours: 2,
+            order_index: 1
+          },
+          {
+            title: 'Compile Appeal Documents',
+            description: 'Prepare complete set of documents for appeal',
+            priority: 'medium',
+            estimated_hours: 4,
+            order_index: 2
+          },
+          {
+            title: 'File Appeal',
+            description: 'Submit appeal within statutory timeline',
+            priority: 'high',
+            estimated_hours: 2,
+            order_index: 3
+          },
+          {
+            title: 'Track Appeal Status',
+            description: 'Monitor appeal status and hearing schedule',
+            priority: 'low',
+            estimated_hours: 1,
+            order_index: 4
+          }
+        ]
+      },
+
+      // Automation bundles for different triggers
+      {
+        id: 'bundle_deadline_alert',
+        name: 'Deadline Alert Tasks',
+        trigger: 'deadline_approaching',
+        stage_code: 'Any Stage',
+        active: true,
+        is_default: true,
+        description: 'Tasks triggered when deadlines approach',
+        items: [
+          {
+            title: 'Deadline Review',
+            description: 'Review upcoming deadline and required actions',
+            priority: 'high',
+            estimated_hours: 1,
+            order_index: 0
+          },
+          {
+            title: 'Client Notification',
+            description: 'Notify client about approaching deadline',
+            priority: 'high',
+            estimated_hours: 1,
+            order_index: 1
+          },
+          {
+            title: 'Preparation Check',
+            description: 'Verify all required documents and actions are ready',
+            priority: 'medium',
+            estimated_hours: 2,
+            order_index: 2
+          }
+        ]
+      },
+
+      // Document automation bundle
+      {
+        id: 'bundle_doc_received',
+        name: 'Document Processing Tasks',
+        trigger: 'document_received',
+        stage_code: 'Any Stage',
+        active: true,
+        is_default: true,
+        description: 'Tasks triggered when new documents are received',
+        items: [
+          {
+            title: 'Document Review',
+            description: 'Review newly received document for content and implications',
+            priority: 'high',
+            estimated_hours: 2,
+            order_index: 0
+          },
+          {
+            title: 'Update Case Status',
+            description: 'Update case status based on received document',
+            priority: 'medium',
+            estimated_hours: 1,
+            order_index: 1
+          },
+          {
+            title: 'Client Update',
+            description: 'Inform client about received document and next steps',
+            priority: 'medium',
+            estimated_hours: 1,
+            order_index: 2
+          }
+        ]
+      }
+    ];
+
+    // Save task bundles using the repository
+    try {
+      const { StorageManager } = await import('@/data/StorageManager');
+      await StorageManager.getInstance().initialize();
+      const repository = StorageManager.getInstance().getTaskBundleRepository();
+      
+      for (const bundleData of bundles) {
+        const { items, ...bundleInfo } = bundleData;
+        await repository.createWithItems({
+          ...bundleInfo,
+          items: items.map(item => ({
+            ...item,
+            dependencies: []
+          }))
+        });
+      }
+      
+      // Also save to localStorage for QA validation
+      await idbStorage.set('seed-task-bundles', bundles);
+      console.log(`[SeedData] Created ${bundles.length} comprehensive task bundles`);
+    } catch (error) {
+      console.error('[SeedData] Failed to create task bundles:', error);
+      // Fallback: just save to localStorage
+      await idbStorage.set('seed-task-bundles', bundles);
+    }
   }
 }
 

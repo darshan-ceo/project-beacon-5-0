@@ -84,7 +84,33 @@ export const QADashboard: React.FC = () => {
         message: 'Session timeout service integrated with settings'
       });
 
-      // Test 6: Toast-only Button Detection
+      // Test 6: Task Bundle Generation
+      let taskBundleStatus = 'fail';
+      let taskBundleMessage = 'No task bundles found';
+      try {
+        const { StorageManager } = await import('@/data/StorageManager');
+        await StorageManager.getInstance().initialize();
+        const repository = StorageManager.getInstance().getTaskBundleRepository();
+        const bundles = await repository.getAllWithItems();
+        
+        if (bundles.length >= 5) {
+          taskBundleStatus = 'pass';
+          taskBundleMessage = `Found ${bundles.length} task bundles with comprehensive automation`;
+        } else if (bundles.length > 0) {
+          taskBundleStatus = 'warning';
+          taskBundleMessage = `Found ${bundles.length} task bundles (expected 5+ for full automation)`;
+        }
+      } catch (error) {
+        taskBundleMessage = 'Failed to load task bundles';
+      }
+      
+      results.push({
+        name: 'Task Bundle Automation',
+        status: taskBundleStatus,
+        message: taskBundleMessage
+      });
+
+      // Test 7: Toast-only Button Detection
       const toastButtons = scanToastButtons();
       results.push({
         name: 'Toast-only Buttons',
@@ -178,9 +204,10 @@ export const QADashboard: React.FC = () => {
         )}
 
         <Tabs defaultValue="tests" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="tests">Smoke Tests</TabsTrigger>
             <TabsTrigger value="storage">Storage Manager</TabsTrigger>
+            <TabsTrigger value="task-bundles">Task Bundles</TabsTrigger>
             <TabsTrigger value="gst-monitoring">GST Monitoring</TabsTrigger>
             <TabsTrigger value="diagnostics">System Diagnostics</TabsTrigger>
             <TabsTrigger value="fixes">Applied Fixes</TabsTrigger>
@@ -192,6 +219,14 @@ export const QADashboard: React.FC = () => {
 
           <TabsContent value="storage" className="mt-6">
             <StorageManagerPanel />
+          </TabsContent>
+
+          <TabsContent value="task-bundles" className="mt-6">
+            <React.Suspense fallback={<div>Loading Task Bundle Validator...</div>}>
+              {React.createElement(
+                React.lazy(() => import('@/components/qa/TaskBundleValidator').then(module => ({ default: module.TaskBundleValidator })))
+              )}
+            </React.Suspense>
           </TabsContent>
 
           <TabsContent value="gst-monitoring" className="mt-6">
