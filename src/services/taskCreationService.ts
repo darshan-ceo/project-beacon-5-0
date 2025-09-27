@@ -8,7 +8,7 @@ import { persistenceService } from './persistenceService';
 import { GSTStage } from '../../config/appConfig';
 import type { AppAction, Task } from '@/contexts/AppStateContext';
 
-interface TaskCreationRequest {
+export interface TaskCreationRequest {
   title: string;
   description?: string;
   caseId: string;

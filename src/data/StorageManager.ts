@@ -8,6 +8,7 @@ import { IndexedDBAdapter } from './adapters/IndexedDBAdapter';
 import { InMemoryAdapter } from './adapters/InMemoryAdapter';
 import { ApiAdapter } from './adapters/ApiAdapter';
 import { TaskBundleRepository } from './repositories/TaskBundleRepository';
+import { EnhancedTaskBundleRepository } from './repositories/EnhancedTaskBundleRepository';
 import { DocumentRepository } from './repositories/DocumentRepository';
 import { AuditService } from './services/AuditService';
 

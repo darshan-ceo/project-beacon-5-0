@@ -17,7 +17,9 @@ import {
   Settings,
   Zap,
   List,
-  ArrowRight
+  ArrowRight,
+  ChevronDown,
+  Check
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,25 +47,48 @@ import {
 } from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { TaskFormFields, TaskFormData } from '@/components/ui/TaskFormFields';
 import { GST_STAGES, EMPLOYEE_ROLES } from '../../../config/appConfig';
 import { validateDueOffset } from '@/utils/date';
 import { toast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 interface BundleTask {
   id: string;
   title: string;
   description: string;
   assignedRole: string;
-  dueOffset: string; // e.g., "+2d", "+1w"
+  category: string;              // NEW - task categorization
+  dueOffset: string;             // e.g., "+2d", "+1w"
   priority: 'Critical' | 'High' | 'Medium' | 'Low';
   estimatedHours: number;
+  dependencies?: string[];       // NEW - task dependencies
   order: number;
+  templateId?: string;           // NEW - reference to source template
+  automationFlags?: {            // NEW - automation settings
+    autoAssign: boolean;
+    notifyAssignee: boolean;
+    requireCompletionProof: boolean;
+  };
 }
 
 interface TaskBundle {
   id?: string;
   name: string;
-  stage: string;
+  stages: string[];              // UPDATED - multi-stage support
   description: string;
   executionMode: 'Sequential' | 'Parallel';
   autoTrigger: boolean;
@@ -73,6 +98,8 @@ interface TaskBundle {
   };
   tasks: BundleTask[];
   isActive: boolean;
+  version?: number;              // NEW - versioning
+  usageCount?: number;           // NEW - usage tracking
 }
 
 interface BundleEditorProps {
@@ -87,9 +114,16 @@ const defaultTask: Omit<BundleTask, 'id' | 'order'> = {
   title: '',
   description: '',
   assignedRole: 'Associate',
+  category: 'General',           // NEW - default category
   dueOffset: '+1d',
   priority: 'Medium',
-  estimatedHours: 8
+  estimatedHours: 8,
+  dependencies: [],             // NEW - default empty dependencies
+  automationFlags: {            // NEW - default automation settings
+    autoAssign: true,
+    notifyAssignee: true,
+    requireCompletionProof: false
+  }
 };
 
 export const BundleEditor: React.FC<BundleEditorProps> = ({
@@ -101,7 +135,7 @@ export const BundleEditor: React.FC<BundleEditorProps> = ({
 }) => {
   const [formData, setFormData] = useState<TaskBundle>({
     name: '',
-    stage: 'Any Stage',
+    stages: ['Any Stage'],        // UPDATED - array for multi-stage support
     description: '',
     executionMode: 'Sequential',
     autoTrigger: false,
@@ -110,7 +144,9 @@ export const BundleEditor: React.FC<BundleEditorProps> = ({
       specificStages: []
     },
     tasks: [],
-    isActive: true
+    isActive: true,
+    version: 1,                   // NEW - default version
+    usageCount: 0                 // NEW - default usage count
   });
 
   const [loading, setSaving] = useState(false);
@@ -130,7 +166,7 @@ export const BundleEditor: React.FC<BundleEditorProps> = ({
         // Reset to default for create mode
         setFormData({
           name: '',
-          stage: 'Any Stage',
+          stages: ['Any Stage'],    // UPDATED - array for multi-stage support
           description: '',
           executionMode: 'Sequential',
           autoTrigger: false,
@@ -139,7 +175,9 @@ export const BundleEditor: React.FC<BundleEditorProps> = ({
             specificStages: []
           },
           tasks: [],
-          isActive: true
+          isActive: true,
+          version: 1,               // NEW - default version
+          usageCount: 0             // NEW - default usage count
         });
       }
       setErrors({});
@@ -253,6 +291,73 @@ export const BundleEditor: React.FC<BundleEditorProps> = ({
     }
   };
 
+  // Stage Multi-Select Component
+  const StageMultiSelect: React.FC<{
+    selectedStages: string[];
+    onChange: (stages: string[]) => void;
+  }> = ({ selectedStages, onChange }) => {
+    const [open, setOpen] = React.useState(false);
+
+    const toggleStage = (stage: string) => {
+      if (stage === 'Any Stage') {
+        onChange(['Any Stage']);
+      } else {
+        const newStages = selectedStages.includes('Any Stage') 
+          ? [stage]
+          : selectedStages.includes(stage)
+            ? selectedStages.filter(s => s !== stage)
+            : [...selectedStages.filter(s => s !== 'Any Stage'), stage];
+        onChange(newStages.length === 0 ? ['Any Stage'] : newStages);
+      }
+    };
+
+    const displayText = selectedStages.includes('Any Stage') 
+      ? 'Any Stage' 
+      : selectedStages.length === 0 
+        ? 'Select stages...'
+        : `${selectedStages.length} stage${selectedStages.length === 1 ? '' : 's'} selected`;
+
+    return (
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-full justify-between"
+          >
+            {displayText}
+            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-full p-0">
+          <Command>
+            <CommandInput placeholder="Search stages..." />
+            <CommandEmpty>No stages found.</CommandEmpty>
+            <CommandGroup>
+              <CommandList>
+                {GST_STAGES.map((stage) => (
+                  <CommandItem
+                    key={stage}
+                    onSelect={() => toggleStage(stage)}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        selectedStages.includes(stage) ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    {stage}
+                  </CommandItem>
+                ))}
+              </CommandList>
+            </CommandGroup>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    );
+  };
+
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent className="w-full sm:max-w-4xl overflow-y-auto">
@@ -295,26 +400,18 @@ export const BundleEditor: React.FC<BundleEditorProps> = ({
                   {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
                 </div>
                 
-                <div className="space-y-2">
-                  <FieldTooltipWrapper 
-                    formId="task-bundle" 
-                    fieldId="stage" 
-                    label="Target Stage"
-                  >
-                    <Select value={formData.stage} onValueChange={(value) => setFormData(prev => ({ ...prev, stage: value }))}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {GST_STAGES.map((stage) => (
-                          <SelectItem key={stage} value={stage}>
-                            {stage}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FieldTooltipWrapper>
-                </div>
+                 <div className="space-y-2">
+                   <FieldTooltipWrapper 
+                     formId="task-bundle" 
+                     fieldId="stages" 
+                     label="Target Stages"
+                   >
+                     <StageMultiSelect 
+                       selectedStages={formData.stages}
+                       onChange={(stages) => setFormData(prev => ({ ...prev, stages }))}
+                     />
+                   </FieldTooltipWrapper>
+                 </div>
               </div>
 
               <div className="space-y-2">
@@ -436,12 +533,12 @@ export const BundleEditor: React.FC<BundleEditorProps> = ({
                             label="Task Title" 
                             required={true}
                           >
-                            <Input
-                              value={task.title}
-                              onChange={(e) => updateTask(index, { title: e.target.value })}
-                              placeholder="e.g., Draft response document"
-                              className={errors[`task_${index}_title`] ? 'border-red-500' : ''}
-                            />
+                             <Input
+                               value={task.title}
+                               onChange={(e) => updateTask(index, { title: e.target.value })}
+                               placeholder="e.g., Draft response document"
+                               className={errors[`task_${index}_title`] ? 'border-red-500' : ''}
+                             />
                           </FieldTooltipWrapper>
                           {errors[`task_${index}_title`] && (
                             <p className="text-sm text-red-500">{errors[`task_${index}_title`]}</p>
@@ -485,62 +582,82 @@ export const BundleEditor: React.FC<BundleEditorProps> = ({
                         </FieldTooltipWrapper>
                       </div>
 
-                      <div className="grid grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                          <FieldTooltipWrapper 
-                            formId="task-bundle" 
-                            fieldId="due-offset" 
-                            label="Due Offset"
-                          >
-                            <Input
-                              value={task.dueOffset}
-                              onChange={(e) => updateTask(index, { dueOffset: e.target.value })}
-                              placeholder="+2d"
-                              className={errors[`task_${index}_offset`] ? 'border-red-500' : ''}
-                            />
-                          </FieldTooltipWrapper>
-                          {errors[`task_${index}_offset`] && (
-                            <p className="text-sm text-red-500">{errors[`task_${index}_offset`]}</p>
-                          )}
-                          <p className="text-xs text-muted-foreground">e.g., +2d, +1w, -3d</p>
-                        </div>
+                       <div className="grid grid-cols-4 gap-4">
+                         <div className="space-y-2">
+                           <FieldTooltipWrapper 
+                             formId="task-bundle" 
+                             fieldId="category" 
+                             label="Category"
+                           >
+                             <Select value={task.category} onValueChange={(value) => updateTask(index, { category: value })}>
+                               <SelectTrigger>
+                                 <SelectValue />
+                               </SelectTrigger>
+                               <SelectContent>
+                                 <SelectItem value="General">General</SelectItem>
+                                 <SelectItem value="Legal Drafting">Legal Drafting</SelectItem>
+                                 <SelectItem value="Documentation">Documentation</SelectItem>
+                                 <SelectItem value="Review">Review</SelectItem>
+                                 <SelectItem value="Filing">Filing</SelectItem>
+                               </SelectContent>
+                             </Select>
+                           </FieldTooltipWrapper>
+                         </div>
 
-                        <div className="space-y-2">
-                          <FieldTooltipWrapper 
-                            formId="task-bundle" 
-                            fieldId="priority" 
-                            label="Priority"
-                          >
-                            <Select value={task.priority} onValueChange={(value: any) => updateTask(index, { priority: value })}>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="Critical">Critical</SelectItem>
-                                <SelectItem value="High">High</SelectItem>
-                                <SelectItem value="Medium">Medium</SelectItem>
-                                <SelectItem value="Low">Low</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </FieldTooltipWrapper>
-                        </div>
+                         <div className="space-y-2">
+                           <FieldTooltipWrapper 
+                             formId="task-bundle" 
+                             fieldId="due-offset" 
+                             label="Due Offset"
+                           >
+                             <Input
+                               value={task.dueOffset}
+                               onChange={(e) => updateTask(index, { dueOffset: e.target.value })}
+                               placeholder="+2d"
+                               className={errors[`task_${index}_offset`] ? 'border-red-500' : ''}
+                             />
+                           </FieldTooltipWrapper>
+                           {errors[`task_${index}_offset`] && (
+                             <p className="text-sm text-red-500">{errors[`task_${index}_offset`]}</p>
+                           )}
+                         </div>
 
-                        <div className="space-y-2">
-                          <FieldTooltipWrapper 
-                            formId="task-bundle" 
-                            fieldId="estimated-hours" 
-                            label="Estimated Hours"
-                          >
-                            <Input
-                              type="number"
-                              value={task.estimatedHours}
-                              onChange={(e) => updateTask(index, { estimatedHours: parseInt(e.target.value) || 0 })}
-                              min="1"
-                              max="100"
-                            />
-                          </FieldTooltipWrapper>
-                        </div>
-                      </div>
+                         <div className="space-y-2">
+                           <FieldTooltipWrapper 
+                             formId="task-bundle" 
+                             fieldId="priority" 
+                             label="Priority"
+                           >
+                             <Select value={task.priority} onValueChange={(value: any) => updateTask(index, { priority: value })}>
+                               <SelectTrigger>
+                                 <SelectValue />
+                               </SelectTrigger>
+                               <SelectContent>
+                                 <SelectItem value="Critical">Critical</SelectItem>
+                                 <SelectItem value="High">High</SelectItem>
+                                 <SelectItem value="Medium">Medium</SelectItem>
+                                 <SelectItem value="Low">Low</SelectItem>
+                               </SelectContent>
+                             </Select>
+                           </FieldTooltipWrapper>
+                         </div>
+
+                         <div className="space-y-2">
+                           <FieldTooltipWrapper 
+                             formId="task-bundle" 
+                             fieldId="estimated-hours" 
+                             label="Hours"
+                           >
+                             <Input
+                               type="number"
+                               value={task.estimatedHours}
+                               onChange={(e) => updateTask(index, { estimatedHours: parseInt(e.target.value) || 0 })}
+                               min="1"
+                               max="100"
+                             />
+                           </FieldTooltipWrapper>
+                         </div>
+                       </div>
                     </motion.div>
                   ))}
                 </div>

@@ -91,12 +91,19 @@ export interface TaskBundle {
   id: string;
   name: string;
   stage_code?: string;
+  stages?: string[];             // NEW - multi-stage support
   trigger: string;
   active: boolean;
   created_at: Date;
   updated_at?: Date;
   description?: string;
   is_default?: boolean;
+  execution_mode?: string;       // NEW - Sequential/Parallel
+  version?: number;              // NEW - versioning
+  usage_count?: number;          // NEW - usage tracking
+  created_by?: string;           // NEW - creator tracking
+  automation_flags?: any;        // NEW - JSON field for automation settings
+  conditions?: any;              // NEW - JSON field for conditions
 }
 
 export interface TaskBundleItem {
@@ -106,10 +113,15 @@ export interface TaskBundleItem {
   description?: string;
   priority: string;
   estimated_hours?: number;
+  assigned_role?: string;        // NEW - role assignment
+  category?: string;             // NEW - categorization
   dependencies?: string[];
   order_index: number;
   created_at: Date;
   template_id?: string;
+  due_offset?: string;           // NEW - e.g., "+2d", "+1w"
+  automation_flags?: any;        // NEW - JSON field for automation settings
+  conditions?: any;              // NEW - JSON field for conditional logic
 }
 
 export interface Document {
@@ -306,7 +318,9 @@ export class HofficeDB extends Dexie {
     // Migration for v2 - example of how to handle schema changes
     this.version(2).stores({
       // Add any new indexes or schema changes here
-      tasks: 'id, case_id, assigned_to, due_date, status, priority, [related_entity_type+related_entity_id], bundle_id, is_auto_generated'
+      tasks: 'id, case_id, assigned_to, due_date, status, priority, [related_entity_type+related_entity_id], bundle_id, is_auto_generated',
+      task_bundles: 'id, stage_code, trigger, active, name, stages, execution_mode, version, usage_count',
+      task_bundle_items: 'id, bundle_id, order_index, assigned_role, category, due_offset'
     }).upgrade(tx => {
       // Handle data migration if needed
       return tx.table('tasks').toCollection().modify(task => {
