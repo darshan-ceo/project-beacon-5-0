@@ -18,6 +18,15 @@ import { Check, ChevronDown, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { EMPLOYEE_ROLES, GST_STAGES } from '../../../config/appConfig';
 
+// Form interfaces
+export interface AutomationFlags {
+  auto_assign: boolean;
+  notify_assignee: boolean;
+  require_completion_proof: boolean;
+  suggest_on_trigger: boolean;
+  auto_create_on_trigger: boolean;
+}
+
 const TASK_CATEGORIES = [
   'Legal Drafting',
   'Documentation', 
@@ -45,6 +54,7 @@ export interface TaskFormData {
   category: string;
   dependencies?: string[];
   dueOffset?: string;
+  automationFlags?: AutomationFlags;
 }
 
 interface TaskFormFieldsProps {
@@ -53,6 +63,7 @@ interface TaskFormFieldsProps {
   errors?: Record<string, string>;
   showDueOffset?: boolean;
   showDependencies?: boolean;
+  showAutomationFlags?: boolean;
   availableTasks?: Array<{ id: string; title: string }>;
   fieldPrefix?: string;
 }
@@ -63,6 +74,7 @@ export const TaskFormFields: React.FC<TaskFormFieldsProps> = ({
   errors = {},
   showDueOffset = false,
   showDependencies = false,
+  showAutomationFlags = false,
   availableTasks = [],
   fieldPrefix = ''
 }) => {
@@ -254,6 +266,76 @@ export const TaskFormFields: React.FC<TaskFormFieldsProps> = ({
           {getFieldError('dependencies') && (
             <p className="text-sm text-red-500">{getFieldError('dependencies')}</p>
           )}
+        </div>
+      )}
+
+      {/* Automation Flags */}
+      {showAutomationFlags && (
+        <div className="space-y-2">
+          <FieldTooltipWrapper 
+            formId="task-form" 
+            fieldId="automation-flags" 
+            label="Automation Settings"
+          >
+            <div className="space-y-3 p-3 border rounded">
+              <div className="flex items-center space-x-2">
+                <input 
+                  type="checkbox" 
+                  id="auto-assign"
+                  checked={data.automationFlags?.auto_assign ?? true}
+                  onChange={(e) => onChange({ 
+                    automationFlags: { 
+                      ...data.automationFlags, 
+                      auto_assign: e.target.checked 
+                    } 
+                  })}
+                />
+                <label htmlFor="auto-assign" className="text-sm">Auto assign on creation</label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input 
+                  type="checkbox" 
+                  id="notify-assignee"
+                  checked={data.automationFlags?.notify_assignee ?? true}
+                  onChange={(e) => onChange({ 
+                    automationFlags: { 
+                      ...data.automationFlags, 
+                      notify_assignee: e.target.checked 
+                    } 
+                  })}
+                />
+                <label htmlFor="notify-assignee" className="text-sm">Notify assignee</label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input 
+                  type="checkbox" 
+                  id="suggest-trigger"
+                  checked={data.automationFlags?.suggest_on_trigger ?? false}
+                  onChange={(e) => onChange({ 
+                    automationFlags: { 
+                      ...data.automationFlags, 
+                      suggest_on_trigger: e.target.checked 
+                    } 
+                  })}
+                />
+                <label htmlFor="suggest-trigger" className="text-sm">Suggest on trigger</label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input 
+                  type="checkbox" 
+                  id="auto-create-trigger"
+                  checked={data.automationFlags?.auto_create_on_trigger ?? false}
+                  onChange={(e) => onChange({ 
+                    automationFlags: { 
+                      ...data.automationFlags, 
+                      auto_create_on_trigger: e.target.checked 
+                    } 
+                  })}
+                />
+                <label htmlFor="auto-create-trigger" className="text-sm">Auto create on trigger</label>
+              </div>
+            </div>
+          </FieldTooltipWrapper>
         </div>
       )}
     </div>

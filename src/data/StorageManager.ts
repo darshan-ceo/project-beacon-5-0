@@ -19,6 +19,7 @@ export class StorageManager {
   private storage: StoragePort | null = null;
   private auditService: AuditService | null = null;
   private taskBundleRepository: TaskBundleRepository | null = null;
+  private enhancedTaskBundleRepository: EnhancedTaskBundleRepository | null = null;
   private documentRepository: DocumentRepository | null = null;
 
   private constructor() {}
@@ -54,6 +55,7 @@ export class StorageManager {
       // Initialize repositories
       this.auditService = new AuditService(this.storage);
       this.taskBundleRepository = new TaskBundleRepository(this.storage, this.auditService);
+      this.enhancedTaskBundleRepository = new EnhancedTaskBundleRepository(this.storage, this.auditService);
       this.documentRepository = new DocumentRepository(this.storage, this.auditService);
 
       console.log('✅ Storage system initialized successfully');
@@ -84,6 +86,13 @@ export class StorageManager {
     return this.taskBundleRepository;
   }
 
+  getEnhancedTaskBundleRepository(): EnhancedTaskBundleRepository {
+    if (!this.enhancedTaskBundleRepository) {
+      throw new Error('StorageManager not initialized - call initialize() first');
+    }
+    return this.enhancedTaskBundleRepository;
+  }
+
   getDocumentRepository(): DocumentRepository {
     if (!this.documentRepository) {
       throw new Error('StorageManager not initialized - call initialize() first');
@@ -107,14 +116,15 @@ export class StorageManager {
       return {
         healthy: storageHealth.healthy,
         errors: storageHealth.errors,
-        info: {
-          storage: storageInfo,
-          repositories: {
-            taskBundle: !!this.taskBundleRepository,
-            document: !!this.documentRepository,
-            audit: !!this.auditService
+          info: {
+            storage: storageInfo,
+            repositories: {
+              taskBundle: !!this.taskBundleRepository,
+              enhancedTaskBundle: !!this.enhancedTaskBundleRepository,
+              document: !!this.documentRepository,
+              audit: !!this.auditService
+            }
           }
-        }
       };
     } catch (error) {
       return {
@@ -131,6 +141,7 @@ export class StorageManager {
       this.storage = null;
       this.auditService = null;
       this.taskBundleRepository = null;
+      this.enhancedTaskBundleRepository = null;
       this.documentRepository = null;
     }
   }

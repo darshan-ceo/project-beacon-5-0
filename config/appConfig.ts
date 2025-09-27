@@ -43,16 +43,37 @@ export const CLIENT_TIERS = [
   'Tier 3'
 ] as const;
 
+export const TASK_CATEGORIES = [
+  'General',
+  'Legal Drafting',
+  'Documentation',
+  'Review',
+  'Filing',
+  'Research',
+  'Client Communication'
+] as const;
+
+export const PRIORITY_OPTIONS = [
+  { value: 'Critical', label: 'Critical', color: 'destructive' },
+  { value: 'High', label: 'High', color: 'orange' },
+  { value: 'Medium', label: 'Medium', color: 'blue' },
+  { value: 'Low', label: 'Low', color: 'green' }
+] as const;
+
 export type GSTStage = typeof GST_STAGES[number];
 export type EmployeeRole = typeof EMPLOYEE_ROLES[number];
 export type GSTNoticeType = typeof GST_NOTICE_TYPES[number];
 export type ClientTier = typeof CLIENT_TIERS[number];
+export type TaskCategory = typeof TASK_CATEGORIES[number];
+export type PriorityLevel = typeof PRIORITY_OPTIONS[number]['value'];
 
 export const APP_CONFIG = {
   GST_STAGES,
   EMPLOYEE_ROLES,
   GST_NOTICE_TYPES,
   CLIENT_TIERS,
+  TASK_CATEGORIES,
+  PRIORITY_OPTIONS,
   
   // Default automation settings
   DEFAULT_STAGE_SCOPE: ['Any Stage'] as GSTStage[],

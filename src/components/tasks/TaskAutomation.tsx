@@ -49,19 +49,17 @@ import { toast } from '@/hooks/use-toast';
 import { storageManager } from '@/data/StorageManager';
 import { useUnifiedPersistence } from '@/hooks/useUnifiedPersistence';
 import { taskTemplatesService } from '@/services/taskTemplatesService';
+import { enhancedTaskCreationService } from '@/services/enhancedTaskCreationService';
 import type { TaskTemplate } from '@/types/taskTemplate';
 import type { TaskBundle, TaskBundleItem } from '@/data/db';
+import type { EnhancedTaskBundleWithItems } from '@/types/enhancedTaskBundle';
 import { Checkbox } from '@/components/ui/checkbox';
-
-interface TaskBundleWithItems extends TaskBundle {
-  items: TaskBundleItem[];
-}
 
 export const TaskAutomation: React.FC = () => {
   const { initialized } = useUnifiedPersistence();
-  const [bundles, setBundles] = useState<TaskBundleWithItems[]>([]);
+  const [bundles, setBundles] = useState<EnhancedTaskBundleWithItems[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [editingBundle, setEditingBundle] = useState<TaskBundleWithItems | null>(null);
+  const [editingBundle, setEditingBundle] = useState<EnhancedTaskBundleWithItems | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   
   // Form states for creating/editing
@@ -85,8 +83,8 @@ export const TaskAutomation: React.FC = () => {
 
     try {
       setIsLoading(true);
-      const repository = storageManager.getTaskBundleRepository();
-      const bundleList = await repository.getAllWithItems();
+      const repository = storageManager.getEnhancedTaskBundleRepository();
+      const bundleList = await repository.getAllEnhanced();
       setBundles(bundleList);
     } catch (error) {
       console.error('Failed to load task bundles:', error);
@@ -133,12 +131,23 @@ export const TaskAutomation: React.FC = () => {
         items: bundleItems.filter(item => item.title)
       });
 
-      const repository = storageManager.getTaskBundleRepository();
-      const createdBundle = await repository.createWithItems({
+      const repository = storageManager.getEnhancedTaskBundleRepository();
+      const createdBundle = await repository.createEnhanced({
         name: bundleName,
         trigger: bundleTrigger,
         stage_code: stageCode,
-        items: bundleItems.filter(item => item.title) as any[]
+        stages: bundleStages.includes('Any Stage') ? ['Any Stage'] : bundleStages,
+        items: bundleItems.filter(item => item.title).map(item => ({
+          title: item.title!,
+          description: item.description,
+          priority: item.priority as 'Critical' | 'High' | 'Medium' | 'Low',
+          estimated_hours: item.estimated_hours,
+          assigned_role: item.assigned_role || 'Associate',
+          category: item.category || 'General',
+          due_offset: item.due_offset,
+          automation_flags: item.automation_flags,
+          order_index: item.order_index || 0
+        }))
       });
 
       console.log('Bundle created successfully:', createdBundle);
@@ -247,7 +256,7 @@ export const TaskAutomation: React.FC = () => {
     setStageScopeOpen(false);
   };
 
-  const startEditing = (bundle: TaskBundleWithItems) => {
+  const startEditing = (bundle: EnhancedTaskBundleWithItems) => {
     setEditingBundle(bundle);
     setBundleName(bundle.name);
     setBundleTrigger(bundle.trigger);

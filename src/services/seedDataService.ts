@@ -399,50 +399,104 @@ class SeedDataService {
     console.log('[SeedData] Generating comprehensive task bundles...');
     
     const bundles = [
-      // ASMT-10 Notice Received Stage
+      // DRC Response Bundle as expected by tests
       {
-        id: 'bundle_asmt10_entry',
-        name: 'ASMT-10 Notice Entry Tasks',
-        trigger: 'stage_advance',
-        stage_code: 'ASMT-10 Notice Received',
+        id: 'bundle_drc_response',
+        name: 'DRC Response Bundle',
+        trigger: 'OnStageEnter',
+        stage_code: 'DRC-01 SCN Received',
         active: true,
         is_default: true,
-        description: 'Comprehensive tasks for ASMT-10 notice handling',
+        description: 'Comprehensive DRC response tasks with enhanced automation',
         items: [
           {
-            title: 'Acknowledge Receipt of ASMT-10',
-            description: 'File acknowledgment of assessment notice receipt with the department',
-            priority: 'high',
-            estimated_hours: 2,
+            title: 'Draft Response to DRC Notice',
+            description: 'Prepare comprehensive response to show cause notice',
+            priority: 'High',
+            estimated_hours: 6,
             order_index: 0
           },
           {
-            title: 'Initial Case Assessment',
-            description: 'Review notice details and assess case complexity',
-            priority: 'high',
+            title: 'Review Legal Arguments',
+            description: 'Review and validate legal arguments in response',
+            priority: 'High',
             estimated_hours: 4,
             order_index: 1
           },
           {
-            title: 'Reconciliation Analysis',
-            description: 'Analyze assessment against books and identify discrepancies',
-            priority: 'high',
-            estimated_hours: 8,
-            order_index: 2
-          },
-          {
-            title: 'Gather Supporting Documents',
-            description: 'Collect invoices, returns, and other supporting documentation',
-            priority: 'medium',
-            estimated_hours: 6,
-            order_index: 3
-          },
-          {
-            title: 'Client Communication',
-            description: 'Brief client on notice implications and required actions',
-            priority: 'medium',
+            title: 'File DRC Response',
+            description: 'Submit response through appropriate channels',
+            priority: 'Critical',
             estimated_hours: 2,
-            order_index: 4
+            order_index: 2
+          }
+        ]
+      },
+      
+      // Appeal Preparation Bundle
+      {
+        id: 'bundle_appeal_prep',
+        name: 'Appeal Preparation Bundle',
+        trigger: 'OnStageEnter',
+        stage_code: 'Appeal Filed – APL-01',
+        active: true,
+        is_default: true,
+        description: 'Appeal preparation tasks with automation',
+        items: [
+          {
+            title: 'Draft Appeal Petition',
+            description: 'Prepare appeal petition against DRC order',
+            priority: 'Critical',
+            estimated_hours: 8,
+            order_index: 0
+          },
+          {
+            title: 'Compile Appeal Documents',
+            description: 'Gather and organize supporting documents for appeal',
+            priority: 'High',
+            estimated_hours: 4,
+            order_index: 1
+          },
+          {
+            title: 'File Appeal',
+            description: 'Submit appeal petition to appellate authority',
+            priority: 'Critical',
+            estimated_hours: 2,
+            order_index: 2
+          }
+        ]
+      },
+      
+      // Hearing Preparation Bundle
+      {
+        id: 'bundle_hearing_prep',
+        name: 'Hearing Preparation Bundle',
+        trigger: 'OnHearingScheduled',
+        stage_code: 'Hearing Scheduled',
+        active: true,
+        is_default: true,
+        description: 'Hearing preparation tasks with automation',
+        items: [
+          {
+            title: 'Prepare Hearing Notes',
+            description: 'Compile key arguments and evidence for hearing',
+            priority: 'High',
+            estimated_hours: 4,
+            order_index: 0
+          },
+          {
+            title: 'Review Case File',
+            description: 'Thorough review of complete case file before hearing',
+            priority: 'High',
+            estimated_hours: 3,
+            order_index: 1
+          },
+          {
+            title: 'Client Briefing',
+            description: 'Brief client on hearing process and expectations',
+            priority: 'Medium',
+            estimated_hours: 2,
+            order_index: 2
           }
         ]
       },
