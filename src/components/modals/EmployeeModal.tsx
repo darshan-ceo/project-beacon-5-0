@@ -313,15 +313,15 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
               <div>
                 <Label htmlFor="managerId">Reporting To</Label>
                 <Select 
-                  value={formData.managerId || ''} 
-                  onValueChange={(value) => handleInputChange('managerId', value || undefined)}
+                  value={formData.managerId || 'none'} 
+                  onValueChange={(value) => handleInputChange('managerId', value === 'none' ? undefined : value)}
                   disabled={isReadOnly}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select manager" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No Manager</SelectItem>
+                    <SelectItem value="none">No Manager</SelectItem>
                     {state.employees
                       .filter(emp => emp.status === 'Active' && emp.id !== employee?.id)
                       .sort((a, b) => a.full_name.localeCompare(b.full_name))
