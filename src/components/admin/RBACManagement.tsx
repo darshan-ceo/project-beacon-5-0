@@ -36,7 +36,7 @@ import { type RoleEntity, type PermissionEntity, type PolicyAuditEntry } from '@
 import { RoleBuilder } from './RoleBuilder';
 import { UserRoleAssignment } from './UserRoleAssignment';
 import { PermissionsMatrix } from './PermissionsMatrix';
-const OrganizationHierarchy = React.lazy(() => import('./OrganizationHierarchy').then(m => ({ default: m.OrganizationHierarchy })));
+import { OrganizationHierarchy } from './OrganizationHierarchy';
 
 interface EnhancedUser {
   id: string;
@@ -244,14 +244,11 @@ export const RBACManagement: React.FC = () => {
             </TabsContent>
             
             <TabsContent value="hierarchy">
-              {React.createElement(
-                React.lazy(() => import('./OrganizationHierarchy').then(m => ({ default: m.OrganizationHierarchy }))),
-                {
-                  onEmployeeSelect: (employee: any) => {
-                    console.log('Selected employee for hierarchy:', employee);
-                  }
-                }
-              )}
+              <OrganizationHierarchy
+                onEmployeeSelect={(employee) => {
+                  console.log('Selected employee for hierarchy:', employee);
+                }}
+              />
             </TabsContent>
           </Tabs>
         </TabsContent>
