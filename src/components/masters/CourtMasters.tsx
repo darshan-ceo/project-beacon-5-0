@@ -16,7 +16,7 @@ import { ImportWizard } from '@/components/importExport/ImportWizard';
 import { ExportWizard } from '@/components/importExport/ExportWizard';
 import { Court, useAppState } from '@/contexts/AppStateContext';
 import { courtsService } from '@/services/courtsService';
-import { useRBAC } from '@/hooks/useRBAC';
+import { useRBAC } from '@/hooks/useAdvancedRBAC';
 import { featureFlagService } from '@/services/featureFlagService';
 
 

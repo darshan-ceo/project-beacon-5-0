@@ -37,7 +37,7 @@ import { ExportWizard } from '@/components/importExport/ExportWizard';
 import { Client, useAppState } from '@/contexts/AppStateContext';
 import { InlineHelp } from '@/components/help/InlineHelp';
 import { useRelationships } from '@/hooks/useRelationships';
-import { useRBAC } from '@/hooks/useRBAC';
+import { useRBAC } from '@/hooks/useAdvancedRBAC';
 import { featureFlagService } from '@/services/featureFlagService';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 

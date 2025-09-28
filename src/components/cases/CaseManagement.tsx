@@ -20,7 +20,7 @@ import {
   Check,
   HelpCircle
 } from 'lucide-react';
-import { useRBAC } from '@/hooks/useRBAC';
+import { useRBAC } from '@/hooks/useAdvancedRBAC';
 import { casesService } from '@/services/casesService';
 import { getNextStage, validateStagePrerequisites, generateStageDefaults } from '@/utils/stageUtils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

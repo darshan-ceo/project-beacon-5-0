@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Search, BookOpen, Users, Settings, Code, ExternalLink } from 'lucide-react';
 import { enhancedHelpService } from '@/services/enhancedHelpService';
-import { useRBAC } from '@/hooks/useRBAC';
+import { useRBAC } from '@/hooks/useAdvancedRBAC';
 import { featureFlagService } from '@/services/featureFlagService';
 import { tourService } from '@/services/tourService';
 import { GuidedTour } from './GuidedTour';

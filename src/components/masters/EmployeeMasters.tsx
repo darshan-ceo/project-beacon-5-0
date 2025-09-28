@@ -25,7 +25,7 @@ import { ImportWizard } from '@/components/importExport/ImportWizard';
 import { ExportWizard } from '@/components/importExport/ExportWizard';
 import { useAppState } from '@/contexts/AppStateContext';
 import { employeesService, Employee } from '@/services/employeesService';
-import { useRBAC } from '@/hooks/useRBAC';
+import { useRBAC } from '@/hooks/useAdvancedRBAC';
 import { featureFlagService } from '@/services/featureFlagService';
 import { 
   Plus, 

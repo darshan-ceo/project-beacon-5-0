@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useAppState } from '@/contexts/AppStateContext';
-import { useRBAC } from '@/hooks/useRBAC';
+import { useRBAC } from '@/hooks/useAdvancedRBAC';
 import { ClientCaseView } from './ClientCaseView';
 import { ClientDocumentLibrary } from './ClientDocumentLibrary';
 import { ClientHearingSchedule } from './ClientHearingSchedule';

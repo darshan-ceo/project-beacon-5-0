@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { useAppState } from '@/contexts/AppStateContext';
-import { useRBAC } from '@/hooks/useRBAC';
-import { ProtectedComponent } from '@/hooks/useRBAC';
+import { useRBAC } from '@/hooks/useAdvancedRBAC';
+import { ProtectedComponent } from '@/hooks/useAdvancedRBAC';
 import { HearingCalendar } from '@/components/cases/HearingCalendar';
 import { 
   Users, 

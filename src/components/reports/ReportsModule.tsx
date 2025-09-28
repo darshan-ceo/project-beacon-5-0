@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { FileText, Calendar, AlertTriangle, CheckSquare, Users, MessageSquare, Settings, Save, HelpCircle } from 'lucide-react';
 import { ContextualPageHelp } from '@/components/help/ContextualPageHelp';
-import { usePermission } from '@/hooks/useRBAC';
+import { usePermission } from '@/hooks/useAdvancedRBAC';
 
 // Import individual report tab components
 import { CaseReportsTab } from './tabs/CaseReportsTab';

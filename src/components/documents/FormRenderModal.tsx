@@ -14,7 +14,7 @@ import { FormTemplate, FormField, FormValidationError, formTemplatesService } fr
 import { reportsService } from '@/services/reportsService';
 import { useAppState } from '@/contexts/AppStateContext';
 import { useToast } from '@/hooks/use-toast';
-import { usePermission } from '@/hooks/useRBAC';
+import { usePermission } from '@/hooks/useAdvancedRBAC';
 import { AIAssistantPanel } from './AIAssistantPanel';
 import { AIDraftResult } from '@/services/aiDraftService';
 import { IssueNavigator } from '@/components/ui/issue-navigator';

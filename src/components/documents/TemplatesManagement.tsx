@@ -15,7 +15,7 @@ import { FormRenderModal } from './FormRenderModal';
 import { TemplateEditor } from './TemplateEditor';
 import { TemplateBuilder } from './TemplateBuilder';
 import { useAppState } from '@/contexts/AppStateContext';
-import { useRBAC } from '@/hooks/useRBAC';
+import { useRBAC } from '@/hooks/useAdvancedRBAC';
 import { 
   FileText, 
   Search, 

@@ -1,4 +1,4 @@
-import { UserRole, Permission } from '@/hooks/useRBAC';
+import { UserRole, Permission } from '@/hooks/useAdvancedRBAC';
 
 export interface RolePermissions {
   role: UserRole;
