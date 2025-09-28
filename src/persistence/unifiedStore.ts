@@ -11,7 +11,8 @@ import type { Case, Task, Client, Hearing, Court, Judge, Document, Employee, Fol
 export type EntityKey = 
   | 'clients' | 'contacts' | 'cases' | 'hearings' | 'courts' 
   | 'judges' | 'employees' | 'tasks' | 'documents' | 'taskBundles' 
-  | 'taskTemplates' | 'stageFootprints' | 'tags' | 'timeline' | 'folders';
+  | 'taskTemplates' | 'stageFootprints' | 'tags' | 'timeline' | 'folders'
+  | 'roles' | 'permissions' | 'userRoles' | 'policyAudit';
 
 export interface TimelineEntry {
   id: string;
@@ -66,6 +67,55 @@ export interface Contact {
   isPrimary: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+// Advanced RBAC Entities
+export interface RoleEntity {
+  id: string;
+  name: string;
+  description: string;
+  permissions: string[];
+  isActive: boolean;
+  isSystemRole: boolean;
+  tenantId?: string;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+}
+
+export interface PermissionEntity {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  resource: string;
+  action: 'read' | 'write' | 'delete' | 'admin';
+  effect: 'allow' | 'deny';
+  tenantId?: string;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+}
+
+export interface UserRoleAssignment {
+  id: string;
+  userId: string;
+  roleId: string;
+  assignedAt: string;
+  assignedBy: string;
+  expiresAt?: string;
+  isActive: boolean;
+}
+
+export interface PolicyAuditEntry {
+  id: string;
+  actorId: string;
+  action: 'create_role' | 'update_role' | 'delete_role' | 'assign_role' | 'revoke_role' | 'create_permission' | 'update_permission' | 'delete_permission';
+  before?: any;
+  after?: any;
+  timestamp: string;
+  entityType: 'role' | 'permission' | 'user_role';
+  entityId: string;
 }
 
 class UnifiedStore {
@@ -386,6 +436,59 @@ class UnifiedStore {
       getById: (id: string) => this.getById('tags', id),
       getAll: () => this.getAll('tags'),
       query: (filter?: (item: any) => boolean) => this.query('tags', filter)
+    };
+  }
+
+  // Advanced RBAC convenience methods
+  get roles() {
+    return {
+      create: (data: RoleEntity) => this.create<RoleEntity>('roles', data),
+      update: (id: string, updates: Partial<RoleEntity>) => this.update<RoleEntity>('roles', id, updates),
+      delete: (id: string) => this.delete('roles', id),
+      getById: (id: string) => this.getById<RoleEntity>('roles', id),
+      getAll: () => this.getAll<RoleEntity>('roles'),
+      query: (filter?: (item: RoleEntity) => boolean) => this.query<RoleEntity>('roles', filter),
+      getByName: (name: string) => this.query<RoleEntity>('roles', (r) => r.name === name),
+      getSystemRoles: () => this.query<RoleEntity>('roles', (r) => r.isSystemRole)
+    };
+  }
+
+  get permissions() {
+    return {
+      create: (data: PermissionEntity) => this.create<PermissionEntity>('permissions', data),
+      update: (id: string, updates: Partial<PermissionEntity>) => this.update<PermissionEntity>('permissions', id, updates),
+      delete: (id: string) => this.delete('permissions', id),
+      getById: (id: string) => this.getById<PermissionEntity>('permissions', id),
+      getAll: () => this.getAll<PermissionEntity>('permissions'),
+      query: (filter?: (item: PermissionEntity) => boolean) => this.query<PermissionEntity>('permissions', filter),
+      getByResource: (resource: string) => this.query<PermissionEntity>('permissions', (p) => p.resource === resource),
+      getByCategory: (category: string) => this.query<PermissionEntity>('permissions', (p) => p.category === category)
+    };
+  }
+
+  get userRoles() {
+    return {
+      create: (data: UserRoleAssignment) => this.create<UserRoleAssignment>('userRoles', data),
+      update: (id: string, updates: Partial<UserRoleAssignment>) => this.update<UserRoleAssignment>('userRoles', id, updates),
+      delete: (id: string) => this.delete('userRoles', id),
+      getById: (id: string) => this.getById<UserRoleAssignment>('userRoles', id),
+      getAll: () => this.getAll<UserRoleAssignment>('userRoles'),
+      query: (filter?: (item: UserRoleAssignment) => boolean) => this.query<UserRoleAssignment>('userRoles', filter),
+      getByUserId: (userId: string) => this.query<UserRoleAssignment>('userRoles', (ur) => ur.userId === userId && ur.isActive),
+      getByRoleId: (roleId: string) => this.query<UserRoleAssignment>('userRoles', (ur) => ur.roleId === roleId && ur.isActive)
+    };
+  }
+
+  get policyAudit() {
+    return {
+      create: (data: PolicyAuditEntry) => this.create<PolicyAuditEntry>('policyAudit', data),
+      update: (id: string, updates: Partial<PolicyAuditEntry>) => this.update<PolicyAuditEntry>('policyAudit', id, updates),
+      delete: (id: string) => this.delete('policyAudit', id),
+      getById: (id: string) => this.getById<PolicyAuditEntry>('policyAudit', id),
+      getAll: () => this.getAll<PolicyAuditEntry>('policyAudit'),
+      query: (filter?: (item: PolicyAuditEntry) => boolean) => this.query<PolicyAuditEntry>('policyAudit', filter),
+      getByActor: (actorId: string) => this.query<PolicyAuditEntry>('policyAudit', (a) => a.actorId === actorId),
+      getByAction: (action: PolicyAuditEntry['action']) => this.query<PolicyAuditEntry>('policyAudit', (a) => a.action === action)
     };
   }
 
