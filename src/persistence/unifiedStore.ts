@@ -106,7 +106,7 @@ export interface PermissionEntity {
   updatedAt: string;
 }
 
-export type PermissionScope = 'own' | 'team' | 'department' | 'organization';
+export type PermissionScope = 'own' | 'team' | 'org';
 
 export interface PermissionEntity {
   id: string;

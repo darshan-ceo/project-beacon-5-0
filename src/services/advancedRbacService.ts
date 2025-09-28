@@ -156,9 +156,9 @@ class AdvancedRBACService {
       effect: data.effect ?? 'allow',
       scope: data.scope ?? 'own',
       conditions: data.conditions as any,
+      isSystemPermission: false,
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      createdBy: this.currentActorId
+      updatedAt: new Date().toISOString()
     };
 
     const created = await unifiedStore.permissions.create(permission);

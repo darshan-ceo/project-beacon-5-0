@@ -417,10 +417,11 @@ export const secureDataAccess = {
       console.error(`Secure get failed for ${resource} ${itemId}:`, error);
       return null;
     }
-    // Missing method - add placeholder
-    async checkPermission(userId: string, resource: string, action: string): Promise<boolean> {
-      // Simplified check for demo
-      return true;
-    }
+  },
+
+  // Missing method - add placeholder
+  async checkPermission(userId: string, resource: string, action: string): Promise<boolean> {
+    // Simplified check for demo
+    return true;
   }
 };

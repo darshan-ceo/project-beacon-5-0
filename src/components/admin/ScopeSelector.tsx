@@ -40,15 +40,7 @@ export const ScopeSelector: React.FC<ScopeSelectorProps> = ({
       examples: ['Team cases', 'Subordinate tasks', 'Team documents']
     },
     {
-      value: 'department' as PermissionScope,
-      label: 'Department',
-      description: 'Access to department-wide records',
-      icon: Building,
-      color: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
-      examples: ['Department cases', 'Department analytics', 'Shared documents']
-    },
-    {
-      value: 'organization' as PermissionScope,
+      value: 'org' as PermissionScope,
       label: 'Organization',
       description: 'Access to all organizational records',
       icon: Globe,
@@ -60,7 +52,7 @@ export const ScopeSelector: React.FC<ScopeSelectorProps> = ({
   const currentScopeOption = scopeOptions.find(option => option.value === scope);
 
   const getScopeImpact = (selectedScope: PermissionScope) => {
-    const scopeHierarchy = ['own', 'team', 'department', 'organization'];
+    const scopeHierarchy = ['own', 'team', 'org'];
     const selectedIndex = scopeHierarchy.indexOf(selectedScope);
     
     let accessLevel = '';
@@ -75,11 +67,7 @@ export const ScopeSelector: React.FC<ScopeSelectorProps> = ({
         accessLevel = 'Limited';
         dataAccess = 'Personal + direct reports';
         break;
-      case 'department':
-        accessLevel = 'Moderate';  
-        dataAccess = 'Department-wide access';
-        break;
-      case 'organization':
+      case 'org':
         accessLevel = 'Full';
         dataAccess = 'Organization-wide access';
         break;

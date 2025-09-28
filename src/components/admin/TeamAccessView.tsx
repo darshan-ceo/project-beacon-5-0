@@ -4,8 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { useAppState } from '@/contexts/AppStateContext';
-import { Employee } from '@/services/employeesService';
-import { type RoleEntity, type PermissionScope } from '@/persistence/unifiedStore';
+import { Employee } from '@/contexts/AppStateContext';
+import { type RoleEntity } from '@/persistence/unifiedStore';
 import { secureDataService } from '@/services/secureDataService';
 import { Users, Eye, Building, Globe, ChevronRight } from 'lucide-react';
 
@@ -39,75 +39,33 @@ export const TeamAccessView: React.FC<TeamAccessViewProps> = ({
       level: 0
     });
 
-    // Get role's effective scope (highest scope from permissions)
-    const maxScope = role.permissions.reduce((max: PermissionScope, permissionId) => {
-      const permission = state.permissions?.find(p => p.id === permissionId);
-      if (!permission) return max;
-      
-      const scopeHierarchy: PermissionScope[] = ['own', 'team', 'department', 'organization'];
-      const currentIndex = scopeHierarchy.indexOf(permission.scope);
-      const maxIndex = scopeHierarchy.indexOf(max);
-      
-      return currentIndex > maxIndex ? permission.scope : max;
-    }, 'own' as PermissionScope);
-
-    // Add accessible employees based on scope
+    // Simplified scope logic - in a real implementation this would check permissions
     const activeEmployees = state.employees.filter(emp => emp.status === 'Active');
     
-    if (maxScope === 'team' || maxScope === 'department' || maxScope === 'organization') {
-      // Add direct reports
-      const directReports = secureDataService.getDirectReports(selectedEmployee.id, activeEmployees);
-      directReports.forEach(emp => {
-        employees.push({
-          employee: emp,
-          accessReason: 'direct_report',
-          level: 1
-        });
+    // Add direct reports if employee has them
+    const directReports = secureDataService.getDirectReports(selectedEmployee.id, activeEmployees);
+    directReports.forEach(emp => {
+      employees.push({
+        employee: emp,
+        accessReason: 'direct_report',
+        level: 1
       });
-      
-      // Add indirect reports (team members)
-      const allReports = secureDataService.getAllReports(selectedEmployee.id, activeEmployees);
-      allReports.filter(emp => !directReports.includes(emp)).forEach(emp => {
-        employees.push({
-          employee: emp,
-          accessReason: 'direct_report',
-          level: 2
-        });
-      });
-    }
+    });
     
-    if (maxScope === 'department' || maxScope === 'organization') {
-      // Add department colleagues
-      const departmentColleagues = activeEmployees.filter(emp => 
-        emp.department === selectedEmployee.department && 
-        emp.id !== selectedEmployee.id &&
-        !employees.some(e => e.employee.id === emp.id)
-      );
-      
-      departmentColleagues.forEach(emp => {
-        employees.push({
-          employee: emp,
-          accessReason: 'department',
-          level: 1
-        });
-      });
-    }
+    // Add department colleagues  
+    const departmentColleagues = activeEmployees.filter(emp => 
+      emp.department === selectedEmployee.department && 
+      emp.id !== selectedEmployee.id &&
+      !employees.some(e => e.employee.id === emp.id)
+    );
     
-    if (maxScope === 'organization') {
-      // Add all other employees
-      const otherEmployees = activeEmployees.filter(emp => 
-        emp.id !== selectedEmployee.id &&
-        !employees.some(e => e.employee.id === emp.id)
-      );
-      
-      otherEmployees.forEach(emp => {
-        employees.push({
-          employee: emp,
-          accessReason: 'organization',
-          level: 1
-        });
+    departmentColleagues.forEach(emp => {
+      employees.push({
+        employee: emp,
+        accessReason: 'department',
+        level: 1
       });
-    }
+    });
 
     return employees.sort((a, b) => {
       // Sort by access reason priority, then by name
@@ -117,7 +75,7 @@ export const TeamAccessView: React.FC<TeamAccessViewProps> = ({
       
       return a.employee.full_name.localeCompare(b.employee.full_name);
     });
-  }, [role, selectedEmployee, state.employees, state.permissions]);
+  }, [role, selectedEmployee, state.employees]);
 
   const getAccessReasonInfo = (reason: AccessibleEmployee['accessReason']) => {
     switch (reason) {

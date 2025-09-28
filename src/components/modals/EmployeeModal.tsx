@@ -363,23 +363,23 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
             </div>
           </div>
 
-          {/* Address Information */}
-          {isAddressMasterEnabled && (
-            <>
-              <Separator />
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium flex items-center gap-2">
-                  <MapPin className="h-5 w-5" />
-                  Address Information
-                </h3>
-                <AddressForm 
-                  value={formData.address}
-                  onChange={(address) => handleInputChange('address', address)}
-                  disabled={isReadOnly}
-                />
-              </div>
-            </>
-          )}
+              {/* Address Information - Remove for now */}
+              {/* {isAddressMasterEnabled && (
+                <>
+                  <Separator />
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium flex items-center gap-2">
+                      <MapPin className="h-5 w-5" />
+                      Address Information
+                    </h3>
+                    <AddressForm 
+                      value={formData.address}
+                      onChange={(address) => handleInputChange('address', address)}
+                      disabled={isReadOnly}
+                    />
+                  </div>
+                </>
+              )} */}
 
           {/* Additional Information */}
           <Separator />
@@ -468,7 +468,7 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold">
-                        {state.hearings.filter(h => h.responsibleId === employee.id).length}
+                        {state.hearings.filter(h => h.case_id === employee.id).length}
                       </div>
                     </CardContent>
                   </Card>

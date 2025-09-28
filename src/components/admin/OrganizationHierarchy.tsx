@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useAppState } from '@/contexts/AppStateContext';
-import { Employee } from '@/services/employeesService';
+import { Employee } from '@/contexts/AppStateContext';
 import { Users, Building2, ChevronDown, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 
