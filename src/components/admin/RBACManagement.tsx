@@ -35,6 +35,7 @@ import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 import { type RoleEntity, type PermissionEntity, type PolicyAuditEntry } from '@/persistence/unifiedStore';
 import { RoleBuilder } from './RoleBuilder';
 import { UserRoleAssignment } from './UserRoleAssignment';
+import { PermissionsMatrix } from './PermissionsMatrix';
 
 interface EnhancedUser {
   id: string;
@@ -83,6 +84,8 @@ export const RBACManagement: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
+      console.log('🔄 Loading RBAC data...');
+      
       const [rolesData, permissionsData, auditData, analyticsData] = await Promise.all([
         advancedRbacService.getAllRoles(),
         advancedRbacService.getAllPermissions(),
@@ -90,13 +93,19 @@ export const RBACManagement: React.FC = () => {
         advancedRbacService.getRoleAnalytics()
       ]);
       
+      console.log('📊 RBAC Data loaded:', {
+        roles: rolesData.length,
+        permissions: permissionsData.length,
+        auditEntries: auditData.length
+      });
+      
       setRoles(rolesData);
       setPermissions(permissionsData);
       setAuditLog(auditData);
       setAnalytics(analyticsData);
     } catch (error) {
       console.error('Failed to load RBAC data:', error);
-      toast.error('Failed to load RBAC data');
+      toast.error(`Failed to load RBAC data: ${error.message || error}`);
     } finally {
       setLoading(false);
     }
@@ -235,16 +244,14 @@ export const RBACManagement: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="permissions">
-          <Card>
-            <CardHeader>
-              <CardTitle>Permissions Matrix</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-muted-foreground">
-                🚧 Coming with API - Advanced permissions matrix view
-              </div>
-            </CardContent>
-          </Card>
+          <PermissionsMatrix
+            roles={roles}
+            permissions={permissions}
+            onRoleUpdate={(updatedRole) => {
+              setRoles(prev => prev.map(r => r.id === updatedRole.id ? updatedRole : r));
+            }}
+            onRefresh={loadData}
+          />
         </TabsContent>
 
         <TabsContent value="analytics">

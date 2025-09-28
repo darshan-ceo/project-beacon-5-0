@@ -263,6 +263,55 @@ export interface Folder {
   description?: string;
 }
 
+// RBAC Entity Interfaces
+export interface RoleEntity {
+  id: string;
+  name: string;
+  description: string;
+  permissions: string[];
+  isActive: boolean;
+  isSystemRole: boolean;
+  tenantId?: string;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+}
+
+export interface PermissionEntity {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  resource: string;
+  action: 'read' | 'write' | 'delete' | 'admin';
+  effect: 'allow' | 'deny';
+  tenantId?: string;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+}
+
+export interface UserRoleAssignment {
+  id: string;
+  userId: string;
+  roleId: string;
+  assignedAt: string;
+  assignedBy: string;
+  expiresAt?: string;
+  isActive: boolean;
+}
+
+export interface PolicyAuditEntry {
+  id: string;
+  actorId: string;
+  action: 'create_role' | 'update_role' | 'delete_role' | 'assign_role' | 'revoke_role' | 'create_permission' | 'update_permission' | 'delete_permission';
+  entityType: 'role' | 'permission' | 'user_role';
+  entityId: string;
+  before?: any;
+  after?: any;
+  timestamp: string;
+}
+
 // Database Class
 export class HofficeDB extends Dexie {
   // Entity Tables
@@ -277,6 +326,12 @@ export class HofficeDB extends Dexie {
   documents!: Table<Document>;
   attachments!: Table<Attachment>;
   folders!: Table<Folder>;
+  
+  // RBAC Tables
+  roles!: Table<RoleEntity>;
+  permissions!: Table<PermissionEntity>;
+  user_roles!: Table<UserRoleAssignment>;
+  policy_audit!: Table<PolicyAuditEntry>;
   
   // Metadata Tables
   tags!: Table<Tag>;
@@ -330,6 +385,35 @@ export class HofficeDB extends Dexie {
         }
       });
     });
+
+    // Migration for v3 - Add RBAC tables
+    this.version(3).stores({
+      clients: 'id, display_name, gstin, city, state, created_at',
+      cases: 'id, client_id, stage_code, status, opened_on, updated_at, case_number',
+      notices: 'id, case_id, type_code, notice_no, notice_date, due_date, status',
+      replies: 'id, notice_id, reply_date, status',
+      hearings: 'id, case_id, hearing_date, judge_id, outcome_code, next_hearing_date, status',
+      tasks: 'id, case_id, assigned_to, due_date, status, priority, [related_entity_type+related_entity_id], bundle_id, is_auto_generated',
+      task_bundles: 'id, stage_code, trigger, active, name, stages, execution_mode, version, usage_count',
+      task_bundle_items: 'id, bundle_id, order_index, assigned_role, category, due_offset',
+      documents: 'id, case_id, doc_type_code, version, status, added_on, folder_id',
+      attachments: 'id, owner_type, owner_id, filename, mime, size, hash, created_at',
+      folders: 'id, name, parent_id, path, is_default',
+      tags: 'id, name',
+      entity_tags: 'id, entity_type, entity_id, tag_id, [entity_type+entity_id]',
+      courts: 'id, name, level, city, state',
+      judges: 'id, name, court_id',
+      employees: 'id, name, email, role_id, active',
+      audit_logs: 'id, entity_type, entity_id, at, actor_user_id',
+      settings: 'id, key',
+      sync_queue: 'id, entity_type, entity_id, operation, queued_at',
+      migration_meta: '++id, schema_version, applied_at',
+      // RBAC Tables
+      roles: 'id, name, isActive, isSystemRole, createdAt',
+      permissions: 'id, name, category, resource, action, effect, createdAt',
+      user_roles: 'id, userId, roleId, isActive, assignedAt',
+      policy_audit: 'id, actorId, action, entityType, entityId, timestamp'
+    });
   }
 }
 
@@ -372,4 +456,4 @@ export const getCurrentSchemaVersion = async (): Promise<number> => {
 };
 
 // Export current database schema version for validation
-export const CURRENT_SCHEMA_VERSION = 2;
+export const CURRENT_SCHEMA_VERSION = 3;
