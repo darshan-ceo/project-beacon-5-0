@@ -171,9 +171,9 @@ class DemoDataSeeder {
       }
     ];
 
-    // Create employees in database
+    // Create employees in database with extended properties
     for (const employee of employees) {
-      await unifiedStore.employees.create(employee);
+      await unifiedStore.employees.create(employee as any); // Cast to support extended properties
     }
 
     console.log(`✅ Created ${employees.length} employees with organizational hierarchy`);
@@ -187,65 +187,59 @@ class DemoDataSeeder {
     console.log('💼 Seeding business entities...');
 
     // Seed Clients
-    const clients: Client[] = [
+    const clients: any[] = [
       {
         id: 'client-001',
         name: 'TechCorp Solutions Ltd',
+        type: 'Company',
         email: 'contact@techcorp.com',
         phone: '+1-555-2001',
         address: '123 Technology Blvd, Tech City, TC 10001',
         gstin: '29ABCDE1234F1Z5',
+        pan: 'ABCDE1234F',
         panNumber: 'ABCDE1234F',
         registrationDate: '2020-05-15',
         status: 'Active',
         assignedCAId: 'emp-002', // Michael Chen manages this client
         assignedCAName: 'Michael Chen',
-        notes: 'Large technology company with complex tax requirements',
-        contactPerson1: 'John Smith',
-        contactPerson2: 'Jane Doe',
-        category: 'Regular Dealer',
-        segment: 'Large Enterprise'
+        category: 'Regular Dealer'
       },
       {
         id: 'client-002',
         name: 'Green Energy Solutions',
+        type: 'Company',
         email: 'info@greenenergy.com',
         phone: '+1-555-2002',
         address: '456 Renewable Ave, Eco City, EC 20002',
         gstin: '27FGHIJ5678K2L6',
+        pan: 'FGHIJ5678K',
         panNumber: 'FGHIJ5678K',
         registrationDate: '2021-03-20',
         status: 'Active',
         assignedCAId: 'emp-003', // Priya Sharma handles litigation
         assignedCAName: 'Priya Sharma',
-        notes: 'Renewable energy company with regulatory compliance needs',
-        contactPerson1: 'Robert Green',
-        contactPerson2: 'Alice Brown',
-        category: 'Regular Dealer',
-        segment: 'Mid Market'
+        category: 'Regular Dealer'
       },
       {
         id: 'client-003',
         name: 'Local Retail Chain',
+        type: 'Company',
         email: 'manager@retailchain.com',
         phone: '+1-555-2003',
         address: '789 Commerce St, Retail City, RC 30003',
         gstin: '33MNOPQ9012R3S7',
+        pan: 'MNOPQ9012R',
         panNumber: 'MNOPQ9012R',
         registrationDate: '2022-01-10',
         status: 'Active',
         assignedCAId: 'emp-004', // David Wilson (staff level)
         assignedCAName: 'David Wilson',
-        notes: 'Small retail chain with basic compliance needs',
-        contactPerson1: 'Mark Johnson',
-        contactPerson2: 'Susan Lee',
-        category: 'Composition',
-        segment: 'Small Business'
+        category: 'Composition'
       }
     ];
 
     for (const client of clients) {
-      await unifiedStore.clients.create(client);
+      await unifiedStore.clients.create(client as any); // Cast to support additional properties
     }
 
     // Seed Cases with proper ownership chain

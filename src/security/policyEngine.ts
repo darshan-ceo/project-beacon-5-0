@@ -5,7 +5,23 @@
 
 import { unifiedStore, type PermissionEntity, type RoleEntity } from '@/persistence/unifiedStore';
 import { advancedRbacService } from '@/services/advancedRbacService';
-import { type Employee } from '@/services/employeesService';
+
+// Extended Employee interface for RBAC with hierarchy
+interface ExtendedEmployee {
+  id: string;
+  full_name: string;
+  role: 'Partner' | 'CA' | 'Advocate' | 'Staff' | 'RM' | 'Finance' | 'Admin';
+  email: string;
+  mobile?: string;
+  status: 'Active' | 'Inactive';
+  date_of_joining?: string;
+  notes?: string;
+  department: string;
+  workloadCapacity: number;
+  specialization?: string[];
+  managerId?: string; // For organizational hierarchy
+  tenantId?: string; // For multi-tenant support
+}
 
 export interface ScopeContext {
   userId: string;
@@ -54,7 +70,7 @@ class PolicyEngine {
     try {
       // Get user's employee record
       const employees = await unifiedStore.employees.getAll();
-      const employee = employees.find((emp: any) => emp.id === userId);
+      const employee = employees.find((emp: any) => emp.id === userId) as ExtendedEmployee;
       
       if (!employee) {
         throw new Error(`Employee not found for user: ${userId}`);
@@ -67,7 +83,7 @@ class PolicyEngine {
       
       while (currentManagerId && !visited.has(currentManagerId)) {
         visited.add(currentManagerId);
-        const manager = employees.find((emp: any) => emp.id === currentManagerId);
+        const manager = employees.find((emp: any) => emp.id === currentManagerId) as ExtendedEmployee;
         if (manager) {
           managerChain.push(currentManagerId);
           currentManagerId = manager.managerId;
@@ -77,7 +93,7 @@ class PolicyEngine {
       }
 
       // Find direct and indirect reportees (downward hierarchy)
-      const reporteeIds = this.findAllReportees(userId, employees);
+      const reporteeIds = this.findAllReportees(userId, employees as ExtendedEmployee[]);
 
       const context: ScopeContext = {
         userId,
@@ -111,7 +127,7 @@ class PolicyEngine {
   /**
    * Find all direct and indirect reportees
    */
-  private findAllReportees(managerId: string, employees: any[]): string[] {
+  private findAllReportees(managerId: string, employees: ExtendedEmployee[]): string[] {
     const reportees = new Set<string>();
     const visited = new Set<string>();
 
@@ -120,7 +136,7 @@ class PolicyEngine {
       visited.add(currentManagerId);
 
       // Find direct reports
-      const directReports = employees.filter((emp: any) => 
+      const directReports = employees.filter((emp: ExtendedEmployee) => 
         emp.managerId === currentManagerId && emp.status === 'Active'
       );
 
