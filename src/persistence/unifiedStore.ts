@@ -123,7 +123,6 @@ export interface PermissionEntity {
   createdAt: string;
   updatedAt: string;
 }
-}
 
 export interface UserRoleAssignment {
   id: string;
