@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useAppState } from '@/contexts/AppStateContext';
-import { useRBAC } from '@/hooks/useRBAC';
+import { useRBAC } from '@/hooks/useAdvancedRBAC';
 import { reportsService } from '@/services/reportsService';
 import { toast } from '@/hooks/use-toast';
 import { 
