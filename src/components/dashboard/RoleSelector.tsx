@@ -1,5 +1,5 @@
 import React from 'react';
-import { UserRole, useRBAC } from '@/hooks/useRBAC';
+import { UserRole, useRBAC } from '@/hooks/useAdvancedRBAC';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
