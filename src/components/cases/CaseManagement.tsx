@@ -20,7 +20,7 @@ import {
   Check,
   HelpCircle
 } from 'lucide-react';
-import { useRBAC } from '@/hooks/useAdvancedRBAC';
+import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 import { casesService } from '@/services/casesService';
 import { getNextStage, validateStagePrerequisites, generateStageDefaults } from '@/utils/stageUtils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -56,7 +56,7 @@ import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 
 export const CaseManagement: React.FC = () => {
   const { state, dispatch } = useAppState();
-  const { hasPermission } = useRBAC();
+  const { hasPermission } = useAdvancedRBAC();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
