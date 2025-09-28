@@ -83,6 +83,13 @@ export interface RoleEntity {
   createdBy: string;
 }
 
+export interface FilterCondition {
+  field: string;
+  op: 'eq' | 'in' | 'ne' | 'lte' | 'gte';
+  value?: any;
+  ctx?: 'user' | 'org' | 'now';
+}
+
 export interface PermissionEntity {
   id: string;
   name: string;
@@ -91,6 +98,8 @@ export interface PermissionEntity {
   resource: string;
   action: 'read' | 'write' | 'delete' | 'admin';
   effect: 'allow' | 'deny';
+  scope: 'own' | 'team' | 'org';
+  conditions?: FilterCondition[];
   tenantId?: string;
   createdAt: string;
   updatedAt: string;

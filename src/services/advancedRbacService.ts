@@ -20,6 +20,8 @@ export interface CreatePermissionData {
   resource: string;
   action: 'read' | 'write' | 'delete' | 'admin';
   effect?: 'allow' | 'deny';
+  scope?: 'own' | 'team' | 'org';
+  conditions?: Array<{ field: string; op: string; value?: any; ctx?: string }>;
 }
 
 export interface AssignRoleData {
@@ -152,6 +154,8 @@ class AdvancedRBACService {
       resource: data.resource,
       action: data.action,
       effect: data.effect ?? 'allow',
+      scope: data.scope ?? 'own',
+      conditions: data.conditions as any,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       createdBy: this.currentActorId
@@ -293,42 +297,56 @@ class AdvancedRBACService {
 
       console.log('🌱 Seeding default RBAC data...');
 
-      // Create default permissions
+      // Create scope-aware default permissions
       const defaultPermissions = [
-        // Cases
-        { name: 'cases.read', category: 'Cases', description: 'View cases', resource: 'cases', action: 'read' as const },
-        { name: 'cases.write', category: 'Cases', description: 'Create and edit cases', resource: 'cases', action: 'write' as const },
-        { name: 'cases.delete', category: 'Cases', description: 'Delete cases', resource: 'cases', action: 'delete' as const },
-        { name: 'cases.admin', category: 'Cases', description: 'Full case administration', resource: 'cases', action: 'admin' as const },
+        // Cases - Scope-aware
+        { name: 'cases.read.own', category: 'Cases', description: 'View own cases', resource: 'cases', action: 'read' as const, scope: 'own' as const },
+        { name: 'cases.read.team', category: 'Cases', description: 'View team cases', resource: 'cases', action: 'read' as const, scope: 'team' as const },
+        { name: 'cases.read.org', category: 'Cases', description: 'View all cases', resource: 'cases', action: 'read' as const, scope: 'org' as const },
+        { name: 'cases.write.own', category: 'Cases', description: 'Edit own cases', resource: 'cases', action: 'write' as const, scope: 'own' as const },
+        { name: 'cases.write.team', category: 'Cases', description: 'Edit team cases', resource: 'cases', action: 'write' as const, scope: 'team' as const },
+        { name: 'cases.write.org', category: 'Cases', description: 'Edit all cases', resource: 'cases', action: 'write' as const, scope: 'org' as const },
+        { name: 'cases.delete.team', category: 'Cases', description: 'Delete team cases', resource: 'cases', action: 'delete' as const, scope: 'team' as const },
+        { name: 'cases.admin.org', category: 'Cases', description: 'Full case administration', resource: 'cases', action: 'admin' as const, scope: 'org' as const },
         
-        // Clients
-        { name: 'clients.read', category: 'Clients', description: 'View clients', resource: 'clients', action: 'read' as const },
-        { name: 'clients.write', category: 'Clients', description: 'Create and edit clients', resource: 'clients', action: 'write' as const },
-        { name: 'clients.delete', category: 'Clients', description: 'Delete clients', resource: 'clients', action: 'delete' as const },
-        { name: 'clients.admin', category: 'Clients', description: 'Full client administration', resource: 'clients', action: 'admin' as const },
+        // Clients - Scope-aware  
+        { name: 'clients.read.own', category: 'Clients', description: 'View own clients', resource: 'clients', action: 'read' as const, scope: 'own' as const },
+        { name: 'clients.read.team', category: 'Clients', description: 'View team clients', resource: 'clients', action: 'read' as const, scope: 'team' as const },
+        { name: 'clients.read.org', category: 'Clients', description: 'View all clients', resource: 'clients', action: 'read' as const, scope: 'org' as const },
+        { name: 'clients.write.own', category: 'Clients', description: 'Edit own clients', resource: 'clients', action: 'write' as const, scope: 'own' as const },
+        { name: 'clients.write.team', category: 'Clients', description: 'Edit team clients', resource: 'clients', action: 'write' as const, scope: 'team' as const },
+        { name: 'clients.write.org', category: 'Clients', description: 'Edit all clients', resource: 'clients', action: 'write' as const, scope: 'org' as const },
+        { name: 'clients.admin.org', category: 'Clients', description: 'Full client administration', resource: 'clients', action: 'admin' as const, scope: 'org' as const },
         
-        // Documents
-        { name: 'documents.read', category: 'Documents', description: 'View documents', resource: 'documents', action: 'read' as const },
-        { name: 'documents.write', category: 'Documents', description: 'Upload and edit documents', resource: 'documents', action: 'write' as const },
-        { name: 'documents.delete', category: 'Documents', description: 'Delete documents', resource: 'documents', action: 'delete' as const },
-        { name: 'documents.admin', category: 'Documents', description: 'Full document administration', resource: 'documents', action: 'admin' as const },
+        // Documents - Scope-aware
+        { name: 'documents.read.own', category: 'Documents', description: 'View own documents', resource: 'documents', action: 'read' as const, scope: 'own' as const },
+        { name: 'documents.read.team', category: 'Documents', description: 'View team documents', resource: 'documents', action: 'read' as const, scope: 'team' as const },
+        { name: 'documents.read.org', category: 'Documents', description: 'View all documents', resource: 'documents', action: 'read' as const, scope: 'org' as const },
+        { name: 'documents.write.own', category: 'Documents', description: 'Upload own documents', resource: 'documents', action: 'write' as const, scope: 'own' as const },
+        { name: 'documents.write.team', category: 'Documents', description: 'Upload team documents', resource: 'documents', action: 'write' as const, scope: 'team' as const },
+        { name: 'documents.admin.org', category: 'Documents', description: 'Full document administration', resource: 'documents', action: 'admin' as const, scope: 'org' as const },
         
-        // Tasks
-        { name: 'tasks.read', category: 'Tasks', description: 'View tasks', resource: 'tasks', action: 'read' as const },
-        { name: 'tasks.write', category: 'Tasks', description: 'Create and edit tasks', resource: 'tasks', action: 'write' as const },
-        { name: 'tasks.delete', category: 'Tasks', description: 'Delete tasks', resource: 'tasks', action: 'delete' as const },
-        { name: 'tasks.admin', category: 'Tasks', description: 'Full task administration', resource: 'tasks', action: 'admin' as const },
+        // Tasks - Scope-aware
+        { name: 'tasks.read.own', category: 'Tasks', description: 'View own tasks', resource: 'tasks', action: 'read' as const, scope: 'own' as const },
+        { name: 'tasks.read.team', category: 'Tasks', description: 'View team tasks', resource: 'tasks', action: 'read' as const, scope: 'team' as const },
+        { name: 'tasks.read.org', category: 'Tasks', description: 'View all tasks', resource: 'tasks', action: 'read' as const, scope: 'org' as const },
+        { name: 'tasks.write.own', category: 'Tasks', description: 'Edit own tasks', resource: 'tasks', action: 'write' as const, scope: 'own' as const },
+        { name: 'tasks.write.team', category: 'Tasks', description: 'Edit team tasks', resource: 'tasks', action: 'write' as const, scope: 'team' as const },
+        { name: 'tasks.write.org', category: 'Tasks', description: 'Edit all tasks', resource: 'tasks', action: 'write' as const, scope: 'org' as const },
+        { name: 'tasks.admin.org', category: 'Tasks', description: 'Full task administration', resource: 'tasks', action: 'admin' as const, scope: 'org' as const },
         
-        // Hearings
-        { name: 'hearings.read', category: 'Hearings', description: 'View hearings', resource: 'hearings', action: 'read' as const },
-        { name: 'hearings.write', category: 'Hearings', description: 'Schedule and edit hearings', resource: 'hearings', action: 'write' as const },
-        { name: 'hearings.delete', category: 'Hearings', description: 'Delete hearings', resource: 'hearings', action: 'delete' as const },
-        { name: 'hearings.admin', category: 'Hearings', description: 'Full hearing administration', resource: 'hearings', action: 'admin' as const },
+        // Hearings - Scope-aware
+        { name: 'hearings.read.own', category: 'Hearings', description: 'View own hearings', resource: 'hearings', action: 'read' as const, scope: 'own' as const },
+        { name: 'hearings.read.team', category: 'Hearings', description: 'View team hearings', resource: 'hearings', action: 'read' as const, scope: 'team' as const },
+        { name: 'hearings.read.org', category: 'Hearings', description: 'View all hearings', resource: 'hearings', action: 'read' as const, scope: 'org' as const },
+        { name: 'hearings.write.team', category: 'Hearings', description: 'Schedule team hearings', resource: 'hearings', action: 'write' as const, scope: 'team' as const },
+        { name: 'hearings.write.org', category: 'Hearings', description: 'Schedule all hearings', resource: 'hearings', action: 'write' as const, scope: 'org' as const },
+        { name: 'hearings.admin.org', category: 'Hearings', description: 'Full hearing administration', resource: 'hearings', action: 'admin' as const, scope: 'org' as const },
         
         // System
-        { name: 'system.settings', category: 'System', description: 'Manage system settings', resource: 'system', action: 'admin' as const },
-        { name: 'system.rbac', category: 'System', description: 'Manage roles and permissions', resource: 'rbac', action: 'admin' as const },
-        { name: 'system.audit', category: 'System', description: 'View audit logs', resource: 'audit', action: 'read' as const }
+        { name: 'system.settings', category: 'System', description: 'Manage system settings', resource: 'system', action: 'admin' as const, scope: 'org' as const },
+        { name: 'system.rbac', category: 'System', description: 'Manage roles and permissions', resource: 'rbac', action: 'admin' as const, scope: 'org' as const },
+        { name: 'system.audit', category: 'System', description: 'View audit logs', resource: 'audit', action: 'read' as const, scope: 'org' as const }
       ];
 
       const permissions: PermissionEntity[] = [];
@@ -336,40 +354,50 @@ class AdvancedRBACService {
         permissions.push(await this.createPermission(perm));
       }
 
-      // Create default roles
+      // Create scope-aware default roles
       const defaultRoles: Array<CreateRoleData & { isSystemRole: boolean }> = [
         {
           name: 'SuperAdmin',
-          description: 'Full system access with all administrative privileges',
+          description: 'Full system access with organizational scope',
           permissions: permissions.map(p => p.id),
           isSystemRole: true
         },
         {
           name: 'Admin',
-          description: 'Administrative access excluding super admin functions',
-          permissions: permissions.filter(p => !p.name.includes('system.rbac')).map(p => p.id),
+          description: 'Administrative access with organizational scope for most resources',
+          permissions: permissions.filter(p => 
+            !p.name.includes('system.rbac') && 
+            (p.scope === 'org' || (p.scope === 'team' && p.action !== 'delete'))
+          ).map(p => p.id),
           isSystemRole: true
         },
         {
           name: 'Manager',
-          description: 'Senior legal professional with case and client management',
+          description: 'Team lead with team scope for cases, clients, and documents',
           permissions: permissions.filter(p => 
-            p.resource === 'cases' || p.resource === 'clients' || p.resource === 'documents' || p.resource === 'hearings'
+            (p.resource === 'cases' && p.scope === 'team') ||
+            (p.resource === 'clients' && p.scope === 'team') ||
+            (p.resource === 'documents' && p.scope === 'team') ||
+            (p.resource === 'hearings' && p.scope === 'team') ||
+            (p.resource === 'tasks' && p.scope === 'org' && p.action === 'read')
           ).map(p => p.id),
           isSystemRole: true
         },
         {
           name: 'Staff',
-          description: 'Legal staff with limited access to assigned work',
+          description: 'Legal staff with own scope for assigned work',
           permissions: permissions.filter(p => 
-            p.action === 'read' || (p.action === 'write' && p.resource === 'tasks')
+            (p.scope === 'own' && (p.action === 'read' || p.action === 'write')) ||
+            (p.resource === 'documents' && p.scope === 'team' && p.action === 'read')
           ).map(p => p.id),
           isSystemRole: true
         },
         {
           name: 'ReadOnly',
-          description: 'Read-only access to basic information',
-          permissions: permissions.filter(p => p.action === 'read').map(p => p.id),
+          description: 'Read-only access with own scope',
+          permissions: permissions.filter(p => 
+            p.action === 'read' && p.scope === 'own'
+          ).map(p => p.id),
           isSystemRole: true
         }
       ];

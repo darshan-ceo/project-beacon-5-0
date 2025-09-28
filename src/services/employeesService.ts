@@ -13,6 +13,8 @@ export interface Employee {
   department: string;
   workloadCapacity: number;
   specialization?: string[];
+  managerId?: string; // For organizational hierarchy
+  tenantId?: string; // For multi-tenant support
 }
 
 // Validation helper
