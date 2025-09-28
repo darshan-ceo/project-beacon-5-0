@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,13 +11,22 @@ import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAppState } from '@/contexts/AppStateContext';
 import { employeesService, Employee } from '@/services/employeesService';
-import { toast } from '@/hooks/use-toast';
-import { AddressForm } from '@/components/ui/AddressForm';
-import { AddressView } from '@/components/ui/AddressView';
-import { EnhancedAddressData, addressMasterService } from '@/services/addressMasterService';
 import { featureFlagService } from '@/services/featureFlagService';
-import { Mail, Phone, Calendar, MapPin, User, Building, X } from 'lucide-react';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
+import { AddressForm } from '@/components/ui/AddressForm';
+import { 
+  User, 
+  Mail, 
+  Phone, 
+  Calendar, 
+  Building, 
+  MapPin,
+  Plus,
+  X,
+  Eye,
+  Users
+} from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 interface EmployeeModalProps {
   isOpen: boolean;
@@ -33,7 +42,11 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
   mode
 }) => {
   const { state, dispatch } = useAppState();
-  const [formData, setFormData] = useState<Partial<Employee & { address?: EnhancedAddressData; addressId?: string }>>({
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [specializationInput, setSpecializationInput] = useState('');
+  const [isAddressMasterEnabled, setIsAddressMasterEnabled] = useState(false);
+
+  const [formData, setFormData] = useState<Partial<Employee>>({
     full_name: '',
     role: 'Staff',
     email: '',
@@ -44,26 +57,16 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
     department: 'General',
     workloadCapacity: 40,
     specialization: [],
-    address: {
-      line1: '',
-      line2: '',
-      locality: '',
-      district: '',
-      cityId: '',
-      stateId: '',
-      pincode: '',
-      countryId: 'IN',
-      source: 'manual'
-    } as EnhancedAddressData
+    managerId: undefined
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [specializationInput, setSpecializationInput] = useState('');
-  const [isAddressMasterEnabled, setIsAddressMasterEnabled] = useState(false);
 
-  // Initialize form data
+  // Check if address master is enabled
   useEffect(() => {
     setIsAddressMasterEnabled(featureFlagService.isEnabled('address_master_v1'));
-    
+  }, []);
+
+  // Initialize form data based on mode and employee
+  useEffect(() => {
     if (mode === 'create') {
       setFormData({
         full_name: '',
@@ -75,49 +78,80 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
         notes: '',
         department: 'General',
         workloadCapacity: 40,
-        specialization: []
+        specialization: [],
+        managerId: undefined
       });
     } else if (employee) {
-      setFormData({ ...employee });
+      setFormData({
+        full_name: employee.full_name || '',
+        role: employee.role || 'Staff',
+        email: employee.email || '',
+        mobile: employee.mobile || '',
+        status: employee.status || 'Active',
+        date_of_joining: employee.date_of_joining || '',
+        notes: employee.notes || '',
+        department: employee.department || 'General',
+        workloadCapacity: employee.workloadCapacity || 40,
+        specialization: employee.specialization || [],
+        managerId: employee.managerId || undefined
+      });
     }
-  }, [employee, mode, isOpen]);
+  }, [mode, employee]);
 
-  // Get unique departments from existing employees
-  const departments = ['General', 'Legal', 'Finance', 'Administration', 'Operations', 'HR'];
+  // Predefined department options
+  const departments = [
+    'General', 'Legal', 'Finance', 'Operations', 'HR', 'IT', 'Marketing', 'Sales'
+  ];
 
   const handleInputChange = (field: keyof Employee, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   const handleAddSpecialization = () => {
     if (specializationInput.trim() && !formData.specialization?.includes(specializationInput.trim())) {
-      const newSpecializations = [...(formData.specialization || []), specializationInput.trim()];
-      setFormData(prev => ({ ...prev, specialization: newSpecializations }));
+      setFormData(prev => ({
+        ...prev,
+        specialization: [...(prev.specialization || []), specializationInput.trim()]
+      }));
       setSpecializationInput('');
     }
   };
 
-  const handleRemoveSpecialization = (index: number) => {
-    const newSpecializations = formData.specialization?.filter((_, i) => i !== index) || [];
-    setFormData(prev => ({ ...prev, specialization: newSpecializations }));
+  const handleRemoveSpecialization = (spec: string) => {
+    setFormData(prev => ({
+      ...prev,
+      specialization: prev.specialization?.filter(s => s !== spec) || []
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (mode === 'view') return;
+    
+    if (!formData.full_name || !formData.email || !formData.role) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsSubmitting(true);
+    
     try {
       if (mode === 'create') {
         await employeesService.create(formData, dispatch, state.employees);
-      } else {
-        await employeesService.update(employee!.id, formData, dispatch, state.employees);
+      } else if (mode === 'edit' && employee) {
+        await employeesService.update(employee.id, formData, dispatch, state.employees);
       }
       onClose();
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to save employee",
+        description: error instanceof Error ? error.message : "An error occurred",
         variant: "destructive",
       });
     } finally {
@@ -129,15 +163,12 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2">
+          <DialogTitle className="flex items-center gap-2">
             <User className="h-5 w-5" />
-            <span>
-              {mode === 'create' && 'Add New Employee'}
-              {mode === 'edit' && 'Edit Employee'}
-              {mode === 'view' && 'Employee Details'}
-            </span>
+            {mode === 'create' ? 'Add New Employee' : 
+             mode === 'edit' ? 'Edit Employee' : 'Employee Details'}
           </DialogTitle>
         </DialogHeader>
 
@@ -149,25 +180,26 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <div className="flex items-center gap-1">
-                  <Label htmlFor="full_name">
-                    Full Name <span className="text-destructive">*</span>
-                  </Label>
-                  <FieldTooltip formId="create-employee" fieldId="name" />
+                  <Label htmlFor="full_name">Full Name *</Label>
+                  <FieldTooltip formId="create-employee" fieldId="full_name" />
                 </div>
-                <Input
-                  id="full_name"
-                  value={formData.full_name || ''}
-                  onChange={(e) => handleInputChange('full_name', e.target.value)}
-                  disabled={isReadOnly}
-                  required
-                />
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    id="full_name"
+                    value={formData.full_name || ''}
+                    onChange={(e) => handleInputChange('full_name', e.target.value)}
+                    placeholder="Enter full name"
+                    required
+                    disabled={isReadOnly}
+                    className="pl-10"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center gap-1">
-                  <Label htmlFor="role">
-                    Role <span className="text-destructive">*</span>
-                  </Label>
+                  <Label htmlFor="role">Role *</Label>
                   <FieldTooltip formId="create-employee" fieldId="role" />
                 </div>
                 <Select
@@ -194,9 +226,7 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <div className="flex items-center gap-1">
-                  <Label htmlFor="email">
-                    Email <span className="text-destructive">*</span>
-                  </Label>
+                  <Label htmlFor="email">Email *</Label>
                   <FieldTooltip formId="create-employee" fieldId="email" />
                 </div>
                 <div className="relative">
@@ -206,21 +236,27 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
                     type="email"
                     value={formData.email || ''}
                     onChange={(e) => handleInputChange('email', e.target.value)}
+                    placeholder="Enter email address"
+                    required
                     disabled={isReadOnly}
                     className="pl-10"
-                    required
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="mobile">Mobile</Label>
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="mobile">Mobile</Label>
+                  <FieldTooltip formId="create-employee" fieldId="mobile" />
+                </div>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
                     id="mobile"
+                    type="tel"
                     value={formData.mobile || ''}
                     onChange={(e) => handleInputChange('mobile', e.target.value)}
+                    placeholder="Enter mobile number"
                     disabled={isReadOnly}
                     className="pl-10"
                   />
@@ -273,39 +309,83 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="managerId">Reporting To</Label>
+                <Select 
+                  value={formData.managerId || ''} 
+                  onValueChange={(value) => handleInputChange('managerId', value || undefined)}
+                  disabled={isReadOnly}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select manager" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No Manager</SelectItem>
+                    {state.employees
+                      .filter(emp => emp.status === 'Active' && emp.id !== employee?.id)
+                      .sort((a, b) => a.full_name.localeCompare(b.full_name))
+                      .map((emp) => (
+                        <SelectItem key={emp.id} value={emp.id}>
+                          {emp.full_name} ({emp.role})
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
               <div className="space-y-2">
-                <div className="flex items-center gap-1">
-                  <Label htmlFor="workloadCapacity">Workload Capacity (hours/week)</Label>
-                  <FieldTooltip formId="create-employee" fieldId="workload" />
-                </div>
+                <Label htmlFor="workloadCapacity">Workload Capacity (hours/week)</Label>
                 <Input
                   id="workloadCapacity"
                   type="number"
                   min="1"
                   max="80"
-                  value={formData.workloadCapacity || ''}
-                  onChange={(e) => handleInputChange('workloadCapacity', parseInt(e.target.value))}
+                  value={formData.workloadCapacity}
+                  onChange={(e) => handleInputChange('workloadCapacity', parseInt(e.target.value) || 40)}
                   disabled={isReadOnly}
                 />
               </div>
-
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={formData.status === 'Active'}
-                    onCheckedChange={(checked) => handleInputChange('status', checked ? 'Active' : 'Inactive')}
-                    disabled={isReadOnly}
-                  />
-                  <span className="text-sm">
-                    {formData.status === 'Active' ? 'Active' : 'Inactive'}
-                  </span>
-                </div>
-              </div>
             </div>
 
-            {/* Specializations */}
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={formData.status === 'Active'}
+                  onCheckedChange={(checked) => handleInputChange('status', checked ? 'Active' : 'Inactive')}
+                  disabled={isReadOnly}
+                />
+                <span className="text-sm text-muted-foreground">
+                  {formData.status === 'Active' ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Address Information */}
+          {isAddressMasterEnabled && (
+            <>
+              <Separator />
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium flex items-center gap-2">
+                  <MapPin className="h-5 w-5" />
+                  Address Information
+                </h3>
+                <AddressForm 
+                  value={formData.address}
+                  onChange={(address) => handleInputChange('address', address)}
+                  disabled={isReadOnly}
+                />
+              </div>
+            </>
+          )}
+
+          {/* Additional Information */}
+          <Separator />
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Additional Information</h3>
+            
             <div className="space-y-2">
               <Label>Specializations</Label>
               <div className="flex flex-wrap gap-2 mb-2">
@@ -315,7 +395,7 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
                     {!isReadOnly && (
                       <button
                         type="button"
-                        onClick={() => handleRemoveSpecialization(index)}
+                        onClick={() => handleRemoveSpecialization(spec)}
                         className="ml-1 hover:text-destructive"
                       >
                         <X className="h-3 w-3" />
@@ -325,111 +405,90 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
                 ))}
               </div>
               {!isReadOnly && (
-                <div className="flex space-x-2">
+                <div className="flex gap-2">
                   <Input
-                    placeholder="Add specialization..."
                     value={specializationInput}
                     onChange={(e) => setSpecializationInput(e.target.value)}
+                    placeholder="Add specialization"
                     onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSpecialization())}
                   />
-                  <Button type="button" onClick={handleAddSpecialization} variant="outline">
-                    Add
+                  <Button type="button" onClick={handleAddSpecialization} size="sm">
+                    <Plus className="h-4 w-4" />
                   </Button>
                 </div>
               )}
             </div>
-          </div>
 
-          <Separator />
-
-          {/* Address Information */}
-          {isAddressMasterEnabled && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium flex items-center space-x-2">
-                <MapPin className="h-4 w-4" />
-                <span>Address Information</span>
-              </h3>
-              
-              <AddressForm
-                value={formData.address || {
-                  line1: '',
-                  line2: '',
-                  locality: '',
-                  district: '',
-                  cityId: '',
-                  stateId: '',
-                  pincode: '',
-                  countryId: 'IN',
-                  source: 'manual'
-                }}
-                onChange={(address) => setFormData(prev => ({ ...prev, address: address }))}
-                disabled={isReadOnly}
-                module="employee"
-                className="border rounded-lg p-4"
-              />
-            </div>
-          )}
-
-          <Separator />
-
-          {/* Additional Information */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Additional Information</h3>
-            
             <div className="space-y-2">
               <Label htmlFor="notes">Notes</Label>
               <Textarea
                 id="notes"
                 value={formData.notes || ''}
                 onChange={(e) => handleInputChange('notes', e.target.value)}
-                disabled={isReadOnly}
+                placeholder="Additional notes..."
                 rows={3}
-                placeholder="Additional notes about the employee..."
+                disabled={isReadOnly}
               />
             </div>
           </div>
 
-          {/* Show dependencies in view mode */}
+          {/* Dependencies (View Mode Only) */}
           {mode === 'view' && employee && (
             <>
               <Separator />
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">Dependencies</h3>
-                {(() => {
-                  const dependencies = employeesService.checkDependencies(
-                    employee.id,
-                    state.cases,
-                    state.tasks,
-                    state.hearings
-                  );
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm">Cases</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {state.cases.filter(c => c.assignedToId === employee.id).length}
+                      </div>
+                    </CardContent>
+                  </Card>
                   
-                  return dependencies.length > 0 ? (
-                    <div className="space-y-2">
-                      {dependencies.map((dep, index) => (
-                        <Badge key={index} variant="outline">
-                          {dep}
-                        </Badge>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No active dependencies</p>
-                  );
-                })()}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm">Tasks</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {state.tasks.filter(t => t.assignedToId === employee.id).length}
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm">Hearings</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {state.hearings.filter(h => h.responsibleId === employee.id).length}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
             </>
           )}
-        </form>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            {isReadOnly ? 'Close' : 'Cancel'}
-          </Button>
-          {!isReadOnly && (
-            <Button type="submit" onClick={handleSubmit} disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : mode === 'create' ? 'Create Employee' : 'Update Employee'}
+          {/* Form Actions */}
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button type="button" variant="outline" onClick={onClose}>
+              {mode === 'view' ? 'Close' : 'Cancel'}
             </Button>
-          )}
-        </DialogFooter>
+            {mode !== 'view' && (
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Saving...' : (mode === 'create' ? 'Save Employee' : 'Update Employee')}
+              </Button>
+            )}
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

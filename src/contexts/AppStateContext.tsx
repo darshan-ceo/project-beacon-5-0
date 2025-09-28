@@ -188,8 +188,8 @@ export interface Employee {
   date_of_joining?: string;
   notes?: string;
   department: string;
-  workloadCapacity: number;
-  specialization?: string[];
+  managerId?: string;
+  tenantId?: string;
   address?: any; // Support enhanced address
   addressId?: string; // For address master integration
 }

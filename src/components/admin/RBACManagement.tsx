@@ -36,6 +36,7 @@ import { type RoleEntity, type PermissionEntity, type PolicyAuditEntry } from '@
 import { RoleBuilder } from './RoleBuilder';
 import { UserRoleAssignment } from './UserRoleAssignment';
 import { PermissionsMatrix } from './PermissionsMatrix';
+const OrganizationHierarchy = React.lazy(() => import('./OrganizationHierarchy').then(m => ({ default: m.OrganizationHierarchy })));
 
 interface EnhancedUser {
   id: string;
@@ -165,27 +166,34 @@ export const RBACManagement: React.FC = () => {
         </TabsList>
 
         <TabsContent value="roles">
-          {isCreateRoleOpen || isEditRoleOpen ? (
-            <RoleBuilder
-              role={selectedRole}
-              permissions={permissions}
-              onSave={(role) => {
-                setRoles(prev => 
-                  selectedRole 
-                    ? prev.map(r => r.id === role.id ? role : r)
-                    : [...prev, role]
-                );
-                setIsCreateRoleOpen(false);
-                setIsEditRoleOpen(false);
-                setSelectedRole(null);
-              }}
-              onCancel={() => {
-                setIsCreateRoleOpen(false);
-                setIsEditRoleOpen(false);
-                setSelectedRole(null);
-              }}
-            />
-          ) : (
+          <Tabs defaultValue="roles" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="roles">Role Management</TabsTrigger>
+              <TabsTrigger value="hierarchy">Organization Hierarchy</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="roles">
+              {isCreateRoleOpen || isEditRoleOpen ? (
+                <RoleBuilder
+                  role={selectedRole}
+                  permissions={permissions}
+                  onSave={(role) => {
+                    setRoles(prev => 
+                      selectedRole 
+                        ? prev.map(r => r.id === role.id ? role : r)
+                        : [...prev, role]
+                    );
+                    setIsCreateRoleOpen(false);
+                    setIsEditRoleOpen(false);
+                    setSelectedRole(null);
+                  }}
+                  onCancel={() => {
+                    setIsCreateRoleOpen(false);
+                    setIsEditRoleOpen(false);
+                    setSelectedRole(null);
+                  }}
+                />
+              ) : (
             <div className="space-y-4">
               <div className="flex justify-end">
                 <Button onClick={() => setIsCreateRoleOpen(true)}>
@@ -233,6 +241,19 @@ export const RBACManagement: React.FC = () => {
               </div>
             </div>
           )}
+            </TabsContent>
+            
+            <TabsContent value="hierarchy">
+              {React.createElement(
+                React.lazy(() => import('./OrganizationHierarchy').then(m => ({ default: m.OrganizationHierarchy }))),
+                {
+                  onEmployeeSelect: (employee: any) => {
+                    console.log('Selected employee for hierarchy:', employee);
+                  }
+                }
+              )}
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
         <TabsContent value="users">

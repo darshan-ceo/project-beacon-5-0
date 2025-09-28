@@ -98,12 +98,31 @@ export interface PermissionEntity {
   resource: string;
   action: 'read' | 'write' | 'delete' | 'admin';
   effect: 'allow' | 'deny';
-  scope: 'own' | 'team' | 'org';
+  scope: PermissionScope;
   conditions?: FilterCondition[];
   tenantId?: string;
+  isSystemPermission: boolean;
   createdAt: string;
   updatedAt: string;
-  createdBy: string;
+}
+
+export type PermissionScope = 'own' | 'team' | 'department' | 'organization';
+
+export interface PermissionEntity {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  resource: string;
+  action: 'read' | 'write' | 'delete' | 'admin';
+  effect: 'allow' | 'deny';
+  scope: PermissionScope;
+  conditions?: FilterCondition[];
+  tenantId?: string;
+  isSystemPermission: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 }
 
 export interface UserRoleAssignment {
