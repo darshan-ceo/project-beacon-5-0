@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppStateProvider } from "@/contexts/AppStateContext";
-import { RBACProvider } from "@/hooks/useRBAC";
+import { AdvancedRBACProvider } from "@/hooks/useAdvancedRBAC";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { AdminLayout } from "./components/layout/AdminLayout";
@@ -51,7 +51,7 @@ const currentUser = {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <RBACProvider>
+    <AdvancedRBACProvider>
       <AppStateProvider>
         <AppWithPersistence>
           <TooltipProvider>
@@ -223,7 +223,7 @@ const App = () => (
           </TooltipProvider>
         </AppWithPersistence>
       </AppStateProvider>
-    </RBACProvider>
+    </AdvancedRBACProvider>
   </QueryClientProvider>
 );
 
