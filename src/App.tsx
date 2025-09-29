@@ -16,7 +16,7 @@ import { EmployeeMasters } from "@/components/masters/EmployeeMasters";
 import { CaseManagement } from "@/components/cases/CaseManagement";
 import { TaskManagement } from "@/components/tasks/TaskManagement";
 import { DocumentManagement } from "@/components/documents/DocumentManagement";
-import { RBACManagement } from "@/components/admin/RBACManagement";
+import { RBACManagementWrapper as RBACManagement } from "@/components/admin/RBACManagementWrapper";
 import { GlobalParameters } from "@/components/admin/GlobalParameters";
 import { UserProfile } from "@/components/admin/UserProfile";
 import { ProfileErrorBoundary } from "@/components/admin/ProfileErrorBoundary";
