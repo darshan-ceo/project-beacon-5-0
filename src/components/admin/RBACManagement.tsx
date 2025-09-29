@@ -37,6 +37,8 @@ import { RoleBuilder } from './RoleBuilder';
 import { UserRoleAssignment } from './UserRoleAssignment';
 import { PermissionsMatrix } from './PermissionsMatrix';
 import { OrganizationHierarchy } from './OrganizationHierarchy';
+import { useAppState } from '@/contexts/AppStateContext';
+import type { Employee } from '@/contexts/AppStateContext';
 
 interface EnhancedUser {
   id: string;
@@ -53,15 +55,19 @@ interface RoleFormData {
   permissions: string[];
 }
 
-const mockUsers: EnhancedUser[] = [
-  { id: '1', name: 'John Doe', email: 'john@lawfirm.com', roles: ['Admin'], status: 'Active', lastLogin: '2024-01-20 10:30' },
-  { id: '2', name: 'Sarah Smith', email: 'sarah@lawfirm.com', roles: ['Manager'], status: 'Active', lastLogin: '2024-01-20 09:15' },
-  { id: '3', name: 'Mike Johnson', email: 'mike@lawfirm.com', roles: ['Staff'], status: 'Active', lastLogin: '2024-01-19 16:45' },
-  { id: '4', name: 'Lisa Wilson', email: 'lisa@client.com', roles: ['ReadOnly'], status: 'Pending', lastLogin: 'Never' }
-];
+// Transform Employee to EnhancedUser
+const transformEmployeeToEnhancedUser = (employee: Employee): EnhancedUser => ({
+  id: employee.id,
+  name: employee.full_name,
+  email: employee.email,
+  roles: [], // Will be populated with actual RBAC role assignments
+  status: employee.status === 'Active' ? 'Active' : 'Inactive',
+  lastLogin: 'Never' // TODO: Implement actual last login tracking
+});
 
 export const RBACManagement: React.FC = () => {
   const { enforcementEnabled, toggleEnforcement, refreshPermissions } = useAdvancedRBAC();
+  const { state } = useAppState();
   
   // State
   const [selectedRole, setSelectedRole] = useState<RoleEntity | null>(null);
@@ -71,7 +77,7 @@ export const RBACManagement: React.FC = () => {
   const [isAuditOpen, setIsAuditOpen] = useState(false);
   const [roles, setRoles] = useState<RoleEntity[]>([]);
   const [permissions, setPermissions] = useState<PermissionEntity[]>([]);
-  const [users, setUsers] = useState(mockUsers);
+  const [users, setUsers] = useState<EnhancedUser[]>([]);
   const [auditLog, setAuditLog] = useState<PolicyAuditEntry[]>([]);
   const [analytics, setAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -97,13 +103,23 @@ export const RBACManagement: React.FC = () => {
       console.log('📊 RBAC Data loaded:', {
         roles: rolesData.length,
         permissions: permissionsData.length,
-        auditEntries: auditData.length
+        auditEntries: auditData.length,
+        employees: state.employees.length
       });
+      
+      // Transform employees to enhanced users
+      const enhancedUsers = state.employees.map(transformEmployeeToEnhancedUser);
+      
+      // TODO: Load actual role assignments from RBAC service
+      // For now, we'll keep roles empty until we implement user-role assignment storage
       
       setRoles(rolesData);
       setPermissions(permissionsData);
       setAuditLog(auditData);
       setAnalytics(analyticsData);
+      setUsers(enhancedUsers);
+      
+      console.log('👥 Users synchronized:', enhancedUsers.length);
     } catch (error) {
       console.error('Failed to load RBAC data:', error);
       toast.error(`Failed to load RBAC data: ${error.message || error}`);
