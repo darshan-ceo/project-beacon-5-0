@@ -4,7 +4,7 @@ import { AppAction } from "@/contexts/AppStateContext";
 export interface Employee {
   id: string;
   full_name: string;
-  role: 'Partner' | 'CA' | 'Advocate' | 'Staff' | 'RM' | 'Finance' | 'Admin';
+  role: 'Partner' | 'CA' | 'Advocate' | 'Manager' | 'Staff' | 'RM' | 'Finance' | 'Admin';
   email: string;
   mobile?: string;
   status: 'Active' | 'Inactive';

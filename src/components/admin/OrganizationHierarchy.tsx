@@ -74,6 +74,7 @@ export const OrganizationHierarchy: React.FC<OrganizationHierarchyProps> = ({
       'Partner': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
       'CA': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
       'Advocate': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+      'Manager': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300',
       'Staff': 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
       'RM': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
       'Finance': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
@@ -188,11 +189,13 @@ export const OrganizationHierarchy: React.FC<OrganizationHierarchyProps> = ({
   const getHierarchyStats = () => {
     const totalEmployees = state.employees.filter(emp => emp.status === 'Active').length;
     const managersCount = state.employees.filter(emp => 
-      emp.status === 'Active' && 
-      state.employees.some(report => report.managerId === emp.id && report.status === 'Active')
+      emp.status === 'Active' && (
+        state.employees.some(report => report.managerId === emp.id && report.status === 'Active') ||
+        emp.role === 'Manager'
+      )
     ).length;
     
-    const maxLevel = Math.max(...hierarchy.map(node => getMaxLevel(node)));
+    const maxLevel = hierarchy.length > 0 ? Math.max(...hierarchy.map(node => getMaxLevel(node))) : 0;
     
     return { totalEmployees, managersCount, maxLevel };
   };

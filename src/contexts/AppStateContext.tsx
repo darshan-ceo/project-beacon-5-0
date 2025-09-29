@@ -181,7 +181,7 @@ interface Document {
 export interface Employee {
   id: string;
   full_name: string;
-  role: 'Partner' | 'CA' | 'Advocate' | 'Staff' | 'RM' | 'Finance' | 'Admin';
+  role: 'Partner' | 'CA' | 'Advocate' | 'Manager' | 'Staff' | 'RM' | 'Finance' | 'Admin';
   email: string;
   mobile?: string;
   status: 'Active' | 'Inactive';
@@ -1859,12 +1859,13 @@ const initialState: AppState = {
       date_of_joining: '2020-08-01',
       department: 'Tax Law',
       workloadCapacity: 35,
-      specialization: ['Tax Law', 'GST', 'Income Tax Appeals']
+      specialization: ['Tax Law', 'GST', 'Income Tax Appeals'],
+      managerId: '3'
     },
     {
       id: '3',
       full_name: 'Mike Wilson',
-      role: 'Staff',
+      role: 'Manager',
       email: 'mike.wilson@lawfirm.com',
       mobile: '+91-9876543212',
       status: 'Active',
@@ -1883,7 +1884,8 @@ const initialState: AppState = {
       date_of_joining: '2022-06-15',
       department: 'Litigation',
       workloadCapacity: 25,
-      specialization: ['Litigation', 'Civil Law', 'Commercial Disputes']
+      specialization: ['Litigation', 'Civil Law', 'Commercial Disputes'],
+      managerId: '3'
     },
     {
       id: '5',

@@ -163,7 +163,11 @@ export const RoleBuilder: React.FC<RoleBuilderProps> = ({
       onSave(savedRole);
     } catch (error) {
       console.error('Failed to save role:', error);
-      toast.error(error.message || 'Failed to save role');
+      if (error.message && error.message.includes('already exists')) {
+        toast.error(`Role "${formData.name}" already exists. Please choose a different name.`);
+      } else {
+        toast.error(error.message || 'Failed to save role');
+      }
     } finally {
       setSaving(false);
     }
@@ -197,7 +201,7 @@ export const RoleBuilder: React.FC<RoleBuilderProps> = ({
             <X className="h-4 w-4 mr-2" />
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={saving}>
+          <Button onClick={handleSave} disabled={saving || !formData.name.trim()}>
             <Save className="h-4 w-4 mr-2" />
             {saving ? 'Saving...' : 'Save Role'}
           </Button>

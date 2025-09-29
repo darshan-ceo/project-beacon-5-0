@@ -214,6 +214,7 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
                     <SelectItem value="Partner">Partner</SelectItem>
                     <SelectItem value="CA">CA</SelectItem>
                     <SelectItem value="Advocate">Advocate</SelectItem>
+                    <SelectItem value="Manager">Manager</SelectItem>
                     <SelectItem value="Staff">Staff</SelectItem>
                     <SelectItem value="RM">RM</SelectItem>
                     <SelectItem value="Finance">Finance</SelectItem>

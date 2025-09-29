@@ -169,6 +169,7 @@ export const EmployeeMasters: React.FC = () => {
       'Partner': 'bg-purple-100 text-purple-800',
       'CA': 'bg-blue-100 text-blue-800',
       'Advocate': 'bg-green-100 text-green-800',
+      'Manager': 'bg-indigo-100 text-indigo-800',
       'Staff': 'bg-gray-100 text-gray-800',
       'RM': 'bg-orange-100 text-orange-800',
       'Finance': 'bg-yellow-100 text-yellow-800',
