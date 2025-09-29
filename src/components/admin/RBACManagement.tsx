@@ -66,8 +66,16 @@ const transformEmployeeToEnhancedUser = (employee: Employee): EnhancedUser => ({
 });
 
 export const RBACManagement: React.FC = () => {
-  const { enforcementEnabled, toggleEnforcement, refreshPermissions } = useAdvancedRBAC();
+  // Ensure hooks are called at the top level
+  const rbacHook = useAdvancedRBAC();
   const { state } = useAppState();
+  
+  // Safely destructure after ensuring hooks are called
+  const { enforcementEnabled, toggleEnforcement, refreshPermissions } = rbacHook || {
+    enforcementEnabled: false,
+    toggleEnforcement: () => {},
+    refreshPermissions: () => {}
+  };
   
   // State
   const [selectedRole, setSelectedRole] = useState<RoleEntity | null>(null);
