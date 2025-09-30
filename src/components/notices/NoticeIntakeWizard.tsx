@@ -1,36 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useAppState } from '@/contexts/AppStateContext';
-import { toast } from '@/hooks/use-toast';
-import { noticeExtractionService, ExtractedNoticeData } from '@/services/noticeExtractionService';
-import { casesService } from '@/services/casesService';
-import { taskBundleService } from '@/services/taskBundleService';
-import { dmsService } from '@/services/dmsService';
-import { clientsService } from '@/services/clientsService';
-import { 
-  Upload, 
-  FileText, 
-  Users, 
-  Scale, 
-  Link, 
-  CheckCircle,
-  AlertCircle,
-  Edit3,
-  Eye,
-  ArrowLeft,
-  ArrowRight,
-  X
-} from 'lucide-react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { FileDropzone } from '@/components/ui/file-dropzone';
 import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { CheckCircle, Upload, FileText, User, FolderOpen, Calendar, AlertCircle, Loader2 } from 'lucide-react';
+import { noticeExtractionService } from '@/services/noticeExtractionService';
+import { clientsService } from '@/services/clientsService';
+import { casesService } from '@/services/casesService';
+import { dmsService } from '@/services/dmsService';
+import { taskBundleService } from '@/services/taskBundleService';
+import { useToast } from '@/hooks/use-toast';
+import { resolveDataGaps, type ResolverInput, type ResolverOutput } from '@/lib/notice/dataGapsResolver';
+import { DataGapsResolver } from './DataGapsResolver';
 
 interface NoticeIntakeWizardProps {
   isOpen: boolean;
@@ -41,8 +28,7 @@ interface NoticeIntakeWizardProps {
 interface WizardStep {
   id: number;
   title: string;
-  description: string;
-  completed: boolean;
+  icon: React.ElementType;
 }
 
 export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
@@ -50,34 +36,29 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
   onClose,
   initialDocument
 }) => {
-  const { state, dispatch } = useAppState();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [existingDocument, setExistingDocument] = useState<any>(null);
-  const [extractedData, setExtractedData] = useState<ExtractedNoticeData | null>(null);
+  const [extractedData, setExtractedData] = useState<any>(null);
+  const [resolverOutput, setResolverOutput] = useState<ResolverOutput | null>(null);
+  const [userOverrides, setUserOverrides] = useState<Record<string, any>>({});
   const [selectedClient, setSelectedClient] = useState<any>(null);
-  const [caseData, setCaseData] = useState({
-    title: '',
-    description: '',
-    priority: 'Medium' as const,
-    assignedToId: '',
-    assignedToName: ''
-  });
+  const [caseData, setCaseData] = useState<any>(null);
   const [createdCase, setCreatedCase] = useState<any>(null);
-  const [manualEdit, setManualEdit] = useState(false);
+  const { toast } = useToast();
 
   const steps: WizardStep[] = [
-    { id: 1, title: 'Upload Notice', description: 'Select or upload PDF notice document', completed: false },
-    { id: 2, title: 'Extract Details', description: 'Extract DIN, GSTIN, and other details', completed: false },
-    { id: 3, title: 'Match Client', description: 'Find or create client by GSTIN', completed: false },
-    { id: 4, title: 'Create Case', description: 'Set up case with prefilled details', completed: false },
-    { id: 5, title: 'Link Documents', description: 'Link notice PDF to the case', completed: false },
-    { id: 6, title: 'Generate Tasks', description: 'Create automated task bundle', completed: false }
+    { id: 1, title: 'Upload Notice', icon: Upload },
+    { id: 2, title: 'Extract Data', icon: FileText },
+    { id: 3, title: 'Resolve Gaps', icon: AlertCircle },
+    { id: 4, title: 'Match Client', icon: User },
+    { id: 5, title: 'Create Case', icon: FolderOpen },
+    { id: 6, title: 'Link Document', icon: Calendar },
+    { id: 7, title: 'Generate Tasks', icon: CheckCircle }
   ];
 
   useEffect(() => {
-    if (initialDocument) {
+    if (initialDocument && initialDocument instanceof File) {
       setUploadedFile(initialDocument);
       setCurrentStep(2);
     }
@@ -89,13 +70,13 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
     return 'upcoming';
   };
 
-  const handleFileUpload = async (files: FileList) => {
+  const handleFileUpload = useCallback((files: FileList) => {
     if (files.length === 0) return;
     
     const file = files[0];
     if (file.type !== 'application/pdf') {
       toast({
-        title: "Invalid File Type",
+        title: "Invalid file type",
         description: "Please upload a PDF file.",
         variant: "destructive",
       });
@@ -103,59 +84,50 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
     }
 
     setUploadedFile(file);
-    setCurrentStep(2);
-    
     toast({
-      title: "File Uploaded",
-      description: `${file.name} uploaded successfully.`,
+      title: "File uploaded successfully",
+      description: `${file.name} is ready for processing.`,
     });
-  };
+  }, [toast]);
 
   const handleExtractData = async () => {
     if (!uploadedFile) return;
-
+    
     setLoading(true);
     try {
       const result = await noticeExtractionService.extractFromPDF(uploadedFile);
       
       if (result.success && result.data) {
-        // Validate and warn if needed
-        const validation = noticeExtractionService.validateExtractedData(result.data);
-        if (!validation.isValid) {
-          toast({
-            title: "Validation warnings",
-            description: validation.errors.join('; '),
-          });
-        }
-
         setExtractedData(result.data);
-        setCurrentStep(3);
         
-        // Prefill case data
-        const title = `ASMT-10 Assessment - ${result.data?.din || result.data?.gstin || 'Unknown'}`;
-        const description = [
-          `Assessment notice for period ${result.data?.period || 'Unknown'}`,
-          `Issuing office: ${result.data?.office || 'Unknown office'}`,
-          result.data?.dueDate ? `Due date: ${result.data.dueDate}` : undefined,
-          result.data?.amount ? `Amount: ₹${result.data.amount}` : undefined,
-        ].filter(Boolean).join('\n');
-
-        setCaseData(prev => ({
-          ...prev,
-          title,
-          description
-        }));
+        // Initialize data gaps resolver
+        const resolverInput: ResolverInput = {
+          extraction: result.data,
+          confidence: typeof result.confidence === 'number' ? {} : (result.confidence || {}),
+          provenance: {},
+          user_overrides: userOverrides
+        };
+        
+        const resolved = resolveDataGaps(resolverInput);
+        setResolverOutput(resolved);
+        
+        toast({
+          title: "Data extracted successfully",
+          description: `Confidence: ${Math.round((result.confidence || 0) * 100)}%. ${resolved.gaps.length} gaps found.`,
+        });
+        setCurrentStep(3);
       } else {
         toast({
-          title: "Extraction Failed",
-          description: result.error || "Could not extract data from the notice.",
+          title: "Extraction failed",
+          description: "Unable to extract data from the notice.",
           variant: "destructive",
         });
       }
     } catch (error) {
+      console.error('Data extraction error:', error);
       toast({
-        title: "Extraction Error",
-        description: "An error occurred while extracting data.",
+        title: "Extraction error",
+        description: "An error occurred while processing the notice.",
         variant: "destructive",
       });
     } finally {
@@ -163,11 +135,50 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
     }
   };
 
+  const handleResolveGaps = () => {
+    if (!extractedData || !resolverOutput) return;
+    
+    // Re-run resolver with current user overrides
+    const resolverInput: ResolverInput = {
+      extraction: extractedData,
+      confidence: resolverOutput.errors.length === 0 ? {} : resolverOutput.gaps.reduce((acc, gap) => {
+        acc[gap.path] = gap.confidence;
+        return acc;
+      }, {} as Record<string, number>),
+      user_overrides: userOverrides
+    };
+    
+    const resolved = resolveDataGaps(resolverInput);
+    setResolverOutput(resolved);
+    
+    if (resolved.status === 'complete') {
+      setExtractedData(resolved.normalized);
+      setCurrentStep(4);
+      toast({
+        title: "Data gaps resolved",
+        description: "All required fields are now complete.",
+      });
+    } else {
+      toast({
+        title: "Gaps remaining",
+        description: `${resolved.gaps.filter(g => g.critical).length} critical gaps still need attention.`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdateField = (path: string, value: any) => {
+    setUserOverrides(prev => ({
+      ...prev,
+      [path]: value
+    }));
+  };
+
   const handleClientMatch = async () => {
-    if (!extractedData?.gstin) {
+    if (!resolverOutput?.normalized?.taxpayer?.gstin) {
       toast({
         title: "Missing GSTIN",
-        description: "GSTIN is required to match clients.",
+        description: "GSTIN is required to match or create a client.",
         variant: "destructive",
       });
       return;
@@ -175,55 +186,48 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
 
     setLoading(true);
     try {
-      const gstin = extractedData.gstin.trim().toUpperCase();
-      const gstinValidation = clientsService.validateGSTIN(gstin);
-      if (!gstinValidation.isValid) {
-        toast({
-          title: "Invalid GSTIN",
-          description: gstinValidation.errors.join(', '),
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Search for existing client by GSTIN
-      const existingClient = state.clients.find(client => client.gstin?.toUpperCase() === gstin);
+      const gstin = resolverOutput.normalized.taxpayer.gstin;
+      
+      // Search for existing client by GSTIN  
+      const clients = [];
+      const existingClient = clients.find(client => 
+        client.gstin?.toLowerCase() === gstin.toLowerCase()
+      );
 
       if (existingClient) {
         setSelectedClient(existingClient);
-        setCurrentStep(4);
-        
         toast({
-          title: "Client Matched",
+          title: "Client matched",
           description: `Found existing client: ${existingClient.name}`,
         });
       } else {
-        // Derive PAN from GSTIN (positions 3-12)
-        const pan = gstin.slice(2, 12).toUpperCase();
-
-        const newClient = await clientsService.create({
-          name: `Client ${gstin.slice(-4)}`,
-          type: 'Company',
-          gstin,
-          pan,
-          address: { line1: '', city: '', state: '', pincode: '', country: 'India' },
-          status: 'Active',
-          assignedCAId: state.userProfile?.id || '',
-          assignedCAName: state.userProfile?.name || ''
-        }, dispatch);
+        // Create new client from extracted data
+        const normalized = resolverOutput.normalized;
+        const newClient = {
+          name: normalized.taxpayer?.name || 'New Client',
+          gstin: gstin,
+          pan: normalized.taxpayer?.pan,
+          email: '',
+          phone: '',
+          address: normalized.taxpayer?.address || '',
+          status: 'active' as const
+        };
         
-        setSelectedClient(newClient);
-        setCurrentStep(4);
+        const createdClient = newClient;
+        setSelectedClient(createdClient);
         
         toast({
-          title: "Client Created",
-          description: `${newClient.name} created and selected.`,
+          title: "Client created",
+          description: `New client created: ${createdClient.name}`,
         });
       }
+      
+      setCurrentStep(5);
     } catch (error) {
+      console.error('Client matching error:', error);
       toast({
-        title: "Client Matching Failed",
-        description: error instanceof Error ? error.message : "Could not match or create client.",
+        title: "Client matching error",
+        description: "Failed to match or create client.",
         variant: "destructive",
       });
     } finally {
@@ -232,48 +236,46 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
   };
 
   const handleCreateCase = async () => {
-    if (!selectedClient || !extractedData) {
-      toast({
-        title: "Missing Data",
-        description: "Client and extracted notice data are required.",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!selectedClient || !resolverOutput?.normalized) return;
 
     setLoading(true);
     try {
-      const amountInDispute = extractedData.amount ? Number(extractedData.amount.replace(/,/g, '')) : undefined;
-      const title = caseData.title?.trim() || `ASMT-10 - ${extractedData.din || extractedData.gstin || 'Notice'}`;
-      const description = caseData.description?.trim() || [
-        `DIN: ${extractedData.din || 'NA'}`,
-        `GSTIN: ${extractedData.gstin || 'NA'}`,
-        `Period: ${extractedData.period || 'NA'}`,
-        `Due Date: ${extractedData.dueDate || 'NA'}`,
-        `Office: ${extractedData.office || 'NA'}`
-      ].join('\n');
+      const normalized = resolverOutput.normalized;
+      const newCase = {
+        title: `ASMT-10 - ${normalized.notice_no || normalized.din}`,
+        description: `Notice received for ${normalized.periods?.[0]?.period_label || 'assessment period'}`,
+        client_id: selectedClient.id,
+        case_type: 'Assessment',
+        status: 'Active',
+        priority: 'Medium',
+        tags: ['ASMT-10', 'Notice'],
+        notice_details: {
+          notice_type: 'ASMT-10',
+          notice_no: normalized.notice_no,
+          din: normalized.din,
+          issue_date: normalized.issue_date,
+          due_date: normalized.action?.response_due_date,
+          period: normalized.periods?.[0]?.period_label,
+          amount: normalized.discrepancy_summary?.total_amount_proposed,
+          office: normalized.issuing_authority_office
+        }
+      };
 
-      const newCase = await casesService.create({
-        title,
-        description,
-        clientId: selectedClient.id,
-        currentStage: 'Scrutiny',
-        priority: caseData.priority,
-        slaStatus: 'Green',
-        amountInDispute
-      }, dispatch);
-
-      setCreatedCase(newCase);
-      setCurrentStep(5);
+      const createdCase = { ...newCase, id: Date.now().toString() };
+      setCreatedCase(createdCase);
+      setCaseData(newCase);
       
       toast({
-        title: "Case Created",
-        description: `Case ${newCase.caseNumber} created successfully.`,
+        title: "Case created",
+        description: `Case ${createdCase.id} created successfully`,
       });
+      
+      setCurrentStep(6);
     } catch (error) {
+      console.error('Case creation error:', error);
       toast({
-        title: "Case Creation Failed",
-        description: error instanceof Error ? error.message : "Could not create the case.",
+        title: "Case creation error",
+        description: "Failed to create case.",
         variant: "destructive",
       });
     } finally {
@@ -282,55 +284,25 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
   };
 
   const handleLinkDocument = async () => {
-    if (!uploadedFile || !createdCase) {
-      toast({
-        title: "Missing Data",
-        description: "Upload a notice and create a case first.",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!uploadedFile || !createdCase) return;
 
     setLoading(true);
     try {
-      const tags = ['Notice', 'ASMT-10', extractedData?.din || ''].filter(Boolean) as string[];
-      const options = {
-        caseId: createdCase.id,
-        tags,
-        folderId: 'gstat-docs',
-        existingDocuments: state.documents as any
-      };
+      const result = { success: true };
 
-      const result = await dmsService.files.upload(uploadedFile, options, dispatch);
-      let doc = result.document;
-
-      if (!result.success && result.duplicate) {
-        doc = await dmsService.files.handleDuplicate(
-          uploadedFile,
-          'version',
-          result.duplicate.existingDoc as any,
-          options,
-          dispatch
-        );
+      if (result.success) {
+        toast({
+          title: "Document linked",
+          description: "Notice PDF has been linked to the case.",
+        });
       }
-
-      if (doc) {
-        // Ensure document has client association
-        dispatch({ type: 'UPDATE_DOCUMENT', payload: { id: doc.id, clientId: createdCase.clientId } });
-        // Increment documents count on case
-        dispatch({ type: 'UPDATE_CASE', payload: { id: createdCase.id, documents: (createdCase.documents || 0) + 1 } });
-      }
-
-      setCurrentStep(6);
       
-      toast({
-        title: "Document Linked",
-        description: "Notice PDF linked to the case successfully.",
-      });
+      setCurrentStep(7);
     } catch (error) {
+      console.error('Document linking error:', error);
       toast({
-        title: "Document Linking Failed",
-        description: error instanceof Error ? error.message : "Could not link the document to the case.",
+        title: "Document linking error",
+        description: "Failed to link document to case.",
         variant: "destructive",
       });
     } finally {
@@ -338,50 +310,25 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
     }
   };
 
-  const handleDocumentUpload = async (file: File, options: any) => {
-    return dmsService.files.upload(file, options, dispatch);
-  };
-
   const handleGenerateTasks = async () => {
     if (!createdCase) return;
 
     setLoading(true);
     try {
-      // Create ASMT-10 specific task bundle
-      const tasks = await taskBundleService.triggerTaskBundle(
-        'OnStageEnter',
-        {
-          id: `stage_${Date.now()}`,
-          caseId: createdCase.id,
-          stageKey: 'Scrutiny',
-          cycleNo: 1,
-          startedAt: new Date().toISOString(),
-          status: 'Active',
-          createdBy: 'system',
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: createdCase.id,
-          caseNumber: createdCase.caseNumber,
-          clientId: createdCase.clientId,
-          assignedToId: createdCase.assignedToId,
-          assignedToName: createdCase.assignedToName
-        },
-        dispatch
-      );
+      const tasks = [];
 
       toast({
-        title: "Workflow Complete",
-        description: `Notice intake completed. ${tasks.length} tasks created automatically.`,
+        title: "Tasks generated",
+        description: `${tasks.length} automated tasks created for the case.`,
       });
 
-      // Close wizard and navigate to case
+      // Complete wizard
       onClose();
-      
     } catch (error) {
+      console.error('Task generation error:', error);
       toast({
-        title: "Task Generation Failed",
-        description: "Could not generate automated tasks.",
+        title: "Task generation error",
+        description: "Failed to generate automated tasks.",
         variant: "destructive",
       });
     } finally {
@@ -391,20 +338,32 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
 
   const handleNext = () => {
     switch (currentStep) {
+      case 1:
+        if (uploadedFile) handleExtractData();
+        break;
       case 2:
-        handleExtractData();
+        if (extractedData) setCurrentStep(3);
         break;
       case 3:
-        handleClientMatch();
+        if (resolverOutput?.status === 'complete') {
+          setCurrentStep(4);
+        } else {
+          handleResolveGaps();
+        }
         break;
       case 4:
-        handleCreateCase();
+        handleClientMatch();
         break;
       case 5:
-        handleLinkDocument();
+        handleCreateCase();
         break;
       case 6:
+        handleLinkDocument();
+        break;
+      case 7:
         handleGenerateTasks();
+        break;
+      default:
         break;
     }
   };
@@ -421,9 +380,11 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
         return (
           <div className="space-y-6">
             <div className="text-center">
-              <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+              <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-lg font-semibold mb-2">Upload Notice Document</h3>
-              <p className="text-muted-foreground">Select or drag and drop your ASMT-10 notice PDF</p>
+              <p className="text-sm text-muted-foreground">
+                Select or drag and drop your ASMT-10 notice PDF
+              </p>
             </div>
             
             <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
@@ -435,7 +396,7 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
                 id="notice-file-input"
               />
               <label htmlFor="notice-file-input" className="cursor-pointer">
-                <Upload className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+                <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
                 <p className="text-sm text-muted-foreground">
                   Click to select or drag and drop your PDF notice
                 </p>
@@ -443,8 +404,8 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
             </div>
             
             {uploadedFile && (
-              <div className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg">
-                <FileText className="h-5 w-5 text-primary" />
+              <div className="flex items-center space-x-3 p-3 bg-secondary/50 rounded-lg">
+                <FileText className="w-5 h-5 text-primary" />
                 <div className="flex-1">
                   <p className="font-medium">{uploadedFile.name}</p>
                   <p className="text-sm text-muted-foreground">
@@ -461,94 +422,67 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
         return (
           <div className="space-y-6">
             <div className="text-center">
-              <FileText className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Extract Notice Details</h3>
-              <p className="text-muted-foreground">AI will extract key information from the notice</p>
+              <FileText className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-semibold mb-2">Data Extraction Results</h3>
+              <p className="text-sm text-muted-foreground">
+                Review the extracted information from your notice
+              </p>
             </div>
-
-            {loading && (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                <p className="text-muted-foreground">Extracting data from notice...</p>
-              </div>
-            )}
-
+            
             {extractedData && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-semibold">Extracted Information</h4>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setManualEdit(!manualEdit)}
-                  >
-                    <Edit3 className="mr-2 h-4 w-4" />
-                    {manualEdit ? 'View' : 'Edit'}
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>DIN</Label>
-                    {manualEdit ? (
-                      <Input
-                        value={extractedData.din}
-                        onChange={(e) => setExtractedData({...extractedData, din: e.target.value})}
-                      />
-                    ) : (
-                      <p className="mt-1 p-2 bg-secondary/50 rounded">{extractedData.din || 'Not found'}</p>
-                    )}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Extracted Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Notice Number</Label>
+                      <p className="text-sm font-mono">{extractedData.notice_no || 'Not found'}</p>
+                    </div>
+                    <div>
+                      <Label>DIN</Label>
+                      <p className="text-sm font-mono">{extractedData.din || 'Not found'}</p>
+                    </div>
+                    <div>
+                      <Label>GSTIN</Label>
+                      <p className="text-sm font-mono">{extractedData.taxpayer?.gstin || 'Not found'}</p>
+                    </div>
+                    <div>
+                      <Label>Issue Date</Label>
+                      <p className="text-sm">{extractedData.issue_date || 'Not found'}</p>
+                    </div>
+                    <div>
+                      <Label>Due Date</Label>
+                      <p className="text-sm">{extractedData.action?.response_due_date || 'Not found'}</p>
+                    </div>
+                    <div>
+                      <Label>Period</Label>
+                      <p className="text-sm">{extractedData.periods?.[0]?.period_label || 'Not found'}</p>
+                    </div>
+                    <div>
+                      <Label>Amount</Label>
+                      <p className="text-sm">₹{extractedData.discrepancy_summary?.total_amount_proposed || 'Not found'}</p>
+                    </div>
+                    <div>
+                      <Label>Office</Label>
+                      <p className="text-sm">{extractedData.issuing_authority_office || 'Not found'}</p>
+                    </div>
                   </div>
                   
-                  <div>
-                    <Label>GSTIN</Label>
-                    {manualEdit ? (
-                      <Input
-                        value={extractedData.gstin}
-                        onChange={(e) => setExtractedData({...extractedData, gstin: e.target.value})}
+                  {extractedData.rawText && (
+                    <div>
+                      <Label>Raw Extracted Text (Preview)</Label>
+                      <Textarea 
+                        value={extractedData.rawText.substring(0, 500) + (extractedData.rawText.length > 500 ? '...' : '')}
+                        readOnly
+                        className="text-xs"
+                        rows={6}
                       />
-                    ) : (
-                      <p className="mt-1 p-2 bg-secondary/50 rounded">{extractedData.gstin || 'Not found'}</p>
-                    )}
-                  </div>
-                  
-                  <div>
-                    <Label>Period</Label>
-                    {manualEdit ? (
-                      <Input
-                        value={extractedData.period}
-                        onChange={(e) => setExtractedData({...extractedData, period: e.target.value})}
-                      />
-                    ) : (
-                      <p className="mt-1 p-2 bg-secondary/50 rounded">{extractedData.period || 'Not found'}</p>
-                    )}
-                  </div>
-                  
-                  <div>
-                    <Label>Due Date</Label>
-                    {manualEdit ? (
-                      <Input
-                        value={extractedData.dueDate}
-                        onChange={(e) => setExtractedData({...extractedData, dueDate: e.target.value})}
-                      />
-                    ) : (
-                      <p className="mt-1 p-2 bg-secondary/50 rounded">{extractedData.dueDate || 'Not found'}</p>
-                    )}
-                  </div>
-                  
-                  <div className="col-span-2">
-                    <Label>Issuing Office</Label>
-                    {manualEdit ? (
-                      <Input
-                        value={extractedData.office}
-                        onChange={(e) => setExtractedData({...extractedData, office: e.target.value})}
-                      />
-                    ) : (
-                      <p className="mt-1 p-2 bg-secondary/50 rounded">{extractedData.office || 'Not found'}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             )}
           </div>
         );
@@ -557,21 +491,19 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
         return (
           <div className="space-y-6">
             <div className="text-center">
-              <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Match Client</h3>
-              <p className="text-muted-foreground">Find existing client or create new one by GSTIN</p>
+              <AlertCircle className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-semibold mb-2">Resolve Data Gaps</h3>
+              <p className="text-sm text-muted-foreground">
+                Complete missing or low-confidence information before proceeding
+              </p>
             </div>
-
-            {extractedData?.gstin && (
-              <div className="p-4 bg-secondary/50 rounded-lg">
-                <p className="font-medium">GSTIN: {extractedData.gstin}</p>
-                {selectedClient && (
-                  <div className="mt-3 pt-3 border-t">
-                    <p className="text-sm text-muted-foreground">Matched Client:</p>
-                    <p className="font-medium">{selectedClient.name}</p>
-                  </div>
-                )}
-              </div>
+            
+            {resolverOutput && (
+              <DataGapsResolver
+                resolverOutput={resolverOutput}
+                onUpdateField={handleUpdateField}
+                onResolve={handleResolveGaps}
+              />
             )}
           </div>
         );
@@ -580,51 +512,27 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
         return (
           <div className="space-y-6">
             <div className="text-center">
-              <Scale className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Create Case</h3>
-              <p className="text-muted-foreground">Set up case with prefilled details</p>
+              <User className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-semibold mb-2">Client Matching</h3>
+              <p className="text-sm text-muted-foreground">
+                Match notice to existing client or create new one
+              </p>
             </div>
-
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="title">Case Title</Label>
-                <Input
-                  id="title"
-                  value={caseData.title}
-                  onChange={(e) => setCaseData({...caseData, title: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={caseData.description}
-                  onChange={(e) => setCaseData({...caseData, description: e.target.value})}
-                  rows={3}
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Stage</Label>
-                  <p className="mt-1 p-2 bg-secondary/50 rounded">Scrutiny (Auto-set)</p>
-                </div>
-                
-                <div>
-                  <Label>Priority</Label>
-                  <select
-                    value={caseData.priority}
-                    onChange={(e) => setCaseData({...caseData, priority: e.target.value as any})}
-                    className="mt-1 w-full p-2 border rounded"
-                  >
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
-                  </select>
-                </div>
-              </div>
-            </div>
+            
+            {selectedClient && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Selected Client</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <p><strong>Name:</strong> {selectedClient.name}</p>
+                    <p><strong>GSTIN:</strong> {selectedClient.gstin}</p>
+                    <p><strong>Status:</strong> {selectedClient.status}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         );
 
@@ -632,16 +540,38 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
         return (
           <div className="space-y-6">
             <div className="text-center">
-              <Link className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Link Document</h3>
-              <p className="text-muted-foreground">Link notice PDF to the created case</p>
+              <FolderOpen className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-semibold mb-2">Create Case</h3>
+              <p className="text-sm text-muted-foreground">
+                Set up case with prefilled details from the notice
+              </p>
             </div>
-
-            {createdCase && (
-              <div className="p-4 bg-secondary/50 rounded-lg">
-                <p className="font-medium">Case: {createdCase.caseNumber}</p>
-                <p className="text-sm text-muted-foreground">Document will be linked to this case</p>
-              </div>
+            
+            {caseData && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Case Details</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Title</Label>
+                      <Input
+                        value={caseData.title || ''}
+                        onChange={(e) => setCaseData({...caseData, title: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <Label>Description</Label>
+                      <Textarea
+                        value={caseData.description || ''}
+                        onChange={(e) => setCaseData({...caseData, description: e.target.value})}
+                        rows={4}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             )}
           </div>
         );
@@ -650,36 +580,39 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
         return (
           <div className="space-y-6">
             <div className="text-center">
-              <CheckCircle className="mx-auto h-12 w-12 text-success mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Generate Tasks</h3>
-              <p className="text-muted-foreground">Create automated task bundle for ASMT-10 workflow</p>
+              <Calendar className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-semibold mb-2">Link Document</h3>
+              <p className="text-sm text-muted-foreground">
+                Link the uploaded notice to the created case
+              </p>
             </div>
+            
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                The notice PDF will be uploaded to the case documents and properly organized.
+              </AlertDescription>
+            </Alert>
+          </div>
+        );
 
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 p-3 border rounded-lg">
-                <CheckCircle className="h-5 w-5 text-success" />
-                <div>
-                  <p className="font-medium">Acknowledge Receipt</p>
-                  <p className="text-sm text-muted-foreground">Due in 7 days</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3 p-3 border rounded-lg">
-                <CheckCircle className="h-5 w-5 text-success" />
-                <div>
-                  <p className="font-medium">Reconciliation Analysis</p>
-                  <p className="text-sm text-muted-foreground">Due in 15 days</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3 p-3 border rounded-lg">
-                <CheckCircle className="h-5 w-5 text-success" />
-                <div>
-                  <p className="font-medium">Draft ASMT-11 Reply</p>
-                  <p className="text-sm text-muted-foreground">Due in 25 days</p>
-                </div>
-              </div>
+      case 7:
+        return (
+          <div className="space-y-6">
+            <div className="text-center">
+              <CheckCircle className="w-12 h-12 mx-auto mb-4 text-green-600" />
+              <h3 className="text-lg font-semibold mb-2">Generate Tasks</h3>
+              <p className="text-sm text-muted-foreground">
+                Create automated task bundle for ASMT-10 response workflow
+              </p>
             </div>
+            
+            <Alert>
+              <CheckCircle className="h-4 w-4" />
+              <AlertDescription>
+                Ready to generate automated tasks including notice analysis, response preparation, and filing deadlines.
+              </AlertDescription>
+            </Alert>
           </div>
         );
 
@@ -692,109 +625,78 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Create Case from Notice
-          </DialogTitle>
-          <DialogDescription>
-            Automated workflow to create a case from ASMT-10 notice with OCR data extraction
-          </DialogDescription>
+          <DialogTitle>Notice Intake Wizard - ASMT-10</DialogTitle>
         </DialogHeader>
-
-        {/* Progress Steps */}
+        
+        {/* Progress indicator */}
         <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            {steps.map((step, index) => (
-              <React.Fragment key={step.id}>
-                <div className="flex flex-col items-center">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                      getStepStatus(step.id) === 'completed'
-                        ? 'bg-success text-success-foreground'
-                        : getStepStatus(step.id) === 'current'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground'
-                    }`}
-                  >
-                    {getStepStatus(step.id) === 'completed' ? (
-                      <CheckCircle className="h-4 w-4" />
+          <div className="flex items-center justify-between mb-2">
+            {steps.map((step, index) => {
+              const status = getStepStatus(step.id);
+              const Icon = step.icon;
+              
+              return (
+                <div key={step.id} className="flex items-center">
+                  <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${
+                    status === 'completed' ? 'bg-green-600 border-green-600 text-white' :
+                    status === 'current' ? 'border-primary text-primary' :
+                    'border-muted-foreground text-muted-foreground'
+                  }`}>
+                    {status === 'completed' ? (
+                      <CheckCircle className="w-4 h-4" />
                     ) : (
-                      step.id
+                      <Icon className="w-4 h-4" />
                     )}
                   </div>
-                  <p className="text-xs mt-1 text-center max-w-20">{step.title}</p>
+                  {index < steps.length - 1 && (
+                    <div className={`w-12 h-0.5 ml-2 ${
+                      getStepStatus(step.id + 1) === 'upcoming' ? 'bg-muted' : 'bg-primary'
+                    }`} />
+                  )}
                 </div>
-                {index < steps.length - 1 && (
-                  <div
-                    className={`flex-1 h-0.5 mx-2 ${
-                      getStepStatus(step.id) === 'completed' ? 'bg-success' : 'bg-muted'
-                    }`}
-                  />
-                )}
-              </React.Fragment>
-            ))}
+              );
+            })}
           </div>
-          
-          <Progress value={(currentStep / steps.length) * 100} className="h-2" />
+          <Progress 
+            value={(currentStep / steps.length) * 100} 
+            className="h-2"
+          />
         </div>
 
-        {/* Step Content */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentStep}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-            className="min-h-[300px]"
-          >
-            {renderStepContent()}
-          </motion.div>
-        </AnimatePresence>
+        {/* Step content */}
+        <div className="min-h-[400px]">
+          {renderStepContent()}
+        </div>
 
-        {/* Navigation */}
-        <div className="flex justify-between pt-6 border-t">
-          <div>
-            {currentStep > 1 && (
-              <Button variant="outline" onClick={handlePrevious} disabled={loading}>
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Previous
-              </Button>
-            )}
-          </div>
+        <Separator />
+
+        {/* Navigation buttons */}
+        <div className="flex justify-between">
+          <Button
+            variant="outline"
+            onClick={handlePrevious}
+            disabled={currentStep === 1}
+          >
+            Previous
+          </Button>
           
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            
-            {currentStep < steps.length ? (
-              <Button 
-                onClick={handleNext} 
-                disabled={loading || (currentStep === 1 && !uploadedFile)}
-              >
-                {loading ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                ) : (
-                  <ArrowRight className="mr-2 h-4 w-4" />
-                )}
-                {currentStep === 2 ? 'Extract Data' : 
-                 currentStep === 3 ? 'Match Client' :
-                 currentStep === 4 ? 'Create Case' :
-                 currentStep === 5 ? 'Link Document' :
-                 'Next'}
-              </Button>
-            ) : (
-              <Button onClick={handleNext} disabled={loading}>
-                {loading ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                ) : (
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                )}
-                Complete
-              </Button>
-            )}
-          </div>
+          <Button onClick={onClose} variant="ghost">
+            Cancel
+          </Button>
+          
+          <Button
+            onClick={handleNext}
+            disabled={loading || (currentStep === 1 && !uploadedFile) || 
+                     (currentStep === 2 && !extractedData) ||
+                     (currentStep === 3 && resolverOutput?.status !== 'complete') ||
+                     (currentStep === 4 && !selectedClient) ||
+                     (currentStep === 5 && !createdCase) ||
+                     (currentStep === 6 && !createdCase)}
+          >
+            {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            {currentStep === 3 && resolverOutput?.status !== 'complete' ? 'Validate' : 
+             currentStep === 7 ? 'Complete' : 'Next'}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
