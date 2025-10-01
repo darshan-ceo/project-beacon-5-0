@@ -30,8 +30,10 @@ export const hearingsService = {
       const response = await apiService.get<Hearing[]>(`/api/hearings?${params.toString()}`);
       
       if (response.success && response.data) {
-        log('success', 'fetch hearings', { count: response.data.length, filters });
-        return response.data;
+        // Ensure response.data is actually an array
+        const hearingsData = Array.isArray(response.data) ? response.data : [];
+        log('success', 'fetch hearings', { count: hearingsData.length, filters });
+        return hearingsData;
       }
       
       // Fallback to mock data
@@ -351,7 +353,9 @@ export const hearingsService = {
       const response = await apiService.get<Hearing[]>(`/api/cases/${caseId}/hearings`);
       
       if (response.success && response.data) {
-        return response.data;
+        // Ensure response.data is actually an array
+        const hearingsData = Array.isArray(response.data) ? response.data : [];
+        return hearingsData;
       }
       
       return this.getMockHearings({ cases: [caseId] });
