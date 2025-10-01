@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
+import { navigationContextService } from '@/services/navigationContextService';
+import { uiStateService } from '@/services/uiStateService';
 import { 
   CheckSquare, 
   Clock, 
@@ -89,9 +91,14 @@ export const TaskManagement: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<'all' | Task['status']>('all');
   const [filterPriority, setFilterPriority] = useState<'all' | Task['priority']>('all');
   const [activeTab, setActiveTab] = useState('board');
-  const [viewMode, setViewMode] = useState<'board' | 'list'>(() => {
-    return (localStorage.getItem('task-view-mode') as 'board' | 'list') || 'board';
-  });
+  const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
+  
+  // Load view mode from storage
+  useEffect(() => {
+    uiStateService.getViewMode('task-management', 'board').then(mode => {
+      setViewMode(mode as 'board' | 'list');
+    });
+  }, []);
   const [taskModal, setTaskModal] = useState<{ isOpen: boolean; mode: 'create' | 'edit' | 'view'; task?: Task | null }>({
     isOpen: false,
     mode: 'create',
@@ -130,7 +137,7 @@ export const TaskManagement: React.FC = () => {
         fromUrl: window.location.pathname + window.location.search,
         timestamp: Date.now()
       };
-      localStorage.setItem('navigation-context', JSON.stringify(returnContext));
+      navigationContextService.saveContext(returnContext);
     }
   }, [searchParams]);
 
@@ -142,10 +149,9 @@ export const TaskManagement: React.FC = () => {
     const matchesStatus = filterStatus === 'all' || task.status === filterStatus;
     const matchesPriority = filterPriority === 'all' || task.priority === filterPriority;
     
-    // Apply case filter if specified in URL parameters or navigation context
+    // Apply case filter if specified in URL parameters
     const caseIdFromParams = searchParams.get('caseId');
-    const navigationContext = JSON.parse(localStorage.getItem('navigation-context') || '{}');
-    const contextCaseId = caseIdFromParams || navigationContext.returnCaseId;
+    const contextCaseId = caseIdFromParams;
     const matchesCase = !contextCaseId || task.caseId === contextCaseId;
     
     return matchesSearch && matchesStatus && matchesPriority && matchesCase;
@@ -185,14 +191,14 @@ export const TaskManagement: React.FC = () => {
   const stats = getTaskStats();
 
   // Return navigation handler
-  const handleReturnToStageManagement = () => {
-    const returnContext = JSON.parse(localStorage.getItem('navigation-context') || '{}');
-    if (returnContext.returnTo === 'stage-management' && returnContext.returnCaseId) {
+  const handleReturnToStageManagement = async () => {
+    const returnContext = await navigationContextService.getContext();
+    if (returnContext?.returnTo === 'stage-management' && returnContext.returnCaseId) {
       // Navigate back to case and open stage management
       navigate(`/cases?caseId=${returnContext.returnCaseId}`);
       
       // Clear return context
-      localStorage.removeItem('navigation-context');
+      await navigationContextService.clearContext();
       
       // Signal to reopen stage dialog after navigation
       setTimeout(() => {
@@ -208,32 +214,28 @@ export const TaskManagement: React.FC = () => {
   };
 
   // Check if we have return context
-  const hasReturnContext = () => {
-    try {
-      const returnContext = JSON.parse(localStorage.getItem('navigation-context') || '{}');
-      return returnContext.returnTo === 'stage-management' && returnContext.returnCaseId;
-    } catch {
-      return false;
-    }
-  };
-
-  // Get current case info for breadcrumb
-  const getCurrentCaseInfo = () => {
-    try {
-      const returnContext = JSON.parse(localStorage.getItem('navigation-context') || '{}');
-      const caseId = searchParams.get('caseId') || returnContext.returnCaseId;
-      const currentCase = state.cases.find(c => c.id === caseId);
-      return currentCase ? { id: caseId, number: currentCase.caseNumber } : null;
-    } catch {
-      return null;
-    }
-  };
+  const [hasReturnCtx, setHasReturnCtx] = useState(false);
+  const [currentCaseInfo, setCurrentCaseInfo] = useState<{ id: string; number: string } | null>(null);
+  
+  useEffect(() => {
+    const loadContext = async () => {
+      const ctx = await navigationContextService.getContext();
+      setHasReturnCtx(ctx?.returnTo === 'stage-management' && !!ctx.returnCaseId);
+      
+      const caseId = searchParams.get('caseId') || ctx?.returnCaseId;
+      if (caseId) {
+        const currentCase = state.cases.find(c => c.id === caseId);
+        setCurrentCaseInfo(currentCase ? { id: caseId, number: currentCase.caseNumber } : null);
+      }
+    };
+    loadContext();
+  }, [searchParams, state.cases]);
 
   return (
     <TooltipProvider>
       <div className="space-y-6">
       {/* Return Navigation Breadcrumb */}
-      {hasReturnContext() && (
+      {hasReturnCtx && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -250,7 +252,7 @@ export const TaskManagement: React.FC = () => {
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbLink className="cursor-pointer" onClick={handleReturnToStageManagement}>
-                  {getCurrentCaseInfo()?.number || 'Case'}
+                  {currentCaseInfo?.number || 'Case'}
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
@@ -484,7 +486,7 @@ export const TaskManagement: React.FC = () => {
                 size="sm"
                 onClick={() => {
                   setViewMode('board');
-                  localStorage.setItem('task-view-mode', 'board');
+                  uiStateService.saveViewMode('task-management', 'board');
                 }}
                 className="flex items-center gap-2"
               >
@@ -496,7 +498,7 @@ export const TaskManagement: React.FC = () => {
                 size="sm"
                 onClick={() => {
                   setViewMode('list');
-                  localStorage.setItem('task-view-mode', 'list');
+                  uiStateService.saveViewMode('task-management', 'list');
                 }}
                 className="flex items-center gap-2"
               >

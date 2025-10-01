@@ -4,22 +4,22 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { CheckCircle, FolderOpen, FileText, Shield, Tag, ChevronDown, ChevronRight } from 'lucide-react';
+import { uiStateService } from '@/services/uiStateService';
 
 export const OrganizationGuide: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Load user preference from localStorage
+  // Load user preference from storage
   useEffect(() => {
-    const saved = localStorage.getItem('document-organization-guide-expanded');
-    if (saved !== null) {
-      setIsExpanded(JSON.parse(saved));
-    }
+    uiStateService.getExpandedState('document-organization-guide', false).then(expanded => {
+      setIsExpanded(expanded);
+    });
   }, []);
 
-  // Save user preference to localStorage
+  // Save user preference to storage
   const handleToggle = (expanded: boolean) => {
     setIsExpanded(expanded);
-    localStorage.setItem('document-organization-guide-expanded', JSON.stringify(expanded));
+    uiStateService.saveExpandedState('document-organization-guide', expanded);
   };
 
   return (

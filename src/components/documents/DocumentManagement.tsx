@@ -11,6 +11,7 @@ import { motion } from 'framer-motion';
 import { dmsService } from '@/services/dmsService';
 import { storageManager } from '@/data/StorageManager';
 import { useAppState } from '@/contexts/AppStateContext';
+import { navigationContextService } from '@/services/navigationContextService';
 import { 
   Upload, 
   FolderOpen, 
@@ -201,7 +202,7 @@ export const DocumentManagement: React.FC = () => {
         fromUrl: window.location.pathname + window.location.search,
         timestamp: Date.now()
       };
-      localStorage.setItem('navigation-context', JSON.stringify(returnContext));
+      navigationContextService.saveContext(returnContext);
     }
   }, [searchParams]);
 
@@ -582,14 +583,11 @@ export const DocumentManagement: React.FC = () => {
   };
 
   // Return navigation handler
-  const handleReturnToStageManagement = () => {
-    const returnContext = JSON.parse(localStorage.getItem('navigation-context') || '{}');
-    if (returnContext.returnTo === 'stage-management' && returnContext.returnCaseId) {
-      // Navigate back to case and open stage management
+  const handleReturnToStageManagement = async () => {
+    const returnContext = await navigationContextService.getContext();
+    if (returnContext?.returnTo === 'stage-management' && returnContext.returnCaseId) {
       navigate(`/cases?caseId=${returnContext.returnCaseId}`);
-      
-      // Clear return context
-      localStorage.removeItem('navigation-context');
+      await navigationContextService.clearContext();
       
       // Signal to reopen stage dialog after navigation
       setTimeout(() => {
@@ -605,26 +603,22 @@ export const DocumentManagement: React.FC = () => {
   };
 
   // Check if we have return context
-  const hasReturnContext = () => {
-    try {
-      const returnContext = JSON.parse(localStorage.getItem('navigation-context') || '{}');
-      return returnContext.returnTo === 'stage-management' && returnContext.returnCaseId;
-    } catch {
-      return false;
-    }
-  };
-
-  // Get current case info for breadcrumb
-  const getCurrentCaseInfo = () => {
-    try {
-      const returnContext = JSON.parse(localStorage.getItem('navigation-context') || '{}');
-      const caseId = searchParams.get('caseId') || returnContext.returnCaseId;
-      const currentCase = state.cases.find(c => c.id === caseId);
-      return currentCase ? { id: caseId, number: currentCase.caseNumber } : null;
-    } catch {
-      return null;
-    }
-  };
+  const [hasReturnCtx, setHasReturnCtx] = useState(false);
+  const [currentCaseInfo, setCurrentCaseInfo] = useState<{ id: string; number: string } | null>(null);
+  
+  useEffect(() => {
+    const loadContext = async () => {
+      const ctx = await navigationContextService.getContext();
+      setHasReturnCtx(ctx?.returnTo === 'stage-management' && !!ctx.returnCaseId);
+      
+      const caseId = searchParams.get('caseId') || ctx?.returnCaseId;
+      if (caseId) {
+        const currentCase = state.cases.find(c => c.id === caseId);
+        setCurrentCaseInfo(currentCase ? { id: caseId, number: currentCase.caseNumber } : null);
+      }
+    };
+    loadContext();
+  }, [searchParams, state.cases]);
 
   // Load initial content
   useEffect(() => {
@@ -634,7 +628,7 @@ export const DocumentManagement: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Return Navigation Breadcrumb */}
-      {hasReturnContext() && (
+      {hasReturnCtx && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -651,7 +645,7 @@ export const DocumentManagement: React.FC = () => {
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbLink className="cursor-pointer" onClick={handleReturnToStageManagement}>
-                  {getCurrentCaseInfo()?.number || 'Case'}
+                  {currentCaseInfo?.number || 'Case'}
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />

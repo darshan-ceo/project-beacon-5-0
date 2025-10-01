@@ -11,6 +11,9 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { toast } from '@/hooks/use-toast';
+import { navigationContextService } from '@/services/navigationContextService';
+import { uiStateService } from '@/services/uiStateService';
 import { 
   ChevronDown, 
   ChevronRight, 
@@ -38,10 +41,14 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
   stageInstanceId
 }) => {
   const navigate = useNavigate();
-  const [isExpanded, setIsExpanded] = useState(() => {
-    const saved = localStorage.getItem('stage-context-expanded');
-    return saved ? JSON.parse(saved) : false;
-  });
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  // Load expanded state from storage
+  useEffect(() => {
+    uiStateService.getExpandedState('stage-context', false).then(expanded => {
+      setIsExpanded(expanded);
+    });
+  }, []);
   
   const [contextData, setContextData] = useState<StageContextSummary | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -51,7 +58,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
   const toggleExpanded = () => {
     const newExpanded = !isExpanded;
     setIsExpanded(newExpanded);
-    localStorage.setItem('stage-context-expanded', JSON.stringify(newExpanded));
+    uiStateService.saveExpandedState('stage-context', newExpanded);
   };
 
   // Load context data when expanded
@@ -113,41 +120,35 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
 
   // Navigation handlers with return path context
   const handleTaskClick = (taskId: string) => {
-    // Store navigation context for return path
     const returnContext = {
       returnTo: 'stage-management',
       returnCaseId: caseId,
       returnStage: stageInstanceId,
       timestamp: Date.now()
     };
-    localStorage.setItem('navigation-context', JSON.stringify(returnContext));
-    
+    navigationContextService.saveContext(returnContext);
     navigate(`/tasks?highlight=${taskId}&caseId=${caseId}&returnTo=stage-management&returnCaseId=${caseId}&returnStage=${stageInstanceId}`);
   };
 
   const handleHearingClick = () => {
-    // Store navigation context for return path
     const returnContext = {
       returnTo: 'stage-management',
       returnCaseId: caseId,
       returnStage: stageInstanceId,
       timestamp: Date.now()
     };
-    localStorage.setItem('navigation-context', JSON.stringify(returnContext));
-    
+    navigationContextService.saveContext(returnContext);
     navigate(`/cases?caseId=${caseId}&tab=hearings&returnTo=stage-management&returnCaseId=${caseId}&returnStage=${stageInstanceId}`);
   };
 
   const handleDocumentClick = (docKey: string) => {
-    // Store navigation context for return path
     const returnContext = {
       returnTo: 'stage-management',
       returnCaseId: caseId,
       returnStage: stageInstanceId,
       timestamp: Date.now()
     };
-    localStorage.setItem('navigation-context', JSON.stringify(returnContext));
-    
+    navigationContextService.saveContext(returnContext);
     navigate(`/documents?search=${docKey}&caseId=${caseId}&returnTo=stage-management&returnCaseId=${caseId}&returnStage=${stageInstanceId}`);
   };
 

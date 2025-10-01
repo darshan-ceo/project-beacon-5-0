@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { uiStateService } from '@/services/uiStateService';
 import { 
   Select, 
   SelectContent, 
@@ -111,9 +112,9 @@ export const HearingFilters: React.FC<HearingFiltersProps> = ({
       createdAt: new Date().toISOString(),
     };
 
-    const updatedViews = [...savedViews, newView];
-    setSavedViews(updatedViews);
-    localStorage.setItem('hearing-saved-views', JSON.stringify(updatedViews));
+      const updatedViews = [...savedViews, newView];
+      setSavedViews(updatedViews);
+      uiStateService.saveSavedViews('hearing-filters', updatedViews);
     
     toast({
       title: "View Saved",
@@ -132,7 +133,7 @@ export const HearingFilters: React.FC<HearingFiltersProps> = ({
   const deleteSavedView = (viewId: string) => {
     const updatedViews = savedViews.filter(v => v.id !== viewId);
     setSavedViews(updatedViews);
-    localStorage.setItem('hearing-saved-views', JSON.stringify(updatedViews));
+    uiStateService.saveSavedViews('hearing-filters', updatedViews);
     
     toast({
       title: "View Deleted",

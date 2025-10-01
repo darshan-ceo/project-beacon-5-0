@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
+import { navigationContextService } from '@/services/navigationContextService';
 import { 
   Scale, 
   Clock, 
@@ -124,7 +125,7 @@ export const CaseManagement: React.FC = () => {
         fromUrl: window.location.pathname + window.location.search,
         timestamp: Date.now()
       };
-      localStorage.setItem('navigation-context', JSON.stringify(returnContext));
+      navigationContextService.saveContext(returnContext);
     }
   }, [searchParams, state.cases]);
 
@@ -265,14 +266,14 @@ export const CaseManagement: React.FC = () => {
   }, [selectedCase, activeTab]);
 
   // Return navigation handler
-  const handleReturnToStageManagement = () => {
-    const returnContext = JSON.parse(localStorage.getItem('navigation-context') || '{}');
-    if (returnContext.returnTo === 'stage-management' && returnContext.returnCaseId) {
+  const handleReturnToStageManagement = async () => {
+    const returnContext = await navigationContextService.getContext();
+    if (returnContext?.returnTo === 'stage-management' && returnContext.returnCaseId) {
       // Navigate back to case and open stage management
       navigate(`/cases?caseId=${returnContext.returnCaseId}`);
       
       // Clear return context
-      localStorage.removeItem('navigation-context');
+      await navigationContextService.clearContext();
       
       // Signal to reopen stage dialog after navigation
       setTimeout(() => {
@@ -288,19 +289,18 @@ export const CaseManagement: React.FC = () => {
   };
 
   // Check if we have return context
-  const hasReturnContext = () => {
-    try {
-      const returnContext = JSON.parse(localStorage.getItem('navigation-context') || '{}');
-      return returnContext.returnTo === 'stage-management' && returnContext.returnCaseId;
-    } catch {
-      return false;
-    }
-  };
+  const [hasReturnCtx, setHasReturnCtx] = useState(false);
+  
+  useEffect(() => {
+    navigationContextService.getContext().then(ctx => {
+      setHasReturnCtx(ctx?.returnTo === 'stage-management' && !!ctx.returnCaseId);
+    });
+  }, []);
 
   return (
     <div className="space-y-6">
       {/* Return Navigation Breadcrumb */}
-      {hasReturnContext() && (
+      {hasReturnCtx && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
