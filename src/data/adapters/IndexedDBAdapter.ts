@@ -136,7 +136,9 @@ export class IndexedDBAdapter implements StoragePort {
       created_at: (item as any).created_at || new Date()
     }));
     
-    await table.bulkAdd(itemsWithId);
+    // Use bulkPut instead of bulkAdd to support upsert (insert or update)
+    // This prevents ConstraintError when items already exist
+    await table.bulkPut(itemsWithId);
     return itemsWithId as T[];
   }
 

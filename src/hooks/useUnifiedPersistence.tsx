@@ -156,7 +156,7 @@ export const useUnifiedPersistence = () => {
       const storage = storageManager.getStorage();
       
       // Persist each entity type to IndexedDB using bulk operations
-      // Note: We persist as-is without modifying timestamps - services handle that
+      // bulkCreate now uses bulkPut under the hood for safe upsert operations
       await Promise.all([
         state.clients.length > 0 && storage.bulkCreate('clients', state.clients),
         state.cases.length > 0 && storage.bulkCreate('cases', state.cases),
