@@ -7,12 +7,14 @@ import { StoragePort, StorageConfig } from './ports/StoragePort';
 import { IndexedDBAdapter } from './adapters/IndexedDBAdapter';
 import { InMemoryAdapter } from './adapters/InMemoryAdapter';
 import { ApiAdapter } from './adapters/ApiAdapter';
+import { HybridAdapter } from './adapters/HybridAdapter';
+import { SimulatedApiAdapter } from './adapters/SimulatedApiAdapter';
 import { TaskBundleRepository } from './repositories/TaskBundleRepository';
 import { EnhancedTaskBundleRepository } from './repositories/EnhancedTaskBundleRepository';
 import { DocumentRepository } from './repositories/DocumentRepository';
 import { AuditService } from './services/AuditService';
 
-export type StorageMode = 'indexeddb' | 'memory' | 'api';
+export type StorageMode = 'indexeddb' | 'memory' | 'api' | 'hybrid';
 
 export class StorageManager {
   private static instance: StorageManager;
@@ -45,6 +47,21 @@ export class StorageManager {
           break;
         case 'api':
           this.storage = new ApiAdapter();
+          break;
+        case 'hybrid':
+          const localAdapter = new IndexedDBAdapter();
+          const cloudAdapter = new SimulatedApiAdapter('cloud_api', {
+            baseDelay: 300,
+            failureRate: 0.02,
+            enabled: true,
+          });
+          this.storage = new HybridAdapter({
+            localAdapter,
+            cloudAdapter,
+            syncMode: 'batched',
+            batchInterval: 5000,
+            enableRealtime: true,
+          });
           break;
         default:
           throw new Error(`Unknown storage mode: ${mode}`);
