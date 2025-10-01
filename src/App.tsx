@@ -39,6 +39,7 @@ import { ClientRouteGuard } from "./components/ui/client-route-guard";
 import { AppWithPersistence } from "./components/AppWithPersistence";
 import { SearchResultsPage } from "./pages/SearchResultsPage";
 import { DebugSearchInspector } from "./pages/DebugSearchInspector";
+import { MigrationHealth } from "@/components/qa/MigrationHealth";
 
 const queryClient = new QueryClient();
 
@@ -209,6 +210,11 @@ const App = () => (
               <Route path="/debug/search" element={
                 <AdminLayout currentUser={currentUser}>
                   <DebugSearchInspector />
+                </AdminLayout>
+              } />
+              <Route path="/migration" element={
+                <AdminLayout currentUser={currentUser}>
+                  <MigrationHealth />
                 </AdminLayout>
               } />
               {/* Redirect legacy document-management URLs */}

@@ -2,15 +2,19 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { db } from '@/data/db';
 
 export const EmergencyReset: React.FC = () => {
   const { toast } = useToast();
 
-  const handleEmergencyReset = () => {
+  const handleEmergencyReset = async () => {
     try {
       // Clear all localStorage data
       localStorage.removeItem('lawfirm_app_data');
       localStorage.removeItem('user_profile');
+      
+      // Clear HofficeDB
+      await db.delete();
       
       toast({
         title: "Emergency Reset Complete",
