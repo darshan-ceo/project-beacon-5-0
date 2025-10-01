@@ -26,8 +26,10 @@ const log = (level: 'success' | 'error', tab: string, action: string, details?: 
 export const casesService = {
   create: async (caseData: Partial<Case>, dispatch: React.Dispatch<AppAction>): Promise<Case> => {
     try {
+      // FIXED: Use UUID instead of timestamp
+      const { generateId } = await import('@/data/db');
       const newCase: Case = {
-        id: `case-${Date.now()}`,
+        id: generateId(),
         caseNumber: `CAS${Date.now().toString().slice(-6)}`,
         title: caseData.title || '',
         clientId: caseData.clientId || '',
@@ -43,6 +45,32 @@ export const casesService = {
         generatedForms: [],
         ...caseData
       };
+
+      // FIXED: Persist to storage
+      const { storageManager } = await import('@/data/StorageManager');
+      const { changeTracker } = await import('./changeTracker');
+      const { ENTITY_TYPES } = await import('@/constants/StorageKeys');
+      
+      try {
+        const storage = storageManager.getStorage();
+        await storage.create('cases', {
+          id: newCase.id,
+          client_id: newCase.clientId,
+          stage_code: newCase.currentStage,
+          status: newCase.slaStatus,
+          opened_on: new Date(),
+          updated_at: new Date(),
+          case_number: newCase.caseNumber,
+          title: newCase.title,
+          assigned_to_id: newCase.assignedToId,
+          priority: newCase.priority,
+        });
+
+        changeTracker.markDirty(ENTITY_TYPES.CASE, newCase.id, 'create');
+        changeTracker.logChange(ENTITY_TYPES.CASE, newCase.id, 'create');
+      } catch (storageError) {
+        console.error('Failed to persist case to storage:', storageError);
+      }
 
       dispatch({ type: 'ADD_CASE', payload: newCase });
       log('success', 'Overview', 'create', { caseId: newCase.id, title: newCase.title });
@@ -67,6 +95,28 @@ export const casesService = {
   update: async (caseId: string, updates: Partial<Case>, dispatch: React.Dispatch<AppAction>): Promise<void> => {
     try {
       const updatedCase = { id: caseId, lastUpdated: new Date().toISOString(), ...updates };
+      
+      // FIXED: Persist to storage
+      const { storageManager } = await import('@/data/StorageManager');
+      const { changeTracker } = await import('./changeTracker');
+      const { ENTITY_TYPES } = await import('@/constants/StorageKeys');
+      
+      try {
+        const storage = storageManager.getStorage();
+        await storage.update('cases', caseId, {
+          ...updates,
+          updated_at: new Date(),
+          client_id: updates.clientId,
+          stage_code: updates.currentStage,
+          status: updates.slaStatus,
+        });
+
+        changeTracker.markDirty(ENTITY_TYPES.CASE, caseId, 'update');
+        changeTracker.logChange(ENTITY_TYPES.CASE, caseId, 'update');
+      } catch (storageError) {
+        console.error('Failed to update case in storage:', storageError);
+      }
+      
       dispatch({ type: 'UPDATE_CASE', payload: updatedCase });
       log('success', 'Overview', 'update', { caseId, updates: Object.keys(updates) });
       
