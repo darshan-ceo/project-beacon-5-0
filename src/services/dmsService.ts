@@ -2,6 +2,7 @@ import { AppAction } from '@/contexts/AppStateContext';
 import { toast } from '@/hooks/use-toast';
 import { HashService } from './hashService';
 import { idbStorage } from '@/utils/idb';
+import { setItem, getItem, loadAppState, saveAppState } from '@/data/storageShim';
 
 const isDev = import.meta.env.DEV;
 
@@ -171,11 +172,11 @@ const initializeMockFolders = (): Folder[] => {
 let mockFolders: Folder[] = initializeMockFolders();
 
 // Save to localStorage whenever mockFolders changes
-const saveMockFolders = () => {
+const saveMockFolders = async () => {
   try {
-    localStorage.setItem('mockFolders', JSON.stringify(mockFolders));
+    await setItem('mockFolders', mockFolders);
   } catch (error) {
-    console.warn('Failed to save folders to localStorage:', error);
+    console.warn('Failed to save folders to storage:', error);
   }
 };
 
@@ -199,22 +200,19 @@ const initializeTags = async (): Promise<void> => {
       return;
     }
 
-    // Fallback to localStorage
-    const localTags = localStorage.getItem('dms_tags');
-    if (localTags) {
-      const parsed = JSON.parse(localTags);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        mockTags = parsed;
-        // Migrate to IndexedDB
-        await idbStorage.set('dms_tags', mockTags);
-        return;
-      }
+    // Fallback to storageShim
+    const localTags = await getItem<Tag[]>('dms_tags');
+    if (localTags && Array.isArray(localTags) && localTags.length > 0) {
+      mockTags = localTags;
+      // Migrate to IndexedDB
+      await idbStorage.set('dms_tags', mockTags);
+      return;
     }
 
     // Use defaults if no stored tags
     mockTags = getDefaultTags();
     await idbStorage.set('dms_tags', mockTags);
-    localStorage.setItem('dms_tags', JSON.stringify(mockTags));
+    await setItem('dms_tags', mockTags);
   } catch (error) {
     console.warn('Failed to initialize tags, using defaults:', error);
     mockTags = getDefaultTags();
@@ -225,7 +223,7 @@ const initializeTags = async (): Promise<void> => {
 const saveTags = async (): Promise<void> => {
   try {
     await idbStorage.set('dms_tags', mockTags);
-    localStorage.setItem('dms_tags', JSON.stringify(mockTags));
+    await setItem('dms_tags', mockTags);
   } catch (error) {
     console.warn('Failed to save tags:', error);
   }
@@ -252,14 +250,14 @@ export const dmsService = {
       // Try multiple sources in order: localStorage -> IndexedDB -> defaults
       let allFolders: any[] | null = null;
       
-      // First try localStorage
+      // First try storageShim
       try {
-        const storedFolders = localStorage.getItem('dms_folders');
-        if (storedFolders) {
-          allFolders = JSON.parse(storedFolders);
+        const storedFolders = await getItem<Folder[]>('dms_folders');
+        if (storedFolders && Array.isArray(storedFolders)) {
+          allFolders = storedFolders;
         }
       } catch (error) {
-        console.warn('Failed to parse localStorage folders:', error);
+        console.warn('Failed to parse storageShim folders:', error);
         allFolders = null;
       }
       
@@ -375,15 +373,12 @@ export const dmsService = {
         }
         if (updated > 0) {
           await idbStorage.set('documents', documents);
-          // Mirror into local app state cache if present
+          // Mirror into storageShim app state cache if present
           try {
-            const appStr = localStorage.getItem('lawfirm_app_data');
-            if (appStr) {
-              const app = JSON.parse(appStr);
-              if (Array.isArray(app.documents)) {
-                app.documents = documents;
-                localStorage.setItem('lawfirm_app_data', JSON.stringify(app));
-              }
+            const appState = await loadAppState();
+            if (appState && Array.isArray(appState.documents)) {
+              appState.documents = documents as any;
+              await saveAppState({ documents: appState.documents });
             }
           } catch {}
           console.log(`[DMS] Migrated ${updated} document references to canonical folders`);
@@ -395,11 +390,11 @@ export const dmsService = {
       // Sync normalized folders to storage and internal cache
       const finalFolders = normalizedFolders;
       try {
-        localStorage.setItem('dms_folders', JSON.stringify(finalFolders));
+        await setItem('dms_folders', finalFolders);
         await idbStorage.set('folders', finalFolders);
         // Keep internal cache in sync for path lookups
         mockFolders = [...finalFolders];
-        saveMockFolders();
+        await saveMockFolders();
         console.log('Folders normalized and synchronized to all storage layers');
       } catch (error) {
         console.warn('Failed to sync folders to storage:', error);
@@ -442,7 +437,7 @@ export const dmsService = {
       try {
         const allFolders = await dmsService.folders.listAll();
         allFolders.push(newFolder);
-        localStorage.setItem('dms_folders', JSON.stringify(allFolders));
+        await setItem('dms_folders', allFolders);
         await idbStorage.set('folders', allFolders);
       } catch (error) {
         console.warn('Failed to sync new folder to storage:', error);

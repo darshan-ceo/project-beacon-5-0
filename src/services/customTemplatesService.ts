@@ -5,6 +5,7 @@
 
 import { FormTemplate } from './formTemplatesService';
 import { toast } from '@/hooks/use-toast';
+import { setItem, getItem } from '@/data/storageShim';
 
 interface CustomTemplate extends FormTemplate {
   id?: string;
@@ -48,13 +49,13 @@ class CustomTemplatesService {
         updatedAt: new Date().toISOString()
       };
 
-      const existingTemplates = this.getStoredTemplates();
+      const existingTemplates = await this.getStoredTemplates();
       const updatedTemplates = [...existingTemplates, customTemplate];
       
-      localStorage.setItem(this.storageKey, JSON.stringify(updatedTemplates));
+      await setItem(this.storageKey, updatedTemplates);
       
       // Save version history
-      this.saveTemplateVersion(customTemplate, 'Initial version');
+      await this.saveTemplateVersion(customTemplate, 'Initial version');
       
       return customTemplate;
     } catch (error) {
@@ -68,7 +69,7 @@ class CustomTemplatesService {
    */
   async updateTemplate(templateId: string, updates: Partial<CustomTemplate>): Promise<CustomTemplate> {
     try {
-      const existingTemplates = this.getStoredTemplates();
+      const existingTemplates = await this.getStoredTemplates();
       const templateIndex = existingTemplates.findIndex(t => t.id === templateId);
       
       if (templateIndex === -1) {
@@ -82,10 +83,10 @@ class CustomTemplatesService {
       };
 
       existingTemplates[templateIndex] = updatedTemplate;
-      localStorage.setItem(this.storageKey, JSON.stringify(existingTemplates));
+      await setItem(this.storageKey, existingTemplates);
       
       // Save version history
-      this.saveTemplateVersion(updatedTemplate, 'Updated template');
+      await this.saveTemplateVersion(updatedTemplate, 'Updated template');
       
       return updatedTemplate;
     } catch (error) {
@@ -99,7 +100,7 @@ class CustomTemplatesService {
    */
   async getCustomTemplates(): Promise<CustomTemplate[]> {
     try {
-      return this.getStoredTemplates();
+      return await this.getStoredTemplates();
     } catch (error) {
       console.error('Error fetching custom templates:', error);
       return [];
@@ -111,7 +112,7 @@ class CustomTemplatesService {
    */
   async getTemplateById(templateId: string): Promise<CustomTemplate | null> {
     try {
-      const templates = this.getStoredTemplates();
+      const templates = await this.getStoredTemplates();
       return templates.find(t => t.id === templateId) || null;
     } catch (error) {
       console.error('Error fetching template by ID:', error);
@@ -124,13 +125,13 @@ class CustomTemplatesService {
    */
   async deleteTemplate(templateId: string): Promise<boolean> {
     try {
-      const existingTemplates = this.getStoredTemplates();
+      const existingTemplates = await this.getStoredTemplates();
       const filteredTemplates = existingTemplates.filter(t => t.id !== templateId);
       
-      localStorage.setItem(this.storageKey, JSON.stringify(filteredTemplates));
+      await setItem(this.storageKey, filteredTemplates);
       
       // Clean up version history
-      this.deleteTemplateVersions(templateId);
+      await this.deleteTemplateVersions(templateId);
       
       return true;
     } catch (error) {
@@ -172,7 +173,7 @@ class CustomTemplatesService {
    */
   async getTemplateVersions(templateId: string): Promise<TemplateVersion[]> {
     try {
-      const versions = this.getStoredVersions();
+      const versions = await this.getStoredVersions();
       return versions.filter(v => v.template.id === templateId)
                     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     } catch (error) {
@@ -199,7 +200,7 @@ class CustomTemplatesService {
       };
 
       await this.updateTemplate(templateId, restoredTemplate);
-      this.saveTemplateVersion(restoredTemplate, `Restored to version ${version}`);
+      await this.saveTemplateVersion(restoredTemplate, `Restored to version ${version}`);
       
       return restoredTemplate;
     } catch (error) {
@@ -247,7 +248,7 @@ class CustomTemplatesService {
       }
 
       // Ensure unique code
-      const existingTemplates = this.getStoredTemplates();
+      const existingTemplates = await this.getStoredTemplates();
       let code = templateData.code;
       let counter = 1;
       
@@ -278,7 +279,7 @@ class CustomTemplatesService {
     tags?: string[];
   }): Promise<CustomTemplate[]> {
     try {
-      let templates = this.getStoredTemplates();
+      let templates = await this.getStoredTemplates();
 
       // Apply text search
       if (query) {
@@ -309,29 +310,29 @@ class CustomTemplatesService {
   }
 
   // Private helper methods
-  private getStoredTemplates(): CustomTemplate[] {
+  private async getStoredTemplates(): Promise<CustomTemplate[]> {
     try {
-      const stored = localStorage.getItem(this.storageKey);
-      return stored ? JSON.parse(stored) : [];
+      const stored = await getItem<CustomTemplate[]>(this.storageKey);
+      return stored || [];
     } catch (error) {
       console.error('Error parsing stored templates:', error);
       return [];
     }
   }
 
-  private getStoredVersions(): TemplateVersion[] {
+  private async getStoredVersions(): Promise<TemplateVersion[]> {
     try {
-      const stored = localStorage.getItem(this.versionsKey);
-      return stored ? JSON.parse(stored) : [];
+      const stored = await getItem<TemplateVersion[]>(this.versionsKey);
+      return stored || [];
     } catch (error) {
       console.error('Error parsing stored versions:', error);
       return [];
     }
   }
 
-  private saveTemplateVersion(template: CustomTemplate, description?: string): void {
+  private async saveTemplateVersion(template: CustomTemplate, description?: string): Promise<void> {
     try {
-      const versions = this.getStoredVersions();
+      const versions = await this.getStoredVersions();
       const newVersion: TemplateVersion = {
         version: template.version,
         template: { ...template },
@@ -349,20 +350,20 @@ class CustomTemplatesService {
           .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
           .slice(0, 10);
         
-        localStorage.setItem(this.versionsKey, JSON.stringify([...filteredVersions, ...recentVersions]));
+        await setItem(this.versionsKey, [...filteredVersions, ...recentVersions]);
       } else {
-        localStorage.setItem(this.versionsKey, JSON.stringify(versions));
+        await setItem(this.versionsKey, versions);
       }
     } catch (error) {
       console.error('Error saving template version:', error);
     }
   }
 
-  private deleteTemplateVersions(templateId: string): void {
+  private async deleteTemplateVersions(templateId: string): Promise<void> {
     try {
-      const versions = this.getStoredVersions();
+      const versions = await this.getStoredVersions();
       const filteredVersions = versions.filter(v => v.template.id !== templateId);
-      localStorage.setItem(this.versionsKey, JSON.stringify(filteredVersions));
+      await setItem(this.versionsKey, filteredVersions);
     } catch (error) {
       console.error('Error deleting template versions:', error);
     }

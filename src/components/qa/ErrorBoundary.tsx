@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { setItem, getItem } from '@/data/storageShim';
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -42,7 +43,13 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     
     // In QA mode, capture error details
     if (import.meta.env.MODE === 'development') {
-      // Store error for QA dashboard
+      // Log error to storage (async, non-blocking)
+      this.logErrorToStorage(error, errorInfo);
+    }
+  }
+
+  async logErrorToStorage(error: Error, errorInfo: React.ErrorInfo) {
+    try {
       const errorData = {
         timestamp: new Date().toISOString(),
         message: error.message,
@@ -50,10 +57,11 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
         componentStack: errorInfo.componentStack
       };
       
-      // Store in localStorage for QA dashboard to access
-      const existingErrors = JSON.parse(localStorage.getItem('qa-errors') || '[]');
+      const existingErrors = await getItem<any[]>('qa-errors') || [];
       existingErrors.push(errorData);
-      localStorage.setItem('qa-errors', JSON.stringify(existingErrors.slice(-10))); // Keep last 10
+      await setItem('qa-errors', existingErrors.slice(-10)); // Keep last 10
+    } catch (e) {
+      console.warn('Failed to log error to storage:', e);
     }
   }
 
@@ -127,19 +135,23 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
 // Hook version for functional components
 export const useErrorHandler = () => {
-  return (error: Error, errorInfo?: React.ErrorInfo) => {
+  return async (error: Error, errorInfo?: React.ErrorInfo) => {
     console.error('Error caught by error handler:', error, errorInfo);
     
     if (import.meta.env.MODE === 'development') {
-      const errorData = {
-        timestamp: new Date().toISOString(),
-        message: error.message,
-        stack: error.stack
-      };
-      
-      const existingErrors = JSON.parse(localStorage.getItem('qa-errors') || '[]');
-      existingErrors.push(errorData);
-      localStorage.setItem('qa-errors', JSON.stringify(existingErrors.slice(-10)));
+      try {
+        const errorData = {
+          timestamp: new Date().toISOString(),
+          message: error.message,
+          stack: error.stack
+        };
+        
+        const existingErrors = await getItem<any[]>('qa-errors') || [];
+        existingErrors.push(errorData);
+        await setItem('qa-errors', existingErrors.slice(-10));
+      } catch (e) {
+        console.warn('Failed to log error:', e);
+      }
     }
   };
 };

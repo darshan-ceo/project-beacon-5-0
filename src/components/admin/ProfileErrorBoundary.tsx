@@ -2,6 +2,7 @@ import React from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { removeItem } from '@/data/storageShim';
 
 interface ProfileErrorBoundaryState {
   hasError: boolean;
@@ -50,8 +51,8 @@ export class ProfileErrorBoundary extends React.Component<
                   Try Again
                 </Button>
                 <Button 
-                  onClick={() => {
-                    localStorage.removeItem('user_profile');
+                  onClick={async () => {
+                    await removeItem('user_profile');
                     window.location.reload();
                   }}
                   variant="destructive"
