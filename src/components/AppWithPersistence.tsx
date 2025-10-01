@@ -3,6 +3,7 @@ import { useUnifiedPersistence } from '@/hooks/useUnifiedPersistence';
 import { useProfilePersistence } from '@/hooks/useProfilePersistence';
 import { searchService } from '@/services/searchService';
 import { generateSampleContent } from '@/utils/fileTypeUtils';
+import { loadAppState, saveAppState } from '@/data/storageShim';
 
 interface AppWithPersistenceProps {
   children: React.ReactNode;
@@ -19,18 +20,17 @@ export const AppWithPersistence: React.FC<AppWithPersistenceProps> = ({ children
       console.warn('🔍 Failed to initialize search provider:', error);
     });
 
-    // Backfill missing document content for previews
-    const backfillDocumentContent = () => {
+    // Backfill missing document content for previews using storageShim
+    const backfillDocumentContent = async () => {
       try {
-        const appStateStr = localStorage.getItem('lawfirm_app_data');
-        if (!appStateStr) return;
+        const appState = await loadAppState();
+        if (!appState) return;
 
-        const appState = JSON.parse(appStateStr);
         const documents = Array.isArray(appState.documents) ? appState.documents : [];
         
         let hasUpdates = false;
-        documents.forEach(doc => {
-          if (!doc.content && doc.type) {
+        documents.forEach((doc: any) => {
+          if (!doc.content && (doc.type || doc.file_type)) {
             // Generate realistic content based on file type
             const extension = doc.name?.split('.').pop()?.toLowerCase() || 'txt';
             doc.content = generateSampleContent(extension, doc.name || 'document');
@@ -39,7 +39,7 @@ export const AppWithPersistence: React.FC<AppWithPersistenceProps> = ({ children
         });
 
         if (hasUpdates) {
-          localStorage.setItem('lawfirm_app_data', JSON.stringify(appState));
+          await saveAppState({ documents });
           console.log('📄 Backfilled content for', documents.filter(d => d.content).length, 'documents');
         }
       } catch (error) {

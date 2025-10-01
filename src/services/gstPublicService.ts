@@ -64,7 +64,7 @@ class GSTPublicService {
 
     // Check cache first (unless bypassed)
     if (!bypassCache) {
-      const cached = gstCacheService.get(gstin);
+      const cached = await gstCacheService.get(gstin);
       if (cached) {
         return {
           success: true,

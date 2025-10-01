@@ -1,3 +1,5 @@
+import { setItem, getItem, removeItem } from '@/data/storageShim';
+
 export interface ProfileUpdateData {
   name?: string;
   email?: string;
@@ -28,7 +30,7 @@ class ProfileService {
       formData.append('type', 'avatar');
 
       // Simulate multipart upload to /api/files
-      return new Promise((resolve, reject) => {
+      return new Promise(async (resolve, reject) => {
         let progress = 0;
         const interval = setInterval(() => {
           progress += 10;
@@ -38,16 +40,16 @@ class ProfileService {
           
           if (progress >= 90) {
             clearInterval(interval);
-            setTimeout(() => {
+            setTimeout(async () => {
               if (onProgress) onProgress(100);
               
               // Create object URL for the uploaded file
               const url = URL.createObjectURL(file);
               this.avatarUrl = url;
               
-              // Store in localStorage for persistence
-              localStorage.setItem('userAvatar', url);
-              localStorage.setItem('userAvatarTimestamp', Date.now().toString());
+              // Store using storageShim for persistence
+              await setItem('userAvatar', url);
+              await setItem('userAvatarTimestamp', Date.now().toString());
               
               resolve(url);
             }, 500);
@@ -65,14 +67,14 @@ class ProfileService {
       // Simulate API call to PATCH /api/users/me
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Save to localStorage
+      // Save using storageShim
       const PROFILE_KEY = 'user_profile';
-      const existingProfile = localStorage.getItem(PROFILE_KEY);
+      const existingProfile = await getItem<any>(PROFILE_KEY);
       const updatedProfile = existingProfile 
-        ? { ...JSON.parse(existingProfile), ...data, updatedAt: new Date().toISOString() }
+        ? { ...existingProfile, ...data, updatedAt: new Date().toISOString() }
         : { ...data, updatedAt: new Date().toISOString() };
       
-      localStorage.setItem(PROFILE_KEY, JSON.stringify(updatedProfile));
+      await setItem(PROFILE_KEY, updatedProfile);
       console.log('Profile updated:', data);
     } catch (error) {
       console.error('Profile update failed:', error);
@@ -83,8 +85,7 @@ class ProfileService {
   async getProfile(): Promise<any> {
     try {
       const PROFILE_KEY = 'user_profile';
-      const savedProfile = localStorage.getItem(PROFILE_KEY);
-      return savedProfile ? JSON.parse(savedProfile) : null;
+      return await getItem<any>(PROFILE_KEY);
     } catch (error) {
       console.error('Failed to load profile:', error);
       return null;
@@ -92,8 +93,8 @@ class ProfileService {
   }
 
   async getAvatarUrl(): Promise<string> {
-    const avatarUrl = localStorage.getItem('userAvatar') || this.avatarUrl;
-    const timestamp = localStorage.getItem('userAvatarTimestamp');
+    const avatarUrl = await getItem<string>('userAvatar') || this.avatarUrl;
+    const timestamp = await getItem<string>('userAvatarTimestamp');
     
     if (avatarUrl && timestamp) {
       return `${avatarUrl}?v=${timestamp}`;
@@ -103,11 +104,11 @@ class ProfileService {
   }
 
   async deleteAvatar(): Promise<void> {
-    const avatarUrl = localStorage.getItem('userAvatar') || this.avatarUrl;
+    const avatarUrl = await getItem<string>('userAvatar') || this.avatarUrl;
     if (avatarUrl) {
       URL.revokeObjectURL(avatarUrl);
-      localStorage.removeItem('userAvatar');
-      localStorage.removeItem('userAvatarTimestamp');
+      await removeItem('userAvatar');
+      await removeItem('userAvatarTimestamp');
       this.avatarUrl = '';
     }
     

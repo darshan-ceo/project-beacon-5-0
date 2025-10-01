@@ -3,6 +3,8 @@
  * Handles caching of GST public lookups and re-verification tracking
  */
 
+import { setItem, getItem, removeItem } from '@/data/storageShim';
+
 export interface GSTCacheEntry {
   gstin: string;
   data: any;
@@ -19,9 +21,9 @@ class GSTCacheService {
   /**
    * Get cached GST data for a GSTIN
    */
-  get(gstin: string): GSTCacheEntry | null {
+  async get(gstin: string): Promise<GSTCacheEntry | null> {
     try {
-      const cache = this.getCache();
+      const cache = await this.getCache();
       const entry = cache[gstin];
       
       if (!entry) return null;
@@ -29,7 +31,7 @@ class GSTCacheService {
       // Check if cache is still valid
       const now = Date.now();
       if (now - entry.timestamp > GSTCacheService.CACHE_DURATION) {
-        this.remove(gstin);
+        await this.remove(gstin);
         return null;
       }
       
@@ -43,9 +45,9 @@ class GSTCacheService {
   /**
    * Set cached GST data for a GSTIN
    */
-  set(gstin: string, data: any, source: 'public' | 'gsp' | 'manual' = 'public'): void {
+  async set(gstin: string, data: any, source: 'public' | 'gsp' | 'manual' = 'public'): Promise<void> {
     try {
-      const cache = this.getCache();
+      const cache = await this.getCache();
       const now = Date.now();
       
       cache[gstin] = {
@@ -56,7 +58,7 @@ class GSTCacheService {
         source
       };
       
-      localStorage.setItem(GSTCacheService.CACHE_KEY, JSON.stringify(cache));
+      await setItem(GSTCacheService.CACHE_KEY, cache);
     } catch (error) {
       console.warn('GST Cache write error:', error);
     }
@@ -65,11 +67,11 @@ class GSTCacheService {
   /**
    * Remove cached data for a GSTIN
    */
-  remove(gstin: string): void {
+  async remove(gstin: string): Promise<void> {
     try {
-      const cache = this.getCache();
+      const cache = await this.getCache();
       delete cache[gstin];
-      localStorage.setItem(GSTCacheService.CACHE_KEY, JSON.stringify(cache));
+      await setItem(GSTCacheService.CACHE_KEY, cache);
     } catch (error) {
       console.warn('GST Cache remove error:', error);
     }
@@ -78,8 +80,8 @@ class GSTCacheService {
   /**
    * Check if GSTIN needs re-verification (>90 days old)
    */
-  needsReVerification(gstin: string): boolean {
-    const entry = this.get(gstin);
+  async needsReVerification(gstin: string): Promise<boolean> {
+    const entry = await this.get(gstin);
     if (!entry) return false;
     
     const now = Date.now();
@@ -89,12 +91,12 @@ class GSTCacheService {
   /**
    * Update last verified timestamp
    */
-  updateVerificationTimestamp(gstin: string): void {
+  async updateVerificationTimestamp(gstin: string): Promise<void> {
     try {
-      const cache = this.getCache();
+      const cache = await this.getCache();
       if (cache[gstin]) {
         cache[gstin].lastVerified = Date.now();
-        localStorage.setItem(GSTCacheService.CACHE_KEY, JSON.stringify(cache));
+        await setItem(GSTCacheService.CACHE_KEY, cache);
       }
     } catch (error) {
       console.warn('GST Cache verification update error:', error);
@@ -104,9 +106,9 @@ class GSTCacheService {
   /**
    * Clear all cached data
    */
-  clear(): void {
+  async clear(): Promise<void> {
     try {
-      localStorage.removeItem(GSTCacheService.CACHE_KEY);
+      await removeItem(GSTCacheService.CACHE_KEY);
     } catch (error) {
       console.warn('GST Cache clear error:', error);
     }
@@ -115,9 +117,9 @@ class GSTCacheService {
   /**
    * Get cache statistics
    */
-  getStats(): { totalEntries: number; oldEntries: number; needsReVerification: number } {
+  async getStats(): Promise<{ totalEntries: number; oldEntries: number; needsReVerification: number }> {
     try {
-      const cache = this.getCache();
+      const cache = await this.getCache();
       const now = Date.now();
       let oldEntries = 0;
       let needsReVerification = 0;
@@ -143,12 +145,12 @@ class GSTCacheService {
   }
 
   /**
-   * Get the cache object from localStorage
+   * Get the cache object from storageShim
    */
-  private getCache(): Record<string, GSTCacheEntry> {
+  private async getCache(): Promise<Record<string, GSTCacheEntry>> {
     try {
-      const cached = localStorage.getItem(GSTCacheService.CACHE_KEY);
-      return cached ? JSON.parse(cached) : {};
+      const cached = await getItem<Record<string, GSTCacheEntry>>(GSTCacheService.CACHE_KEY);
+      return cached || {};
     } catch (error) {
       console.warn('GST Cache parse error:', error);
       return {};
@@ -158,9 +160,9 @@ class GSTCacheService {
   /**
    * Clean up expired entries
    */
-  cleanup(): void {
+  async cleanup(): Promise<void> {
     try {
-      const cache = this.getCache();
+      const cache = await this.getCache();
       const now = Date.now();
       let hasChanges = false;
       
@@ -172,7 +174,7 @@ class GSTCacheService {
       });
       
       if (hasChanges) {
-        localStorage.setItem(GSTCacheService.CACHE_KEY, JSON.stringify(cache));
+        await setItem(GSTCacheService.CACHE_KEY, cache);
       }
     } catch (error) {
       console.warn('GST Cache cleanup error:', error);
