@@ -91,22 +91,53 @@ export const useUnifiedPersistence = () => {
   };
 
   const loadAllData = async (): Promise<void> => {
-    const storage = storageManager.getStorage();
-    const [clients, cases, tasks, taskBundles, documents, hearings, judges, courts, employees, folders] = await Promise.all([
-      storage.getAll('clients'), storage.getAll('cases'), storage.getAll('tasks'), storage.getAll('task_bundles'),
-      storage.getAll('documents'), storage.getAll('hearings'), storage.getAll('judges'), storage.getAll('courts'),
-      storage.getAll('employees'), storage.getAll('folders')
-    ]);
+    try {
+      const storage = storageManager.getStorage();
+      const [clients, cases, tasks, taskBundles, documents, hearings, judges, courts, employees, folders] = await Promise.all([
+        storage.getAll<any>('clients'), 
+        storage.getAll<any>('cases'), 
+        storage.getAll<any>('tasks'), 
+        storage.getAll<any>('task_bundles'),
+        storage.getAll<any>('documents'), 
+        storage.getAll<any>('hearings'), 
+        storage.getAll<any>('judges'), 
+        storage.getAll<any>('courts'),
+        storage.getAll<any>('employees'), 
+        storage.getAll<any>('folders')
+      ]);
 
-    const counts = {
-      clients: clients.length, cases: cases.length, tasks: tasks.length, task_bundles: taskBundles.length,
-      documents: documents.length, hearings: hearings.length, judges: judges.length, courts: courts.length,
-      employees: employees.length, folders: folders.length
-    };
-    
-    setEntityCounts(counts);
-    lastKnownEntityCounts.current = counts;
-    mirrorToLocalStorage({ clients, cases, tasks, documents, hearings, judges, courts, employees, folders });
+      // Restore loaded data to React state using RESTORE_STATE action
+      dispatch({ 
+        type: 'RESTORE_STATE', 
+        payload: { 
+          clients, 
+          cases, 
+          tasks, 
+          documents, 
+          hearings, 
+          judges, 
+          courts, 
+          employees, 
+          folders 
+        } 
+      });
+
+      const counts = {
+        clients: clients.length, cases: cases.length, tasks: tasks.length, task_bundles: taskBundles.length,
+        documents: documents.length, hearings: hearings.length, judges: judges.length, courts: courts.length,
+        employees: employees.length, folders: folders.length
+      };
+      
+      setEntityCounts(counts);
+      lastKnownEntityCounts.current = counts;
+      mirrorToLocalStorage({ clients, cases, tasks, documents, hearings, judges, courts, employees, folders });
+      
+      console.log('✅ Loaded data from IndexedDB:', counts);
+    } catch (error) {
+      console.error('❌ Failed to load data:', error);
+      toast.error('Failed to load data from storage');
+      throw error;
+    }
   };
 
   const autoSave = async (): Promise<void> => {
@@ -121,29 +152,48 @@ export const useUnifiedPersistence = () => {
   };
 
   const saveAllData = async (): Promise<void> => {
-    // NOTE: IndexedDB persistence temporarily disabled due to type mapping complexity
-    // Services now handle persistence directly (see clientsService, casesService, etc.)
-    // This function maintains localStorage mirror for legacy compatibility
-    
-    const counts = {
-      clients: state.clients.length,
-      cases: state.cases.length,
-      tasks: state.tasks.length,
-      documents: state.documents.length,
-      hearings: state.hearings.length,
-      judges: state.judges.length,
-      courts: state.courts.length,
-      employees: state.employees.length,
-      folders: state.folders.length,
-    };
-    
-    setEntityCounts(counts);
-    lastKnownEntityCounts.current = counts;
-    
-    // Mirror to localStorage for legacy compatibility
-    mirrorToLocalStorage(state);
-    
-    console.log('📝 Saved data summary:', counts);
+    try {
+      const storage = storageManager.getStorage();
+      
+      // Persist each entity type to IndexedDB using bulk operations
+      // Note: We persist as-is without modifying timestamps - services handle that
+      await Promise.all([
+        state.clients.length > 0 && storage.bulkCreate('clients', state.clients),
+        state.cases.length > 0 && storage.bulkCreate('cases', state.cases),
+        state.tasks.length > 0 && storage.bulkCreate('tasks', state.tasks),
+        state.documents.length > 0 && storage.bulkCreate('documents', state.documents),
+        state.hearings.length > 0 && storage.bulkCreate('hearings', state.hearings),
+        state.judges.length > 0 && storage.bulkCreate('judges', state.judges),
+        state.courts.length > 0 && storage.bulkCreate('courts', state.courts),
+        state.employees.length > 0 && storage.bulkCreate('employees', state.employees),
+        state.folders.length > 0 && storage.bulkCreate('folders', state.folders)
+      ]);
+      
+      const counts = {
+        clients: state.clients.length,
+        cases: state.cases.length,
+        tasks: state.tasks.length,
+        documents: state.documents.length,
+        hearings: state.hearings.length,
+        judges: state.judges.length,
+        courts: state.courts.length,
+        employees: state.employees.length,
+        folders: state.folders.length,
+      };
+      
+      setEntityCounts(counts);
+      lastKnownEntityCounts.current = counts;
+      
+      // Mirror to localStorage for legacy compatibility
+      mirrorToLocalStorage(state);
+      
+      console.log('📝 Saved data to IndexedDB:', counts);
+    } catch (error) {
+      console.error('❌ Failed to save data:', error);
+      // Still try to mirror to localStorage as fallback
+      mirrorToLocalStorage(state);
+      throw error;
+    }
   };
 
   const mirrorToLocalStorage = (data: any): void => {
