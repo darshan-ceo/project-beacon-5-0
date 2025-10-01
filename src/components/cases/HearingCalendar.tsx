@@ -40,7 +40,9 @@ export const HearingCalendar: React.FC<HearingCalendarProps> = ({ isOpen, onClos
   // Convert hearings to calendar events
   const events = state.hearings.map(hearing => {
     const hearingDate = new Date(hearing.date);
-    const [hours, minutes] = hearing.time.split(':').map(Number);
+    // Safely handle time property - use start_time as fallback for modern hearings
+    const timeStr = hearing.time || hearing.start_time || '10:00';
+    const [hours, minutes] = timeStr.split(':').map(Number);
     hearingDate.setHours(hours, minutes);
     
     const caseInfo = state.cases.find(c => c.id === hearing.caseId);

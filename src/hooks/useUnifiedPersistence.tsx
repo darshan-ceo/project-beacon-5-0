@@ -93,10 +93,10 @@ export const useUnifiedPersistence = () => {
   const loadAllData = async (): Promise<void> => {
     try {
       const storage = storageManager.getStorage();
-      const [clients, cases, tasks, taskBundles, documents, hearings, judges, courts, employees, folders] = await Promise.all([
-        storage.getAll<any>('clients'), 
-        storage.getAll<any>('cases'), 
-        storage.getAll<any>('tasks'), 
+      const [clients, cases, tasks, taskBundles, documents, rawHearings, judges, courts, employees, folders] = await Promise.all([
+        storage.getAll<any>('clients'),
+        storage.getAll<any>('cases'),
+        storage.getAll<any>('tasks'),
         storage.getAll<any>('task_bundles'),
         storage.getAll<any>('documents'), 
         storage.getAll<any>('hearings'), 
@@ -105,6 +105,13 @@ export const useUnifiedPersistence = () => {
         storage.getAll<any>('employees'), 
         storage.getAll<any>('folders')
       ]);
+
+      // Normalize hearings to ensure backward compatibility with both time and start_time fields
+      const hearings = rawHearings.map((hearing: any) => ({
+        ...hearing,
+        time: hearing.time || hearing.start_time || '10:00',
+        start_time: hearing.start_time || hearing.time || '10:00'
+      }));
 
       // Restore loaded data to React state using RESTORE_STATE action
       dispatch({ 

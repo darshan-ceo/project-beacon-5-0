@@ -32,8 +32,14 @@ export const hearingsService = {
       if (response.success && response.data) {
         // Ensure response.data is actually an array
         const hearingsData = Array.isArray(response.data) ? response.data : [];
-        log('success', 'fetch hearings', { count: hearingsData.length, filters });
-        return hearingsData;
+        // Normalize hearings to ensure both time and start_time exist for backward compatibility
+        const normalizedHearings = hearingsData.map(hearing => ({
+          ...hearing,
+          time: hearing.time || hearing.start_time || '10:00',
+          start_time: hearing.start_time || hearing.time || '10:00'
+        }));
+        log('success', 'fetch hearings', { count: normalizedHearings.length, filters });
+        return normalizedHearings;
       }
       
       // Fallback to mock data
