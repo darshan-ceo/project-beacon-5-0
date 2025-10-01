@@ -16,14 +16,14 @@ export abstract class BaseRepository<T extends { id: string }> {
     const created = await this.storage.create(this.tableName, data);
     
     if (this.auditService) {
-      await this.auditService.log({
-        entity_type: this.tableName,
-        entity_id: created.id,
-        action: 'create',
-        at: new Date(),
-        actor_user_id: this.getCurrentUserId(),
-        diff_json: { new: created }
-      });
+      await this.auditService.log(
+        this.tableName,
+        created.id,
+        'create',
+        this.getCurrentUserId(),
+        undefined,
+        created
+      );
     }
     
     return created;
@@ -38,18 +38,14 @@ export abstract class BaseRepository<T extends { id: string }> {
     const updated = await this.storage.update(this.tableName, id, updates);
     
     if (this.auditService) {
-      await this.auditService.log({
-        entity_type: this.tableName,
-        entity_id: id,
-        action: 'update',
-        at: new Date(),
-        actor_user_id: this.getCurrentUserId(),
-        diff_json: { 
-          old: existing, 
-          new: updated, 
-          changes: updates 
-        }
-      });
+      await this.auditService.log(
+        this.tableName,
+        id,
+        'update',
+        this.getCurrentUserId(),
+        existing,
+        updated
+      );
     }
     
     return updated;
@@ -67,14 +63,14 @@ export abstract class BaseRepository<T extends { id: string }> {
     await this.storage.delete(this.tableName, id);
     
     if (this.auditService) {
-      await this.auditService.log({
-        entity_type: this.tableName,
-        entity_id: id,
-        action: 'delete',
-        at: new Date(),
-        actor_user_id: this.getCurrentUserId(),
-        diff_json: { deleted: existing }
-      });
+      await this.auditService.log(
+        this.tableName,
+        id,
+        'delete',
+        this.getCurrentUserId(),
+        existing,
+        undefined
+      );
     }
   }
 
@@ -91,14 +87,14 @@ export abstract class BaseRepository<T extends { id: string }> {
     
     if (this.auditService) {
       for (const item of created) {
-        await this.auditService.log({
-          entity_type: this.tableName,
-          entity_id: item.id,
-          action: 'create',
-          at: new Date(),
-          actor_user_id: this.getCurrentUserId(),
-          diff_json: { new: item }
-        });
+        await this.auditService.log(
+          this.tableName,
+          item.id,
+          'create',
+          this.getCurrentUserId(),
+          undefined,
+          item
+        );
       }
     }
     
