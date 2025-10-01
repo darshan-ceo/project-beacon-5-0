@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { envConfig } from '@/utils/envConfig';
 import { toast } from '@/hooks/use-toast';
+import { removeItem } from '@/data/storageShim';
+import { db } from '@/data/db';
 
 export const EnvironmentStatus: React.FC = () => {
   const statusBadges = envConfig.getStatusBadges();
@@ -129,12 +131,20 @@ export const EnvironmentStatus: React.FC = () => {
           <Button 
             variant="outline" 
             className="w-full justify-start"
-            onClick={() => {
-              localStorage.clear();
+            onClick={async () => {
+              // Clear storageShim
+              await removeItem('lawfirm_app_data');
+              await removeItem('user_profile');
+              
+              // Clear HofficeDB
+              await db.delete();
+              
+              // Clear session storage
               sessionStorage.clear();
+              
               toast({
                 title: 'Storage Cleared',
-                description: 'All local storage and session data cleared'
+                description: 'All storage data cleared'
               });
             }}
           >

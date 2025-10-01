@@ -81,15 +81,15 @@ export const StorageManagerPanel: React.FC = () => {
   };
 
   // Check for available backup
-  const checkBackupInfo = () => {
+  const checkBackupInfo = async () => {
     try {
-      const backupData = localStorage.getItem('lawfirm_app_data_backup');
+      const { getItem } = await import('@/data/storageShim');
+      const backupData = await getItem<any>('lawfirm_app_data_backup');
       if (backupData) {
-        const parsed = JSON.parse(backupData);
-        if (parsed.metadata) {
-          const entityCount = Object.values(parsed.metadata.entityCounts || {}).reduce((a: number, b: number) => a + b, 0);
+        if (backupData.metadata) {
+          const entityCount = Object.values(backupData.metadata.entityCounts || {}).reduce((a: number, b: number) => a + b, 0);
           setBackupInfo({
-            timestamp: parsed.metadata.timestamp,
+            timestamp: backupData.metadata.timestamp,
             entityCount: entityCount as number
           });
         }
@@ -189,14 +189,15 @@ export const StorageManagerPanel: React.FC = () => {
   const handleRebuildLocalCache = async () => {
     setIsRebuilding(true);
     try {
+      const { setItem } = await import('@/data/storageShim');
       const data = await persistenceService.exportAllData();
-      localStorage.setItem('lawfirm_app_data', JSON.stringify(data));
-      localStorage.setItem('dms_folders', JSON.stringify(data.folders || []));
+      await setItem('lawfirm_app_data', data);
+      await setItem('dms_folders', data.folders || []);
       dispatch({ type: 'RESTORE_STATE', payload: data });
       await refreshCounts();
       toast({
         title: 'Local Cache Rebuilt',
-        description: 'localStorage repopulated from IndexedDB successfully.'
+        description: 'Cache repopulated from IndexedDB successfully.'
       });
     } catch (error) {
       console.error('Rebuild cache failed:', error);

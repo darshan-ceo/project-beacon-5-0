@@ -1,5 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { AppState, useAppState, AppAction } from '@/contexts/AppStateContext';
+import { setItem, getItem, removeItem } from '@/data/storageShim';
 
 const STORAGE_KEY = 'lawfirm_app_data';
 const BACKUP_INTERVAL = 30000; // 30 seconds
@@ -7,29 +8,26 @@ const BACKUP_INTERVAL = 30000; // 30 seconds
 export const useDataPersistence = () => {
   const { state, dispatch } = useAppState();
 
-  // Save state to localStorage
-  const saveToStorage = useCallback((data: AppState) => {
+  // Save state to storage
+  const saveToStorage = useCallback(async (data: AppState) => {
     try {
-      const serialized = JSON.stringify({
+      const dataToSave = {
         ...data,
         lastSaved: new Date().toISOString(),
-      });
-      localStorage.setItem(STORAGE_KEY, serialized);
+      };
+      await setItem(STORAGE_KEY, dataToSave);
     } catch (error) {
-      console.error('Failed to save data to localStorage:', error);
+      console.error('Failed to save data to storage:', error);
     }
   }, []);
 
-  // Load state from localStorage
-  const loadFromStorage = useCallback((): Partial<AppState> | null => {
+  // Load state from storage
+  const loadFromStorage = useCallback(async (): Promise<Partial<AppState> | null> => {
     try {
-      const serialized = localStorage.getItem(STORAGE_KEY);
-      if (!serialized) return null;
-      
-      const data = JSON.parse(serialized);
+      const data = await getItem<AppState>(STORAGE_KEY);
       return data;
     } catch (error) {
-      console.error('Failed to load data from localStorage:', error);
+      console.error('Failed to load data from storage:', error);
       return null;
     }
   }, []);
@@ -86,19 +84,22 @@ export const useDataPersistence = () => {
   }, [dispatch, saveToStorage]);
 
   // Clear all data
-  const clearAllData = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY);
+  const clearAllData = useCallback(async () => {
+    await removeItem(STORAGE_KEY);
     dispatch({ type: 'CLEAR_ALL_DATA' });
   }, [dispatch]);
 
   // Initialize data on mount
   useEffect(() => {
-    const savedData = loadFromStorage();
-    if (savedData) {
-      // Only restore non-profile data to avoid conflicts
-      const { userProfile, ...dataWithoutProfile } = savedData;
-      dispatch({ type: 'RESTORE_STATE', payload: dataWithoutProfile });
-    }
+    const initData = async () => {
+      const savedData = await loadFromStorage();
+      if (savedData) {
+        // Only restore non-profile data to avoid conflicts
+        const { userProfile, ...dataWithoutProfile } = savedData;
+        dispatch({ type: 'RESTORE_STATE', payload: dataWithoutProfile });
+      }
+    };
+    initData();
   }, [loadFromStorage, dispatch]);
 
   // Auto-save every 30 seconds (debounced)

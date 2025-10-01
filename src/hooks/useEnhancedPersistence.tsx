@@ -107,18 +107,19 @@ export const useEnhancedPersistence = () => {
     }
   }, [checkHealth]);
 
-  // Mirror current state to localStorage for modules that rely on it
-  const mirrorLocalCache = useCallback((stateToMirror: AppState) => {
+  // Mirror current state to storageShim for modules that rely on it
+  const mirrorLocalCache = useCallback(async (stateToMirror: AppState) => {
     try {
-      localStorage.setItem('lawfirm_app_data', JSON.stringify(stateToMirror));
-      localStorage.setItem('dms_folders', JSON.stringify(stateToMirror.folders || []));
-      console.log('🪞 Local cache mirrored from IndexedDB', {
+      const { setItem } = await import('@/data/storageShim');
+      await setItem('lawfirm_app_data', stateToMirror);
+      await setItem('dms_folders', stateToMirror.folders || []);
+      console.log('🪞 Cache mirrored from IndexedDB', {
         cases: stateToMirror.cases.length,
         documents: stateToMirror.documents.length,
         folders: stateToMirror.folders.length,
       });
     } catch (error) {
-      console.warn('Failed to mirror local cache:', error);
+      console.warn('Failed to mirror cache:', error);
     }
   }, []);
 
@@ -177,8 +178,8 @@ export const useEnhancedPersistence = () => {
         }
       });
 
-      // Mirror to localStorage for modules depending on it
-      mirrorLocalCache(stateToSave);
+      // Mirror to storageShim for modules depending on it
+      await mirrorLocalCache(stateToSave);
 
       if (totalEntities > 0) {
         lastNonZeroEntityCount.current = totalEntities;
@@ -350,20 +351,19 @@ export const useEnhancedPersistence = () => {
     });
   }, [dispatch, loadFromStorage]);
 
-  // Restore from localStorage backup (manual recovery option)
+  // Restore from backup (manual recovery option)
   const restoreFromBackup = useCallback(async (): Promise<boolean> => {
     try {
-      const backupData = localStorage.getItem('lawfirm_app_data_backup');
-      if (!backupData) {
+      const { getItem } = await import('@/data/storageShim');
+      const parsedBackup = await getItem<any>('lawfirm_app_data_backup');
+      if (!parsedBackup) {
         toast({
           title: 'No Backup Found',
-          description: 'No localStorage backup available to restore',
+          description: 'No backup available to restore',
           variant: 'destructive'
         });
         return false;
       }
-
-      const parsedBackup = JSON.parse(backupData);
       const entityCount = Object.values(parsedBackup.metadata?.entityCounts || {}).reduce((a: number, b: number) => a + b, 0);
       
       if (entityCount === 0) {
@@ -380,7 +380,7 @@ export const useEnhancedPersistence = () => {
       
       if (loadedData) {
         dispatch({ type: 'RESTORE_STATE', payload: loadedData });
-        mirrorLocalCache({
+        await mirrorLocalCache({
           ...state,
           ...loadedData,
           userProfile: loadedData.userProfile || state.userProfile,
@@ -434,8 +434,9 @@ export const useEnhancedPersistence = () => {
       
       // Enhanced smart migration with better validation
       try {
-        const legacyData = localStorage.getItem('lawfirm_app_data');
-        const backupData = localStorage.getItem('lawfirm_app_data_backup');
+        const { getItem: getStorageItem } = await import('@/data/storageShim');
+        const legacyData = await getStorageItem<any>('lawfirm_app_data');
+        const backupData = await getStorageItem<any>('lawfirm_app_data_backup');
         
         if (legacyData || backupData) {
           // Choose the most recent and complete data source
@@ -443,13 +444,12 @@ export const useEnhancedPersistence = () => {
           let selectedSource = '';
           
           if (legacyData) {
-            const parsed = JSON.parse(legacyData);
-            selectedData = parsed;
-            selectedSource = 'localStorage';
+            selectedData = legacyData;
+            selectedSource = 'storage';
           }
           
           if (backupData) {
-            const parsedBackup = JSON.parse(backupData);
+            const parsedBackup = backupData;
             // Use backup if it's newer or has more complete data
             if (!selectedData || 
                 (parsedBackup.metadata?.timestamp > (selectedData.metadata?.timestamp || selectedData.metadata?.lastSaved)) ||

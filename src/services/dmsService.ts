@@ -808,10 +808,7 @@ export const dmsService = {
       
       try {
         // Get the document from state to retrieve actual content
-        let appData = {} as any;
-        try {
-          appData = JSON.parse(localStorage.getItem('lawfirm_app_data') || '{}');
-        } catch {}
+        const appData = await loadAppState();
         let documents = appData.documents || [];
         if (!documents || documents.length === 0) {
           try {
@@ -819,21 +816,22 @@ export const dmsService = {
             documents = Array.isArray(idbDocs) ? idbDocs : [];
           } catch {}
         }
-        const foundDocument = documents.find((doc: Document) => doc.id === documentId);
+        const foundDocument: any = documents.find((doc: any) => doc.id === documentId);
         
         if (foundDocument && foundDocument.content) {
           log('success', 'DMS', 'getPreviewUrl', { 
             documentId, 
             hasContent: true, 
             size: foundDocument.size, 
-            type: foundDocument.type,
+            type: foundDocument.type || 'unknown',
             contentLength: foundDocument.content.length 
           });
           
           let blob: Blob;
           
           try {
-            if (foundDocument.type.startsWith('image/') || foundDocument.type.includes('application/')) {
+            const docType = foundDocument.type || 'application/octet-stream';
+            if (docType.startsWith('image/') || docType.includes('application/')) {
               // For binary files, validate and create blob from base64
               if (!foundDocument.content || foundDocument.content.trim() === '') {
                 throw new Error('Base64 content is empty');
@@ -847,7 +845,7 @@ export const dmsService = {
               }
               
               // Create data URL and convert to blob
-              const dataUrl = `data:${foundDocument.type};base64,${foundDocument.content}`;
+              const dataUrl = `data:${docType};base64,${foundDocument.content}`;
               const response = await fetch(dataUrl);
               blob = await response.blob();
               
@@ -862,7 +860,7 @@ export const dmsService = {
               for (let i = 0; i < binaryString.length; i++) {
                 bytes[i] = binaryString.charCodeAt(i);
               }
-              blob = new Blob([bytes], { type: foundDocument.type || 'application/octet-stream' });
+              blob = new Blob([bytes], { type: docType });
             }
             
             log('success', 'DMS', 'getPreviewUrl', { 
@@ -887,12 +885,12 @@ export const dmsService = {
         log('error', 'DMS', 'getPreviewUrl', { documentId, reason: 'Document not found or no content' });
         
         // Get document info for fallback content
-        const appData2 = JSON.parse(localStorage.getItem('lawfirm_app_data') || '{}');
+        const appData2 = await loadAppState();
         const documents2 = appData2.documents || [];
-        const docInfo = documents2.find((doc: Document) => doc.id === documentId);
+        const docInfo: any = documents2.find((doc: any) => doc.id === documentId);
         
         // Create appropriate fallback based on file type
-        if (docInfo?.type.startsWith('image/')) {
+        if (docInfo && docInfo.type && docInfo.type.startsWith('image/')) {
           // Create a simple placeholder image
           const canvas = globalThis.document.createElement('canvas');
           canvas.width = 400;
@@ -951,10 +949,7 @@ export const dmsService = {
         await new Promise(resolve => setTimeout(resolve, 500));
         
         // Get the document from state to retrieve actual content
-        let appData = {} as any;
-        try {
-          appData = JSON.parse(localStorage.getItem('lawfirm_app_data') || '{}');
-        } catch {}
+        const appData = await loadAppState();
         let documents = appData.documents || [];
         if (!documents || documents.length === 0) {
           try {
@@ -965,7 +960,7 @@ export const dmsService = {
         
         // Import file type utilities for better content generation
         const { generateSampleContent } = await import('@/utils/fileTypeUtils');
-        const foundDocument = documents.find((doc: Document) => doc.id === documentId);
+        const foundDocument: any = documents.find((doc: any) => doc.id === documentId);
         
         let blob: Blob;
         
@@ -974,7 +969,7 @@ export const dmsService = {
             documentId, 
             hasStoredContent: true, 
             originalSize: foundDocument.size, 
-            type: foundDocument.type,
+            type: foundDocument.type || 'unknown',
             contentLength: foundDocument.content.length 
           });
           
@@ -986,9 +981,10 @@ export const dmsService = {
               throw new Error(`Invalid base64 content in storage: ${decodeError.message}`);
             }
             
-            if (foundDocument.type.startsWith('image/') || foundDocument.type.includes('application/')) {
+            const docType = foundDocument.type || 'application/octet-stream';
+            if (docType.startsWith('image/') || docType.includes('application/')) {
               // For binary files, content is properly base64 encoded - convert to blob via data URL
-              const dataUrl = `data:${foundDocument.type};base64,${foundDocument.content}`;
+              const dataUrl = `data:${docType};base64,${foundDocument.content}`;
               const response = await fetch(dataUrl);
               blob = await response.blob();
               
@@ -1003,7 +999,7 @@ export const dmsService = {
               for (let i = 0; i < binaryString.length; i++) {
                 bytes[i] = binaryString.charCodeAt(i);
               }
-              blob = new Blob([bytes], { type: foundDocument.type || 'application/octet-stream' });
+              blob = new Blob([bytes], { type: docType });
             }
             
             log('success', 'DMS', 'downloadFile', { 
@@ -1125,12 +1121,9 @@ export const dmsService = {
     list: async (filter: DocumentFilter): Promise<Document[]> => {
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      // Get documents from localStorage (app state)
-      let appData = {} as any;
-      try {
-        appData = JSON.parse(localStorage.getItem('lawfirm_app_data') || '{}');
-      } catch {}
-      let documents: Document[] = appData.documents || [];
+      // Get documents from app state
+      const appData = await loadAppState();
+      let documents: any[] = appData.documents || [];
       if (!documents || documents.length === 0) {
         try {
           const idbDocs = await idbStorage.get('documents');
@@ -1177,7 +1170,7 @@ export const dmsService = {
       }
       
       log('success', 'DMS', 'listFiles', { filter, count: filteredDocs.length });
-      return filteredDocs;
+      return filteredDocs as Document[];
     },
 
     search: async (filter: DocumentFilter): Promise<Document[]> => {

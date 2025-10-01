@@ -33,6 +33,7 @@ interface Folder {
 }
 import { AppAction } from '@/contexts/AppStateContext';
 import { envConfig } from '@/utils/envConfig';
+import { getItem } from '@/data/storageShim';
 
 class ApiDataProvider implements DataProvider {
   private baseUrl: string;
@@ -43,11 +44,12 @@ class ApiDataProvider implements DataProvider {
 
   private async apiCall(endpoint: string, options: RequestInit = {}): Promise<any> {
     const url = `${this.baseUrl}${endpoint}`;
+    const authToken = await getItem<string>('auth_token');
     
     const response = await fetch(url, {
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`,
+        'Authorization': `Bearer ${authToken || ''}`,
         ...options.headers,
       },
       ...options,
@@ -75,10 +77,11 @@ class ApiDataProvider implements DataProvider {
       formData.append(key, metadata[key]);
     });
 
+    const authToken = await getItem<string>('auth_token');
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`,
+        'Authorization': `Bearer ${authToken || ''}`,
       },
       body: formData,
     });
@@ -203,9 +206,10 @@ class ApiDataProvider implements DataProvider {
         body: JSON.stringify({ data }),
       }),
       export: async (): Promise<Blob> => {
+        const authToken = await getItem<string>('auth_token');
         const response = await fetch(`${this.baseUrl}/masters/clients/export`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`,
+            'Authorization': `Bearer ${authToken || ''}`,
           },
         });
         return response.blob();
