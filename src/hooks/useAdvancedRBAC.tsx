@@ -7,7 +7,6 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { permissionsResolver, type EffectivePermissions } from '@/services/permissionsResolver';
 import { advancedRbacService } from '@/services/advancedRbacService';
 import { type RoleEntity } from '@/persistence/unifiedStore';
-import { useAppState } from '@/contexts/AppStateContext';
 import { toast } from 'sonner';
 
 // Legacy compatibility types
