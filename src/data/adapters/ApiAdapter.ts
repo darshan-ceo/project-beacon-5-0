@@ -184,4 +184,27 @@ export class ApiAdapter implements StoragePort {
     this.initialized = false;
     console.log('✅ ApiAdapter destroyed');
   }
+
+  // Version control methods
+  async getVersion(table: string, id: string): Promise<number> {
+    this.ensureInitialized();
+    // TODO: Implement API call to get version
+    throw new Error('ApiAdapter.getVersion not yet implemented');
+  }
+
+  compareVersions(v1: number, v2: number): 'equal' | 'before' | 'after' {
+    if (v1 === v2) return 'equal';
+    return v1 < v2 ? 'before' : 'after';
+  }
+
+  bumpVersion<T extends import('../ports/StoragePort').VersionedEntity>(entity: T, userId?: string): T {
+    const currentVersion = entity.version || 0;
+    return {
+      ...entity,
+      version: currentVersion + 1,
+      last_modified_at: new Date().toISOString(),
+      last_modified_by: userId,
+      sync_status: 'pending',
+    };
+  }
 }

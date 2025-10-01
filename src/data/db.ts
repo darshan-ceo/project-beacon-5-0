@@ -237,9 +237,16 @@ export interface SyncQueueItem {
   entity_type: string;
   entity_id: string;
   operation: 'create' | 'update' | 'delete';
+  payload: any;
+  priority: 'critical' | 'high' | 'medium' | 'low';
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  created_at: string;
+  updated_at: string;
   queued_at: Date;
   attempts: number;
+  max_attempts: number;
   last_error?: string;
+  scheduled_for?: string;
   data_json?: any;
 }
 

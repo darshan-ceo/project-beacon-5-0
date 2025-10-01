@@ -1,108 +1,164 @@
 /**
- * Audit Service for logging all data changes
+ * Audit Service
+ * Tracks all data changes for audit trail and conflict resolution
  */
 
 import { StoragePort } from '../ports/StoragePort';
-import { AuditLog } from '../db';
+import { changeTrackingService, EntityChange } from '../../services/changeTrackingService';
 
-export interface AuditLogData {
+export interface AuditLog {
+  id: string;
   entity_type: string;
   entity_id: string;
-  action: 'create' | 'update' | 'delete' | 'view' | 'export' | 'import';
-  at: Date;
-  actor_user_id?: string;
+  operation: 'create' | 'update' | 'delete';
+  user_id?: string;
+  timestamp: string;
+  changes_json?: any;
   diff_json?: any;
-  metadata_json?: any;
+  version?: number;
 }
 
 export class AuditService {
   constructor(private storage: StoragePort) {}
 
-  async log(data: AuditLogData): Promise<void> {
-    try {
-      const auditRecord: AuditLog = {
-        id: crypto.randomUUID(),
-        entity_type: data.entity_type,
-        entity_id: data.entity_id,
-        action: data.action,
-        at: data.at,
-        actor_user_id: data.actor_user_id,
-        diff_json: data.diff_json,
-        metadata_json: data.metadata_json
-      };
-
-      await this.storage.create('audit_logs', auditRecord);
-    } catch (error) {
-      // Log audit failures to console but don't throw to avoid breaking main operations
-      console.warn('Failed to write audit log:', error);
-    }
+  /**
+   * Log an audit entry (alias for logAudit)
+   */
+  async log(
+    entityType: string,
+    entityId: string,
+    operation: 'create' | 'update' | 'delete',
+    userId?: string,
+    before?: any,
+    after?: any
+  ): Promise<AuditLog> {
+    return this.logAudit(entityType, entityId, operation, userId, before, after);
   }
 
-  async getAuditTrail(entityType: string, entityId: string): Promise<AuditLog[]> {
-    const logs = await this.storage.query<AuditLog>('audit_logs', log => 
-      log.entity_type === entityType && log.entity_id === entityId
+  /**
+   * Log an audit entry
+   */
+  async logAudit(
+    entityType: string,
+    entityId: string,
+    operation: 'create' | 'update' | 'delete',
+    userId?: string,
+    before?: any,
+    after?: any
+  ): Promise<AuditLog> {
+    // Track the change
+    const change = changeTrackingService.trackChange(
+      entityType,
+      entityId,
+      operation,
+      before,
+      after,
+      userId
     );
-    
-    // Sort by timestamp descending (newest first)
-    return logs.sort((a, b) => b.at.getTime() - a.at.getTime());
+
+    // Create audit log entry
+    const auditLog: AuditLog = {
+      id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      entity_type: entityType,
+      entity_id: entityId,
+      operation,
+      user_id: userId,
+      timestamp: change.timestamp,
+      changes_json: { before, after },
+      diff_json: change.diff,
+      version: change.version,
+    };
+
+    // Store in audit_logs table
+    await this.storage.create('audit_logs', auditLog);
+
+    return auditLog;
   }
 
-  async getRecentActivity(limit: number = 50): Promise<AuditLog[]> {
+  /**
+   * Get audit history for an entity
+   */
+  async getAuditHistory(
+    entityType: string,
+    entityId: string,
+    limit?: number
+  ): Promise<AuditLog[]> {
+    const allLogs = await this.storage.query<AuditLog>(
+      'audit_logs',
+      (log) => log.entity_type === entityType && log.entity_id === entityId
+    );
+
+    // Sort by timestamp descending
+    const sorted = allLogs.sort((a, b) => 
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+
+    return limit ? sorted.slice(0, limit) : sorted;
+  }
+
+  /**
+   * Get recent audit logs
+   */
+  async getRecentAudits(limit: number = 50): Promise<AuditLog[]> {
     const allLogs = await this.storage.getAll<AuditLog>('audit_logs');
     
-    // Sort by timestamp descending and take the limit
     return allLogs
-      .sort((a, b) => b.at.getTime() - a.at.getTime())
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
       .slice(0, limit);
   }
 
-  async getActivityByUser(userId: string, limit: number = 50): Promise<AuditLog[]> {
-    const logs = await this.storage.query<AuditLog>('audit_logs', log => 
-      log.actor_user_id === userId
+  /**
+   * Get audit logs by user
+   */
+  async getAuditsByUser(userId: string, limit?: number): Promise<AuditLog[]> {
+    const logs = await this.storage.query<AuditLog>(
+      'audit_logs',
+      (log) => log.user_id === userId
     );
-    
-    return logs
-      .sort((a, b) => b.at.getTime() - a.at.getTime())
-      .slice(0, limit);
-  }
 
-  async getActivityByAction(action: AuditLogData['action'], limit: number = 50): Promise<AuditLog[]> {
-    const logs = await this.storage.query<AuditLog>('audit_logs', log => 
-      log.action === action
+    const sorted = logs.sort((a, b) => 
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     );
-    
-    return logs
-      .sort((a, b) => b.at.getTime() - a.at.getTime())
-      .slice(0, limit);
+
+    return limit ? sorted.slice(0, limit) : sorted;
   }
 
-  async deleteOldAuditLogs(olderThanDays: number = 90): Promise<number> {
+  /**
+   * Get audit logs by operation type
+   */
+  async getAuditsByOperation(
+    operation: 'create' | 'update' | 'delete',
+    limit?: number
+  ): Promise<AuditLog[]> {
+    const logs = await this.storage.query<AuditLog>(
+      'audit_logs',
+      (log) => log.operation === operation
+    );
+
+    const sorted = logs.sort((a, b) => 
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+
+    return limit ? sorted.slice(0, limit) : sorted;
+  }
+
+  /**
+   * Clear old audit logs (keep last N days)
+   */
+  async clearOldAudits(daysToKeep: number = 90): Promise<number> {
     const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
-    
-    const oldLogs = await this.storage.query<AuditLog>('audit_logs', log => 
-      log.at < cutoffDate
-    );
-    
-    if (oldLogs.length > 0) {
-      const ids = oldLogs.map(log => log.id);
-      await this.storage.bulkDelete('audit_logs', ids);
-    }
-    
-    return oldLogs.length;
-  }
+    cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
+    const cutoffTime = cutoffDate.toISOString();
 
-  async exportAuditLogs(startDate?: Date, endDate?: Date): Promise<AuditLog[]> {
-    let logs = await this.storage.getAll<AuditLog>('audit_logs');
-    
-    if (startDate || endDate) {
-      logs = logs.filter(log => {
-        if (startDate && log.at < startDate) return false;
-        if (endDate && log.at > endDate) return false;
-        return true;
-      });
-    }
-    
-    return logs.sort((a, b) => a.at.getTime() - b.at.getTime());
+    const oldLogs = await this.storage.query<AuditLog>(
+      'audit_logs',
+      (log) => log.timestamp < cutoffTime
+    );
+
+    const ids = oldLogs.map(log => log.id);
+    await this.storage.bulkDelete('audit_logs', ids);
+
+    console.log(`🧹 Cleared ${ids.length} old audit logs (older than ${daysToKeep} days)`);
+    return ids.length;
   }
 }

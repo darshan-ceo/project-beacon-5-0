@@ -145,6 +145,20 @@ export class StorageManager {
       this.documentRepository = null;
     }
   }
+
+  /**
+   * Enable real-time synchronization
+   */
+  async enableRealTimeSync(config?: any): Promise<void> {
+    const { realtimePreparationService } = await import('@/services/realtimePreparationService');
+    
+    await realtimePreparationService.initialize({
+      enabled: true,
+      ...config,
+    });
+
+    console.log('✅ Real-time sync enabled');
+  }
 }
 
 // Singleton export

@@ -342,4 +342,27 @@ export class IndexedDBAdapter implements StoragePort {
     await this.clear(entityKey);
     await this.bulkCreate(entityKey, data);
   }
+
+  // Version control methods
+  async getVersion(table: string, id: string): Promise<number> {
+    this.ensureInitialized();
+    const item = await this.getById<any>(table, id);
+    return item?.version || 0;
+  }
+
+  compareVersions(v1: number, v2: number): 'equal' | 'before' | 'after' {
+    if (v1 === v2) return 'equal';
+    return v1 < v2 ? 'before' : 'after';
+  }
+
+  bumpVersion<T extends import('../ports/StoragePort').VersionedEntity>(entity: T, userId?: string): T {
+    const currentVersion = entity.version || 0;
+    return {
+      ...entity,
+      version: currentVersion + 1,
+      last_modified_at: new Date().toISOString(),
+      last_modified_by: userId,
+      sync_status: 'pending',
+    };
+  }
 }

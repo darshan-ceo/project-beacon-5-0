@@ -3,6 +3,15 @@
  * Supports IndexedDB, InMemory, and future API adapters
  */
 
+export interface VersionedEntity {
+  id: string;
+  version?: number;
+  last_modified_at?: string;
+  last_modified_by?: string;
+  sync_status?: 'synced' | 'pending' | 'conflict';
+  conflict_data?: any;
+}
+
 export interface StoragePort {
   // Basic CRUD operations
   create<T extends { id: string }>(table: string, data: T): Promise<T>;
@@ -32,6 +41,11 @@ export interface StoragePort {
   // Health and diagnostics
   healthCheck(): Promise<{ healthy: boolean; errors: string[] }>;
   getStorageInfo(): Promise<{ used: number; available: number; quota: number }>;
+  
+  // Version control
+  getVersion(table: string, id: string): Promise<number>;
+  compareVersions(v1: number, v2: number): 'equal' | 'before' | 'after';
+  bumpVersion<T extends VersionedEntity>(entity: T, userId?: string): T;
   
   // Lifecycle
   initialize(): Promise<void>;
