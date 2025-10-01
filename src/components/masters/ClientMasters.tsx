@@ -60,7 +60,7 @@ export const ClientMasters: React.FC = () => {
   const [isExportOpen, setIsExportOpen] = useState(false);
 
   const filteredClients = state.clients.filter(client => {
-    const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = (client.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (client.gstin || client.gstNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (client.pan || client.panNumber || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterStatus === 'all' || client.status === filterStatus;
