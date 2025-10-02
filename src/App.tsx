@@ -41,6 +41,7 @@ import { AppWithPersistence } from "./components/AppWithPersistence";
 import { SearchResultsPage } from "./pages/SearchResultsPage";
 import { DebugSearchInspector } from "./pages/DebugSearchInspector";
 import { MigrationHealth } from "@/components/qa/MigrationHealth";
+import { TooltipDiagnostics } from "@/pages/TooltipDiagnostics";
 
 const queryClient = new QueryClient();
 
@@ -227,6 +228,11 @@ const App = () => {
               <Route path="/migration" element={
                 <AdminLayout currentUser={currentUser}>
                   <MigrationHealth />
+                </AdminLayout>
+              } />
+              <Route path="/qa/tooltips" element={
+                <AdminLayout currentUser={currentUser}>
+                  <TooltipDiagnostics />
                 </AdminLayout>
               } />
               {/* Redirect legacy document-management URLs */}

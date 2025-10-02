@@ -204,11 +204,12 @@ export const QADashboard: React.FC = () => {
         )}
 
         <Tabs defaultValue="tests" className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="tests">Smoke Tests</TabsTrigger>
             <TabsTrigger value="storage">Storage Manager</TabsTrigger>
             <TabsTrigger value="task-bundles">Task Bundles</TabsTrigger>
             <TabsTrigger value="gst-monitoring">GST Monitoring</TabsTrigger>
+            <TabsTrigger value="tooltips">Tooltips</TabsTrigger>
             <TabsTrigger value="diagnostics">System Diagnostics</TabsTrigger>
             <TabsTrigger value="fixes">Applied Fixes</TabsTrigger>
           </TabsList>
@@ -231,6 +232,14 @@ export const QADashboard: React.FC = () => {
 
           <TabsContent value="gst-monitoring" className="mt-6">
             <GSTMonitoringPanel />
+          </TabsContent>
+
+          <TabsContent value="tooltips" className="mt-6">
+            <React.Suspense fallback={<div>Loading Tooltip Diagnostics...</div>}>
+              {React.createElement(
+                React.lazy(() => import('@/pages/TooltipDiagnostics').then(module => ({ default: module.TooltipDiagnostics })))
+              )}
+            </React.Suspense>
           </TabsContent>
 
           <TabsContent value="diagnostics" className="mt-6">
