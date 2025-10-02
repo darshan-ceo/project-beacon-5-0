@@ -53,11 +53,13 @@ DialogContent.displayName = DialogPrimitive.Content.displayName
 
 const DialogHeader = ({
   className,
+  showDivider = true,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
+}: React.HTMLAttributes<HTMLDivElement> & { showDivider?: boolean }) => (
   <div
     className={cn(
-      "flex flex-col space-y-1.5 text-center sm:text-left p-6 pb-4 border-b border-border",
+      "flex flex-col space-y-1.5 text-center sm:text-left p-6 pb-4",
+      showDivider && "border-b border-border",
       className
     )}
     {...props}
@@ -67,11 +69,13 @@ DialogHeader.displayName = "DialogHeader"
 
 const DialogFooter = ({
   className,
+  showDivider = true,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
+}: React.HTMLAttributes<HTMLDivElement> & { showDivider?: boolean }) => (
   <div
     className={cn(
-      "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 p-6 pt-4 border-t border-border",
+      "flex flex-col-reverse sm:flex-row sm:justify-end gap-3 p-6 pt-4",
+      showDivider && "border-t border-border",
       className
     )}
     {...props}

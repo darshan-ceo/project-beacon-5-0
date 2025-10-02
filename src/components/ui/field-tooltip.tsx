@@ -342,6 +342,8 @@ export const FieldTooltip: React.FC<FieldTooltipProps> = ({
   content,
   learnMoreUrl
 }) => {
+  const [isOpen, setIsOpen] = React.useState(false);
+
   // Check if tooltips are enabled
   if (!featureFlagService.isEnabled('tooltips_v1')) {
     return null;
@@ -355,18 +357,22 @@ export const FieldTooltip: React.FC<FieldTooltipProps> = ({
   }
 
   return (
-    <TooltipProvider>
-      <Tooltip>
+    <TooltipProvider delayDuration={300}>
+      <Tooltip open={isOpen} onOpenChange={setIsOpen}>
         <TooltipTrigger asChild>
           <button
             type="button"
-            className="inline-flex items-center justify-center w-4 h-4 ml-1 text-muted-foreground hover:text-foreground transition-colors"
+            className="inline-flex items-center justify-center w-4 h-4 ml-1 text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
             aria-label={`Help for ${helpContent.title || fieldId}`}
+            onMouseEnter={() => setIsOpen(true)}
+            onMouseLeave={() => setIsOpen(false)}
+            onFocus={() => setIsOpen(true)}
+            onBlur={() => setIsOpen(false)}
           >
             <HelpCircle className="w-3 h-3" />
           </button>
         </TooltipTrigger>
-        <TooltipContent side="top" className="max-w-xs">
+        <TooltipContent side="top" className="max-w-[280px] break-words">
           <div className="space-y-2">
             {helpContent.title && (
               <p className="font-medium text-sm">{helpContent.title}</p>

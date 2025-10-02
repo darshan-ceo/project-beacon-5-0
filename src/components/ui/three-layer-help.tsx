@@ -50,7 +50,7 @@ export const ThreeLayerHelp: React.FC<ThreeLayerHelpProps> = ({
         
         {/* Layer 3: Tooltip icon (hover/focus) */}
         {showTooltipIcon && (
-          <TooltipProvider delayDuration={500}>
+          <TooltipProvider delayDuration={300}>
             <Tooltip open={isOpen} onOpenChange={setIsOpen}>
               <TooltipTrigger asChild>
                 <button
@@ -71,7 +71,7 @@ export const ThreeLayerHelp: React.FC<ThreeLayerHelpProps> = ({
                 {isOpen && (
                   <TooltipContent
                     side="top"
-                    className="max-w-sm p-0 overflow-hidden"
+                    className="max-w-[280px] break-words p-0 overflow-hidden"
                     asChild
                   >
                     <motion.div
@@ -84,7 +84,7 @@ export const ThreeLayerHelp: React.FC<ThreeLayerHelpProps> = ({
                         <p className="font-semibold text-sm text-foreground">
                           {helpData.tooltip.title}
                         </p>
-                        <p className="text-xs leading-relaxed text-muted-foreground">
+                        <p className="text-xs leading-relaxed text-muted-foreground break-words">
                           {helpData.tooltip.content}
                         </p>
                         {helpData.tooltip.learnMoreUrl && (
