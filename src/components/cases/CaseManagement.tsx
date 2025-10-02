@@ -743,8 +743,14 @@ export const CaseManagement: React.FC = () => {
                          </div>
 
                         {/* Additional Case Details */}
-                        {(caseItem.taxDemand || caseItem.period || caseItem.authority) && (
+                        {(caseItem.taxDemand || caseItem.period || caseItem.authority || caseItem.matterType) && (
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3 pt-3 border-t border-border">
+                            {caseItem.matterType && caseItem.currentStage === 'Scrutiny' && (
+                              <div>
+                                <p className="text-xs text-muted-foreground">Matter Type</p>
+                                <p className="text-sm font-medium">{caseItem.matterType}</p>
+                              </div>
+                            )}
                             {caseItem.taxDemand && (
                               <div>
                                 <p className="text-xs text-muted-foreground">Tax Demand</p>

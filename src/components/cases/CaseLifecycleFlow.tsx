@@ -474,10 +474,11 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.4 }}
         >
-          <CycleTimeline 
-            caseId={selectedCase.id}
-            currentStage={selectedCase.currentStage}
-          />
+        <CycleTimeline 
+          caseId={selectedCase.id} 
+          currentStage={selectedCase.currentStage}
+          caseData={selectedCase}
+        />
         </motion.div>
       )}
 

@@ -27,9 +27,10 @@ import { format } from 'date-fns';
 interface CycleTimelineProps {
   caseId: string;
   currentStage: string;
+  caseData?: any;
 }
 
-export const CycleTimeline: React.FC<CycleTimelineProps> = ({ caseId, currentStage }) => {
+export const CycleTimeline: React.FC<CycleTimelineProps> = ({ caseId, currentStage, caseData }) => {
   const [lifecycleState, setLifecycleState] = useState<LifecycleState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -145,6 +146,17 @@ export const CycleTimeline: React.FC<CycleTimelineProps> = ({ caseId, currentSta
                     <p className="text-xs text-muted-foreground">
                       Created by {instance.createdBy}
                     </p>
+                    {/* Show stage-specific metadata */}
+                    {instance.stageKey === 'Scrutiny' && caseData?.matterType && (
+                      <p className="text-xs text-primary mt-1">
+                        Matter Type: {caseData.matterType}
+                      </p>
+                    )}
+                    {instance.stageKey === 'Tribunal' && caseData?.tribunalBench && (
+                      <p className="text-xs text-primary mt-1">
+                        Bench: {caseData.tribunalBench}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <Badge variant={instance.status === 'Active' ? 'default' : 'secondary'}>
