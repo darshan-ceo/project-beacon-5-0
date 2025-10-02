@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -50,8 +51,19 @@ const currentUser = {
   avatar: undefined
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
+const App = () => {
+  // Initialize UI Help Service on app startup
+  useEffect(() => {
+    const initializeApp = async () => {
+      const { uiHelpService } = await import('@/services/uiHelpService');
+      await uiHelpService.loadHelpData();
+    };
+
+    initializeApp();
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
     <AdvancedRBACProvider>
       <AppStateProvider>
         <AppWithPersistence>
@@ -231,6 +243,7 @@ const App = () => (
       </AppStateProvider>
     </AdvancedRBACProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;

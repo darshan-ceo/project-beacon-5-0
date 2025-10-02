@@ -1,0 +1,484 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2025-10-02",
+  "modules": {
+    "cases": {
+      "buttons": [
+        {
+          "id": "button-create-case",
+          "label": "Create Case",
+          "explanation": "Start a new litigation case",
+          "tooltip": {
+            "title": "Create New Case",
+            "content": "Open a wizard to register a new GST litigation case. You'll enter client details, case type, court jurisdiction, and initial stage information.",
+            "learnMoreUrl": "/help/case-management"
+          },
+          "accessibility": {
+            "ariaLabel": "Create a new case",
+            "keyboardShortcut": "Ctrl+N"
+          }
+        },
+        {
+          "id": "button-advance-stage",
+          "label": "Advance Stage",
+          "explanation": "Move case to next lifecycle stage",
+          "tooltip": {
+            "title": "Advance Case Stage",
+            "content": "Progress the case to the next stage in the GST litigation lifecycle. System validates prerequisites and generates required tasks automatically.",
+            "learnMoreUrl": "/help/case-management/lifecycle"
+          },
+          "accessibility": {
+            "ariaLabel": "Advance case to next stage"
+          }
+        },
+        {
+          "id": "button-mark-complete",
+          "label": "Mark Complete",
+          "explanation": "Close the case as resolved",
+          "tooltip": {
+            "title": "Mark Case Complete",
+            "content": "Close this case and archive all related documents, tasks, and hearings. This action can be reversed if needed.",
+            "learnMoreUrl": "/help/case-management/overview"
+          },
+          "accessibility": {
+            "ariaLabel": "Mark case as complete"
+          }
+        },
+        {
+          "id": "button-export-case",
+          "label": "Export",
+          "explanation": "Download case data",
+          "tooltip": {
+            "title": "Export Case Data",
+            "content": "Export case details, documents, tasks, and timeline to Excel or PDF format for reporting or archival purposes.",
+            "learnMoreUrl": "/help/case-management"
+          },
+          "accessibility": {
+            "ariaLabel": "Export case data"
+          }
+        }
+      ],
+      "cards": [
+        {
+          "id": "card-case-overview",
+          "label": "Case Overview",
+          "explanation": "Summary of case details and current status",
+          "tooltip": {
+            "title": "Case Overview Card",
+            "content": "Displays case number, client name, current stage, priority, assigned team, and key dates at a glance.",
+            "learnMoreUrl": "/help/case-management/overview"
+          },
+          "accessibility": {
+            "ariaLabel": "View case overview information"
+          }
+        }
+      ]
+    },
+    "clients": {
+      "buttons": [
+        {
+          "id": "button-create-client",
+          "label": "Add Client",
+          "explanation": "Register a new client profile",
+          "tooltip": {
+            "title": "Add New Client",
+            "content": "Create a new client master record with PAN, GSTIN, contact details, and billing information. Use GST API for auto-fill if enabled.",
+            "learnMoreUrl": "/help/best-practices/users-workflow"
+          },
+          "accessibility": {
+            "ariaLabel": "Add a new client"
+          }
+        },
+        {
+          "id": "button-import-clients",
+          "label": "Import",
+          "explanation": "Upload client data from file",
+          "tooltip": {
+            "title": "Import Clients",
+            "content": "Bulk import client records from Excel or CSV. Map columns to fields and validate data before import.",
+            "learnMoreUrl": "/help/best-practices/users-workflow"
+          },
+          "accessibility": {
+            "ariaLabel": "Import clients from file"
+          }
+        },
+        {
+          "id": "button-export-clients",
+          "label": "Export",
+          "explanation": "Download client list",
+          "tooltip": {
+            "title": "Export Clients",
+            "content": "Export all client records to Excel format with selected columns and filters applied.",
+            "learnMoreUrl": "/help/best-practices/users-workflow"
+          },
+          "accessibility": {
+            "ariaLabel": "Export client list"
+          }
+        }
+      ]
+    },
+    "tasks": {
+      "buttons": [
+        {
+          "id": "button-create-task",
+          "label": "New Task",
+          "explanation": "Add a task to track work",
+          "tooltip": {
+            "title": "Create Task",
+            "content": "Create a standalone task or link it to a case. Assign to team members, set priority, due date, and estimated hours.",
+            "learnMoreUrl": "/help/pages/task-automation"
+          },
+          "accessibility": {
+            "ariaLabel": "Create a new task",
+            "keyboardShortcut": "Ctrl+T"
+          }
+        },
+        {
+          "id": "button-ai-assistant",
+          "label": "AI Assistant",
+          "explanation": "Get AI-powered task suggestions",
+          "tooltip": {
+            "title": "AI Task Assistant",
+            "content": "Leverages AI to suggest task breakdowns, time estimates, dependencies, and optimal assignment based on team workload and case context.",
+            "learnMoreUrl": "/help/pages/task-automation/ai-assistant-tab"
+          },
+          "accessibility": {
+            "ariaLabel": "Open AI task assistant"
+          }
+        },
+        {
+          "id": "button-task-board",
+          "label": "Board View",
+          "explanation": "Kanban-style task board",
+          "tooltip": {
+            "title": "Task Board",
+            "content": "View tasks in a Kanban board layout organized by status. Drag and drop to update status and reorder priorities.",
+            "learnMoreUrl": "/help/pages/task-automation/board-tab"
+          },
+          "accessibility": {
+            "ariaLabel": "Switch to board view"
+          }
+        },
+        {
+          "id": "button-task-templates",
+          "label": "Templates",
+          "explanation": "Pre-defined task blueprints",
+          "tooltip": {
+            "title": "Task Templates",
+            "content": "Create and manage task templates for common workflows. Templates auto-populate task details based on case stage and type.",
+            "learnMoreUrl": "/help/pages/task-automation/templates-tab"
+          },
+          "accessibility": {
+            "ariaLabel": "Manage task templates"
+          }
+        },
+        {
+          "id": "button-task-analytics",
+          "label": "Analytics",
+          "explanation": "Task performance insights",
+          "tooltip": {
+            "title": "Task Analytics",
+            "content": "View team productivity metrics, task completion rates, bottlenecks, and time tracking analytics.",
+            "learnMoreUrl": "/help/pages/task-automation/analytics-tab"
+          },
+          "accessibility": {
+            "ariaLabel": "View task analytics"
+          }
+        }
+      ]
+    },
+    "documents": {
+      "buttons": [
+        {
+          "id": "button-upload-document",
+          "label": "Upload Document",
+          "explanation": "Add files to case folders",
+          "tooltip": {
+            "title": "Upload Document",
+            "content": "Upload PDFs, Word docs, spreadsheets, or images. Link to cases, tag for search, and organize into folders automatically.",
+            "learnMoreUrl": "/help/pages/document-management"
+          },
+          "accessibility": {
+            "ariaLabel": "Upload a document"
+          }
+        },
+        {
+          "id": "button-ai-draft",
+          "label": "AI Draft Assistant",
+          "explanation": "Auto-generate legal drafts",
+          "tooltip": {
+            "title": "AI Draft Assistant",
+            "content": "Use AI to generate replies, objections, petitions, and other legal documents based on case context and templates.",
+            "learnMoreUrl": "/help/guides/notice-intake-wizard-guide"
+          },
+          "accessibility": {
+            "ariaLabel": "Open AI draft assistant"
+          }
+        },
+        {
+          "id": "button-create-folder",
+          "label": "New Folder",
+          "explanation": "Organize documents",
+          "tooltip": {
+            "title": "Create Folder",
+            "content": "Create a new folder to organize documents by case, stage, or custom categories. Set access permissions per folder.",
+            "learnMoreUrl": "/help/pages/document-management/overview-tab"
+          },
+          "accessibility": {
+            "ariaLabel": "Create a new folder"
+          }
+        },
+        {
+          "id": "button-form-templates",
+          "label": "Form Templates",
+          "explanation": "Standard GST forms",
+          "tooltip": {
+            "title": "Form Templates",
+            "content": "Access pre-built templates for GSTAT, DRC-01, ASMT-10, and other GST forms. Auto-fill from case data.",
+            "learnMoreUrl": "/help/pages/document-management/templates-tab"
+          },
+          "accessibility": {
+            "ariaLabel": "View form templates"
+          }
+        }
+      ]
+    },
+    "hearings": {
+      "buttons": [
+        {
+          "id": "button-schedule-hearing",
+          "label": "Schedule Hearing",
+          "explanation": "Book a court date and time",
+          "tooltip": {
+            "title": "Schedule Hearing",
+            "content": "Create hearing entry with date, time, court, judge, purpose, and agenda. System syncs with calendar and sends reminders.",
+            "learnMoreUrl": "/help/pages/hearings"
+          },
+          "accessibility": {
+            "ariaLabel": "Schedule a hearing"
+          }
+        },
+        {
+          "id": "button-calendar-view",
+          "label": "Calendar",
+          "explanation": "View hearings in calendar",
+          "tooltip": {
+            "title": "Calendar View",
+            "content": "View all scheduled hearings in a monthly calendar. Click dates to see hearing details and add new hearings.",
+            "learnMoreUrl": "/help/pages/hearings/calendar-tab"
+          },
+          "accessibility": {
+            "ariaLabel": "Switch to calendar view"
+          }
+        },
+        {
+          "id": "button-list-view",
+          "label": "List",
+          "explanation": "View hearings as list",
+          "tooltip": {
+            "title": "List View",
+            "content": "View hearings in a sortable, filterable list format. Export to Excel or sync with external calendars.",
+            "learnMoreUrl": "/help/pages/hearings/list-tab"
+          },
+          "accessibility": {
+            "ariaLabel": "Switch to list view"
+          }
+        },
+        {
+          "id": "button-calendar-integration",
+          "label": "Sync Calendar",
+          "explanation": "Connect Google/Outlook",
+          "tooltip": {
+            "title": "Calendar Integration",
+            "content": "Sync hearings with Google Calendar or Outlook. Automatic two-way sync keeps all calendars updated.",
+            "learnMoreUrl": "/help/pages/hearings"
+          },
+          "accessibility": {
+            "ariaLabel": "Configure calendar integration"
+          }
+        }
+      ]
+    },
+    "reports": {
+      "buttons": [
+        {
+          "id": "button-generate-report",
+          "label": "Generate Report",
+          "explanation": "Create custom report",
+          "tooltip": {
+            "title": "Generate Report",
+            "content": "Generate custom reports with selected metrics, date ranges, and filters. Export to PDF or Excel.",
+            "learnMoreUrl": "/help/pages/reports"
+          },
+          "accessibility": {
+            "ariaLabel": "Generate a custom report"
+          }
+        },
+        {
+          "id": "button-case-reports",
+          "label": "Case Reports",
+          "explanation": "Case-level analytics",
+          "tooltip": {
+            "title": "Case Reports",
+            "content": "View case-level metrics including stage distribution, completion rates, and average case duration.",
+            "learnMoreUrl": "/help/pages/reports/case-reports-tab"
+          },
+          "accessibility": {
+            "ariaLabel": "View case reports"
+          }
+        },
+        {
+          "id": "button-hearing-reports",
+          "label": "Hearing Reports",
+          "explanation": "Hearing analytics",
+          "tooltip": {
+            "title": "Hearing Reports",
+            "content": "Analyze hearing outcomes, judge performance, adjournment rates, and court-wise statistics.",
+            "learnMoreUrl": "/help/pages/reports/hearings-tab"
+          },
+          "accessibility": {
+            "ariaLabel": "View hearing reports"
+          }
+        },
+        {
+          "id": "button-timeline-breach",
+          "label": "Timeline Breach",
+          "explanation": "Track deadline violations",
+          "tooltip": {
+            "title": "Timeline Breach Report",
+            "content": "Identify cases and tasks that missed deadlines. View breach reasons and patterns to improve compliance.",
+            "learnMoreUrl": "/help/pages/reports"
+          },
+          "accessibility": {
+            "ariaLabel": "View timeline breach report"
+          }
+        }
+      ]
+    },
+    "admin": {
+      "menu-items": [
+        {
+          "id": "menu-rbac",
+          "label": "Role Management",
+          "explanation": "Control user permissions",
+          "tooltip": {
+            "title": "RBAC Management",
+            "content": "Define roles (Partner, CA, Staff), assign permissions, and control access to sensitive case data and admin functions.",
+            "learnMoreUrl": "/help/best-practices/admin-management"
+          },
+          "accessibility": {
+            "ariaLabel": "Manage roles and permissions"
+          }
+        },
+        {
+          "id": "menu-storage",
+          "label": "Storage Mode",
+          "explanation": "Switch between local/API storage",
+          "tooltip": {
+            "title": "Storage Configuration",
+            "content": "Choose storage mode: Browser (IndexedDB), API (backend), or Hybrid. Affects data persistence and sync behavior.",
+            "learnMoreUrl": "/help/best-practices/admin-management"
+          },
+          "accessibility": {
+            "ariaLabel": "Configure storage mode"
+          }
+        },
+        {
+          "id": "menu-data-management",
+          "label": "Data Management",
+          "explanation": "Import/export and backup",
+          "tooltip": {
+            "title": "Data Management",
+            "content": "Import and export all system data, create backups, and restore from previous snapshots.",
+            "learnMoreUrl": "/help/best-practices/admin-management"
+          },
+          "accessibility": {
+            "ariaLabel": "Manage data import and export"
+          }
+        },
+        {
+          "id": "menu-global-parameters",
+          "label": "Global Parameters",
+          "explanation": "Configure system defaults",
+          "tooltip": {
+            "title": "Global Parameters",
+            "content": "Set organization-wide defaults for case numbering, task priorities, reminder schedules, and notification preferences.",
+            "learnMoreUrl": "/help/best-practices/admin-management"
+          },
+          "accessibility": {
+            "ariaLabel": "Configure global parameters"
+          }
+        },
+        {
+          "id": "menu-calendar-integration",
+          "label": "Calendar Integration",
+          "explanation": "Connect external calendars",
+          "tooltip": {
+            "title": "Calendar Integration",
+            "content": "Configure Google Calendar or Outlook integration for automatic hearing sync across your organization.",
+            "learnMoreUrl": "/help/best-practices/admin-management"
+          },
+          "accessibility": {
+            "ariaLabel": "Configure calendar integration"
+          }
+        }
+      ]
+    },
+    "dashboard": {
+      "cards": [
+        {
+          "id": "card-pending-tasks",
+          "label": "Pending Tasks",
+          "explanation": "Tasks due soon",
+          "tooltip": {
+            "title": "Pending Tasks",
+            "content": "View all tasks assigned to you or your team with upcoming deadlines. Click to view task details or mark complete.",
+            "learnMoreUrl": "/help/pages/dashboard"
+          },
+          "accessibility": {
+            "ariaLabel": "View pending tasks"
+          }
+        },
+        {
+          "id": "card-upcoming-hearings",
+          "label": "Upcoming Hearings",
+          "explanation": "Next 7 days",
+          "tooltip": {
+            "title": "Upcoming Hearings",
+            "content": "Hearings scheduled in the next 7 days. Includes court, time, and case details. Click to view full hearing information.",
+            "learnMoreUrl": "/help/pages/dashboard"
+          },
+          "accessibility": {
+            "ariaLabel": "View upcoming hearings"
+          }
+        },
+        {
+          "id": "card-active-cases",
+          "label": "Active Cases",
+          "explanation": "Cases in progress",
+          "tooltip": {
+            "title": "Active Cases",
+            "content": "Total number of cases currently in progress across all stages. Click to filter by stage or priority.",
+            "learnMoreUrl": "/help/pages/dashboard"
+          },
+          "accessibility": {
+            "ariaLabel": "View active cases"
+          }
+        },
+        {
+          "id": "card-breach-alerts",
+          "label": "Breach Alerts",
+          "explanation": "Overdue deadlines",
+          "tooltip": {
+            "title": "Timeline Breach Alerts",
+            "content": "Cases and tasks that have missed statutory deadlines or internal due dates. Requires immediate attention.",
+            "learnMoreUrl": "/help/pages/dashboard"
+          },
+          "accessibility": {
+            "ariaLabel": "View breach alerts"
+          }
+        }
+      ]
+    }
+  }
+}
