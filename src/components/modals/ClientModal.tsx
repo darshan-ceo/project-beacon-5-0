@@ -466,7 +466,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-beacon-modal max-h-[90vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
               <div className="flex items-center gap-2">

@@ -134,7 +134,7 @@ export const SignatoryModal: React.FC<SignatoryModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-beacon-modal max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>
             {mode === 'create' && 'Add New Signatory'}

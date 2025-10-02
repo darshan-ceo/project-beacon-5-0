@@ -86,7 +86,7 @@ export const NotificationConfigModal: React.FC<NotificationConfigModalProps> = (
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="max-w-beacon-modal max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center">
             <Bell className="mr-2 h-5 w-5 text-primary" />

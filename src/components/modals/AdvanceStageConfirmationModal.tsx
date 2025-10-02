@@ -58,7 +58,7 @@ export const AdvanceStageConfirmationModal: React.FC<AdvanceStageConfirmationMod
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-beacon-modal max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ArrowRight className="h-5 w-5 text-primary" />

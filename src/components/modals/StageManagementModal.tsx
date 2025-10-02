@@ -79,7 +79,7 @@ export const StageManagementModal: React.FC<StageManagementModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-beacon-modal max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Manage Case Stage</DialogTitle>
           <DialogDescription>

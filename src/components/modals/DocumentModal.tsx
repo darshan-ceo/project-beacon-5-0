@@ -188,7 +188,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl" data-tour="document-metadata">
+      <DialogContent className="max-w-beacon-modal max-h-[90vh]" data-tour="document-metadata">
         <DialogHeader>
           <DialogTitle>
             {mode === 'upload' && 'Upload Document'}

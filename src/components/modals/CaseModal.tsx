@@ -293,7 +293,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" data-tour="case-form">
+      <DialogContent className="max-w-beacon-modal max-h-[90vh]" data-tour="case-form">
         <DialogHeader>
           <DialogTitle>
             {mode === 'create' && 'Create New Case'}

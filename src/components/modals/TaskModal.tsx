@@ -187,7 +187,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-beacon-modal max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>
             {mode === 'create' && 'Create New Task'}

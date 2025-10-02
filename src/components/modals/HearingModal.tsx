@@ -181,7 +181,7 @@ export const HearingModal: React.FC<HearingModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-beacon-modal max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>
             {mode === 'create' && 'Schedule New Hearing'}

@@ -63,7 +63,7 @@ export const ReviewDateModal: React.FC<ReviewDateModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="max-w-beacon-modal max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Set Review Period</DialogTitle>
           <DialogDescription>
