@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { ActionItemModal } from '@/components/modals/ActionItemModal';
+import { getFormTimelineReport } from '@/services/reportsService';
 import { 
   AlertTriangle, 
   Clock, 
@@ -39,48 +40,13 @@ interface TimelineBreachMetrics {
   timelineHours: number;
 }
 
-const timelineBreachMetrics: TimelineBreachMetrics[] = [
-  {
-    formType: 'ASMT-10',
-    totalCases: 45,
-    onTime: 38,
-    breached: 7,
-    avgCompletionTime: 65,
-    timelineHours: 72
-  },
-  {
-    formType: 'ASMT-11',
-    totalCases: 32,
-    onTime: 29,
-    breached: 3,
-    avgCompletionTime: 58,
-    timelineHours: 72
-  },
-  {
-    formType: 'ASMT-12',
-    totalCases: 28,
-    onTime: 22,
-    breached: 6,
-    avgCompletionTime: 680,
-    timelineHours: 720
-  },
-  {
-    formType: 'DRC-01',
-    totalCases: 56,
-    onTime: 48,
-    breached: 8,
-    avgCompletionTime: 145,
-    timelineHours: 168
-  },
-  {
-    formType: 'DRC-07',
-    totalCases: 23,
-    onTime: 20,
-    breached: 3,
-    avgCompletionTime: 155,
-    timelineHours: 168
-  }
-];
+// Form type mappings
+const ALLOWED_FORMS = {
+  'ASMT10_REPLY': { label: 'ASMT-10', timelineHours: 72 },
+  'DRC1A_REPLY': { label: 'DRC-1A', timelineHours: 168 },
+  'DRC01_REPLY': { label: 'DRC-01', timelineHours: 168 },
+  'APL01_FIRST_APPEAL': { label: 'APL-01', timelineHours: 720 }
+} as const;
 
 const criticalCases = [
   {
@@ -115,6 +81,66 @@ const criticalCases = [
 export const TimelineBreachTracker: React.FC<TimelineBreachTrackerProps> = ({ cases }) => {
   const [selectedCaseForAction, setSelectedCaseForAction] = useState<{ id: string; urgency: string } | null>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [timelineBreachMetrics, setTimelineBreachMetrics] = useState<TimelineBreachMetrics[]>([]);
+
+  useEffect(() => {
+    const loadMetrics = async () => {
+      try {
+        const result = await getFormTimelineReport({});
+        
+        // Filter to only allowed forms and aggregate metrics
+        const allowedFormCodes = Object.keys(ALLOWED_FORMS);
+        const filteredData = result.data.filter(item => allowedFormCodes.includes(item.formCode));
+        
+        // Group by form code and calculate metrics
+        const metricsMap = new Map<string, TimelineBreachMetrics>();
+        
+        filteredData.forEach(item => {
+          const formConfig = ALLOWED_FORMS[item.formCode as keyof typeof ALLOWED_FORMS];
+          if (!formConfig) return;
+          
+          const existing = metricsMap.get(item.formCode) || {
+            formType: formConfig.label,
+            totalCases: 0,
+            onTime: 0,
+            breached: 0,
+            avgCompletionTime: 0,
+            timelineHours: formConfig.timelineHours,
+            _completionTimes: [] as number[]
+          };
+          
+          existing.totalCases++;
+          if (item.status === 'On Time') existing.onTime++;
+          if (item.status === 'Delayed') existing.breached++;
+          
+          // Collect completion times for average (exclude Pending)
+          if (item.status !== 'Pending' && item.daysElapsed) {
+            (existing as any)._completionTimes.push(item.daysElapsed * 24);
+          }
+          
+          metricsMap.set(item.formCode, existing);
+        });
+        
+        // Calculate averages and convert to final format
+        const metrics = Array.from(metricsMap.values()).map(m => {
+          const times = (m as any)._completionTimes || [];
+          const avgCompletionTime = times.length > 0
+            ? Math.round(times.reduce((sum: number, t: number) => sum + t, 0) / times.length)
+            : 0;
+          
+          delete (m as any)._completionTimes;
+          return { ...m, avgCompletionTime };
+        });
+        
+        setTimelineBreachMetrics(metrics);
+      } catch (error) {
+        console.error('Failed to load timeline metrics:', error);
+      }
+    };
+    
+    loadMetrics();
+  }, []);
+
   const getTimelineBreachColor = (status: string) => {
     switch (status) {
       case 'Green': return 'bg-success text-success-foreground';
