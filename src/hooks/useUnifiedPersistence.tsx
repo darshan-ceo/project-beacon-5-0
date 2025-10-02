@@ -106,6 +106,24 @@ export const useUnifiedPersistence = () => {
         storage.getAll<any>('folders')
       ]);
 
+      // Check if storage is empty (no meaningful data)
+      const hasData = clients.length > 0 || cases.length > 0 || employees.length > 0 || judges.length > 0;
+
+      if (!hasData) {
+        console.log('📦 Storage is empty, preserving initial mock data from AppStateContext');
+        // Don't dispatch RESTORE_STATE if storage is empty - preserve the initial mock data
+        // Just set counts to 0 to indicate empty storage
+        const counts = {
+          clients: 0, cases: 0, tasks: 0, task_bundles: 0,
+          documents: 0, hearings: 0, judges: 0, courts: 0,
+          employees: 0, folders: folders.length
+        };
+        setEntityCounts(counts);
+        lastKnownEntityCounts.current = counts;
+        console.log('✅ Using initial mock data from context');
+        return;
+      }
+
       // Normalize hearings to ensure backward compatibility with both time and start_time fields
       const hearings = rawHearings.map((hearing: any) => ({
         ...hearing,
@@ -119,7 +137,7 @@ export const useUnifiedPersistence = () => {
         assignedTo: task.assignedTo || task.assignedToName || 'Unassigned'
       }));
 
-      // Restore loaded data to React state using RESTORE_STATE action
+      // Only restore data from storage if we actually have data
       dispatch({ 
         type: 'RESTORE_STATE', 
         payload: { 
