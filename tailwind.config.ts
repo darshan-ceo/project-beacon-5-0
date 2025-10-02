@@ -21,6 +21,28 @@ export default {
 			fontFamily: {
 				inter: ['Inter', 'sans-serif'],
 			},
+			fontSize: {
+				'h1': ['32px', { lineHeight: '40px', fontWeight: '700' }],
+				'h2': ['24px', { lineHeight: '32px', fontWeight: '600' }],
+				'h3': ['20px', { lineHeight: '28px', fontWeight: '500' }],
+				'body': ['16px', { lineHeight: '24px', fontWeight: '400' }],
+				'small': ['14px', { lineHeight: '20px', fontWeight: '400' }],
+				'caption': ['12px', { lineHeight: '16px', fontWeight: '500' }],
+			},
+			borderRadius: {
+				'beacon-md': '8px',
+				'beacon-lg': '16px',
+				'beacon-xl': '24px',
+			},
+			maxWidth: {
+				'beacon-modal': '650px',
+				'beacon-container': '1200px',
+			},
+			spacing: {
+				'beacon-section': '24px',
+				'beacon-field': '16px',
+				'beacon-compact': '12px',
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',

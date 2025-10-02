@@ -8,75 +8,90 @@ All colors MUST be HSL. Professional legal theme with accessibility focus.
 
 @layer base {
   :root {
-    /* H-Office Brand Colors */
-    --primary: 218 100% 52%;        /* #0B5FFF - H-Office Primary Blue */
+    /* Beacon Brand Colors - Project Beacon 5.0 */
+    --primary: 174 45% 28%;          /* #00897B - Teal (main actions, links, highlights) */
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 218 100% 47%;   /* Darker blue for hover */
-    --primary-light: 218 100% 95%;   /* Light blue backgrounds */
+    --primary-hover: 174 45% 23%;    /* Darker teal for hover */
+    --primary-light: 174 45% 95%;    /* Light teal backgrounds */
     
-    --secondary: 174 100% 38%;       /* #00C2A8 - H-Office Secondary Teal */
+    --secondary: 174 100% 38%;       /* #00C2A8 - Aqua (secondary accents, hover states) */
     --secondary-foreground: 0 0% 100%;
     --secondary-hover: 174 100% 33%;
     --secondary-light: 174 100% 95%;
     
-    /* Neutral System */
-    --background: 0 0% 100%;
-    --foreground: 215 25% 27%;       /* Professional dark gray */
+    /* Neutral System - Beacon Guidelines */
+    --background: 0 0% 100%;         /* White */
+    --foreground: 210 22% 22%;       /* #2C3E50 - Neutral Dark (headers, primary text) */
     
     --card: 0 0% 100%;
-    --card-foreground: 215 25% 27%;
+    --card-foreground: 210 22% 22%;
     
     --popover: 0 0% 100%;
-    --popover-foreground: 215 25% 27%;
+    --popover-foreground: 210 22% 22%;
     
     /* UI Elements */
-    --muted: 220 14% 96%;            /* Light gray backgrounds */
-    --muted-foreground: 215 16% 47%; /* Medium gray text */
+    --muted: 220 17% 97%;            /* #F5F6FA - Neutral Light (backgrounds, card surfaces) */
+    --muted-foreground: 210 11% 47%; /* #6C757D - Neutral Medium (labels, hints, muted text) */
     
-    --accent: 218 100% 97%;          /* Very light blue accent */
-    --accent-foreground: 218 100% 52%;
+    --accent: 16 100% 64%;           /* #FF7A45 - Orange (alerts and highlights) */
+    --accent-foreground: 0 0% 100%;
     
-    --border: 220 13% 91%;           /* Light borders */
-    --input: 220 13% 91%;
-    --ring: 218 100% 52%;            /* Focus rings use primary */
+    --border: 0 0% 88%;              /* #E0E0E0 */
+    --input: 0 0% 88%;
+    --ring: 174 45% 28%;             /* Focus rings use primary teal */
     
-    /* Status Colors */
-    --destructive: 0 84% 60%;
+    /* Status Colors - Beacon Guidelines */
+    --destructive: 354 70% 54%;      /* #DC3545 - Red (validation errors) */
     --destructive-foreground: 0 0% 100%;
     
-    --success: 142 71% 45%;          /* Green for success states */
+    --success: 142 71% 42%;          /* #28A745 - Green (confirmations) */
     --success-foreground: 0 0% 100%;
     
-    --warning: 38 92% 50%;           /* Amber for warnings */
-    --warning-foreground: 0 0% 100%;
+    --warning: 45 100% 51%;          /* #FFC107 - Yellow (pending actions) */
+    --warning-foreground: 215 25% 27%; /* Dark text for contrast */
     
-    /* Layout & Design */
-    --radius: 0.5rem;
+    /* Layout & Design - Beacon Standards */
+    --radius: 0.5rem;                /* 8px - for buttons/inputs (md) */
+    --radius-lg: 1rem;               /* 16px - for cards */
+    --radius-xl: 1.5rem;             /* 24px - for modals */
     
-    /* Sidebar - Professional Dark Theme */
+    /* Sidebar - Professional Dark Theme with Beacon Teal */
     --sidebar-background: 215 28% 17%;     /* Dark professional sidebar */
     --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 218 100% 52%;       /* Primary blue in sidebar */
+    --sidebar-primary: 174 45% 28%;        /* Primary teal in sidebar */
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 215 25% 22%;         /* Slightly lighter than bg */
     --sidebar-accent-foreground: 0 0% 95%;
     --sidebar-border: 215 25% 22%;
-    --sidebar-ring: 218 100% 52%;
+    --sidebar-ring: 174 45% 28%;
     
-    /* Custom Legal-Specific Variables */
-    --legal-urgent: 0 84% 60%;       /* Red for urgent matters */
-    --legal-pending: 38 92% 50%;     /* Amber for pending */
-    --legal-approved: 142 71% 45%;   /* Green for approved */
+    /* Custom Legal-Specific Variables - Beacon Colors */
+    --legal-urgent: 354 70% 54%;     /* #DC3545 - Red for urgent matters */
+    --legal-pending: 45 100% 51%;    /* #FFC107 - Yellow for pending */
+    --legal-approved: 142 71% 42%;   /* #28A745 - Green for approved */
     --legal-draft: 220 14% 71%;      /* Gray for drafts */
     
-    /* Brand Active State System */
-    --brand-active: 221 83% 53%;     /* Primary blue for active states */
+    /* Brand Active State System - Beacon Teal */
+    --brand-active: 174 45% 28%;     /* Primary teal for active states */
     --brand-active-foreground: 0 0% 100%;
-    --brand-active-border: 221 83% 53%;
-    --brand-active-bg: 221 83% 95%;  /* Light blue background */
+    --brand-active-border: 174 45% 28%;
+    --brand-active-bg: 174 45% 95%;  /* Light teal background */
 }
 
 @layer utilities {
+  /* Beacon Shadow System */
+  .shadow-beacon-sm {
+    box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.05);
+  }
+  
+  .shadow-beacon-md {
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .shadow-beacon-lg {
+    box-shadow: 0px 10px 15px rgba(0, 0, 0, 0.15);
+  }
+
   .hover-lift {
     @apply transition-all duration-300 ease-out hover:shadow-lg hover:-translate-y-1;
   }
