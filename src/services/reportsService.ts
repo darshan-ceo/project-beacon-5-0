@@ -278,9 +278,26 @@ export const reportsService = {
     return { data: mockData };
   },
 
-  // Backward compatibility
-  getSLAReport: async (filters: any) => {
-    return reportsService.getTimelineBreachReport(filters);
+  // Backward compatibility - getSLAReport is an alias
+  getSLAReport: async (filters: any): Promise<{ data: any[] }> => {
+    // Direct implementation to avoid circular reference
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const mockData = [
+      {
+        caseId: 'CS001',
+        caseTitle: 'Property Dispute Case',
+        client: 'ABC Corp',
+        stage: 'Appeals',
+        timelineDue: '2024-09-30',
+        agingDays: 45,
+        ragStatus: 'Green',
+        owner: 'John Doe',
+        breached: false
+      }
+    ];
+    
+    return { data: mockData };
   },
 
   // Get task reports with filters
