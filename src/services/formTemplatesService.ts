@@ -67,7 +67,7 @@ class FormTemplatesService {
   private static LIFECYCLE_TO_TEMPLATE_MAPPING: Record<string, string[]> = {
     'Scrutiny': ['ASMT10_REPLY', 'ASMT11_REPRESENTATION'],
     'Demand': ['DRC01_REPLY', 'DRC07_OBJECTION'],
-    'Adjudication': ['ASMT12_REPLY'],
+    'Adjudication': ['DRC01_REPLY', 'DRC05_REPLY', 'DRC06_REPLY', 'DRC07_OBJECTION', 'DRC08_REPLY'],
     'Appeals': ['APPEAL_FIRST'],
     'GSTAT': ['GSTAT'],     // GSTAT lifecycle → GSTAT template (stored as "Tribunal" in JSON)
     'HC': ['HC_PETITION'],  // HC lifecycle → HC template (stored as "High Court" in JSON)

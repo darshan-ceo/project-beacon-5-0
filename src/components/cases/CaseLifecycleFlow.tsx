@@ -51,7 +51,7 @@ const lifecycleStages = [
     name: 'Adjudication',
     description: 'Adjudicating authority proceedings',
     icon: Scale,
-    forms: ['ASMT-12'],
+    forms: ['DRC-1', 'DRC-5', 'DRC-6', 'DRC-7', 'DRC-8'],
     slaHours: 720
   },
   {
