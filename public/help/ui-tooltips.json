@@ -72,6 +72,34 @@
             "ariaLabel": "View case overview information"
           }
         }
+      ],
+      "fields": [
+        {
+          "id": "field-case-title",
+          "label": "Case Title",
+          "explanation": "Main identifier for this case",
+          "tooltip": {
+            "title": "Case Title",
+            "content": "Use format: Client Name vs Opposing Party or descriptive case name. Keep it searchable.",
+            "learnMoreUrl": "/help/case-management/overview"
+          },
+          "accessibility": {
+            "ariaLabel": "Enter case title"
+          }
+        },
+        {
+          "id": "field-case-number",
+          "label": "Case Number",
+          "explanation": "Court-assigned identifier",
+          "tooltip": {
+            "title": "Case Number",
+            "content": "Court-assigned case number. Leave blank if not yet assigned - system can auto-generate internal ID.",
+            "learnMoreUrl": "/help/case-management/overview"
+          },
+          "accessibility": {
+            "ariaLabel": "Enter case number"
+          }
+        }
       ]
     },
     "clients": {
@@ -113,6 +141,60 @@
           },
           "accessibility": {
             "ariaLabel": "Export client list"
+          }
+        },
+        {
+          "id": "button-gst-autofill",
+          "label": "GST Autofill",
+          "explanation": "Fetch client data from GST portal",
+          "tooltip": {
+            "title": "GST API Autofill",
+            "content": "Automatically fetch and populate client details from GSTIN using official GST API. Requires API credentials.",
+            "learnMoreUrl": "/help/best-practices/users-workflow"
+          },
+          "accessibility": {
+            "ariaLabel": "Autofill client details from GST API"
+          }
+        }
+      ],
+      "fields": [
+        {
+          "id": "field-client-name",
+          "label": "Client Name",
+          "explanation": "Full legal name of the client",
+          "tooltip": {
+            "title": "Client Name",
+            "content": "Full legal name as it appears on official documents. Use individual or entity name.",
+            "learnMoreUrl": "/help/best-practices/users-workflow"
+          },
+          "accessibility": {
+            "ariaLabel": "Enter client name"
+          }
+        },
+        {
+          "id": "field-gstin",
+          "label": "GSTIN",
+          "explanation": "15-digit GST identification number",
+          "tooltip": {
+            "title": "GSTIN",
+            "content": "15-character GST Identification Number. Format: 22AAAAA0000A1Z5. Use autofill for verified data.",
+            "learnMoreUrl": "/help/faqs/client-gstin-autofill"
+          },
+          "accessibility": {
+            "ariaLabel": "Enter GSTIN"
+          }
+        },
+        {
+          "id": "field-pan",
+          "label": "PAN",
+          "explanation": "Permanent Account Number",
+          "tooltip": {
+            "title": "PAN",
+            "content": "10-character Permanent Account Number. Format: AAAAA0000A. Required for tax verification.",
+            "learnMoreUrl": "/help/best-practices/users-workflow"
+          },
+          "accessibility": {
+            "ariaLabel": "Enter PAN"
           }
         }
       ]
@@ -184,6 +266,60 @@
           "accessibility": {
             "ariaLabel": "View task analytics"
           }
+        },
+        {
+          "id": "button-bulk-assign",
+          "label": "Bulk Assign",
+          "explanation": "Assign multiple tasks at once",
+          "tooltip": {
+            "title": "Bulk Task Assignment",
+            "content": "Select multiple tasks and assign them to team members in one action. Useful for workload distribution.",
+            "learnMoreUrl": "/help/pages/task-automation"
+          },
+          "accessibility": {
+            "ariaLabel": "Bulk assign tasks"
+          }
+        }
+      ],
+      "fields": [
+        {
+          "id": "field-task-title",
+          "label": "Task Title",
+          "explanation": "Clear description of the task",
+          "tooltip": {
+            "title": "Task Title",
+            "content": "Use a clear, descriptive title that explains what needs to be done. Include case reference if applicable.",
+            "learnMoreUrl": "/help/pages/task-automation"
+          },
+          "accessibility": {
+            "ariaLabel": "Enter task title"
+          }
+        },
+        {
+          "id": "field-due-date",
+          "label": "Due Date",
+          "explanation": "Task completion deadline",
+          "tooltip": {
+            "title": "Due Date",
+            "content": "Set realistic deadlines accounting for complexity and dependencies. Consider court schedules.",
+            "learnMoreUrl": "/help/pages/task-automation"
+          },
+          "accessibility": {
+            "ariaLabel": "Select due date"
+          }
+        },
+        {
+          "id": "field-priority",
+          "label": "Priority",
+          "explanation": "Task urgency level",
+          "tooltip": {
+            "title": "Task Priority",
+            "content": "Critical: Court deadlines. High: Urgent matters. Medium: Standard work. Low: Administrative tasks.",
+            "learnMoreUrl": "/help/pages/task-automation"
+          },
+          "accessibility": {
+            "ariaLabel": "Select priority level"
+          }
         }
       ]
     },
@@ -241,6 +377,47 @@
             "ariaLabel": "View form templates"
           }
         }
+      ],
+      "fields": [
+        {
+          "id": "field-document-title",
+          "label": "Document Title",
+          "explanation": "Name for this document",
+          "tooltip": {
+            "title": "Document Name",
+            "content": "Use descriptive names with case references. Avoid generic names like 'document1.pdf'.",
+            "learnMoreUrl": "/help/pages/document-management"
+          },
+          "accessibility": {
+            "ariaLabel": "Enter document title"
+          }
+        },
+        {
+          "id": "field-tags",
+          "label": "Tags",
+          "explanation": "Keywords for document search",
+          "tooltip": {
+            "title": "Document Tags",
+            "content": "Add keywords for searchability: 'motion', 'evidence', 'correspondence', etc.",
+            "learnMoreUrl": "/help/pages/document-management"
+          },
+          "accessibility": {
+            "ariaLabel": "Add document tags"
+          }
+        },
+        {
+          "id": "field-category",
+          "label": "Category",
+          "explanation": "Document classification",
+          "tooltip": {
+            "title": "Document Category",
+            "content": "Classify documents by type: Pleadings, Evidence, Orders, Correspondence, etc. for better organization.",
+            "learnMoreUrl": "/help/pages/document-management"
+          },
+          "accessibility": {
+            "ariaLabel": "Select document category"
+          }
+        }
       ]
     },
     "hearings": {
@@ -295,6 +472,73 @@
           },
           "accessibility": {
             "ariaLabel": "Configure calendar integration"
+          }
+        },
+        {
+          "id": "button-calendar-sync",
+          "label": "Sync Now",
+          "explanation": "Manually trigger calendar sync",
+          "tooltip": {
+            "title": "Manual Calendar Sync",
+            "content": "Immediately sync hearing data with connected Google Calendar or Outlook. Automatic sync runs every hour.",
+            "learnMoreUrl": "/help/pages/hearings"
+          },
+          "accessibility": {
+            "ariaLabel": "Sync hearings to calendar"
+          }
+        },
+        {
+          "id": "button-outcome",
+          "label": "Record Outcome",
+          "explanation": "Log hearing result",
+          "tooltip": {
+            "title": "Record Hearing Outcome",
+            "content": "Document the hearing result: Concluded, Adjourned, or Part-heard. Add notes and next hearing date if applicable.",
+            "learnMoreUrl": "/help/faqs/hearing-outcome"
+          },
+          "accessibility": {
+            "ariaLabel": "Record hearing outcome"
+          }
+        }
+      ],
+      "fields": [
+        {
+          "id": "field-hearing-date",
+          "label": "Hearing Date",
+          "explanation": "Court appearance date",
+          "tooltip": {
+            "title": "Hearing Date",
+            "content": "Exact date and time as scheduled by court. Double-check court calendar for conflicts.",
+            "learnMoreUrl": "/help/pages/hearings"
+          },
+          "accessibility": {
+            "ariaLabel": "Select hearing date"
+          }
+        },
+        {
+          "id": "field-court",
+          "label": "Court",
+          "explanation": "Hearing location",
+          "tooltip": {
+            "title": "Court/Jurisdiction",
+            "content": "Select the court where case will be heard. This affects filing rules and procedures.",
+            "learnMoreUrl": "/help/pages/hearings"
+          },
+          "accessibility": {
+            "ariaLabel": "Select court"
+          }
+        },
+        {
+          "id": "field-judge",
+          "label": "Judge",
+          "explanation": "Presiding judge",
+          "tooltip": {
+            "title": "Presiding Judge",
+            "content": "Select the judge assigned to hear this matter. Judge preferences may affect strategy.",
+            "learnMoreUrl": "/help/pages/hearings"
+          },
+          "accessibility": {
+            "ariaLabel": "Select judge"
           }
         }
       ]
@@ -351,6 +595,73 @@
           },
           "accessibility": {
             "ariaLabel": "View timeline breach report"
+          }
+        },
+        {
+          "id": "button-export-csv",
+          "label": "Export CSV",
+          "explanation": "Download report as spreadsheet",
+          "tooltip": {
+            "title": "Export to CSV",
+            "content": "Export current report data to CSV format for analysis in Excel or other tools. Includes all visible columns.",
+            "learnMoreUrl": "/help/pages/reports"
+          },
+          "accessibility": {
+            "ariaLabel": "Export report to CSV"
+          }
+        },
+        {
+          "id": "button-save-view",
+          "label": "Save View",
+          "explanation": "Save current filters and columns",
+          "tooltip": {
+            "title": "Save Report View",
+            "content": "Save current filters, column selection, and sort order as a named view for quick access later.",
+            "learnMoreUrl": "/help/pages/reports"
+          },
+          "accessibility": {
+            "ariaLabel": "Save current report view"
+          }
+        },
+        {
+          "id": "button-filter",
+          "label": "Filter",
+          "explanation": "Apply report filters",
+          "tooltip": {
+            "title": "Filter Reports",
+            "content": "Filter report data by date range, case stage, priority, assigned team, or custom criteria.",
+            "learnMoreUrl": "/help/pages/reports"
+          },
+          "accessibility": {
+            "ariaLabel": "Open filter options"
+          }
+        }
+      ],
+      "cards": [
+        {
+          "id": "card-case-reports",
+          "label": "Case Reports",
+          "explanation": "Case analytics and metrics",
+          "tooltip": {
+            "title": "Case Reports",
+            "content": "View case-level metrics including stage distribution, completion rates, and average case duration by type and court.",
+            "learnMoreUrl": "/help/pages/reports/case-reports-tab"
+          },
+          "accessibility": {
+            "ariaLabel": "View case reports"
+          }
+        },
+        {
+          "id": "card-hearings-report",
+          "label": "Hearings Report",
+          "explanation": "Hearing analytics",
+          "tooltip": {
+            "title": "Hearings Report",
+            "content": "Analyze hearing outcomes, judge performance, adjournment rates, and court-wise statistics.",
+            "learnMoreUrl": "/help/pages/reports/hearings-tab"
+          },
+          "accessibility": {
+            "ariaLabel": "View hearings report"
           }
         }
       ]
@@ -420,6 +731,47 @@
           },
           "accessibility": {
             "ariaLabel": "Configure calendar integration"
+          }
+        },
+        {
+          "id": "menu-session-timeout",
+          "label": "Session Timeout",
+          "explanation": "Configure auto-logout settings",
+          "tooltip": {
+            "title": "Session Timeout Settings",
+            "content": "Configure automatic session timeout duration for security. Users will be logged out after the specified period of inactivity.",
+            "learnMoreUrl": "/help/best-practices/admin-management"
+          },
+          "accessibility": {
+            "ariaLabel": "Configure session timeout settings"
+          }
+        }
+      ],
+      "buttons": [
+        {
+          "id": "button-export-data",
+          "label": "Export Data",
+          "explanation": "Download system data backup",
+          "tooltip": {
+            "title": "Export System Data",
+            "content": "Export all system data (cases, clients, tasks, documents) to JSON format for backup or migration purposes.",
+            "learnMoreUrl": "/help/best-practices/admin-management"
+          },
+          "accessibility": {
+            "ariaLabel": "Export all system data"
+          }
+        },
+        {
+          "id": "button-import-data",
+          "label": "Import Data",
+          "explanation": "Upload system data backup",
+          "tooltip": {
+            "title": "Import System Data",
+            "content": "Import previously exported system data. Warning: This will overwrite existing data. Create a backup first.",
+            "learnMoreUrl": "/help/best-practices/admin-management"
+          },
+          "accessibility": {
+            "ariaLabel": "Import system data"
           }
         }
       ]
