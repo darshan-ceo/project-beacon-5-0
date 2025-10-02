@@ -106,8 +106,27 @@ export const useUnifiedPersistence = () => {
         storage.getAll<any>('folders')
       ]);
 
+      // Migrate cases: ensure timelineBreachStatus exists for backward compatibility
+      const migratedCases = cases.map((caseItem: any) => {
+        if (!caseItem.timelineBreachStatus && caseItem.slaStatus) {
+          return { ...caseItem, timelineBreachStatus: caseItem.slaStatus };
+        }
+        if (!caseItem.timelineBreachStatus) {
+          return { ...caseItem, timelineBreachStatus: 'Green' };
+        }
+        return caseItem;
+      });
+
+      const migratedCount = migratedCases.filter((c: any, i: number) => 
+        c.timelineBreachStatus !== cases[i].timelineBreachStatus
+      ).length;
+      
+      if (migratedCount > 0) {
+        console.log(`🔄 Migrated ${migratedCount} cases with timelineBreachStatus field`);
+      }
+
       // Check if storage is empty (no meaningful data)
-      const hasData = clients.length > 0 || cases.length > 0 || employees.length > 0 || judges.length > 0;
+      const hasData = clients.length > 0 || migratedCases.length > 0 || employees.length > 0 || judges.length > 0;
 
       if (!hasData) {
         console.log('📦 Storage is empty, preserving initial mock data from AppStateContext');
@@ -142,7 +161,7 @@ export const useUnifiedPersistence = () => {
         type: 'RESTORE_STATE', 
         payload: { 
           clients, 
-          cases, 
+          cases: migratedCases, 
           tasks: normalizedTasks,
           documents, 
           hearings, 
@@ -154,14 +173,14 @@ export const useUnifiedPersistence = () => {
       });
 
       const counts = {
-        clients: clients.length, cases: cases.length, tasks: tasks.length, task_bundles: taskBundles.length,
+        clients: clients.length, cases: migratedCases.length, tasks: tasks.length, task_bundles: taskBundles.length,
         documents: documents.length, hearings: hearings.length, judges: judges.length, courts: courts.length,
         employees: employees.length, folders: folders.length
       };
       
       setEntityCounts(counts);
       lastKnownEntityCounts.current = counts;
-      mirrorToLocalStorage({ clients, cases, tasks, documents, hearings, judges, courts, employees, folders });
+      mirrorToLocalStorage({ clients, cases: migratedCases, tasks, documents, hearings, judges, courts, employees, folders });
       
       console.log('✅ Loaded data from IndexedDB:', counts);
     } catch (error) {
