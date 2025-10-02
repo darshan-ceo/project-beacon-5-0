@@ -57,11 +57,11 @@ export const CaseReportsTab: React.FC<CaseReportsTabProps> = ({ filters }) => {
           <TableHeader>
             <TableRow>
               <TableHead>Case ID</TableHead>
-              <TableHead>Title</TableHead>
+              <TableHead>Case Title</TableHead>
               <TableHead>Client</TableHead>
               <TableHead>Stage</TableHead>
               <TableHead>Owner</TableHead>
-              <TableHead>SLA Status</TableHead>
+              <TableHead>Timeline Status</TableHead>
               <TableHead>Priority</TableHead>
               <TableHead>Aging Days</TableHead>
             </TableRow>
@@ -75,8 +75,8 @@ export const CaseReportsTab: React.FC<CaseReportsTabProps> = ({ filters }) => {
                 <TableCell>{item.stage}</TableCell>
                 <TableCell>{item.owner}</TableCell>
                 <TableCell>
-                  <Badge variant={item.slaStatus === 'Green' ? 'default' : item.slaStatus === 'Amber' ? 'secondary' : 'destructive'}>
-                    {item.slaStatus}
+                  <Badge variant={item.timelineBreachStatus === 'Green' ? 'default' : item.timelineBreachStatus === 'Amber' ? 'secondary' : 'destructive'}>
+                    {item.timelineBreachStatus}
                   </Badge>
                 </TableCell>
                 <TableCell>{item.priority}</TableCell>

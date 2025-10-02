@@ -10,7 +10,7 @@ import { usePermission } from '@/hooks/useAdvancedRBAC';
 // Import individual report tab components
 import { CaseReportsTab } from './tabs/CaseReportsTab';
 import { HearingsTab } from './tabs/HearingsTab';
-import { SLATab } from './tabs/SLATab';
+import { TimelineBreachTab } from './tabs/TimelineBreachTab';
 import { TasksTab } from './tabs/TasksTab';
 import { ClientSummaryTab } from './tabs/ClientSummaryTab';
 import { CommunicationsTab } from './tabs/CommunicationsTab';
@@ -39,10 +39,10 @@ const reportTabs = [
     roles: ['Admin', 'Partner/CA', 'Staff']
   },
   {
-    id: 'sla-compliance' as ReportType,
-    label: 'SLA / Compliance',
+    id: 'timeline-breach-compliance' as ReportType,
+    label: 'Timeline Breaches / Compliance',
     icon: AlertTriangle,
-    description: 'SLA breaches and compliance tracking',
+    description: 'Timeline breaches and compliance tracking',
     roles: ['Admin', 'Partner/CA', 'Staff']
   },
   {
@@ -108,7 +108,8 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({ userRole }) => {
       case 'hearings':
         return <HearingsTab {...commonProps} />;
       case 'sla-compliance':
-        return <SLATab {...commonProps} />;
+      case 'timeline-breach-compliance':
+        return <TimelineBreachTab {...commonProps} />;
       case 'tasks':
         return <TasksTab {...commonProps} />;
       case 'client-summary':

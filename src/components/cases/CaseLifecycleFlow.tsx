@@ -263,11 +263,11 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
                 </div>
                 <div className="text-right">
                   <Badge variant="secondary" className={
-                    selectedCase.slaStatus === 'Green' ? 'bg-success text-success-foreground' :
-                    selectedCase.slaStatus === 'Amber' ? 'bg-warning text-warning-foreground' :
+                    selectedCase.timelineBreachStatus === 'Green' || selectedCase.slaStatus === 'Green' ? 'bg-success text-success-foreground' :
+                    selectedCase.timelineBreachStatus === 'Amber' || selectedCase.slaStatus === 'Amber' ? 'bg-warning text-warning-foreground' :
                     'bg-destructive text-destructive-foreground'
                   }>
-                    SLA {selectedCase.slaStatus}
+                    Timeline {selectedCase.timelineBreachStatus || selectedCase.slaStatus}
                   </Badge>
                   <p className="text-sm text-muted-foreground mt-1">
                     Stage {currentStageIndex + 1} of {lifecycleStages.length}
@@ -353,7 +353,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
                         ))}
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        SLA: {stage.slaHours}h
+                        Timeline: {stage.slaHours}h
                       </p>
                     </div>
                     
@@ -410,7 +410,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
                 </div>
                 
                 <div>
-                  <h4 className="font-semibold mb-2">SLA Tracking</h4>
+                  <h4 className="font-semibold mb-2">Timeline Tracking</h4>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Time Allocated:</span>

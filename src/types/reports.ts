@@ -32,6 +32,7 @@ export type ReportType =
   | 'case-reports'
   | 'hearings'
   | 'sla-compliance'
+  | 'timeline-breach-compliance'
   | 'tasks'
   | 'client-summary'
   | 'communications';
@@ -44,11 +45,13 @@ export interface CaseReportData {
   owner: string;
   createdDate: string;
   updatedDate: string;
-  slaStatus: 'Green' | 'Amber' | 'Red';
+  timelineBreachStatus: 'Green' | 'Amber' | 'Red';
   priority: string;
   value?: number;
   outcome?: 'Won' | 'Lost' | 'Settled' | 'Ongoing';
   agingDays: number;
+  status?: 'Active' | 'Completed';
+  reviewDate?: string;
 }
 
 export interface HearingReportData {
@@ -65,17 +68,20 @@ export interface HearingReportData {
   status: 'Scheduled' | 'Completed' | 'Adjourned' | 'Cancelled';
 }
 
-export interface SLAReportData {
+export interface TimelineBreachReportData {
   caseId: string;
   caseTitle: string;
   client: string;
   stage: string;
-  slaDue: string;
+  timelineDue: string;
   agingDays: number;
   ragStatus: 'Green' | 'Amber' | 'Red';
   owner: string;
   breached: boolean;
 }
+
+// Backward compatibility alias
+export type SLAReportData = TimelineBreachReportData;
 
 export interface TaskReportData {
   id: string;

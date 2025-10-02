@@ -33,7 +33,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CaseLifecycleFlow } from './CaseLifecycleFlow';
 import { CaseTimeline } from './CaseTimeline';
 import { HearingScheduler } from './HearingScheduler';
-import { SLATracker } from './SLATracker';
+import { TimelineBreachTracker } from './TimelineBreachTracker';
 import { AIAssistant } from './AIAssistant';
 import { CommunicationHub } from './CommunicationHub';
 import { CaseDocuments } from './CaseDocuments';
@@ -71,7 +71,7 @@ export const CaseManagement: React.FC = () => {
   });
   const [hearingCalendarOpen, setHearingCalendarOpen] = useState(false);
   const [filterStage, setFilterStage] = useState<'all' | string>('all');
-  const [filterSLA, setFilterSLA] = useState<'all' | string>('all');
+  const [filterTimelineBreach, setFilterTimelineBreach] = useState<'all' | string>('all');
   const [advanceStageModal, setAdvanceStageModal] = useState<{
     isOpen: boolean;
     caseData: Case | null;
@@ -150,7 +150,7 @@ export const CaseManagement: React.FC = () => {
     }
   };
 
-  const getSLAColor = (status: string) => {
+  const getTimelineBreachColor = (status: string) => {
     switch (status) {
       case 'Green': return 'bg-success text-success-foreground';
       case 'Amber': return 'bg-warning text-warning-foreground';
@@ -360,7 +360,7 @@ export const CaseManagement: React.FC = () => {
           <div>
             <h1 className="text-3xl font-bold text-foreground">Case Management</h1>
             <p className="text-muted-foreground mt-2">
-              Comprehensive case lifecycle with SLA tracking and hearing management
+              Comprehensive case lifecycle with timeline breach tracking and hearing management
             </p>
           </div>
         </div>
@@ -433,7 +433,7 @@ export const CaseManagement: React.FC = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">SLA Breaches</p>
+                <p className="text-sm font-medium text-muted-foreground">Timeline Breaches</p>
                 <p className="text-2xl font-bold text-destructive">8</p>
                 <p className="text-xs text-destructive mt-1">Needs attention</p>
               </div>
@@ -502,14 +502,14 @@ export const CaseManagement: React.FC = () => {
             onChange={(value) => setFilterStage(value)}
           />
           <FilterDropdown
-            label="SLA"
-            value={filterSLA}
+            label="Timeline Status"
+            value={filterTimelineBreach}
             options={[
               { label: 'Green', value: 'Green' },
               { label: 'Amber', value: 'Amber' },
               { label: 'Red', value: 'Red' }
             ]}
-            onChange={(value) => setFilterSLA(value)}
+            onChange={(value) => setFilterTimelineBreach(value)}
           />
           <Button 
             variant="outline"
@@ -544,7 +544,7 @@ export const CaseManagement: React.FC = () => {
           >
             Lifecycle
           </TabsTrigger>
-          <TabsTrigger value="sla">SLA Tracker</TabsTrigger>
+          <TabsTrigger value="sla">Timeline Tracker</TabsTrigger>
           <TabsTrigger value="hearings">Hearings</TabsTrigger>
           <TabsTrigger 
             value="documents"
@@ -671,8 +671,8 @@ export const CaseManagement: React.FC = () => {
                             <Badge variant="secondary" className={getPriorityColor(caseItem.priority)}>
                               {caseItem.priority} Priority
                             </Badge>
-                            <Badge variant="secondary" className={getSLAColor(caseItem.slaStatus)}>
-                              SLA {caseItem.slaStatus}
+                            <Badge variant="secondary" className={getTimelineBreachColor(caseItem.timelineBreachStatus || caseItem.slaStatus || 'Green')}>
+                              Timeline {caseItem.timelineBreachStatus || caseItem.slaStatus || 'Green'}
                             </Badge>
                           </div>
                         </div>
@@ -822,7 +822,7 @@ export const CaseManagement: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="sla" className="mt-6">
-          <SLATracker cases={state.cases.map(c => ({ ...c, client: state.clients.find(cl => cl.id === c.clientId)?.name || 'Unknown' }))} />
+          <TimelineBreachTracker cases={state.cases.map(c => ({ ...c, client: state.clients.find(cl => cl.id === c.clientId)?.name || 'Unknown' }))} />
         </TabsContent>
 
         <TabsContent value="hearings" className="mt-6">

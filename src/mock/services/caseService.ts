@@ -22,7 +22,8 @@ class CaseServiceImpl implements CaseService {
       const newCase: Case = {
         id: `case_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         ...data,
-        slaStatus: 'Green',
+        timelineBreachStatus: 'Green',
+        status: 'Active',
         createdDate: new Date().toISOString(),
         lastUpdated: new Date().toISOString(),
         documents: 0,

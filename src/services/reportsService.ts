@@ -257,8 +257,8 @@ export const reportsService = {
     return { data: mockData };
   },
 
-  // Get SLA reports with filters
-  getSLAReport: async (filters: any): Promise<{ data: any[] }> => {
+  // Get Timeline Breach reports with filters
+  getTimelineBreachReport: async (filters: any): Promise<{ data: any[] }> => {
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     const mockData = [
@@ -267,7 +267,7 @@ export const reportsService = {
         caseTitle: 'Property Dispute Case',
         client: 'ABC Corp',
         stage: 'Appeals',
-        slaDue: '2024-09-30',
+        timelineDue: '2024-09-30',
         agingDays: 45,
         ragStatus: 'Green',
         owner: 'John Doe',
@@ -276,6 +276,11 @@ export const reportsService = {
     ];
     
     return { data: mockData };
+  },
+
+  // Backward compatibility
+  getSLAReport: async (filters: any) => {
+    return reportsService.getTimelineBreachReport(filters);
   },
 
   // Get task reports with filters
@@ -402,7 +407,8 @@ export const reportsService = {
 // Export individual functions for easier importing
 export const getCaseReport = reportsService.getCaseReport;
 export const getHearingReport = reportsService.getHearingReport;
-export const getSLAReport = reportsService.getSLAReport;
+export const getTimelineBreachReport = reportsService.getTimelineBreachReport;
+export const getSLAReport = reportsService.getSLAReport; // Backward compatibility
 export const getTaskReport = reportsService.getTaskReport;
 export const getClientReport = reportsService.getClientReport;
 export const getCommunicationReport = reportsService.getCommunicationReport;

@@ -19,7 +19,10 @@ interface Case {
   clientId: string; // FK to Client.id
   currentStage: 'Scrutiny' | 'Demand' | 'Adjudication' | 'Appeals' | 'GSTAT' | 'HC' | 'SC';
   priority: 'High' | 'Medium' | 'Low';
-  slaStatus: 'Green' | 'Amber' | 'Red';
+  timelineBreachStatus: 'Green' | 'Amber' | 'Red';
+  status?: 'Active' | 'Completed';
+  completedDate?: string;
+  reviewDate?: string;
   nextHearing?: {
     date: string;
     courtId: string; // FK to Court.id
@@ -35,6 +38,8 @@ interface Case {
   generatedForms: GeneratedForm[]; // Track completed forms
   amountInDispute?: number; // Amount in dispute for GST cases
   description?: string; // Case description
+  // Backward compatibility
+  slaStatus?: 'Green' | 'Amber' | 'Red'; // Deprecated: use timelineBreachStatus
 }
 
 interface Task {
@@ -335,7 +340,8 @@ const initialState: AppState = {
       clientId: 'CLT-MOCK-001',
       currentStage: 'Appeals',
       priority: 'High',
-      slaStatus: 'Green',
+      timelineBreachStatus: 'Green',
+      status: 'Active',
       nextHearing: {
         date: '2024-03-15',
         courtId: '1',
@@ -370,7 +376,8 @@ const initialState: AppState = {
       clientId: 'CLT-MOCK-002',
       currentStage: 'Demand',
       priority: 'High',
-      slaStatus: 'Red',
+      timelineBreachStatus: 'Red',
+      status: 'Active',
       nextHearing: {
         date: '2024-02-28',
         courtId: '2',
@@ -405,7 +412,8 @@ const initialState: AppState = {
       clientId: 'CLT-MOCK-003',
       currentStage: 'Demand',
       priority: 'Medium',
-      slaStatus: 'Amber',
+      timelineBreachStatus: 'Amber',
+      status: 'Active',
       assignedToId: '5',
       assignedToName: 'David Kumar',
       createdDate: '2024-01-22',
@@ -423,7 +431,8 @@ const initialState: AppState = {
       clientId: 'CLT-MOCK-004',
       currentStage: 'Appeals',
       priority: 'High',
-      slaStatus: 'Green',
+      timelineBreachStatus: 'Green',
+      status: 'Active',
       nextHearing: {
         date: '2024-03-08',
         courtId: '1',
@@ -458,7 +467,8 @@ const initialState: AppState = {
       clientId: 'CLT-MOCK-005', 
       currentStage: 'Scrutiny',
       priority: 'Medium',
-      slaStatus: 'Amber',
+      timelineBreachStatus: 'Amber',
+      status: 'Active',
       assignedToId: '4',
       assignedToName: 'Emily Chen',
       createdDate: '2024-02-05',

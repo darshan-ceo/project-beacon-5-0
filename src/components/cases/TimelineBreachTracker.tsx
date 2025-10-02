@@ -22,31 +22,31 @@ interface Case {
   caseNumber: string;
   title: string;
   currentStage: string;
-  slaStatus: 'Green' | 'Amber' | 'Red';
+  timelineBreachStatus: 'Green' | 'Amber' | 'Red';
   client: string;
 }
 
-interface SLATrackerProps {
+interface TimelineBreachTrackerProps {
   cases: Case[];
 }
 
-interface SLAMetrics {
+interface TimelineBreachMetrics {
   formType: string;
   totalCases: number;
   onTime: number;
   breached: number;
   avgCompletionTime: number;
-  slaHours: number;
+  timelineHours: number;
 }
 
-const slaMetrics: SLAMetrics[] = [
+const timelineBreachMetrics: TimelineBreachMetrics[] = [
   {
     formType: 'ASMT-10',
     totalCases: 45,
     onTime: 38,
     breached: 7,
     avgCompletionTime: 65,
-    slaHours: 72
+    timelineHours: 72
   },
   {
     formType: 'ASMT-11',
@@ -54,7 +54,7 @@ const slaMetrics: SLAMetrics[] = [
     onTime: 29,
     breached: 3,
     avgCompletionTime: 58,
-    slaHours: 72
+    timelineHours: 72
   },
   {
     formType: 'ASMT-12',
@@ -62,7 +62,7 @@ const slaMetrics: SLAMetrics[] = [
     onTime: 22,
     breached: 6,
     avgCompletionTime: 680,
-    slaHours: 720
+    timelineHours: 720
   },
   {
     formType: 'DRC-01',
@@ -70,7 +70,7 @@ const slaMetrics: SLAMetrics[] = [
     onTime: 48,
     breached: 8,
     avgCompletionTime: 145,
-    slaHours: 168
+    timelineHours: 168
   },
   {
     formType: 'DRC-07',
@@ -78,7 +78,7 @@ const slaMetrics: SLAMetrics[] = [
     onTime: 20,
     breached: 3,
     avgCompletionTime: 155,
-    slaHours: 168
+    timelineHours: 168
   }
 ];
 
@@ -112,10 +112,10 @@ const criticalCases = [
   }
 ];
 
-export const SLATracker: React.FC<SLATrackerProps> = ({ cases }) => {
+export const TimelineBreachTracker: React.FC<TimelineBreachTrackerProps> = ({ cases }) => {
   const [selectedCaseForAction, setSelectedCaseForAction] = useState<{ id: string; urgency: string } | null>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const getSLAColor = (status: string) => {
+  const getTimelineBreachColor = (status: string) => {
     switch (status) {
       case 'Green': return 'bg-success text-success-foreground';
       case 'Amber': return 'bg-warning text-warning-foreground';
@@ -133,13 +133,13 @@ export const SLATracker: React.FC<SLATrackerProps> = ({ cases }) => {
     }
   };
 
-  const calculateSLACompliance = (metric: SLAMetrics) => {
+  const calculateTimelineCompliance = (metric: TimelineBreachMetrics) => {
     return Math.round((metric.onTime / metric.totalCases) * 100);
   };
 
   return (
     <div className="space-y-6">
-      {/* SLA Overview */}
+      {/* Timeline Breach Overview */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -150,7 +150,7 @@ export const SLATracker: React.FC<SLATrackerProps> = ({ cases }) => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Overall SLA</p>
+                <p className="text-sm font-medium text-muted-foreground">Overall Timeline</p>
                 <p className="text-2xl font-bold text-foreground">87.5%</p>
                 <p className="text-xs text-success mt-1">+2.3% from last month</p>
               </div>
@@ -210,10 +210,10 @@ export const SLATracker: React.FC<SLATrackerProps> = ({ cases }) => {
             <CardHeader>
               <CardTitle className="flex items-center text-destructive">
                 <AlertTriangle className="mr-2 h-5 w-5" />
-                Critical SLA Alerts
+                Critical Timeline Breach Alerts
               </CardTitle>
               <CardDescription>
-                Cases requiring immediate attention to avoid SLA breach
+                Cases requiring immediate attention to avoid timeline breach
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -254,7 +254,7 @@ export const SLATracker: React.FC<SLATrackerProps> = ({ cases }) => {
           </Card>
         </motion.div>
 
-        {/* Form-wise SLA Performance */}
+        {/* Form-wise Timeline Breach Performance */}
         <motion.div 
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -264,14 +264,14 @@ export const SLATracker: React.FC<SLATrackerProps> = ({ cases }) => {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <BarChart3 className="mr-2 h-5 w-5 text-primary" />
-                Form-wise SLA Performance
+                Form-wise Timeline Performance
               </CardTitle>
               <CardDescription>
                 Compliance metrics for each form type
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {slaMetrics.map((metric, index) => (
+              {timelineBreachMetrics.map((metric, index) => (
                 <motion.div
                   key={metric.formType}
                   initial={{ opacity: 0, y: 10 }}
@@ -288,21 +288,21 @@ export const SLATracker: React.FC<SLATrackerProps> = ({ cases }) => {
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-foreground">
-                        {calculateSLACompliance(metric)}%
+                        {calculateTimelineCompliance(metric)}%
                       </p>
                       <p className="text-xs text-muted-foreground">compliance</p>
                     </div>
                   </div>
                   
                   <Progress 
-                    value={calculateSLACompliance(metric)} 
+                    value={calculateTimelineCompliance(metric)} 
                     className="h-2"
                   />
                   
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>On-time: {metric.onTime}</span>
                     <span>Breached: {metric.breached}</span>
-                    <span>SLA: {metric.slaHours}h</span>
+                    <span>Timeline: {metric.timelineHours}h</span>
                   </div>
                 </motion.div>
               ))}
@@ -324,7 +324,7 @@ export const SLATracker: React.FC<SLATrackerProps> = ({ cases }) => {
               RAG Status Matrix
             </CardTitle>
             <CardDescription>
-              Real-time SLA status across all active cases
+              Real-time timeline breach status across all active cases
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -335,7 +335,7 @@ export const SLATracker: React.FC<SLATrackerProps> = ({ cases }) => {
                 </div>
                 <h3 className="text-2xl font-bold text-success">89</h3>
                 <p className="text-sm text-muted-foreground">Green Status</p>
-                <p className="text-xs text-muted-foreground mt-1">Within SLA limits</p>
+                <p className="text-xs text-muted-foreground mt-1">Within timeline limits</p>
               </div>
               
               <div className="text-center p-6 bg-warning/10 rounded-lg border border-warning/20">
@@ -353,7 +353,7 @@ export const SLATracker: React.FC<SLATrackerProps> = ({ cases }) => {
                 </div>
                 <h3 className="text-2xl font-bold text-destructive">8</h3>
                 <p className="text-sm text-muted-foreground">Red Status</p>
-                <p className="text-xs text-muted-foreground mt-1">SLA breached</p>
+                <p className="text-xs text-muted-foreground mt-1">Timeline breached</p>
               </div>
             </div>
             
@@ -372,12 +372,12 @@ export const SLATracker: React.FC<SLATrackerProps> = ({ cases }) => {
                         await reportsService.exportCaseList([], 'excel');
                         toast({
                           title: "Export Started",
-                          description: "SLA report is being generated",
+                          description: "Timeline breach report is being generated",
                         });
                       } catch (error) {
                         toast({
                           title: "Export Failed",
-                          description: "Failed to export SLA report",
+                          description: "Failed to export timeline breach report",
                           variant: "destructive"
                         });
                       }
@@ -407,16 +407,16 @@ export const SLATracker: React.FC<SLATrackerProps> = ({ cases }) => {
         onClose={() => setSelectedCaseForAction(null)}
         caseId={selectedCaseForAction?.id || null}
         urgencyLevel={selectedCaseForAction?.urgency as 'High' | 'Medium' | 'Low' || 'Medium'}
-        suggestedAction="Urgent SLA Response Required"
+        suggestedAction="Urgent Timeline Response Required"
       />
 
       {/* Report Generator Modal */}
       {isReportModalOpen && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="bg-card p-6 rounded-lg border shadow-lg max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4">Schedule SLA Report</h3>
+            <h3 className="text-lg font-semibold mb-4">Schedule Timeline Breach Report</h3>
             <p className="text-muted-foreground mb-4">
-              Automated SLA reports can be scheduled to run daily, weekly, or monthly.
+              Automated timeline breach reports can be scheduled to run daily, weekly, or monthly.
             </p>
             <div className="flex justify-end space-x-2">
               <Button variant="outline" onClick={() => setIsReportModalOpen(false)}>
@@ -426,7 +426,7 @@ export const SLATracker: React.FC<SLATrackerProps> = ({ cases }) => {
                 setIsReportModalOpen(false);
                 toast({
                   title: "Report Scheduled",
-                  description: "SLA report will be sent weekly",
+                  description: "Timeline breach report will be sent weekly",
                 });
               }}>
                 Schedule

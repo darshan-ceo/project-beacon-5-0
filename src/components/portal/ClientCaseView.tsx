@@ -20,7 +20,7 @@ interface Case {
   title: string;
   currentStage: string;
   priority: 'High' | 'Medium' | 'Low';
-  slaStatus: 'Green' | 'Amber' | 'Red';
+  timelineBreachStatus: 'Green' | 'Amber' | 'Red';
   nextHearing?: {
     date: string;
     courtId: string;
@@ -40,7 +40,7 @@ interface ClientCaseViewProps {
 }
 
 export const ClientCaseView: React.FC<ClientCaseViewProps> = ({ cases, clientId }) => {
-  const getSlaStatusColor = (status: string) => {
+  const getTimelineStatusColor = (status: string) => {
     switch (status) {
       case 'Green': return 'bg-success text-success-foreground';
       case 'Amber': return 'bg-warning text-warning-foreground';
@@ -127,8 +127,8 @@ export const ClientCaseView: React.FC<ClientCaseViewProps> = ({ cases, clientId 
                       </CardDescription>
                     </div>
                     <div className="flex space-x-2">
-                      <Badge className={getSlaStatusColor(caseItem.slaStatus)}>
-                        {caseItem.slaStatus}
+                      <Badge className={getTimelineStatusColor(caseItem.timelineBreachStatus)}>
+                        {caseItem.timelineBreachStatus}
                       </Badge>
                       <Badge className={getPriorityColor(caseItem.priority)}>
                         {caseItem.priority}
@@ -198,7 +198,7 @@ export const ClientCaseView: React.FC<ClientCaseViewProps> = ({ cases, clientId 
                         </div>
                       )}
 
-                      {caseItem.slaStatus === 'Red' && (
+                      {caseItem.timelineBreachStatus === 'Red' && (
                         <div className="flex items-center space-x-2">
                           <AlertTriangle className="h-4 w-4 text-destructive" />
                           <span className="text-sm text-destructive font-medium">

@@ -75,14 +75,22 @@ export const EnhancedDashboard: React.FC = () => {
     return { cases, tasks, hearings };
   }, [state, filters]);
 
-  // Calculate SLA metrics
-  const slaMetrics = useMemo(() => {
-    const slaCount = {
-      Green: filteredData.cases.filter(c => c.slaStatus === 'Green').length,
-      Amber: filteredData.cases.filter(c => c.slaStatus === 'Amber').length,
-      Red: filteredData.cases.filter(c => c.slaStatus === 'Red').length
+  // Calculate Timeline Breach metrics
+  const timelineMetrics = useMemo(() => {
+    const timelineCount = {
+      Green: filteredData.cases.filter(c => (c.timelineBreachStatus || c.slaStatus) === 'Green').length,
+      Amber: filteredData.cases.filter(c => (c.timelineBreachStatus || c.slaStatus) === 'Amber').length,
+      Red: filteredData.cases.filter(c => (c.timelineBreachStatus || c.slaStatus) === 'Red').length
     };
-    return slaCount;
+    return timelineCount;
+  }, [filteredData.cases]);
+
+  // Timeline breaches in next 10 days
+  const upcomingBreaches = useMemo(() => {
+    return filteredData.cases.filter(c => 
+      (c.timelineBreachStatus || c.slaStatus) === 'Amber' || 
+      (c.timelineBreachStatus || c.slaStatus) === 'Red'
+    ).length;
   }, [filteredData.cases]);
 
   // Upcoming hearings (next 7 days)
@@ -110,10 +118,10 @@ export const EnhancedDashboard: React.FC = () => {
     }));
   }, [filteredData.cases]);
 
-  const slaData = [
-    { status: 'Green', count: slaMetrics.Green, fill: 'hsl(var(--success))' },
-    { status: 'Amber', count: slaMetrics.Amber, fill: 'hsl(var(--warning))' },
-    { status: 'Red', count: slaMetrics.Red, fill: 'hsl(var(--destructive))' }
+  const timelineData = [
+    { status: 'Green', count: timelineMetrics.Green, fill: 'hsl(var(--success))' },
+    { status: 'Amber', count: timelineMetrics.Amber, fill: 'hsl(var(--warning))' },
+    { status: 'Red', count: timelineMetrics.Red, fill: 'hsl(var(--destructive))' }
   ];
 
   // Client-wise case summary
@@ -144,12 +152,12 @@ export const EnhancedDashboard: React.FC = () => {
             stats: [
               { title: 'Active Clients', value: state.clients.filter(c => c.status === 'Active').length, description: 'Total active clients' },
               { title: 'Open Cases', value: filteredData.cases.length, description: 'Cases in progress' },
-              { title: 'SLA Green', value: slaMetrics.Green, description: 'Cases on track' },
+              { title: 'Timeline Green', value: timelineMetrics.Green, description: 'Cases on track' },
               { title: 'Upcoming Hearings', value: upcomingHearings.length, description: 'Next 7 days' }
             ],
             charts: [
               { title: 'Cases by Stage', data: caseStageData },
-              { title: 'SLA Status', data: slaData }
+              { title: 'Timeline Status', data: timelineData }
             ],
             period: filters.timePeriod
           }, 'excel');
@@ -303,20 +311,20 @@ export const EnhancedDashboard: React.FC = () => {
         <Card className="hover-lift">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              SLA Status
+              Timeline Status
             </CardTitle>
             <Activity className="h-5 w-5 text-success" />
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
               <Badge variant="default" className="bg-success text-success-foreground">
-                {slaMetrics.Green}
+                {timelineMetrics.Green}
               </Badge>
               <Badge variant="secondary" className="bg-warning text-warning-foreground">
-                {slaMetrics.Amber}
+                {timelineMetrics.Amber}
               </Badge>
               <Badge variant="destructive">
-                {slaMetrics.Red}
+                {timelineMetrics.Red}
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground mt-2">Green / Amber / Red</p>
@@ -388,14 +396,14 @@ export const EnhancedDashboard: React.FC = () => {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <PieChart className="mr-2 h-5 w-5 text-primary" />
-                SLA Performance
+                Timeline Performance
               </CardTitle>
-              <CardDescription>Current SLA compliance status</CardDescription>
+              <CardDescription>Current timeline compliance status</CardDescription>
             </CardHeader>
             <CardContent>
               <ChartContainer config={{}} className="h-[300px]">
-                <RechartsPieChart data={slaData} cx="50%" cy="50%" outerRadius={80}>
-                  {slaData.map((entry, index) => (
+                <RechartsPieChart data={timelineData} cx="50%" cy="50%" outerRadius={80}>
+                  {timelineData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.fill} />
                   ))}
                   <ChartTooltip content={<ChartTooltipContent />} />

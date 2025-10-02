@@ -3,27 +3,27 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ExportButton } from '@/components/ui/export-button';
-import { getSLAReport } from '@/services/reportsService';
-import { ReportFilter, SLAReportData } from '@/types/reports';
+import { getTimelineBreachReport } from '@/services/reportsService';
+import { ReportFilter, TimelineBreachReportData } from '@/types/reports';
 
-interface SLATabProps {
+interface TimelineBreachTabProps {
   filters: ReportFilter;
   userRole: string;
   onFiltersChange: (filters: ReportFilter) => void;
 }
 
-export const SLATab: React.FC<SLATabProps> = ({ filters }) => {
-  const [data, setData] = useState<SLAReportData[]>([]);
+export const TimelineBreachTab: React.FC<TimelineBreachTabProps> = ({ filters }) => {
+  const [data, setData] = useState<TimelineBreachReportData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
       try {
-        const result = await getSLAReport(filters);
+        const result = await getTimelineBreachReport(filters);
         setData(result.data);
       } catch (error) {
-        console.error('Failed to load SLA reports:', error);
+        console.error('Failed to load timeline breach reports:', error);
       } finally {
         setLoading(false);
       }
@@ -44,10 +44,10 @@ export const SLATab: React.FC<SLATabProps> = ({ filters }) => {
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between p-4 border-b">
-        <h3 className="text-lg font-medium">SLA / Compliance ({data.length})</h3>
+        <h3 className="text-lg font-medium">Timeline Breaches / Compliance ({data.length})</h3>
         <ExportButton
           data={data}
-          filename="sla-compliance"
+          filename="timeline-breach-compliance"
           type="sla-compliance"
         />
       </div>
@@ -60,7 +60,7 @@ export const SLATab: React.FC<SLATabProps> = ({ filters }) => {
               <TableHead>Case Title</TableHead>
               <TableHead>Client</TableHead>
               <TableHead>Stage</TableHead>
-              <TableHead>SLA Due</TableHead>
+              <TableHead>Timeline Due</TableHead>
               <TableHead>Aging Days</TableHead>
               <TableHead>RAG Status</TableHead>
               <TableHead>Owner</TableHead>
@@ -74,7 +74,7 @@ export const SLATab: React.FC<SLATabProps> = ({ filters }) => {
                 <TableCell>{item.caseTitle}</TableCell>
                 <TableCell>{item.client}</TableCell>
                 <TableCell>{item.stage}</TableCell>
-                <TableCell>{item.slaDue}</TableCell>
+                <TableCell>{item.timelineDue}</TableCell>
                 <TableCell>{item.agingDays}</TableCell>
                 <TableCell>
                   <Badge variant={item.ragStatus === 'Green' ? 'default' : item.ragStatus === 'Amber' ? 'secondary' : 'destructive'}>
