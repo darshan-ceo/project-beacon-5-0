@@ -276,7 +276,7 @@ export const EnhancedDashboard: React.FC = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.1 }}
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6"
       >
         <Card className="hover-lift">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -343,6 +343,21 @@ export const EnhancedDashboard: React.FC = () => {
               {upcomingHearings.length}
             </div>
             <p className="text-xs text-muted-foreground">Next 7 days</p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover-lift">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Timeline Breaches
+            </CardTitle>
+            <AlertTriangle className="h-5 w-5 text-destructive" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">
+              {upcomingBreaches}
+            </div>
+            <p className="text-xs text-muted-foreground">At-risk cases (Amber/Red)</p>
           </CardContent>
         </Card>
       </motion.div>
