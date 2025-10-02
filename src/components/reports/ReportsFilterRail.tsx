@@ -99,15 +99,10 @@ export const ReportsFilterRail: React.FC<ReportsFilterRailProps> = ({
   ];
 
   const formTypes = [
-    { value: 'ASMT10_REPLY', label: 'ASMT-10 Reply' },
-    { value: 'ASMT11_REPRESENTATION', label: 'ASMT-11 Representation' },
-    { value: 'ASMT12_REPLY', label: 'ASMT-12 Reply' },
-    { value: 'DRC01_REPLY', label: 'DRC-01 Reply' },
-    { value: 'DRC07_OBJECTION', label: 'DRC-07 Objection' },
-    { value: 'GSTAT', label: 'Statement of Facts' },
-    { value: 'APPEAL_FIRST', label: 'First Appeal' },
-    { value: 'HC_PETITION', label: 'High Court Petition' },
-    { value: 'SC_SLP', label: 'Supreme Court SLP' }
+    { value: 'ASMT10_REPLY', label: 'ASMT-10' },
+    { value: 'DRC1A_REPLY', label: 'DRC-1A' },
+    { value: 'DRC01_REPLY', label: 'DRC-01' },
+    { value: 'APL01_FIRST_APPEAL', label: 'APL-01' }
   ];
 
   const formTimelineStatuses = [
