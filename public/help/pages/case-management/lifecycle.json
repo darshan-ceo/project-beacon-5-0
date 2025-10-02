@@ -5,7 +5,7 @@
     {
       "name": "Advance Stage",
       "purpose": "Move case to the next legal stage with validation",
-      "gstExample": "Advance from 'Demand' to 'Adjudication' after filing reply"
+      "gstExample": "Advance from 'Adjudication' to 'First Appeal' after filing reply"
     },
     {
       "name": "Add Milestone",
@@ -15,7 +15,7 @@
     {
       "name": "Generate Tasks",
       "purpose": "Create stage-specific tasks automatically",
-      "gstExample": "Auto-generate appeal filing tasks when case reaches Appeals stage"
+      "gstExample": "Auto-generate appeal filing tasks when case reaches First Appeal stage"
     },
     {
       "name": "View Prerequisites",
@@ -37,7 +37,7 @@
     },
     {
       "scenario": "Ready to file appeal",
-      "solution": "Use stage advancement to move from 'Adjudication' to 'Appeals'",
+      "solution": "Use stage advancement to move from 'Adjudication' to 'First Appeal'",
       "benefit": "Automated task generation ensures all appeal requirements are met"
     },
     {

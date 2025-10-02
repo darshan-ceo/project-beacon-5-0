@@ -47,14 +47,6 @@ const lifecycleStages = [
     slaHours: 72
   },
   {
-    id: 'Demand',
-    name: 'Demand',
-    description: 'Demand notice processing and response',
-    icon: AlertTriangle,
-    forms: ['DRC-01', 'DRC-07'],
-    slaHours: 168
-  },
-  {
     id: 'Adjudication',
     name: 'Adjudication',
     description: 'Adjudicating authority proceedings',
@@ -63,32 +55,32 @@ const lifecycleStages = [
     slaHours: 720
   },
   {
-    id: 'Appeals',
-    name: 'Appeals',
+    id: 'First Appeal',
+    name: 'First Appeal',
     description: 'First appellate authority',
     icon: ArrowRight,
     forms: ['Appeal Form'],
     slaHours: 1440
   },
   {
-    id: 'GSTAT',
-    name: 'GSTAT',
+    id: 'Tribunal',
+    name: 'Tribunal',
     description: 'GST Appellate Tribunal',
     icon: Building,
     forms: ['GSTAT Form'],
     slaHours: 2160
   },
   {
-    id: 'HC',
-    name: 'HC',
+    id: 'High Court',
+    name: 'High Court',
     description: 'High Court proceedings',
     icon: Gavel,
     forms: ['HC Petition'],
     slaHours: 4320
   },
   {
-    id: 'SC',
-    name: 'SC',
+    id: 'Supreme Court',
+    name: 'Supreme Court',
     description: 'Supreme Court of India',
     icon: Gavel,
     forms: ['SLP/Appeal'],

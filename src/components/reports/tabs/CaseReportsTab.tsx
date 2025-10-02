@@ -56,10 +56,12 @@ export const CaseReportsTab: React.FC<CaseReportsTabProps> = ({ filters }) => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Case ID</TableHead>
+              <TableHead>Case Number</TableHead>
+              <TableHead>Case Type</TableHead>
               <TableHead>Case Title</TableHead>
               <TableHead>Client</TableHead>
               <TableHead>Stage</TableHead>
+              <TableHead>Tax Demand</TableHead>
               <TableHead>Owner</TableHead>
               <TableHead>Timeline Status</TableHead>
               <TableHead>Priority</TableHead>
@@ -69,10 +71,14 @@ export const CaseReportsTab: React.FC<CaseReportsTabProps> = ({ filters }) => {
           <TableBody>
             {data.map((item) => (
               <TableRow key={item.id}>
-                <TableCell className="font-medium">{item.id}</TableCell>
+                <TableCell className="font-medium">{item.caseNumber || item.id}</TableCell>
+                <TableCell><Badge variant="outline">{item.caseType || 'GST'}</Badge></TableCell>
                 <TableCell>{item.title}</TableCell>
                 <TableCell>{item.client}</TableCell>
                 <TableCell>{item.stage}</TableCell>
+                <TableCell className="text-right">
+                  {item.taxDemand ? `₹${item.taxDemand.toLocaleString('en-IN')}` : '-'}
+                </TableCell>
                 <TableCell>{item.owner}</TableCell>
                 <TableCell>
                   <Badge variant={item.timelineBreachStatus === 'Green' ? 'default' : item.timelineBreachStatus === 'Amber' ? 'secondary' : 'destructive'}>

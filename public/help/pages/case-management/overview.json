@@ -15,7 +15,7 @@
     {
       "name": "Filter by Stage",
       "purpose": "Show cases at specific litigation stages",
-      "gstExample": "Filter to show only cases at 'Adjudication' or 'Appeals' stage"
+      "gstExample": "Filter to show only cases at 'Adjudication' or 'First Appeal' stage"
     },
     {
       "name": "Filter by SLA",

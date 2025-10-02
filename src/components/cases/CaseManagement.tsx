@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { navigationContextService } from '@/services/navigationContextService';
+import { formatCaseTitle } from '@/utils/caseTitleFormatter';
 import { 
   Scale, 
   Clock, 
@@ -169,7 +170,7 @@ export const CaseManagement: React.FC = () => {
   };
 
   const getStageProgress = (stage: string) => {
-    const stages = ['Scrutiny', 'Demand', 'Adjudication', 'Appeals', 'GSTAT', 'HC', 'SC'];
+    const stages = ['Scrutiny', 'Adjudication', 'First Appeal', 'Tribunal', 'High Court', 'Supreme Court'];
     return ((stages.indexOf(stage) + 1) / stages.length) * 100;
   };
 
@@ -492,12 +493,11 @@ export const CaseManagement: React.FC = () => {
             value={filterStage}
             options={[
               { label: 'Scrutiny', value: 'Scrutiny' },
-              { label: 'Demand', value: 'Demand' },
               { label: 'Adjudication', value: 'Adjudication' },
-              { label: 'Appeals', value: 'Appeals' },
-              { label: 'GSTAT', value: 'GSTAT' },
-              { label: 'HC', value: 'HC' },
-              { label: 'SC', value: 'SC' }
+              { label: 'First Appeal', value: 'First Appeal' },
+              { label: 'Tribunal', value: 'Tribunal' },
+              { label: 'High Court', value: 'High Court' },
+              { label: 'Supreme Court', value: 'Supreme Court' }
             ]}
             onChange={(value) => setFilterStage(value)}
           />
@@ -664,7 +664,17 @@ export const CaseManagement: React.FC = () => {
                             )}
                             <div>
                               <h3 className="text-lg font-semibold text-foreground">{caseItem.title}</h3>
-                              <p className="text-sm text-muted-foreground">{caseItem.caseNumber} • {state.clients.find(c => c.id === caseItem.clientId)?.name || 'Unknown Client'}</p>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <span>{caseItem.caseNumber}</span>
+                                {caseItem.caseType && (
+                                  <>
+                                    <span>•</span>
+                                    <Badge variant="outline" className="text-xs">{caseItem.caseType}</Badge>
+                                  </>
+                                )}
+                                <span>•</span>
+                                <span>{state.clients.find(c => c.id === caseItem.clientId)?.name || 'Unknown Client'}</span>
+                              </div>
                             </div>
                           </div>
                           <div className="flex items-center space-x-2">
@@ -677,7 +687,7 @@ export const CaseManagement: React.FC = () => {
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                           <div>
                             <p className="text-xs text-muted-foreground">Current Stage</p>
                             <p className="font-medium">{caseItem.currentStage}</p>
@@ -717,6 +727,30 @@ export const CaseManagement: React.FC = () => {
                               </div>
                             )}
                          </div>
+
+                        {/* Additional Case Details */}
+                        {(caseItem.taxDemand || caseItem.period || caseItem.authority) && (
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3 pt-3 border-t border-border">
+                            {caseItem.taxDemand && (
+                              <div>
+                                <p className="text-xs text-muted-foreground">Tax Demand</p>
+                                <p className="text-sm font-semibold text-destructive">₹{caseItem.taxDemand.toLocaleString('en-IN')}</p>
+                              </div>
+                            )}
+                            {caseItem.period && (
+                              <div>
+                                <p className="text-xs text-muted-foreground">Period</p>
+                                <p className="text-sm">{caseItem.period}</p>
+                              </div>
+                            )}
+                            {caseItem.authority && (
+                              <div>
+                                <p className="text-xs text-muted-foreground">Authority</p>
+                                <p className="text-sm">{caseItem.authority}</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
 
                         {/* Quick Actions for Form Templates */}
                         <div className="pt-2 border-t border-border">

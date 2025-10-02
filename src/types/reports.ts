@@ -39,6 +39,8 @@ export type ReportType =
 
 export interface CaseReportData {
   id: string;
+  caseNumber?: string;
+  caseType?: string;
   title: string;
   client: string;
   stage: string;
@@ -48,10 +50,15 @@ export interface CaseReportData {
   timelineBreachStatus: 'Green' | 'Amber' | 'Red';
   priority: string;
   value?: number;
+  taxDemand?: number;
   outcome?: 'Won' | 'Lost' | 'Settled' | 'Ongoing';
   agingDays: number;
   status?: 'Active' | 'Completed';
   reviewDate?: string;
+  period?: string;
+  authority?: string;
+  officeFileNo?: string;
+  noticeNo?: string;
 }
 
 export interface HearingReportData {
