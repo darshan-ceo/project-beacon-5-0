@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -172,7 +172,8 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <DialogBody>
+          <form id="employee-form" onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Information */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Basic Information</h3>
@@ -477,19 +478,19 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
               </div>
             </>
           )}
+          </form>
+        </DialogBody>
 
-          {/* Form Actions */}
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              {mode === 'view' ? 'Close' : 'Cancel'}
+        <DialogFooter className="gap-3">
+          <Button type="button" variant="outline" onClick={onClose}>
+            {mode === 'view' ? 'Close' : 'Cancel'}
+          </Button>
+          {mode !== 'view' && (
+            <Button type="submit" form="employee-form" disabled={isSubmitting}>
+              {isSubmitting ? 'Saving...' : (mode === 'create' ? 'Save Employee' : 'Update Employee')}
             </Button>
-            {mode !== 'view' && (
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Saving...' : (mode === 'create' ? 'Save Employee' : 'Update Employee')}
-              </Button>
-            )}
-          </div>
-        </form>
+          )}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

@@ -630,7 +630,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
           </Tabs>
         </DialogBody>
 
-        <DialogFooter>
+        <DialogFooter className="gap-3">
           <Button type="button" variant="outline" onClick={onClose}>
             {mode === 'view' ? 'Close' : 'Cancel'}
           </Button>

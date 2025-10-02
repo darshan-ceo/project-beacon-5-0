@@ -279,7 +279,7 @@ export const SignatoryModal: React.FC<SignatoryModalProps> = ({
           </form>
         </DialogBody>
 
-        <DialogFooter>
+        <DialogFooter className="gap-3">
           <Button type="button" variant="outline" onClick={onClose}>
             {mode === 'view' ? 'Close' : 'Cancel'}
           </Button>

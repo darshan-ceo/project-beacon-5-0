@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -87,7 +87,7 @@ export const StageManagementModal: React.FC<StageManagementModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <DialogBody className="space-y-4">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm">Current Stage</CardTitle>
@@ -129,21 +129,20 @@ export const StageManagementModal: React.FC<StageManagementModalProps> = ({
               rows={3}
             />
           </div>
+        </DialogBody>
 
-          <div className="flex gap-2 pt-4">
-            <Button variant="outline" onClick={onClose} className="flex-1">
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleAdvanceStage} 
-              disabled={!selectedNextStage || isAdvancing}
-              className="flex-1"
-            >
-              <CheckCircle className="mr-2 h-4 w-4" />
-              {isAdvancing ? 'Advancing...' : 'Advance Stage'}
-            </Button>
-          </div>
-        </div>
+        <DialogFooter className="gap-3">
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleAdvanceStage} 
+            disabled={!selectedNextStage || isAdvancing}
+          >
+            <CheckCircle className="mr-2 h-4 w-4" />
+            {isAdvancing ? 'Advancing...' : 'Advance Stage'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

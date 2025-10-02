@@ -325,32 +325,32 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
             />
             <Label htmlFor="isShared">Share with client</Label>
           </div>
-
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              {mode === 'view' ? 'Close' : 'Cancel'}
-            </Button>
-            {mode === 'view' && (
-              <Button 
-                type="button"
-                onClick={() => {
-                  // In a real app, this would download the file
-                  toast({
-                    title: "Download Started",
-                    description: `Downloading ${documentData?.name}...`,
-                  });
-                }}
-              >
-                Download
-              </Button>
-            )}
-            {mode !== 'view' && (
-              <Button type="submit" disabled={loading}>
-                {loading ? "Processing..." : (mode === 'upload' ? 'Upload Document' : 'Update Document')}
-              </Button>
-            )}
-          </div>
         </form>
+
+        <DialogFooter className="gap-3">
+          <Button type="button" variant="outline" onClick={onClose}>
+            {mode === 'view' ? 'Close' : 'Cancel'}
+          </Button>
+          {mode === 'view' && (
+            <Button 
+              type="button"
+              onClick={() => {
+                // In a real app, this would download the file
+                toast({
+                  title: "Download Started",
+                  description: `Downloading ${documentData?.name}...`,
+                });
+              }}
+            >
+              Download
+            </Button>
+          )}
+          {mode !== 'view' && (
+            <Button type="submit" onClick={handleSubmit} disabled={loading}>
+              {loading ? "Processing..." : (mode === 'upload' ? 'Upload Document' : 'Update Document')}
+            </Button>
+          )}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

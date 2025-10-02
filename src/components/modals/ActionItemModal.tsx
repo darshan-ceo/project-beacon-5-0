@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -111,7 +111,7 @@ export const ActionItemModal: React.FC<ActionItemModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <DialogBody className="space-y-4">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm">Urgency Level</CardTitle>
@@ -185,21 +185,20 @@ export const ActionItemModal: React.FC<ActionItemModalProps> = ({
               onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
             />
           </div>
+        </DialogBody>
 
-          <div className="flex gap-2 pt-4">
-            <Button variant="outline" onClick={onClose} className="flex-1">
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleCreateTask} 
-              disabled={!formData.title || !formData.assignee}
-              className="flex-1"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Create Task
-            </Button>
-          </div>
-        </div>
+        <DialogFooter className="gap-3">
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleCreateTask} 
+            disabled={!formData.title || !formData.assignee}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Create Task
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
