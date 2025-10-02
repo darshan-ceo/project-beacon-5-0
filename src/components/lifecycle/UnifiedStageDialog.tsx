@@ -23,6 +23,8 @@ import { ContextPanel } from './ContextPanel';
 import { ContextSplitButton } from './ContextSplitButton';
 import { lifecycleService } from '@/services/lifecycleService';
 import { TransitionType, ChecklistItem, OrderDetails, ReasonEnum, LifecycleState } from '@/types/lifecycle';
+import { MATTER_TYPES, MatterType } from '../../../config/appConfig';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   ArrowRight, 
   ArrowLeft, 
@@ -33,7 +35,8 @@ import {
   FileText,
   Upload,
   Loader2,
-  Info
+  Info,
+  AlertTriangle
 } from 'lucide-react';
 
 interface UnifiedStageDialogProps {
@@ -103,6 +106,8 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
     note: ''
   });
   const [inlineContextOpen, setInlineContextOpen] = useState(false);
+  const [matterType, setMatterType] = useState<MatterType>('Scrutiny');
+  const [tribunalBench, setTribunalBench] = useState<'State Bench' | 'Principal Bench'>('State Bench');
   const { toast } = useToast();
 
   // Load lifecycle data
@@ -285,6 +290,8 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
     setOrderDetails({});
     setChecklistOverrides({});
     setAttestingItems(new Set());
+    setMatterType('Scrutiny');
+    setTribunalBench('State Bench');
   };
 
   const getCycleDisplay = () => {
@@ -413,6 +420,70 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Matter Type Selector - shown when advancing TO Scrutiny */}
+            {selectedStage === 'Scrutiny' && (
+              <Card className="border-primary/20">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Info className="h-4 w-4" />
+                    Matter Type
+                    <Badge variant="outline">Required</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Select value={matterType} onValueChange={(val: MatterType) => setMatterType(val)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select matter type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MATTER_TYPES.map(type => (
+                        <SelectItem key={type} value={type}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Tribunal Bench Selector - shown when advancing TO Tribunal */}
+            {selectedStage === 'Tribunal' && (
+              <Card className="border-primary/20">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Info className="h-4 w-4" />
+                    Tribunal Bench
+                    <Badge variant="outline">Required</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Select value={tribunalBench} onValueChange={(val: 'State Bench' | 'Principal Bench') => setTribunalBench(val)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select tribunal bench" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="State Bench">
+                        State Bench → High Court
+                      </SelectItem>
+                      <SelectItem value="Principal Bench">
+                        Principal Bench → Supreme Court
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  {tribunalBench === 'Principal Bench' && (
+                    <Alert className="border-amber-500/50 bg-amber-500/10">
+                      <AlertTriangle className="h-4 w-4 text-amber-600" />
+                      <AlertDescription className="text-sm">
+                        ⚠️ Principal Bench will route directly to Supreme Court (skips High Court)
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Stage Checklist (for Forward transitions) */}
             {checklistEnabled && transitionType === 'Forward' && lifecycleState?.checklistItems && (

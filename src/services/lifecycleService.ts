@@ -7,6 +7,7 @@ import { StageInstance, StageTransition, ChecklistItem, TransitionType, OrderDet
 import { stageTransitionService } from './stageTransitionService';
 import { taskBundleTriggerService } from './taskBundleTriggerService';
 import { GSTStage } from '../../config/appConfig';
+import { CASE_STAGES, getNextStage } from '@/utils/stageUtils';
 import { toast } from '@/hooks/use-toast';
 import React from 'react';
 
@@ -82,7 +83,7 @@ class LifecycleService {
       // Update case state if dispatch is provided
       if (request.dispatch) {
         const slaStatus = request.toStageKey === 'Adjudication' ? 'Amber' : 
-                         request.toStageKey === 'HC' ? 'Green' : 'Green';
+                         request.toStageKey === 'High Court' ? 'Green' : 'Green';
 
         const oldStage = 'Unknown'; // Would be retrieved from current case state in real implementation
         
@@ -90,7 +91,7 @@ class LifecycleService {
           type: 'UPDATE_CASE',
           payload: {
             id: request.caseId,
-            currentStage: request.toStageKey as 'Scrutiny' | 'Demand' | 'Adjudication' | 'Appeals' | 'GSTAT' | 'HC' | 'SC',
+            currentStage: request.toStageKey as 'Scrutiny' | 'Adjudication' | 'First Appeal' | 'Tribunal' | 'High Court' | 'Supreme Court',
             slaStatus: slaStatus as 'Green' | 'Amber' | 'Red',
             lastUpdated: new Date().toISOString()
           }
@@ -239,14 +240,18 @@ class LifecycleService {
    * Get available next stages based on transition type
    */
   getAvailableStages(currentStage: string, type: TransitionType): string[] {
-    const allStages = ['Scrutiny', 'Demand', 'Adjudication', 'Appeals', 'GSTAT', 'HC', 'SC'];
-    const currentIndex = allStages.indexOf(currentStage);
+    const currentIndex = CASE_STAGES.findIndex(s => s === currentStage);
+    
+    // Handle unknown stages
+    if (currentIndex === -1) {
+      return [];
+    }
 
     switch (type) {
       case 'Forward':
-        return allStages.slice(currentIndex + 1);
+        return [...CASE_STAGES.slice(currentIndex + 1)];
       case 'Send Back':
-        return allStages.slice(0, currentIndex);
+        return [...CASE_STAGES.slice(0, currentIndex)];
       case 'Remand':
         return [currentStage]; // Same stage, new cycle
       default:

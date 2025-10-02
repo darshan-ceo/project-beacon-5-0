@@ -10,6 +10,7 @@ import { useAppState } from '@/contexts/AppStateContext';
 import { useToast } from '@/hooks/use-toast';
 import { casesService } from '@/services/casesService';
 import { ArrowRight, Clock, AlertCircle, CheckCircle } from 'lucide-react';
+import { CASE_STAGES } from '@/utils/stageUtils';
 
 interface StageManagementModalProps {
   isOpen: boolean;
@@ -18,16 +19,6 @@ interface StageManagementModalProps {
   currentStage: string;
   onStageAdvanced?: (updatedCase: any) => void;
 }
-
-const stages = [
-  'Scrutiny',
-  'Demand', 
-  'Adjudication',
-  'Appeals',
-  'GSTAT',
-  'HC',
-  'SC'
-];
 
 export const StageManagementModal: React.FC<StageManagementModalProps> = ({
   isOpen,
@@ -42,8 +33,8 @@ export const StageManagementModal: React.FC<StageManagementModalProps> = ({
   const [comments, setComments] = useState('');
   const [isAdvancing, setIsAdvancing] = useState(false);
 
-  const currentStageIndex = stages.indexOf(currentStage);
-  const availableNextStages = stages.slice(currentStageIndex + 1);
+  const currentStageIndex = CASE_STAGES.findIndex(s => s === currentStage);
+  const availableNextStages = currentStageIndex >= 0 ? CASE_STAGES.slice(currentStageIndex + 1) : [];
 
   const handleAdvanceStage = async () => {
     if (!caseId || !selectedNextStage || isAdvancing) return;
