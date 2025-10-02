@@ -372,12 +372,12 @@ export const TaskList: React.FC<TaskListProps> = ({
                   
                   <TableCell className="hidden sm:table-cell">
                     <div className="flex items-center gap-2">
-                      <Avatar className="h-6 w-6">
+                       <Avatar className="h-6 w-6">
                         <AvatarFallback className="text-xs bg-primary text-primary-foreground">
-                          {task.assignedTo.split(' ').map(n => n[0]).join('')}
+                          {(task.assignedTo || task.assignedToName || 'U').split(' ').map(n => n[0]).join('')}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="text-sm">{task.assignedTo}</span>
+                      <span className="text-sm">{task.assignedTo || task.assignedToName || 'Unassigned'}</span>
                     </div>
                   </TableCell>
                   

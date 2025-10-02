@@ -211,13 +211,13 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
 
           {/* Footer */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
+             <div className="flex items-center space-x-2">
               <Avatar className="h-6 w-6">
                 <AvatarFallback className="text-xs bg-primary text-primary-foreground">
-                  {task.assignedTo.split(' ').map(n => n[0]).join('')}
+                  {(task.assignedTo || task.assignedToName || 'U').split(' ').map(n => n[0]).join('')}
                 </AvatarFallback>
               </Avatar>
-              <span className="text-xs text-muted-foreground">{task.assignedTo}</span>
+              <span className="text-xs text-muted-foreground">{task.assignedTo || task.assignedToName || 'Unassigned'}</span>
             </div>
             
             <div className="flex items-center space-x-1 text-xs">

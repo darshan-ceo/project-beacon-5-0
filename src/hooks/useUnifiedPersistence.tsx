@@ -113,13 +113,19 @@ export const useUnifiedPersistence = () => {
         start_time: hearing.start_time || hearing.time || '10:00'
       }));
 
+      // Normalize tasks to ensure assignedTo property exists for TaskList/TaskBoard compatibility
+      const normalizedTasks = tasks.map((task: any) => ({
+        ...task,
+        assignedTo: task.assignedTo || task.assignedToName || 'Unassigned'
+      }));
+
       // Restore loaded data to React state using RESTORE_STATE action
       dispatch({ 
         type: 'RESTORE_STATE', 
         payload: { 
           clients, 
           cases, 
-          tasks, 
+          tasks: normalizedTasks,
           documents, 
           hearings, 
           judges, 
