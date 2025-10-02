@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Plus, Calendar, List, HelpCircle } from 'lucide-react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Plus, Calendar, List } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 
 import { useAppState, Hearing } from '@/contexts/AppStateContext';
 import { toast } from '@/hooks/use-toast';
@@ -12,6 +13,12 @@ import { HearingForm } from '@/components/hearings/HearingForm';
 import { HearingFilters, HearingFiltersState } from '@/components/hearings/HearingFilters';
 import { hearingsService } from '@/services/hearingsService';
 import { ContextualPageHelp } from '@/components/help/ContextualPageHelp';
+import { CalendarSyncBadge } from '@/components/hearings/CalendarSyncBadge';
+import { CalendarSyncStatsCard } from '@/components/hearings/CalendarSyncStatsCard';
+import { CalendarSyncErrorModal } from '@/components/hearings/CalendarSyncErrorModal';
+import { HearingsBulkActions } from '@/components/hearings/HearingsBulkActions';
+import { integrationsService } from '@/services/integrationsService';
+import { calendarService } from '@/services/calendar/calendarService';
 
 interface HearingFormData {
   case_id: string;
@@ -34,7 +41,10 @@ const HearingsList: React.FC<{
   highlightCaseId?: string | null;
   highlightDate?: string | null;
   highlightCourtId?: string | null;
-}> = ({ hearings, onEdit, onView, highlightCaseId, highlightDate, highlightCourtId }) => {
+  selectedIds: Set<string>;
+  onToggleSelection: (id: string) => void;
+  calendarProvider?: string;
+}> = ({ hearings, onEdit, onView, highlightCaseId, highlightDate, highlightCourtId, selectedIds, onToggleSelection, calendarProvider }) => {
   const { state } = useAppState();
   
   // Auto-scroll to highlighted hearing when component mounts
@@ -79,19 +89,39 @@ const HearingsList: React.FC<{
             }`}
             data-highlighted={isHighlighted}
           >
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="font-medium">{case_?.caseNumber} - {case_?.title}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {hearing.date} at {hearing.start_time} | {court?.name}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Judges: {judges.length > 0 ? judges.map(j => j.name).join(', ') : 'No judges assigned'}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => onView(hearing)}>View</Button>
-                <Button size="sm" onClick={() => onEdit(hearing)}>Edit</Button>
+            <div className="flex items-start gap-3">
+              <Checkbox
+                checked={selectedIds.has(hearing.id)}
+                onCheckedChange={() => onToggleSelection(hearing.id)}
+                className="mt-1"
+              />
+              
+              <div className="flex-1">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <h3 className="font-medium">{case_?.caseNumber} - {case_?.title}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {hearing.date} at {hearing.start_time} | {court?.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Judges: {judges.length > 0 ? judges.map(j => j.name).join(', ') : 'No judges assigned'}
+                    </p>
+                    {calendarProvider && calendarProvider !== 'none' && (
+                      <div className="mt-2">
+                        <CalendarSyncBadge
+                          status={hearing.syncStatus || 'not_synced'}
+                          error={hearing.syncError}
+                          lastSyncAt={hearing.lastSyncAt}
+                          provider={calendarProvider}
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => onView(hearing)}>View</Button>
+                    <Button size="sm" onClick={() => onEdit(hearing)}>Edit</Button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -124,8 +154,11 @@ const HearingsCalendar: React.FC<{ hearings: Hearing[]; onEdit: (h: Hearing) => 
 export const HearingsPage: React.FC = () => {
   const { state, dispatch } = useAppState();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   
   const [activeTab, setActiveTab] = useState(searchParams.get('view') || 'list');
+  const [selectedHearingIds, setSelectedHearingIds] = useState<Set<string>>(new Set());
+  const [showErrorModal, setShowErrorModal] = useState(false);
 
   // Update URL when tab changes
   useEffect(() => {
@@ -153,6 +186,10 @@ export const HearingsPage: React.FC = () => {
     internalCounselIds: searchParams.getAll('counsel') || [],
     tags: searchParams.getAll('tag') || [],
   });
+
+  // Load calendar settings (use first client as org for now)
+  const currentOrg = state.clients[0];
+  const calendarSettings = currentOrg ? integrationsService.loadCalendarSettings(currentOrg.id) : null;
 
   // Simple filtering
   const filteredHearings = state.hearings.filter(hearing => {
@@ -197,6 +234,108 @@ export const HearingsPage: React.FC = () => {
     setSelectedHearing(hearing);
     setFormMode('view');
     setIsFormOpen(true);
+  };
+
+  // Bulk action handlers
+  const handleToggleSelection = (id: string) => {
+    setSelectedHearingIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleRetrySync = async (hearingId: string) => {
+    if (!calendarSettings) return;
+    
+    const hearing = state.hearings.find(h => h.id === hearingId);
+    if (!hearing) return;
+
+    const caseData = state.cases.find(c => c.id === hearing.case_id);
+    const courtData = state.courts.find(c => c.id === hearing.court_id);
+    const judgeData = hearing.judge_ids?.[0] ? state.judges.find(j => j.id === hearing.judge_ids[0]) : undefined;
+
+    const eventId = await calendarService.manualSync(hearing as any, calendarSettings, caseData, courtData, judgeData);
+    
+    if (eventId) {
+      await hearingsService.updateHearing(hearingId, {
+        externalEventId: eventId,
+        syncStatus: 'synced',
+        syncError: undefined
+      } as any, dispatch);
+    }
+  };
+
+  const handleBulkSync = async () => {
+    if (!calendarSettings) return { success: 0, failed: 0 };
+    
+    const selectedHearings = state.hearings.filter(h => selectedHearingIds.has(h.id));
+    const result = await calendarService.bulkSync(
+      selectedHearings as any,
+      calendarSettings,
+      (id) => state.cases.find(c => c.id === id),
+      (id) => state.courts.find(c => c.id === id),
+      (id) => state.judges.find(j => j.id === id)
+    );
+
+    // Update hearing sync statuses
+    for (const res of result.results) {
+      if (res.success) {
+        const hearing = selectedHearings.find(h => h.id === res.hearingId);
+        if (hearing) {
+          await hearingsService.updateHearing(res.hearingId, {
+            syncStatus: 'synced'
+          } as any, dispatch);
+        }
+      }
+    }
+
+    return { success: result.success, failed: result.failed };
+  };
+
+  const handleBulkRemove = async () => {
+    if (!calendarSettings) return { success: 0, failed: 0 };
+    
+    const selectedHearings = state.hearings.filter(h => selectedHearingIds.has(h.id));
+    const result = await calendarService.bulkDelete(selectedHearings as any, calendarSettings);
+
+    // Update hearing sync statuses
+    for (const hearing of selectedHearings) {
+      await hearingsService.updateHearing(hearing.id, {
+        externalEventId: undefined,
+        syncStatus: 'not_synced'
+      } as any, dispatch);
+    }
+
+    return result;
+  };
+
+  const handleRetryAllFailed = async () => {
+    const failedHearings = calendarService.getFailedSyncs(state.hearings);
+    
+    for (const hearing of failedHearings) {
+      await handleRetrySync(hearing.id);
+    }
+    
+    toast({
+      title: 'Retry Complete',
+      description: `Retried ${failedHearings.length} failed sync(s)`
+    });
+  };
+
+  const getFailedHearingsWithDetails = () => {
+    return calendarService.getFailedSyncs(state.hearings).map(h => {
+      const caseData = state.cases.find(c => c.id === h.case_id);
+      return {
+        ...h,
+        case_number: caseData?.caseNumber,
+        case_title: caseData?.title
+      };
+    });
   };
 
   const handleFormSubmit = async (data: any) => {
@@ -263,6 +402,15 @@ export const HearingsPage: React.FC = () => {
         </Button>
       </div>
 
+      {/* Calendar Sync Stats */}
+      {calendarSettings && calendarSettings.provider !== 'none' && (
+        <CalendarSyncStatsCard
+          hearings={filteredHearings}
+          onViewErrors={() => setShowErrorModal(true)}
+          onRetryFailed={handleRetryAllFailed}
+        />
+      )}
+
       {/* Filters */}
       <HearingFilters
         filters={filters}
@@ -290,6 +438,9 @@ export const HearingsPage: React.FC = () => {
             highlightCaseId={caseId}
             highlightDate={hearingDate}
             highlightCourtId={courtId}
+            selectedIds={selectedHearingIds}
+            onToggleSelection={handleToggleSelection}
+            calendarProvider={calendarSettings?.provider}
           />
         </TabsContent>
 
@@ -323,6 +474,27 @@ export const HearingsPage: React.FC = () => {
           </DialogBody>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Actions */}
+      {calendarSettings && calendarSettings.provider !== 'none' && (
+        <HearingsBulkActions
+          selectedCount={selectedHearingIds.size}
+          onSyncToCalendar={handleBulkSync}
+          onRemoveFromCalendar={handleBulkRemove}
+          onUpdateCalendarEvents={handleBulkSync}
+          onClearSelection={() => setSelectedHearingIds(new Set())}
+        />
+      )}
+
+      {/* Error Modal */}
+      <CalendarSyncErrorModal
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        failedHearings={getFailedHearingsWithDetails()}
+        onRetry={handleRetrySync}
+        onRetryAll={handleRetryAllFailed}
+        onOpenSettings={() => navigate('/rbac')}
+      />
 
     </div>
   );

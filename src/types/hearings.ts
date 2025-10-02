@@ -54,6 +54,8 @@ export interface Hearing {
   externalEventId?: string;
   syncStatus?: 'synced' | 'not_synced' | 'sync_failed' | 'sync_pending';
   syncError?: string;
+  lastSyncAt?: string;
+  syncAttempts?: number;
 }
 
 export interface HearingFormData {

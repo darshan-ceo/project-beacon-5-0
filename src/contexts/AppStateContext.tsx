@@ -232,11 +232,20 @@ interface Hearing {
   judge_ids: string[];
   purpose: 'PH' | 'mention' | 'final' | 'other';
   status: 'scheduled' | 'concluded' | 'adjourned' | 'no-board' | 'withdrawn';
-  outcome?: string;
+  outcome?: 'Adjourned' | 'Part-heard' | 'Allowed' | 'Dismissed' | 'Withdrawn' | 'Other';
   outcome_text?: string;
   next_hearing_date?: string;
   order_file_id?: string;
   notes?: string;
+  attendance?: {
+    our_counsel_id?: string;
+    opposite_counsel?: string;
+    client_rep?: string;
+  };
+  reminders?: {
+    created: string[];
+    last_sent_at?: string;
+  };
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -253,6 +262,8 @@ interface Hearing {
   externalEventId?: string;
   syncStatus?: 'synced' | 'not_synced' | 'sync_failed' | 'sync_pending';
   syncError?: string;
+  lastSyncAt?: string;
+  syncAttempts?: number;
 }
 
 // New Folder interface for DMS

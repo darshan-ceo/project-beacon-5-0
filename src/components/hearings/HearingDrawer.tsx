@@ -17,6 +17,9 @@ import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger, DrawerFooter, DrawerClose } from '@/components/ui/drawer';
 import { toast } from '@/hooks/use-toast';
+import { CalendarSyncPanel } from './CalendarSyncPanel';
+import { integrationsService } from '@/services/integrationsService';
+import { calendarService } from '@/services/calendar/calendarService';
 
 interface HearingDrawerProps {
   hearing?: Hearing;
@@ -55,6 +58,10 @@ export const HearingDrawer: React.FC<HearingDrawerProps> = ({
   const [orderFile, setOrderFile] = useState<File | null>(null);
 
   const isEnabled = featureFlagService.isEnabled('hearings_module_v1');
+  
+  // Calendar settings
+  const currentOrg = state.clients[0];
+  const calendarSettings = currentOrg ? integrationsService.loadCalendarSettings(currentOrg.id) : null;
 
   // Initialize form data
   useEffect(() => {
@@ -539,6 +546,22 @@ export const HearingDrawer: React.FC<HearingDrawerProps> = ({
                 </div>
               </CardContent>
             </Card>
+          )}
+
+          {/* Calendar Sync Panel */}
+          {hearing && mode === 'view' && calendarSettings && calendarSettings.provider !== 'none' && (
+            <CalendarSyncPanel
+              hearing={hearing}
+              settings={calendarSettings}
+              onRetrySync={async () => {
+                const caseData = state.cases.find(c => c.id === hearing.case_id);
+                const courtData = state.courts.find(c => c.id === hearing.court_id);
+                const judgeData = hearing.judge_ids?.[0] ? state.judges.find(j => j.id === hearing.judge_ids[0]) : undefined;
+                
+                await calendarService.manualSync(hearing, calendarSettings, caseData, courtData, judgeData);
+                toast({ title: 'Sync complete', description: 'Calendar event updated' });
+              }}
+            />
           )}
         </div>
 

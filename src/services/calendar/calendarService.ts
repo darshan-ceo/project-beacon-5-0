@@ -267,6 +267,122 @@ class CalendarService {
       return await this.createEvent(hearing, settings, caseData, courtData, judgeData);
     }
   }
+
+  // Bulk sync multiple hearings
+  async bulkSync(
+    hearings: Hearing[],
+    settings: CalendarIntegrationSettings,
+    getCaseData: (caseId: string) => Case | undefined,
+    getCourtData: (courtId: string) => Court | undefined,
+    getJudgeData: (judgeId: string) => Judge | undefined
+  ): Promise<{ success: number; failed: number; results: Array<{ hearingId: string; success: boolean; error?: string }> }> {
+    let success = 0;
+    let failed = 0;
+    const results: Array<{ hearingId: string; success: boolean; error?: string }> = [];
+
+    for (const hearing of hearings) {
+      try {
+        const caseData = getCaseData(hearing.case_id);
+        const courtData = getCourtData(hearing.court_id);
+        const judgeData = hearing.judge_ids?.[0] ? getJudgeData(hearing.judge_ids[0]) : undefined;
+
+        const eventId = await this.manualSync(hearing, settings, caseData, courtData, judgeData);
+        
+        if (eventId) {
+          success++;
+          results.push({ hearingId: hearing.id, success: true });
+        } else {
+          failed++;
+          results.push({ hearingId: hearing.id, success: false, error: 'Sync returned null' });
+        }
+      } catch (error) {
+        failed++;
+        results.push({ 
+          hearingId: hearing.id, 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        });
+      }
+    }
+
+    return { success, failed, results };
+  }
+
+  // Bulk delete calendar events
+  async bulkDelete(
+    hearings: Hearing[],
+    settings: CalendarIntegrationSettings
+  ): Promise<{ success: number; failed: number }> {
+    let success = 0;
+    let failed = 0;
+
+    for (const hearing of hearings) {
+      try {
+        const deleted = await this.deleteEvent(hearing, settings);
+        if (deleted) {
+          success++;
+        } else {
+          failed++;
+        }
+      } catch (error) {
+        failed++;
+      }
+    }
+
+    return { success, failed };
+  }
+
+  // Get failed syncs
+  getFailedSyncs(hearings: Hearing[]): Hearing[] {
+    return hearings.filter(h => h.syncStatus === 'sync_failed');
+  }
+
+  // Categorize errors
+  categorizeErrors(hearings: Hearing[]): {
+    all: number;
+    auth: number;
+    rate_limit: number;
+    network: number;
+    other: number;
+  } {
+    const categories = { all: 0, auth: 0, rate_limit: 0, network: 0, other: 0 };
+    
+    hearings.forEach(h => {
+      if (h.syncStatus === 'sync_failed') {
+        categories.all++;
+        const error = h.syncError?.toLowerCase() || '';
+        
+        if (error.includes('auth') || error.includes('token') || error.includes('expired')) {
+          categories.auth++;
+        } else if (error.includes('rate') || error.includes('limit') || error.includes('quota')) {
+          categories.rate_limit++;
+        } else if (error.includes('network') || error.includes('connect') || error.includes('timeout')) {
+          categories.network++;
+        } else {
+          categories.other++;
+        }
+      }
+    });
+    
+    return categories;
+  }
+
+  // Get sync statistics
+  getSyncStatistics(hearings: Hearing[]): {
+    total: number;
+    synced: number;
+    failed: number;
+    notSynced: number;
+    successRate: number;
+  } {
+    const total = hearings.length;
+    const synced = hearings.filter(h => h.syncStatus === 'synced').length;
+    const failed = hearings.filter(h => h.syncStatus === 'sync_failed').length;
+    const notSynced = hearings.filter(h => !h.syncStatus || h.syncStatus === 'not_synced').length;
+    const successRate = total > 0 ? Math.round((synced / total) * 100) : 0;
+
+    return { total, synced, failed, notSynced, successRate };
+  }
 }
 
 export const calendarService = new CalendarService();
