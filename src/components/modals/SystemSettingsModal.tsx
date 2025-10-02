@@ -546,13 +546,13 @@ export const SystemSettingsModal: React.FC<SystemSettingsModalProps> = ({
           </TabsContent>
         </Tabs>
 
-        <DialogFooter className="flex items-center justify-between">
+        <DialogFooter className="gap-3">
           <Button variant="outline" onClick={handleReset}>
             <RotateCcw className="w-4 h-4 mr-2" />
             Reset to Defaults
           </Button>
           
-          <div className="flex gap-2">
+          <div className="ml-auto flex gap-3">
             <Button variant="outline" onClick={onClose} disabled={isSaving}>
               Cancel
             </Button>

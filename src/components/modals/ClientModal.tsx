@@ -1024,7 +1024,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
             </form>
           </DialogBody>
 
-          <DialogFooter>
+          <DialogFooter className="gap-3">
             <Button type="button" variant="outline" onClick={onClose}>
               {mode === 'view' ? 'Close' : 'Cancel'}
             </Button>
