@@ -49,6 +49,8 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 import { InlineHelp } from '@/components/help/InlineHelp';
 import { PageHelp } from '@/components/help/PageHelp';
 import { ContextualPageHelp } from '@/components/help/ContextualPageHelp';
+import { HelpButton } from '@/components/ui/help-button';
+import { ThreeLayerHelp } from '@/components/ui/three-layer-help';
 import { tourService } from '@/services/tourService';
 import { GlossaryText, GlossaryDescription } from '@/components/ui/glossary-enhanced';
 import { NoticeIntakeWizard } from '@/components/notices/NoticeIntakeWizard';
@@ -383,25 +385,34 @@ export const CaseManagement: React.FC = () => {
           <InlineHelp module="case-management" />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button 
+              <HelpButton 
+                helpId="button-create-case"
                 className="bg-primary hover:bg-primary-hover"
                 data-tour="new-case-btn"
               >
                 <Plus className="mr-2 h-4 w-4" />
                 New Case
-              </Button>
+              </HelpButton>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => setCaseModal({ isOpen: true, mode: 'create', case: null })}>
-                <Scale className="mr-2 h-4 w-4" />
-                Create Case
+                <ThreeLayerHelp helpId="button-create-case" showExplanation={false}>
+                  <div className="flex items-center">
+                    <Scale className="mr-2 h-4 w-4" />
+                    Create Case
+                  </div>
+                </ThreeLayerHelp>
               </DropdownMenuItem>
               {featureFlagService.isEnabled('notice_intake_v1') && (
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => setNoticeIntakeModal(true)}>
-                    <FileText className="mr-2 h-4 w-4" />
-                    From Notice
+                    <ThreeLayerHelp helpId="button-notice-intake" showExplanation={false}>
+                      <div className="flex items-center">
+                        <FileText className="mr-2 h-4 w-4" />
+                        From Notice
+                      </div>
+                    </ThreeLayerHelp>
                   </DropdownMenuItem>
                 </>
               )}
@@ -419,40 +430,46 @@ export const CaseManagement: React.FC = () => {
       >
         <Card>
           <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Active Cases</p>
-                <p className="text-2xl font-bold text-foreground">156</p>
-                <p className="text-xs text-success mt-1">+12 this month</p>
+            <ThreeLayerHelp helpId="card-active-cases" showExplanation={false}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Active Cases</p>
+                  <p className="text-2xl font-bold text-foreground">156</p>
+                  <p className="text-xs text-success mt-1">+12 this month</p>
+                </div>
+                <Scale className="h-8 w-8 text-primary" />
               </div>
-              <Scale className="h-8 w-8 text-primary" />
-            </div>
+            </ThreeLayerHelp>
           </CardContent>
         </Card>
         
         <Card>
           <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Timeline Breaches</p>
-                <p className="text-2xl font-bold text-destructive">8</p>
-                <p className="text-xs text-destructive mt-1">Needs attention</p>
+            <ThreeLayerHelp helpId="card-timeline-breaches" showExplanation={false}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Timeline Breaches</p>
+                  <p className="text-2xl font-bold text-destructive">8</p>
+                  <p className="text-xs text-destructive mt-1">Needs attention</p>
+                </div>
+                <AlertTriangle className="h-8 w-8 text-destructive" />
               </div>
-              <AlertTriangle className="h-8 w-8 text-destructive" />
-            </div>
+            </ThreeLayerHelp>
           </CardContent>
         </Card>
         
         <Card>
           <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Upcoming Hearings</p>
-                <p className="text-2xl font-bold text-foreground">23</p>
-                <p className="text-xs text-warning mt-1">Next 7 days</p>
+            <ThreeLayerHelp helpId="card-upcoming-hearings" showExplanation={false}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Upcoming Hearings</p>
+                  <p className="text-2xl font-bold text-foreground">23</p>
+                  <p className="text-xs text-warning mt-1">Next 7 days</p>
+                </div>
+                <Calendar className="h-8 w-8 text-secondary" />
               </div>
-              <Calendar className="h-8 w-8 text-secondary" />
-            </div>
+            </ThreeLayerHelp>
           </CardContent>
         </Card>
         

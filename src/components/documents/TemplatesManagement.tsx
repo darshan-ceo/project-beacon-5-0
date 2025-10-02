@@ -16,6 +16,7 @@ import { TemplateEditor } from './TemplateEditor';
 import { TemplateBuilder } from './TemplateBuilder';
 import { useAppState } from '@/contexts/AppStateContext';
 import { useRBAC } from '@/hooks/useAdvancedRBAC';
+import { HelpButton } from '@/components/ui/help-button';
 import { 
   FileText, 
   Search, 
@@ -288,14 +289,14 @@ export const TemplatesManagement: React.FC = () => {
         </div>
         {canEdit && (
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setBuilderOpen(true)}>
+            <HelpButton helpId="button-template-builder" variant="outline" onClick={() => setBuilderOpen(true)}>
               <Wrench className="mr-2 h-4 w-4" />
               Template Builder
-            </Button>
-            <Button onClick={() => { setEditingTemplate(null); setEditorOpen(true); }}>
+            </HelpButton>
+            <HelpButton helpId="button-create-template" onClick={() => { setEditingTemplate(null); setEditorOpen(true); }}>
               <Plus className="mr-2 h-4 w-4" />
               Create Template
-            </Button>
+            </HelpButton>
           </div>
         )}
       </div>

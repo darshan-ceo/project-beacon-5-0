@@ -31,6 +31,7 @@ import {
   Flag,
   BookOpen
 } from 'lucide-react';
+import { HelpButton } from '@/components/ui/help-button';
 
 interface CaseLifecycleFlowProps {
   selectedCase?: Case | null;
@@ -423,7 +424,8 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
                 <div>
                   <h4 className="font-semibold mb-2">Next Actions</h4>
                   <div className="space-y-2">
-                    <Button 
+                    <HelpButton 
+                      helpId="button-upload-response"
                       variant="outline" 
                       size="sm" 
                       className="w-full justify-start"
@@ -431,8 +433,9 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
                     >
                       <FileText className="mr-2 h-4 w-4" />
                       Upload Response
-                    </Button>
-                    <Button 
+                    </HelpButton>
+                    <HelpButton 
+                      helpId="button-schedule-hearing"
                       variant="outline" 
                       size="sm" 
                       className="w-full justify-start"
@@ -440,8 +443,9 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
                     >
                       <Clock className="mr-2 h-4 w-4" />
                       Schedule Hearing
-                    </Button>
-                    <Button 
+                    </HelpButton>
+                    <HelpButton 
+                      helpId="button-advance-stage"
                       variant="outline" 
                       size="sm" 
                       className="w-full justify-start"
@@ -458,7 +462,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
                       <ArrowRight className="mr-2 h-4 w-4" />
                       {featureFlagService.isEnabled('lifecycle_cycles_v1') ? 'Advance Stage' : 
                        isAdvancing ? 'Advancing...' : 'Advance Stage'}
-                    </Button>
+                    </HelpButton>
                   </div>
                 </div>
               </div>

@@ -44,6 +44,8 @@ import { FilterDropdown } from '@/components/ui/filter-dropdown';
 import { Task, useAppState } from '@/contexts/AppStateContext';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { HelpButton } from '@/components/ui/help-button';
+import { ThreeLayerHelp } from '@/components/ui/three-layer-help';
 
 interface TaskBundle {
   id: string;
@@ -301,38 +303,26 @@ export const TaskManagement: React.FC = () => {
         <div className="flex gap-2">
           <ContextualPageHelp pageId="task-automation" activeTab={activeTab} variant="resizable" />
           <StartTourButton tourId="task-automation-setup" text="Take Tour" />
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                variant="outline"
-                onClick={() => {
-                  setActiveTab('escalation');
-                }}
-                data-tour="escalations-button"
-              >
-                <Bell className="mr-2 h-4 w-4" />
-                Escalations
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Manage task escalation rules and SLA monitoring for GST compliance deadlines</p>
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                className="bg-primary hover:bg-primary-hover"
-                onClick={() => setTaskModal({ isOpen: true, mode: 'create', task: null })}
-                data-tour="create-task-button"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Create Task
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Create a new task for GST case management with automatic workflow assignment</p>
-            </TooltipContent>
-          </Tooltip>
+          <HelpButton 
+            helpId="button-task-escalations"
+            variant="outline"
+            onClick={() => {
+              setActiveTab('escalation');
+            }}
+            data-tour="escalations-button"
+          >
+            <Bell className="mr-2 h-4 w-4" />
+            Escalations
+          </HelpButton>
+          <HelpButton 
+            helpId="button-create-task"
+            className="bg-primary hover:bg-primary-hover"
+            onClick={() => setTaskModal({ isOpen: true, mode: 'create', task: null })}
+            data-tour="create-task-button"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Create Task
+          </HelpButton>
         </div>
       </motion.div>
 
@@ -345,13 +335,15 @@ export const TaskManagement: React.FC = () => {
       >
         <Card>
           <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Tasks</p>
-                <p className="text-2xl font-bold text-foreground">{stats.total}</p>
+            <ThreeLayerHelp helpId="card-total-tasks" showExplanation={false}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Total Tasks</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.total}</p>
+                </div>
+                <CheckSquare className="h-8 w-8 text-primary" />
               </div>
-              <CheckSquare className="h-8 w-8 text-primary" />
-            </div>
+            </ThreeLayerHelp>
           </CardContent>
         </Card>
         
@@ -370,14 +362,16 @@ export const TaskManagement: React.FC = () => {
         
         <Card>
           <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Overdue</p>
-                <p className="text-2xl font-bold text-destructive">{stats.overdue}</p>
-                <p className="text-xs text-destructive mt-1">Needs escalation</p>
+            <ThreeLayerHelp helpId="card-overdue-tasks" showExplanation={false}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Overdue</p>
+                  <p className="text-2xl font-bold text-destructive">{stats.overdue}</p>
+                  <p className="text-xs text-destructive mt-1">Needs escalation</p>
+                </div>
+                <AlertTriangle className="h-8 w-8 text-destructive" />
               </div>
-              <AlertTriangle className="h-8 w-8 text-destructive" />
-            </div>
+            </ThreeLayerHelp>
           </CardContent>
         </Card>
         
@@ -395,14 +389,16 @@ export const TaskManagement: React.FC = () => {
         
         <Card>
           <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Auto-Generated</p>
-                <p className="text-2xl font-bold text-secondary">{stats.autoGenerated}</p>
-                <p className="text-xs text-secondary mt-1">{Math.round((stats.autoGenerated / stats.total) * 100)}% automated</p>
+            <ThreeLayerHelp helpId="card-auto-generated" showExplanation={false}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Auto-Generated</p>
+                  <p className="text-2xl font-bold text-secondary">{stats.autoGenerated}</p>
+                  <p className="text-xs text-secondary mt-1">{Math.round((stats.autoGenerated / stats.total) * 100)}% automated</p>
+                </div>
+                <TrendingUp className="h-8 w-8 text-secondary" />
               </div>
-              <TrendingUp className="h-8 w-8 text-secondary" />
-            </div>
+            </ThreeLayerHelp>
           </CardContent>
         </Card>
       </motion.div>

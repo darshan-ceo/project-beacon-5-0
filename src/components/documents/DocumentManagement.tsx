@@ -53,6 +53,7 @@ import { ContextualPageHelp } from '@/components/help/ContextualPageHelp';
 import { tourService } from '@/services/tourService';
 import { NoticeIntakeWizard } from '@/components/notices/NoticeIntakeWizard';
 import { featureFlagService } from '@/services/featureFlagService';
+import { HelpButton } from '@/components/ui/help-button';
 
 interface LocalDocument {
   id: string;

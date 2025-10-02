@@ -50,6 +50,7 @@ import {
 import { TaskTemplate } from '@/types/taskTemplate';
 import { taskTemplatesService } from '@/services/taskTemplatesService';
 import { GST_STAGES, EMPLOYEE_ROLES } from '../../../config/appConfig';
+import { HelpButton } from '@/components/ui/help-button';
 
 interface TaskBundle {
   id: string;

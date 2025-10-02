@@ -40,6 +40,8 @@ import { useRelationships } from '@/hooks/useRelationships';
 import { useRBAC } from '@/hooks/useAdvancedRBAC';
 import { featureFlagService } from '@/services/featureFlagService';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
+import { HelpButton } from '@/components/ui/help-button';
+import { ThreeLayerHelp } from '@/components/ui/three-layer-help';
 
 export const ClientMasters: React.FC = () => {
   const { state, dispatch } = useAppState();
@@ -113,32 +115,35 @@ export const ClientMasters: React.FC = () => {
         </div>
         <div className="flex space-x-3">
           {featureFlagService.isEnabled('data_io_v1') && hasPermission('io.import.client', 'write') && (
-            <Button 
+            <HelpButton 
+              helpId="button-import-clients"
               variant="outline" 
               onClick={() => setIsImportOpen(true)}
               className="flex items-center space-x-2"
             >
               <Upload className="h-4 w-4" />
               <span>Import Excel</span>
-            </Button>
+            </HelpButton>
           )}
           {featureFlagService.isEnabled('data_io_v1') && hasPermission('io.export.client', 'write') && (
-            <Button 
+            <HelpButton 
+              helpId="button-export-clients"
               variant="outline" 
               onClick={() => setIsExportOpen(true)}
               className="flex items-center space-x-2"
             >
               <Download className="h-4 w-4" />
               <span>Export Excel</span>
-            </Button>
+            </HelpButton>
           )}
-          <Button 
+          <HelpButton 
+            helpId="button-add-client"
             className="bg-primary hover:bg-primary-hover"
             onClick={() => setClientModal({ isOpen: true, mode: 'create', client: null })}
           >
             <Plus className="mr-2 h-4 w-4" />
             Add New Client
-          </Button>
+          </HelpButton>
         </div>
       </motion.div>
 
@@ -151,13 +156,15 @@ export const ClientMasters: React.FC = () => {
       >
         <Card>
           <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Clients</p>
-                <p className="text-2xl font-bold text-foreground">847</p>
+            <ThreeLayerHelp helpId="card-total-clients" showExplanation={false}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Total Clients</p>
+                  <p className="text-2xl font-bold text-foreground">847</p>
+                </div>
+                <Building2 className="h-8 w-8 text-primary" />
               </div>
-              <Building2 className="h-8 w-8 text-primary" />
-            </div>
+            </ThreeLayerHelp>
           </CardContent>
         </Card>
         
@@ -175,13 +182,15 @@ export const ClientMasters: React.FC = () => {
         
         <Card>
           <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Portal Access</p>
-                <p className="text-2xl font-bold text-foreground">623</p>
+            <ThreeLayerHelp helpId="card-portal-access" showExplanation={false}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Portal Access</p>
+                  <p className="text-2xl font-bold text-foreground">623</p>
+                </div>
+                <Eye className="h-8 w-8 text-success" />
               </div>
-              <Eye className="h-8 w-8 text-success" />
-            </div>
+            </ThreeLayerHelp>
           </CardContent>
         </Card>
         
@@ -373,8 +382,12 @@ export const ClientMasters: React.FC = () => {
                               }
                             }}
                           >
-                            <Eye className="mr-2 h-4 w-4" />
-                            View Details
+                            <ThreeLayerHelp helpId="menu-view-client" showExplanation={false}>
+                              <div className="flex items-center">
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Details
+                              </div>
+                            </ThreeLayerHelp>
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => {
@@ -390,8 +403,12 @@ export const ClientMasters: React.FC = () => {
                               }
                             }}
                           >
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit Client
+                            <ThreeLayerHelp helpId="menu-edit-client" showExplanation={false}>
+                              <div className="flex items-center">
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit Client
+                              </div>
+                            </ThreeLayerHelp>
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => {
@@ -407,8 +424,12 @@ export const ClientMasters: React.FC = () => {
                               }
                             }}
                           >
-                            <Plus className="mr-2 h-4 w-4" />
-                            New Case
+                            <ThreeLayerHelp helpId="menu-new-case-client" showExplanation={false}>
+                              <div className="flex items-center">
+                                <Plus className="mr-2 h-4 w-4" />
+                                New Case
+                              </div>
+                            </ThreeLayerHelp>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
