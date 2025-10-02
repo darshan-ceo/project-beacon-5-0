@@ -139,6 +139,18 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
   // Get available stages based on transition type
   const availableStages = lifecycleService.getAvailableStages(currentStage, transitionType);
 
+  // Auto-route based on Tribunal Bench selection
+  useEffect(() => {
+    if (currentStage === 'Tribunal' && transitionType === 'Forward') {
+      if (tribunalBench === 'Principal Bench') {
+        setSelectedStage('Supreme Court');
+      } else if (tribunalBench === 'State Bench' && selectedStage === 'Supreme Court') {
+        // Reset to High Court if user switches back to State Bench
+        setSelectedStage('High Court');
+      }
+    }
+  }, [tribunalBench, currentStage, transitionType, selectedStage]);
+
   // Validate transition based on checklist
   const validation = lifecycleState?.checklistItems ? 
     lifecycleService.validateTransition(lifecycleState.checklistItems, transitionType) :
@@ -407,7 +419,11 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
               <Label htmlFor="nextStage">
                 {transitionType === 'Remand' ? 'Restart Stage' : 'Next Stage'}
               </Label>
-              <Select value={selectedStage} onValueChange={setSelectedStage}>
+              <Select 
+                value={selectedStage} 
+                onValueChange={setSelectedStage}
+                disabled={currentStage === 'Tribunal' && tribunalBench === 'Principal Bench'}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder={`Select ${transitionType.toLowerCase()} stage`} />
                 </SelectTrigger>
@@ -419,6 +435,14 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
                   ))}
                 </SelectContent>
               </Select>
+              {currentStage === 'Tribunal' && tribunalBench === 'Principal Bench' && (
+                <Alert className="border-blue-500/50 bg-blue-500/10">
+                  <Info className="h-4 w-4 text-blue-600" />
+                  <AlertDescription className="text-sm">
+                    Principal Bench cases route directly to Supreme Court
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
 
             {/* Matter Type Selector - shown when advancing TO Scrutiny */}
@@ -448,8 +472,8 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
               </Card>
             )}
 
-            {/* Tribunal Bench Selector - shown when advancing TO Tribunal */}
-            {selectedStage === 'Tribunal' && (
+            {/* Tribunal Bench Selector - shown when advancing FROM Tribunal */}
+            {currentStage === 'Tribunal' && transitionType === 'Forward' && (
               <Card className="border-primary/20">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm flex items-center gap-2">
