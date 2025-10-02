@@ -98,6 +98,24 @@ export const ReportsFilterRail: React.FC<ReportsFilterRailProps> = ({
     { value: 'pending', label: 'Pending' }
   ];
 
+  const formTypes = [
+    { value: 'ASMT10_REPLY', label: 'ASMT-10 Reply' },
+    { value: 'ASMT11_REPRESENTATION', label: 'ASMT-11 Representation' },
+    { value: 'ASMT12_REPLY', label: 'ASMT-12 Reply' },
+    { value: 'DRC01_REPLY', label: 'DRC-01 Reply' },
+    { value: 'DRC07_OBJECTION', label: 'DRC-07 Objection' },
+    { value: 'GSTAT', label: 'Statement of Facts' },
+    { value: 'APPEAL_FIRST', label: 'First Appeal' },
+    { value: 'HC_PETITION', label: 'High Court Petition' },
+    { value: 'SC_SLP', label: 'Supreme Court SLP' }
+  ];
+
+  const formTimelineStatuses = [
+    { value: 'on-time', label: 'On Time' },
+    { value: 'delayed', label: 'Delayed' },
+    { value: 'pending', label: 'Pending' }
+  ];
+
   const updateFilters = useCallback((updates: Partial<ReportFilter>) => {
     const newFilters = { ...filters, ...updates };
     onFiltersChange(newFilters);
@@ -269,6 +287,56 @@ export const ReportsFilterRail: React.FC<ReportsFilterRailProps> = ({
                 <SelectContent>
                   <SelectItem value="all">All statuses</SelectItem>
                   {communicationStatuses.map(status => (
+                    <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </>
+        );
+
+      case 'form-timeline':
+        return (
+          <>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Form Type</Label>
+              <Select value={filters.caseId || 'all'} onValueChange={(value) => updateFilters({ caseId: value === 'all' ? undefined : value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All forms" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All forms</SelectItem>
+                  {formTypes.map(form => (
+                    <SelectItem key={form.value} value={form.value}>{form.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Timeline Status</Label>
+              <Select value={filters.status || 'all'} onValueChange={(value) => updateFilters({ status: value === 'all' ? undefined : value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  {formTimelineStatuses.map(status => (
+                    <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">RAG Status</Label>
+              <Select value={filters.ragStatus || 'all'} onValueChange={(value) => updateFilters({ ragStatus: value === 'all' ? undefined : value as any })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All RAG statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  {ragStatuses.map(status => (
                     <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
                   ))}
                 </SelectContent>

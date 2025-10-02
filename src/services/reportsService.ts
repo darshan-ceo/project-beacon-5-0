@@ -362,6 +362,76 @@ export const reportsService = {
     return { data: mockData };
   },
 
+  // Get form timeline reports with filters
+  getFormTimelineReport: async (filters: any): Promise<{ data: any[] }> => {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const mockData = [
+      {
+        id: 'FT001',
+        formCode: 'ASMT10_REPLY',
+        formTitle: 'ASMT-10 Reply',
+        caseId: 'CS001',
+        caseNumber: 'GST/2024/001',
+        caseTitle: 'Property Dispute Case',
+        client: 'ABC Corp',
+        stage: 'Scrutiny',
+        submissionDate: '2024-08-15',
+        dueDate: '2024-08-20',
+        status: 'On Time',
+        daysElapsed: 5,
+        ragStatus: 'Green'
+      },
+      {
+        id: 'FT002',
+        formCode: 'ASMT12_REPLY',
+        formTitle: 'ASMT-12 Reply',
+        caseId: 'CS002',
+        caseNumber: 'GST/2024/002',
+        caseTitle: 'Contract Breach',
+        client: 'XYZ Ltd',
+        stage: 'Adjudication',
+        submissionDate: '2024-08-10',
+        dueDate: '2024-08-05',
+        status: 'Delayed',
+        daysElapsed: 10,
+        ragStatus: 'Red'
+      },
+      {
+        id: 'FT003',
+        formCode: 'DRC01_REPLY',
+        formTitle: 'DRC-01 Reply',
+        caseId: 'CS003',
+        caseNumber: 'GST/2024/003',
+        caseTitle: 'Tax Assessment',
+        client: 'Tech Solutions',
+        stage: 'Scrutiny',
+        submissionDate: '2024-08-18',
+        dueDate: '2024-08-25',
+        status: 'On Time',
+        daysElapsed: 7,
+        ragStatus: 'Green'
+      },
+      {
+        id: 'FT004',
+        formCode: 'GSTAT',
+        formTitle: 'Statement of Facts',
+        caseId: 'CS001',
+        caseNumber: 'GST/2024/001',
+        caseTitle: 'Property Dispute Case',
+        client: 'ABC Corp',
+        stage: 'First Appeal',
+        submissionDate: '',
+        dueDate: '2024-09-01',
+        status: 'Pending',
+        daysElapsed: 0,
+        ragStatus: 'Amber'
+      }
+    ];
+    
+    return { data: mockData };
+  },
+
   /**
    * Renders a form template to PDF with user data
    * @param formCode - The form template code (e.g., 'GSTAT', 'ASMT10_REPLY')
@@ -429,6 +499,7 @@ export const getSLAReport = reportsService.getSLAReport; // Backward compatibili
 export const getTaskReport = reportsService.getTaskReport;
 export const getClientReport = reportsService.getClientReport;
 export const getCommunicationReport = reportsService.getCommunicationReport;
+export const getFormTimelineReport = reportsService.getFormTimelineReport;
 
 /**
  * Generates structured PDF content from form template and data

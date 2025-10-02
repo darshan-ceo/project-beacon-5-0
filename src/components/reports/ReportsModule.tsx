@@ -3,7 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Calendar, AlertTriangle, CheckSquare, Users, MessageSquare, Settings, Save, HelpCircle } from 'lucide-react';
+import { FileText, Calendar, AlertTriangle, CheckSquare, Users, MessageSquare, Settings, Save, HelpCircle, FileCheck2 } from 'lucide-react';
 import { ContextualPageHelp } from '@/components/help/ContextualPageHelp';
 import { usePermission } from '@/hooks/useAdvancedRBAC';
 
@@ -14,6 +14,7 @@ import { TimelineBreachTab } from './tabs/TimelineBreachTab';
 import { TasksTab } from './tabs/TasksTab';
 import { ClientSummaryTab } from './tabs/ClientSummaryTab';
 import { CommunicationsTab } from './tabs/CommunicationsTab';
+import { FormTimelineTab } from './tabs/FormTimelineTab';
 import { ReportsFilterRail } from './ReportsFilterRail';
 import { SavedViewsManager } from './SavedViewsManager';
 
@@ -64,6 +65,13 @@ const reportTabs = [
     label: 'Communications',
     icon: MessageSquare,
     description: 'Communication delivery and analytics',
+    roles: ['Admin', 'Partner/CA', 'Staff']
+  },
+  {
+    id: 'form-timeline' as ReportType,
+    label: 'Form Timeline',
+    icon: FileCheck2,
+    description: 'Track form submission timelines and compliance',
     roles: ['Admin', 'Partner/CA', 'Staff']
   }
 ];
@@ -116,6 +124,8 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({ userRole }) => {
         return <ClientSummaryTab {...commonProps} />;
       case 'communications':
         return <CommunicationsTab {...commonProps} />;
+      case 'form-timeline':
+        return <FormTimelineTab {...commonProps} />;
       default:
         return <div>Report not found</div>;
     }
@@ -187,7 +197,7 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({ userRole }) => {
           >
             {/* Tab List */}
             <div className="border-b border-border bg-background">
-              <TabsList className="grid w-full grid-cols-6 h-auto p-1">
+              <TabsList className="grid w-full grid-cols-7 h-auto p-1">
                 {availableTabs.map((tab) => {
                   const Icon = tab.icon;
                   return (

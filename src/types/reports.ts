@@ -35,7 +35,8 @@ export type ReportType =
   | 'timeline-breach-compliance'
   | 'tasks'
   | 'client-summary'
-  | 'communications';
+  | 'communications'
+  | 'form-timeline';
 
 export interface CaseReportData {
   id: string;
@@ -132,6 +133,22 @@ export interface ExportOptions {
   includeCharts?: boolean;
   letterhead?: boolean;
   filters?: ReportFilter;
+}
+
+export interface FormTimelineReportData {
+  id: string;
+  formCode: string;
+  formTitle: string;
+  caseId: string;
+  caseNumber: string;
+  caseTitle: string;
+  client: string;
+  stage: string;
+  submissionDate: string;
+  dueDate?: string;
+  status: 'On Time' | 'Delayed' | 'Pending';
+  daysElapsed: number;
+  ragStatus: 'Green' | 'Amber' | 'Red';
 }
 
 export interface ScheduleConfig {

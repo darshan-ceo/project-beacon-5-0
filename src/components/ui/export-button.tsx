@@ -14,7 +14,7 @@ import { reportsService } from '@/services/reportsService';
 interface ExportButtonProps {
   data: any[];
   filename: string;
-  type: 'cases' | 'timeline' | 'hearings' | 'dashboard' | 'case-reports' | 'client-summary' | 'communications' | 'sla-compliance' | 'tasks';
+  type: 'cases' | 'timeline' | 'hearings' | 'dashboard' | 'case-reports' | 'client-summary' | 'communications' | 'sla-compliance' | 'tasks' | 'form-timeline';
   variant?: 'default' | 'outline' | 'ghost';
   size?: 'default' | 'sm' | 'lg';
 }
@@ -52,6 +52,7 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
         case 'communications':
         case 'sla-compliance':
         case 'tasks':
+        case 'form-timeline':
           // For new report types, use the same case export for now
           await reportsService.exportCaseList(data, format);
           break;

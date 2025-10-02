@@ -1,0 +1,145 @@
+{
+  "id": "form-timeline-tab",
+  "title": "Form Timeline Performance Tab",
+  "description": "Track form submission timelines and compliance across all cases",
+  "sections": [
+    {
+      "heading": "Overview",
+      "content": "The Form Timeline Performance tab provides a comprehensive view of all legal form submissions across your cases, helping you monitor submission timelines, identify delays, and ensure compliance with filing deadlines.",
+      "type": "text"
+    },
+    {
+      "heading": "Key Features",
+      "content": [
+        {
+          "title": "Form Tracking",
+          "description": "Monitor all form submissions (ASMT-10, ASMT-12, DRC-01, GSTAT, etc.) across cases with submission and due dates"
+        },
+        {
+          "title": "Timeline Compliance",
+          "description": "Track whether forms were submitted on time, delayed, or are still pending with RAG status indicators"
+        },
+        {
+          "title": "Performance Metrics",
+          "description": "View days elapsed since submission or until due date to identify bottlenecks"
+        },
+        {
+          "title": "Advanced Filtering",
+          "description": "Filter by form type, timeline status, RAG status, client, case, and date range"
+        },
+        {
+          "title": "Export Capabilities",
+          "description": "Export form timeline reports to Excel or PDF for stakeholder review"
+        }
+      ],
+      "type": "list"
+    },
+    {
+      "heading": "Report Columns",
+      "content": [
+        {
+          "column": "Form Code",
+          "description": "The unique identifier for the form template (e.g., ASMT10_REPLY, DRC01_REPLY)"
+        },
+        {
+          "column": "Form Title",
+          "description": "Full name of the legal form"
+        },
+        {
+          "column": "Case Number",
+          "description": "Associated case reference number"
+        },
+        {
+          "column": "Case Title",
+          "description": "Brief description of the case"
+        },
+        {
+          "column": "Client",
+          "description": "Client name for the case"
+        },
+        {
+          "column": "Stage",
+          "description": "Current litigation stage when form was/is to be submitted"
+        },
+        {
+          "column": "Submission Date",
+          "description": "Actual date when the form was submitted (blank if pending)"
+        },
+        {
+          "column": "Due Date",
+          "description": "Deadline for form submission"
+        },
+        {
+          "column": "Status",
+          "description": "On Time (submitted before due date), Delayed (submitted after due date), or Pending (not yet submitted)"
+        },
+        {
+          "column": "Days Elapsed",
+          "description": "Number of days between submission and due date (positive = early, negative = late)"
+        },
+        {
+          "column": "RAG Status",
+          "description": "Red-Amber-Green indicator: Green (on time/early), Amber (approaching deadline), Red (overdue/delayed)"
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "heading": "Using Filters",
+      "content": "Use the filter rail on the left to narrow down form submissions:\n\n• **Form Type**: Select specific form templates (ASMT-10, ASMT-12, DRC-01, etc.)\n• **Timeline Status**: Filter by On Time, Delayed, or Pending submissions\n• **RAG Status**: Show only Green, Amber, or Red status forms\n• **Date Range**: Focus on forms due or submitted within specific date ranges\n• **Client/Case**: Filter by specific clients or cases\n\nApply multiple filters simultaneously for precise analysis.",
+      "type": "text"
+    },
+    {
+      "heading": "Best Practices",
+      "content": [
+        {
+          "practice": "Regular Monitoring",
+          "tip": "Review this report weekly to identify pending forms and approaching deadlines"
+        },
+        {
+          "practice": "Early Action on Amber/Red",
+          "tip": "Prioritize forms showing Amber or Red RAG status to avoid compliance breaches"
+        },
+        {
+          "practice": "Performance Analysis",
+          "tip": "Use the Days Elapsed metric to identify stages or form types that consistently face delays"
+        },
+        {
+          "practice": "Client Communication",
+          "tip": "Export client-specific reports to provide transparency on form submission timelines"
+        },
+        {
+          "practice": "Process Improvement",
+          "tip": "Analyze patterns in delayed submissions to optimize internal workflows"
+        }
+      ],
+      "type": "tips"
+    },
+    {
+      "heading": "Common Use Cases",
+      "content": [
+        "Generate monthly compliance reports showing all forms submitted on time vs. delayed",
+        "Identify cases with pending form submissions approaching deadlines",
+        "Analyze performance by form type to identify problematic templates or processes",
+        "Track team/individual performance on form submission timeliness",
+        "Provide clients with detailed reports on their case progress and compliance status"
+      ],
+      "type": "list"
+    }
+  ],
+  "relatedTopics": [
+    {
+      "title": "Case Reports Tab",
+      "link": "/help/reports/case-reports-tab"
+    },
+    {
+      "title": "Document Management",
+      "link": "/help/documents"
+    },
+    {
+      "title": "Form Templates",
+      "link": "/help/documents/templates"
+    }
+  ],
+  "lastUpdated": "2025-10-02"
+}
