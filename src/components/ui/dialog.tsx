@@ -36,7 +36,7 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-[50%] top-[50%] z-50 flex w-full max-w-lg max-h-[90vh] translate-x-[-50%] translate-y-[-50%] flex-col overflow-hidden border bg-background shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg sm:max-h-[85vh] md:max-h-[90vh]",
+        "fixed left-[50%] top-[50%] z-50 flex w-full max-w-beacon-modal max-h-[90vh] translate-x-[-50%] translate-y-[-50%] flex-col overflow-hidden border bg-background shadow-beacon-lg rounded-beacon-xl duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] max-sm:w-[calc(100vw-32px)] max-sm:rounded-beacon-lg max-sm:m-4 md:max-w-beacon-modal",
         className
       )}
       {...props}
@@ -57,7 +57,7 @@ const DialogHeader = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex flex-col space-y-1.5 text-center sm:text-left p-6 pb-0",
+      "flex flex-col space-y-1.5 text-center sm:text-left p-6 pb-4 border-b border-border",
       className
     )}
     {...props}
@@ -71,7 +71,7 @@ const DialogFooter = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 p-6 pt-0",
+      "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 p-6 pt-4 border-t border-border",
       className
     )}
     {...props}
@@ -85,7 +85,7 @@ const DialogBody = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex-1 overflow-y-auto p-6 py-0",
+      "flex-1 overflow-y-auto px-6 py-4",
       className
     )}
     {...props}
@@ -100,7 +100,7 @@ const DialogTitle = React.forwardRef<
   <DialogPrimitive.Title
     ref={ref}
     className={cn(
-      "text-lg font-semibold leading-none tracking-tight",
+      "text-h3 font-medium leading-none tracking-tight text-foreground",
       className
     )}
     {...props}
