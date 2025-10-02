@@ -715,17 +715,31 @@ export const CaseManagement: React.FC = () => {
                              </div>
                            </div>
                            
-                            {caseItem.nextHearing && (
-                              <div>
-                                <p className="text-xs text-muted-foreground">Next Hearing</p>
-                                <div className="cursor-pointer hover:text-primary" onClick={() => {
-                                  window.location.href = `/hearings?caseId=${caseItem.id}&hearingDate=${caseItem.nextHearing?.date}&courtId=${caseItem.nextHearing?.courtId}`;
-                                }}>
-                                  <p className="text-sm font-medium">{caseItem.nextHearing.date}</p>
-                                  <p className="text-xs text-muted-foreground">{state.courts.find(c => c.id === caseItem.nextHearing?.courtId)?.name || 'Unknown Court'}</p>
-                                </div>
-                              </div>
-                            )}
+                             <div>
+                               <p className="text-xs text-muted-foreground">Next Hearing</p>
+                               {caseItem.nextHearing ? (
+                                 <div className="cursor-pointer hover:text-primary" onClick={() => {
+                                   window.location.href = `/hearings?caseId=${caseItem.id}&hearingDate=${caseItem.nextHearing?.date}&courtId=${caseItem.nextHearing?.courtId}`;
+                                 }}>
+                                   <p className="text-sm font-medium">{caseItem.nextHearing.date}</p>
+                                   <p className="text-xs text-muted-foreground">{state.courts.find(c => c.id === caseItem.nextHearing?.courtId)?.name || 'Unknown Court'}</p>
+                                 </div>
+                               ) : (
+                                 <Button
+                                   variant="outline"
+                                   size="sm"
+                                   onClick={(e) => {
+                                     e.stopPropagation();
+                                     setSelectedCase(caseItem);
+                                     setActiveTab('hearings');
+                                   }}
+                                   className="text-xs h-7 mt-1"
+                                 >
+                                   <Calendar className="h-3 w-3 mr-1" />
+                                   Schedule
+                                 </Button>
+                               )}
+                             </div>
                          </div>
 
                         {/* Additional Case Details */}
