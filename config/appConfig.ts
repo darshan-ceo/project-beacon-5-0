@@ -3,6 +3,28 @@
  * GST Litigation Platform - Project Beacon
  */
 
+// Case Type Taxonomy
+export const CASE_TYPES = [
+  'GST',
+  'ST',     // Service Tax
+  'Excise',
+  'Custom',
+  'VAT',
+  'DGFT'
+] as const;
+
+// Matter Types for Scrutiny Stage
+export const MATTER_TYPES = [
+  'Scrutiny',
+  'General Inquiry',
+  'Audit',
+  'Investigation',
+  'Refund',
+  'Advance Ruling',
+  'Amnesty',
+  'E-waybill'
+] as const;
+
 export const GST_STAGES = [
   'Intake & KYC',
   'ASMT-10 Notice Received',
@@ -60,6 +82,8 @@ export const PRIORITY_OPTIONS = [
   { value: 'Low', label: 'Low', color: 'green' }
 ] as const;
 
+export type CaseType = typeof CASE_TYPES[number];
+export type MatterType = typeof MATTER_TYPES[number];
 export type GSTStage = typeof GST_STAGES[number];
 export type EmployeeRole = typeof EMPLOYEE_ROLES[number];
 export type GSTNoticeType = typeof GST_NOTICE_TYPES[number];
@@ -68,6 +92,8 @@ export type TaskCategory = typeof TASK_CATEGORIES[number];
 export type PriorityLevel = typeof PRIORITY_OPTIONS[number]['value'];
 
 export const APP_CONFIG = {
+  CASE_TYPES,
+  MATTER_TYPES,
   GST_STAGES,
   EMPLOYEE_ROLES,
   GST_NOTICE_TYPES,

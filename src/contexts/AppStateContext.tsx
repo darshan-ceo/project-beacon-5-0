@@ -17,7 +17,7 @@ interface Case {
   caseNumber: string;
   title: string;
   clientId: string; // FK to Client.id
-  currentStage: 'Scrutiny' | 'Demand' | 'Adjudication' | 'Appeals' | 'GSTAT' | 'HC' | 'SC';
+  currentStage: 'Scrutiny' | 'Adjudication' | 'First Appeal' | 'Tribunal' | 'High Court' | 'Supreme Court';
   priority: 'High' | 'Medium' | 'Low';
   timelineBreachStatus: 'Green' | 'Amber' | 'Red';
   status?: 'Active' | 'Completed';
@@ -38,6 +38,22 @@ interface Case {
   generatedForms: GeneratedForm[]; // Track completed forms
   amountInDispute?: number; // Amount in dispute for GST cases
   description?: string; // Case description
+  
+  // NEW FIELDS - Client Request Updates
+  caseType?: 'GST' | 'ST' | 'Excise' | 'Custom' | 'VAT' | 'DGFT'; // Case type taxonomy
+  issueType?: string; // Issue/matter name (used with client name for title)
+  caseYear?: string; // Year component of case number
+  caseSequence?: string; // Sequence number within year
+  officeFileNo?: string; // Office file reference number
+  noticeNo?: string; // Notice reference number
+  period?: string; // Tax period (e.g., "Q1 FY2024-25")
+  taxDemand?: number; // Tax amount in dispute
+  authority?: string; // Issuing authority name
+  jurisdictionalCommissionerate?: string; // Jurisdictional office
+  departmentLocation?: string; // Department location
+  matterType?: 'Scrutiny' | 'General Inquiry' | 'Audit' | 'Investigation' | 'Refund' | 'Advance Ruling' | 'Amnesty' | 'E-waybill'; // Matter type for Scrutiny stage
+  tribunalBench?: 'State Bench' | 'Principal Bench'; // Tribunal bench selection for routing
+  
   // Backward compatibility
   slaStatus?: 'Green' | 'Amber' | 'Red'; // Deprecated: use timelineBreachStatus
 }
@@ -338,7 +354,7 @@ const initialState: AppState = {
       caseNumber: 'GST/2024/001',
       title: 'Input Tax Credit Disallowance - TechCorp Industries',
       clientId: 'CLT-MOCK-001',
-      currentStage: 'Appeals',
+      currentStage: 'First Appeal',
       priority: 'High',
       timelineBreachStatus: 'Green',
       status: 'Active',
@@ -374,7 +390,7 @@ const initialState: AppState = {
       caseNumber: 'GST/2024/002',
       title: 'Output Tax Liability Dispute - ManufacturingPlus Ltd',
       clientId: 'CLT-MOCK-002',
-      currentStage: 'Demand',
+      currentStage: 'Adjudication',
       priority: 'High',
       timelineBreachStatus: 'Red',
       status: 'Active',
@@ -410,7 +426,7 @@ const initialState: AppState = {
       caseNumber: 'GST/2024/003', 
       title: 'Reverse Charge Mechanism Non-Compliance - ServiceHub Pvt Ltd',
       clientId: 'CLT-MOCK-003',
-      currentStage: 'Demand',
+      currentStage: 'Adjudication',
       priority: 'Medium',
       timelineBreachStatus: 'Amber',
       status: 'Active',
@@ -429,7 +445,7 @@ const initialState: AppState = {
       caseNumber: 'GST/2024/004',
       title: 'IGST Refund Rejection Appeal - ExportKing Enterprises', 
       clientId: 'CLT-MOCK-004',
-      currentStage: 'Appeals',
+      currentStage: 'First Appeal',
       priority: 'High',
       timelineBreachStatus: 'Green',
       status: 'Active',

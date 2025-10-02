@@ -33,7 +33,7 @@ export const casesService = {
         caseNumber: `CAS${Date.now().toString().slice(-6)}`,
         title: caseData.title || '',
         clientId: caseData.clientId || '',
-        currentStage: 'Demand',
+        currentStage: 'Adjudication',
         priority: caseData.priority || 'Medium',
         timelineBreachStatus: 'Green',
         status: 'Active',
@@ -175,7 +175,7 @@ export const casesService = {
                        nextStage === 'HC' ? 'Green' : 'Green';
 
       const updates = {
-        currentStage: nextStage as 'Scrutiny' | 'Demand' | 'Adjudication' | 'Appeals' | 'GSTAT' | 'HC' | 'SC',
+        currentStage: nextStage as 'Scrutiny' | 'Adjudication' | 'First Appeal' | 'Tribunal' | 'High Court' | 'Supreme Court',
         slaStatus: slaStatus as 'Green' | 'Amber' | 'Red',
         lastUpdated: new Date().toISOString(),
         ...(assignedTo && { assignedToName: assignedTo }),

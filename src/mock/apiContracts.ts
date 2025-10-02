@@ -66,7 +66,7 @@ export interface CreateCaseData {
   caseNumber: string;
   title: string;
   clientId: string;
-  currentStage: 'Scrutiny' | 'Demand' | 'Adjudication' | 'Appeals' | 'GSTAT' | 'HC' | 'SC';
+  currentStage: 'Scrutiny' | 'Adjudication' | 'First Appeal' | 'Tribunal' | 'High Court' | 'Supreme Court';
   priority: 'High' | 'Medium' | 'Low';
   assignedToId: string;
   assignedToName: string;

@@ -1,26 +1,44 @@
 import { Case, Task } from '@/contexts/AppStateContext';
 
-// Stage progression sequence for legal cases
+// Stage progression sequence for legal cases - UPDATED
 export const CASE_STAGES = [
   'Scrutiny',
-  'Demand', 
   'Adjudication',
-  'Appeals',
-  'GSTAT',
-  'HC',
-  'SC'
+  'First Appeal',
+  'Tribunal',
+  'High Court',
+  'Supreme Court'
 ] as const;
 
 export type CaseStage = typeof CASE_STAGES[number];
 
+// Legacy stage mapping for backward compatibility
+export const LEGACY_STAGE_MAP: Record<string, CaseStage> = {
+  'Demand': 'Adjudication',
+  'Appeals': 'First Appeal',
+  'GSTAT': 'Tribunal',
+  'HC': 'High Court',
+  'SC': 'Supreme Court'
+};
+
 /**
  * Get the next stage in the case lifecycle
+ * Supports special routing for Tribunal → Supreme Court (Principal Bench)
  */
-export function getNextStage(currentStage: string): string | null {
-  const currentIndex = CASE_STAGES.indexOf(currentStage as CaseStage);
+export function getNextStage(currentStage: string, tribunalBench?: 'State Bench' | 'Principal Bench'): string | null {
+  // Handle legacy stage names
+  const mappedStage = LEGACY_STAGE_MAP[currentStage] || currentStage;
+  
+  const currentIndex = CASE_STAGES.indexOf(mappedStage as CaseStage);
   if (currentIndex === -1 || currentIndex === CASE_STAGES.length - 1) {
     return null; // Invalid stage or already at final stage
   }
+  
+  // Special routing: Tribunal + Principal Bench → Supreme Court (skip High Court)
+  if (mappedStage === 'Tribunal' && tribunalBench === 'Principal Bench') {
+    return 'Supreme Court';
+  }
+  
   return CASE_STAGES[currentIndex + 1];
 }
 
@@ -125,7 +143,10 @@ export function generateStageDefaults(stage: string): {
   estimatedDuration: number; // in days
   requiresHearing: boolean;
 } {
-  switch (stage) {
+  // Handle legacy stage names
+  const mappedStage = LEGACY_STAGE_MAP[stage] || stage;
+  
+  switch (mappedStage) {
     case 'Scrutiny':
       return {
         suggestedTasks: [
@@ -135,18 +156,6 @@ export function generateStageDefaults(stage: string): {
           'Set case timeline'
         ],
         estimatedDuration: 7,
-        requiresHearing: false
-      };
-
-    case 'Demand':
-      return {
-        suggestedTasks: [
-          'Draft demand notice',
-          'Gather supporting evidence',
-          'Send demand to opposing party',
-          'Set response deadline'
-        ],
-        estimatedDuration: 14,
         requiresHearing: false
       };
 
@@ -162,7 +171,7 @@ export function generateStageDefaults(stage: string): {
         requiresHearing: true
       };
 
-    case 'Appeals':
+    case 'First Appeal':
       return {
         suggestedTasks: [
           'Review lower court decision',
@@ -174,10 +183,10 @@ export function generateStageDefaults(stage: string): {
         requiresHearing: true
       };
 
-    case 'GSTAT':
+    case 'Tribunal':
       return {
         suggestedTasks: [
-          'Prepare GSTAT application',
+          'Prepare Tribunal application',
           'Submit required documents',
           'Track application status',
           'Coordinate with authorities'
@@ -186,7 +195,7 @@ export function generateStageDefaults(stage: string): {
         requiresHearing: false
       };
 
-    case 'HC':
+    case 'High Court':
       return {
         suggestedTasks: [
           'Prepare High Court petition',
@@ -198,7 +207,7 @@ export function generateStageDefaults(stage: string): {
         requiresHearing: true
       };
 
-    case 'SC':
+    case 'Supreme Court':
       return {
         suggestedTasks: [
           'Prepare Supreme Court petition',

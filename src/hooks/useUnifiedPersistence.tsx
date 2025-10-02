@@ -106,23 +106,60 @@ export const useUnifiedPersistence = () => {
         storage.getAll<any>('folders')
       ]);
 
-      // Migrate cases: ensure timelineBreachStatus exists for backward compatibility
+      // Migrate cases: ensure timelineBreachStatus exists + migrate stage names + add new fields
       const migratedCases = cases.map((caseItem: any) => {
-        if (!caseItem.timelineBreachStatus && caseItem.slaStatus) {
-          return { ...caseItem, timelineBreachStatus: caseItem.slaStatus };
+        let migrated = { ...caseItem };
+        
+        // Migrate timelineBreachStatus (existing)
+        if (!migrated.timelineBreachStatus && migrated.slaStatus) {
+          migrated.timelineBreachStatus = migrated.slaStatus;
         }
-        if (!caseItem.timelineBreachStatus) {
-          return { ...caseItem, timelineBreachStatus: 'Green' };
+        if (!migrated.timelineBreachStatus) {
+          migrated.timelineBreachStatus = 'Green';
         }
-        return caseItem;
+        
+        // Migrate stage names to new taxonomy
+        const legacyStageMap: Record<string, string> = {
+          'Demand': 'Adjudication',
+          'Appeals': 'First Appeal',
+          'GSTAT': 'Tribunal',
+          'HC': 'High Court',
+          'SC': 'Supreme Court'
+        };
+        
+        if (migrated.currentStage && legacyStageMap[migrated.currentStage]) {
+          migrated.currentStage = legacyStageMap[migrated.currentStage];
+        }
+        
+        // Add new fields with defaults if missing
+        if (!migrated.caseType) {
+          migrated.caseType = 'GST'; // Default to GST
+        }
+        
+        if (!migrated.issueType && migrated.title) {
+          // Extract issue type from title if it follows "Client – Issue" format
+          const parts = migrated.title.split(' – ');
+          migrated.issueType = parts.length > 1 ? parts[1] : migrated.title;
+        }
+        
+        // Set default values for new fields
+        if (!migrated.matterType && migrated.currentStage === 'Scrutiny') {
+          migrated.matterType = 'Scrutiny';
+        }
+        
+        if (!migrated.tribunalBench && migrated.currentStage === 'Tribunal') {
+          migrated.tribunalBench = 'State Bench';
+        }
+        
+        return migrated;
       });
 
       const migratedCount = migratedCases.filter((c: any, i: number) => 
-        c.timelineBreachStatus !== cases[i].timelineBreachStatus
+        JSON.stringify(c) !== JSON.stringify(cases[i])
       ).length;
       
       if (migratedCount > 0) {
-        console.log(`🔄 Migrated ${migratedCount} cases with timelineBreachStatus field`);
+        console.log(`🔄 Migrated ${migratedCount} cases with new schema (stages, fields, etc.)`);
       }
 
       // Check if storage is empty (no meaningful data)
