@@ -553,7 +553,7 @@ export const DocumentManagement: React.FC = () => {
 
   const handleAddTag = async (doc: any, tagName: string) => {
     try {
-      const updatedTags = [...doc.tags, tagName];
+      const updatedTags = [...(doc.tags || []), tagName];
       await dmsService.files.updateMetadata(doc.id, { tags: updatedTags }, dispatch);
       
       // Update local state
@@ -1073,7 +1073,7 @@ export const DocumentManagement: React.FC = () => {
                           <span>{doc.uploadedByName}</span>
                           <span>•</span>
                           <span>{doc.uploadedAt}</span>
-                          {doc.tags.length > 0 && (
+                          {doc.tags?.length > 0 && (
                             <>
                               <span>•</span>
                               <div className="flex gap-1">

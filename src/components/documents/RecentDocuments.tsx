@@ -92,7 +92,7 @@ export const RecentDocuments: React.FC<RecentDocumentsProps> = ({ documents }) =
                 <span>{new Date(doc.uploadedAt).toLocaleDateString()}</span>
               </div>
               <div className="flex items-center space-x-2">
-                {doc.tags.map((tag) => (
+                {(doc.tags || []).map((tag) => (
                   <Badge key={tag} variant="outline" className="text-xs">
                     {tag}
                   </Badge>
