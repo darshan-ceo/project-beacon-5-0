@@ -17,6 +17,7 @@ import { dmsService } from '@/services/dmsService';
 import { taskBundleService } from '@/services/taskBundleService';
 import { useToast } from '@/hooks/use-toast';
 import { resolveDataGaps, type ResolverInput, type ResolverOutput } from '@/lib/notice/dataGapsResolver';
+import { useAsmt10Resolver, type ValidationResult } from '@/validation/asmt10Resolver';
 import { DataGapsResolver } from './DataGapsResolver';
 
 interface NoticeIntakeWizardProps {
@@ -50,6 +51,16 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState('');
   const { toast } = useToast();
+  
+  // Use the new relaxed validator
+  const validationResult = useAsmt10Resolver({
+    extraction: extractedData || {},
+    confidence: resolverOutput?.gaps.reduce((acc, gap) => {
+      acc[gap.path] = gap.confidence;
+      return acc;
+    }, {} as Record<string, number>) || {},
+    user_overrides: userOverrides
+  });
 
   // Check if API key is already configured
   const apiKeyInfo = noticeExtractionService.getAPIKeyInfo();
@@ -246,17 +257,28 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
     const resolved = resolveDataGaps(resolverInput);
     setResolverOutput(resolved);
     
-    if (resolved.status === 'complete') {
-      setExtractedData(resolved.normalized);
+    // Use new validation to check if can proceed (only GSTIN blocks)
+    if (validationResult.canProceed) {
+      // Merge normalized data from validation
+      const mergedData = {
+        ...resolved.normalized,
+        ...validationResult.normalized
+      };
+      setExtractedData(mergedData);
       setCurrentStep(4);
+      
+      const warningCount = validationResult.warnings.length;
       toast({
-        title: "Data gaps resolved",
-        description: "All required fields are now complete.",
+        title: "Validation Complete",
+        description: warningCount > 0 
+          ? `${warningCount} intimation${warningCount > 1 ? 's' : ''} logged. You can proceed.`
+          : "All data validated successfully.",
       });
     } else {
+      // Only GSTIN error blocks
       toast({
-        title: "Gaps remaining",
-        description: `${resolved.gaps.filter(g => g.critical).length} critical gaps still need attention.`,
+        title: "GSTIN Required",
+        description: "Please provide a valid 15-character GSTIN to continue.",
         variant: "destructive",
       });
     }
@@ -440,7 +462,8 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
         if (extractedData) setCurrentStep(3);
         break;
       case 3:
-        if (resolverOutput?.status === 'complete') {
+        // Only GSTIN blocks progress - use validation result
+        if (validationResult.canProceed) {
           setCurrentStep(4);
         } else {
           handleResolveGaps();
@@ -714,6 +737,7 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
             {resolverOutput && (
               <DataGapsResolver
                 resolverOutput={resolverOutput}
+                validationResult={validationResult}
                 onUpdateField={handleUpdateField}
                 onResolve={handleResolveGaps}
               />

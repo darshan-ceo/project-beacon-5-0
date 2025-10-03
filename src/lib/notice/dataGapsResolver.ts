@@ -27,14 +27,9 @@ export interface ResolverOutput {
   can_proceed: boolean;
 }
 
+// ONLY GSTIN is blocking - all other fields are warnings
 const CRITICAL_PATHS = [
-  '/taxpayer/gstin',
-  '/issue_date', 
-  '/notice_no',
-  '/din',
-  '/periods/0/period_label',
-  '/discrepancy_summary/total_amount_proposed',
-  '/discrepancies'
+  '/taxpayer/gstin'
 ];
 
 const FIELD_DEFINITIONS: Record<string, { label: string; type: DataGap['type']; enumOptions?: string[] }> = {
