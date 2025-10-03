@@ -460,13 +460,16 @@ export const DocumentManagement: React.FC = () => {
 
   const handleDocumentUpload = async (file: File, options: any = {}) => {
     try {
+      // PHASE 3B: Pass userId for RBAC
+      const currentUserId = '3'; // TODO: Get from auth context
+      
       // Prepare options with existing documents for duplicate checking
       const uploadOptions = {
         ...options,
         existingDocuments: state.documents
       };
 
-      const result = await dmsService.files.upload(file, uploadOptions, dispatch);
+      const result = await dmsService.files.upload(currentUserId, file, uploadOptions, dispatch);
       
       if (result.success && result.document) {
         // Successful upload

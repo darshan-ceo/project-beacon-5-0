@@ -152,6 +152,53 @@ class PolicyEngine {
   }
 
   /**
+   * PHASE 3C: Evaluate cascading permissions (client → case → task/doc)
+   */
+  async evaluateCascadingPermission(
+    userId: string,
+    resource: string,
+    action: 'read' | 'write' | 'delete' | 'admin',
+    parentResource?: { type: string; id: string }
+  ): Promise<PolicyEvaluation> {
+    // First check direct resource permission
+    const directPermission = await this.evaluatePermission(userId, resource, action);
+    
+    if (!directPermission.allowed) {
+      return directPermission;
+    }
+    
+    // If parent resource is provided, validate parent access
+    if (parentResource) {
+      const parentPermission = await this.evaluatePermission(
+        userId,
+        parentResource.type,
+        'read' // Minimum permission needed on parent
+      );
+      
+      if (!parentPermission.allowed) {
+        return {
+          allowed: false,
+          scope: 'own',
+          reason: `Access denied to parent ${parentResource.type}`
+        };
+      }
+      
+      // Inherit most restrictive scope
+      const scopeHierarchy = ['own', 'team', 'org'];
+      const directScopeIndex = scopeHierarchy.indexOf(directPermission.scope);
+      const parentScopeIndex = scopeHierarchy.indexOf(parentPermission.scope);
+      
+      return {
+        allowed: true,
+        scope: scopeHierarchy[Math.min(directScopeIndex, parentScopeIndex)] as 'own' | 'team' | 'org',
+        reason: 'Cascading permission validated'
+      };
+    }
+    
+    return directPermission;
+  }
+
+  /**
    * Evaluate permission with scope for a user
    */
   async evaluatePermission(

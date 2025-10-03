@@ -92,7 +92,7 @@ class StageTransitionService {
       }
 
       try {
-        const task = await tasksService.create({
+        const task = await tasksService.create('system', {
           title: template.title,
           description: `${template.description}\n\n[Auto-created on stage change to ${stage}]`,
           caseId: caseData.id,

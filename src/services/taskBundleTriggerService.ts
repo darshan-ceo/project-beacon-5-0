@@ -134,7 +134,7 @@ class TaskBundleTriggerService {
     // Create tasks from bundle items
     for (const item of bundle.items) {
       try {
-        const task = await tasksService.create({
+        const task = await tasksService.create('system', {
           title: item.title,
           description: `${item.description || ''}\n\n[Auto-created from bundle: ${bundle.name}]`,
           caseId: caseData.id,

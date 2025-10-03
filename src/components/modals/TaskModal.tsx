@@ -98,8 +98,45 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     }
   }, [taskData?.id, mode, contextCaseId]); // Add specific dependencies to prevent infinite loops
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // PHASE 3A: RBAC Security Check - Validate case access before task creation
+    const currentUserId = '3'; // TODO: Get from auth context
+    
+    try {
+      const { policyEngine, secureDataAccess } = await import('@/security/policyEngine');
+      
+      // Check: Can user create tasks?
+      const canCreateTask = await policyEngine.evaluatePermission(currentUserId, 'tasks', 'write');
+      if (!canCreateTask.allowed) {
+        toast({
+          title: "Permission Denied",
+          description: "You don't have permission to create tasks.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Check: Can user access the case?
+      const caseAccess = await secureDataAccess.secureGet(
+        currentUserId, 
+        'cases', 
+        formData.caseId,
+        async (id) => state.cases.find(c => c.id === id) || null
+      );
+      
+      if (!caseAccess) {
+        toast({
+          title: "Access Denied",
+          description: "You don't have permission to create tasks for this case.",
+          variant: "destructive"
+        });
+        return;
+      }
+    } catch (error) {
+      console.error('RBAC check failed:', error);
+    }
     
     // Validate case relationship
     const caseValidation = validateTaskCase(formData.caseId);

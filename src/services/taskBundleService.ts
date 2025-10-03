@@ -266,7 +266,7 @@ class TaskBundleService {
     for (const bundle of applicableBundles) {
       for (const template of bundle.tasks) {
         try {
-          const task = await tasksService.create({
+          const task = await tasksService.create('system', {
             title: `${template.title} (C${stageInstance.cycleNo})`,
             description: template.description,
             caseId: caseData.id,
@@ -309,7 +309,7 @@ class TaskBundleService {
    */
   async archivePreviousCycleTasks(caseId: string, stageKey: string, currentCycle: number): Promise<void> {
     try {
-      const allTasks = await tasksService.getByCase(caseId);
+      const allTasks = await tasksService.getByCase('system', caseId);
       const previousCycleTasks = allTasks.filter(
         task => 
           task.stage === stageKey && 

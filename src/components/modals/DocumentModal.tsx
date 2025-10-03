@@ -84,6 +84,9 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
     setLoading(true);
     
     try {
+      // PHASE 3B: RBAC Security Check
+      const currentUserId = '3'; // TODO: Get from auth context
+      
       if (mode === 'upload') {
         if (!formData.file) {
           toast({
@@ -92,6 +95,40 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
             variant: "destructive"
           });
           return;
+        }
+        
+        // Validate document upload permission
+        const { policyEngine, secureDataAccess } = await import('@/security/policyEngine');
+        
+        const canUpload = await policyEngine.evaluatePermission(currentUserId, 'documents', 'write');
+        if (!canUpload.allowed) {
+          toast({
+            title: "Permission Denied",
+            description: "You don't have permission to upload documents.",
+            variant: "destructive"
+          });
+          setLoading(false);
+          return;
+        }
+        
+        // If document is linked to a case, validate case access
+        if (formData.caseId && formData.caseId !== 'none') {
+          const caseAccess = await secureDataAccess.secureGet(
+            currentUserId,
+            'cases',
+            formData.caseId,
+            async (id) => state.cases.find(c => c.id === id) || null
+          );
+          
+          if (!caseAccess) {
+            toast({
+              title: "Access Denied",
+              description: "You don't have permission to upload documents for this case.",
+              variant: "destructive"
+            });
+            setLoading(false);
+            return;
+          }
         }
 
         if (onUpload) {
@@ -110,7 +147,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
             existingDocuments: state.documents
           };
 
-          const result = await dmsService.files.upload(formData.file, uploadOptions, dispatch);
+          const result = await dmsService.files.upload(currentUserId, formData.file, uploadOptions, dispatch);
           
           if (!result.success && result.duplicate) {
             // Handle duplicates through parent component

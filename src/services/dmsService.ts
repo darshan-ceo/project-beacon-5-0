@@ -534,11 +534,52 @@ export const dmsService = {
   // File Management  
   files: {
     upload: async (
+      userId: string, // PHASE 3B: Added for RBAC
       file: File,
       options: UploadOptions,
       dispatch: React.Dispatch<AppAction>
     ): Promise<UploadResult> => {
       await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // PHASE 3B: RBAC Security Check
+      try {
+        const { policyEngine, secureDataAccess } = await import('@/security/policyEngine');
+        
+        // Check: Can user upload documents?
+        const canUpload = await policyEngine.evaluatePermission(userId, 'documents', 'write');
+        if (!canUpload.allowed) {
+          throw new Error('Permission denied: Cannot upload documents');
+        }
+        
+        // If document is linked to a case, validate case access
+        if (options.caseId) {
+          const { storageManager } = await import('@/data/StorageManager');
+          const storage = storageManager.getStorage();
+          const caseData = await storage.getById('cases', options.caseId);
+          
+          if (!caseData) {
+            throw new Error('Case not found');
+          }
+          
+          const caseAccess = await secureDataAccess.secureGet(
+            userId,
+            'cases',
+            options.caseId,
+            async (id) => caseData
+          );
+          
+          if (!caseAccess) {
+            throw new Error('Access denied: Cannot upload documents for this case');
+          }
+        }
+      } catch (error: any) {
+        toast({
+          title: "Permission Denied",
+          description: error.message,
+          variant: "destructive"
+        });
+        throw error;
+      }
 
       // Validate file type - Extended support for AI drafts
       const allowedTypes = [
@@ -1272,6 +1313,7 @@ export const dmsService = {
     dispatch: React.Dispatch<AppAction>
   ): Promise<Document> => {
     const result = await dmsService.files.upload(
+      'system', // PHASE 3B: System upload for backward compatibility
       file, 
       { caseId, stage: stageId, tags: [stageId] }, 
       dispatch

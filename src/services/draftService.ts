@@ -88,7 +88,7 @@ class DraftService {
         tags: ['ai-generated', templateCode, `v${version}`]
       };
 
-      const uploadResult = await dmsService.files.upload(file, uploadOptions, dispatch);
+      const uploadResult = await dmsService.files.upload('system', file, uploadOptions, dispatch);
 
       if (!uploadResult.success || !uploadResult.document) {
         throw new Error('Failed to upload draft document');

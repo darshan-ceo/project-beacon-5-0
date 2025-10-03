@@ -22,13 +22,57 @@ import {
 export const ClientPortal: React.FC = () => {
   const { state } = useAppState();
   const { currentUser } = useRBAC();
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [hasAccess, setHasAccess] = React.useState(false);
+  const [clientCases, setClientCases] = React.useState<any[]>([]);
 
-  // In a real app, this would be the logged-in client ID
-  const clientId = '1'; // Mock client ID
+  // PHASE 3C: CRITICAL SECURITY FIX - Get clientId from authenticated user
+  // TODO: Replace with actual auth context
+  const currentUserId = currentUser?.id || '1';
+  const clientId = currentUserId; // In real app: map userId to clientId
+  
   const client = state.clients.find(c => c.id === clientId);
 
-  // Filter data for this client only
-  const clientCases = state.cases.filter(c => c.clientId === clientId);
+  // PHASE 3C: Validate client access and apply scope filtering
+  React.useEffect(() => {
+    const validateAccess = async () => {
+      try {
+        const { policyEngine, secureDataAccess } = await import('@/security/policyEngine');
+        
+        // Check: Can user access client portal?
+        const canAccessClient = await policyEngine.evaluatePermission(
+          currentUserId,
+          'clients',
+          'read'
+        );
+        
+        if (!canAccessClient.allowed) {
+          setHasAccess(false);
+          setIsLoading(false);
+          return;
+        }
+        
+        // Apply scope filtering to cases
+        const filteredCases = await secureDataAccess.secureList(
+          currentUserId,
+          'cases',
+          async () => state.cases.filter(c => c.clientId === clientId)
+        );
+        
+        setClientCases(filteredCases);
+        setHasAccess(true);
+      } catch (error) {
+        console.error('Client portal access validation failed:', error);
+        setHasAccess(false);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    if (clientId && state.cases.length > 0) {
+      validateAccess();
+    }
+  }, [clientId, currentUserId, state.cases]);
   // Transform documents to match interface
   const clientDocuments = state.documents
     .filter(d => d.clientId === clientId)
@@ -69,13 +113,26 @@ export const ClientPortal: React.FC = () => {
     visible: { opacity: 1, y: 0 }
   };
 
-  if (!client) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
-          <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Validating access...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!client || !hasAccess) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <Shield className="h-12 w-12 text-destructive mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-foreground">Access Denied</h2>
-          <p className="text-muted-foreground">Client profile not found or access not authorized.</p>
+          <p className="text-muted-foreground">
+            Client profile not found or you don't have permission to access this portal.
+          </p>
         </div>
       </div>
     );

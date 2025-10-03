@@ -22,6 +22,7 @@ export interface TaskCreationRequest {
   source: 'template' | 'bundle' | 'manual';
   sourceId?: string;
   sourceName?: string;
+  userId?: string; // PHASE 3A: Added for RBAC
 }
 
 interface TaskCreationResult {
@@ -37,7 +38,7 @@ class TaskCreationService {
   ): Promise<TaskCreationResult> {
     try {
       // Create the task using the tasks service
-      const task = await tasksService.create({
+      const task = await tasksService.create(request.userId || 'system', {
         title: request.title,
         description: this.buildDescription(request),
         caseId: request.caseId,

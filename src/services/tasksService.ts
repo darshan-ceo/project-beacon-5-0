@@ -25,7 +25,37 @@ export interface UpdateTaskData extends Partial<CreateTaskData> {
 class TasksService {
   private tasks: Task[] = [];
 
-  async create(data: CreateTaskData): Promise<Task> {
+  async create(userId: string, data: CreateTaskData): Promise<Task> {
+    // PHASE 3A: RBAC Permission Check
+    const { policyEngine, secureDataAccess } = await import('@/security/policyEngine');
+    
+    // Validate write permission
+    const canCreate = await policyEngine.evaluatePermission(userId, 'tasks', 'write');
+    if (!canCreate.allowed) {
+      throw new Error('Permission denied: Cannot create tasks');
+    }
+    
+    // Validate case access (ensure user can create tasks for this case)
+    const { storageManager } = await import('@/data/StorageManager');
+    const storage = storageManager.getStorage();
+    const caseData = await storage.getById('cases', data.caseId);
+    
+    if (!caseData) {
+      throw new Error('Case not found');
+    }
+    
+    // Verify case access with scope
+    const caseAccess = await secureDataAccess.secureGet(
+      userId,
+      'cases',
+      data.caseId,
+      async (id) => caseData
+    );
+    
+    if (!caseAccess) {
+      throw new Error('Access denied: Cannot create tasks for this case');
+    }
+    
     // FIXED: Use UUID instead of timestamp
     const { generateId } = await import('@/data/db');
     const newTask: Task = {
@@ -37,7 +67,6 @@ class TasksService {
     };
 
     // FIXED: Persist to storage
-    const { storageManager } = await import('@/data/StorageManager');
     const { changeTracker } = await import('./changeTracker');
     const { ENTITY_TYPES } = await import('@/constants/StorageKeys');
     
@@ -98,16 +127,58 @@ class TasksService {
     }
   }
 
-  async list(): Promise<Task[]> {
-    return [...this.tasks];
+  async list(userId: string): Promise<Task[]> {
+    // PHASE 3A: Apply scope filtering
+    const { secureDataAccess } = await import('@/security/policyEngine');
+    
+    return secureDataAccess.secureList(
+      userId,
+      'tasks',
+      async () => [...this.tasks]
+    );
   }
 
-  async getByCase(caseId: string): Promise<Task[]> {
-    return this.tasks.filter(t => t.caseId === caseId);
+  async getByCase(userId: string, caseId: string): Promise<Task[]> {
+    // PHASE 3A: Validate case access with scope
+    const { secureDataAccess } = await import('@/security/policyEngine');
+    const { storageManager: sm } = await import('@/data/StorageManager');
+    
+    const storage = sm.getStorage();
+    const caseData = await storage.getById('cases', caseId);
+    
+    if (!caseData) {
+      throw new Error('Case not found');
+    }
+    
+    // Verify case access
+    const caseAccess = await secureDataAccess.secureGet(
+      userId,
+      'cases',
+      caseId,
+      async (id) => caseData
+    );
+    
+    if (!caseAccess) {
+      return []; // No access to case = no tasks
+    }
+    
+    // Return filtered tasks
+    return secureDataAccess.secureList(
+      userId,
+      'tasks',
+      async () => this.tasks.filter(t => t.caseId === caseId)
+    );
   }
 
-  async getByAssignee(assignedToId: string): Promise<Task[]> {
-    return this.tasks.filter(t => t.assignedToId === assignedToId);
+  async getByAssignee(userId: string, assignedToId: string): Promise<Task[]> {
+    // PHASE 3A: Apply scope filtering
+    const { secureDataAccess } = await import('@/security/policyEngine');
+    
+    return secureDataAccess.secureList(
+      userId,
+      'tasks',
+      async () => this.tasks.filter(t => t.assignedToId === assignedToId)
+    );
   }
 }
 
