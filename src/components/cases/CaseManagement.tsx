@@ -383,41 +383,29 @@ export const CaseManagement: React.FC = () => {
             variant="resizable" 
           />
           <InlineHelp module="case-management" />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <HelpButton 
-                helpId="button-create-case"
+          <div className="flex gap-2">
+            <ThreeLayerHelp helpId="button-create-case" showExplanation={false}>
+              <Button 
+                onClick={() => setCaseModal({ isOpen: true, mode: 'create', case: null })}
                 className="bg-primary hover:bg-primary-hover"
                 data-tour="new-case-btn"
               >
                 <Plus className="mr-2 h-4 w-4" />
                 New Case
-              </HelpButton>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setCaseModal({ isOpen: true, mode: 'create', case: null })}>
-                <ThreeLayerHelp helpId="button-create-case" showExplanation={false}>
-                  <div className="flex items-center">
-                    <Scale className="mr-2 h-4 w-4" />
-                    Create Case
-                  </div>
-                </ThreeLayerHelp>
-              </DropdownMenuItem>
-              {featureFlagService.isEnabled('notice_intake_v1') && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setNoticeIntakeModal(true)}>
-                    <ThreeLayerHelp helpId="button-notice-intake" showExplanation={false}>
-                      <div className="flex items-center">
-                        <FileText className="mr-2 h-4 w-4" />
-                        From Notice
-                      </div>
-                    </ThreeLayerHelp>
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+              </Button>
+            </ThreeLayerHelp>
+            {featureFlagService.isEnabled('notice_intake_v1') && (
+              <ThreeLayerHelp helpId="button-notice-intake" showExplanation={false}>
+                <Button 
+                  onClick={() => setNoticeIntakeModal(true)}
+                  variant="outline"
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  From Notice
+                </Button>
+              </ThreeLayerHelp>
+            )}
+          </div>
         </div>
       </motion.div>
 
