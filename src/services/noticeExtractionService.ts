@@ -5,6 +5,7 @@
 
 import { toast } from '@/hooks/use-toast';
 import * as pdfjsLib from 'pdfjs-dist';
+import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 export interface FieldConfidence {
   value: string;
@@ -35,8 +36,8 @@ interface ExtractionResult {
 
 class NoticeExtractionService {
   constructor() {
-    // Configure PDF.js worker
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+    // Configure PDF.js worker with local bundle
+    pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
   }
 
   private regexPatterns = {
