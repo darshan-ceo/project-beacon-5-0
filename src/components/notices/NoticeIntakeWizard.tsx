@@ -103,8 +103,6 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
       const result = await noticeExtractionService.extractFromPDF(uploadedFile);
       
       if (result.success && result.data) {
-        setExtractedData(result.data);
-        
         // Map extracted data to validator schema format
         const mappedExtraction = {
           din: result.data.din,
@@ -149,6 +147,21 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
             if (key === 'issueDate') confidenceMap['/issue_date'] = confidenceValue;
           });
         }
+        
+        // Create UI-ready extracted data with mapped schema and confidence
+        const extractedForUI = {
+          ...mappedExtraction,
+          fieldConfidence: result.data.fieldConfidence,
+          rawText: result.data.rawText
+        };
+        
+        console.debug('Notice extraction:', { 
+          raw: result.data, 
+          mapped: mappedExtraction,
+          forUI: extractedForUI 
+        });
+        
+        setExtractedData(extractedForUI);
         
         // Initialize data gaps resolver with mapped data
         const resolverInput: ResolverInput = {
@@ -611,7 +624,7 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
 
                       return (
                         <>
-                          {renderField('Notice Number', extractedData.notice_no, 'noticeType')}
+                          {renderField('Notice Number', extractedData.notice_no, 'noticeNo')}
                           {renderField('DIN', extractedData.din, 'din')}
                           {renderField('GSTIN', extractedData.taxpayer?.gstin, 'gstin')}
                           {renderField('Issue Date', extractedData.issue_date, 'issueDate')}
