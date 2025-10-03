@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle, Upload, FileText, User, FolderOpen, Calendar, AlertCircle, Loader2, Key, Eye, EyeOff } from 'lucide-react';
+import { CheckCircle, Upload, FileText, User, FolderOpen, Calendar, AlertCircle, Loader2, Key, Eye, EyeOff, Settings, ExternalLink } from 'lucide-react';
 import { noticeExtractionService } from '@/services/noticeExtractionService';
 import { clientsService } from '@/services/clientsService';
 import { casesService } from '@/services/casesService';
@@ -47,6 +47,8 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
   const [createdCase, setCreatedCase] = useState<any>(null);
   const [apiKey, setApiKey] = useState<string>('');
   const [showApiKey, setShowApiKey] = useState(false);
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  const [apiKeyInput, setApiKeyInput] = useState('');
   const { toast } = useToast();
 
   // Check if API key is already configured
@@ -101,6 +103,28 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
     setLoading(true);
     try {
       const result = await noticeExtractionService.extractFromPDF(uploadedFile);
+      
+      // Handle specific errors
+      if (result.errorCode === 'INVALID_API_KEY') {
+        toast({
+          title: "Invalid OpenAI API Key",
+          description: "Please configure a valid API key to use AI extraction.",
+          variant: "destructive",
+        });
+        setShowApiKeyModal(true);
+        setLoading(false);
+        return;
+      }
+      
+      if (result.errorCode === 'RATE_LIMIT') {
+        toast({
+          title: "Rate Limit Reached",
+          description: "OpenAI rate limit exceeded. Please try again in a minute.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
       
       if (result.success && result.data) {
         // Map extracted data to validator schema format
@@ -158,7 +182,9 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
         console.debug('Notice extraction:', { 
           raw: result.data, 
           mapped: mappedExtraction,
-          forUI: extractedForUI 
+          forUI: extractedForUI,
+          errorCode: result.errorCode,
+          usedFallback: result.errorCode ? true : false
         });
         
         setExtractedData(extractedForUI);
@@ -886,6 +912,77 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
           </Button>
         </div>
       </DialogContent>
+
+      {/* API Key Configuration Modal */}
+      <Dialog open={showApiKeyModal} onOpenChange={setShowApiKeyModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Configure OpenAI API Key</DialogTitle>
+            <DialogDescription>
+              Enter your OpenAI API key for high-accuracy AI extraction (90%+ accuracy)
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="api-key">OpenAI API Key</Label>
+              <Input
+                id="api-key"
+                type="password"
+                placeholder="sk-..."
+                value={apiKeyInput}
+                onChange={(e) => setApiKeyInput(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Your API key is stored locally and never sent to our servers
+              </p>
+            </div>
+            
+            <div className="flex items-start gap-2 p-3 bg-muted rounded-lg">
+              <ExternalLink className="h-4 w-4 mt-0.5 text-muted-foreground" />
+              <div className="text-xs text-muted-foreground">
+                Don't have an API key?{' '}
+                <a 
+                  href="https://platform.openai.com/api-keys" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  Get one from OpenAI
+                </a>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowApiKeyModal(false);
+                setApiKeyInput('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (apiKeyInput.trim()) {
+                  noticeExtractionService.setAPIKey(apiKeyInput.trim());
+                  setShowApiKeyModal(false);
+                  setApiKeyInput('');
+                  toast({
+                    title: "API Key Configured",
+                    description: "AI extraction is now enabled",
+                  });
+                }
+              }}
+              disabled={!apiKeyInput.trim()}
+            >
+              Save Key
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 };

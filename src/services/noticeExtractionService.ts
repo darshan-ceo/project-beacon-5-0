@@ -31,6 +31,7 @@ interface ExtractionResult {
   success: boolean;
   data?: ExtractedNoticeData;
   error?: string;
+  errorCode?: 'INVALID_API_KEY' | 'RATE_LIMIT' | 'PDF_PARSE_ERROR' | 'UNKNOWN';
   confidence?: number;
 }
 
@@ -41,14 +42,14 @@ class NoticeExtractionService {
   }
 
   private regexPatterns = {
-    din: /(?:DIN|Document\s+Identification\s+Number|Unique\s+ID)[:\s]*([A-Z0-9]{15})/i,
-    noticeNo: /(?:Notice\s+No\.?|Reference\s+No\.?|Notice\s+Number)[:\s]*([A-Z0-9\-\/]+)/i,
-    gstin: /(?:GSTIN|GST\s+Identification\s+Number|GSTIN\s+of\s+Taxpayer)[:\s]*([0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{1}[Z]{1}[A-Z0-9]{1})/i,
-    period: /(?:Period|Tax\s+Period|Financial\s+Period)[:\s]*([0-9]{2}\/[0-9]{4}|[A-Z]{3}[-\s][0-9]{4}|[0-9]{4}-[0-9]{2})/i,
-    issueDate: /(?:Issue\s+Date|Date\s+of\s+Issue|Issued\s+on)[:\s]*([0-9]{2}[\/\-][0-9]{2}[\/\-][0-9]{4})/i,
-    dueDate: /(?:Due\s+Date|Last\s+Date|Response\s+Due|Reply\s+by)[:\s]*([0-9]{2}[\/\-][0-9]{2}[\/\-][0-9]{4})/i,
-    office: /(?:Issuing\s+Office|Office|Jurisdiction|Commissionerate)[:\s]*([A-Z][A-Z\s,\-]+(?:GST|CGST|SGST|IGST|Commissionerate)[A-Z\s,\-]*)/i,
-    amount: /(?:Amount|Tax\s+Amount|Total\s+Amount|Discrepancy)[:\s]*(?:Rs\.?\s*|₹\s*)?([0-9,]+\.?[0-9]*)/i,
+    din: /DIN[\s:]*([A-Z0-9]{15,20})/i,
+    noticeNo: /(?:Reference|Notice)\s*(?:No\.?|Number)[\s:]*([A-Z0-9\/\-]+)/i,
+    gstin: /GSTIN[\s:]*([0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[0-9A-Z]{1}Z[0-9A-Z]{1})/i,
+    period: /(?:Tax\s*Period|Period|FY)[\s:]*([^,\n]+(?:202[0-9]\s*-\s*202[0-9])?)/i,
+    issueDate: /(?:Date|Issued\s+on)[\s:]*(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i,
+    dueDate: /(?:Due\s+Date|Last\s+Date|Response\s+Due|Reply\s+by)[\s:]*(\d{2}[\/\-\.]\d{4})/i,
+    office: /(?:Issuing\s+Office|Office|Jurisdiction|Commissionerate)[\s:]*([A-Z][A-Z\s,\-]+(?:GST|CGST|SGST|IGST|Commissionerate)[A-Z\s,\-]*)/i,
+    amount: /(?:Total\s*Amount|Amount)[\s:]*(?:Rs\.?|₹)?\s*([\d,]+)/i,
     noticeType: /(ASMT-10|ASMT-11|ASMT-12|DRC-01|DRC-07|GSTR[-\s]?[0-9A-Z]+)/i
   };
 
@@ -189,9 +190,13 @@ Return the data as JSON with this structure:
         console.error('OpenAI Vision API error:', response.status, errorText);
         
         if (response.status === 401) {
-          throw new Error('Invalid OpenAI API key. Please reconfigure in wizard.');
+          const error = new Error('INVALID_API_KEY');
+          (error as any).code = 'INVALID_API_KEY';
+          throw error;
         } else if (response.status === 429) {
-          throw new Error('OpenAI rate limit exceeded. Please try again later.');
+          const error = new Error('RATE_LIMIT');
+          (error as any).code = 'RATE_LIMIT';
+          throw error;
         }
         
         throw new Error(`Vision API request failed: ${response.status}`);
@@ -316,6 +321,7 @@ Return the data as JSON with this structure:
     try {
       let extractedData: ExtractedNoticeData;
       let usingAI = false;
+      let errorCode: ExtractionResult['errorCode'] | undefined;
 
       // Try AI/OCR first
       try {
@@ -331,37 +337,73 @@ Return the data as JSON with this structure:
           office: aiResult.fieldConfidence.office?.value || '',
           amount: aiResult.fieldConfidence.amount?.value || '',
           noticeType: aiResult.fieldConfidence.noticeType?.value || '',
+          noticeNo: aiResult.fieldConfidence.noticeNo?.value || '',
+          issueDate: aiResult.fieldConfidence.issueDate?.value || '',
           rawText: aiResult.text,
           fieldConfidence: aiResult.fieldConfidence
         };
         
-        console.log('Notice extraction using AI/OCR successful');
+        console.debug('Notice extraction using AI/OCR successful', {
+          fields: Object.keys(aiResult.fieldConfidence),
+          values: extractedData
+        });
       } catch (aiError) {
-        console.log('AI/OCR extraction failed, falling back to regex:', aiError);
+        const errorMessage = aiError instanceof Error ? aiError.message : 'Unknown error';
+        const code = (aiError as any).code;
+        
+        console.log('AI/OCR extraction failed, falling back to regex:', errorMessage);
+        
+        // Check for specific error codes
+        if (code === 'INVALID_API_KEY' || errorMessage.includes('INVALID_API_KEY')) {
+          errorCode = 'INVALID_API_KEY';
+        } else if (code === 'RATE_LIMIT' || errorMessage.includes('RATE_LIMIT')) {
+          errorCode = 'RATE_LIMIT';
+        }
+        
         // Fallback to basic text extraction + regex
-        const extractedText = await this.extractTextFromPDF(file);
-        extractedData = this.extractDataFromText(extractedText);
-        usingAI = false;
+        try {
+          const extractedText = await this.extractTextFromPDF(file);
+          extractedData = this.extractDataFromText(extractedText);
+          usingAI = false;
+          
+          console.debug('Regex extraction completed', {
+            textLength: extractedText.length,
+            fieldsFound: Object.keys(extractedData.fieldConfidence || {}).length,
+            values: extractedData
+          });
+        } catch (pdfError) {
+          console.error('PDF text extraction failed:', pdfError);
+          return {
+            success: false,
+            error: 'Failed to extract text from PDF',
+            errorCode: 'PDF_PARSE_ERROR'
+          };
+        }
       }
 
       const confidence = this.calculateConfidence(extractedData);
 
-      toast({
-        title: "Notice Data Extracted",
-        description: `Extracted using ${usingAI ? 'AI/OCR' : 'regex patterns'} (${Math.round(confidence)}% fields found)`,
-      });
+      // Don't show toast for API key errors - let wizard handle it
+      if (!errorCode) {
+        toast({
+          title: "Notice Data Extracted",
+          description: `Extracted using ${usingAI ? 'AI/OCR' : 'regex patterns'} (~${Math.round(confidence)}% complete)`,
+        });
+      }
 
       return {
         success: true,
         data: extractedData,
-        confidence
+        confidence,
+        errorCode // Pass through error code even on success (for fallback scenarios)
       };
 
     } catch (error) {
       console.error('Notice extraction failed:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Extraction failed'
+        error: error instanceof Error ? error.message : 'Extraction failed',
+        errorCode: 'UNKNOWN'
       };
     }
   }
