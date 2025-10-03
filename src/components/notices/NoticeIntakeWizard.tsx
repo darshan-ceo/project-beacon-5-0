@@ -82,6 +82,26 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
     }
   }, [initialDocument]);
 
+  // Auto-trigger client matching when entering Step 4
+  useEffect(() => {
+    if (currentStep === 4 && !selectedClient && !loading && resolverOutput?.normalized?.taxpayer?.gstin) {
+      console.debug('[Wizard] Auto-triggering client match on Step 4');
+      handleClientMatch();
+    }
+  }, [currentStep, selectedClient, loading]);
+
+  // Debug logging for wizard state
+  useEffect(() => {
+    console.debug('[Wizard] State:', {
+      step: currentStep,
+      hasFile: !!uploadedFile,
+      hasExtracted: !!extractedData,
+      canProceed: validationResult.canProceed,
+      hasClient: !!selectedClient,
+      hasCase: !!createdCase
+    });
+  }, [currentStep, uploadedFile, extractedData, validationResult, selectedClient, createdCase]);
+
   const getStepStatus = (stepId: number) => {
     if (stepId < currentStep) return 'completed';
     if (stepId === currentStep) return 'current';
@@ -470,7 +490,10 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
         }
         break;
       case 4:
-        handleClientMatch();
+        // Client matching is auto-triggered by useEffect, just move forward if already matched
+        if (selectedClient) {
+          setCurrentStep(5);
+        }
         break;
       case 5:
         handleCreateCase();
@@ -756,10 +779,26 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
               </p>
             </div>
             
-            {selectedClient && (
+            {loading && !selectedClient && (
               <Card>
+                <CardContent className="py-8">
+                  <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    <p className="text-sm text-muted-foreground">
+                      Searching for existing client with GSTIN...
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
+            {selectedClient && (
+              <Card className="border-green-500/50">
                 <CardHeader>
-                  <CardTitle>Selected Client</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    {selectedClient.id ? 'Client Matched' : 'New Client Created'}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
@@ -865,32 +904,48 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
           <DialogTitle>Notice Intake Wizard - ASMT-10</DialogTitle>
         </DialogHeader>
         
-        {/* Progress indicator */}
+        {/* Progress indicator - Enhanced Timeline */}
         <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-4">
             {steps.map((step, index) => {
               const status = getStepStatus(step.id);
               const Icon = step.icon;
               
               return (
-                <div key={step.id} className="flex items-center">
-                  <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${
-                    status === 'completed' ? 'bg-green-600 border-green-600 text-white' :
-                    status === 'current' ? 'border-primary text-primary' :
-                    'border-muted-foreground text-muted-foreground'
-                  }`}>
-                    {status === 'completed' ? (
-                      <CheckCircle className="w-4 h-4" />
-                    ) : (
-                      <Icon className="w-4 h-4" />
-                    )}
+                <React.Fragment key={step.id}>
+                  <div className="flex flex-col items-center gap-2 relative">
+                    <div className={`relative flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all ${
+                      status === 'completed' ? 'bg-green-600 border-green-600 text-white shadow-md' :
+                      status === 'current' ? 'border-primary bg-primary/10 text-primary shadow-lg ring-2 ring-primary/20' :
+                      'border-muted bg-background text-muted-foreground'
+                    }`}>
+                      {status === 'completed' ? (
+                        <CheckCircle className="w-5 h-5" />
+                      ) : (
+                        <Icon className="w-5 h-5" />
+                      )}
+                      {/* Step number badge */}
+                      <div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full text-[10px] font-semibold flex items-center justify-center ${
+                        status === 'completed' ? 'bg-green-700 text-white' :
+                        status === 'current' ? 'bg-primary text-primary-foreground' :
+                        'bg-muted text-muted-foreground'
+                      }`}>
+                        {step.id}
+                      </div>
+                    </div>
+                    <span className={`text-xs text-center max-w-[70px] leading-tight transition-all ${
+                      status === 'current' ? 'font-semibold text-foreground' : 'text-muted-foreground'
+                    }`}>
+                      {step.title}
+                    </span>
                   </div>
                   {index < steps.length - 1 && (
-                    <div className={`w-12 h-0.5 ml-2 ${
-                      getStepStatus(step.id + 1) === 'upcoming' ? 'bg-muted' : 'bg-primary'
+                    <div className={`flex-1 h-0.5 mx-2 transition-all ${
+                      status === 'completed' ? 'bg-green-600' :
+                      status === 'current' ? 'bg-primary' : 'bg-muted'
                     }`} />
                   )}
-                </div>
+                </React.Fragment>
               );
             })}
           </div>
@@ -923,15 +978,16 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
           
           <Button
             onClick={handleNext}
-            disabled={loading || (currentStep === 1 && !uploadedFile) || 
+            disabled={loading || 
+                     (currentStep === 1 && !uploadedFile) || 
                      (currentStep === 2 && !extractedData) ||
-                     (currentStep === 3 && resolverOutput?.status !== 'complete') ||
-                     (currentStep === 4 && !selectedClient) ||
+                     (currentStep === 3 && !validationResult.canProceed) ||
                      (currentStep === 5 && !createdCase) ||
                      (currentStep === 6 && !createdCase)}
           >
             {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            {currentStep === 3 && resolverOutput?.status !== 'complete' ? 'Validate' : 
+            {currentStep === 3 && !validationResult.canProceed ? 'Validate' : 
+             currentStep === 4 && loading ? 'Matching Client...' :
              currentStep === 7 ? 'Complete' : 'Next'}
           </Button>
         </div>
