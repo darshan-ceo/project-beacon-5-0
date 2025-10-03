@@ -105,7 +105,9 @@ class NetworkInterceptor {
       '127.0.0.1',
       envConfig.API?.replace(/^https?:\/\//, '').split('/')[0],
       // Allow blob URLs for file operations
-      'blob:'
+      'blob:',
+      // Allow OpenAI API for notice extraction
+      'api.openai.com'
     ].filter(Boolean);
 
     // Allow relative URLs (same origin)
