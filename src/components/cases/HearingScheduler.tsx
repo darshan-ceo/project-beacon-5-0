@@ -3,6 +3,8 @@ import { toast } from '@/hooks/use-toast';
 import { hearingsService } from '@/services/hearingsService';
 import { Hearing as GlobalHearing } from '@/types/hearings';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { integrationsService, CalendarConnectionStatus } from '@/services/integrationsService';
 import { 
   Calendar, 
   Clock, 
@@ -16,7 +18,8 @@ import {
   Video,
   FileText,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Check
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -63,11 +66,19 @@ interface HearingSchedulerProps {
 }
 
 export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases }) => {
+  const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState('');
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
   const [globalHearings, setGlobalHearings] = useState<GlobalHearing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [calendarStatus, setCalendarStatus] = useState<{
+    google: CalendarConnectionStatus;
+    outlook: CalendarConnectionStatus;
+  }>({
+    google: { connected: false },
+    outlook: { connected: false }
+  });
 
   useEffect(() => {
     const fetchHearings = async () => {
@@ -81,6 +92,19 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases }) => 
       }
     };
     fetchHearings();
+  }, []);
+
+  useEffect(() => {
+    const loadCalendarStatus = () => {
+      try {
+        const googleStatus = integrationsService.getConnectionStatus('default', 'google');
+        const outlookStatus = integrationsService.getConnectionStatus('default', 'outlook');
+        setCalendarStatus({ google: googleStatus, outlook: outlookStatus });
+      } catch (error) {
+        console.error('Failed to load calendar status:', error);
+      }
+    };
+    loadCalendarStatus();
   }, []);
 
   // Transform global hearings to local format for compatibility
@@ -396,13 +420,73 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases }) => 
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <Button variant="outline" className="h-20 flex flex-col items-center justify-center">
-                  <Calendar className="h-6 w-6 mb-2 text-primary" />
+                <Button 
+                  variant={calendarStatus.google.connected ? "default" : "outline"}
+                  className={`h-20 flex flex-col items-center justify-center ${
+                    calendarStatus.google.connected ? 'bg-success hover:bg-success/90' : ''
+                  }`}
+                  onClick={() => {
+                    if (calendarStatus.google.connected) {
+                      window.open('https://calendar.google.com', '_blank');
+                      toast({
+                        title: "Opening Google Calendar",
+                        description: `Connected as ${calendarStatus.google.userEmail || 'user'}`,
+                      });
+                    } else {
+                      toast({
+                        title: "Calendar Not Configured",
+                        description: "Please configure Google Calendar integration first",
+                        action: (
+                          <Button size="sm" onClick={() => navigate('/settings')}>
+                            Go to Settings
+                          </Button>
+                        ),
+                      });
+                    }
+                  }}
+                >
+                  <div className="flex items-center gap-1 mb-2">
+                    <Calendar className="h-6 w-6 text-primary" />
+                    {calendarStatus.google.connected && <Check className="h-4 w-4 text-success-foreground" />}
+                  </div>
                   <span className="text-sm">Google Calendar</span>
+                  {calendarStatus.google.connected && (
+                    <span className="text-xs text-muted-foreground mt-1">Connected</span>
+                  )}
                 </Button>
-                <Button variant="outline" className="h-20 flex flex-col items-center justify-center">
-                  <Calendar className="h-6 w-6 mb-2 text-secondary" />
+                <Button 
+                  variant={calendarStatus.outlook.connected ? "default" : "outline"}
+                  className={`h-20 flex flex-col items-center justify-center ${
+                    calendarStatus.outlook.connected ? 'bg-success hover:bg-success/90' : ''
+                  }`}
+                  onClick={() => {
+                    if (calendarStatus.outlook.connected) {
+                      window.open('https://outlook.live.com/calendar', '_blank');
+                      toast({
+                        title: "Opening Outlook Calendar",
+                        description: `Connected as ${calendarStatus.outlook.userEmail || 'user'}`,
+                      });
+                    } else {
+                      toast({
+                        title: "Calendar Not Configured",
+                        description: "Please configure Outlook integration first",
+                        action: (
+                          <Button size="sm" onClick={() => navigate('/settings')}>
+                            Go to Settings
+                          </Button>
+                        ),
+                      });
+                    }
+                  }}
+                >
+                  <div className="flex items-center gap-1 mb-2">
+                    <Calendar className="h-6 w-6 text-secondary" />
+                    {calendarStatus.outlook.connected && <Check className="h-4 w-4 text-success-foreground" />}
+                  </div>
                   <span className="text-sm">Outlook</span>
+                  {calendarStatus.outlook.connected && (
+                    <span className="text-xs text-muted-foreground mt-1">Connected</span>
+                  )}
                 </Button>
               </div>
               
