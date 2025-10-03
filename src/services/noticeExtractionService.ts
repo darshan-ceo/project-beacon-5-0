@@ -4,6 +4,7 @@
  */
 
 import { toast } from '@/hooks/use-toast';
+import * as pdfjsLib from 'pdfjs-dist';
 
 export interface FieldConfidence {
   value: string;
@@ -19,6 +20,8 @@ export interface ExtractedNoticeData {
   office: string;
   amount?: string;
   noticeType?: string;
+  noticeNo?: string;
+  issueDate?: string;
   rawText?: string;
   fieldConfidence?: Record<string, FieldConfidence>;
 }
@@ -31,59 +34,83 @@ interface ExtractionResult {
 }
 
 class NoticeExtractionService {
+  constructor() {
+    // Configure PDF.js worker
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+  }
+
   private regexPatterns = {
-    din: /(?:DIN|Document\s+Identification\s+Number)[:\s]*([A-Z0-9]{15})/i,
-    gstin: /(?:GSTIN|GST\s+Identification\s+Number)[:\s]*([0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{1}[Z]{1}[A-Z0-9]{1})/i,
-    period: /(?:Period|Tax\s+Period)[:\s]*([0-9]{2}\/[0-9]{4}|[A-Z]{3}\s+[0-9]{4})/i,
-    dueDate: /(?:Due\s+Date|Last\s+Date)[:\s]*([0-9]{2}\/[0-9]{2}\/[0-9]{4}|[0-9]{2}-[0-9]{2}-[0-9]{4})/i,
-    office: /(?:Issuing\s+Office|Office)[:\s]*([A-Z\s,]+(?:GST|CGST|SGST|IGST)[A-Z\s,]*)/i,
-    amount: /(?:Amount|Tax\s+Amount)[:\s]*(?:Rs\.?\s*)?([0-9,]+\.?[0-9]*)/i,
-    noticeType: /(ASMT-10|ASMT-11|DRC-01|DRC-07)/i
+    din: /(?:DIN|Document\s+Identification\s+Number|Unique\s+ID)[:\s]*([A-Z0-9]{15})/i,
+    noticeNo: /(?:Notice\s+No\.?|Reference\s+No\.?|Notice\s+Number)[:\s]*([A-Z0-9\-\/]+)/i,
+    gstin: /(?:GSTIN|GST\s+Identification\s+Number|GSTIN\s+of\s+Taxpayer)[:\s]*([0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{1}[Z]{1}[A-Z0-9]{1})/i,
+    period: /(?:Period|Tax\s+Period|Financial\s+Period)[:\s]*([0-9]{2}\/[0-9]{4}|[A-Z]{3}[-\s][0-9]{4}|[0-9]{4}-[0-9]{2})/i,
+    issueDate: /(?:Issue\s+Date|Date\s+of\s+Issue|Issued\s+on)[:\s]*([0-9]{2}[\/\-][0-9]{2}[\/\-][0-9]{4})/i,
+    dueDate: /(?:Due\s+Date|Last\s+Date|Response\s+Due|Reply\s+by)[:\s]*([0-9]{2}[\/\-][0-9]{2}[\/\-][0-9]{4})/i,
+    office: /(?:Issuing\s+Office|Office|Jurisdiction|Commissionerate)[:\s]*([A-Z][A-Z\s,\-]+(?:GST|CGST|SGST|IGST|Commissionerate)[A-Z\s,\-]*)/i,
+    amount: /(?:Amount|Tax\s+Amount|Total\s+Amount|Discrepancy)[:\s]*(?:Rs\.?\s*|₹\s*)?([0-9,]+\.?[0-9]*)/i,
+    noticeType: /(ASMT-10|ASMT-11|ASMT-12|DRC-01|DRC-07|GSTR[-\s]?[0-9A-Z]+)/i
   };
 
   /**
-   * Extract text from PDF file
+   * Extract text from PDF file using PDF.js
    */
   private async extractTextFromPDF(file: File): Promise<string> {
     try {
-      // In a real implementation, you would use a PDF parsing library
-      // For now, we'll simulate text extraction
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          // Simulate extracted text from ASMT-10 notice
-          const mockText = `
-            FORM ASMT-10
-            ASSESSMENT ORDER
-            DIN: 20241201ASMT001
-            GSTIN: 27ABCDE1234F1Z5
-            Period: 04/2024
-            Due Date: 15/12/2024
-            Office: Mumbai Central GST Commissionerate
-            Amount: Rs. 125,000
-          `;
-          resolve(mockText);
-        };
-        reader.readAsText(file);
-      });
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      
+      let fullText = '';
+      
+      // Extract text from all pages
+      for (let pageNum = 1; pageNum <= Math.min(pdf.numPages, 10); pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items
+          .map((item: any) => item.str)
+          .join(' ');
+        fullText += pageText + '\n';
+      }
+      
+      return fullText;
     } catch (error) {
+      console.error('PDF text extraction error:', error);
       throw new Error('Failed to extract text from PDF');
     }
   }
 
   /**
-   * Convert PDF to base64 image for Vision API
+   * Convert PDF first page to PNG image for Vision API
    */
   private async pdfToBase64Image(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const base64 = (reader.result as string).split(',')[1];
-        resolve(base64);
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      
+      // Render first page to canvas
+      const page = await pdf.getPage(1);
+      const viewport = page.getViewport({ scale: 2.0 }); // Higher resolution
+      
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('Failed to get canvas context');
+      
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+      
+      const renderContext = {
+        canvasContext: context,
+        viewport: viewport
       };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
+      
+      await page.render(renderContext as any).promise;
+      
+      // Convert canvas to base64 PNG
+      const base64 = canvas.toDataURL('image/png').split(',')[1];
+      return base64;
+    } catch (error) {
+      console.error('PDF to image conversion error:', error);
+      throw new Error('Failed to convert PDF to image');
+    }
   }
 
   /**
@@ -145,7 +172,7 @@ Return the data as JSON with this structure:
                 {
                   type: 'image_url',
                   image_url: {
-                    url: `data:image/jpeg;base64,${base64Image}`
+                    url: `data:image/png;base64,${base64Image}`
                   }
                 }
               ]
@@ -157,9 +184,16 @@ Return the data as JSON with this structure:
       });
 
       if (!response.ok) {
-        const error = await response.text();
-        console.error('OpenAI Vision API error:', error);
-        throw new Error('Vision API request failed');
+        const errorText = await response.text();
+        console.error('OpenAI Vision API error:', response.status, errorText);
+        
+        if (response.status === 401) {
+          throw new Error('Invalid OpenAI API key. Please reconfigure in wizard.');
+        } else if (response.status === 429) {
+          throw new Error('OpenAI rate limit exceeded. Please try again later.');
+        }
+        
+        throw new Error(`Vision API request failed: ${response.status}`);
       }
 
       const data = await response.json();
@@ -213,7 +247,10 @@ Return the data as JSON with this structure:
     Object.entries(this.regexPatterns).forEach(([key, pattern]) => {
       const match = text.match(pattern);
       if (match && match[1]) {
-        const value = match[1].trim();
+        const value = match[1].trim()
+          .replace(/\s+/g, ' ') // Normalize spaces
+          .replace(/[–—]/g, '-'); // Normalize dashes
+        
         (extracted as any)[key] = value;
         
         // Calculate confidence based on validation
@@ -224,12 +261,26 @@ Return the data as JSON with this structure:
           confidence = 85;
         } else if (key === 'din' && value.length === 15) {
           confidence = 80;
-        } else if (key === 'period' && /^[0-9]{2}\/[0-9]{4}$/.test(value)) {
-          confidence = 85;
-        } else if (key === 'dueDate' && /^[0-9]{2}\/[0-9]{2}\/[0-9]{4}$/.test(value)) {
-          confidence = 85;
-        } else if (key === 'noticeType' && /(ASMT-10|ASMT-11|DRC-01|DRC-07)/.test(value)) {
+        } else if (key === 'noticeNo' && value.length > 5) {
+          confidence = 75;
+        } else if (key === 'period') {
+          // Handle multiple period formats
+          if (/^[0-9]{2}\/[0-9]{4}$/.test(value)) confidence = 85;
+          else if (/^[A-Z]{3}[-\s][0-9]{4}$/.test(value)) confidence = 80;
+          else if (/^[0-9]{4}-[0-9]{2}$/.test(value)) confidence = 75;
+          else confidence = 60;
+        } else if (key === 'issueDate' || key === 'dueDate') {
+          if (/^[0-9]{2}[\/\-][0-9]{2}[\/\-][0-9]{4}$/.test(value)) {
+            confidence = 85;
+          } else {
+            confidence = 60;
+          }
+        } else if (key === 'noticeType' && /(ASMT-10|ASMT-11|ASMT-12|DRC-01|DRC-07)/.test(value)) {
           confidence = 95;
+        } else if (key === 'office' && value.length > 10) {
+          confidence = 70;
+        } else if (key === 'amount' && /^[0-9,]+\.?[0-9]*$/.test(value.replace(/,/g, ''))) {
+          confidence = 75;
         } else {
           confidence = 60;
         }
@@ -296,7 +347,7 @@ Return the data as JSON with this structure:
 
       toast({
         title: "Notice Data Extracted",
-        description: `Extracted using ${usingAI ? 'AI/OCR' : 'regex patterns'} (${confidence.toFixed(0)}% confidence)`,
+        description: `Extracted using ${usingAI ? 'AI/OCR' : 'regex patterns'} (${Math.round(confidence)}% fields found)`,
       });
 
       return {

@@ -105,10 +105,55 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
       if (result.success && result.data) {
         setExtractedData(result.data);
         
-        // Initialize data gaps resolver
+        // Map extracted data to validator schema format
+        const mappedExtraction = {
+          din: result.data.din,
+          notice_no: result.data.noticeNo || result.data.din,
+          notice_type: result.data.noticeType || 'ASMT-10',
+          issue_date: result.data.issueDate || '',
+          issuing_authority_office: result.data.office,
+          taxpayer: {
+            gstin: result.data.gstin,
+            name: '',
+            pan: result.data.gstin ? result.data.gstin.substring(2, 12) : '',
+            address: ''
+          },
+          periods: result.data.period ? [{
+            period_label: result.data.period,
+            start_date: '',
+            end_date: ''
+          }] : [],
+          action: {
+            response_due_date: result.data.dueDate,
+            response_mode: ''
+          },
+          discrepancy_summary: {
+            total_amount_proposed: result.data.amount || ''
+          }
+        };
+        
+        // Build confidence map (0-1 scale for resolver)
+        const confidenceMap: Record<string, number> = {};
+        if (result.data.fieldConfidence) {
+          Object.entries(result.data.fieldConfidence).forEach(([key, field]) => {
+            const confidenceValue = field.confidence / 100; // Convert 0-100 to 0-1
+            
+            // Map to resolver paths
+            if (key === 'din') confidenceMap['/din'] = confidenceValue;
+            if (key === 'noticeNo') confidenceMap['/notice_no'] = confidenceValue;
+            if (key === 'gstin') confidenceMap['/taxpayer/gstin'] = confidenceValue;
+            if (key === 'period') confidenceMap['/periods/0/period_label'] = confidenceValue;
+            if (key === 'dueDate') confidenceMap['/action/response_due_date'] = confidenceValue;
+            if (key === 'office') confidenceMap['/issuing_authority_office'] = confidenceValue;
+            if (key === 'amount') confidenceMap['/discrepancy_summary/total_amount_proposed'] = confidenceValue;
+            if (key === 'issueDate') confidenceMap['/issue_date'] = confidenceValue;
+          });
+        }
+        
+        // Initialize data gaps resolver with mapped data
         const resolverInput: ResolverInput = {
-          extraction: result.data,
-          confidence: typeof result.confidence === 'number' ? {} : (result.confidence || {}),
+          extraction: mappedExtraction,
+          confidence: confidenceMap,
           provenance: {},
           user_overrides: userOverrides
         };
@@ -116,23 +161,29 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
         const resolved = resolveDataGaps(resolverInput);
         setResolverOutput(resolved);
         
+        // Calculate average confidence from field confidences
+        const avgConfidence = Object.keys(confidenceMap).length > 0
+          ? Object.values(confidenceMap).reduce((a, b) => a + b, 0) / Object.values(confidenceMap).length
+          : (result.confidence || 0) / 100;
+        
         toast({
           title: "Data extracted successfully",
-          description: `Confidence: ${Math.round((result.confidence || 0) * 100)}%. ${resolved.gaps.length} gaps found.`,
+          description: `Average confidence: ${Math.round(avgConfidence * 100)}%. ${resolved.gaps.length} gaps identified.`,
         });
         setCurrentStep(3);
       } else {
         toast({
           title: "Extraction failed",
-          description: "Unable to extract data from the notice.",
+          description: result.error || "Unable to extract data from the notice.",
           variant: "destructive",
         });
       }
     } catch (error) {
       console.error('Data extraction error:', error);
+      const errorMsg = error instanceof Error ? error.message : 'An error occurred while processing the notice.';
       toast({
         title: "Extraction error",
-        description: "An error occurred while processing the notice.",
+        description: errorMsg,
         variant: "destructive",
       });
     } finally {
