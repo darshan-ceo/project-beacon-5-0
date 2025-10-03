@@ -34,21 +34,21 @@ const reportTabs = [
   },
   {
     id: 'hearings' as ReportType,
-    label: 'Hearings & Cause List',
+    label: 'Hearings',
     icon: Calendar,
     description: 'Upcoming hearings and cause lists',
     roles: ['Admin', 'Partner/CA', 'Staff']
   },
   {
     id: 'timeline-breach-compliance' as ReportType,
-    label: 'Timeline Breaches / Compliance',
+    label: 'Timeline & Compliance',
     icon: AlertTriangle,
     description: 'Timeline breaches and compliance tracking',
     roles: ['Admin', 'Partner/CA', 'Staff']
   },
   {
     id: 'tasks' as ReportType,
-    label: 'Task & Escalation',
+    label: 'Tasks',
     icon: CheckSquare,
     description: 'Task management and escalation reports',
     roles: ['Admin', 'Partner/CA', 'Staff']

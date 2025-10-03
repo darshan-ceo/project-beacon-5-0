@@ -25,7 +25,7 @@ export const ReportsFilterToolbar: React.FC<ReportsFilterToolbarProps> = ({
   filters,
   onFiltersChange,
   userRole,
-  defaultCollapsed = false
+  defaultCollapsed = true
 }) => {
   const [isExpanded, setIsExpanded] = useState(!defaultCollapsed);
   const [startDate, setStartDate] = useState<Date | undefined>(
