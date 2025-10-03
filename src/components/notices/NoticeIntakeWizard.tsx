@@ -90,6 +90,34 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
     }
   }, [currentStep, selectedClient, loading]);
 
+  // Prefill case data when entering Step 5
+  useEffect(() => {
+    if (currentStep === 5 && !caseData && selectedClient && resolverOutput?.normalized) {
+      console.debug('[Wizard] Auto-filling case data on Step 5');
+      const normalized = resolverOutput.normalized;
+      const prefilled = {
+        title: `ASMT-10 - ${normalized.notice_no || normalized.din}`,
+        description: `Notice received for ${normalized.periods?.[0]?.period_label || 'assessment period'}`,
+        client_id: selectedClient.id,
+        case_type: 'Assessment',
+        status: 'Active',
+        priority: 'Medium',
+        tags: ['ASMT-10', 'Notice'],
+        notice_details: {
+          notice_type: 'ASMT-10',
+          notice_no: normalized.notice_no,
+          din: normalized.din,
+          issue_date: normalized.issue_date,
+          due_date: normalized.action?.response_due_date,
+          period: normalized.periods?.[0]?.period_label,
+          amount: normalized.discrepancy_summary?.total_amount_proposed,
+          office: normalized.issuing_authority_office
+        }
+      };
+      setCaseData(prefilled);
+    }
+  }, [currentStep, caseData, selectedClient, resolverOutput]);
+
   // Debug logging for wizard state
   useEffect(() => {
     console.debug('[Wizard] State:', {
@@ -341,6 +369,7 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
         // Create new client from extracted data
         const normalized = resolverOutput.normalized;
         const newClient = {
+          id: `client_${Date.now()}`, // Generate unique ID for new client
           name: normalized.taxpayer?.name || 'New Client',
           gstin: gstin,
           pan: normalized.taxpayer?.pan,
@@ -373,38 +402,32 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
   };
 
   const handleCreateCase = async () => {
-    if (!selectedClient || !resolverOutput?.normalized) return;
+    if (!selectedClient || !caseData) return;
+
+    // Validate client has ID
+    if (!selectedClient.id) {
+      toast({
+        title: "Client missing ID",
+        description: "Cannot create case without a valid client ID.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setLoading(true);
     try {
-      const normalized = resolverOutput.normalized;
+      // Use the prefilled caseData (with any user edits)
       const newCase = {
-        title: `ASMT-10 - ${normalized.notice_no || normalized.din}`,
-        description: `Notice received for ${normalized.periods?.[0]?.period_label || 'assessment period'}`,
+        ...caseData,
         client_id: selectedClient.id,
-        case_type: 'Assessment',
-        status: 'Active',
-        priority: 'Medium',
-        tags: ['ASMT-10', 'Notice'],
-        notice_details: {
-          notice_type: 'ASMT-10',
-          notice_no: normalized.notice_no,
-          din: normalized.din,
-          issue_date: normalized.issue_date,
-          due_date: normalized.action?.response_due_date,
-          period: normalized.periods?.[0]?.period_label,
-          amount: normalized.discrepancy_summary?.total_amount_proposed,
-          office: normalized.issuing_authority_office
-        }
+        id: `case_${Date.now()}`
       };
 
-      const createdCase = { ...newCase, id: Date.now().toString() };
-      setCreatedCase(createdCase);
-      setCaseData(newCase);
+      setCreatedCase(newCase);
       
       toast({
         title: "Case created",
-        description: `Case ${createdCase.id} created successfully`,
+        description: `Case "${newCase.title}" created successfully`,
       });
       
       setCurrentStep(6);
@@ -982,12 +1005,13 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
                      (currentStep === 1 && !uploadedFile) || 
                      (currentStep === 2 && !extractedData) ||
                      (currentStep === 3 && !validationResult.canProceed) ||
-                     (currentStep === 5 && !createdCase) ||
                      (currentStep === 6 && !createdCase)}
           >
             {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             {currentStep === 3 && !validationResult.canProceed ? 'Validate' : 
              currentStep === 4 && loading ? 'Matching Client...' :
+             currentStep === 5 && loading ? 'Creating Case...' :
+             currentStep === 5 ? 'Create Case' :
              currentStep === 7 ? 'Complete' : 'Next'}
           </Button>
         </div>
