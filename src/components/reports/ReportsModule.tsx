@@ -15,7 +15,7 @@ import { TasksTab } from './tabs/TasksTab';
 import { ClientSummaryTab } from './tabs/ClientSummaryTab';
 import { CommunicationsTab } from './tabs/CommunicationsTab';
 import { FormTimelineTab } from './tabs/FormTimelineTab';
-import { ReportsFilterRail } from './ReportsFilterRail';
+import { ReportsFilterToolbar } from './ReportsFilterToolbar';
 import { SavedViewsManager } from './SavedViewsManager';
 
 import { ReportType, ReportFilter } from '@/types/reports';
@@ -177,71 +177,67 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({ userRole }) => {
       )}
 
       {/* Main Content */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Filter Rail */}
-        <div className="w-80 border-r border-border bg-muted/30">
-          <ReportsFilterRail
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Tabs 
+          value={activeTab} 
+          onValueChange={(value) => setActiveTab(value as ReportType)}
+          className="flex-1 flex flex-col"
+        >
+          {/* Tab List */}
+          <div className="border-b border-border bg-background">
+            <TabsList className="grid w-full grid-cols-7 h-auto p-1">
+              {availableTabs.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <TabsTrigger
+                    key={tab.id}
+                    value={tab.id}
+                    className="flex flex-col items-center gap-1 p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span className="text-xs font-medium">{tab.label}</span>
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+          </div>
+
+          {/* Horizontal Filter Toolbar */}
+          <ReportsFilterToolbar
             reportType={activeTab}
             filters={globalFilters}
             onFiltersChange={handleFilterChange}
             userRole={userRole}
+            defaultCollapsed={false}
           />
-        </div>
 
-        {/* Reports Content */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <Tabs 
-            value={activeTab} 
-            onValueChange={(value) => setActiveTab(value as ReportType)}
-            className="flex-1 flex flex-col"
-          >
-            {/* Tab List */}
-            <div className="border-b border-border bg-background">
-              <TabsList className="grid w-full grid-cols-7 h-auto p-1">
-                {availableTabs.map((tab) => {
-                  const Icon = tab.icon;
-                  return (
-                    <TabsTrigger
-                      key={tab.id}
-                      value={tab.id}
-                      className="flex flex-col items-center gap-1 p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                    >
-                      <Icon className="h-4 w-4" />
-                      <span className="text-xs font-medium">{tab.label}</span>
-                    </TabsTrigger>
-                  );
-                })}
-              </TabsList>
-            </div>
-
-            {/* Tab Contents */}
-            <div className="flex-1 overflow-hidden">
-              {availableTabs.map((tab) => (
-                <TabsContent
-                  key={tab.id}
-                  value={tab.id}
-                  className="h-full m-0 p-0 data-[state=active]:flex data-[state=active]:flex-col"
-                >
-                  {/* Tab Description */}
-                  <div className="p-4 border-b border-border bg-muted/20">
-                    <div className="flex items-center gap-3">
-                      <tab.icon className="h-5 w-5 text-primary" />
-                      <div>
-                        <h2 className="font-medium text-foreground">{tab.label}</h2>
-                        <p className="text-sm text-muted-foreground">{tab.description}</p>
-                      </div>
+          {/* Tab Contents */}
+          <div className="flex-1 overflow-hidden">
+            {availableTabs.map((tab) => (
+              <TabsContent
+                key={tab.id}
+                value={tab.id}
+                className="h-full m-0 p-0 data-[state=active]:flex data-[state=active]:flex-col"
+              >
+                {/* Tab Description */}
+                <div className="p-4 border-b border-border bg-muted/20">
+                  <div className="flex items-center gap-3">
+                    <tab.icon className="h-5 w-5 text-primary" />
+                    <div>
+                      <h2 className="font-medium text-foreground">{tab.label}</h2>
+                      <p className="text-sm text-muted-foreground">{tab.description}</p>
                     </div>
                   </div>
+                </div>
 
-                  {/* Tab Content */}
-                  <div className="flex-1 overflow-hidden">
-                    {renderTabContent(tab.id)}
-                  </div>
-                </TabsContent>
-              ))}
-            </div>
-          </Tabs>
-        </div>
+                {/* Tab Content */}
+                <div className="flex-1 overflow-hidden">
+                  {renderTabContent(tab.id)}
+                </div>
+              </TabsContent>
+            ))}
+          </div>
+        </Tabs>
       </div>
     </div>
   );
