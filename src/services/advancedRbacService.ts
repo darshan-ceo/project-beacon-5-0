@@ -367,7 +367,7 @@ class AdvancedRBACService {
           description: 'Administrative access with organizational scope for most resources',
           permissions: permissions.filter(p => 
             !p.name.includes('system.rbac') && 
-            (p.scope === 'org' || (p.scope === 'team' && p.action !== 'delete'))
+            (p.scope === 'org' || (p.scope === 'team' && (p.action === 'write' || p.action === 'read' || p.action === 'admin')))
           ).map(p => p.id),
           isSystemRole: true
         },
@@ -409,6 +409,17 @@ class AdvancedRBACService {
       }
 
       console.log('✅ Default RBAC data seeded successfully');
+
+      // Auto-assign Admin role to demo user
+      const roles = await unifiedStore.roles.getAll();
+      const adminRole = roles.find(r => r.name === 'Admin');
+      if (adminRole) {
+        await this.assignRole({
+          userId: 'demo-user',
+          roleId: adminRole.id
+        });
+        console.log('[AdvancedRBACService] Assigned Admin role to demo-user');
+      }
     } catch (error) {
       console.error('❌ Failed to seed default RBAC data:', error);
     }

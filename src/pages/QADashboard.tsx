@@ -204,12 +204,13 @@ export const QADashboard: React.FC = () => {
         )}
 
         <Tabs defaultValue="tests" className="w-full">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="tests">Smoke Tests</TabsTrigger>
             <TabsTrigger value="storage">Storage Manager</TabsTrigger>
             <TabsTrigger value="task-bundles">Task Bundles</TabsTrigger>
             <TabsTrigger value="gst-monitoring">GST Monitoring</TabsTrigger>
             <TabsTrigger value="tooltips">Tooltips</TabsTrigger>
+            <TabsTrigger value="rbac-debug">RBAC Debug</TabsTrigger>
             <TabsTrigger value="diagnostics">System Diagnostics</TabsTrigger>
             <TabsTrigger value="fixes">Applied Fixes</TabsTrigger>
           </TabsList>
@@ -238,6 +239,14 @@ export const QADashboard: React.FC = () => {
             <React.Suspense fallback={<div>Loading Tooltip Diagnostics...</div>}>
               {React.createElement(
                 React.lazy(() => import('@/pages/TooltipDiagnostics').then(module => ({ default: module.TooltipDiagnostics })))
+              )}
+            </React.Suspense>
+          </TabsContent>
+
+          <TabsContent value="rbac-debug" className="mt-6">
+            <React.Suspense fallback={<div>Loading RBAC Debugger...</div>}>
+              {React.createElement(
+                React.lazy(() => import('@/components/qa/RBACDebugger').then(module => ({ default: module.RBACDebugger })))
               )}
             </React.Suspense>
           </TabsContent>

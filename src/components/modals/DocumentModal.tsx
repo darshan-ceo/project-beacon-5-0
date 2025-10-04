@@ -10,6 +10,7 @@ import { Document, useAppState } from '@/contexts/AppStateContext';
 import { dmsService } from '@/services/dmsService';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
 import { TagInput } from '@/components/ui/TagInput';
+import { useRBAC } from '@/hooks/useAdvancedRBAC';
 
 interface DocumentModalProps {
   isOpen: boolean;
@@ -85,7 +86,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
     
     try {
       // PHASE 3B: RBAC Security Check
-      const currentUserId = '3'; // TODO: Get from auth context
+      const { currentUserId } = useRBAC(); // Get actual logged-in user
       
       if (mode === 'upload') {
         if (!formData.file) {
