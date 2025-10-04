@@ -30,6 +30,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
   onUpload 
 }) => {
   const { state, dispatch } = useAppState();
+  const { currentUserId } = useRBAC();
   const [formData, setFormData] = useState({
     name: '',
     type: 'pdf',
@@ -85,8 +86,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
     setLoading(true);
     
     try {
-      // PHASE 3B: RBAC Security Check
-      const { currentUserId } = useRBAC(); // Get actual logged-in user
+      // PHASE 3B: RBAC Security Check - currentUserId now from component top level
       
       if (mode === 'upload') {
         if (!formData.file) {
