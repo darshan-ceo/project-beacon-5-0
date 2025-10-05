@@ -425,6 +425,8 @@ class AdvancedRBACService {
     } catch (error) {
       console.error('❌ Failed to seed default RBAC data:', error);
     }
+  }
+
   async ensureBaseline(): Promise<void> {
     try {
       await unifiedStore.waitUntilReady();
