@@ -959,7 +959,7 @@ export const DocumentManagement: React.FC = () => {
                             <div className="flex-1">
                               <h4 className="font-medium">{folder.name}</h4>
                               <p className="text-sm text-muted-foreground">
-                                {folder.fileCount || 0} files
+                                {folder.documentCount || 0} files
                               </p>
                             </div>
                           </div>

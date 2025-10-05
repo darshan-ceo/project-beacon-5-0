@@ -232,6 +232,34 @@ const saveTags = async (): Promise<void> => {
 // Initialize tags immediately
 initializeTags();
 
+// Helper function to calculate actual document counts for folders
+const calculateFolderDocumentCounts = async (folders: Folder[]): Promise<Folder[]> => {
+  // Get all documents from storage
+  const documents = await idbStorage.get('documents') || [];
+  
+  // Calculate counts for each folder
+  const folderCounts = new Map<string, number>();
+  
+  for (const doc of documents) {
+    if (doc.folderId) {
+      folderCounts.set(doc.folderId, (folderCounts.get(doc.folderId) || 0) + 1);
+    } else if (doc.path) {
+      // Extract folderId from path (e.g., '/folders/client-docs' -> 'client-docs')
+      const pathMatch = doc.path.match(/\/folders\/([^\/]+)/);
+      if (pathMatch) {
+        const folderId = pathMatch[1];
+        folderCounts.set(folderId, (folderCounts.get(folderId) || 0) + 1);
+      }
+    }
+  }
+  
+  // Update folder documentCount
+  return folders.map(folder => ({
+    ...folder,
+    documentCount: folderCounts.get(folder.id) || 0
+  }));
+};
+
 export const dmsService = {
 // Folder Management
   folders: {
@@ -241,7 +269,10 @@ export const dmsService = {
       // Get all folders with proper fallback chain
       let allFolders = await dmsService.folders.listAll();
       
-      return allFolders.filter((f: Folder) => f.parentId === parentId);
+      // Calculate actual document counts
+      const foldersWithCounts = await calculateFolderDocumentCounts(allFolders);
+      
+      return foldersWithCounts.filter((f: Folder) => f.parentId === parentId);
     },
 
     listAll: async (): Promise<Folder[]> => {
@@ -400,7 +431,10 @@ export const dmsService = {
         console.warn('Failed to sync folders to storage:', error);
       }
       
-      return [...finalFolders];
+      // Calculate actual document counts before returning
+      const foldersWithCounts = await calculateFolderDocumentCounts(finalFolders);
+      
+      return foldersWithCounts;
     },
 
     create: async (
