@@ -43,6 +43,7 @@ import { TaskModal } from '@/components/modals/TaskModal';
 import { FilterDropdown } from '@/components/ui/filter-dropdown';
 import { Task, useAppState } from '@/contexts/AppStateContext';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
+import { storageManager } from '@/data/StorageManager';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { HelpButton } from '@/components/ui/help-button';
 import { ThreeLayerHelp } from '@/components/ui/three-layer-help';
@@ -85,7 +86,7 @@ const taskBundles: TaskBundle[] = [
 ];
 
 export const TaskManagement: React.FC = () => {
-  const { state } = useAppState();
+  const { state, dispatch } = useAppState();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
@@ -232,6 +233,79 @@ export const TaskManagement: React.FC = () => {
     };
     loadContext();
   }, [searchParams, state.cases]);
+
+  // Handle task updates from drag-and-drop or other interactions
+  const handleTaskUpdate = async (taskId: string, updates: Partial<Task>) => {
+    try {
+      const task = state.tasks.find(t => t.id === taskId);
+      if (!task) {
+        toast({
+          title: "Error",
+          description: "Task not found",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const updatedTask = {
+        ...task,
+        ...updates,
+        updated_at: new Date(),
+      };
+
+      // Update in app state
+      dispatch({
+        type: 'UPDATE_TASK',
+        payload: updatedTask,
+      });
+
+      // Persist to storage
+      const storage = storageManager.getStorage();
+      await storage.update('tasks', taskId, {
+        ...updatedTask,
+        updated_at: new Date(),
+      });
+
+      toast({
+        title: "Success",
+        description: "Task updated successfully",
+      });
+    } catch (error) {
+      console.error('Failed to update task:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update task",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle task deletion
+  const handleTaskDelete = async (taskId: string) => {
+    try {
+      // Remove from app state
+      dispatch({
+        type: 'DELETE_TASK',
+        payload: taskId,
+      });
+
+      // Remove from storage
+      const storage = storageManager.getStorage();
+      await storage.delete('tasks', taskId);
+
+      toast({
+        title: "Success",
+        description: "Task deleted successfully",
+      });
+    } catch (error) {
+      console.error('Failed to delete task:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete task",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <TooltipProvider>
@@ -512,11 +586,15 @@ export const TaskManagement: React.FC = () => {
             <TaskBoard 
               tasks={filteredTasks.map(t => ({ ...t, assignedTo: t.assignedToName }))} 
               highlightedTaskId={highlightedTaskId}
+              onTaskUpdate={handleTaskUpdate}
+              onTaskDelete={handleTaskDelete}
             />
           ) : (
             <TaskList 
               tasks={filteredTasks.map(t => ({ ...t, assignedTo: t.assignedToName }))} 
               highlightedTaskId={highlightedTaskId}
+              onTaskUpdate={handleTaskUpdate}
+              onTaskDelete={handleTaskDelete}
             />
           )}
         </TabsContent>
