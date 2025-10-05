@@ -14,6 +14,11 @@
       "example": "Design a professional letter with formatted text, tables, and {{client.name}} placeholders"
     },
     {
+      "name": "Upload DOCX",
+      "purpose": "Upload Word documents with variable placeholders for automatic template creation",
+      "example": "Upload a professionally designed Word document with {{client_name}} and {{case_number}} placeholders"
+    },
+    {
       "name": "Field Builder",
       "purpose": "Build templates using structured fields from system data",
       "example": "Create forms with predefined client, case, and court fields"
@@ -50,9 +55,19 @@
   },
   "examples": [
     {
-      "scenario": "Filing GST appeal",
-      "solution": "Use GST Appeal template with pre-filled sections",
-      "benefit": "Ensures all required information is included and properly formatted"
+      "scenario": "Filing GST appeal with custom formatting",
+      "solution": "Use Rich Text Builder or Upload DOCX to create professionally formatted documents",
+      "benefit": "Maintains visual design while auto-populating case data"
+    },
+    {
+      "scenario": "Reusing existing Word templates",
+      "solution": "Upload DOCX templates designed in Microsoft Word with {{variable}} placeholders",
+      "benefit": "Leverage existing firm templates without recreating them"
+    },
+    {
+      "scenario": "Standard form generation",
+      "solution": "Use Field Builder for structured forms with standard field layouts",
+      "benefit": "Quick template creation with pre-mapped system fields"
     },
     {
       "scenario": "Client correspondence",

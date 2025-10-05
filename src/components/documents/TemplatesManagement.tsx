@@ -15,6 +15,7 @@ import { FormRenderModal } from './FormRenderModal';
 import { TemplateEditor } from './TemplateEditor';
 import { TemplateBuilder } from './TemplateBuilder';
 import { RichTextTemplateBuilder } from './RichTextTemplateBuilder';
+import { TemplateUploadModal } from './TemplateUploadModal';
 import { useAppState } from '@/contexts/AppStateContext';
 import { useRBAC } from '@/hooks/useAdvancedRBAC';
 import { HelpButton } from '@/components/ui/help-button';
@@ -53,6 +54,7 @@ export const TemplatesManagement: React.FC = () => {
   const [editorOpen, setEditorOpen] = useState(false);
   const [builderOpen, setBuilderOpen] = useState(false);
   const [richTextBuilderOpen, setRichTextBuilderOpen] = useState(false);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<FormTemplate | null>(null);
   const [activeTab, setActiveTab] = useState('standard');
   const searchInputRef = React.useRef<HTMLInputElement>(null);
@@ -261,6 +263,67 @@ export const TemplatesManagement: React.FC = () => {
     }
   };
 
+  const handleCreateFromUpload = async (uploadData: {
+    code: string;
+    title: string;
+    stage: string;
+    docxFile: Blob;
+    variableMappings: any[];
+  }) => {
+    try {
+      // Convert blob to base64 for storage
+      const reader = new FileReader();
+      reader.readAsDataURL(uploadData.docxFile);
+      
+      reader.onload = async () => {
+        const base64File = reader.result as string;
+        
+        // Convert variableMappings array to Record<string, string>
+        const mappingsRecord = uploadData.variableMappings.reduce((acc, mapping) => {
+          acc[mapping.placeholder] = mapping.systemPath;
+          return acc;
+        }, {} as Record<string, string>);
+
+        await customTemplatesService.saveTemplate({
+          code: uploadData.code,
+          title: uploadData.title,
+          stage: uploadData.stage,
+          version: '1.0',
+          prefill: {},
+          fields: [],
+          output: {
+            filename: `${uploadData.code}_\${now:YYYYMMDD}.docx`,
+            dms_folder_by_stage: true,
+            timeline_event: `Generated ${uploadData.title}`
+          },
+          docxFile: base64File,
+          variableMappings: mappingsRecord,
+          createdBy: 'Current User',
+          templateType: 'docx'
+        });
+        
+        await loadCustomTemplates();
+        setUploadModalOpen(false);
+        
+        toast({
+          title: "DOCX Template Uploaded",
+          description: "Your Word template has been uploaded successfully."
+        });
+      };
+
+      reader.onerror = () => {
+        throw new Error('Failed to read file');
+      };
+    } catch (error) {
+      console.error('Error uploading DOCX template:', error);
+      toast({
+        title: "Error",
+        description: "Failed to upload DOCX template. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const getStageColor = (stage: string) => {
     switch (stage) {
       case 'Scrutiny': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
@@ -338,6 +401,10 @@ export const TemplatesManagement: React.FC = () => {
             <HelpButton helpId="button-rich-text-template" onClick={() => setRichTextBuilderOpen(true)}>
               <FileText className="mr-2 h-4 w-4" />
               Rich Text Template
+            </HelpButton>
+            <HelpButton helpId="button-docx-upload" variant="outline" onClick={() => setUploadModalOpen(true)}>
+              <Import className="mr-2 h-4 w-4" />
+              Upload DOCX
             </HelpButton>
             <HelpButton helpId="button-template-builder" variant="outline" onClick={() => setBuilderOpen(true)}>
               <Wrench className="mr-2 h-4 w-4" />
@@ -627,6 +694,12 @@ export const TemplatesManagement: React.FC = () => {
         isOpen={richTextBuilderOpen}
         onClose={() => setRichTextBuilderOpen(false)}
         onSave={handleCreateFromRichTextBuilder}
+      />
+
+      <TemplateUploadModal
+        isOpen={uploadModalOpen}
+        onClose={() => setUploadModalOpen(false)}
+        onSave={handleCreateFromUpload}
       />
     </div>
   );

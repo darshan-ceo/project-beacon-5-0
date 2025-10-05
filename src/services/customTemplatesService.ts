@@ -13,9 +13,10 @@ interface CustomTemplate extends FormTemplate {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
-  templateType?: 'builder' | 'richtext'; // Type of template
+  templateType?: 'builder' | 'richtext' | 'docx'; // Type of template
   richContent?: string; // Rich HTML content for richtext templates
-  variableMappings?: Record<string, string>; // Variable mappings for richtext templates
+  docxFile?: string; // Base64 encoded DOCX file for docx templates
+  variableMappings?: Record<string, string>; // Variable mappings for richtext/docx templates
   customization?: {
     companyHeader?: string;
     companyFooter?: string;
