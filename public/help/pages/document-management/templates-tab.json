@@ -9,6 +9,21 @@
   ],
   "interactiveElements": [
     {
+      "name": "Rich Text Template Builder",
+      "purpose": "Create visually designed templates with rich formatting, tables, and variable insertion",
+      "example": "Design a professional letter with formatted text, tables, and {{client.name}} placeholders"
+    },
+    {
+      "name": "Field Builder",
+      "purpose": "Build templates using structured fields from system data",
+      "example": "Create forms with predefined client, case, and court fields"
+    },
+    {
+      "name": "JSON Editor",
+      "purpose": "Advanced template editing using raw JSON format",
+      "example": "Edit template schema directly for complete customization"
+    },
+    {
       "name": "Template Categories",
       "purpose": "Browse templates by type (Appeals, Notices, Replies, etc.)",
       "example": "Click 'GST Appeals' to see all GST-related template forms"

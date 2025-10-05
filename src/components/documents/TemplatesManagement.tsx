@@ -14,6 +14,7 @@ import { customTemplatesService, CustomTemplate } from '@/services/customTemplat
 import { FormRenderModal } from './FormRenderModal';
 import { TemplateEditor } from './TemplateEditor';
 import { TemplateBuilder } from './TemplateBuilder';
+import { RichTextTemplateBuilder } from './RichTextTemplateBuilder';
 import { useAppState } from '@/contexts/AppStateContext';
 import { useRBAC } from '@/hooks/useAdvancedRBAC';
 import { HelpButton } from '@/components/ui/help-button';
@@ -51,6 +52,7 @@ export const TemplatesManagement: React.FC = () => {
   const [selectedCaseId, setSelectedCaseId] = useState<string>('');
   const [editorOpen, setEditorOpen] = useState(false);
   const [builderOpen, setBuilderOpen] = useState(false);
+  const [richTextBuilderOpen, setRichTextBuilderOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<FormTemplate | null>(null);
   const [activeTab, setActiveTab] = useState('standard');
   const searchInputRef = React.useRef<HTMLInputElement>(null);
@@ -195,7 +197,8 @@ export const TemplatesManagement: React.FC = () => {
     try {
       await customTemplatesService.saveTemplate({
         ...template,
-        createdBy: 'Current User'
+        createdBy: 'Current User',
+        templateType: 'builder'
       });
       
       await loadCustomTemplates();
@@ -211,6 +214,49 @@ export const TemplatesManagement: React.FC = () => {
         title: "Error",
         description: "Failed to create template",
         variant: "destructive",
+      });
+    }
+  };
+
+  const handleCreateFromRichTextBuilder = async (templateData: {
+    code: string;
+    title: string;
+    stage: string;
+    richContent: string;
+    variableMappings: Record<string, string>;
+  }) => {
+    try {
+      await customTemplatesService.saveTemplate({
+        code: templateData.code,
+        title: templateData.title,
+        stage: templateData.stage,
+        version: '1.0',
+        prefill: {},
+        fields: [],
+        output: {
+          filename: `${templateData.code}_\${now:YYYYMMDD}.pdf`,
+          dms_folder_by_stage: true,
+          timeline_event: `Generated ${templateData.title}`
+        },
+        richContent: templateData.richContent,
+        variableMappings: templateData.variableMappings,
+        createdBy: 'Current User',
+        templateType: 'richtext'
+      });
+      
+      await loadCustomTemplates();
+      setRichTextBuilderOpen(false);
+      
+      toast({
+        title: "Rich Text Template Created",
+        description: "Your custom rich text template has been created successfully."
+      });
+    } catch (error) {
+      console.error('Error creating rich text template:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create rich text template. Please try again.",
+        variant: "destructive"
       });
     }
   };
@@ -289,13 +335,17 @@ export const TemplatesManagement: React.FC = () => {
         </div>
         {canEdit && (
           <div className="flex gap-2">
+            <HelpButton helpId="button-rich-text-template" onClick={() => setRichTextBuilderOpen(true)}>
+              <FileText className="mr-2 h-4 w-4" />
+              Rich Text Template
+            </HelpButton>
             <HelpButton helpId="button-template-builder" variant="outline" onClick={() => setBuilderOpen(true)}>
               <Wrench className="mr-2 h-4 w-4" />
-              Template Builder
+              Field Builder
             </HelpButton>
-            <HelpButton helpId="button-create-template" onClick={() => { setEditingTemplate(null); setEditorOpen(true); }}>
-              <Plus className="mr-2 h-4 w-4" />
-              Create Template
+            <HelpButton helpId="button-create-template" variant="outline" onClick={() => { setEditingTemplate(null); setEditorOpen(true); }}>
+              <Code className="mr-2 h-4 w-4" />
+              JSON Editor
             </HelpButton>
           </div>
         )}
@@ -572,6 +622,12 @@ export const TemplatesManagement: React.FC = () => {
           </DialogContent>
         </Dialog>
       )}
+
+      <RichTextTemplateBuilder
+        isOpen={richTextBuilderOpen}
+        onClose={() => setRichTextBuilderOpen(false)}
+        onSave={handleCreateFromRichTextBuilder}
+      />
     </div>
   );
 };

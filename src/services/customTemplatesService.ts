@@ -13,6 +13,9 @@ interface CustomTemplate extends FormTemplate {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  templateType?: 'builder' | 'richtext'; // Type of template
+  richContent?: string; // Rich HTML content for richtext templates
+  variableMappings?: Record<string, string>; // Variable mappings for richtext templates
   customization?: {
     companyHeader?: string;
     companyFooter?: string;

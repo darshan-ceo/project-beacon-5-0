@@ -3,5 +3,20 @@
     "title": "Document Upload",
     "content": "Upload and organize legal documents with version control and secure sharing.",
     "learnMoreUrl": "/help/document-management-guide"
+  },
+  "button-rich-text-template": {
+    "title": "Rich Text Template Builder",
+    "content": "Create visually designed templates with tables, formatting, and variable insertion. Perfect for complex documents with specific layouts.",
+    "learnMoreUrl": "/help/pages/document-management/templates-tab"
+  },
+  "button-template-builder": {
+    "title": "Field-Based Template Builder",
+    "content": "Build templates using structured fields from client, case, and court data. Ideal for forms with standard field layouts.",
+    "learnMoreUrl": "/help/pages/document-management/templates-tab"
+  },
+  "button-create-template": {
+    "title": "JSON Editor",
+    "content": "Create or edit templates using raw JSON. For advanced users who need complete control over template structure.",
+    "learnMoreUrl": "/help/pages/document-management/templates-tab"
   }
 }
