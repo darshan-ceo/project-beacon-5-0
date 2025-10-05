@@ -1159,6 +1159,7 @@ export const DocumentManagement: React.FC = () => {
         isOpen={documentModal.isOpen}
         mode={documentModal.mode}
         document={documentModal.document}
+        selectedFolderId={selectedFolder || undefined}
         onClose={() => setDocumentModal({ isOpen: false, mode: 'upload', document: null })}
         onUpload={handleDocumentUpload}
       />

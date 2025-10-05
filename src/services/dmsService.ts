@@ -234,21 +234,35 @@ initializeTags();
 
 // Helper function to calculate actual document counts for folders
 const calculateFolderDocumentCounts = async (folders: Folder[]): Promise<Folder[]> => {
-  // Get all documents from storage
-  const documents = await idbStorage.get('documents') || [];
+  // Get documents from both IndexedDB and in-memory state
+  const appData = await loadAppState();
+  const inMemoryDocs = appData.documents || [];
+  const idbDocs = await idbStorage.get('documents') || [];
+  
+  // Combine and deduplicate by ID
+  const documentMap = new Map();
+  [...idbDocs, ...inMemoryDocs].forEach(doc => {
+    if (doc && doc.id) {
+      documentMap.set(doc.id, doc);
+    }
+  });
+  const documents = Array.from(documentMap.values());
   
   // Calculate counts for each folder
   const folderCounts = new Map<string, number>();
   
   for (const doc of documents) {
+    // Count documents where doc.folderId matches folder.id
     if (doc.folderId) {
       folderCounts.set(doc.folderId, (folderCounts.get(doc.folderId) || 0) + 1);
-    } else if (doc.path) {
-      // Extract folderId from path (e.g., '/folders/client-docs' -> 'client-docs')
-      const pathMatch = doc.path.match(/\/folders\/([^\/]+)/);
-      if (pathMatch) {
-        const folderId = pathMatch[1];
-        folderCounts.set(folderId, (folderCounts.get(folderId) || 0) + 1);
+    }
+    
+    // Also count documents where doc.path starts with folder.path (for nested documents)
+    if (doc.path && typeof doc.path === 'string') {
+      for (const folder of folders) {
+        if (folder.path && doc.path.startsWith(folder.path)) {
+          folderCounts.set(folder.id, (folderCounts.get(folder.id) || 0) + 1);
+        }
       }
     }
   }
