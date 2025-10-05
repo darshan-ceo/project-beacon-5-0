@@ -40,6 +40,8 @@ class AdvancedRBACService {
   private async initializeService(): Promise<void> {
     await unifiedStore.waitUntilReady();
     await this.seedDefaultData();
+    // Ensure critical baseline exists even if store was previously seeded
+    await this.ensureBaseline();
   }
 
   private async auditLog(
@@ -423,8 +425,69 @@ class AdvancedRBACService {
     } catch (error) {
       console.error('❌ Failed to seed default RBAC data:', error);
     }
+  async ensureBaseline(): Promise<void> {
+    try {
+      await unifiedStore.waitUntilReady();
+
+      // Ensure required document permissions exist
+      const allPerms = await unifiedStore.permissions.getAll();
+      const findPerm = (predicate: (p: any) => boolean) => allPerms.find(predicate);
+
+      let writeTeam = findPerm((p) => p.resource === 'documents' && p.action === 'write' && p.scope === 'team');
+      if (!writeTeam) {
+        writeTeam = await this.createPermission({
+          name: 'documents.write.team',
+          category: 'Documents',
+          description: 'Upload team documents',
+          resource: 'documents',
+          action: 'write',
+          scope: 'team',
+          effect: 'allow',
+        });
+      }
+
+      let adminOrg = findPerm((p) => p.resource === 'documents' && p.action === 'admin' && p.scope === 'org');
+      if (!adminOrg) {
+        adminOrg = await this.createPermission({
+          name: 'documents.admin.org',
+          category: 'Documents',
+          description: 'Full document administration',
+          resource: 'documents',
+          action: 'admin',
+          scope: 'org',
+          effect: 'allow',
+        });
+      }
+
+      // Ensure Admin role includes the required permissions
+      const roles = await unifiedStore.roles.getAll();
+      const adminRole = roles.find((r) => r.name === 'Admin');
+      if (adminRole) {
+        const permSet = new Set(adminRole.permissions);
+        if (writeTeam && !permSet.has(writeTeam.id)) permSet.add(writeTeam.id);
+        if (adminOrg && !permSet.has(adminOrg.id)) permSet.add(adminOrg.id);
+        const updatedPermissions = Array.from(permSet);
+        if (updatedPermissions.length !== adminRole.permissions.length) {
+          await unifiedStore.roles.update(adminRole.id, {
+            permissions: updatedPermissions,
+            updatedAt: new Date().toISOString(),
+          });
+        }
+
+        // Ensure demo-user has Admin assigned
+        const existing = await unifiedStore.userRoles.query(
+          (ur) => ur.userId === 'demo-user' && ur.roleId === adminRole.id && ur.isActive
+        );
+        if (existing.length === 0) {
+          await this.assignRole({ userId: 'demo-user', roleId: adminRole.id });
+        }
+      }
+    } catch (error) {
+      console.warn('[AdvancedRBACService] ensureBaseline failed:', error);
+    }
   }
 }
+
 
 // Singleton export
 export const advancedRbacService = new AdvancedRBACService();

@@ -12,7 +12,7 @@ interface RoleInfo {
 }
 
 export const RBACStatusIndicator: React.FC = () => {
-  const { currentUserId, effectivePermissions } = useRBAC();
+  const { currentUserId, effectivePermissions, enforcementEnabled } = useRBAC();
   const [roles, setRoles] = useState<RoleInfo[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -71,7 +71,7 @@ export const RBACStatusIndicator: React.FC = () => {
           <div>
             <h4 className="text-sm font-semibold mb-2">Effective Permissions</h4>
             <div className="text-xs text-muted-foreground">
-              {effectivePermissions.permissions?.length || 0} permissions active
+              {effectivePermissions?.permissions?.length ?? 0} permissions active
             </div>
           </div>
         </div>

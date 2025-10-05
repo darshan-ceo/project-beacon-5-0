@@ -6,7 +6,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Shield, CheckCircle, XCircle, RefreshCw, User } from 'lucide-react';
 import { useRBAC } from '@/hooks/useAdvancedRBAC';
 import { advancedRbacService } from '@/services/advancedRbacService';
-import { permissionsResolver } from '@/services/permissionsResolver';
+
 
 interface PermissionCheck {
   resource: string;
@@ -25,7 +25,7 @@ const commonChecks: PermissionCheck[] = [
 ];
 
 export const RBACDebugger: React.FC = () => {
-  const { currentUserId, effectivePermissions, refreshPermissions } = useRBAC();
+  const { currentUserId, effectivePermissions, refreshPermissions, canMultiple, enforcementEnabled } = useRBAC();
   const [roles, setRoles] = useState<any[]>([]);
   const [permissionResults, setPermissionResults] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
@@ -39,7 +39,7 @@ export const RBACDebugger: React.FC = () => {
 
         // Test common permissions
         const checks = commonChecks.map(c => ({ resource: c.resource, action: c.action }));
-        const results = await permissionsResolver.canMultiple(currentUserId, checks);
+        const results = await canMultiple(checks);
         setPermissionResults(results);
       }
     } catch (error) {
@@ -51,11 +51,28 @@ export const RBACDebugger: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, [currentUserId, effectivePermissions]);
+  }, [currentUserId, effectivePermissions, enforcementEnabled]);
 
   const handleRefresh = async () => {
     await refreshPermissions();
     await loadData();
+  };
+
+  const handleRepair = async () => {
+    try {
+      setLoading(true);
+      if (currentUserId) {
+        // Attempt baseline repair (idempotent)
+        // @ts-ignore - ensureBaseline will be added to service
+        await advancedRbacService.ensureBaseline?.();
+        await refreshPermissions();
+        await loadData();
+      }
+    } catch (e) {
+      console.error('RBAC repair failed:', e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -65,11 +82,22 @@ export const RBACDebugger: React.FC = () => {
           <h2 className="text-2xl font-bold">RBAC Permission Debugger</h2>
           <p className="text-muted-foreground">Current user permissions and role assignments</p>
         </div>
-        <Button onClick={handleRefresh} disabled={loading} variant="outline">
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={handleRepair} disabled={loading}>
+            Repair RBAC
+          </Button>
+          <Button onClick={handleRefresh} disabled={loading} variant="outline">
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
+
+      {!enforcementEnabled && (
+        <Alert>
+          <AlertDescription>DEMO mode: RBAC enforcement is OFF. Permission checks default to allow.</AlertDescription>
+        </Alert>
+      )}
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* User Info */}
@@ -102,7 +130,7 @@ export const RBACDebugger: React.FC = () => {
               </div>
               <div>
                 <span className="text-sm font-medium">Total Permissions:</span>
-                <p className="text-sm text-muted-foreground">{effectivePermissions.permissions?.length || 0} effective permissions</p>
+                <p className="text-sm text-muted-foreground">{effectivePermissions?.permissions?.length ?? 0} effective permissions</p>
               </div>
             </div>
           </CardContent>
@@ -153,11 +181,12 @@ export const RBACDebugger: React.FC = () => {
         <CardContent>
           <div className="space-y-2">
             {commonChecks.map((check) => {
-              const key = `${check.resource}:${check.action}`;
-              const allowed = permissionResults[key] ?? false;
+              const dotKey = `${check.resource}.${check.action}`;
+              const colonKey = `${check.resource}:${check.action}`;
+              const allowed = permissionResults[dotKey] ?? permissionResults[colonKey] ?? false;
               
               return (
-                <div key={key} className="flex items-center justify-between p-3 border rounded-lg">
+                <div key={`${check.resource}.${check.action}`} className="flex items-center justify-between p-3 border rounded-lg">
                   <span className="text-sm font-medium">{check.label}</span>
                   <div className="flex items-center gap-2">
                     {allowed ? (
