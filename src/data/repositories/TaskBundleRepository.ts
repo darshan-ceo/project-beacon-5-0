@@ -36,7 +36,7 @@ export class TaskBundleRepository extends BaseRepository<TaskBundle> {
   }
 
   async createWithItems(data: CreateTaskBundleData): Promise<TaskBundleWithItems> {
-    return await this.storage.transaction(['task_bundles', 'task_bundle_items'], async () => {
+    return await this.storage.transaction(['task_bundles', 'task_bundle_items', 'audit_logs'], async () => {
       // Create the bundle
       const bundle: TaskBundle = {
         id: crypto.randomUUID(),
@@ -121,7 +121,7 @@ export class TaskBundleRepository extends BaseRepository<TaskBundle> {
   }
 
   async updateWithItems(id: string, updates: Partial<CreateTaskBundleData>): Promise<TaskBundleWithItems> {
-    return await this.storage.transaction(['task_bundles', 'task_bundle_items'], async () => {
+    return await this.storage.transaction(['task_bundles', 'task_bundle_items', 'audit_logs'], async () => {
       // Update the bundle
       const bundleUpdates: Partial<TaskBundle> = {
         name: updates.name,
@@ -180,7 +180,7 @@ export class TaskBundleRepository extends BaseRepository<TaskBundle> {
   }
 
   async delete(id: string): Promise<void> {
-    return await this.storage.transaction(['task_bundles', 'task_bundle_items'], async () => {
+    return await this.storage.transaction(['task_bundles', 'task_bundle_items', 'audit_logs'], async () => {
       // Delete all items first
       const items = await this.storage.queryByField<TaskBundleItem>('task_bundle_items', 'bundle_id', id);
       for (const item of items) {
