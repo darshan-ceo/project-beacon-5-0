@@ -1875,6 +1875,18 @@ const initialState: AppState = {
   },
   employees: [
     {
+      id: 'demo-user',
+      full_name: 'Demo User',
+      role: 'Admin',
+      email: 'demo@lawfirm.com',
+      mobile: '+91-0000000000',
+      status: 'Active',
+      date_of_joining: '2024-01-01',
+      department: 'Administration',
+      workloadCapacity: 30,
+      specialization: ['General Administration', 'System Management']
+    },
+    {
       id: '1',
       full_name: 'John Smith',
       role: 'Partner',
