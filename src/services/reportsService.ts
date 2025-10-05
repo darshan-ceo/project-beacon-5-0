@@ -203,233 +203,415 @@ export const reportsService = {
 
   // Get case reports with filters
   getCaseReport: async (filters: any): Promise<{ data: any[] }> => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Mock case report data
-    const mockData = [
-      {
-        id: 'CS001',
-        title: 'Property Dispute Case',
-        client: 'ABC Corp',
-        stage: 'Appeals',
-        owner: 'John Doe',
-        createdDate: '2024-01-15',
-        updatedDate: '2024-08-15',
-        slaStatus: 'Green',
-        priority: 'High',
-        agingDays: 45
-      },
-      {
-        id: 'CS002',
-        title: 'Contract Breach',
-        client: 'XYZ Ltd',
-        stage: 'Adjudication',
-        owner: 'Jane Smith',
-        createdDate: '2024-02-01',
-        updatedDate: '2024-08-20',
-        slaStatus: 'Amber',
-        priority: 'Medium',
-        agingDays: 30
+    try {
+      const { storageManager } = await import('@/data/StorageManager');
+      const storage = storageManager.getStorage();
+
+      const cases = await storage.getAll('cases');
+      const clients = await storage.getAll('clients');
+      const employees = await storage.getAll('employees');
+
+      const clientMap = new Map(clients.map((c: any) => [c.id, c.name]));
+      const employeeMap = new Map(employees.map((e: any) => [e.id, e.name || `${e.firstName} ${e.lastName}`]));
+
+      let filteredCases = cases;
+
+      if (filters.clientId) {
+        filteredCases = filteredCases.filter((c: any) => c.clientId === filters.clientId);
       }
-    ];
-    
-    return { data: mockData };
+
+      if (filters.stage) {
+        filteredCases = filteredCases.filter((c: any) => c.currentStage === filters.stage);
+      }
+
+      if (filters.ragStatus) {
+        filteredCases = filteredCases.filter((c: any) => c.timelineBreachStatus === filters.ragStatus);
+      }
+
+      if (filters.priority) {
+        filteredCases = filteredCases.filter((c: any) => c.priority === filters.priority);
+      }
+
+      if (filters.ownerId) {
+        filteredCases = filteredCases.filter((c: any) => c.assignedToId === filters.ownerId);
+      }
+
+      if (filters.status) {
+        filteredCases = filteredCases.filter((c: any) => c.status === filters.status);
+      }
+
+      if (filters.dateRange) {
+        const { start, end } = filters.dateRange;
+        filteredCases = filteredCases.filter((c: any) => {
+          const createdDate = new Date(c.createdDate);
+          return createdDate >= new Date(start) && createdDate <= new Date(end);
+        });
+      }
+
+      const reportData = filteredCases.map((caseItem: any) => {
+        const agingDays = Math.floor(
+          (new Date().getTime() - new Date(caseItem.createdDate).getTime()) / (1000 * 60 * 60 * 24)
+        );
+
+        return {
+          id: caseItem.id,
+          caseNumber: caseItem.caseNumber || 'N/A',
+          caseType: caseItem.caseType || 'GST',
+          title: caseItem.title,
+          client: clientMap.get(caseItem.clientId) || 'Unknown',
+          stage: caseItem.currentStage,
+          owner: employeeMap.get(caseItem.assignedToId) || 'Unassigned',
+          createdDate: caseItem.createdDate,
+          updatedDate: caseItem.lastUpdated,
+          timelineBreachStatus: caseItem.timelineBreachStatus,
+          priority: caseItem.priority,
+          agingDays,
+          status: caseItem.status || 'Active',
+          taxDemand: caseItem.taxDemand,
+          period: caseItem.period,
+          authority: caseItem.authority,
+          officeFileNo: caseItem.officeFileNo,
+          noticeNo: caseItem.noticeNo,
+          reviewDate: caseItem.reviewDate,
+        };
+      });
+
+      return { data: reportData };
+    } catch (error) {
+      console.error('Error fetching case report:', error);
+      return { data: [] };
+    }
   },
 
   // Get hearing reports with filters
   getHearingReport: async (filters: any): Promise<{ data: any[] }> => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const mockData = [
-      {
-        id: 'H001',
-        caseId: 'CS001',
-        caseTitle: 'Property Dispute Case',
-        client: 'ABC Corp',
-        date: '2024-09-15',
-        time: '10:30 AM',
-        court: 'High Court',
-        judge: 'Justice Kumar',
-        status: 'Scheduled'
+    try {
+      const { storageManager } = await import('@/data/StorageManager');
+      const storage = storageManager.getStorage();
+
+      const hearings = await storage.getAll('hearings');
+      const cases = await storage.getAll('cases');
+      const clients = await storage.getAll('clients');
+      const courts = await storage.getAll('courts');
+      const judges = await storage.getAll('judges');
+
+      const caseMap = new Map(cases.map((c: any) => [c.id, c]));
+      const clientMap = new Map(clients.map((c: any) => [c.id, c.name]));
+      const courtMap = new Map(courts.map((c: any) => [c.id, c.name]));
+      const judgeMap = new Map(judges.map((j: any) => [j.id, j.name]));
+
+      let filteredHearings = hearings;
+
+      if (filters.dateRange) {
+        const { start, end } = filters.dateRange;
+        filteredHearings = filteredHearings.filter((h: any) => {
+          const hearingDate = new Date(h.date);
+          return hearingDate >= new Date(start) && hearingDate <= new Date(end);
+        });
       }
-    ];
-    
-    return { data: mockData };
+
+      if (filters.courtId) {
+        filteredHearings = filteredHearings.filter((h: any) => h.court_id === filters.courtId);
+      }
+
+      if (filters.judgeId) {
+        filteredHearings = filteredHearings.filter((h: any) => h.judge_id === filters.judgeId);
+      }
+
+      if (filters.status) {
+        filteredHearings = filteredHearings.filter((h: any) => h.status === filters.status);
+      }
+
+      const reportData = filteredHearings.map((hearing: any) => {
+        const relatedCase = caseMap.get(hearing.case_id);
+        const clientId = relatedCase?.clientId;
+
+        return {
+          id: hearing.id,
+          caseId: hearing.case_id,
+          caseTitle: relatedCase?.title || 'Unknown',
+          client: clientId ? (clientMap.get(clientId) || 'Unknown') : 'Unknown',
+          date: hearing.date,
+          time: hearing.time || hearing.start_time || '10:00',
+          court: courtMap.get(hearing.court_id) || 'Unknown',
+          bench: hearing.bench || 'N/A',
+          judge: judgeMap.get(hearing.judge_id) || 'Unknown',
+          type: hearing.purpose || 'Scheduled',
+          status: hearing.status || 'Scheduled',
+        };
+      });
+
+      return { data: reportData };
+    } catch (error) {
+      console.error('Error fetching hearing report:', error);
+      return { data: [] };
+    }
   },
 
   // Get Timeline Breach reports with filters
   getTimelineBreachReport: async (filters: any): Promise<{ data: any[] }> => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const mockData = [
-      {
-        caseId: 'CS001',
-        caseTitle: 'Property Dispute Case',
-        client: 'ABC Corp',
-        stage: 'Appeals',
-        timelineDue: '2024-09-30',
-        agingDays: 45,
-        ragStatus: 'Green',
-        owner: 'John Doe',
-        breached: false
+    try {
+      const { storageManager } = await import('@/data/StorageManager');
+      const storage = storageManager.getStorage();
+
+      const cases = await storage.getAll('cases');
+      const clients = await storage.getAll('clients');
+      const employees = await storage.getAll('employees');
+
+      const clientMap = new Map(clients.map((c: any) => [c.id, c.name]));
+      const employeeMap = new Map(employees.map((e: any) => [e.id, e.name || `${e.firstName} ${e.lastName}`]));
+
+      let filteredCases = cases;
+
+      if (filters.ragStatus) {
+        filteredCases = filteredCases.filter((c: any) => c.timelineBreachStatus === filters.ragStatus);
       }
-    ];
-    
-    return { data: mockData };
+
+      if (filters.stage) {
+        filteredCases = filteredCases.filter((c: any) => c.currentStage === filters.stage);
+      }
+
+      if (filters.ownerId) {
+        filteredCases = filteredCases.filter((c: any) => c.assignedToId === filters.ownerId);
+      }
+
+      const reportData = filteredCases.map((caseItem: any) => {
+        const agingDays = Math.floor(
+          (new Date().getTime() - new Date(caseItem.createdDate).getTime()) / (1000 * 60 * 60 * 24)
+        );
+
+        const breached = caseItem.timelineBreachStatus === 'Red' || 
+          (caseItem.reviewDate && new Date(caseItem.reviewDate) < new Date());
+
+        return {
+          caseId: caseItem.id,
+          caseTitle: caseItem.title,
+          client: clientMap.get(caseItem.clientId) || 'Unknown',
+          stage: caseItem.currentStage,
+          timelineDue: caseItem.reviewDate || 'N/A',
+          agingDays,
+          ragStatus: caseItem.timelineBreachStatus,
+          owner: employeeMap.get(caseItem.assignedToId) || 'Unassigned',
+          breached,
+        };
+      });
+
+      return { data: reportData };
+    } catch (error) {
+      console.error('Error fetching timeline breach report:', error);
+      return { data: [] };
+    }
   },
 
   // Backward compatibility - getSLAReport is an alias
   getSLAReport: async (filters: any): Promise<{ data: any[] }> => {
-    // Direct implementation to avoid circular reference
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const mockData = [
-      {
-        caseId: 'CS001',
-        caseTitle: 'Property Dispute Case',
-        client: 'ABC Corp',
-        stage: 'Appeals',
-        timelineDue: '2024-09-30',
-        agingDays: 45,
-        ragStatus: 'Green',
-        owner: 'John Doe',
-        breached: false
-      }
-    ];
-    
-    return { data: mockData };
+    // Use the same logic as getTimelineBreachReport
+    return reportsService.getTimelineBreachReport(filters);
   },
 
   // Get task reports with filters
   getTaskReport: async (filters: any): Promise<{ data: any[] }> => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const mockData = [
-      {
-        id: 'T001',
-        title: 'Review Documents',
-        caseId: 'CS001',
-        caseTitle: 'Property Dispute Case',
-        assignee: 'John Doe',
-        dueDate: '2024-09-20',
-        status: 'In Progress',
-        agingDays: 5,
-        escalated: false,
-        priority: 'High'
+    try {
+      const { storageManager } = await import('@/data/StorageManager');
+      const storage = storageManager.getStorage();
+
+      const tasks = await storage.getAll('tasks');
+      const cases = await storage.getAll('cases');
+
+      const caseMap = new Map(cases.map((c: any) => [c.id, { title: c.title, caseNumber: c.caseNumber }]));
+
+      let filteredTasks = tasks;
+
+      if (filters.status) {
+        filteredTasks = filteredTasks.filter((t: any) => t.status === filters.status);
       }
-    ];
-    
-    return { data: mockData };
+
+      if (filters.assigneeId) {
+        filteredTasks = filteredTasks.filter((t: any) => t.assigned_to === filters.assigneeId);
+      }
+
+      if (filters.priority) {
+        filteredTasks = filteredTasks.filter((t: any) => t.priority === filters.priority);
+      }
+
+      if (filters.dateRange) {
+        const { start, end } = filters.dateRange;
+        filteredTasks = filteredTasks.filter((t: any) => {
+          if (!t.due_date) return false;
+          const dueDate = new Date(t.due_date);
+          return dueDate >= new Date(start) && dueDate <= new Date(end);
+        });
+      }
+
+      const reportData = filteredTasks.map((task: any) => {
+        const caseInfo = caseMap.get(task.case_id);
+        const agingDays = Math.floor(
+          (new Date().getTime() - new Date(task.created_at).getTime()) / (1000 * 60 * 60 * 24)
+        );
+
+        return {
+          id: task.id,
+          title: task.title,
+          caseId: task.case_id,
+          caseTitle: caseInfo?.title || 'Unknown',
+          assignee: task.assignedToName || 'Unassigned',
+          dueDate: task.due_date ? new Date(task.due_date).toISOString().split('T')[0] : 'N/A',
+          status: task.status as any,
+          agingDays,
+          escalated: (task.escalation_level || 0) > 0,
+          priority: task.priority,
+        };
+      });
+
+      return { data: reportData };
+    } catch (error) {
+      console.error('Error fetching task report:', error);
+      return { data: [] };
+    }
   },
 
   // Get client reports with filters
   getClientReport: async (filters: any): Promise<{ data: any[] }> => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const mockData = [
-      {
-        id: 'CL001',
-        name: 'ABC Corp',
-        totalCases: 15,
-        activeCases: 8,
-        stageMix: { 'Appeals': 3, 'Adjudication': 5 },
-        slaBreaches: 2,
-        nextHearing: '2024-09-15',
-        totalValue: 2500000
+    try {
+      const { storageManager } = await import('@/data/StorageManager');
+      const storage = storageManager.getStorage();
+
+      const clients = await storage.getAll('clients');
+      const cases = await storage.getAll('cases');
+      const hearings = await storage.getAll('hearings');
+
+      let filteredClients = clients;
+
+      if (filters.clientId) {
+        filteredClients = filteredClients.filter((c: any) => c.id === filters.clientId);
       }
-    ];
-    
-    return { data: mockData };
+
+      const reportData = filteredClients.map((client: any) => {
+        const clientCases = cases.filter((c: any) => c.clientId === client.id);
+        const activeCases = clientCases.filter((c: any) => c.status === 'Active' || !c.status);
+
+        const stageMix: { [key: string]: number } = {};
+        clientCases.forEach((c: any) => {
+          stageMix[c.currentStage] = (stageMix[c.currentStage] || 0) + 1;
+        });
+
+        const slaBreaches = clientCases.filter((c: any) => c.timelineBreachStatus === 'Red').length;
+
+        const clientCaseIds = new Set(clientCases.map((c: any) => c.id));
+        const clientHearings = hearings
+          .filter((h: any) => clientCaseIds.has(h.case_id))
+          .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        const nextHearing = (clientHearings[0] as any)?.date;
+
+        const totalValue = clientCases.reduce((sum: number, c: any) => sum + (c.taxDemand || c.amountInDispute || 0), 0);
+
+        return {
+          id: client.id,
+          name: client.name,
+          totalCases: clientCases.length,
+          activeCases: activeCases.length,
+          stageMix,
+          slaBreaches,
+          nextHearing,
+          totalValue,
+        };
+      });
+
+      return { data: reportData };
+    } catch (error) {
+      console.error('Error fetching client report:', error);
+      return { data: [] };
+    }
   },
 
   // Get communication reports with filters
   getCommunicationReport: async (filters: any): Promise<{ data: any[] }> => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const mockData = [
-      {
-        id: 'COM001',
-        date: '2024-08-25',
-        caseId: 'CS001',
-        client: 'ABC Corp',
-        channel: 'Email',
-        to: 'client@abccorp.com',
-        status: 'Delivered',
-        template: 'Hearing Notice'
-      }
-    ];
-    
-    return { data: mockData };
+    // Communication tracking not yet implemented in the system
+    console.info('Communication tracking feature coming soon');
+    return { data: [] };
   },
 
   // Get form timeline reports with filters
   getFormTimelineReport: async (filters: any): Promise<{ data: any[] }> => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const mockData = [
-      {
-        id: 'FT001',
-        formCode: 'ASMT10_REPLY',
-        formTitle: 'ASMT-10',
-        caseId: 'CS001',
-        caseNumber: 'GST/2024/001',
-        caseTitle: 'Input Tax Credit Disallowance',
-        client: 'ABC Corp',
-        stage: 'Scrutiny',
-        submissionDate: '2024-08-15',
-        dueDate: '2024-08-20',
-        status: 'On Time',
-        daysElapsed: 5,
-        ragStatus: 'Green'
-      },
-      {
-        id: 'FT002',
-        formCode: 'DRC1A_REPLY',
-        formTitle: 'DRC-1A',
-        caseId: 'CS002',
-        caseNumber: 'GST/2024/002',
-        caseTitle: 'TechCorp Industries Pvt Ltd',
-        client: 'TechCorp Industries',
-        stage: 'Adjudication',
-        submissionDate: '2024-08-10',
-        dueDate: '2024-08-05',
-        status: 'Delayed',
-        daysElapsed: 10,
-        ragStatus: 'Red'
-      },
-      {
-        id: 'FT003',
-        formCode: 'DRC01_REPLY',
-        formTitle: 'DRC-01',
-        caseId: 'CS003',
-        caseNumber: 'GST/2024/003',
-        caseTitle: 'Tax Assessment',
-        client: 'Tech Solutions',
-        stage: 'Scrutiny',
-        submissionDate: '2024-08-18',
-        dueDate: '2024-08-25',
-        status: 'On Time',
-        daysElapsed: 7,
-        ragStatus: 'Green'
-      },
-      {
-        id: 'FT004',
-        formCode: 'APL01_FIRST_APPEAL',
-        formTitle: 'APL-01',
-        caseId: 'CS004',
-        caseNumber: 'GST/2024/004',
-        caseTitle: 'Service Classification Dispute',
-        client: 'Global Enterprises',
-        stage: 'First Appeal',
-        submissionDate: '',
-        dueDate: '2024-09-01',
-        status: 'Pending',
-        daysElapsed: 0,
-        ragStatus: 'Amber'
+    try {
+      const { storageManager } = await import('@/data/StorageManager');
+      const storage = storageManager.getStorage();
+
+      const cases = await storage.getAll('cases');
+      const clients = await storage.getAll('clients');
+
+      const clientMap = new Map(clients.map((c: any) => [c.id, c.name]));
+
+      let filteredCases = cases;
+
+      if (filters.clientId) {
+        filteredCases = filteredCases.filter((c: any) => c.clientId === filters.clientId);
       }
-    ];
-    
-    return { data: mockData };
+
+      if (filters.stage) {
+        filteredCases = filteredCases.filter((c: any) => c.currentStage === filters.stage);
+      }
+
+      const reportData: any[] = [];
+
+      filteredCases.forEach((caseItem: any) => {
+        if (caseItem.generatedForms && caseItem.generatedForms.length > 0) {
+          caseItem.generatedForms.forEach((form: any) => {
+            const submissionDate = form.generatedDate;
+            const daysElapsed = Math.floor(
+              (new Date().getTime() - new Date(submissionDate).getTime()) / (1000 * 60 * 60 * 24)
+            );
+
+            let status: 'On Time' | 'Delayed' | 'Pending' = 'Pending';
+            let ragStatus: 'Green' | 'Amber' | 'Red' = 'Green';
+
+            if (form.status === 'Generated' || form.status === 'Uploaded') {
+              if (daysElapsed <= 3) {
+                status = 'On Time';
+                ragStatus = 'Green';
+              } else if (daysElapsed <= 7) {
+                status = 'On Time';
+                ragStatus = 'Amber';
+              } else {
+                status = 'Delayed';
+                ragStatus = 'Red';
+              }
+            }
+
+            reportData.push({
+              id: `${caseItem.id}-${form.formCode}`,
+              formCode: form.formCode,
+              formTitle: form.formCode.replace(/_/g, '-'),
+              caseId: caseItem.id,
+              caseNumber: caseItem.caseNumber || 'N/A',
+              caseTitle: caseItem.title,
+              client: clientMap.get(caseItem.clientId) || 'Unknown',
+              stage: caseItem.currentStage,
+              submissionDate,
+              dueDate: undefined,
+              status,
+              daysElapsed,
+              ragStatus,
+            });
+          });
+        }
+      });
+
+      if (filters.dateRange) {
+        const { start, end } = filters.dateRange;
+        return {
+          data: reportData.filter((r: any) => {
+            const subDate = new Date(r.submissionDate);
+            return subDate >= new Date(start) && subDate <= new Date(end);
+          })
+        };
+      }
+
+      return { data: reportData };
+    } catch (error) {
+      console.error('Error fetching form timeline report:', error);
+      return { data: [] };
+    }
   },
 
   /**
