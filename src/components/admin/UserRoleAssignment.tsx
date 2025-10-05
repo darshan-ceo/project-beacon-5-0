@@ -62,10 +62,14 @@ export const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
     try {
       await advancedRbacService.assignRole({ userId, roleId });
       
+      // Reload actual roles from the service
+      const userRoleEntities = await advancedRbacService.getUserRoles(userId);
+      const roleNames = userRoleEntities.map(role => role.name);
+      
       // Update user in the list
       const updatedUsers = users.map(user => 
         user.id === userId 
-          ? { ...user, roles: [...user.roles, roleId] }
+          ? { ...user, roles: roleNames }
           : user
       );
       onUserUpdate(updatedUsers);
@@ -78,14 +82,25 @@ export const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
     }
   };
 
-  const handleRevokeRole = async (userId: string, roleId: string) => {
+  const handleRevokeRole = async (userId: string, roleName: string) => {
     try {
-      await advancedRbacService.revokeRole(userId, roleId);
+      // Find the role ID from the role name
+      const role = roles.find(r => r.name === roleName);
+      if (!role) {
+        toast.error('Role not found');
+        return;
+      }
+      
+      await advancedRbacService.revokeRole(userId, role.id);
+      
+      // Reload actual roles from the service
+      const userRoleEntities = await advancedRbacService.getUserRoles(userId);
+      const roleNames = userRoleEntities.map(role => role.name);
       
       // Update user in the list
       const updatedUsers = users.map(user => 
         user.id === userId 
-          ? { ...user, roles: user.roles.filter(r => r !== roleId) }
+          ? { ...user, roles: roleNames }
           : user
       );
       onUserUpdate(updatedUsers);
@@ -113,13 +128,9 @@ export const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
     }
   };
 
-  const getRoleName = (roleId: string): string => {
-    const role = roles.find(r => r.id === roleId);
-    return role?.name || roleId;
-  };
-
   const getAvailableRoles = (user: EnhancedUser): RoleEntity[] => {
-    return roles.filter(role => !user.roles.includes(role.id) && role.isActive);
+    // user.roles contains role names, so we need to filter by name
+    return roles.filter(role => !user.roles.includes(role.name) && role.isActive);
   };
 
   const getEmployeeRole = (userId: string): string | null => {
@@ -212,11 +223,11 @@ export const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
                   <TableCell className="text-muted-foreground">{user.email}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
-                      {user.roles.map((roleId) => (
-                        <Badge key={roleId} variant="outline" className="text-xs">
-                          {getRoleName(roleId)}
+                      {user.roles.map((roleName) => (
+                        <Badge key={roleName} variant="outline" className="text-xs">
+                          {roleName}
                           <button
-                            onClick={() => handleRevokeRole(user.id, roleId)}
+                            onClick={() => handleRevokeRole(user.id, roleName)}
                             className="ml-1 hover:text-destructive"
                           >
                             ×

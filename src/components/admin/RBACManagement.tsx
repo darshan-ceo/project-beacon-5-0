@@ -115,11 +115,23 @@ export const RBACManagement: React.FC = () => {
         employees: state.employees.length
       });
       
-      // Transform employees to enhanced users
-      const enhancedUsers = state.employees.map(transformEmployeeToEnhancedUser);
-      
-      // TODO: Load actual role assignments from RBAC service
-      // For now, we'll keep roles empty until we implement user-role assignment storage
+      // Transform employees to enhanced users and load their RBAC role assignments
+      const enhancedUsers = await Promise.all(
+        state.employees.map(async (employee) => {
+          const user = transformEmployeeToEnhancedUser(employee);
+          
+          // Fetch actual RBAC role assignments
+          try {
+            const userRoleEntities = await advancedRbacService.getUserRoles(employee.id);
+            user.roles = userRoleEntities.map(role => role.name);
+          } catch (error) {
+            console.warn(`Failed to load roles for user ${employee.id}:`, error);
+            user.roles = [];
+          }
+          
+          return user;
+        })
+      );
       
       setRoles(rolesData);
       setPermissions(permissionsData);
