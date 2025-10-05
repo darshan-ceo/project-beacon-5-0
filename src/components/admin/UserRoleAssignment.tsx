@@ -16,6 +16,8 @@ import { toast } from 'sonner';
 import { advancedRbacService } from '@/services/advancedRbacService';
 import { permissionsResolver } from '@/services/permissionsResolver';
 import { type RoleEntity } from '@/persistence/unifiedStore';
+import { roleMapperService } from '@/services/roleMapperService';
+import { useAppState } from '@/contexts/AppStateContext';
 
 interface EnhancedUser {
   id: string;
@@ -37,6 +39,7 @@ export const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
   roles,
   onUserUpdate
 }) => {
+  const { state } = useAppState();
   const [selectedUser, setSelectedUser] = useState<EnhancedUser | null>(null);
   const [isAssignRoleOpen, setIsAssignRoleOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -119,6 +122,11 @@ export const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
     return roles.filter(role => !user.roles.includes(role.id) && role.isActive);
   };
 
+  const getEmployeeRole = (userId: string): string | null => {
+    const employee = state.employees.find(emp => emp.id === userId);
+    return employee?.role || null;
+  };
+
   return (
     <div className="space-y-6">
       {/* Filters */}
@@ -187,9 +195,20 @@ export const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredUsers.map((user) => (
+              {filteredUsers.map((user) => {
+                const employeeRole = getEmployeeRole(user.id);
+                return (
                 <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.name}</TableCell>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">{user.name}</div>
+                      {employeeRole && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Employee Role: <Badge variant="outline" className="text-xs">{employeeRole}</Badge>
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell className="text-muted-foreground">{user.email}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
@@ -274,7 +293,8 @@ export const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              );
+              })}
             </TableBody>
           </Table>
 

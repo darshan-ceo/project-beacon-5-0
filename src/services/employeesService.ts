@@ -1,5 +1,6 @@
 import { toast } from "@/hooks/use-toast";
 import { AppAction } from "@/contexts/AppStateContext";
+import { roleMapperService } from './roleMapperService';
 
 export interface Employee {
   id: string;
@@ -80,6 +81,11 @@ export const employeesService = {
 
     dispatch({ type: 'ADD_EMPLOYEE', payload: newEmployee });
     
+    // Sync RBAC roles (non-blocking)
+    roleMapperService.syncEmployeeToRBAC(newEmployee).catch(err => 
+      console.error('RBAC sync failed for new employee:', err)
+    );
+    
     toast({
       title: "Employee created",
       description: `${newEmployee.full_name} has been added successfully.`,
@@ -95,7 +101,18 @@ export const employeesService = {
       throw new Error(errors.join(", "));
     }
 
+    const currentEmployee = existingEmployees.find(emp => emp.id === employeeId);
+    const roleChanged = updates.role && currentEmployee && updates.role !== currentEmployee.role;
+
     dispatch({ type: 'UPDATE_EMPLOYEE', payload: { id: employeeId, updates } });
+    
+    // If role changed, sync RBAC roles (non-blocking)
+    if (roleChanged && currentEmployee) {
+      const updatedEmployee = { ...currentEmployee, ...updates };
+      roleMapperService.syncEmployeeToRBAC(updatedEmployee as Employee).catch(err => 
+        console.error('RBAC sync failed for updated employee:', err)
+      );
+    }
     
     toast({
       title: "Employee updated",

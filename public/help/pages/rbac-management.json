@@ -1,0 +1,40 @@
+{
+  "pageId": "rbac-management",
+  "title": "Understanding RBAC and Employee Roles",
+  "description": "Learn about the relationship between Employee roles and RBAC permissions",
+  "sections": [
+    {
+      "title": "Overview",
+      "content": "The system uses two complementary role systems:\n\n1. **Employee Roles** - Organizational job titles (Partner, CA, Advocate, Manager, Staff, RM, Finance, Admin)\n2. **RBAC Roles** - System permission levels (SuperAdmin, Admin, Manager, Staff, ReadOnly)\n\nThese systems work together automatically to ensure employees have appropriate system access based on their organizational role."
+    },
+    {
+      "title": "Why Two Role Systems?",
+      "content": "**Employee Roles** represent your organization's structure and job titles. They help with:\n- Case assignments\n- Task delegation\n- Organizational reporting\n- Workload management\n\n**RBAC Roles** control system permissions and access. They manage:\n- What features users can access\n- What data they can view and modify\n- Administrative capabilities\n- Security boundaries"
+    },
+    {
+      "title": "Automatic Role Mapping",
+      "content": "When you assign an Employee Role, RBAC permissions are automatically assigned:\n\n| Employee Role | RBAC Role | Access Level |\n|--------------|-----------|-------------|\n| Partner | SuperAdmin | Full system access |\n| CA | Admin | Administrative access |\n| Advocate | Manager | Team management |\n| Manager | Manager | Team coordination |\n| Staff | Staff | Own work scope |\n| RM | Manager | Team visibility |\n| Finance | Manager | Team visibility |\n| Admin | Admin | System configuration |\n\nThis happens automatically when you create or update an employee."
+    },
+    {
+      "title": "Permission Details",
+      "content": "**SuperAdmin** (Partner)\n- Full system access\n- All administrative privileges\n- User management\n- System configuration\n\n**Admin** (CA, Admin)\n- Administrative access\n- User management (limited)\n- Financial and compliance management\n- System settings\n\n**Manager** (Advocate, Manager, RM, Finance)\n- Team management\n- Case and client oversight\n- Task coordination\n- Team member visibility\n\n**Staff**\n- Access to assigned work\n- Own tasks and cases\n- Limited visibility\n- No administrative access"
+    },
+    {
+      "title": "Managing Roles",
+      "content": "**To change an employee's access:**\n1. Go to Employee Masters\n2. Edit the employee\n3. Change their Employee Role\n4. RBAC permissions update automatically\n\n**To view effective permissions:**\n1. Go to RBAC Management\n2. Find the user in User Role Assignment\n3. Click the eye icon to preview permissions\n\n**Important Notes:**\n- Only active employees receive RBAC roles\n- Deactivating an employee removes their system access\n- Manual RBAC role assignments are preserved\n- Changes take effect immediately"
+    },
+    {
+      "title": "Best Practices",
+      "content": "1. **Use Employee Roles for organizational structure** - Assign roles based on job function\n2. **Let the system manage RBAC** - Automatic mapping ensures consistency\n3. **Review permissions regularly** - Use the RBAC Management interface\n4. **Deactivate instead of delete** - Maintains audit trails\n5. **Test with Staff role first** - Verify access before promoting"
+    },
+    {
+      "title": "Troubleshooting",
+      "content": "**User can't access features:**\n- Verify employee is Active\n- Check Employee Role is appropriate\n- View effective permissions in RBAC Management\n- Ensure no conflicting deny permissions\n\n**RBAC roles not updating:**\n- Roles sync automatically on create/update\n- Check browser console for errors\n- Verify employee status is Active\n- Contact support if issues persist\n\n**Too much/too little access:**\n- Review Employee Role assignment\n- Check the role mapping table\n- Consider manual RBAC role adjustments\n- Document any custom permissions"
+    }
+  ],
+  "related": [
+    "admin-management",
+    "users-workflow"
+  ],
+  "tags": ["rbac", "permissions", "roles", "security", "access-control"]
+}

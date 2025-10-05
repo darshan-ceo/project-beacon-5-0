@@ -14,6 +14,9 @@ import { employeesService, Employee } from '@/services/employeesService';
 import { featureFlagService } from '@/services/featureFlagService';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
 import { AddressForm } from '@/components/ui/AddressForm';
+import { roleMapperService } from '@/services/roleMapperService';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Info } from 'lucide-react';
 import { 
   User, 
   Mail, 
@@ -222,6 +225,19 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
                     <SelectItem value="Admin">Admin</SelectItem>
                   </SelectContent>
                 </Select>
+                
+                {/* RBAC Permission Preview */}
+                {formData.role && !isReadOnly && (
+                  <Alert className="mt-2">
+                    <Info className="h-4 w-4" />
+                    <AlertDescription className="text-sm">
+                      <strong>RBAC Permissions:</strong> This role will grant <strong>{roleMapperService.getRBACRoleNamesForEmployee(formData.role).join(', ')}</strong> permissions.
+                      <div className="mt-1 text-muted-foreground">
+                        {roleMapperService.getRoleDescription(formData.role)}
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
               </div>
             </div>
 

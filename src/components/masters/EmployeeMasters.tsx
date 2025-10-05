@@ -27,6 +27,8 @@ import { useAppState } from '@/contexts/AppStateContext';
 import { employeesService, Employee } from '@/services/employeesService';
 import { useRBAC } from '@/hooks/useAdvancedRBAC';
 import { featureFlagService } from '@/services/featureFlagService';
+import { roleMapperService } from '@/services/roleMapperService';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   Plus, 
   Search, 
@@ -321,6 +323,7 @@ export const EmployeeMasters: React.FC = () => {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Role</TableHead>
+                <TableHead>RBAC Roles</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Mobile</TableHead>
                 <TableHead>Department</TableHead>
@@ -355,6 +358,24 @@ export const EmployeeMasters: React.FC = () => {
                     <Badge className={getRoleColor(employee.role)}>
                       {employee.role}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex flex-wrap gap-1">
+                            {roleMapperService.getRBACRoleNamesForEmployee(employee.role).map((rbacRole) => (
+                              <Badge key={rbacRole} variant="secondary" className="text-xs">
+                                {rbacRole}
+                              </Badge>
+                            ))}
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-sm">Auto-assigned based on employee role</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
