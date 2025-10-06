@@ -335,11 +335,11 @@ export const UserProfile: React.FC = () => {
         </div>
       ) : (
         <Tabs defaultValue="profile" className="space-y-6">{/* ... rest of tabs content stays the same ... */}
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="security">Security</TabsTrigger>
-          <TabsTrigger value="sessions">Sessions</TabsTrigger>
-          <TabsTrigger value="activity">Activity</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1 p-1 h-auto">
+          <TabsTrigger value="profile" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Profile</TabsTrigger>
+          <TabsTrigger value="security" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Security</TabsTrigger>
+          <TabsTrigger value="sessions" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Sessions</TabsTrigger>
+          <TabsTrigger value="activity" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Activity</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="space-y-6">

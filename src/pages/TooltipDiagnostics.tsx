@@ -100,20 +100,20 @@ export const TooltipDiagnostics: React.FC = () => {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="coverage" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="coverage" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1 p-1 h-auto">
+            <TabsTrigger value="coverage" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap flex items-center gap-2">
               <Target className="h-4 w-4" />
               Coverage
             </TabsTrigger>
-            <TabsTrigger value="tester" className="flex items-center gap-2">
+            <TabsTrigger value="tester" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap flex items-center gap-2">
               <HelpCircle className="h-4 w-4" />
               Tester
             </TabsTrigger>
-            <TabsTrigger value="validator" className="flex items-center gap-2">
+            <TabsTrigger value="validator" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap flex items-center gap-2">
               <FileJson className="h-4 w-4" />
               Validator
             </TabsTrigger>
-            <TabsTrigger value="a11y" className="flex items-center gap-2">
+            <TabsTrigger value="a11y" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap flex items-center gap-2">
               <Eye className="h-4 w-4" />
               Accessibility
             </TabsTrigger>

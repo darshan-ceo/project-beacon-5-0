@@ -224,20 +224,20 @@ export const ClientPortal: React.FC = () => {
         transition={{ delay: 0.3 }}
       >
         <Tabs defaultValue="cases" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="cases" className="flex items-center space-x-2">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1 p-1 h-auto">
+            <TabsTrigger value="cases" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap flex items-center space-x-2">
               <Scale className="h-4 w-4" />
               <span>Cases</span>
             </TabsTrigger>
-            <TabsTrigger value="hearings" className="flex items-center space-x-2">
+            <TabsTrigger value="hearings" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap flex items-center space-x-2">
               <Calendar className="h-4 w-4" />
               <span>Hearings</span>
             </TabsTrigger>
-            <TabsTrigger value="documents" className="flex items-center space-x-2">
+            <TabsTrigger value="documents" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap flex items-center space-x-2">
               <FileText className="h-4 w-4" />
               <span>Documents</span>
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="flex items-center space-x-2">
+            <TabsTrigger value="notifications" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap flex items-center space-x-2">
               <Bell className="h-4 w-4" />
               <span>Notifications</span>
             </TabsTrigger>

@@ -203,9 +203,9 @@ export const RBACManagement: React.FC = () => {
 
         <TabsContent value="roles">
           <Tabs defaultValue="roles" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="roles">Role Management</TabsTrigger>
-              <TabsTrigger value="hierarchy">Organization Hierarchy</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 gap-1 p-1 h-auto">
+              <TabsTrigger value="roles" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Role Management</TabsTrigger>
+              <TabsTrigger value="hierarchy" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Organization Hierarchy</TabsTrigger>
             </TabsList>
             
             <TabsContent value="roles">

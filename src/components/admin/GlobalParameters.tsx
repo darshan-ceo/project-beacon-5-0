@@ -211,14 +211,14 @@ export const GlobalParameters: React.FC = () => {
             </div>
           </div>
         ) : (
-          <TabsList className="grid w-full grid-cols-7">
-            <TabsTrigger value="system">System</TabsTrigger>
-            <TabsTrigger value="security">Security</TabsTrigger>
-            <TabsTrigger value="notifications">Notifications</TabsTrigger>
-            <TabsTrigger value="legal">Legal</TabsTrigger>
-            <TabsTrigger value="integrations">Integrations</TabsTrigger>
-            <TabsTrigger value="ai-communications">AI & Communications</TabsTrigger>
-            <TabsTrigger value="address-config">Address Configuration</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-1 p-1 h-auto">
+            <TabsTrigger value="system" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">System</TabsTrigger>
+            <TabsTrigger value="security" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Security</TabsTrigger>
+            <TabsTrigger value="notifications" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Notifications</TabsTrigger>
+            <TabsTrigger value="legal" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Legal</TabsTrigger>
+            <TabsTrigger value="integrations" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Integrations</TabsTrigger>
+            <TabsTrigger value="ai-communications" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">AI & Communications</TabsTrigger>
+            <TabsTrigger value="address-config" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Address Configuration</TabsTrigger>
           </TabsList>
         )}
 

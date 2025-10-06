@@ -197,16 +197,16 @@ export const SystemSettingsModal: React.FC<SystemSettingsModalProps> = ({
         </DialogHeader>
 
         <Tabs defaultValue="general" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="general" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1 p-1 h-auto">
+            <TabsTrigger value="general" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap flex items-center gap-2">
               <Globe className="h-4 w-4" />
               General
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="flex items-center gap-2">
+            <TabsTrigger value="notifications" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap flex items-center gap-2">
               <Bell className="h-4 w-4" />
               Notifications
             </TabsTrigger>
-            <TabsTrigger value="security" className="flex items-center gap-2">
+            <TabsTrigger value="security" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap flex items-center gap-2">
               <Shield className="h-4 w-4" />
               Security
             </TabsTrigger>

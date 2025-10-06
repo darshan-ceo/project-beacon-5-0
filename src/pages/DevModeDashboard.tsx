@@ -202,20 +202,20 @@ export const DevModeDashboard: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview" className="flex items-center gap-2">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1 p-1 h-auto">
+          <TabsTrigger value="overview" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap flex items-center gap-2">
             <Settings className="h-4 w-4" />
             Overview
           </TabsTrigger>
-          <TabsTrigger value="presets" className="flex items-center gap-2">
+          <TabsTrigger value="presets" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap flex items-center gap-2">
             <Zap className="h-4 w-4" />
             Quick Setup
           </TabsTrigger>
-          <TabsTrigger value="workflows" className="flex items-center gap-2">
+          <TabsTrigger value="workflows" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap flex items-center gap-2">
             <BookOpen className="h-4 w-4" />
             Workflows
           </TabsTrigger>
-          <TabsTrigger value="devtools" className="flex items-center gap-2">
+          <TabsTrigger value="devtools" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap flex items-center gap-2">
             <Wrench className="h-4 w-4" />
             Advanced Tools
           </TabsTrigger>

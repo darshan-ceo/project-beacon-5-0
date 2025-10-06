@@ -374,9 +374,9 @@ export const AddressSettings: React.FC = () => {
       )}
 
       <Tabs value={activeModule} onValueChange={(value) => setActiveModule(value as ModuleName)}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1 p-1 h-auto">
           {Object.entries(MODULE_LABELS).map(([key, label]) => (
-            <TabsTrigger key={key} value={key}>
+            <TabsTrigger key={key} value={key} className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">
               {label}
             </TabsTrigger>
           ))}

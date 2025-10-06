@@ -347,9 +347,9 @@ export const HelpCenter: React.FC = () => {
 
         {/* Content Tabs */}
         <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-          <TabsList className="grid w-full max-w-2xl grid-cols-4">
+          <TabsList className="grid w-full max-w-2xl grid-cols-2 sm:grid-cols-4 gap-1 p-1 h-auto">
             {availableTabs.map(tab => (
-              <TabsTrigger key={tab.id} value={tab.id} className="flex items-center gap-2">
+              <TabsTrigger key={tab.id} value={tab.id} className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap flex items-center gap-2">
                 <tab.icon className="h-4 w-4" />
                 <span className="hidden sm:inline">{tab.label}</span>
               </TabsTrigger>

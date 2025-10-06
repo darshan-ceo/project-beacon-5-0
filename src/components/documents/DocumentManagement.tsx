@@ -863,14 +863,14 @@ export const DocumentManagement: React.FC = () => {
         }
       }} className="w-full">
         <div className="overflow-x-auto">
-          <TabsList className="grid w-full grid-cols-4 min-w-[400px]">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="folders">Folders</TabsTrigger>
-            <TabsTrigger value="documents">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1 p-1 h-auto min-w-[400px]">
+            <TabsTrigger value="overview" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Overview</TabsTrigger>
+            <TabsTrigger value="folders" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Folders</TabsTrigger>
+            <TabsTrigger value="documents" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">
               <span className="hidden sm:inline">All Documents</span>
               <span className="sm:hidden">Docs</span>
             </TabsTrigger>
-            <TabsTrigger value="templates">
+            <TabsTrigger value="templates" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">
               <span className="hidden sm:inline">Form Templates</span>
               <span className="sm:hidden">Forms</span>
             </TabsTrigger>

@@ -204,15 +204,15 @@ export const QADashboard: React.FC = () => {
         )}
 
         <Tabs defaultValue="tests" className="w-full">
-          <TabsList className="grid w-full grid-cols-8">
-            <TabsTrigger value="tests">Smoke Tests</TabsTrigger>
-            <TabsTrigger value="storage">Storage Manager</TabsTrigger>
-            <TabsTrigger value="task-bundles">Task Bundles</TabsTrigger>
-            <TabsTrigger value="gst-monitoring">GST Monitoring</TabsTrigger>
-            <TabsTrigger value="tooltips">Tooltips</TabsTrigger>
-            <TabsTrigger value="rbac-debug">RBAC Debug</TabsTrigger>
-            <TabsTrigger value="diagnostics">System Diagnostics</TabsTrigger>
-            <TabsTrigger value="fixes">Applied Fixes</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-1 p-1 h-auto">
+            <TabsTrigger value="tests" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Smoke Tests</TabsTrigger>
+            <TabsTrigger value="storage" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Storage Manager</TabsTrigger>
+            <TabsTrigger value="task-bundles" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Task Bundles</TabsTrigger>
+            <TabsTrigger value="gst-monitoring" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">GST Monitoring</TabsTrigger>
+            <TabsTrigger value="tooltips" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Tooltips</TabsTrigger>
+            <TabsTrigger value="rbac-debug" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">RBAC Debug</TabsTrigger>
+            <TabsTrigger value="diagnostics" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">System Diagnostics</TabsTrigger>
+            <TabsTrigger value="fixes" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Applied Fixes</TabsTrigger>
           </TabsList>
 
           <TabsContent value="tests" className="mt-6">

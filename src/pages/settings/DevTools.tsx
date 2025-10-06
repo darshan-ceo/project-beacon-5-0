@@ -276,12 +276,12 @@ export const DevTools: React.FC = () => {
       </div>
 
       <Tabs defaultValue="qc" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="qc">QC Runner</TabsTrigger>
-          <TabsTrigger value="stage">Stage Simulator</TabsTrigger>
-          <TabsTrigger value="network">Network</TabsTrigger>
-          <TabsTrigger value="storage">Storage</TabsTrigger>
-          <TabsTrigger value="flags">Feature Flags</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1 p-1 h-auto">
+          <TabsTrigger value="qc" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">QC Runner</TabsTrigger>
+          <TabsTrigger value="stage" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Stage Simulator</TabsTrigger>
+          <TabsTrigger value="network" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Network</TabsTrigger>
+          <TabsTrigger value="storage" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Storage</TabsTrigger>
+          <TabsTrigger value="flags" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Feature Flags</TabsTrigger>
         </TabsList>
 
         <TabsContent value="qc" className="space-y-6">
