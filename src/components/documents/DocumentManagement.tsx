@@ -687,12 +687,12 @@ export const DocumentManagement: React.FC = () => {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="flex justify-between items-center"
+        className="flex flex-col gap-4"
       >
-        <div className="flex items-center gap-3">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Document Management</h1>
-            <p className="text-muted-foreground mt-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <div className="flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Document Management</h1>
+            <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2">
               Secure document storage with version control and access management
             </p>
           </div>
@@ -704,7 +704,7 @@ export const DocumentManagement: React.FC = () => {
               className="flex items-center gap-2"
             >
               <HelpCircle className="w-4 h-4" />
-              Start Tour
+              <span className="hidden sm:inline">Start Tour</span>
             </Button>
             <ContextualPageHelp 
               pageId="document-management" 
@@ -714,29 +714,31 @@ export const DocumentManagement: React.FC = () => {
             <InlineHelp module="documents" />
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button 
             variant="outline"
             onClick={handleResetFilters}
             size="sm"
           >
             <X className="mr-2 h-4 w-4" />
-            Reset Filters
+            <span className="hidden sm:inline">Reset Filters</span>
           </Button>
           <Button 
             variant="outline"
             onClick={() => setNewFolderModal(true)}
+            size="sm"
           >
             <FolderOpen className="mr-2 h-4 w-4" />
-            New Folder
+            <span className="hidden sm:inline">New Folder</span>
           </Button>
           <Button 
             variant="outline"
             onClick={() => tourService.startTour('dms-upload')}
-            className="text-xs"
+            size="sm"
+            className="hidden md:flex"
           >
             <HelpCircle className="mr-2 h-3 w-3" />
-            Start Tour
+            Tour
           </Button>
           <Button 
             className="bg-primary hover:bg-primary-hover"
@@ -744,9 +746,10 @@ export const DocumentManagement: React.FC = () => {
               setDocumentModal({ isOpen: true, mode: 'upload', document: null });
             }}
             data-tour="upload-btn"
+            size="sm"
           >
             <Upload className="mr-2 h-4 w-4" />
-            Upload Documents
+            Upload
           </Button>
         </div>
       </motion.div>
@@ -756,7 +759,7 @@ export const DocumentManagement: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.1 }}
-        className="grid grid-cols-1 md:grid-cols-4 gap-6"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6"
       >
         <Card>
           <CardContent className="p-6">
@@ -859,12 +862,20 @@ export const DocumentManagement: React.FC = () => {
           console.log(`📁 Cleared folder selection when switching to tab: ${value}`);
         }
       }} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="folders">Folders</TabsTrigger>
-          <TabsTrigger value="documents">All Documents</TabsTrigger>
-          <TabsTrigger value="templates">Form Templates</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto">
+          <TabsList className="grid w-full grid-cols-4 min-w-[400px]">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="folders">Folders</TabsTrigger>
+            <TabsTrigger value="documents">
+              <span className="hidden sm:inline">All Documents</span>
+              <span className="sm:hidden">Docs</span>
+            </TabsTrigger>
+            <TabsTrigger value="templates">
+              <span className="hidden sm:inline">Form Templates</span>
+              <span className="sm:hidden">Forms</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="overview" className="mt-6">
           <motion.div 

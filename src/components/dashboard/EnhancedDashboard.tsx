@@ -185,12 +185,12 @@ export const EnhancedDashboard: React.FC = () => {
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4"
+        className="flex flex-col gap-4"
       >
-        <div className="flex items-center gap-3">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Practice Analytics</h1>
-            <p className="text-muted-foreground mt-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <div className="flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Practice Analytics</h1>
+            <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2">
               Comprehensive insights and metrics for {currentUser.name}
             </p>
           </div>
@@ -200,7 +200,7 @@ export const EnhancedDashboard: React.FC = () => {
           </div>
         </div>
         
-        <div className="flex flex-wrap gap-3 items-center">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-3">
           <Select
             value={filters.clientId || 'all'}
             onValueChange={(value) => setFilters(prev => ({ 

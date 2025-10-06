@@ -72,32 +72,34 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
       </div>
 
       {/* Right Section */}
-      <div className="flex items-center space-x-4">
-        {/* Dev Mode Badge */}
+      <div className="flex items-center gap-2 sm:gap-4">
+        {/* Dev Mode Badge - Hidden on mobile */}
         {(envConfig.QA_ON || !envConfig.API_SET || envConfig.MOCK_ON) && (
-          <Badge variant="destructive" className="flex items-center gap-1 animate-pulse">
+          <Badge variant="destructive" className="hidden md:flex items-center gap-1 animate-pulse">
             <AlertTriangle className="h-3 w-3" />
             DEV MODE
           </Badge>
         )}
         
-        {/* Search Provider Badge */}
+        {/* Search Provider Badge - Hidden on mobile */}
         {searchProvider && (
           <Badge 
             variant={searchProvider === 'API' ? 'default' : 'secondary'} 
-            className="flex items-center gap-1"
+            className="hidden md:flex items-center gap-1"
           >
             {searchProvider === 'API' ? (
               <Database className="h-3 w-3" />
             ) : (
               <TestTube className="h-3 w-3" />
             )}
-            Search: {searchProvider}
+            <span className="hidden lg:inline">Search: {searchProvider}</span>
           </Badge>
         )}
         
-        {/* Role Selector */}
-        <RoleSelector />
+        {/* Role Selector - Hidden on small mobile */}
+        <div className="hidden sm:block">
+          <RoleSelector />
+        </div>
         
         {/* Notifications */}
         <Button variant="ghost" size="sm" className="relative">
@@ -110,20 +112,21 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
         {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center space-x-2 px-3">
+            <Button variant="ghost" className="flex items-center gap-2 px-2 sm:px-3">
               <Avatar className="h-8 w-8">
                 <AvatarImage src={user.avatar} alt={user.name} />
                 <AvatarFallback className="text-xs">
                   {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex flex-col items-start">
+              {/* User info - Hidden on mobile */}
+              <div className="hidden lg:flex flex-col items-start">
                 <span className="text-sm font-medium">{user.name}</span>
                 <Badge className={`text-xs ${getRoleColor(user.role)}`}>
                   {user.role}
                 </Badge>
               </div>
-              <ChevronDown className="h-4 w-4" />
+              <ChevronDown className="h-4 w-4 hidden sm:block" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">

@@ -183,19 +183,19 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({ userRole }) => {
           onValueChange={(value) => setActiveTab(value as ReportType)}
           className="flex-1 flex flex-col"
         >
-          {/* Tab List */}
-          <div className="border-b border-border bg-background">
-            <TabsList className="grid w-full grid-cols-7 h-auto p-1">
+          {/* Tab List - Scrollable on mobile */}
+          <div className="border-b border-border bg-background overflow-x-auto">
+            <TabsList className="inline-flex md:grid w-full md:w-auto md:grid-cols-7 h-auto p-1 min-w-full">
               {availableTabs.map((tab) => {
                 const Icon = tab.icon;
                 return (
                   <TabsTrigger
                     key={tab.id}
                     value={tab.id}
-                    className="flex flex-col items-center gap-1 p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                    className="flex flex-col items-center gap-1 p-3 min-w-[100px] md:min-w-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                   >
                     <Icon className="h-4 w-4" />
-                    <span className="text-xs font-medium">{tab.label}</span>
+                    <span className="text-xs font-medium whitespace-nowrap">{tab.label}</span>
                   </TabsTrigger>
                 );
               })}

@@ -156,8 +156,8 @@ const JudgeMasters: React.FC = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="relative flex-1">
+          <div className="flex flex-col gap-4 mb-6">
+            <div className="relative w-full">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search judges by name, designation, or court..."
@@ -166,7 +166,7 @@ const JudgeMasters: React.FC = () => {
                 className="pl-10"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row flex-wrap gap-2">
               <FilterDropdown
                 label="Court"
                 value={filterCourt}

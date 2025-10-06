@@ -447,8 +447,8 @@ export const ReportsFilterToolbar: React.FC<ReportsFilterToolbarProps> = ({
     <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
       <div className="border-b border-border bg-muted/20 sticky top-0 z-10">
         {/* Collapsed State - Always Visible */}
-        <div className="px-4 py-2 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2 flex-wrap">
+        <div className="px-2 sm:px-4 py-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
             <CollapsibleTrigger asChild>
               <Button variant="ghost" size="sm" className="h-8 gap-2">
                 {isExpanded ? (
@@ -456,7 +456,7 @@ export const ReportsFilterToolbar: React.FC<ReportsFilterToolbarProps> = ({
                 ) : (
                   <ChevronDown className="h-4 w-4" />
                 )}
-                <span className="font-medium">Filters</span>
+                <span className="font-medium text-sm">Filters</span>
                 {getActiveFilterCount() > 0 && (
                   <Badge variant="secondary" className="h-5 px-1.5 text-xs">
                     {getActiveFilterCount()}
@@ -467,7 +467,7 @@ export const ReportsFilterToolbar: React.FC<ReportsFilterToolbarProps> = ({
 
             {/* Active Filter Chips */}
             {!isExpanded && getActiveFilterCount() > 0 && (
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap max-w-full overflow-x-auto">
                 {Object.entries(filters).map(([key, value]) => {
                   if (!value) return null;
                   return (
@@ -507,8 +507,8 @@ export const ReportsFilterToolbar: React.FC<ReportsFilterToolbarProps> = ({
 
         {/* Expanded State - Collapsible */}
         <CollapsibleContent className="animate-accordion-down">
-          <div className="px-4 py-4 border-t border-border bg-background">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+          <div className="px-2 sm:px-4 py-4 border-t border-border bg-background">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
               {/* Date Range Filter */}
               <div className="space-y-1.5 lg:col-span-2">
                 <Label className="text-xs font-medium text-muted-foreground">Date Range</Label>
