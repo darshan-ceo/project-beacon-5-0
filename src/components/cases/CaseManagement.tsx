@@ -539,22 +539,22 @@ export const CaseManagement: React.FC = () => {
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-8">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-1 p-1 h-auto">
+          <TabsTrigger value="overview" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Overview</TabsTrigger>
           <TabsTrigger 
             value="lifecycle" 
             disabled={getTabDisabled('lifecycle')}
-            className="disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
             title={getTabDisabled('lifecycle') ? "Select a case from Overview to proceed" : ""}
           >
             Lifecycle
           </TabsTrigger>
-          <TabsTrigger value="sla">Timeline Tracker</TabsTrigger>
-          <TabsTrigger value="hearings">Hearings</TabsTrigger>
+          <TabsTrigger value="sla" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Timeline Tracker</TabsTrigger>
+          <TabsTrigger value="hearings" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Hearings</TabsTrigger>
           <TabsTrigger 
             value="documents"
             disabled={getTabDisabled('documents')}
-            className="disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
             title={getTabDisabled('documents') ? "Select a case from Overview to proceed" : ""}
           >
             Documents
@@ -562,7 +562,7 @@ export const CaseManagement: React.FC = () => {
           <TabsTrigger 
             value="timeline"
             disabled={getTabDisabled('timeline')}
-            className="disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
             title={getTabDisabled('timeline') ? "Select a case from Overview to proceed" : ""}
           >
             Timeline
@@ -570,7 +570,7 @@ export const CaseManagement: React.FC = () => {
           <TabsTrigger 
             value="ai-assistant"
             disabled={getTabDisabled('ai-assistant')}
-            className="disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
             title={getTabDisabled('ai-assistant') ? "Select a case from Overview to proceed" : ""}
           >
             AI Assistant
@@ -578,7 +578,7 @@ export const CaseManagement: React.FC = () => {
           <TabsTrigger 
             value="communications"
             disabled={getTabDisabled('communications')}
-            className="disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
             title={getTabDisabled('communications') ? "Select a case from Overview to proceed" : ""}
           >
             Communications
