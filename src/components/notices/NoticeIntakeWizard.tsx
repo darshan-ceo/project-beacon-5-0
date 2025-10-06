@@ -15,7 +15,9 @@ import { clientsService } from '@/services/clientsService';
 import { casesService } from '@/services/casesService';
 import { dmsService } from '@/services/dmsService';
 import { taskBundleService } from '@/services/taskBundleService';
+import { taskBundleTriggerService } from '@/services/taskBundleTriggerService';
 import { useToast } from '@/hooks/use-toast';
+import { useAppState } from '@/contexts/AppStateContext';
 import { resolveDataGaps, type ResolverInput, type ResolverOutput } from '@/lib/notice/dataGapsResolver';
 import { useAsmt10Resolver, type ValidationResult } from '@/validation/asmt10Resolver';
 import { DataGapsResolver } from './DataGapsResolver';
@@ -51,6 +53,7 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState('');
   const { toast } = useToast();
+  const { state, dispatch } = useAppState();
   
   // Use the new relaxed validator
   const validationResult = useAsmt10Resolver({
@@ -353,8 +356,8 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
     try {
       const gstin = resolverOutput.normalized.taxpayer.gstin;
       
-      // Search for existing client by GSTIN  
-      const clients = [];
+      // Search for existing client by GSTIN from AppStateContext
+      const clients = state.clients || [];
       const existingClient = clients.find(client => 
         client.gstin?.toLowerCase() === gstin.toLowerCase()
       );
@@ -366,20 +369,20 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
           description: `Found existing client: ${existingClient.name}`,
         });
       } else {
-        // Create new client from extracted data
+        // Create new client from extracted data and persist via clientsService
         const normalized = resolverOutput.normalized;
-        const newClient = {
-          id: `client_${Date.now()}`, // Generate unique ID for new client
+        const newClientData = {
           name: normalized.taxpayer?.name || 'New Client',
           gstin: gstin,
           pan: normalized.taxpayer?.pan,
           email: '',
           phone: '',
           address: normalized.taxpayer?.address || '',
-          status: 'active' as const
+          status: 'Active' as const
         };
         
-        const createdClient = newClient;
+        // Persist client using clientsService
+        const createdClient = await clientsService.create(newClientData, dispatch);
         setSelectedClient(createdClient);
         
         toast({
@@ -416,18 +419,23 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
 
     setLoading(true);
     try {
-      // Use the prefilled caseData (with any user edits)
-      const newCase = {
+      // Prepare case payload for persistence
+      const casePayload = {
         ...caseData,
-        client_id: selectedClient.id,
-        id: `case_${Date.now()}`
+        clientId: selectedClient.id,
+        title: caseData.title || `ASMT-10 Case - ${selectedClient.name}`,
+        currentStage: caseData.currentStage || 'Notice Received',
+        priority: caseData.priority || 'High',
+        status: caseData.status || 'Active'
       };
 
-      setCreatedCase(newCase);
+      // Persist case using casesService
+      const persistedCase = await casesService.create(casePayload, dispatch);
+      setCreatedCase(persistedCase);
       
       toast({
         title: "Case created",
-        description: `Case "${newCase.title}" created successfully`,
+        description: `Case "${persistedCase.title}" created successfully`,
       });
       
       setCurrentStep(6);
@@ -475,11 +483,21 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
 
     setLoading(true);
     try {
-      const tasks = [];
+      // Trigger task bundle automation
+      const result = await taskBundleTriggerService.triggerTaskBundles(
+        {
+          id: createdCase.id,
+          currentStage: createdCase.currentStage || 'Notice Received',
+          clientId: createdCase.clientId
+        } as any,
+        'case_created', // trigger type
+        createdCase.currentStage || 'Notice Received', // GST stage
+        dispatch // for persisting tasks
+      );
 
       toast({
         title: "Tasks generated",
-        description: `${tasks.length} automated tasks created for the case.`,
+        description: `${result.totalTasksCreated} automated task(s) created from ${result.createdTasks.length} bundle(s).`,
       });
 
       // Complete wizard
