@@ -2,6 +2,30 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Thin scrollbars for horizontal scroll containers */
+.scrollbar-thin::-webkit-scrollbar {
+  height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--border) / 0.8);
+}
+
+/* Firefox thin scrollbar */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border)) transparent;
+}
+
 /* Project Beacon 5.0 Design System - H-Office Legal Practice Management
 All colors MUST be HSL. Professional legal theme with accessibility focus.
 */

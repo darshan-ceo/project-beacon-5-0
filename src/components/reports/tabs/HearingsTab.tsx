@@ -53,8 +53,9 @@ export const HearingsTab: React.FC<HearingsTabProps> = ({ filters }) => {
       </div>
       
       <div className="flex-1 overflow-auto">
-        <Table>
-          <TableHeader>
+        <div className="overflow-x-auto">
+          <Table className="min-w-[900px]">
+            <TableHeader>
             <TableRow>
               <TableHead>Date</TableHead>
               <TableHead>Time</TableHead>
@@ -84,7 +85,8 @@ export const HearingsTab: React.FC<HearingsTabProps> = ({ filters }) => {
               </TableRow>
             ))}
           </TableBody>
-        </Table>
+          </Table>
+        </div>
       </div>
     </div>
   );

@@ -159,23 +159,25 @@ export const GlobalParameters: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Global Parameters</h1>
-          <p className="text-muted-foreground mt-2">Configure system-wide settings and parameters</p>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:justify-between">
+        <div className="w-full sm:w-auto">
+          <h1 className="text-2xl sm:text-3xl font-bold">Global Parameters</h1>
+          <p className="text-sm text-muted-foreground mt-2">Configure system-wide settings and parameters</p>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           <Button 
             variant="outline" 
             onClick={resetToDefaults}
-            className="text-destructive hover:text-destructive"
+            className="text-destructive hover:text-destructive flex-1 sm:flex-none"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
-            Reset to Defaults
+            <span className="hidden sm:inline">Reset to Defaults</span>
+            <span className="sm:hidden">Reset</span>
           </Button>
-          <Button onClick={saveChanges} disabled={!hasChanges}>
+          <Button onClick={saveChanges} disabled={!hasChanges} className="flex-1 sm:flex-none">
             <Save className="h-4 w-4 mr-2" />
-            Save Changes
+            <span className="hidden sm:inline">Save Changes</span>
+            <span className="sm:hidden">Save</span>
           </Button>
         </div>
       </div>
@@ -195,35 +197,18 @@ export const GlobalParameters: React.FC = () => {
 
       <Tabs defaultValue="system" className="space-y-6">
         {featureFlagService.isEnabled('tabs_overflow_fix_v1') ? (
-          <div className="relative">
-            <div className="overflow-x-auto">
-              <TabsList className="flex w-max min-w-full">
-                <TabsTrigger value="system" className="whitespace-nowrap max-w-[160px] truncate" title="System Configuration">
-                  System
-                </TabsTrigger>
-                <TabsTrigger value="security" className="whitespace-nowrap max-w-[160px] truncate" title="Security Settings">
-                  Security
-                </TabsTrigger>
-                <TabsTrigger value="notifications" className="whitespace-nowrap max-w-[160px] truncate" title="Notifications">
-                  Notifications
-                </TabsTrigger>
-                <TabsTrigger value="legal" className="whitespace-nowrap max-w-[160px] truncate" title="Legal Configuration">
-                  Legal
-                </TabsTrigger>
-                <TabsTrigger value="integrations" className="whitespace-nowrap max-w-[160px] truncate" title="Integrations">
-                  Integrations
-                </TabsTrigger>
-                <TabsTrigger value="ai-communications" className="whitespace-nowrap max-w-[160px] truncate" title="AI & Communications">
-                  AI & Comms
-                </TabsTrigger>
-                <TabsTrigger value="address-config" className="whitespace-nowrap max-w-[160px] truncate" title="Address Configuration">
-                  Addr Config
-                </TabsTrigger>
+          <div className="border-b border-border bg-background">
+            <div className="overflow-x-auto scrollbar-thin">
+              <TabsList className="inline-flex w-max min-w-full h-auto p-1">
+                <TabsTrigger value="system" className="min-w-[100px] whitespace-nowrap">System</TabsTrigger>
+                <TabsTrigger value="security" className="min-w-[100px] whitespace-nowrap">Security</TabsTrigger>
+                <TabsTrigger value="notifications" className="min-w-[120px] whitespace-nowrap">Notifications</TabsTrigger>
+                <TabsTrigger value="legal" className="min-w-[100px] whitespace-nowrap">Legal</TabsTrigger>
+                <TabsTrigger value="integrations" className="min-w-[120px] whitespace-nowrap">Integrations</TabsTrigger>
+                <TabsTrigger value="ai-communications" className="min-w-[140px] whitespace-nowrap">AI & Communications</TabsTrigger>
+                <TabsTrigger value="address-config" className="min-w-[120px] whitespace-nowrap">Address Config</TabsTrigger>
               </TabsList>
             </div>
-            {/* Fade edges to indicate scrollability */}
-            <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background to-transparent pointer-events-none" />
-            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent pointer-events-none" />
           </div>
         ) : (
           <TabsList className="grid w-full grid-cols-7">

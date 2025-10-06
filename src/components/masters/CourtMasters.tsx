@@ -75,39 +75,45 @@ export const CourtMasters: React.FC = () => {
           <h1 className="text-3xl font-bold text-foreground">Court Masters</h1>
           <p className="text-muted-foreground mt-2">Manage court information and jurisdictions</p>
         </div>
-        <div className="flex gap-2">
-          {featureFlagService.isEnabled('data_io_v1') && hasPermission('io.import.court', 'write') && (
+          <div className="flex flex-wrap gap-2">
+            {featureFlagService.isEnabled('data_io_v1') && hasPermission('io.import.court', 'write') && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="gap-2"
+                onClick={() => setImportWizardOpen(true)}
+              >
+                <Upload className="h-4 w-4" />
+                <span className="hidden sm:inline">Import Courts</span>
+                <span className="sm:hidden">Import</span>
+              </Button>
+            )}
+            {featureFlagService.isEnabled('data_io_v1') && hasPermission('io.export.court', 'write') && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="gap-2"
+                onClick={() => setExportWizardOpen(true)}
+              >
+                <Download className="h-4 w-4" />
+                <span className="hidden sm:inline">Export Courts</span>
+                <span className="sm:hidden">Export</span>
+              </Button>
+            )}
             <Button 
-              variant="outline" 
+              size="sm"
               className="gap-2"
-              onClick={() => setImportWizardOpen(true)}
+              onClick={() => setCourtModal({ 
+                isOpen: true, 
+                mode: 'create', 
+                court: null 
+              })}
             >
-              <Upload className="h-4 w-4" />
-              Import Courts
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Add New Court</span>
+              <span className="sm:hidden">Add Court</span>
             </Button>
-          )}
-          {featureFlagService.isEnabled('data_io_v1') && hasPermission('io.export.court', 'write') && (
-            <Button 
-              variant="outline" 
-              className="gap-2"
-              onClick={() => setExportWizardOpen(true)}
-            >
-              <Download className="h-4 w-4" />
-              Export Courts
-            </Button>
-          )}
-          <Button 
-            className="gap-2"
-            onClick={() => setCourtModal({ 
-              isOpen: true, 
-              mode: 'create', 
-              court: null 
-            })}
-          >
-            <Plus className="h-4 w-4" />
-            Add New Court
-          </Button>
-        </div>
+          </div>
       </motion.div>
 
       {/* Summary Cards */}
@@ -115,7 +121,7 @@ export const CourtMasters: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="grid grid-cols-1 md:grid-cols-4 gap-6"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
       >
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -181,7 +187,7 @@ export const CourtMasters: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="flex flex-col sm:flex-row gap-4"
+        className="flex flex-col sm:flex-row flex-wrap gap-4"
       >
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -237,8 +243,9 @@ export const CourtMasters: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
+            <div className="overflow-x-auto">
+              <Table className="min-w-[800px]">
+                <TableHeader>
                 <TableRow>
                   <TableHead>Court Details</TableHead>
                   <TableHead>Type & Jurisdiction</TableHead>
@@ -351,7 +358,8 @@ export const CourtMasters: React.FC = () => {
                   </motion.tr>
                 ))}
               </TableBody>
-            </Table>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       </motion.div>

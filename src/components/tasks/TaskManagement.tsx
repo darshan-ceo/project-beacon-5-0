@@ -536,16 +536,20 @@ export const TaskManagement: React.FC = () => {
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-8" data-tour="task-automation-tabs">
-          <TabsTrigger value="board" data-tour="board-tab">Board</TabsTrigger>
-          <TabsTrigger value="automation" data-tour="automation-tab">Automation</TabsTrigger>
-          <TabsTrigger value="escalation" data-tour="escalation-tab">Escalation</TabsTrigger>
-          <TabsTrigger value="templates" data-tour="templates-tab">Templates</TabsTrigger>
-          <TabsTrigger value="analytics" data-tour="analytics-tab">Analytics</TabsTrigger>
-          <TabsTrigger value="insights" data-tour="insights-tab">Insights</TabsTrigger>
-          <TabsTrigger value="ai-assistant" data-tour="ai-assistant-tab">AI Assistant</TabsTrigger>
-          <TabsTrigger value="collaboration" data-tour="collaboration-tab">Collaboration</TabsTrigger>
-        </TabsList>
+        <div className="border-b border-border bg-background">
+          <div className="overflow-x-auto scrollbar-thin">
+            <TabsList className="inline-flex w-max min-w-full h-auto p-1" data-tour="task-automation-tabs">
+              <TabsTrigger value="board" data-tour="board-tab" className="min-w-[90px] whitespace-nowrap">Board</TabsTrigger>
+              <TabsTrigger value="automation" data-tour="automation-tab" className="min-w-[100px] whitespace-nowrap">Automation</TabsTrigger>
+              <TabsTrigger value="escalation" data-tour="escalation-tab" className="min-w-[100px] whitespace-nowrap">Escalation</TabsTrigger>
+              <TabsTrigger value="templates" data-tour="templates-tab" className="min-w-[100px] whitespace-nowrap">Templates</TabsTrigger>
+              <TabsTrigger value="analytics" data-tour="analytics-tab" className="min-w-[90px] whitespace-nowrap">Analytics</TabsTrigger>
+              <TabsTrigger value="insights" data-tour="insights-tab" className="min-w-[90px] whitespace-nowrap">Insights</TabsTrigger>
+              <TabsTrigger value="ai-assistant" data-tour="ai-assistant-tab" className="min-w-[110px] whitespace-nowrap">AI Assistant</TabsTrigger>
+              <TabsTrigger value="collaboration" data-tour="collaboration-tab" className="min-w-[120px] whitespace-nowrap">Collaboration</TabsTrigger>
+            </TabsList>
+          </div>
+        </div>
 
         <TabsContent value="board" className="mt-6">
           {/* View Toggle */}

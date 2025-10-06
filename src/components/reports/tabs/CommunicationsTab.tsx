@@ -81,8 +81,9 @@ export const CommunicationsTab: React.FC<CommunicationsTabProps> = ({ filters })
       </div>
       
       <div className="flex-1 overflow-auto">
-        <Table>
-          <TableHeader>
+        <div className="overflow-x-auto">
+          <Table className="min-w-[800px]">
+            <TableHeader>
             <TableRow>
               <TableHead>Date</TableHead>
               <TableHead>Case ID</TableHead>
@@ -112,7 +113,8 @@ export const CommunicationsTab: React.FC<CommunicationsTabProps> = ({ filters })
               </TableRow>
             ))}
           </TableBody>
-        </Table>
+          </Table>
+        </div>
       </div>
     </div>
   );

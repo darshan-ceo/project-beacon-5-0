@@ -52,8 +52,9 @@ export const ClientSummaryTab: React.FC<ClientSummaryTabProps> = ({ filters }) =
       </div>
       
       <div className="flex-1 overflow-auto">
-        <Table>
-          <TableHeader>
+        <div className="overflow-x-auto">
+          <Table className="min-w-[800px]">
+            <TableHeader>
             <TableRow>
               <TableHead>Client ID</TableHead>
               <TableHead>Name</TableHead>
@@ -77,7 +78,8 @@ export const ClientSummaryTab: React.FC<ClientSummaryTabProps> = ({ filters }) =
               </TableRow>
             ))}
           </TableBody>
-        </Table>
+          </Table>
+        </div>
       </div>
     </div>
   );
