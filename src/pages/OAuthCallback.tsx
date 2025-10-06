@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { OAuthManager } from '@/utils/oauthUtils';
+import { OAuthManager, PKCEUtils } from '@/utils/oauthUtils';
 import { integrationsService } from '@/services/integrationsService';
 import { Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
@@ -14,14 +14,18 @@ export const OAuthCallback = () => {
   useEffect(() => {
     const handleOAuthCallback = async () => {
       try {
-        // Extract provider from state parameter
+        // Extract provider from state parameter using JWT-like decoding
         const state = searchParams.get('state');
-        const stateData = state ? JSON.parse(atob(state.split('.')[1])) : null;
-        const provider = stateData?.provider as 'google' | 'outlook';
-        
-        if (!provider) {
-          throw new Error('Invalid OAuth state');
+        if (!state) {
+          throw new Error('Missing OAuth state parameter');
         }
+
+        const decodedState = PKCEUtils.decodeState(state);
+        if (!decodedState) {
+          throw new Error('Invalid OAuth state format');
+        }
+
+        const provider = decodedState.provider;
 
         // Load settings to get client credentials
         const settings = integrationsService.loadCalendarSettings('default');
@@ -50,8 +54,9 @@ export const OAuthCallback = () => {
           throw new Error(result.error_description || result.error);
         }
 
-        // Save tokens
-        integrationsService.saveTokens('default', provider, {
+        // Save tokens (map microsoft to outlook for storage)
+        const storageProvider = provider === 'microsoft' ? 'outlook' : 'google';
+        integrationsService.saveTokens('default', storageProvider, {
           access_token: result.access_token,
           refresh_token: result.refresh_token,
           expires_at: result.expires_at,

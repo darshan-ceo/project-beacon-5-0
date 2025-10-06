@@ -33,6 +33,65 @@ export class PKCEUtils {
       .replace(/\//g, '_')
       .replace(/=/g, '');
   }
+
+  // Generate JWT-like state with embedded provider info
+  static generateStatefulState(provider: 'google' | 'microsoft'): string {
+    // Header (typ: STATE, alg: none)
+    const header = {
+      typ: 'STATE',
+      alg: 'none'
+    };
+    
+    // Payload with provider and expiry
+    const payload = {
+      provider: provider,
+      exp: Date.now() + (10 * 60 * 1000), // 10 minutes validity
+      nonce: this.generateState() // Random nonce for CSRF
+    };
+    
+    // Signature (random string)
+    const signature = this.generateState();
+    
+    // Encode as base64 URL-safe JWT-like structure
+    const encodedHeader = btoa(JSON.stringify(header))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
+      
+    const encodedPayload = btoa(JSON.stringify(payload))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
+    
+    return `${encodedHeader}.${encodedPayload}.${signature}`;
+  }
+
+  // Decode JWT-like state to extract provider
+  static decodeState(state: string): { provider: 'google' | 'microsoft'; exp: number; nonce: string } | null {
+    try {
+      const parts = state.split('.');
+      if (parts.length !== 3) return null;
+      
+      // Decode payload (second part)
+      const payload = JSON.parse(atob(parts[1]));
+      
+      // Validate structure
+      if (!payload.provider || !payload.exp || !payload.nonce) {
+        return null;
+      }
+      
+      // Check expiry
+      if (Date.now() > payload.exp) {
+        console.warn('OAuth state expired');
+        return null;
+      }
+      
+      return payload;
+    } catch (error) {
+      console.error('Failed to decode state:', error);
+      return null;
+    }
+  }
 }
 
 // OAuth configuration interfaces
@@ -104,7 +163,7 @@ export class OAuthManager {
     try {
       const codeVerifier = PKCEUtils.generateCodeVerifier();
       const codeChallenge = await PKCEUtils.generateCodeChallenge(codeVerifier);
-      const state = PKCEUtils.generateState();
+      const state = PKCEUtils.generateStatefulState(provider);
 
       // Store PKCE parameters for later verification
       sessionStorage.setItem(`${this.STORAGE_PREFIX}${provider}_verifier`, codeVerifier);
@@ -158,7 +217,13 @@ export class OAuthManager {
         return { error: 'missing_code_or_state' };
       }
 
-      // Verify state parameter
+      // Decode and validate state parameter
+      const decodedState = PKCEUtils.decodeState(state);
+      if (!decodedState) {
+        return { error: 'invalid_state_format' };
+      }
+
+      // Verify state matches stored state
       const storedState = sessionStorage.getItem(`${this.STORAGE_PREFIX}${provider}_state`);
       if (state !== storedState) {
         return { error: 'state_mismatch' };
