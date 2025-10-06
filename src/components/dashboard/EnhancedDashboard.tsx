@@ -24,6 +24,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePickerWithRange } from '@/components/ui/date-range-picker';
+import { formatDateForDisplay } from '@/utils/dateFormatters';
 import { 
   ChartContainer,
   ChartTooltip,
@@ -503,7 +504,7 @@ export const EnhancedDashboard: React.FC = () => {
                         Hearing {hearing.id}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {new Date(hearing.date).toLocaleDateString()}
+                        {formatDateForDisplay(hearing.date)}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {hearing.courtId || 'Court TBD'}

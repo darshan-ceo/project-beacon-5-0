@@ -41,6 +41,7 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { Task } from '@/contexts/AppStateContext';
 import { TaskDrawer } from './TaskDrawer';
+import { formatDateForDisplay } from '@/utils/dateFormatters';
 
 interface TaskDisplay extends Task {
   assignedTo: string;
@@ -187,8 +188,7 @@ export const TaskList: React.FC<TaskListProps> = ({
 
   const formatDueDate = (dueDate: string) => {
     const daysUntil = getDaysUntilDue(dueDate);
-    const date = new Date(dueDate);
-    const dateStr = date.toLocaleDateString();
+    const dateStr = formatDateForDisplay(dueDate);
     
     if (daysUntil < 0) {
       return {

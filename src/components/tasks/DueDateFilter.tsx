@@ -29,6 +29,7 @@ import {
   dueDateFilterToUrl,
   parseDueDateFromUrl
 } from '@/utils/date';
+import { formatDateForDisplay } from '@/utils/dateFormatters';
 
 interface DueDateFilterProps {
   value?: DueDateFilter | null;
@@ -61,7 +62,7 @@ export const DueDateFilterComponent: React.FC<DueDateFilterProps> = ({
       const customFilter: DueDateFilter = {
         type: 'custom',
         range: { from: customRange.from, to: customRange.to },
-        label: `${customRange.from.toLocaleDateString()} - ${customRange.to.toLocaleDateString()}`
+        label: `${formatDateForDisplay(customRange.from)} - ${formatDateForDisplay(customRange.to)}`
       };
       onChange(customFilter);
       setShowCustomCalendar(false);
@@ -133,7 +134,7 @@ export const DueDateFilterComponent: React.FC<DueDateFilterProps> = ({
                       <PopoverTrigger asChild>
                         <Button variant="outline" size="sm" className="w-full justify-start">
                           {customRange.from ? 
-                            customRange.from.toLocaleDateString() : 
+                            formatDateForDisplay(customRange.from) : 
                             'Start date'
                           }
                         </Button>
@@ -154,7 +155,7 @@ export const DueDateFilterComponent: React.FC<DueDateFilterProps> = ({
                       <PopoverTrigger asChild>
                         <Button variant="outline" size="sm" className="w-full justify-start">
                           {customRange.to ? 
-                            customRange.to.toLocaleDateString() : 
+                            formatDateForDisplay(customRange.to) : 
                             'End date'
                           }
                         </Button>

@@ -91,6 +91,15 @@ export type ClientTier = typeof CLIENT_TIERS[number];
 export type TaskCategory = typeof TASK_CATEGORIES[number];
 export type PriorityLevel = typeof PRIORITY_OPTIONS[number]['value'];
 
+// Date formatting configuration
+export const DATE_CONFIG = {
+  displayFormat: 'DD-MM-YYYY',
+  inputFormat: 'YYYY-MM-DD', // HTML5 date input requirement
+  longFormat: 'DD MMM YYYY',
+  shortFormat: 'DD/MM/YYYY',
+  locale: 'en-GB' // British locale uses DD/MM/YYYY
+} as const;
+
 export const APP_CONFIG = {
   CASE_TYPES,
   MATTER_TYPES,
@@ -100,6 +109,7 @@ export const APP_CONFIG = {
   CLIENT_TIERS,
   TASK_CATEGORIES,
   PRIORITY_OPTIONS,
+  DATE_CONFIG,
   
   // Default automation settings
   DEFAULT_STAGE_SCOPE: ['Any Stage'] as GSTStage[],

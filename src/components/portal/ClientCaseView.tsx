@@ -13,6 +13,7 @@ import {
   FileText,
   User
 } from 'lucide-react';
+import { formatDateForDisplay } from '@/utils/dateFormatters';
 
 interface Case {
   id: string;
@@ -174,7 +175,7 @@ export const ClientCaseView: React.FC<ClientCaseViewProps> = ({ cases, clientId 
                         <Clock className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm text-muted-foreground">Created:</span>
                         <span className="text-sm font-medium text-foreground">
-                          {new Date(caseItem.createdDate).toLocaleDateString()}
+                          {formatDateForDisplay(caseItem.createdDate)}
                         </span>
                       </div>
                     </div>
@@ -184,7 +185,7 @@ export const ClientCaseView: React.FC<ClientCaseViewProps> = ({ cases, clientId 
                         <Clock className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm text-muted-foreground">Last Updated:</span>
                         <span className="text-sm font-medium text-foreground">
-                          {new Date(caseItem.lastUpdated).toLocaleDateString()}
+                          {formatDateForDisplay(caseItem.lastUpdated)}
                         </span>
                       </div>
 
@@ -193,7 +194,7 @@ export const ClientCaseView: React.FC<ClientCaseViewProps> = ({ cases, clientId 
                           <Calendar className="h-4 w-4 text-warning" />
                           <span className="text-sm text-muted-foreground">Next Hearing:</span>
                           <span className="text-sm font-medium text-foreground">
-                            {new Date(caseItem.nextHearing.date).toLocaleDateString()}
+                            {formatDateForDisplay(caseItem.nextHearing.date)}
                           </span>
                         </div>
                       )}

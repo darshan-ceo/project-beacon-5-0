@@ -3,6 +3,8 @@
  * Timezone-safe date operations and due date filtering
  */
 
+import { formatDateForDisplay, parseDateInput } from './dateFormatters';
+
 export interface DateRange {
   from: Date;
   to: Date;
@@ -184,18 +186,24 @@ export function dueDateFilterToUrl(filter: DueDateFilter): URLSearchParams {
  * Format relative date (e.g., "2 days ago", "in 3 days")
  */
 export function formatRelativeDate(date: string | Date): string {
-  const target = typeof date === 'string' ? new Date(date) : date;
+  const parsed = parseDateInput(date);
+  if (!parsed) return '';
+
   const now = new Date();
-  const diffMs = target.getTime() - now.getTime();
+  const today = getStartOfDay(now);
+  const targetDate = getStartOfDay(parsed);
+
+  const diffMs = targetDate.getTime() - today.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
   
   if (diffDays === 0) return 'Today';
   if (diffDays === 1) return 'Tomorrow';
   if (diffDays === -1) return 'Yesterday';
-  if (diffDays > 0) return `In ${diffDays} days`;
-  if (diffDays < 0) return `${Math.abs(diffDays)} days ago`;
+  if (diffDays > 0 && diffDays <= 7) return `In ${diffDays} days`;
+  if (diffDays < 0 && diffDays >= -7) return `${Math.abs(diffDays)} days ago`;
   
-  return target.toLocaleDateString();
+  // Use DD-MM-YYYY format for dates beyond a week
+  return formatDateForDisplay(parsed);
 }
 
 /**

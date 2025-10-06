@@ -23,6 +23,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { FilterDropdown } from '@/components/ui/filter-dropdown';
 import { useAppState, Case } from '@/contexts/AppStateContext';
 import { toast } from '@/hooks/use-toast';
+import { formatDateForDisplay } from '@/utils/dateFormatters';
 
 interface CaseDocumentsProps {
   selectedCase: Case | null;
@@ -294,7 +295,7 @@ export const CaseDocuments: React.FC<CaseDocumentsProps> = ({ selectedCase }) =>
                         {formatFileSize(document.size || 0)}
                       </TableCell>
                       <TableCell>
-                        {new Date(document.uploadedAt || document.createdAt).toLocaleDateString()}
+                        {formatDateForDisplay(document.uploadedAt || document.createdAt)}
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">

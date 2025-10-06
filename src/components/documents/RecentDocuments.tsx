@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Clock, Download, Eye, File, User } from 'lucide-react';
 import { Document } from '@/contexts/AppStateContext';
+import { formatDateForDisplay } from '@/utils/dateFormatters';
 
 interface RecentDocumentsProps {
   documents: Document[];
@@ -47,7 +48,7 @@ export const RecentDocuments: React.FC<RecentDocumentsProps> = ({ documents }) =
     if (diffInHours < 1) return 'Just now';
     if (diffInHours < 24) return `${diffInHours} hours ago`;
     if (diffInHours < 168) return `${Math.floor(diffInHours / 24)} days ago`;
-    return date.toLocaleDateString();
+    return formatDateForDisplay(dateString);
   };
 
   if (recentDocuments.length === 0) {
@@ -89,7 +90,7 @@ export const RecentDocuments: React.FC<RecentDocumentsProps> = ({ documents }) =
                   {doc.uploadedByName}
                 </div>
                 <span>•</span>
-                <span>{new Date(doc.uploadedAt).toLocaleDateString()}</span>
+                <span>{formatDateForDisplay(doc.uploadedAt)}</span>
               </div>
               <div className="flex items-center space-x-2">
                 {(doc.tags || []).map((tag) => (
