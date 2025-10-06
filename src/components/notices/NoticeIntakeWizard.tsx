@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -922,71 +922,70 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Notice Intake Wizard - ASMT-10</DialogTitle>
         </DialogHeader>
         
-        {/* Progress indicator - Enhanced Timeline */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            {steps.map((step, index) => {
-              const status = getStepStatus(step.id);
-              const Icon = step.icon;
-              
-              return (
-                <React.Fragment key={step.id}>
-                  <div className="flex flex-col items-center gap-2 relative">
-                    <div className={`relative flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all ${
-                      status === 'completed' ? 'bg-green-600 border-green-600 text-white shadow-md' :
-                      status === 'current' ? 'border-primary bg-primary/10 text-primary shadow-lg ring-2 ring-primary/20' :
-                      'border-muted bg-background text-muted-foreground'
-                    }`}>
-                      {status === 'completed' ? (
-                        <CheckCircle className="w-5 h-5" />
-                      ) : (
-                        <Icon className="w-5 h-5" />
-                      )}
-                      {/* Step number badge */}
-                      <div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full text-[10px] font-semibold flex items-center justify-center ${
-                        status === 'completed' ? 'bg-green-700 text-white' :
-                        status === 'current' ? 'bg-primary text-primary-foreground' :
-                        'bg-muted text-muted-foreground'
+        <DialogBody>
+          {/* Progress indicator - Enhanced Timeline */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              {steps.map((step, index) => {
+                const status = getStepStatus(step.id);
+                const Icon = step.icon;
+                
+                return (
+                  <React.Fragment key={step.id}>
+                    <div className="flex flex-col items-center gap-2 relative">
+                      <div className={`relative flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all ${
+                        status === 'completed' ? 'bg-green-600 border-green-600 text-white shadow-md' :
+                        status === 'current' ? 'border-primary bg-primary/10 text-primary shadow-lg ring-2 ring-primary/20' :
+                        'border-muted bg-background text-muted-foreground'
                       }`}>
-                        {step.id}
+                        {status === 'completed' ? (
+                          <CheckCircle className="w-5 h-5" />
+                        ) : (
+                          <Icon className="w-5 h-5" />
+                        )}
+                        {/* Step number badge */}
+                        <div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full text-[10px] font-semibold flex items-center justify-center ${
+                          status === 'completed' ? 'bg-green-700 text-white' :
+                          status === 'current' ? 'bg-primary text-primary-foreground' :
+                          'bg-muted text-muted-foreground'
+                        }`}>
+                          {step.id}
+                        </div>
                       </div>
+                      <span className={`text-xs text-center max-w-[70px] leading-tight transition-all ${
+                        status === 'current' ? 'font-semibold text-foreground' : 'text-muted-foreground'
+                      }`}>
+                        {step.title}
+                      </span>
                     </div>
-                    <span className={`text-xs text-center max-w-[70px] leading-tight transition-all ${
-                      status === 'current' ? 'font-semibold text-foreground' : 'text-muted-foreground'
-                    }`}>
-                      {step.title}
-                    </span>
-                  </div>
-                  {index < steps.length - 1 && (
-                    <div className={`flex-1 h-0.5 mx-2 transition-all ${
-                      status === 'completed' ? 'bg-green-600' :
-                      status === 'current' ? 'bg-primary' : 'bg-muted'
-                    }`} />
-                  )}
-                </React.Fragment>
-              );
-            })}
+                    {index < steps.length - 1 && (
+                      <div className={`flex-1 h-0.5 mx-2 transition-all ${
+                        status === 'completed' ? 'bg-green-600' :
+                        status === 'current' ? 'bg-primary' : 'bg-muted'
+                      }`} />
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </div>
+            <Progress 
+              value={(currentStep / steps.length) * 100} 
+              className="h-2"
+            />
           </div>
-          <Progress 
-            value={(currentStep / steps.length) * 100} 
-            className="h-2"
-          />
-        </div>
 
-        {/* Step content */}
-        <div className="min-h-[400px]">
-          {renderStepContent()}
-        </div>
+          {/* Step content */}
+          <div className="min-h-[400px]">
+            {renderStepContent()}
+          </div>
+        </DialogBody>
 
-        <Separator />
-
-        {/* Navigation buttons */}
-        <div className="flex justify-between">
+        <DialogFooter>
           <Button
             variant="outline"
             onClick={handlePrevious}
@@ -1014,7 +1013,7 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
              currentStep === 5 ? 'Create Case' :
              currentStep === 7 ? 'Complete' : 'Next'}
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
 
       {/* API Key Configuration Modal */}
