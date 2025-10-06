@@ -411,6 +411,27 @@ export const CalendarIntegrationPanel: React.FC = () => {
             </div>
 
             <div className="space-y-2">
+              <Label>Auto-Sync Interval</Label>
+              <Select 
+                value={(settings.syncInterval || 5).toString()}
+                onValueChange={(value) => handleSettingsChange({ syncInterval: parseInt(value) })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">Every 5 minutes</SelectItem>
+                  <SelectItem value="15">Every 15 minutes</SelectItem>
+                  <SelectItem value="30">Every 30 minutes</SelectItem>
+                  <SelectItem value="60">Every hour</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                How often to check for unsynced hearings
+              </p>
+            </div>
+
+            <div className="space-y-2">
               <Label>Reminder Time (minutes)</Label>
               <Input 
                 type="number" 

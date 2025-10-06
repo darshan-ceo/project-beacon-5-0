@@ -2,6 +2,9 @@ import { AppAction } from '@/contexts/AppStateContext';
 import { toast } from '@/hooks/use-toast';
 import { Hearing, HearingFormData, HearingFilters, HearingConflict, HearingNotification } from '@/types/hearings';
 import { apiService } from './apiService';
+import { integrationsService } from './integrationsService';
+import { calendarService } from './calendar/calendarService';
+import { loadAppState } from '@/data/storageShim';
 
 const isDev = import.meta.env.DEV;
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
@@ -118,6 +121,37 @@ export const hearingsService = {
 
       dispatch({ type: 'ADD_HEARING', payload: offlineHearing });
       
+      // Auto-sync to calendar if enabled
+      try {
+        const settings = integrationsService.loadCalendarSettings('default');
+        if (settings?.autoSync && settings.provider !== 'none') {
+          const connectionStatus = integrationsService.getConnectionStatus('default', settings.provider);
+          
+          if (connectionStatus.connected) {
+            const eventId = await calendarService.createEvent(offlineHearing, settings);
+            
+            if (eventId) {
+              offlineHearing.externalEventId = eventId;
+              offlineHearing.syncStatus = 'synced';
+              
+              // Update the hearing with sync info
+              dispatch({ 
+                type: 'UPDATE_HEARING', 
+                payload: { 
+                  id: offlineHearing.id, 
+                  externalEventId: eventId, 
+                  syncStatus: 'synced' 
+                } 
+              });
+            }
+          }
+        }
+      } catch (syncError) {
+        console.error('Failed to auto-sync hearing to calendar:', syncError);
+        // Don't throw - hearing was created successfully, just sync failed
+        offlineHearing.syncStatus = 'sync_failed';
+      }
+      
       toast({
         title: "Hearing Scheduled (Offline)",
         description: `Hearing scheduled for ${data.date} at ${data.start_time}. Will sync when online.`,
@@ -171,6 +205,36 @@ export const hearingsService = {
       const updatedHearing = { id, ...updateData };
       dispatch({ type: 'UPDATE_HEARING', payload: updatedHearing });
       
+      // Auto-sync calendar update if enabled
+      try {
+        const settings = integrationsService.loadCalendarSettings('default');
+        if (settings?.autoSync && settings.provider !== 'none') {
+          const connectionStatus = integrationsService.getConnectionStatus('default', settings.provider);
+          
+          if (connectionStatus.connected) {
+            // Get the full hearing object from state
+            const appState = await loadAppState();
+            const fullHearing = appState.hearings.find(h => h.id === id) as any;
+            
+            if (fullHearing && fullHearing.externalEventId) {
+              // Update existing event
+              await calendarService.updateEvent(fullHearing as any, settings);
+              (updatedHearing as any).syncStatus = 'synced';
+            } else if (fullHearing && !fullHearing.externalEventId) {
+              // Create event if it doesn't exist yet
+              const eventId = await calendarService.createEvent(fullHearing as any, settings);
+              if (eventId) {
+                (updatedHearing as any).externalEventId = eventId;
+                (updatedHearing as any).syncStatus = 'synced';
+              }
+            }
+          }
+        }
+      } catch (syncError) {
+        console.error('Failed to auto-sync hearing update to calendar:', syncError);
+        (updatedHearing as any).syncStatus = 'sync_failed';
+      }
+      
       toast({
         title: "Hearing Updated (Offline)",
         description: "Hearing has been updated locally. Will sync when online.",
@@ -194,6 +258,28 @@ export const hearingsService = {
    */
   async deleteHearing(id: string, dispatch: React.Dispatch<AppAction>): Promise<void> {
     try {
+      // Get the hearing before deleting to check for calendar sync
+      const appState = await loadAppState();
+      const hearing = appState.hearings.find(h => h.id === id) as any;
+      
+      // Delete from calendar if synced
+      if (hearing?.externalEventId) {
+        try {
+          const settings = integrationsService.loadCalendarSettings('default');
+          if (settings && settings.provider !== 'none') {
+            const connectionStatus = integrationsService.getConnectionStatus('default', settings.provider);
+            
+            if (connectionStatus.connected) {
+              await calendarService.deleteEvent(hearing as any, settings);
+              console.log('Calendar event deleted successfully');
+            }
+          }
+        } catch (calendarError) {
+          console.error('Failed to delete calendar event:', calendarError);
+          // Continue with hearing deletion even if calendar delete fails
+        }
+      }
+      
       const response = await apiService.delete(`/api/hearings/${id}`);
       
       if (response.success) {
@@ -201,7 +287,9 @@ export const hearingsService = {
         
         toast({
           title: "Hearing Cancelled",
-          description: "Hearing has been cancelled successfully.",
+          description: hearing?.externalEventId 
+            ? "Hearing and calendar event have been cancelled successfully."
+            : "Hearing has been cancelled successfully.",
         });
         
         log('success', 'delete hearing', { hearingId: id });

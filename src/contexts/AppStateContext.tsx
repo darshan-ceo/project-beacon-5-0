@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
+import { calendarSyncService } from '@/services/calendar/calendarSyncService';
 
 // Types
 interface GeneratedForm {
@@ -2187,6 +2188,32 @@ const AppStateContext = createContext<{
 // Provider
 export const AppStateProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, initialState);
+
+  // Initialize calendar auto-sync
+  useEffect(() => {
+    const initializeCalendarSync = async () => {
+      try {
+        const { integrationsService } = await import('@/services/integrationsService');
+        const settings = integrationsService.loadCalendarSettings('default');
+        
+        if (settings?.autoSync && settings.provider !== 'none') {
+          // Start with configured interval or default to 5 minutes
+          const interval = settings.syncInterval || 5;
+          calendarSyncService.startAutoSync(interval);
+          console.log(`Calendar auto-sync started with ${interval} minute interval`);
+        }
+      } catch (error) {
+        console.error('Failed to initialize calendar auto-sync:', error);
+      }
+    };
+
+    initializeCalendarSync();
+
+    // Cleanup on unmount
+    return () => {
+      calendarSyncService.stopAutoSync();
+    };
+  }, []);
 
   return (
     <AppStateContext.Provider value={{ state, dispatch }}>

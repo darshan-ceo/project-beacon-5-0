@@ -6,6 +6,7 @@ export interface CalendarIntegrationSettings {
   provider: 'none' | 'google' | 'outlook';
   autoSync: boolean;
   reminderTime: number; // minutes
+  syncInterval?: number; // minutes for background sync
   defaultCalendarId?: string;
   
   // Google specific
@@ -43,6 +44,7 @@ class IntegrationsService {
         provider: settings.provider,
         autoSync: settings.autoSync,
         reminderTime: settings.reminderTime,
+        syncInterval: settings.syncInterval,
         defaultCalendarId: settings.defaultCalendarId,
       };
       localStorage.setItem(this.settingsKey, JSON.stringify(publicSettings));

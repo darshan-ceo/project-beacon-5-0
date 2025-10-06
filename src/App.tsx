@@ -42,6 +42,7 @@ import { SearchResultsPage } from "./pages/SearchResultsPage";
 import { DebugSearchInspector } from "./pages/DebugSearchInspector";
 import { MigrationHealth } from "@/components/qa/MigrationHealth";
 import { TooltipDiagnostics } from "@/pages/TooltipDiagnostics";
+import { OAuthCallback } from "@/pages/OAuthCallback";
 
 const queryClient = new QueryClient();
 
@@ -177,6 +178,7 @@ const App = () => {
                   <HearingsPage />
                 </AdminLayout>
               } />
+              <Route path="/oauth/callback" element={<OAuthCallback />} />
               <Route path="/help" element={
                 <AdminLayout currentUser={currentUser}>
                   <HelpCenter />
