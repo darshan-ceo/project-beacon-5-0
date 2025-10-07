@@ -152,6 +152,11 @@ export const TaskAutomation: React.FC = () => {
         trigger: bundleTrigger,
         stage_code: stageCode,
         stages: bundleStages.includes('Any Stage') ? ['Any Stage'] : bundleStages,
+        bundle_code: bundleCode,
+        linked_module: linkedModule,
+        description: bundleDescription,
+        status: bundleStatus,
+        default_priority: defaultPriority,
         items: bundleItems.filter(item => item.title).map(item => ({
           title: item.title!,
           description: item.description,
@@ -161,7 +166,13 @@ export const TaskAutomation: React.FC = () => {
           category: item.category || 'General',
           due_offset: item.due_offset,
           automation_flags: item.automation_flags,
-          order_index: item.order_index || 0
+          order_index: item.order_index || 0,
+          stage: item.stage,
+          assigned_user: item.assigned_user,
+          trigger_type: item.trigger_type || 'Manual',
+          trigger_event: item.trigger_event,
+          checklist: item.checklist || [],
+          dependencies: item.dependencies
         }))
       });
 
@@ -206,12 +217,34 @@ export const TaskAutomation: React.FC = () => {
 
       const stageCode = bundleStages.includes('Any Stage') ? undefined : bundleStages.join(',');
       
-      const repository = storageManager.getTaskBundleRepository();
-      await repository.updateWithItems(editingBundle.id, {
+      const repository = storageManager.getEnhancedTaskBundleRepository();
+      await repository.updateEnhanced(editingBundle.id, {
         name: bundleName,
         trigger: bundleTrigger,
         stage_code: stageCode,
-        items: bundleItems.filter(item => item.title) as any[]
+        stages: bundleStages.includes('Any Stage') ? ['Any Stage'] : bundleStages,
+        bundle_code: bundleCode,
+        linked_module: linkedModule,
+        description: bundleDescription,
+        status: bundleStatus,
+        default_priority: defaultPriority,
+        items: bundleItems.filter(item => item.title).map(item => ({
+          title: item.title!,
+          description: item.description,
+          priority: item.priority as 'Critical' | 'High' | 'Medium' | 'Low',
+          estimated_hours: item.estimated_hours,
+          assigned_role: item.assigned_role || 'Associate',
+          category: item.category || 'General',
+          due_offset: item.due_offset,
+          automation_flags: item.automation_flags,
+          order_index: item.order_index || 0,
+          stage: item.stage,
+          assigned_user: item.assigned_user,
+          trigger_type: item.trigger_type || 'Manual',
+          trigger_event: item.trigger_event,
+          checklist: item.checklist || [],
+          dependencies: item.dependencies
+        }))
       });
 
       toast({
@@ -693,6 +726,7 @@ export const TaskAutomation: React.FC = () => {
                 <Label htmlFor="bundleName">Bundle Name</Label>
                 <Input
                   id="bundleName"
+                  data-testid="bundleName"
                   value={bundleName}
                   onChange={(e) => setBundleName(e.target.value)}
                   placeholder="Enter bundle name"
@@ -804,8 +838,14 @@ export const TaskAutomation: React.FC = () => {
                     </Label>
                     <Input
                       id="bundleCode"
+                      data-testid="bundleCode"
                       value={bundleCode}
-                      onChange={(e) => setBundleCode(e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (/^[a-zA-Z0-9_-]*$/.test(value) || value === '') {
+                          setBundleCode(value);
+                        }
+                      }}
                       placeholder="e.g., NIW001"
                     />
                   </div>
@@ -933,6 +973,7 @@ export const TaskAutomation: React.FC = () => {
                           <div>
                             <Label>Task Title *</Label>
                             <Input
+                              data-testid={`subtask-${index}-title`}
                               value={item.title || ''}
                               onChange={(e) => updateTaskItem(index, 'title', e.target.value)}
                               placeholder="Enter task title"
