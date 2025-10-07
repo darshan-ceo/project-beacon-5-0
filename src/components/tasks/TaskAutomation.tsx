@@ -864,12 +864,15 @@ export const TaskAutomation: React.FC = () => {
                         </Tooltip>
                       </TooltipProvider>
                     </Label>
-                    <Select value={linkedModule} onValueChange={setLinkedModule}>
+                    <Select 
+                      value={linkedModule || '__none__'} 
+                      onValueChange={(value) => setLinkedModule(value === '__none__' ? '' : value)}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select module (optional)" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value="__none__">None</SelectItem>
                         <SelectItem value="notice_inward_wizard">Notice Inward Wizard</SelectItem>
                         <SelectItem value="case_management">Case Management</SelectItem>
                         <SelectItem value="hearings">Hearings</SelectItem>
@@ -1004,14 +1007,14 @@ export const TaskAutomation: React.FC = () => {
                             <div>
                               <Label>Stage</Label>
                               <Select 
-                                value={item.stage || ''} 
-                                onValueChange={(value) => updateTaskItem(index, 'stage', value)}
+                                value={item.stage || '__none__'} 
+                                onValueChange={(value) => updateTaskItem(index, 'stage', value === '__none__' ? undefined : value)}
                               >
                                 <SelectTrigger>
                                   <SelectValue placeholder="Select stage (optional)" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="">None</SelectItem>
+                                  <SelectItem value="__none__">None</SelectItem>
                                   {GST_STAGES.map(stage => (
                                     <SelectItem key={stage} value={stage}>{stage}</SelectItem>
                                   ))}
@@ -1121,14 +1124,14 @@ export const TaskAutomation: React.FC = () => {
                                 </TooltipProvider>
                               </Label>
                               <Select 
-                                value={item.dependencies?.[0] || ''} 
-                                onValueChange={(value) => updateTaskItem(index, 'dependencies', value ? [value] : [])}
+                                value={item.dependencies?.[0] || '__none__'} 
+                                onValueChange={(value) => updateTaskItem(index, 'dependencies', value === '__none__' ? [] : [value])}
                               >
                                 <SelectTrigger>
                                   <SelectValue placeholder="Select dependency (optional)" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="">None</SelectItem>
+                                  <SelectItem value="__none__">None</SelectItem>
                                   {bundleItems
                                     .filter((_, idx) => idx < index && bundleItems[idx].title)
                                     .map((depItem, idx) => (
