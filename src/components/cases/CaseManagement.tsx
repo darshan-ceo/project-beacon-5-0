@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
@@ -300,6 +300,29 @@ export const CaseManagement: React.FC = () => {
     });
   }, []);
 
+  // Filtered cases based on search and filters
+  const filteredCases = useMemo(() => {
+    return state.cases.filter(caseItem => {
+      // 1. Search term filter
+      const searchLower = searchTerm.toLowerCase();
+      const client = state.clients.find(c => c.id === caseItem.clientId);
+      const matchesSearch = !searchTerm || 
+        caseItem.caseNumber.toLowerCase().includes(searchLower) ||
+        caseItem.title.toLowerCase().includes(searchLower) ||
+        client?.name?.toLowerCase().includes(searchLower) ||
+        client?.gstin?.toLowerCase().includes(searchLower);
+
+      // 2. Stage filter
+      const matchesStage = filterStage === 'all' || caseItem.currentStage === filterStage;
+
+      // 3. Timeline breach filter
+      const timelineStatus = caseItem.timelineBreachStatus || caseItem.slaStatus || 'Green';
+      const matchesTimelineBreach = filterTimelineBreach === 'all' || timelineStatus === filterTimelineBreach;
+
+      return matchesSearch && matchesStage && matchesTimelineBreach;
+    });
+  }, [state.cases, state.clients, searchTerm, filterStage, filterTimelineBreach]);
+
   return (
     <div className="space-y-6">
       {/* Return Navigation Breadcrumb */}
@@ -473,14 +496,35 @@ export const CaseManagement: React.FC = () => {
         transition={{ duration: 0.3, delay: 0.2 }}
         className="flex flex-col gap-4"
       >
-        <div className="relative w-full">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search cases by number, title, or client..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 w-full"
-          />
+        <div className="space-y-2">
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search cases by number, title, or client..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 w-full"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="text-xs">
+              {filteredCases.length} {filteredCases.length === 1 ? 'case' : 'cases'}
+            </Badge>
+            {(searchTerm || filterStage !== 'all' || filterTimelineBreach !== 'all') && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => {
+                  setSearchTerm('');
+                  setFilterStage('all');
+                  setFilterTimelineBreach('all');
+                }}
+                className="h-6 px-2 text-xs"
+              >
+                Clear filters
+              </Button>
+            )}
+          </div>
         </div>
         
         <div className="flex flex-wrap gap-2">
@@ -631,7 +675,28 @@ export const CaseManagement: React.FC = () => {
               </motion.div>
             )}
             <div data-tour="case-list">
-            {state.cases.map((caseItem, index) => {
+            {filteredCases.length === 0 && (
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No Cases Found</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    No cases match your current filters. Try adjusting your search or filters.
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setSearchTerm('');
+                      setFilterStage('all');
+                      setFilterTimelineBreach('all');
+                    }}
+                  >
+                    Clear All Filters
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+            {filteredCases.map((caseItem, index) => {
               const isSelected = selectedCase?.id === caseItem.id;
               return (
                 <motion.div
