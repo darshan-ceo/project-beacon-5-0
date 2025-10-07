@@ -157,6 +157,16 @@ export const CalendarIntegrationPanel: React.FC = () => {
   // Test connection
   const handleTestConnection = async () => {
     if (settings.provider === 'none') return;
+    
+    // Validate required fields first
+    if (!hasRequiredCredentials()) {
+      toast({
+        title: "Missing Credentials",
+        description: "Please enter all required credentials before testing.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsTestingConnection(true);
     try {
@@ -175,7 +185,7 @@ export const CalendarIntegrationPanel: React.FC = () => {
     } catch (error) {
       toast({
         title: "Test Failed",
-        description: "Failed to test connection. Please try again.",
+        description: "Failed to test connection. Please verify your credentials.",
         variant: "destructive",
       });
     } finally {
@@ -193,6 +203,21 @@ export const CalendarIntegrationPanel: React.FC = () => {
       default:
         return [];
     }
+  };
+
+  // Check if all required credentials are filled
+  const hasRequiredCredentials = (): boolean => {
+    if (settings.provider === 'none') return false;
+    
+    if (settings.provider === 'google') {
+      return !!(settings.googleClientId && settings.googleClientSecret);
+    }
+    
+    if (settings.provider === 'outlook') {
+      return !!(settings.microsoftClientId && settings.microsoftClientSecret);
+    }
+    
+    return false;
   };
 
   return (
@@ -348,7 +373,7 @@ export const CalendarIntegrationPanel: React.FC = () => {
               <Button 
                 variant="outline" 
                 onClick={handleTestConnection}
-                disabled={isTestingConnection || !connectionStatus.connected}
+                disabled={isTestingConnection || !hasRequiredCredentials()}
               >
                 {isTestingConnection && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Test Connection
