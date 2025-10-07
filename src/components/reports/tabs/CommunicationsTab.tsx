@@ -5,6 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ExportButton } from '@/components/ui/export-button';
 import { getCommunicationReport } from '@/services/reportsService';
 import { ReportFilter, CommunicationReportData } from '@/types/reports';
+import { formatDateForDisplay } from '@/utils/dateFormatters';
 
 interface CommunicationsTabProps {
   filters: ReportFilter;
@@ -97,7 +98,7 @@ export const CommunicationsTab: React.FC<CommunicationsTabProps> = ({ filters })
           <TableBody>
             {data.map((item) => (
               <TableRow key={item.id}>
-                <TableCell>{item.date}</TableCell>
+                <TableCell>{formatDateForDisplay(item.date)}</TableCell>
                 <TableCell className="font-medium">{item.caseId}</TableCell>
                 <TableCell>{item.client}</TableCell>
                 <TableCell>

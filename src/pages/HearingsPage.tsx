@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Plus, Calendar, List } from 'lucide-react';
+import { formatDateForDisplay, formatTimeForDisplay } from '@/utils/dateFormatters';
 
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -101,7 +102,7 @@ const HearingsList: React.FC<{
                   <div className="flex-1">
                     <h3 className="font-medium">{case_?.caseNumber} - {case_?.title}</h3>
                     <p className="text-sm text-muted-foreground">
-                      {hearing.date} at {hearing.start_time} | {court?.name}
+                      {formatDateForDisplay(hearing.date)} at {formatTimeForDisplay(hearing.start_time)} | {court?.name}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       Judges: {judges.length > 0 ? judges.map(j => j.name).join(', ') : 'No judges assigned'}
@@ -131,25 +132,8 @@ const HearingsList: React.FC<{
   );
 };
 
-const HearingsCalendar: React.FC<{ hearings: Hearing[]; onEdit: (h: Hearing) => void; onView: (h: Hearing) => void }> = ({ hearings, onEdit, onView }) => {
-  return (
-    <div className="border rounded-lg p-4">
-      <h3 className="font-medium mb-4">Calendar View</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {hearings.map((hearing) => (
-          <div key={hearing.id} className="border rounded p-3">
-            <div className="text-sm font-medium">{hearing.date}</div>
-            <div className="text-xs text-muted-foreground">{hearing.start_time}</div>
-            <div className="flex gap-2 mt-2">
-              <Button size="sm" variant="outline" onClick={() => onView(hearing)}>View</Button>
-              <Button size="sm" onClick={() => onEdit(hearing)}>Edit</Button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
+// Import ProCalendarView instead
+import { ProCalendarView } from '@/components/hearings/ProCalendarView';
 
 export const HearingsPage: React.FC = () => {
   const { state, dispatch } = useAppState();
@@ -445,10 +429,14 @@ export const HearingsPage: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="calendar">
-          <HearingsCalendar
+          <ProCalendarView
             hearings={filteredHearings}
             onEdit={handleEditHearing}
             onView={handleViewHearing}
+            onSelectSlot={(slotInfo) => {
+              // Pre-fill date when clicking empty slot
+              handleCreateHearing();
+            }}
           />
         </TabsContent>
       </Tabs>

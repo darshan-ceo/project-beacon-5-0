@@ -271,3 +271,81 @@ All colors MUST be HSL. Professional legal theme with accessibility focus.
     transform: scale(1);
   }
 }
+
+/* Professional Calendar Overrides for react-big-calendar */
+.rbc-calendar {
+  font-family: inherit;
+}
+
+.rbc-header {
+  padding: 12px 8px;
+  font-weight: 600;
+  border-bottom: 2px solid hsl(var(--border));
+  background: hsl(var(--muted) / 0.3);
+}
+
+.rbc-today {
+  background-color: hsl(var(--primary) / 0.05);
+}
+
+.rbc-off-range-bg {
+  background: hsl(var(--muted) / 0.2);
+}
+
+.rbc-event {
+  padding: 4px 6px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.rbc-event:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.rbc-event-label {
+  font-size: 0.75rem;
+}
+
+.rbc-agenda-view {
+  background: transparent;
+}
+
+.rbc-agenda-table {
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.rbc-agenda-date-cell,
+.rbc-agenda-time-cell {
+  padding: 12px;
+  background: hsl(var(--muted) / 0.3);
+}
+
+.rbc-agenda-event-cell {
+  padding: 0;
+}
+
+/* Mobile responsive calendar */
+@media (max-width: 768px) {
+  .rbc-toolbar {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .rbc-toolbar-label {
+    text-align: center;
+    width: 100%;
+  }
+  
+  .rbc-month-view {
+    font-size: 0.875rem;
+  }
+  
+  .rbc-event {
+    font-size: 0.75rem;
+    padding: 2px 4px;
+  }
+}
+

@@ -5,6 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ExportButton } from '@/components/ui/export-button';
 import { getHearingReport } from '@/services/reportsService';
 import { ReportFilter, HearingReportData } from '@/types/reports';
+import { formatDateForDisplay, formatTimeForDisplay } from '@/utils/dateFormatters';
 
 interface HearingsTabProps {
   filters: ReportFilter;
@@ -70,8 +71,8 @@ export const HearingsTab: React.FC<HearingsTabProps> = ({ filters }) => {
           <TableBody>
             {data.map((item) => (
               <TableRow key={item.id}>
-                <TableCell>{item.date}</TableCell>
-                <TableCell>{item.time}</TableCell>
+                <TableCell>{formatDateForDisplay(item.date)}</TableCell>
+                <TableCell>{formatTimeForDisplay(item.time)}</TableCell>
                 <TableCell className="font-medium">{item.caseId}</TableCell>
                 <TableCell>{item.caseTitle}</TableCell>
                 <TableCell>{item.client}</TableCell>

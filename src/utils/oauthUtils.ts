@@ -139,7 +139,7 @@ export class OAuthManager {
       clientId,
       clientSecret,
       redirectUri: `${window.location.origin}/oauth/callback`,
-      scope: 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/userinfo.email',
+      scope: 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/userinfo.email openid',
       authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
       tokenUrl: 'https://oauth2.googleapis.com/token'
     };

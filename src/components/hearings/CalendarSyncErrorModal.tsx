@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Hearing } from '@/types/hearings';
 import { format } from 'date-fns';
+import { formatDateForDisplay, formatTimeForDisplay } from '@/utils/dateFormatters';
 
 interface CalendarSyncErrorModalProps {
   isOpen: boolean;
@@ -176,8 +177,8 @@ export const CalendarSyncErrorModal: React.FC<CalendarSyncErrorModalProps> = ({
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell>{format(new Date(hearing.date), 'MMM dd, yyyy')}</TableCell>
-                        <TableCell>{hearing.start_time}</TableCell>
+                        <TableCell>{formatDateForDisplay(hearing.date)}</TableCell>
+                        <TableCell>{formatTimeForDisplay(hearing.start_time)}</TableCell>
                         <TableCell>
                           <Badge variant="outline" className={getErrorBadgeColor(category)}>
                             {category.replace('_', ' ')}

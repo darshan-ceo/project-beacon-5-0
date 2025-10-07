@@ -128,3 +128,30 @@ export function getCurrentDateDisplay(): string {
 export function getCurrentDateInput(): string {
   return format(new Date(), DATE_FORMATS.INPUT);
 }
+
+/**
+ * Format datetime for display (DD-MM-YYYY HH:mm)
+ */
+export function formatDateTimeForDisplay(
+  date: string | Date | null | undefined,
+  time?: string
+): string {
+  const parsed = parseDateInput(date);
+  if (!parsed) return '';
+  
+  if (time) {
+    const [hours, minutes] = time.split(':').map(Number);
+    parsed.setHours(hours, minutes);
+  }
+  
+  return format(parsed, 'dd-MM-yyyy HH:mm', { locale: enGB });
+}
+
+/**
+ * Format time only (HH:mm)
+ */
+export function formatTimeForDisplay(time: string | null | undefined): string {
+  if (!time) return '';
+  // Handle HH:mm:ss format by taking only first two parts
+  return time.split(':').slice(0, 2).join(':');
+}

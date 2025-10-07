@@ -5,6 +5,7 @@ import { featureFlagService } from '@/services/featureFlagService';
 import { hearingsService } from '@/services/hearingsService';
 import { Hearing, HearingFormData, HearingConflict } from '@/types/hearings';
 import { format } from 'date-fns';
+import { formatDateForDisplay, formatTimeForDisplay } from '@/utils/dateFormatters';
 import { CalendarDays, Clock, MapPin, Gavel, FileText, Users, AlertTriangle, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -350,12 +351,12 @@ export const HearingDrawer: React.FC<HearingDrawerProps> = ({
                     <div className="flex justify-between">
                       <span className="text-sm text-muted-foreground">Date:</span>
                       <span className="font-medium">
-                        {hearing?.date ? format(new Date(hearing.date), 'PPP') : 'N/A'}
+                        {formatDateForDisplay(hearing?.date) || 'N/A'}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-muted-foreground">Time:</span>
-                      <span className="font-medium">{hearing?.start_time || 'N/A'}</span>
+                      <span className="font-medium">{formatTimeForDisplay(hearing?.start_time) || 'N/A'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-muted-foreground">Purpose:</span>
