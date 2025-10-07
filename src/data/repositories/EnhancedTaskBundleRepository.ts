@@ -44,6 +44,10 @@ export class EnhancedTaskBundleRepository extends TaskBundleRepository {
       usage_count: 0,
       automation_flags: data.automation_flags,
       conditions: data.conditions,
+      bundle_code: data.bundle_code,
+      linked_module: data.linked_module,
+      status: data.status || 'Draft',
+      default_priority: data.default_priority || 'Medium',
       updated_at: new Date()
     } as any);
 
@@ -60,7 +64,12 @@ export class EnhancedTaskBundleRepository extends TaskBundleRepository {
             due_offset: item.due_offset,
             automation_flags: item.automation_flags,
             conditions: item.conditions,
-            template_id: item.template_id
+            template_id: item.template_id,
+            stage: item.stage,
+            assigned_user: item.assigned_user,
+            trigger_type: item.trigger_type || 'Manual',
+            trigger_event: item.trigger_event,
+            checklist: item.checklist
           } as any);
         }
       }
@@ -238,6 +247,10 @@ export class EnhancedTaskBundleRepository extends TaskBundleRepository {
       usage_count: enhanced.usage_count || 0,
       automation_flags: enhanced.automation_flags,
       conditions: enhanced.conditions,
+      bundle_code: enhanced.bundle_code || '',
+      linked_module: enhanced.linked_module || '',
+      status: enhanced.status || 'Active',
+      default_priority: enhanced.default_priority || 'Medium',
       items: bundle.items.map(item => ({
         ...item,
         priority: item.priority as 'Critical' | 'High' | 'Medium' | 'Low',
@@ -245,7 +258,12 @@ export class EnhancedTaskBundleRepository extends TaskBundleRepository {
         category: (item as any).category || 'General',
         due_offset: (item as any).due_offset,
         automation_flags: (item as any).automation_flags,
-        conditions: (item as any).conditions
+        conditions: (item as any).conditions,
+        stage: (item as any).stage,
+        assigned_user: (item as any).assigned_user,
+        trigger_type: (item as any).trigger_type || 'Manual',
+        trigger_event: (item as any).trigger_event,
+        checklist: (item as any).checklist || []
       }))
     };
   }

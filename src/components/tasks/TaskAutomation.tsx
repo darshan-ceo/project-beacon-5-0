@@ -28,6 +28,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { 
   Plus, 
   Trash2, 
@@ -43,7 +45,9 @@ import {
   X,
   Workflow,
   Search,
-  Filter
+  Filter,
+  ChevronDown,
+  HelpCircle
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { storageManager } from '@/data/StorageManager';
@@ -54,6 +58,9 @@ import type { TaskTemplate } from '@/types/taskTemplate';
 import type { TaskBundle, TaskBundleItem } from '@/data/db';
 import type { EnhancedTaskBundleWithItems } from '@/types/enhancedTaskBundle';
 import { Checkbox } from '@/components/ui/checkbox';
+
+const GST_STAGES = ['Any Stage', 'Notice Received', 'Reply Filed', 'Hearing', 'Order'];
+const EMPLOYEE_ROLES = ['Partner', 'Senior Associate', 'Associate', 'Junior Associate', 'Paralegal'];
 
 export const TaskAutomation: React.FC = () => {
   const { initialized } = useUnifiedPersistence();
@@ -66,8 +73,16 @@ export const TaskAutomation: React.FC = () => {
   const [bundleName, setBundleName] = useState('');
   const [bundleTrigger, setBundleTrigger] = useState('');
   const [bundleStages, setBundleStages] = useState<string[]>(['Any Stage']);
-  const [bundleItems, setBundleItems] = useState<Partial<TaskBundleItem>[]>([]);
+  const [bundleItems, setBundleItems] = useState<any[]>([]);
   const [stageScopeOpen, setStageScopeOpen] = useState(false);
+  
+  // New metadata fields
+  const [bundleCode, setBundleCode] = useState('');
+  const [linkedModule, setLinkedModule] = useState('');
+  const [bundleDescription, setBundleDescription] = useState('');
+  const [bundleStatus, setBundleStatus] = useState<'Draft' | 'Active' | 'Archived'>('Draft');
+  const [defaultPriority, setDefaultPriority] = useState<'Low' | 'Medium' | 'High' | 'Critical'>('Medium');
+  const [expandedTasks, setExpandedTasks] = useState<Set<number>>(new Set());
   
   // Template selection states
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
@@ -254,6 +269,12 @@ export const TaskAutomation: React.FC = () => {
     setEditingBundle(null);
     setIsCreating(false);
     setStageScopeOpen(false);
+    setBundleCode('');
+    setLinkedModule('');
+    setBundleDescription('');
+    setBundleStatus('Draft');
+    setDefaultPriority('Medium');
+    setExpandedTasks(new Set());
   };
 
   const startEditing = (bundle: EnhancedTaskBundleWithItems) => {
@@ -268,6 +289,11 @@ export const TaskAutomation: React.FC = () => {
     setBundleStages(stages);
     
     setBundleItems(bundle.items || []);
+    setBundleCode(bundle.bundle_code || '');
+    setLinkedModule(bundle.linked_module || '');
+    setBundleDescription(bundle.description || '');
+    setBundleStatus(bundle.status || 'Draft');
+    setDefaultPriority(bundle.default_priority || 'Medium');
     setIsCreating(true);
   };
 
@@ -275,9 +301,16 @@ export const TaskAutomation: React.FC = () => {
     setBundleItems([...bundleItems, {
       title: '',
       description: '',
-      priority: 'medium',
+      priority: defaultPriority.toLowerCase() as any,
       estimated_hours: 1,
-      dependencies: []
+      dependencies: [],
+      assigned_role: 'Associate',
+      category: 'General',
+      trigger_type: 'Manual',
+      checklist: [],
+      stage: '',
+      assigned_user: '',
+      trigger_event: ''
     }]);
   };
 
@@ -757,78 +790,391 @@ export const TaskAutomation: React.FC = () => {
                 </div>
               </div>
               
-              <div className="space-y-4">
+              {/* 📦 Bundle Metadata Section */}
+              <div className="space-y-4 p-4 bg-muted/30 rounded-lg border-l-4 border-l-primary mb-6">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  📦 Bundle Metadata
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="bundleCode">
+                      Bundle Code <span className="text-muted-foreground text-xs">(Optional)</span>
+                    </Label>
+                    <Input
+                      id="bundleCode"
+                      value={bundleCode}
+                      onChange={(e) => setBundleCode(e.target.value)}
+                      placeholder="e.g., NIW001"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="linkedModule">
+                      Linked Module
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="h-3 w-3 ml-1 inline" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Connects this task bundle to its functional area in the system
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </Label>
+                    <Select value={linkedModule} onValueChange={setLinkedModule}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select module (optional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value="notice_inward_wizard">Notice Inward Wizard</SelectItem>
+                        <SelectItem value="case_management">Case Management</SelectItem>
+                        <SelectItem value="hearings">Hearings</SelectItem>
+                        <SelectItem value="documents">Document Management</SelectItem>
+                        <SelectItem value="reports">Reports</SelectItem>
+                        <SelectItem value="client_portal">Client Portal</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="bundleStatus">Status</Label>
+                    <Select value={bundleStatus} onValueChange={(v: any) => setBundleStatus(v)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Draft">Draft</SelectItem>
+                        <SelectItem value="Active">Active</SelectItem>
+                        <SelectItem value="Archived">Archived</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="defaultPriority">Default Priority</Label>
+                    <Select value={defaultPriority} onValueChange={(v: any) => setDefaultPriority(v)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Low">Low</SelectItem>
+                        <SelectItem value="Medium">Medium</SelectItem>
+                        <SelectItem value="High">High</SelectItem>
+                        <SelectItem value="Critical">Critical</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <div>
+                  <Label htmlFor="bundleDescription">Bundle Description</Label>
+                  <Textarea
+                    id="bundleDescription"
+                    value={bundleDescription}
+                    onChange={(e) => setBundleDescription(e.target.value)}
+                    placeholder="Explain the purpose of this task bundle..."
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              {/* 🧱 Sub-Tasks Section */}
+              <div className="space-y-4 p-4 bg-muted/30 rounded-lg border-l-4 border-l-blue-500">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4" />
+                  🧱 Sub-Tasks in Bundle
+                </h3>
+                
                 {bundleItems.map((item, index) => (
-                  <Card key={index}>
-                    <CardContent className="pt-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <Label>Task Title</Label>
-                          <div className="flex gap-2">
+                  <Collapsible 
+                    key={index}
+                    open={expandedTasks.has(index)}
+                    onOpenChange={(isOpen) => {
+                      const newExpanded = new Set(expandedTasks);
+                      if (isOpen) newExpanded.add(index);
+                      else newExpanded.delete(index);
+                      setExpandedTasks(newExpanded);
+                    }}
+                  >
+                    <Card>
+                      <CardContent className="pt-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">Task {index + 1}</span>
+                            {item.template_id && (
+                              <Badge variant="outline">
+                                <FileText className="h-3 w-3 mr-1" />
+                                From Template
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <CollapsibleTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <ChevronDown className={`h-4 w-4 transition-transform ${expandedTasks.has(index) ? 'rotate-180' : ''}`} />
+                              </Button>
+                            </CollapsibleTrigger>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeTaskItem(index)}
+                              className="text-destructive hover:text-destructive/90"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label>Task Title *</Label>
                             <Input
                               value={item.title || ''}
                               onChange={(e) => updateTaskItem(index, 'title', e.target.value)}
                               placeholder="Enter task title"
-                              className="flex-1"
                             />
-                            {item.template_id && (
-                              <Badge variant="outline" className="shrink-0">
-                                <FileText className="h-3 w-3 mr-1" />
-                                Template
-                              </Badge>
-                            )}
+                          </div>
+                          <div>
+                            <Label>Priority</Label>
+                            <Select 
+                              value={item.priority || defaultPriority.toLowerCase()} 
+                              onValueChange={(value) => updateTaskItem(index, 'priority', value)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {priorityOptions.map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                         </div>
-                        <div>
-                          <Label>Priority</Label>
-                          <Select 
-                            value={item.priority || 'medium'} 
-                            onValueChange={(value) => updateTaskItem(index, 'priority', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {priorityOptions.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
-                                  {option.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="md:col-span-2">
-                          <Label>Description</Label>
-                          <Textarea
-                            value={item.description || ''}
-                            onChange={(e) => updateTaskItem(index, 'description', e.target.value)}
-                            placeholder="Enter task description"
-                            rows={2}
-                          />
-                        </div>
-                        <div>
-                          <Label>Estimated Hours</Label>
-                          <Input
-                            type="number"
-                            value={item.estimated_hours || 1}
-                            onChange={(e) => updateTaskItem(index, 'estimated_hours', parseInt(e.target.value))}
-                            min="1"
-                          />
-                        </div>
-                        <div className="flex items-end">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeTaskItem(index)}
-                            className="text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                        
+                        <CollapsibleContent className="space-y-4 mt-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <Label>Stage</Label>
+                              <Select 
+                                value={item.stage || ''} 
+                                onValueChange={(value) => updateTaskItem(index, 'stage', value)}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select stage (optional)" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="">None</SelectItem>
+                                  {GST_STAGES.map(stage => (
+                                    <SelectItem key={stage} value={stage}>{stage}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            
+                            <div>
+                              <Label>Assigned Role</Label>
+                              <Select 
+                                value={item.assigned_role || 'Associate'} 
+                                onValueChange={(value) => updateTaskItem(index, 'assigned_role', value)}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {EMPLOYEE_ROLES.map(role => (
+                                    <SelectItem key={role} value={role}>{role}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            
+                            <div>
+                              <Label>Assigned User <span className="text-muted-foreground text-xs">(Optional)</span></Label>
+                              <Input
+                                value={item.assigned_user || ''}
+                                onChange={(e) => updateTaskItem(index, 'assigned_user', e.target.value)}
+                                placeholder="Specific user email/ID"
+                              />
+                            </div>
+                            
+                            <div>
+                              <Label>
+                                Trigger Type
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <HelpCircle className="h-3 w-3 ml-1 inline" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      Defines how the task starts (manual, auto, or event)
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </Label>
+                              <Select 
+                                value={item.trigger_type || 'Manual'} 
+                                onValueChange={(value) => updateTaskItem(index, 'trigger_type', value)}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Manual">Manual</SelectItem>
+                                  <SelectItem value="Automatic">Automatic</SelectItem>
+                                  <SelectItem value="Event">Event</SelectItem>
+                                  <SelectItem value="Scheduled">Scheduled</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            
+                            <div>
+                              <Label>
+                                Trigger Event
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <HelpCircle className="h-3 w-3 ml-1 inline" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      Specify the system event that triggers this task
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </Label>
+                              <Input
+                                value={item.trigger_event || ''}
+                                onChange={(e) => updateTaskItem(index, 'trigger_event', e.target.value)}
+                                placeholder="e.g., onNoticeUpload"
+                              />
+                            </div>
+                            
+                            <div>
+                              <Label>Estimated Hours</Label>
+                              <Input
+                                type="number"
+                                value={item.estimated_hours || 1}
+                                onChange={(e) => updateTaskItem(index, 'estimated_hours', parseInt(e.target.value) || 1)}
+                                min="1"
+                              />
+                            </div>
+                            
+                            <div>
+                              <Label>
+                                Dependency
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <HelpCircle className="h-3 w-3 ml-1 inline" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      Select a previous task that must be completed first
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </Label>
+                              <Select 
+                                value={item.dependencies?.[0] || ''} 
+                                onValueChange={(value) => updateTaskItem(index, 'dependencies', value ? [value] : [])}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select dependency (optional)" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="">None</SelectItem>
+                                  {bundleItems
+                                    .filter((_, idx) => idx < index && bundleItems[idx].title)
+                                    .map((depItem, idx) => (
+                                      <SelectItem key={idx} value={depItem.title || `task-${idx}`}>
+                                        Task {idx + 1}: {depItem.title}
+                                      </SelectItem>
+                                    ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            
+                            <div>
+                              <Label>Category</Label>
+                              <Input
+                                value={item.category || 'General'}
+                                onChange={(e) => updateTaskItem(index, 'category', e.target.value)}
+                                placeholder="Task category"
+                              />
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <Label>Description</Label>
+                            <Textarea
+                              value={item.description || ''}
+                              onChange={(e) => updateTaskItem(index, 'description', e.target.value)}
+                              placeholder="Enter task description"
+                              rows={2}
+                            />
+                          </div>
+                          
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <Label>Checklist (Optional Sub-Steps)</Label>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                type="button"
+                                onClick={() => {
+                                  const checklist = item.checklist || [];
+                                  updateTaskItem(index, 'checklist', [...checklist, '']);
+                                }}
+                              >
+                                <Plus className="h-3 w-3 mr-1" />
+                                Add Step
+                              </Button>
+                            </div>
+                            {(item.checklist || []).length > 0 && (
+                              <div className="space-y-2">
+                                {(item.checklist || []).map((checkItem, checkIdx) => (
+                                  <div key={checkIdx} className="flex gap-2">
+                                    <Input
+                                      value={checkItem}
+                                      onChange={(e) => {
+                                        const newChecklist = [...(item.checklist || [])];
+                                        newChecklist[checkIdx] = e.target.value;
+                                        updateTaskItem(index, 'checklist', newChecklist);
+                                      }}
+                                      placeholder={`Step ${checkIdx + 1}`}
+                                    />
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      type="button"
+                                      onClick={() => {
+                                        const newChecklist = (item.checklist || []).filter((_, i) => i !== checkIdx);
+                                        updateTaskItem(index, 'checklist', newChecklist);
+                                      }}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </CollapsibleContent>
+                      </CardContent>
+                    </Card>
+                  </Collapsible>
                 ))}
+                
+                {bundleItems.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>No tasks added yet. Click "Add Task" or "From Template" to begin.</p>
+                  </div>
+                )}
               </div>
             </div>
 

@@ -29,34 +29,45 @@ export interface EnhancedTaskBundleItem {
   description?: string;
   priority: 'Critical' | 'High' | 'Medium' | 'Low';
   estimated_hours?: number;
-  assigned_role: string;           // NEW - matches TaskTemplate
-  category: string;               // NEW - matches TaskTemplate
-  dependencies?: string[];        // Enhanced with validation
-  conditions?: TaskConditions;    // NEW - conditional triggering
+  assigned_role: string;
+  category: string;
+  dependencies?: string[];
+  conditions?: TaskConditions;
   order_index: number;
-  template_id?: string;           // Reference to source template
+  template_id?: string;
   created_at: Date;
-  automation_flags?: AutomationFlags; // NEW - automation settings
-  due_offset?: string;            // e.g., "+2d", "+1w"
+  automation_flags?: AutomationFlags;
+  due_offset?: string;
+  // New granular fields
+  stage?: string;
+  assigned_user?: string;
+  trigger_type?: 'Manual' | 'Automatic' | 'Event' | 'Scheduled';
+  trigger_event?: string;
+  checklist?: string[];
 }
 
 export interface EnhancedTaskBundle {
   id: string;
   name: string;
   stage_code?: string;
-  stages?: string[];              // NEW - multi-stage support
+  stages?: string[];
   trigger: string;
   active: boolean;
   created_at: Date;
   updated_at?: Date;
   description?: string;
   is_default?: boolean;
-  execution_mode: 'Sequential' | 'Parallel'; // NEW
-  conditions?: TaskConditions;    // NEW - bundle-level conditions
-  automation_flags?: AutomationFlags; // NEW
-  version: number;                // NEW - for versioning
+  execution_mode: 'Sequential' | 'Parallel';
+  conditions?: TaskConditions;
+  automation_flags?: AutomationFlags;
+  version: number;
   created_by?: string;
-  usage_count: number;            // NEW - track usage
+  usage_count: number;
+  // New metadata fields
+  bundle_code?: string;
+  linked_module?: string;
+  status?: 'Draft' | 'Active' | 'Archived';
+  default_priority?: 'Critical' | 'High' | 'Medium' | 'Low';
 }
 
 export interface EnhancedTaskBundleWithItems extends EnhancedTaskBundle {
@@ -74,6 +85,11 @@ export interface CreateEnhancedTaskBundleData {
   conditions?: TaskConditions;
   automation_flags?: AutomationFlags;
   items?: CreateEnhancedTaskBundleItemData[];
+  // New metadata fields
+  bundle_code?: string;
+  linked_module?: string;
+  status?: 'Draft' | 'Active' | 'Archived';
+  default_priority?: 'Critical' | 'High' | 'Medium' | 'Low';
 }
 
 export interface CreateEnhancedTaskBundleItemData {
@@ -89,6 +105,12 @@ export interface CreateEnhancedTaskBundleItemData {
   template_id?: string;
   automation_flags?: AutomationFlags;
   due_offset?: string;
+  // New granular fields
+  stage?: string;
+  assigned_user?: string;
+  trigger_type?: 'Manual' | 'Automatic' | 'Event' | 'Scheduled';
+  trigger_event?: string;
+  checklist?: string[];
 }
 
 // Bundle validation
@@ -105,6 +127,11 @@ export const validateTaskBundle = (bundle: Partial<EnhancedTaskBundle>): string[
   
   if (bundle.stages && bundle.stages.length === 0 && !bundle.stage_code) {
     errors.push('At least one stage must be specified');
+  }
+  
+  // Validate bundle code format if provided
+  if (bundle.bundle_code && !/^[a-zA-Z0-9_-]*$/.test(bundle.bundle_code)) {
+    errors.push('Bundle code must contain only letters, numbers, hyphens, and underscores');
   }
   
   return errors;
@@ -151,6 +178,11 @@ export const createDefaultTaskBundleItem = (overrides: Partial<EnhancedTaskBundl
     auto_create_on_trigger: false
   },
   due_offset: '+1d',
+  stage: undefined,
+  assigned_user: undefined,
+  trigger_type: 'Manual',
+  trigger_event: '',
+  checklist: [],
   ...overrides
 });
 
@@ -171,5 +203,9 @@ export const createDefaultTaskBundle = (overrides: Partial<EnhancedTaskBundle> =
     suggest_on_trigger: false,
     auto_create_on_trigger: false
   },
+  bundle_code: '',
+  linked_module: '',
+  status: 'Draft',
+  default_priority: 'Medium',
   ...overrides
 });
