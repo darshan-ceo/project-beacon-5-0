@@ -217,10 +217,10 @@ export const JudgeSelector: React.FC<{
 
   return (
     <RelationshipSelector
-      label="Judge"
+      label="Judge (Optional)"
       options={options}
-      placeholder="Select judge"
-      required
+      placeholder="Select judge (optional)"
+      required={false}
       {...props}
     />
   );

@@ -27,13 +27,22 @@ export const useRelationships = () => {
     };
   };
 
-  // Validate judge belongs to court
+  // Validate judge belongs to court (judge is optional)
   const validateJudgeCourt = (judgeId: string, courtId: string): RelationshipValidation => {
-    const judge = state.judges.find(j => j.id === judgeId);
     const court = state.courts.find(c => c.id === courtId);
     
-    if (!judge) return { isValid: false, errors: [`Judge with ID ${judgeId} not found`] };
+    // Court is required
     if (!court) return { isValid: false, errors: [`Court with ID ${courtId} not found`] };
+    
+    // Judge is OPTIONAL - if not provided, validation passes
+    if (!judgeId || judgeId === '') {
+      return { isValid: true, errors: [] };
+    }
+    
+    // If judge IS provided, validate it exists and belongs to the court
+    const judge = state.judges.find(j => j.id === judgeId);
+    if (!judge) return { isValid: false, errors: [`Judge with ID ${judgeId} not found`] };
+    
     if (judge.courtId !== courtId) {
       return { 
         isValid: false, 

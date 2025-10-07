@@ -107,15 +107,18 @@ export const HearingModal: React.FC<HearingModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      // Validate relationships
-      const judgeCourtValidation = validateJudgeCourt(formData.judgeId, formData.courtId);
-      if (!judgeCourtValidation.isValid) {
-        toast({
-          title: "Validation Error",
-          description: judgeCourtValidation.errors.join(', '),
-          variant: "destructive"
-        });
-        return;
+      // Validate relationships (only validate judge if provided)
+      if (formData.judgeId) {
+        const judgeCourtValidation = validateJudgeCourt(formData.judgeId, formData.courtId);
+        if (!judgeCourtValidation.isValid) {
+          toast({
+            title: "Validation Error",
+            description: judgeCourtValidation.errors.join(', '),
+            variant: "destructive"
+          });
+          setIsSubmitting(false);
+          return;
+        }
       }
 
       const caseWithClient = getCaseWithClient(formData.caseId);
@@ -143,7 +146,7 @@ export const HearingModal: React.FC<HearingModalProps> = ({
           end_time: endTime,
           timezone: 'Asia/Kolkata',
           court_id: formData.courtId,
-          judge_ids: [formData.judgeId],
+          judge_ids: formData.judgeId ? [formData.judgeId] : [],
           purpose: 'mention' as const,
           notes: formData.notes || formData.agenda
         };
@@ -159,7 +162,7 @@ export const HearingModal: React.FC<HearingModalProps> = ({
 
         const updates = {
           court_id: formData.courtId,
-          judge_ids: [formData.judgeId],
+          judge_ids: formData.judgeId ? [formData.judgeId] : [],
           date: formData.date.toISOString().split('T')[0],
           start_time: startTime,
           end_time: endTime,

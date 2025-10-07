@@ -39,7 +39,7 @@ import { AIAssistant } from './AIAssistant';
 import { CommunicationHub } from './CommunicationHub';
 import { CaseDocuments } from './CaseDocuments';
 import { CaseModal } from '@/components/modals/CaseModal';
-import { HearingCalendar } from './HearingCalendar';
+
 import { AdvanceStageConfirmationModal } from '@/components/modals/AdvanceStageConfirmationModal';
 import { FilterDropdown } from '@/components/ui/filter-dropdown';
 import { Case, useAppState } from '@/contexts/AppStateContext';
@@ -72,7 +72,7 @@ export const CaseManagement: React.FC = () => {
     mode: 'create',
     case: null
   });
-  const [hearingCalendarOpen, setHearingCalendarOpen] = useState(false);
+  
   const [filterStage, setFilterStage] = useState<'all' | string>('all');
   const [filterTimelineBreach, setFilterTimelineBreach] = useState<'all' | string>('all');
   const [advanceStageModal, setAdvanceStageModal] = useState<{
@@ -553,21 +553,10 @@ export const CaseManagement: React.FC = () => {
           />
           <Button 
             variant="outline"
-            onClick={() => {
-              try {
-                setHearingCalendarOpen(true);
-              } catch (error) {
-                console.error('Error opening hearing calendar:', error);
-                toast({
-                  title: "Error",
-                  description: "Failed to open hearing calendar",
-                  variant: "destructive"
-                });
-              }
-            }}
+            onClick={() => navigate('/hearings?view=calendar')}
           >
             <Calendar className="mr-2 h-4 w-4" />
-            Hearing Calendar
+            View Calendar
           </Button>
         </div>
       </motion.div>
@@ -968,18 +957,6 @@ export const CaseManagement: React.FC = () => {
         mode={caseModal.mode}
       />
 
-      <ErrorBoundary>
-        <HearingCalendar
-          isOpen={hearingCalendarOpen}
-          onClose={() => {
-            try {
-              setHearingCalendarOpen(false);
-            } catch (error) {
-              console.error('Error closing hearing calendar:', error);
-            }
-          }}
-        />
-      </ErrorBoundary>
 
       {advanceStageModal.caseData && (
         <AdvanceStageConfirmationModal

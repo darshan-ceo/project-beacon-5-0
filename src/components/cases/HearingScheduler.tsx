@@ -24,19 +24,9 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
 import { NotificationConfigModal } from '@/components/modals/NotificationConfigModal';
+import { HearingModal } from '@/components/modals/HearingModal';
+import { useAppState } from '@/contexts/AppStateContext';
 
 interface Case {
   id: string;
@@ -67,6 +57,7 @@ interface HearingSchedulerProps {
 
 export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases }) => {
   const navigate = useNavigate();
+  const { dispatch } = useAppState();
   const [selectedDate, setSelectedDate] = useState('');
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
@@ -168,111 +159,23 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases }) => 
             Manage court hearings with calendar sync and reminders
           </p>
         </div>
-        <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-primary hover:bg-primary-hover">
-              <Plus className="mr-2 h-4 w-4" />
-              Schedule Hearing
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>Schedule New Hearing</DialogTitle>
-              <DialogDescription>
-                Add a new hearing date with court and judge details
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="case">Case</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select case" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {cases.map((case_) => (
-                        <SelectItem key={case_.id} value={case_.id}>
-                          {case_.caseNumber} - {case_.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="type">Hearing Type</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="final">Final</SelectItem>
-                      <SelectItem value="argued">Argued</SelectItem>
-                      <SelectItem value="adjourned">Adjourned</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="date">Date</Label>
-                  <Input type="date" id="date" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="time">Time</Label>
-                  <Input type="time" id="time" />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="court">Court</Label>
-                  <Input id="court" placeholder="Court name" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="judge">Judge</Label>
-                  <Input id="judge" placeholder="Judge name" />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="location">Location</Label>
-                <Input id="location" placeholder="Court room and address" />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="reminder">Reminder</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Set reminder" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1-day">1 day before</SelectItem>
-                    <SelectItem value="3-days">3 days before</SelectItem>
-                    <SelectItem value="7-days">7 days before</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsScheduleDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button 
-                onClick={() => {
-                  toast({
-                    title: "Hearing Scheduled",
-                    description: "Hearing has been scheduled successfully",
-                  });
-                  setIsScheduleDialogOpen(false);
-                }}
-              >
-                Schedule Hearing
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <Button 
+          className="bg-primary hover:bg-primary-hover"
+          onClick={() => setIsScheduleDialogOpen(true)}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Schedule Hearing
+        </Button>
+        
+        <HearingModal
+          isOpen={isScheduleDialogOpen}
+          onClose={() => {
+            setIsScheduleDialogOpen(false);
+            // Refresh hearings list
+            hearingsService.getHearings().then(setGlobalHearings);
+          }}
+          mode="create"
+        />
       </motion.div>
 
       {/* Quick Stats */}
