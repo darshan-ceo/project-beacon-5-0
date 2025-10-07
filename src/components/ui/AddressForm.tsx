@@ -516,7 +516,7 @@ export const AddressForm: React.FC<AddressFormProps> = ({
                             : "Select city"
                     } />
                   </SelectTrigger>
-                  <SelectContent className="z-50 bg-popover">
+                  <SelectContent className="z-[200] bg-popover">
                     {!value.stateId ? (
                       <SelectItem value="_select_state_first" disabled>
                         Please select a state first

@@ -80,7 +80,7 @@ export const EmployeeSelector: React.FC<EmployeeSelectorProps> = ({
             <SelectValue placeholder={placeholder} />
           </div>
         </SelectTrigger>
-        <SelectContent className="bg-background border border-border shadow-lg">
+        <SelectContent className="z-[200] bg-background border border-border shadow-lg">
           {filteredEmployees.length === 0 ? (
             <div className="p-2 text-sm text-muted-foreground">
               No employees available

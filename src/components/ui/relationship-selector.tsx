@@ -58,7 +58,7 @@ export const RelationshipSelector: React.FC<RelationshipSelectorProps> = ({
         <SelectTrigger>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="z-[200]">
           {options.map((option) => (
             <SelectItem key={option.id} value={option.id}>
               <div className="flex flex-col">
@@ -107,7 +107,7 @@ export const ClientSelector: React.FC<{
               <SelectTrigger>
                 <SelectValue placeholder="Select client" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-[200]">
                 {options.map((option) => (
                   <SelectItem key={option.id} value={option.id}>
                     <div className="flex flex-col">
