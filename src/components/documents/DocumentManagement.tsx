@@ -50,7 +50,7 @@ import {
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { InlineHelp } from '@/components/help/InlineHelp';
 import { ContextualPageHelp } from '@/components/help/ContextualPageHelp';
-import { tourService } from '@/services/tourService';
+
 import { NoticeIntakeWizard } from '@/components/notices/NoticeIntakeWizard';
 import { featureFlagService } from '@/services/featureFlagService';
 import { HelpButton } from '@/components/ui/help-button';
@@ -697,16 +697,7 @@ export const DocumentManagement: React.FC = () => {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => tourService.startTour('document-management')}
-              className="flex items-center gap-2"
-            >
-              <HelpCircle className="w-4 h-4" />
-              <span className="hidden sm:inline">Start Tour</span>
-            </Button>
-            <ContextualPageHelp 
+            <ContextualPageHelp
               pageId="document-management" 
               activeTab={activeTab} 
               variant="resizable" 
@@ -732,15 +723,6 @@ export const DocumentManagement: React.FC = () => {
             <span className="hidden sm:inline">New Folder</span>
           </Button>
           <Button 
-            variant="outline"
-            onClick={() => tourService.startTour('dms-upload')}
-            size="sm"
-            className="hidden md:flex"
-          >
-            <HelpCircle className="mr-2 h-3 w-3" />
-            Tour
-          </Button>
-          <Button 
             className="bg-primary hover:bg-primary-hover"
             onClick={() => {
               setDocumentModal({ isOpen: true, mode: 'upload', document: null });
@@ -748,8 +730,9 @@ export const DocumentManagement: React.FC = () => {
             data-tour="upload-btn"
             size="sm"
           >
-            <Upload className="mr-2 h-4 w-4" />
-            Upload
+            <Upload className="mr-0 sm:mr-2 h-4 w-4" />
+            <span className="hidden xs:inline">Add Document</span>
+            <span className="xs:hidden sr-only">Add</span>
           </Button>
         </div>
       </motion.div>

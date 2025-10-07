@@ -51,7 +51,7 @@ import { PageHelp } from '@/components/help/PageHelp';
 import { ContextualPageHelp } from '@/components/help/ContextualPageHelp';
 import { HelpButton } from '@/components/ui/help-button';
 import { ThreeLayerHelp } from '@/components/ui/three-layer-help';
-import { tourService } from '@/services/tourService';
+
 import { GlossaryText, GlossaryDescription } from '@/components/ui/glossary-enhanced';
 import { NoticeIntakeWizard } from '@/components/notices/NoticeIntakeWizard';
 import { featureFlagService } from '@/services/featureFlagService';
@@ -368,16 +368,7 @@ export const CaseManagement: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => tourService.startTour('case-management')}
-            className="flex items-center gap-2"
-          >
-            <HelpCircle className="w-4 h-4" />
-            Start Tour
-          </Button>
-          <ContextualPageHelp 
+          <ContextualPageHelp
             pageId="case-management" 
             activeTab={activeTab}
             variant="resizable" 

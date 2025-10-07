@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { helpService } from '@/services/helpService';
-import { tourService } from '@/services/tourService';
+
 import { cn } from '@/lib/utils';
 
 interface Tour {
@@ -60,18 +60,9 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({
   }, [userRole, module]);
 
   const handleStartTour = async (tourId: string) => {
-    try {
-      const success = await tourService.startTour(tourId);
-      if (success) {
-        onClose();
-      } else {
-        console.error('Failed to start tour - tour not found or navigation failed');
-        // Could show an error toast here instead of just logging
-      }
-    } catch (error) {
-      console.error('Failed to start tour:', error);
-      // Could show an error toast here
-    }
+    // Tour service removed - tours are no longer supported
+    console.log('Tours feature has been disabled');
+    onClose();
   };
 
   const nextStep = () => {

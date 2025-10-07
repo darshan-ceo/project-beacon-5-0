@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Separator } from '@/components/ui/separator';
 import { helpService } from '@/services/helpService';
-import { tourService } from '@/services/tourService';
+
 import { cn } from '@/lib/utils';
 
 interface PageHelpProps {
@@ -321,12 +321,9 @@ export const PageHelp: React.FC<PageHelpProps> = ({
   };
 
   const startTour = async (tourId: string) => {
-    try {
-      await tourService.startTour(tourId);
-      setIsOpen(false);
-    } catch (error) {
-      console.error('Failed to start tour:', error);
-    }
+    // Tour service removed - tours are no longer supported
+    console.log('Tours feature has been disabled');
+    setIsOpen(false);
   };
 
   const getFallbackContent = (pageId: string): PageHelpContent => {

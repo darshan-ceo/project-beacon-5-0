@@ -8,8 +8,6 @@ import { Search, BookOpen, Users, Settings, Code, ExternalLink } from 'lucide-re
 import { enhancedHelpService } from '@/services/enhancedHelpService';
 import { useRBAC } from '@/hooks/useAdvancedRBAC';
 import { featureFlagService } from '@/services/featureFlagService';
-import { tourService } from '@/services/tourService';
-import { GuidedTour } from './GuidedTour';
 import { cn } from '@/lib/utils';
 
 interface EnhancedHelpCenterProps {
@@ -172,13 +170,6 @@ export const EnhancedHelpCenter: React.FC<EnhancedHelpCenterProps> = ({ userRole
         ))}
       </Tabs>
 
-      {/* Guided Tours Modal */}
-      {showTourModal && (
-        <GuidedTour
-          onClose={() => setShowTourModal(false)}
-          userRole={currentUser?.role || 'Users'}
-        />
-      )}
     </div>
   );
 };

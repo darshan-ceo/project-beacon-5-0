@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Separator } from '@/components/ui/separator';
 import { enhancedHelpService } from '@/services/enhancedHelpService';
-import { tourService } from '@/services/tourService';
+
 import { cn } from '@/lib/utils';
 
 interface ContextualPageHelpProps {
@@ -134,10 +134,6 @@ export const ContextualPageHelp: React.FC<ContextualPageHelpProps> = ({
     };
   };
 
-  const handleStartTour = (tourId: string) => {
-    setIsOpen(false);
-    tourService.startTour(tourId);
-  };
 
   // Resize handlers
   useEffect(() => {
@@ -403,32 +399,6 @@ export const ContextualPageHelp: React.FC<ContextualPageHelpProps> = ({
           </Collapsible>
         )}
 
-        {/* Related Tours */}
-        {showMainPage && content.relatedTours && content.relatedTours.length > 0 && (
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Guided Tours</h3>
-            <div className="flex flex-wrap gap-2">
-              {content.relatedTours.map((tour, index) => {
-                const id = typeof tour === 'string' ? tour : tour.id;
-                const label = typeof tour === 'string' 
-                  ? tour.replace('-', ' ')
-                  : (tour.title || id.replace('-', ' '));
-                return (
-                  <Button
-                    key={index}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleStartTour(id)}
-                    className="flex items-center gap-2"
-                  >
-                    <BookOpen className="h-4 w-4" />
-                    Start {label} Tour
-                  </Button>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
     );
   };

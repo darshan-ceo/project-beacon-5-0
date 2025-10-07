@@ -25,7 +25,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ContextualPageHelp } from '@/components/help/ContextualPageHelp';
-import { StartTourButton } from '@/components/help/StartTourButton';
+
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -376,8 +376,7 @@ export const TaskManagement: React.FC = () => {
         </div>
         <div className="flex gap-2">
           <ContextualPageHelp pageId="task-automation" activeTab={activeTab} variant="resizable" />
-          <StartTourButton tourId="task-automation-setup" text="Take Tour" />
-          <HelpButton 
+          <HelpButton
             helpId="button-task-escalations"
             variant="outline"
             onClick={() => {

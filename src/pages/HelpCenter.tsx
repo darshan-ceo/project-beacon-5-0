@@ -12,11 +12,9 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { helpService } from '@/services/helpService';
 import { enhancedHelpService } from '@/services/enhancedHelpService';
-import { tourService } from '@/services/tourService';
 import { HelpSearchBar } from '@/components/help/HelpSearchBar';
 import { GlossaryTooltip } from '@/components/help/GlossaryTooltip';
 import { CaseStudyViewer } from '@/components/help/CaseStudyViewer';
-import { GuidedTour } from '@/components/help/GuidedTour';
 import { featureFlagService } from '@/services/featureFlagService';
 
 interface HelpContent {
@@ -468,13 +466,6 @@ export const HelpCenter: React.FC = () => {
 
         {/* Modal-based ArticleViewer removed - now using routes */}
 
-        {/* Guided Tours */}
-        {showTours && featureFlagService.isEnabled('help_tours_v1') && (
-          <GuidedTour
-            onClose={() => setShowTours(false)}
-            userRole={currentUser?.role || 'Staff'}
-          />
-        )}
       </motion.div>
     </div>
   );
