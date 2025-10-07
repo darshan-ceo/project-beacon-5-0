@@ -113,6 +113,14 @@ export const CalendarIntegrationPanel: React.FC = () => {
     setIsConnecting(true);
     
     try {
+      // Save settings BEFORE starting OAuth flow
+      integrationsService.saveCalendarSettings(settings);
+      
+      toast({
+        title: "Settings Saved",
+        description: "Starting authentication process...",
+      });
+
       let config;
       if (settings.provider === 'google') {
         config = OAuthManager.getGoogleConfig(

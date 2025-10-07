@@ -30,7 +30,18 @@ export const OAuthCallback = () => {
         // Load settings to get client credentials
         const settings = integrationsService.loadCalendarSettings('default');
         if (!settings) {
-          throw new Error('Calendar settings not found');
+          throw new Error(
+            'Calendar settings not found. Please return to Settings > Integrations and ensure your credentials are saved before connecting.'
+          );
+        }
+
+        // Validate provider-specific credentials
+        if (provider === 'google' && (!settings.googleClientId || !settings.googleClientSecret)) {
+          throw new Error('Google Calendar credentials are incomplete. Please check your Client ID and Client Secret.');
+        }
+        
+        if (provider === 'microsoft' && (!settings.microsoftClientId || !settings.microsoftClientSecret)) {
+          throw new Error('Microsoft Outlook credentials are incomplete. Please check your Client ID and Client Secret.');
         }
 
         // Get OAuth config
