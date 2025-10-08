@@ -10,6 +10,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
@@ -48,6 +50,7 @@ export const TaskBundleImporter: React.FC<TaskBundleImporterProps> = ({
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [resolveEmails, setResolveEmails] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -68,14 +71,23 @@ export const TaskBundleImporter: React.FC<TaskBundleImporterProps> = ({
       const parsed = JSON.parse(text);
       setJsonData(parsed);
 
-      // Validate
-      const result = await taskBundleImportService.importFromJSON(parsed);
+      // Validate and resolve emails
+      const result = await taskBundleImportService.importFromJSON(parsed, resolveEmails);
       setImportResult(result);
 
       if (result.success) {
+        let description = 'JSON file is valid and ready to import';
+        
+        if (result.userLookupResults) {
+          description += `. Resolved ${result.userLookupResults.foundCount} user email(s)`;
+          if (result.userLookupResults.notFoundCount > 0) {
+            description += `, ${result.userLookupResults.notFoundCount} not found`;
+          }
+        }
+
         toast({
           title: 'Validation Successful',
-          description: 'JSON file is valid and ready to import',
+          description,
         });
       } else {
         toast({
@@ -201,7 +213,7 @@ export const TaskBundleImporter: React.FC<TaskBundleImporterProps> = ({
             <CardHeader className="pb-3">
               <CardTitle className="text-sm">Select JSON File</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-3">
               <div className="flex items-center gap-3">
                 <input
                   ref={fileInputRef}
@@ -229,6 +241,18 @@ export const TaskBundleImporter: React.FC<TaskBundleImporterProps> = ({
                     {showPreview ? 'Hide' : 'Show'} Preview
                   </Button>
                 )}
+              </div>
+              
+              {/* Email Resolution Option */}
+              <div className="flex items-center space-x-2 pt-2 border-t">
+                <Checkbox 
+                  id="resolve-emails" 
+                  checked={resolveEmails}
+                  onCheckedChange={(checked) => setResolveEmails(checked as boolean)}
+                />
+                <Label htmlFor="resolve-emails" className="text-sm cursor-pointer">
+                  Automatically resolve email addresses to user IDs
+                </Label>
               </div>
             </CardContent>
           </Card>
@@ -284,16 +308,36 @@ export const TaskBundleImporter: React.FC<TaskBundleImporterProps> = ({
 
                 {/* Success Summary */}
                 {importResult.success && importResult.transformedData && (
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="secondary">
-                      Bundle: {importResult.transformedData.name}
-                    </Badge>
-                    <Badge variant="secondary">
-                      Tasks: {importResult.transformedData.items?.length || 0}
-                    </Badge>
-                    <Badge variant="secondary">
-                      Trigger: {importResult.transformedData.trigger}
-                    </Badge>
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="secondary">
+                        Bundle: {importResult.transformedData.name}
+                      </Badge>
+                      <Badge variant="secondary">
+                        Tasks: {importResult.transformedData.items?.length || 0}
+                      </Badge>
+                      <Badge variant="secondary">
+                        Trigger: {importResult.transformedData.trigger}
+                      </Badge>
+                    </div>
+                    
+                    {/* User Lookup Results */}
+                    {importResult.userLookupResults && (
+                      <div className="text-sm text-muted-foreground pt-2 border-t">
+                        <div className="flex items-center gap-4">
+                          <span className="flex items-center gap-1">
+                            <CheckCircle className="h-3 w-3 text-green-500" />
+                            {importResult.userLookupResults.foundCount} user(s) resolved
+                          </span>
+                          {importResult.userLookupResults.notFoundCount > 0 && (
+                            <span className="flex items-center gap-1">
+                              <AlertTriangle className="h-3 w-3 text-yellow-500" />
+                              {importResult.userLookupResults.notFoundCount} not found
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>

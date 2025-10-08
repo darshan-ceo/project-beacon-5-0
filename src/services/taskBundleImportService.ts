@@ -6,6 +6,7 @@
 import { z } from 'zod';
 import type { TaskBundle, TaskBundleItem } from '@/data/db';
 import type { CreateTaskBundleData } from '@/data/repositories/TaskBundleRepository';
+import { userLookupService } from './userLookupService';
 
 // Validation schema for external JSON format
 const ExternalTaskItemSchema = z.object({
@@ -52,6 +53,11 @@ export interface ImportResult {
   errors: string[];
   warnings: string[];
   transformedData?: CreateTaskBundleData;
+  userLookupResults?: {
+    foundCount: number;
+    notFoundCount: number;
+    notFoundEmails: string[];
+  };
 }
 
 class TaskBundleImportService {
@@ -106,6 +112,7 @@ class TaskBundleImportService {
 
   /**
    * Transform external format to internal database schema
+   * Note: Email-to-ID resolution happens during import, not here
    */
   transformToInternalFormat(jsonData: ExternalBundleWithTasks): CreateTaskBundleData {
     const { bundle, tasks } = jsonData;
@@ -161,9 +168,9 @@ class TaskBundleImportService {
   }
 
   /**
-   * Import and validate JSON file
+   * Import and validate JSON file with user email resolution
    */
-  async importFromJSON(jsonData: unknown): Promise<ImportResult> {
+  async importFromJSON(jsonData: unknown, resolveEmails: boolean = true): Promise<ImportResult> {
     // First validate
     const validation = this.validateJSON(jsonData);
     
@@ -176,11 +183,56 @@ class TaskBundleImportService {
       const parsed = ExternalBundleWithTasksSchema.parse(jsonData);
       const transformedData = this.transformToInternalFormat(parsed);
 
+      // Resolve email addresses to user IDs if requested
+      const warnings = [...validation.warnings];
+      let userLookupResults: ImportResult['userLookupResults'];
+
+      if (resolveEmails && transformedData.items) {
+        const emailsToResolve = transformedData.items
+          .map((item: any) => item.assigned_user)
+          .filter(Boolean);
+
+        if (emailsToResolve.length > 0) {
+          const lookupResult = await userLookupService.lookupBatch(emailsToResolve);
+          
+          userLookupResults = {
+            foundCount: lookupResult.foundCount,
+            notFoundCount: lookupResult.notFoundCount,
+            notFoundEmails: lookupResult.notFoundEmails,
+          };
+
+          // Replace emails with user IDs where found
+          for (const item of transformedData.items as any[]) {
+            if (item.assigned_user) {
+              const result = lookupResult.results.find(
+                (r) => r.email === item.assigned_user
+              );
+              
+              if (result?.found && result.userId) {
+                item.assigned_user = result.userId;
+              } else {
+                warnings.push(
+                  `User email "${item.assigned_user}" not found for task "${item.title}"`
+                );
+                // Keep email as-is for manual resolution
+              }
+            }
+          }
+
+          if (lookupResult.notFoundCount > 0) {
+            warnings.push(
+              `${lookupResult.notFoundCount} email(s) could not be resolved to user IDs`
+            );
+          }
+        }
+      }
+
       return {
         success: true,
         errors: [],
-        warnings: validation.warnings,
+        warnings,
         transformedData,
+        userLookupResults,
       };
     } catch (error) {
       return {
