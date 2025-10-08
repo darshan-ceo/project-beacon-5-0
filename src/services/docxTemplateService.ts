@@ -18,6 +18,7 @@ export interface VariableMapping {
   placeholder: string;
   systemPath: string;
   label: string;
+  value?: any;  // For override values
 }
 
 export interface DocxTemplateData {
@@ -219,8 +220,17 @@ class DocxTemplateService {
       const data: Record<string, any> = {};
       
       variableMappings.forEach(mapping => {
-        const value = this.resolveSystemPath(mapping.systemPath, caseData, clientData);
-        const resolvedValue = value || `[${mapping.placeholder}]`;
+        // PRIORITY 1: Check if override value exists
+        let resolvedValue;
+        if (mapping.value !== undefined && mapping.value !== null && mapping.value !== '') {
+          resolvedValue = mapping.value; // Use override
+          console.log(`[DOCX Generator] Using override for ${mapping.placeholder}:`, resolvedValue);
+        } else {
+          // PRIORITY 2: Resolve from system path
+          const value = this.resolveSystemPath(mapping.systemPath, caseData, clientData);
+          resolvedValue = value !== undefined ? value : `[${mapping.placeholder}]`;
+          console.log(`[DOCX Generator] Resolved ${mapping.placeholder} from ${mapping.systemPath}:`, resolvedValue);
+        }
         
         // Handle dot paths by building nested object
         if (mapping.placeholder.includes('.')) {
@@ -242,7 +252,9 @@ class DocxTemplateService {
         }
       });
 
-      console.log('[DOCX Generator] Rendering document with data keys:', Object.keys(data));
+      console.log('[DOCX Generator] Final data structure:', JSON.stringify(data, null, 2));
+      console.log('[DOCX Generator] Case data:', { caseNumber: caseData.caseNumber, title: caseData.title });
+      console.log('[DOCX Generator] Client data:', { name: clientData.name, gstin: clientData.gstin });
 
       // Render the document
       doc.render(data);

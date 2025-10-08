@@ -291,18 +291,33 @@ export const TemplatesManagement: React.FC = () => {
         throw new Error('Case or client data not found');
       }
 
-      // Build variable mappings array from stored mappings
-      const mappings = Object.entries(template.variableMappings || {}).map(([placeholder, systemPath]) => ({
-        placeholder,
-        systemPath,
-        label: placeholder
-      }));
+      // Build variable mappings with BOTH resolved values AND overrides
+      const finalMappings = Object.entries(template.variableMappings || {}).map(([placeholder, systemPath]) => {
+        // Check if user provided an override
+        const overrideValue = overrides?.[placeholder];
+        
+        // If override exists, use it; otherwise resolve from system path
+        const finalValue = overrideValue !== undefined 
+          ? overrideValue 
+          : docxTemplateService.resolveSystemPath(systemPath, caseData, clientData);
+        
+        console.log(`[Template Manager] Mapping ${placeholder}:`, {
+          systemPath,
+          overrideValue,
+          finalValue
+        });
+        
+        return {
+          placeholder,
+          systemPath,
+          label: placeholder,
+          value: finalValue  // This will now always have a value
+        };
+      });
 
-      // Apply overrides if provided
-      const finalMappings = mappings.map(m => ({
-        ...m,
-        value: overrides?.[m.placeholder]
-      }));
+      console.log('[Template Manager] Final mappings:', finalMappings);
+      console.log('[Template Manager] Case:', { id: caseData.id, caseNumber: caseData.caseNumber });
+      console.log('[Template Manager] Client:', { id: clientData.id, name: clientData.name });
 
       // Convert base64 docxFile back to Blob
       const base64Data = template.docxFile!.split(',')[1];
