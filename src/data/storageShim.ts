@@ -235,9 +235,21 @@ export async function getItem<T>(key: string): Promise<T | null> {
   // Try HofficeDB first
   if (mode === 'modern' || mode === 'transitioning') {
     try {
-      const result = await db.settings.get(key);
-      return result ? (result as any).value : null;
-    } catch {
+      // Query by indexed 'key' field, not primary key
+      const record = await db.settings.where('key').equals(key).first();
+      if (record?.value) {
+        return record.value as T;
+      }
+      
+      // If not in DB but exists in localStorage, backfill to DB
+      const localItem = localStorage.getItem(key);
+      if (localItem) {
+        const parsed = JSON.parse(localItem) as T;
+        await setItem(key, parsed); // Backfill to DB
+        return parsed;
+      }
+    } catch (error) {
+      console.error('Error reading from HofficeDB:', error);
       // Fall through to localStorage
     }
   }
@@ -273,6 +285,16 @@ export async function setItem<T>(key: string, value: T): Promise<void> {
         updated_at: new Date()
       });
     }
+    
+    // Cleanup: Remove duplicate records for this key (safety measure)
+    const allRecords = await db.settings.where('key').equals(key).toArray();
+    if (allRecords.length > 1) {
+      const sorted = allRecords.sort((a, b) => 
+        (b.updated_at?.getTime() || 0) - (a.updated_at?.getTime() || 0)
+      );
+      const toDelete = sorted.slice(1).map(r => r.id);
+      await db.settings.bulkDelete(toDelete);
+    }
   }
 
   if (mode === 'transitioning' || mode === 'legacy') {
@@ -284,7 +306,15 @@ export async function removeItem(key: string): Promise<void> {
   const mode = await getMigrationMode();
 
   if (mode === 'modern' || mode === 'transitioning') {
-    await db.settings.delete(key);
+    try {
+      // Find record by indexed key field
+      const record = await db.settings.where('key').equals(key).first();
+      if (record) {
+        await db.settings.delete(record.id); // Delete by primary key (id)
+      }
+    } catch (error) {
+      console.error('Error removing from HofficeDB:', error);
+    }
   }
 
   if (mode === 'transitioning' || mode === 'legacy') {
