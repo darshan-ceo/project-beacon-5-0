@@ -251,13 +251,28 @@ export async function setItem<T>(key: string, value: T): Promise<void> {
   const mode = await getMigrationMode();
 
   if (mode === 'modern' || mode === 'transitioning') {
-    await db.settings.put({ 
-      id: generateId(),
-      key, 
-      value: value as any,
-      created_at: new Date(),
-      updated_at: new Date()
-    });
+    // Find existing record by key to implement UPSERT
+    const existing = await db.settings.where('key').equals(key).first();
+    
+    if (existing) {
+      // Update existing record, preserving ID and creation time
+      await db.settings.put({ 
+        id: existing.id,
+        key, 
+        value: value as any,
+        created_at: existing.created_at,
+        updated_at: new Date()
+      });
+    } else {
+      // Create new record
+      await db.settings.put({ 
+        id: generateId(),
+        key, 
+        value: value as any,
+        created_at: new Date(),
+        updated_at: new Date()
+      });
+    }
   }
 
   if (mode === 'transitioning' || mode === 'legacy') {
