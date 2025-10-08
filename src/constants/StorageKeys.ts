@@ -46,6 +46,11 @@ export const STORAGE_KEYS = {
   // Change Tracking
   DIRTY_ENTITIES: 'hoffice_dirty_entities',
   ENTITY_VERSIONS: 'hoffice_entity_versions',
+  
+  // Email Configuration
+  EMAIL_SETTINGS: 'email_settings',
+  EMAIL_CREDENTIALS: 'email_credentials_encrypted',
+  EMAIL_TEST_HISTORY: 'email_test_history',
 } as const;
 
 export type StorageKey = typeof STORAGE_KEYS[keyof typeof STORAGE_KEYS];

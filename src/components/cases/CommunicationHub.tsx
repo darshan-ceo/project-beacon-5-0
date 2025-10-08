@@ -28,6 +28,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from '@/hooks/use-toast';
 import { communicationService, CommunicationLog, MessageComposer } from '@/services/communicationService';
+import { isEmailConfigured } from '@/services/emailSettingsService';
 import { useAppState, Case } from '@/contexts/AppStateContext';
 
 interface CommunicationHubProps {
@@ -45,6 +46,7 @@ export const CommunicationHub: React.FC<CommunicationHubProps> = ({ selectedCase
     attachments: []
   });
   const [isSending, setIsSending] = useState(false);
+  const [emailConfigured, setEmailConfigured] = useState(false);
   
   // Communication Logs State
   const [communicationLogs, setCommunicationLogs] = useState<CommunicationLog[]>([]);
@@ -52,6 +54,15 @@ export const CommunicationHub: React.FC<CommunicationHubProps> = ({ selectedCase
   const [searchTerm, setSearchTerm] = useState('');
   const [filterChannel, setFilterChannel] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+
+  // Check email configuration on mount
+  useEffect(() => {
+    const checkEmailConfig = async () => {
+      const configured = await isEmailConfigured();
+      setEmailConfigured(configured);
+    };
+    checkEmailConfig();
+  }, []);
 
   // Client contacts for the selected case
   const caseClient = selectedCase ? state.clients.find(c => c.id === selectedCase.clientId) : null;

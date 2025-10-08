@@ -27,6 +27,7 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
 import { CalendarIntegrationPanel } from './CalendarIntegrationPanel';
 import { AddressSettings } from './AddressSettings';
+import { EmailConfiguration } from './EmailConfiguration';
 import { featureFlagService } from '@/services/featureFlagService';
 
 interface SystemParameter {
@@ -342,35 +343,8 @@ export const GlobalParameters: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="notifications" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Mail className="h-5 w-5 mr-2" />
-                  Email Configuration
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {getParametersByCategory('notifications').map((param) => (
-                  <div key={param.id} className="space-y-2">
-                    <Label>{param.name}</Label>
-                    {renderParameterInput(param)}
-                    <p className="text-xs text-muted-foreground">{param.description}</p>
-                  </div>
-                ))}
-                <Separator />
-                <div className="space-y-2">
-                  <Label>SMTP Server</Label>
-                  <Input placeholder="smtp.example.com" />
-                  <p className="text-xs text-muted-foreground">Email server configuration</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>From Address</Label>
-                  <Input placeholder="noreply@lawfirm.com" />
-                  <p className="text-xs text-muted-foreground">Default sender email address</p>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="grid gap-6">
+            <EmailConfiguration />
 
             <Card>
               <CardHeader>

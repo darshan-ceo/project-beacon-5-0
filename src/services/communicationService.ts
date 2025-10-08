@@ -1,4 +1,7 @@
 import { toast } from '@/hooks/use-toast';
+import { getEmailSettings } from './emailSettingsService';
+import { sendEmail as sendEmailService } from './emailService';
+import type { EmailMessage } from '@/types/email';
 
 export interface CommunicationLog {
   id: string;
@@ -123,17 +126,40 @@ export const communicationService = {
   sendEmail: async (
     message: MessageComposer
   ): Promise<CommunicationLog> => {
-    // Simulate email sending delay
-    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 500));
-
+    console.log('[Communication Service] Sending email:', message);
+    
     try {
-      // Mock email validation
+      // Load email settings
+      const settings = await getEmailSettings();
+      
+      // Check if email is configured
+      if (!settings.enabled) {
+        throw new Error('Email notifications are disabled. Enable in Global Parameters → Notifications.');
+      }
+
+      // Validate email address
       if (!message.to.includes('@')) {
         throw new Error('Invalid email address');
       }
 
+      // Build email message
+      const emailMessage: EmailMessage = {
+        to: message.to,
+        subject: message.subject || 'Message from Law Firm',
+        body: message.message,
+        html: message.message // Could be enhanced with HTML templates
+      };
+
+      // Send via email service
+      const result = await sendEmailService(emailMessage, settings);
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to send email');
+      }
+
+      // Create communication log
       const communicationLog: CommunicationLog = {
-        id: `comm-${Date.now()}`,
+        id: result.messageId || `comm-${Date.now()}`,
         caseId: message.caseId,
         clientId: message.clientId,
         channel: 'email',
@@ -151,10 +177,10 @@ export const communicationService = {
         sentTo: message.to,
         sentToName: message.toName,
         timestamp: new Date().toISOString(),
-        status: Math.random() > 0.1 ? 'sent' : 'failed',
+        status: 'sent',
         metadata: {
-          messageId: `msg-${Date.now()}`,
-          deliveredAt: new Date(Date.now() + 1000).toISOString()
+          messageId: result.messageId,
+          deliveredAt: new Date().toISOString()
         }
       };
 
@@ -165,6 +191,14 @@ export const communicationService = {
 
       return communicationLog;
     } catch (error) {
+      console.error('[Communication Service] Email sending failed:', error);
+      
+      toast({
+        title: "Email Failed",
+        description: error instanceof Error ? error.message : 'Failed to send email',
+        variant: 'destructive'
+      });
+      
       throw new Error(`Email sending failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   },
