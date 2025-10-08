@@ -16,9 +16,12 @@ import { TemplateEditor } from './TemplateEditor';
 import { TemplateBuilder } from './TemplateBuilder';
 import { RichTextTemplateBuilder } from './RichTextTemplateBuilder';
 import { TemplateUploadModal } from './TemplateUploadModal';
+import { DocxTemplatePreview } from './DocxTemplatePreview';
+import { DocxGenerationModal } from './DocxGenerationModal';
 import { useAppState } from '@/contexts/AppStateContext';
 import { useRBAC } from '@/hooks/useAdvancedRBAC';
 import { HelpButton } from '@/components/ui/help-button';
+import { docxTemplateService } from '@/services/docxTemplateService';
 import { 
   FileText, 
   Search, 
@@ -57,6 +60,8 @@ export const TemplatesManagement: React.FC = () => {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<FormTemplate | null>(null);
   const [activeTab, setActiveTab] = useState('standard');
+  const [docxPreviewOpen, setDocxPreviewOpen] = useState(false);
+  const [docxGenerateModalOpen, setDocxGenerateModalOpen] = useState(false);
   const searchInputRef = React.useRef<HTMLInputElement>(null);
 
   const canEdit = hasPermission('admin', 'admin');
@@ -113,14 +118,24 @@ export const TemplatesManagement: React.FC = () => {
     }
   };
 
-  const handlePreview = (template: FormTemplate) => {
-    setSelectedTemplate(template);
-    setPreviewOpen(true);
+  const handlePreview = (template: FormTemplate | CustomTemplate) => {
+    if ('templateType' in template && template.templateType === 'docx') {
+      setSelectedTemplate(template);
+      setDocxPreviewOpen(true);
+    } else {
+      setSelectedTemplate(template);
+      setPreviewOpen(true);
+    }
   };
 
-  const handleGenerate = (template: FormTemplate) => {
-    setSelectedTemplate(template);
-    setGenerateModalOpen(true);
+  const handleGenerate = (template: FormTemplate | CustomTemplate) => {
+    if ('templateType' in template && template.templateType === 'docx') {
+      setSelectedTemplate(template);
+      setDocxGenerateModalOpen(true);
+    } else {
+      setSelectedTemplate(template);
+      setGenerateModalOpen(true);
+    }
   };
 
   const handleEdit = (template: FormTemplate) => {
@@ -258,6 +273,69 @@ export const TemplatesManagement: React.FC = () => {
       toast({
         title: "Error",
         description: "Failed to create rich text template. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleGenerateDocx = async (
+    template: CustomTemplate,
+    caseId: string,
+    overrides?: Record<string, any>
+  ) => {
+    try {
+      const caseData = state.cases.find(c => c.id === caseId);
+      const clientData = caseData ? state.clients.find(c => c.id === caseData.clientId) : null;
+      
+      if (!caseData || !clientData) {
+        throw new Error('Case or client data not found');
+      }
+
+      // Build variable mappings array from stored mappings
+      const mappings = Object.entries(template.variableMappings || {}).map(([placeholder, systemPath]) => ({
+        placeholder,
+        systemPath,
+        label: placeholder
+      }));
+
+      // Apply overrides if provided
+      const finalMappings = mappings.map(m => ({
+        ...m,
+        value: overrides?.[m.placeholder]
+      }));
+
+      // Convert base64 docxFile back to Blob
+      const base64Data = template.docxFile!.split(',')[1];
+      const binaryData = atob(base64Data);
+      const bytes = new Uint8Array(binaryData.length);
+      for (let i = 0; i < binaryData.length; i++) {
+        bytes[i] = binaryData.charCodeAt(i);
+      }
+      const templateBlob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+
+      // Generate document
+      const outputBlob = await docxTemplateService.generateDocument(
+        templateBlob,
+        finalMappings,
+        caseData,
+        clientData
+      );
+
+      // Download
+      const filename = `${template.code}_${caseData.caseNumber}_${new Date().toISOString().split('T')[0]}.docx`;
+      docxTemplateService.downloadDocument(outputBlob, filename);
+
+      toast({
+        title: "Document Generated",
+        description: `${template.title} has been generated successfully.`
+      });
+
+      setDocxGenerateModalOpen(false);
+    } catch (error) {
+      console.error('Error generating DOCX:', error);
+      toast({
+        title: "Generation Failed",
+        description: error instanceof Error ? error.message : "Failed to generate document",
         variant: "destructive"
       });
     }
@@ -699,6 +777,34 @@ export const TemplatesManagement: React.FC = () => {
         onClose={() => setUploadModalOpen(false)}
         onSave={handleCreateFromUpload}
       />
+
+      {/* DOCX-specific modals */}
+      {docxPreviewOpen && selectedTemplate && 'templateType' in selectedTemplate && selectedTemplate.templateType === 'docx' && (
+        <DocxTemplatePreview
+          isOpen={docxPreviewOpen}
+          onClose={() => {
+            setDocxPreviewOpen(false);
+            setSelectedTemplate(null);
+          }}
+          template={selectedTemplate as CustomTemplate}
+          cases={state.cases}
+          clients={state.clients}
+        />
+      )}
+
+      {docxGenerateModalOpen && selectedTemplate && 'templateType' in selectedTemplate && selectedTemplate.templateType === 'docx' && (
+        <DocxGenerationModal
+          isOpen={docxGenerateModalOpen}
+          onClose={() => {
+            setDocxGenerateModalOpen(false);
+            setSelectedTemplate(null);
+          }}
+          template={selectedTemplate as CustomTemplate}
+          cases={state.cases}
+          clients={state.clients}
+          onGenerate={handleGenerateDocx}
+        />
+      )}
     </div>
   );
 };

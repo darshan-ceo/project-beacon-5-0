@@ -35,6 +35,33 @@ export const FormRenderModal: React.FC<FormRenderModalProps> = ({
   selectedCaseId,
   onFormGenerated
 }) => {
+  // Type guard: Block DOCX templates from using this modal
+  if ('templateType' in template && template.templateType === 'docx') {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-amber-500" />
+              DOCX Template
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Alert>
+              <AlertDescription>
+                This is a Word document template and must be generated using the DOCX generator. 
+                Please use the <strong>Generate</strong> button from the templates list.
+              </AlertDescription>
+            </Alert>
+            <div className="flex justify-end">
+              <Button onClick={onClose}>Close</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   const { state, dispatch } = useAppState();
   const { toast } = useToast();
   const [formData, setFormData] = useState<Record<string, any>>({});

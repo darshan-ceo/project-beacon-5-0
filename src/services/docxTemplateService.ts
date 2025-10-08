@@ -263,7 +263,7 @@ class DocxTemplateService {
   /**
    * Resolve system path to actual value
    */
-  private resolveSystemPath(path: string, caseData: Case, clientData: Client): any {
+  resolveSystemPath(path: string, caseData: Case, clientData: Client): any {
     try {
       // Handle special system values
       if (path === 'system.currentDate') {
