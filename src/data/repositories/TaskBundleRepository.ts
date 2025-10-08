@@ -180,7 +180,7 @@ export class TaskBundleRepository extends BaseRepository<TaskBundle> {
   }
 
   async delete(id: string): Promise<void> {
-    return await this.storage.transaction(['task_bundles', 'task_bundle_items', 'audit_logs'], async () => {
+    return await this.storage.transaction(['task_bundles', 'task_bundle_items', 'tasks', 'audit_logs'], async () => {
       // Delete all items first
       const items = await this.storage.queryByField<TaskBundleItem>('task_bundle_items', 'bundle_id', id);
       for (const item of items) {
