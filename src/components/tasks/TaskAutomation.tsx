@@ -47,16 +47,19 @@ import {
   Search,
   Filter,
   ChevronDown,
-  HelpCircle
+  HelpCircle,
+  Upload
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { storageManager } from '@/data/StorageManager';
 import { useUnifiedPersistence } from '@/hooks/useUnifiedPersistence';
 import { taskTemplatesService } from '@/services/taskTemplatesService';
 import { enhancedTaskCreationService } from '@/services/enhancedTaskCreationService';
+import { TaskBundleImporter } from '@/components/tasks/TaskBundleImporter';
 import type { TaskTemplate } from '@/types/taskTemplate';
 import type { TaskBundle, TaskBundleItem } from '@/data/db';
 import type { EnhancedTaskBundleWithItems } from '@/types/enhancedTaskBundle';
+import type { CreateTaskBundleData } from '@/data/repositories/TaskBundleRepository';
 import { Checkbox } from '@/components/ui/checkbox';
 
 const GST_STAGES = ['Any Stage', 'Notice Received', 'Reply Filed', 'Hearing', 'Order'];
@@ -89,6 +92,9 @@ export const TaskAutomation: React.FC = () => {
   const [templates, setTemplates] = useState<TaskTemplate[]>([]);
   const [templateSearchTerm, setTemplateSearchTerm] = useState('');
   const [selectedTemplateCategory, setSelectedTemplateCategory] = useState('All');
+  
+  // Import dialog state
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
 
   const loadBundles = useCallback(async () => {
     if (!initialized) {
@@ -440,6 +446,33 @@ export const TaskAutomation: React.FC = () => {
 
   const templateCategories = ['All', ...Array.from(new Set(templates.map(t => t.category)))];
 
+  const handleImportBundle = async (data: CreateTaskBundleData) => {
+    if (!initialized) {
+      toast({
+        title: "Not Ready",
+        description: "Storage is still initializing. Please wait a moment.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const repo = storageManager.getTaskBundleRepository();
+      await repo.createWithItems(data);
+
+      toast({
+        title: "Success",
+        description: "Task bundle imported successfully",
+      });
+
+      await loadBundles();
+      setIsImportDialogOpen(false);
+    } catch (error) {
+      console.error('Failed to import bundle:', error);
+      throw error;
+    }
+  };
+
   const getPriorityColor = (priority: string) => {
     switch (priority.toLowerCase()) {
       case 'critical': return 'bg-destructive text-destructive-foreground';
@@ -497,14 +530,25 @@ export const TaskAutomation: React.FC = () => {
               <Workflow className="h-5 w-5" />
               Task Automation
             </div>
-            <Button 
-              onClick={() => setIsCreating(true)}
-              className="flex items-center gap-2"
-              disabled={!initialized}
-            >
-              <Plus className="h-4 w-4" />
-              Create Bundle
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => setIsImportDialogOpen(true)}
+                variant="outline"
+                className="flex items-center gap-2"
+                disabled={!initialized}
+              >
+                <Upload className="h-4 w-4" />
+                Import JSON
+              </Button>
+              <Button 
+                onClick={() => setIsCreating(true)}
+                className="flex items-center gap-2"
+                disabled={!initialized}
+              >
+                <Plus className="h-4 w-4" />
+                Create Bundle
+              </Button>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -1252,6 +1296,13 @@ export const TaskAutomation: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Import JSON Dialog */}
+      <TaskBundleImporter
+        isOpen={isImportDialogOpen}
+        onClose={() => setIsImportDialogOpen(false)}
+        onImport={handleImportBundle}
+      />
     </div>
   );
 };
