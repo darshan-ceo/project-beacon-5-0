@@ -383,13 +383,28 @@ export const TaskAutomation: React.FC = () => {
 
   const addTasksFromTemplate = async (template: TaskTemplate) => {
     try {
-      // Create task item from template
-      const newTaskItem: Partial<TaskBundleItem> = {
+      // Create task item from template with complete field mapping
+      const newTaskItem: any = {
         title: template.title,
         description: template.description,
         priority: template.priority.toLowerCase() as any,
         estimated_hours: template.estimatedHours,
         template_id: template.id,
+        
+        // Map template-specific fields to bundle item fields
+        assigned_role: template.assignedRole,
+        category: template.category,
+        
+        // Map stage from stageScope array (use first stage if not 'Any Stage')
+        stage: template.stageScope && template.stageScope.length > 0
+          ? (template.stageScope[0] === 'Any Stage' ? '' : template.stageScope[0])
+          : '',
+        
+        // Set default values for automation fields
+        trigger_type: 'Manual',
+        trigger_event: '',
+        assigned_user: '',
+        checklist: [],
         dependencies: []
       };
 
