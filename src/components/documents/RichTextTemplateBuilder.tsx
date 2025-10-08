@@ -103,11 +103,34 @@ export const RichTextTemplateBuilder: React.FC<RichTextTemplateBuilderProps> = (
 
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({
-        heading: {
-          levels: [1, 2, 3],
-        },
-      }),
+        StarterKit.configure({
+          heading: {
+            levels: [1, 2, 3],
+          },
+          bulletList: {
+            keepMarks: true,
+            keepAttributes: false,
+          },
+          orderedList: {
+            keepMarks: true,
+            keepAttributes: false,
+          },
+          listItem: {
+            HTMLAttributes: {
+              class: 'ml-4',
+            },
+          },
+          blockquote: {
+            HTMLAttributes: {
+              class: 'border-l-4 border-border pl-4 italic',
+            },
+          },
+          horizontalRule: {
+            HTMLAttributes: {
+              class: 'my-4 border-t border-border',
+            },
+          },
+        }),
       Underline,
       TextAlign.configure({
         types: ['heading', 'paragraph'],
