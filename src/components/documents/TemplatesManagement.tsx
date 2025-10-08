@@ -271,54 +271,52 @@ export const TemplatesManagement: React.FC = () => {
     variableMappings: any[];
   }) => {
     try {
-      // Convert blob to base64 for storage
-      const reader = new FileReader();
-      reader.readAsDataURL(uploadData.docxFile);
+      // Convert Blob to base64 using Promise
+      const base64File = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(uploadData.docxFile);
+      });
       
-      reader.onload = async () => {
-        const base64File = reader.result as string;
-        
-        // Convert variableMappings array to Record<string, string>
-        const mappingsRecord = uploadData.variableMappings.reduce((acc, mapping) => {
-          acc[mapping.placeholder] = mapping.systemPath;
-          return acc;
-        }, {} as Record<string, string>);
+      // Convert variableMappings array to Record<string, string>
+      const mappingsRecord = uploadData.variableMappings.reduce((acc, mapping) => {
+        acc[mapping.placeholder] = mapping.systemPath;
+        return acc;
+      }, {} as Record<string, string>);
 
-        await customTemplatesService.saveTemplate({
-          code: uploadData.code,
-          title: uploadData.title,
-          stage: uploadData.stage,
-          version: '1.0',
-          prefill: {},
-          fields: [],
-          output: {
-            filename: `${uploadData.code}_\${now:YYYYMMDD}.docx`,
-            dms_folder_by_stage: true,
-            timeline_event: `Generated ${uploadData.title}`
-          },
-          docxFile: base64File,
-          variableMappings: mappingsRecord,
-          createdBy: 'Current User',
-          templateType: 'docx'
-        });
-        
-        await loadCustomTemplates();
-        setUploadModalOpen(false);
-        
-        toast({
-          title: "DOCX Template Uploaded",
-          description: "Your Word template has been uploaded successfully."
-        });
-      };
-
-      reader.onerror = () => {
-        throw new Error('Failed to read file');
-      };
+      // Save template
+      await customTemplatesService.saveTemplate({
+        code: uploadData.code,
+        title: uploadData.title,
+        stage: uploadData.stage,
+        version: '1.0',
+        prefill: {},
+        fields: [],
+        output: {
+          filename: `${uploadData.code}_\${now:YYYYMMDD}.docx`,
+          dms_folder_by_stage: true,
+          timeline_event: `Generated ${uploadData.title}`
+        },
+        docxFile: base64File,
+        variableMappings: mappingsRecord,
+        createdBy: 'Current User',
+        templateType: 'docx'
+      });
+      
+      // Reload templates and close modal
+      await loadCustomTemplates();
+      setUploadModalOpen(false);
+      
+      toast({
+        title: "DOCX Template Uploaded",
+        description: "Your Word template has been uploaded successfully."
+      });
     } catch (error) {
       console.error('Error uploading DOCX template:', error);
       toast({
         title: "Error",
-        description: "Failed to upload DOCX template. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to upload template. Please try again.",
         variant: "destructive"
       });
     }

@@ -97,11 +97,21 @@ export const TemplateUploadModal: React.FC<TemplateUploadModalProps> = ({
 
   const handleNext = () => {
     if (currentStep === 'upload') {
-      if (!uploadedFile || !fileBlob || detectedVariables.length === 0) {
-        setError('Please upload a valid DOCX template with variables');
+      if (!uploadedFile || !fileBlob) {
+        setError('Please upload a valid DOCX file');
         return;
       }
-      setCurrentStep('mapping');
+      // Allow proceeding even if no variables detected
+      if (detectedVariables.length === 0) {
+        console.warn('No variables detected in template - template will be static');
+      }
+      setError('');
+      // Skip mapping if no variables detected
+      if (detectedVariables.length === 0) {
+        setCurrentStep('review');
+      } else {
+        setCurrentStep('mapping');
+      }
     } else if (currentStep === 'mapping') {
       const unmappedVariables = variableMappings.filter(m => !m.systemPath);
       if (unmappedVariables.length > 0) {
@@ -129,7 +139,8 @@ export const TemplateUploadModal: React.FC<TemplateUploadModalProps> = ({
     if (currentStep === 'mapping') {
       setCurrentStep('upload');
     } else if (currentStep === 'review') {
-      setCurrentStep('mapping');
+      // Go back to mapping if there are variables, otherwise upload
+      setCurrentStep(detectedVariables.length > 0 ? 'mapping' : 'upload');
     }
   };
 
@@ -222,6 +233,18 @@ export const TemplateUploadModal: React.FC<TemplateUploadModalProps> = ({
                     <p className="text-sm text-muted-foreground mb-4">
                       Found {detectedVariables.length} variable(s)
                     </p>
+                    {detectedVariables.length === 0 && (
+                      <Alert className="mb-4 text-left">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          No variables detected. Make sure your template uses the format: <code className="px-1 py-0.5 bg-muted rounded">{'{{variable_name}}'}</code>
+                          <br/>
+                          <span className="text-xs text-muted-foreground mt-1 block">
+                            You can still upload this as a static template, or go back and add variables.
+                          </span>
+                        </AlertDescription>
+                      </Alert>
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
