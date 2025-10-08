@@ -11,7 +11,20 @@
     {
       "name": "Rich Text Template Builder",
       "purpose": "Create visually designed templates with rich formatting, tables, and variable insertion",
-      "example": "Design a professional letter with formatted text, tables, and {{client.name}} placeholders"
+      "example": "Design a professional letter with formatted text, tables, and {{client.name}} placeholders",
+      "features": [
+        "Bold, italic, underline formatting with keyboard shortcuts (Ctrl+B/I/U)",
+        "Three heading levels for document structure",
+        "Bullet and numbered lists",
+        "Text alignment (left, center, right)",
+        "Tables with resizable columns",
+        "Block quotes and horizontal lines",
+        "Undo/Redo support",
+        "Live preview mode",
+        "Inline help with keyboard shortcuts",
+        "Tooltips on all toolbar buttons"
+      ],
+      "helpLink": "/help/rich-text-template-guide"
     },
     {
       "name": "Upload DOCX",

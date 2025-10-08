@@ -1,0 +1,288 @@
+{
+  "title": "Rich Text Template Builder Guide",
+  "description": "Create professionally formatted document templates with rich text editing, variable insertion, and advanced formatting options",
+  "quickStart": [
+    "Enter template code, title, and select lifecycle stage",
+    "Use the toolbar to format text (bold, italic, headings, lists, etc.)",
+    "Click variables from the left panel to insert dynamic fields",
+    "Preview your template to see how variables will render",
+    "Save the template for use in document generation"
+  ],
+  "sections": [
+    {
+      "title": "Getting Started",
+      "content": "The Rich Text Template Builder allows you to create visually designed templates with professional formatting. Unlike simple field-based templates, rich text templates preserve fonts, colors, tables, and complex layouts."
+    },
+    {
+      "title": "Toolbar Features",
+      "subsections": [
+        {
+          "name": "Text Formatting",
+          "features": [
+            {
+              "name": "Bold",
+              "shortcut": "Ctrl+B",
+              "description": "Make text bold for emphasis"
+            },
+            {
+              "name": "Italic",
+              "shortcut": "Ctrl+I",
+              "description": "Italicize text for emphasis or citations"
+            },
+            {
+              "name": "Underline",
+              "shortcut": "Ctrl+U",
+              "description": "Underline important text"
+            }
+          ]
+        },
+        {
+          "name": "Headings",
+          "features": [
+            {
+              "name": "Heading 1",
+              "description": "Large heading for document titles"
+            },
+            {
+              "name": "Heading 2",
+              "description": "Section headings"
+            },
+            {
+              "name": "Heading 3",
+              "description": "Sub-section headings"
+            }
+          ]
+        },
+        {
+          "name": "Lists",
+          "features": [
+            {
+              "name": "Bullet List",
+              "description": "Create unordered lists with bullet points"
+            },
+            {
+              "name": "Numbered List",
+              "description": "Create ordered lists with numbers"
+            }
+          ]
+        },
+        {
+          "name": "Alignment",
+          "features": [
+            {
+              "name": "Align Left",
+              "description": "Left-align text (default)"
+            },
+            {
+              "name": "Align Center",
+              "description": "Center text for titles or emphasis"
+            },
+            {
+              "name": "Align Right",
+              "description": "Right-align text for dates or signatures"
+            }
+          ]
+        },
+        {
+          "name": "Advanced Elements",
+          "features": [
+            {
+              "name": "Table",
+              "description": "Insert a 3x3 table (can be modified after insertion)"
+            },
+            {
+              "name": "Block Quote",
+              "description": "Format text as a quotation with indentation"
+            },
+            {
+              "name": "Horizontal Line",
+              "description": "Insert a horizontal separator line"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Variable Insertion",
+      "content": "Variables are dynamic placeholders that automatically populate with case data when generating documents. They appear in the format {{category.field}}.",
+      "examples": [
+        {
+          "variable": "{{client.name}}",
+          "description": "Inserts the client's full name",
+          "example": "Dear {{client.name}}, → Dear ABC Industries Ltd,"
+        },
+        {
+          "variable": "{{case.caseNumber}}",
+          "description": "Inserts the case reference number",
+          "example": "Re: Case No. {{case.caseNumber}} → Re: Case No. GST/2024/001"
+        },
+        {
+          "variable": "{{system.currentDate}}",
+          "description": "Inserts today's date",
+          "example": "Date: {{system.currentDate}} → Date: January 8, 2025"
+        }
+      ],
+      "variableCategories": [
+        {
+          "category": "Client",
+          "description": "Client information (name, GSTIN, address, contact details)"
+        },
+        {
+          "category": "Case",
+          "description": "Case details (number, title, stage, notice info, amounts, dates)"
+        },
+        {
+          "category": "Forum",
+          "description": "Court/tribunal information (name, location, bench)"
+        },
+        {
+          "category": "Employee",
+          "description": "Attorney/employee details (name, email, phone, ID)"
+        },
+        {
+          "category": "System",
+          "description": "System-generated data (current date, financial year)"
+        }
+      ]
+    },
+    {
+      "title": "Working with Tables",
+      "steps": [
+        "Click the Table icon to insert a 3x3 table",
+        "Click inside any cell to edit content",
+        "Tables can contain text, numbers, or variables",
+        "Use formatting buttons while cursor is in a table cell",
+        "Tables automatically adjust to content"
+      ],
+      "tips": [
+        "Use tables for structured data like financial breakdowns",
+        "Header rows are automatically styled with bold text",
+        "Variables work inside table cells",
+        "Copy-paste can duplicate table rows"
+      ]
+    },
+    {
+      "title": "Preview Mode",
+      "content": "Preview mode shows how your template will look when generated. Variables are replaced with sample placeholder text (shown in yellow highlight) to help you visualize the final output.",
+      "usage": [
+        "Click the 'Preview' tab to switch to preview mode",
+        "Variable placeholders appear as [Variable Name] in yellow",
+        "Check formatting, spacing, and layout",
+        "Switch back to 'Edit' tab to make changes"
+      ]
+    },
+    {
+      "title": "Keyboard Shortcuts",
+      "shortcuts": [
+        {
+          "action": "Bold",
+          "shortcut": "Ctrl+B",
+          "mac": "Cmd+B"
+        },
+        {
+          "action": "Italic",
+          "shortcut": "Ctrl+I",
+          "mac": "Cmd+I"
+        },
+        {
+          "action": "Underline",
+          "shortcut": "Ctrl+U",
+          "mac": "Cmd+U"
+        },
+        {
+          "action": "Undo",
+          "shortcut": "Ctrl+Z",
+          "mac": "Cmd+Z"
+        },
+        {
+          "action": "Redo",
+          "shortcut": "Ctrl+Shift+Z",
+          "mac": "Cmd+Shift+Z"
+        }
+      ]
+    },
+    {
+      "title": "Best Practices",
+      "tips": [
+        "Use Heading 1 for document titles, Heading 2 for sections",
+        "Insert variables for all dynamic content (names, dates, numbers)",
+        "Use tables for financial data, breakdowns, and structured information",
+        "Preview your template before saving to catch layout issues",
+        "Keep template code concise (e.g., APPEAL_LETTER_01)",
+        "Choose the appropriate lifecycle stage for template organization",
+        "Use alignment to create professional layouts (center for titles, right for dates)",
+        "Add horizontal lines to separate major sections"
+      ]
+    },
+    {
+      "title": "Common Use Cases",
+      "examples": [
+        {
+          "scenario": "Appeal Letter",
+          "solution": "Use Heading 1 for title, insert {{client.name}} and {{case.caseNumber}}, add a table for tax details, use {{system.currentDate}} for letter date"
+        },
+        {
+          "scenario": "Notice Response",
+          "solution": "Center-align the title, insert {{case.noticeNumber}} and {{case.noticeDate}}, use numbered lists for response points"
+        },
+        {
+          "scenario": "Client Communication",
+          "solution": "Start with 'Dear {{client.name}}', use bullet points for updates, right-align date with {{system.currentDate}}"
+        },
+        {
+          "scenario": "Financial Summary",
+          "solution": "Use tables for amounts, insert {{case.demandAmount}} and {{case.taxPeriod}}, use bold for totals"
+        }
+      ]
+    },
+    {
+      "title": "Troubleshooting",
+      "issues": [
+        {
+          "problem": "Variable not inserting",
+          "solution": "Ensure cursor is in the editor, click the variable button again"
+        },
+        {
+          "problem": "Formatting not applying",
+          "solution": "Select the text first, then click the formatting button"
+        },
+        {
+          "problem": "Table looks wrong in preview",
+          "solution": "Check if content is too wide, adjust cell content or table size"
+        },
+        {
+          "problem": "Can't save template",
+          "solution": "Ensure Template Code, Title, and Stage are all filled in"
+        }
+      ]
+    }
+  ],
+  "interactiveElements": [
+    {
+      "name": "Help Button (?)",
+      "purpose": "Toggle inline help panel with keyboard shortcuts and quick tips",
+      "location": "Top right corner of dialog"
+    },
+    {
+      "name": "Variable Buttons",
+      "purpose": "Click to insert dynamic data fields into your template",
+      "location": "Left panel, organized by category"
+    },
+    {
+      "name": "Toolbar Buttons",
+      "purpose": "Apply formatting to selected text or insert elements",
+      "location": "Above editor in Edit tab"
+    },
+    {
+      "name": "Preview Tab",
+      "purpose": "See how your template will look with variable placeholders",
+      "location": "Tab switcher above editor"
+    }
+  ],
+  "relatedTopics": [
+    "Field-based templates for structured forms",
+    "DOCX upload for importing existing Word templates",
+    "Document generation from templates",
+    "Variable mapping and data sources"
+  ]
+}

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import Underline from '@tiptap/extension-underline';
+import TextAlign from '@tiptap/extension-text-align';
 import Table from '@tiptap/extension-table';
 import TableRow from '@tiptap/extension-table-row';
 import TableHeader from '@tiptap/extension-table-header';
@@ -13,10 +15,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
-  Bold, Italic, Underline, List, ListOrdered, Heading1, Heading2, Heading3,
+  Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Heading1, Heading2, Heading3,
   Table as TableIcon, Columns, AlignLeft, AlignCenter, AlignRight, Undo, Redo,
-  Code, Quote, Minus, Eye, FileText, Plus
+  Code, Quote, Minus, Eye, FileText, Plus, HelpCircle, ChevronDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -94,11 +98,20 @@ export const RichTextTemplateBuilder: React.FC<RichTextTemplateBuilderProps> = (
   const [templateTitle, setTemplateTitle] = useState(initialTemplate?.title || '');
   const [templateStage, setTemplateStage] = useState(initialTemplate?.stage || '');
   const [previewMode, setPreviewMode] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [variableMappings] = useState<Record<string, string>>(initialTemplate?.variableMappings || {});
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        heading: {
+          levels: [1, 2, 3],
+        },
+      }),
+      Underline,
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
+      }),
       Table.configure({
         resizable: true,
       }),
@@ -162,14 +175,58 @@ export const RichTextTemplateBuilder: React.FC<RichTextTemplateBuilderProps> = (
   const categories = Array.from(new Set(VARIABLE_OPTIONS.map(v => v.category)));
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl h-[90vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            {initialTemplate ? 'Edit Rich Text Template' : 'Create Rich Text Template'}
-          </DialogTitle>
-        </DialogHeader>
+    <TooltipProvider>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-7xl h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                {initialTemplate ? 'Edit Rich Text Template' : 'Create Rich Text Template'}
+              </div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowHelp(!showHelp)}
+                    className={cn(showHelp && 'bg-primary/10')}
+                  >
+                    <HelpCircle className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Quick Help & Shortcuts</TooltipContent>
+              </Tooltip>
+            </DialogTitle>
+          </DialogHeader>
+
+          {/* Help Panel */}
+          <Collapsible open={showHelp} onOpenChange={setShowHelp}>
+            <CollapsibleContent className="border rounded-lg p-4 bg-muted/30 space-y-3">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="font-semibold text-sm mb-2">Keyboard Shortcuts</h4>
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between"><span>Bold</span><kbd className="px-2 py-0.5 bg-background rounded border">Ctrl+B</kbd></div>
+                    <div className="flex justify-between"><span>Italic</span><kbd className="px-2 py-0.5 bg-background rounded border">Ctrl+I</kbd></div>
+                    <div className="flex justify-between"><span>Underline</span><kbd className="px-2 py-0.5 bg-background rounded border">Ctrl+U</kbd></div>
+                    <div className="flex justify-between"><span>Undo</span><kbd className="px-2 py-0.5 bg-background rounded border">Ctrl+Z</kbd></div>
+                    <div className="flex justify-between"><span>Redo</span><kbd className="px-2 py-0.5 bg-background rounded border">Ctrl+Shift+Z</kbd></div>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-sm mb-2">Quick Tips</h4>
+                  <ul className="space-y-1 text-xs list-disc list-inside">
+                    <li>Click variables on the left to insert them</li>
+                    <li>Variables appear as {`{{client.name}}`} in your template</li>
+                    <li>Use Preview tab to see how variables render</li>
+                    <li>Tables can be resized and styled in the editor</li>
+                    <li>All formatting is preserved in generated documents</li>
+                  </ul>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
 
         <div className="flex-1 flex gap-4 overflow-hidden">
           {/* Left Panel - Template Info & Variables */}
@@ -228,24 +285,34 @@ export const RichTextTemplateBuilder: React.FC<RichTextTemplateBuilderProps> = (
                       </h4>
                       <div className="space-y-1">
                         {VARIABLE_OPTIONS
-                          .filter(v => v.category === category)
+                           .filter(v => v.category === category)
                           .map(variable => (
-                            <Button
-                              key={variable.value}
-                              variant="ghost"
-                              size="sm"
-                              className="w-full justify-start text-xs h-auto py-2 px-2"
-                              onClick={() => insertVariable(variable.value)}
-                            >
-                              <div className="text-left">
-                                <div className="font-medium">{variable.label}</div>
-                                {variable.description && (
-                                  <div className="text-[10px] text-muted-foreground">
-                                    {variable.description}
+                            <Tooltip key={variable.value}>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="w-full justify-start text-xs h-auto py-2 px-2"
+                                  onClick={() => insertVariable(variable.value)}
+                                >
+                                  <div className="text-left">
+                                    <div className="font-medium">{variable.label}</div>
+                                    {variable.description && (
+                                      <div className="text-[10px] text-muted-foreground">
+                                        {variable.description}
+                                      </div>
+                                    )}
                                   </div>
-                                )}
-                              </div>
-                            </Button>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="right">
+                                <div className="space-y-1">
+                                  <div className="font-medium">{variable.label}</div>
+                                  <div className="text-xs text-muted-foreground">{variable.description}</div>
+                                  <div className="text-xs font-mono bg-muted px-1 rounded">{variable.value}</div>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
                           ))}
                       </div>
                     </div>
@@ -272,122 +339,237 @@ export const RichTextTemplateBuilder: React.FC<RichTextTemplateBuilderProps> = (
               <TabsContent value="edit" className="flex-1 flex flex-col overflow-hidden mt-2">
                 {/* Toolbar */}
                 <div className="border rounded-t-lg bg-muted/50 p-2 flex flex-wrap gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => editor.chain().focus().toggleBold().run()}
-                    className={cn(editor.isActive('bold') && 'bg-primary/10')}
-                  >
-                    <Bold className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => editor.chain().focus().toggleItalic().run()}
-                    className={cn(editor.isActive('italic') && 'bg-primary/10')}
-                  >
-                    <Italic className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => editor.chain().focus().toggleStrike().run()}
-                    className={cn(editor.isActive('strike') && 'bg-primary/10')}
-                  >
-                    <Underline className="h-4 w-4" />
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => editor.chain().focus().toggleBold().run()}
+                        className={cn(editor.isActive('bold') && 'bg-primary/10')}
+                      >
+                        <Bold className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Bold (Ctrl+B)</TooltipContent>
+                  </Tooltip>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => editor.chain().focus().toggleItalic().run()}
+                        className={cn(editor.isActive('italic') && 'bg-primary/10')}
+                      >
+                        <Italic className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Italic (Ctrl+I)</TooltipContent>
+                  </Tooltip>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => editor.chain().focus().toggleUnderline().run()}
+                        className={cn(editor.isActive('underline') && 'bg-primary/10')}
+                      >
+                        <UnderlineIcon className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Underline (Ctrl+U)</TooltipContent>
+                  </Tooltip>
 
                   <Separator orientation="vertical" className="h-8" />
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-                    className={cn(editor.isActive('heading', { level: 1 }) && 'bg-primary/10')}
-                  >
-                    <Heading1 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-                    className={cn(editor.isActive('heading', { level: 2 }) && 'bg-primary/10')}
-                  >
-                    <Heading2 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-                    className={cn(editor.isActive('heading', { level: 3 }) && 'bg-primary/10')}
-                  >
-                    <Heading3 className="h-4 w-4" />
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                        className={cn(editor.isActive('heading', { level: 1 }) && 'bg-primary/10')}
+                      >
+                        <Heading1 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Heading 1</TooltipContent>
+                  </Tooltip>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                        className={cn(editor.isActive('heading', { level: 2 }) && 'bg-primary/10')}
+                      >
+                        <Heading2 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Heading 2</TooltipContent>
+                  </Tooltip>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                        className={cn(editor.isActive('heading', { level: 3 }) && 'bg-primary/10')}
+                      >
+                        <Heading3 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Heading 3</TooltipContent>
+                  </Tooltip>
 
                   <Separator orientation="vertical" className="h-8" />
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => editor.chain().focus().toggleBulletList().run()}
-                    className={cn(editor.isActive('bulletList') && 'bg-primary/10')}
-                  >
-                    <List className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => editor.chain().focus().toggleOrderedList().run()}
-                    className={cn(editor.isActive('orderedList') && 'bg-primary/10')}
-                  >
-                    <ListOrdered className="h-4 w-4" />
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => editor.chain().focus().toggleBulletList().run()}
+                        className={cn(editor.isActive('bulletList') && 'bg-primary/10')}
+                      >
+                        <List className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Bullet List</TooltipContent>
+                  </Tooltip>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                        className={cn(editor.isActive('orderedList') && 'bg-primary/10')}
+                      >
+                        <ListOrdered className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Numbered List</TooltipContent>
+                  </Tooltip>
 
                   <Separator orientation="vertical" className="h-8" />
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => insertTable(3, 3)}
-                  >
-                    <TableIcon className="h-4 w-4" />
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => editor.chain().focus().toggleBlockquote().run()}
-                    className={cn(editor.isActive('blockquote') && 'bg-primary/10')}
-                  >
-                    <Quote className="h-4 w-4" />
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => editor.chain().focus().setHorizontalRule().run()}
-                  >
-                    <Minus className="h-4 w-4" />
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => editor.chain().focus().setTextAlign('left').run()}
+                        className={cn(editor.isActive({ textAlign: 'left' }) && 'bg-primary/10')}
+                      >
+                        <AlignLeft className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Align Left</TooltipContent>
+                  </Tooltip>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => editor.chain().focus().setTextAlign('center').run()}
+                        className={cn(editor.isActive({ textAlign: 'center' }) && 'bg-primary/10')}
+                      >
+                        <AlignCenter className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Align Center</TooltipContent>
+                  </Tooltip>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => editor.chain().focus().setTextAlign('right').run()}
+                        className={cn(editor.isActive({ textAlign: 'right' }) && 'bg-primary/10')}
+                      >
+                        <AlignRight className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Align Right</TooltipContent>
+                  </Tooltip>
 
                   <Separator orientation="vertical" className="h-8" />
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => editor.chain().focus().undo().run()}
-                    disabled={!editor.can().undo()}
-                  >
-                    <Undo className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => editor.chain().focus().redo().run()}
-                    disabled={!editor.can().redo()}
-                  >
-                    <Redo className="h-4 w-4" />
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => insertTable(3, 3)}
+                      >
+                        <TableIcon className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Insert Table (3x3)</TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => editor.chain().focus().toggleBlockquote().run()}
+                        className={cn(editor.isActive('blockquote') && 'bg-primary/10')}
+                      >
+                        <Quote className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Block Quote</TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => editor.chain().focus().setHorizontalRule().run()}
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Horizontal Line</TooltipContent>
+                  </Tooltip>
+
+                  <Separator orientation="vertical" className="h-8" />
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => editor.chain().focus().undo().run()}
+                        disabled={!editor.can().undo()}
+                      >
+                        <Undo className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Undo (Ctrl+Z)</TooltipContent>
+                  </Tooltip>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => editor.chain().focus().redo().run()}
+                        disabled={!editor.can().redo()}
+                      >
+                        <Redo className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Redo (Ctrl+Shift+Z)</TooltipContent>
+                  </Tooltip>
                 </div>
 
                 {/* Editor */}
@@ -420,7 +602,8 @@ export const RichTextTemplateBuilder: React.FC<RichTextTemplateBuilderProps> = (
             {initialTemplate ? 'Update Template' : 'Create Template'}
           </Button>
         </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </TooltipProvider>
   );
 };
