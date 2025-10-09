@@ -37,6 +37,7 @@ import { InlineHelp } from '@/components/help/InlineHelp';
 import { PageHelp } from '@/components/help/PageHelp';
 import { QuickActionsPanel } from '@/components/qa/QuickActionsPanel';
 import { GlossaryText, GlossaryDescription } from '@/components/ui/glossary-enhanced';
+import { HearingMiniCalendar } from './HearingMiniCalendar';
 
 interface DashboardFilters {
   clientId?: string;
@@ -402,32 +403,40 @@ export const EnhancedDashboard: React.FC = () => {
           </Card>
         </motion.div>
 
-        {/* SLA Status Chart */}
+        {/* Timeline Performance (Desktop) / Hearing Mini-Calendar (Mobile/Tablet) */}
         <motion.div 
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <PieChart className="mr-2 h-5 w-5 text-primary" />
-                Timeline Performance
-              </CardTitle>
-              <CardDescription>Current timeline compliance status</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer config={{}} className="h-[300px]">
-                <RechartsPieChart data={timelineData} cx="50%" cy="50%" outerRadius={80}>
-                  {timelineData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                  ))}
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <ChartLegend content={<ChartLegendContent />} />
-                </RechartsPieChart>
-              </ChartContainer>
-            </CardContent>
-          </Card>
+          {/* Desktop: Show Timeline Performance */}
+          <div className="hidden lg:block">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <PieChart className="mr-2 h-5 w-5 text-primary" />
+                  Timeline Performance
+                </CardTitle>
+                <CardDescription>Current timeline compliance status</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer config={{}} className="h-[300px]">
+                  <RechartsPieChart data={timelineData} cx="50%" cy="50%" outerRadius={80}>
+                    {timelineData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <ChartLegend content={<ChartLegendContent />} />
+                  </RechartsPieChart>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Mobile/Tablet: Show Hearing Mini-Calendar */}
+          <div className="block lg:hidden">
+            <HearingMiniCalendar />
+          </div>
         </motion.div>
       </div>
 
