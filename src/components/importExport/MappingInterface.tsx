@@ -15,12 +15,14 @@ interface MappingInterfaceProps {
   importJob: ImportJob;
   entityType: EntityType;
   onMappingComplete: (mapping: ColumnMapping) => void;
+  savedMapping?: ColumnMapping | null;
 }
 
 export const MappingInterface: React.FC<MappingInterfaceProps> = ({
   importJob,
   entityType,
-  onMappingComplete
+  onMappingComplete,
+  savedMapping
 }) => {
   const [mapping, setMapping] = useState<ColumnMapping>({});
   const [templateColumns, setTemplateColumns] = useState<TemplateColumn[]>([]);
@@ -48,18 +50,30 @@ export const MappingInterface: React.FC<MappingInterfaceProps> = ({
         ];
         setSourceHeaders(headers);
         
-        // Generate auto-mapping
-        const autoMapping = await mappingService.autoMapColumns(headers, entityType, true);
-        setMapping(autoMapping.mapping);
-        
-        // Validate initial mapping
-        const validation = mappingService.validateMapping(autoMapping.mapping, headers);
-        setValidationResults(validation);
-        
-        toast({
-          title: "Auto-mapping Complete",
-          description: `${Object.keys(autoMapping.mapping).length} columns mapped automatically`
-        });
+        // Use saved mapping if available, otherwise generate auto-mapping
+        if (savedMapping && Object.keys(savedMapping).length > 0) {
+          setMapping(savedMapping);
+          const validation = mappingService.validateMapping(savedMapping, headers);
+          setValidationResults(validation);
+          
+          toast({
+            title: "Mapping Restored",
+            description: "Your previous column mapping has been restored"
+          });
+        } else {
+          // Generate auto-mapping
+          const autoMapping = await mappingService.autoMapColumns(headers, entityType, true);
+          setMapping(autoMapping.mapping);
+          
+          // Validate initial mapping
+          const validation = mappingService.validateMapping(autoMapping.mapping, headers);
+          setValidationResults(validation);
+          
+          toast({
+            title: "Auto-mapping Complete",
+            description: `${Object.keys(autoMapping.mapping).length} columns mapped automatically`
+          });
+        }
       } catch (error) {
         toast({
           title: "Mapping Error",
@@ -72,7 +86,7 @@ export const MappingInterface: React.FC<MappingInterfaceProps> = ({
     };
 
     loadTemplateAndHeaders();
-  }, [importJob, entityType]);
+  }, [importJob, entityType, savedMapping]);
 
   const handleMappingChange = (templateColumn: string, sourceColumn: string) => {
     const templateCol = templateColumns.find(col => col.key === templateColumn);

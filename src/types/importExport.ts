@@ -168,19 +168,39 @@ export interface ColumnSynonyms {
 }
 
 export const COLUMN_SYNONYMS: ColumnSynonyms = {
-  'pincode': ['pin', 'postal_code', 'zip_code', 'zip', 'postal'],
+  // Client fields
+  'legal_name': ['legal_name', 'legal name', 'name', 'client_name', 'client name', 'company name', 'company_name', 'firm_name', 'firm name'],
+  'trade_name': ['trade_name', 'trade name', 'business_name', 'business name', 'trading name', 'trading_name', 'shop_name', 'shop name'],
+  'gstin': ['gstin', 'gst_number', 'gst number', 'gst no', 'gst', 'gst_no'],
+  'pan': ['pan', 'pan_number', 'pan number', 'pan no', 'pan_no'],
+  'taxpayer_type': ['taxpayer_type', 'taxpayer type', 'type', 'gst type', 'taxpayer'],
+  'constitution': ['constitution', 'constitution_type', 'constitution type', 'entity type', 'entity_type'],
+  'city': ['city', 'town', 'place', 'city_name'],
+  'district': ['district', 'area', 'region', 'dist', 'district_name'],
+  'state': ['state', 'state_name', 'state name', 'state code', 'prov', 'province'],
   'state_name': ['state', 'state_name', 'prov', 'province'],
-  'district': ['dist', 'district', 'district_name'],
-  'line1': ['address', 'address_line1', 'addr1', 'street'],
-  'line2': ['address_line2', 'addr2', 'street2'],
-  'email': ['email_id', 'email_address', 'mail'],
-  'mobile': ['phone', 'mobile_no', 'contact', 'cell'],
-  'legal_name': ['name', 'company_name', 'firm_name', 'client_name'],
-  'trade_name': ['trading_name', 'business_name', 'shop_name'],
+  'pincode': ['pincode', 'pin', 'zip', 'postal_code', 'postal code', 'zip_code', 'zip code', 'postal'],
+  'primary_contact_email': ['primary_contact_email', 'email', 'primary email', 'contact email', 'e-mail', 'email_address', 'email_id', 'mail'],
+  'primary_contact_mobile': ['primary_contact_mobile', 'mobile', 'phone', 'contact_number', 'contact number', 'phone_number', 'phone number', 'primary mobile', 'primary phone', 'mobile_no', 'contact', 'cell'],
+  
+  // Common fields
+  'name': ['name', 'full_name', 'contact_name'],
+  'email': ['email', 'email_address', 'e-mail', 'email_id', 'mail'],
+  'phone': ['phone', 'mobile', 'contact_number', 'phone_number', 'mobile_no'],
+  'mobile': ['phone', 'mobile_no', 'contact', 'cell', 'mobile', 'phone_number'],
+  'address': ['address', 'location', 'street_address', 'street address'],
+  'line1': ['address', 'address_line1', 'addr1', 'street', 'line1'],
+  'line2': ['address_line2', 'addr2', 'street2', 'line2'],
+  
+  // Court/Judge fields
   'court_name': ['court', 'court_name', 'tribunal'],
   'judge_name': ['judge', 'judge_name', 'justice'],
-  'employee_code': ['emp_code', 'employee_id', 'staff_id'],
-  'full_name': ['name', 'employee_name', 'staff_name'],
-  'work_email': ['email', 'office_email', 'work_mail'],
-  'designation': ['position', 'role', 'title', 'job_title']
+  
+  // Employee fields
+  'employee_code': ['emp_code', 'employee_id', 'staff_id', 'employee_code'],
+  'full_name': ['name', 'employee_name', 'staff_name', 'full_name'],
+  'work_email': ['email', 'office_email', 'work_mail', 'work_email'],
+  'designation': ['designation', 'position', 'role', 'title', 'job_title'],
+  'department': ['department', 'dept'],
+  'joining_date': ['joining_date', 'date_of_joining', 'join_date', 'joining date', 'date of joining']
 };

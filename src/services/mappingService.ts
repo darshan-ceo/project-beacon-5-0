@@ -99,7 +99,7 @@ class MappingService {
       if (used.has(header)) continue;
 
       const confidence = this.calculateSimilarity(templateColumn, header);
-      if (confidence > highestConfidence && confidence > 0.3) {
+      if (confidence > highestConfidence && confidence > 0.5) {
         bestMatch = {
           header,
           confidence,
@@ -122,17 +122,25 @@ class MappingService {
     // Exact match
     if (template === source) return 1.0;
 
-    // Check synonyms
+    // Check synonyms for the template column key
     const synonyms = COLUMN_SYNONYMS[templateColumn] || [];
     for (const synonym of synonyms) {
-      if (this.normalizeHeader(synonym) === source) {
-        return 0.9;
+      const normalizedSynonym = this.normalizeHeader(synonym);
+      if (normalizedSynonym === source) {
+        return 0.95;
+      }
+      // Partial synonym match
+      if (source.includes(normalizedSynonym) || normalizedSynonym.includes(source)) {
+        return 0.85;
       }
     }
 
     // Substring matching
-    if (source.includes(template) || template.includes(source)) {
-      return 0.7;
+    if (source.includes(template)) {
+      return 0.75;
+    }
+    if (template.includes(source)) {
+      return 0.70;
     }
 
     // Fuzzy matching (simplified Levenshtein distance)
@@ -140,7 +148,7 @@ class MappingService {
     const maxLength = Math.max(template.length, source.length);
     const similarity = 1 - (distance / maxLength);
 
-    return similarity > 0.6 ? similarity * 0.8 : 0;
+    return similarity > 0.5 ? similarity * 0.8 : 0;
   }
 
   /**

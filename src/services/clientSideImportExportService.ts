@@ -16,6 +16,7 @@ import {
   ColumnMapping 
 } from '@/types/importExport';
 import { entityTemplatesService } from './entityTemplatesService';
+import { mappingService } from './mappingService';
 
 class ClientSideImportExportService {
   private generateJobId(): string {
@@ -107,7 +108,10 @@ class ClientSideImportExportService {
       }
       
       const headers = jsonData[0] as string[];
-      const rows = jsonData.slice(1);
+      // Filter out blank rows
+      const rows = jsonData.slice(1).filter((row: any) => 
+        Array.isArray(row) && row.some(cell => String(cell || '').trim() !== '')
+      );
       
       // Create import job
       const job: ImportJob = {
@@ -187,23 +191,69 @@ class ClientSideImportExportService {
       }
       
       const { job, headers, rows } = JSON.parse(jobData);
+      const template = await entityTemplatesService.getTemplate(job.entityType);
+      const requiredFields = template.columns.filter(col => col.isRequired).map(col => col.key);
       
       // Simulate processing
       job.status = 'processing';
       job.mapping = mapping;
       job.updatedAt = new Date().toISOString();
       
-      // Mock validation results
-      const validRows = Math.floor(rows.length * 0.85); // 85% success rate
-      job.counts.valid = validRows;
-      job.counts.invalid = rows.length - validRows;
-      job.counts.processed = rows.length;
-      
-      // After a delay, mark as completed
-      setTimeout(() => {
-        job.status = 'completed';
-        localStorage.setItem(`import_job_${jobId}`, JSON.stringify({ job, headers, rows }));
-      }, 2000);
+      // Process each row with real validation
+      const validRecords: any[] = [];
+      const invalidRecords: any[] = [];
+      const errors: any[] = [];
+
+      rows.forEach((row: any[], rowIndex: number) => {
+        const record: Record<string, any> = {};
+        const rowErrors: string[] = [];
+
+        // Map columns
+        Object.entries(mapping).forEach(([templateKey, mapConfig]) => {
+          if (mapConfig.sourceColumn) {
+            const sourceIndex = headers.indexOf(mapConfig.sourceColumn);
+            if (sourceIndex !== -1) {
+              record[templateKey] = row[sourceIndex];
+            }
+          }
+        });
+
+        // Validate required fields
+        requiredFields.forEach(field => {
+          const value = record[field];
+          if (!value || String(value).trim() === '') {
+            rowErrors.push(`Missing required field: ${field}`);
+          }
+        });
+
+        if (rowErrors.length === 0) {
+          validRecords.push(record);
+        } else {
+          invalidRecords.push({ ...record, _rowIndex: rowIndex + 2 });
+          errors.push({
+            id: `error_${rowIndex}`,
+            jobId,
+            row: rowIndex + 2,
+            column: '',
+            value: '',
+            error: rowErrors.join('; '),
+            severity: 'error' as const,
+            canAutoFix: false
+          });
+        }
+      });
+
+      // Store pending records for download
+      if (invalidRecords.length > 0) {
+        localStorage.setItem(`pending_records_${jobId}`, JSON.stringify(invalidRecords));
+      }
+
+      // Update job with actual results
+      job.status = 'completed';
+      job.counts.processed = validRecords.length;
+      job.counts.valid = validRecords.length;
+      job.counts.invalid = invalidRecords.length;
+      job.errors = errors;
       
       localStorage.setItem(`import_job_${jobId}`, JSON.stringify({ job, headers, rows }));
       
@@ -225,43 +275,40 @@ class ClientSideImportExportService {
    */
   async getPendingRecords(jobId: string): Promise<{ success: boolean; data: PendingRecord[]; error?: string }> {
     try {
-      const jobData = localStorage.getItem(`import_job_${jobId}`);
-      if (!jobData) {
-        throw new Error('Import job not found');
+      const pendingStr = localStorage.getItem(`pending_records_${jobId}`);
+      if (!pendingStr) {
+        return { success: true, data: [] };
       }
-      
-      const { rows } = JSON.parse(jobData);
-      
-      // Mock some pending records with errors
-      const pendingRecords: PendingRecord[] = rows.slice(0, 3).map((row: any[], index: number) => ({
-        id: `pending_${jobId}_${index}`,
-        jobId,
-        row: index + 2, // +2 because row 1 is headers
-        originalData: row.reduce((acc, val, i) => ({ ...acc, [`col_${i}`]: val }), {}),
-        errors: [
-          {
-            id: `error_${index}`,
-            jobId,
-            row: index + 2,
-            column: 'email',
-            value: row[2] || '',
-            error: 'Invalid email format',
-            severity: 'error' as const,
-            canAutoFix: true
-          }
-        ],
-        status: 'pending' as const
-      }));
-      
+
+      const pendingRecords = JSON.parse(pendingStr);
       return {
         success: true,
-        data: pendingRecords
+        data: pendingRecords.map((record: any, index: number) => ({
+          id: `pending_${jobId}_${index}`,
+          jobId,
+          row: record._rowIndex || index + 2,
+          originalData: record,
+          errors: [
+            {
+              id: `error_${index}`,
+              jobId,
+              row: record._rowIndex || index + 2,
+              column: '',
+              value: '',
+              error: 'Validation failed - missing required fields',
+              severity: 'error' as const,
+              canAutoFix: false
+            }
+          ],
+          status: 'pending' as const
+        }))
       };
     } catch (error) {
+      console.error('Error getting pending records:', error);
       return {
         success: false,
         data: [],
-        error: error instanceof Error ? error.message : 'Failed to fetch pending records'
+        error: error instanceof Error ? error.message : 'Failed to get pending records'
       };
     }
   }

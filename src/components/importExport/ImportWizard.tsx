@@ -42,6 +42,7 @@ export const ImportWizard: React.FC<ImportWizardProps> = ({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [importJob, setImportJob] = useState<ImportJob | null>(null);
   const [mapping, setMapping] = useState<ColumnMapping>({});
+  const STORAGE_KEY_PREFIX = 'import_mapping_';
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -131,8 +132,15 @@ export const ImportWizard: React.FC<ImportWizardProps> = ({
     }
   };
 
-  const handleMappingComplete = (newMapping: ColumnMapping) => {
-    setMapping(newMapping);
+  const handleMappingComplete = (completedMapping: ColumnMapping) => {
+    setMapping(completedMapping);
+    // Save mapping to localStorage for persistence
+    if (importJob) {
+      localStorage.setItem(
+        `${STORAGE_KEY_PREFIX}${importJob.id}`,
+        JSON.stringify(completedMapping)
+      );
+    }
     setCurrentStep('preview');
   };
 
@@ -321,6 +329,10 @@ export const ImportWizard: React.FC<ImportWizardProps> = ({
   const renderMappingStep = () => {
     if (!importJob) return null;
 
+    // Restore saved mapping if exists
+    const savedMapping = localStorage.getItem(`${STORAGE_KEY_PREFIX}${importJob.id}`);
+    const initialMapping = savedMapping ? JSON.parse(savedMapping) : null;
+
     return (
       <div className="space-y-6">
         <div className="text-center">
@@ -337,6 +349,7 @@ export const ImportWizard: React.FC<ImportWizardProps> = ({
           importJob={importJob}
           entityType={entityType}
           onMappingComplete={handleMappingComplete}
+          savedMapping={initialMapping}
         />
       </div>
     );
@@ -474,8 +487,44 @@ export const ImportWizard: React.FC<ImportWizardProps> = ({
             Close
           </Button>
           {importJob.counts.invalid > 0 && (
-            <Button variant="outline" className="flex-1">
-              View Pending Records
+            <Button 
+              variant="outline" 
+              className="flex-1"
+              onClick={async () => {
+                try {
+                  const result = await importExportService.getPendingRecords(importJob.id);
+                  if (result.success && result.data.length > 0) {
+                    // Create Excel file with pending records
+                    const XLSX = await import('xlsx');
+                    const ws = XLSX.utils.json_to_sheet(result.data.map(r => ({
+                      'Row Number': r.row,
+                      ...r.originalData,
+                      'Errors': r.errors.map(e => e.error).join('; ')
+                    })));
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, 'Pending Records');
+                    XLSX.writeFile(wb, `pending_records_${importJob.id}.xlsx`);
+                    toast({
+                      title: "Pending records downloaded",
+                      description: "Fix errors and re-import the file"
+                    });
+                  } else {
+                    toast({
+                      title: "No pending records",
+                      description: "All records were imported successfully"
+                    });
+                  }
+                } catch (error) {
+                  console.error('Error downloading pending records:', error);
+                  toast({
+                    title: "Download Failed",
+                    description: "Failed to download pending records",
+                    variant: "destructive"
+                  });
+                }
+              }}
+            >
+              Download Pending Records
             </Button>
           )}
         </div>
@@ -484,6 +533,11 @@ export const ImportWizard: React.FC<ImportWizardProps> = ({
   };
 
   const handleClose = () => {
+    // Clean up stored mapping if user closes without completing
+    if (importJob) {
+      localStorage.removeItem(`${STORAGE_KEY_PREFIX}${importJob.id}`);
+    }
+    
     setCurrentStep('template');
     setSelectedFile(null);
     setImportJob(null);
