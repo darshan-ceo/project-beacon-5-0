@@ -65,6 +65,20 @@ class ImportExportService {
   }
 
   /**
+   * Validate import data without database insertion
+   * Returns validation results for preview
+   */
+  async validateImportData(jobId: string, mapping: ColumnMapping): Promise<{
+    success: boolean;
+    validRecords: any[];
+    invalidRecords: any[];
+    errors: any[];
+    error?: string;
+  }> {
+    return clientSideImportExportService.validateImportData(jobId, mapping);
+  }
+
+  /**
    * Commit import job (finalize valid rows)
    */
   async commitImport(jobId: string, mapping: ColumnMapping): Promise<ApiResponse<ImportJob>> {

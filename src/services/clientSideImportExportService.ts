@@ -182,25 +182,32 @@ class ClientSideImportExportService {
   }
 
   /**
-   * Commit import job with mapping
+   * Validate import data without inserting to database
+   * Used to show accurate counts in Preview step
    */
-  async commitImport(jobId: string, mapping: ColumnMapping): Promise<{ success: boolean; data: ImportJob | null; error?: string }> {
+  async validateImportData(jobId: string, mapping: ColumnMapping): Promise<{
+    success: boolean;
+    validRecords: any[];
+    invalidRecords: any[];
+    errors: any[];
+    error?: string;
+  }> {
     try {
       const jobData = localStorage.getItem(`import_job_${jobId}`);
       if (!jobData) {
-        throw new Error('Import job not found');
+        return {
+          success: false,
+          validRecords: [],
+          invalidRecords: [],
+          errors: [],
+          error: 'Import job not found'
+        };
       }
-      
+
       const { job, headers, rows } = JSON.parse(jobData);
       const template = await entityTemplatesService.getTemplate(job.entityType);
       const requiredFields = template.columns.filter(col => col.isRequired).map(col => col.key);
-      
-      // Simulate processing
-      job.status = 'processing';
-      job.mapping = mapping;
-      job.updatedAt = new Date().toISOString();
-      
-      // Process each row with real validation
+
       const validRecords: any[] = [];
       const invalidRecords: any[] = [];
       const errors: any[] = [];
@@ -228,7 +235,7 @@ class ClientSideImportExportService {
         });
 
         if (rowErrors.length === 0) {
-          validRecords.push(record);
+          validRecords.push({ ...record, _rowIndex: rowIndex });
         } else {
           invalidRecords.push({ ...record, _rowIndex: rowIndex + 2 });
           errors.push({
@@ -243,6 +250,56 @@ class ClientSideImportExportService {
           });
         }
       });
+
+      return {
+        success: true,
+        validRecords,
+        invalidRecords,
+        errors
+      };
+    } catch (error) {
+      return {
+        success: false,
+        validRecords: [],
+        invalidRecords: [],
+        errors: [],
+        error: error instanceof Error ? error.message : 'Validation failed'
+      };
+    }
+  }
+
+  /**
+   * Commit import job with mapping
+   * Now uses pre-validated data from validateImportData()
+   */
+  async commitImport(jobId: string, mapping: ColumnMapping): Promise<{ success: boolean; data: ImportJob | null; error?: string }> {
+    try {
+      const jobData = localStorage.getItem(`import_job_${jobId}`);
+      if (!jobData) {
+        throw new Error('Import job not found');
+      }
+      
+      const { job } = JSON.parse(jobData);
+      
+      // Get already-validated records from job
+      const validRecords: any[] = [];
+      const invalidRecords: any[] = [];
+      const errors: any[] = [];
+
+      // Re-run validation to get fresh data
+      const validationResult = await this.validateImportData(jobId, mapping);
+      if (!validationResult.success) {
+        throw new Error(validationResult.error || 'Validation failed');
+      }
+
+      validRecords.push(...validationResult.validRecords);
+      invalidRecords.push(...validationResult.invalidRecords);
+      errors.push(...validationResult.errors);
+      
+      // Update processing status
+      job.status = 'processing';
+      job.mapping = mapping;
+      job.updatedAt = new Date().toISOString();
 
       // Insert valid records into database
       let insertedCount = 0;
@@ -302,7 +359,12 @@ class ClientSideImportExportService {
       job.errors = errors;
       job.completedAt = new Date().toISOString();
       
-      localStorage.setItem(`import_job_${jobId}`, JSON.stringify({ job, headers, rows }));
+      // Re-read job data to preserve headers and rows
+      const currentJobData = localStorage.getItem(`import_job_${jobId}`);
+      if (currentJobData) {
+        const parsed = JSON.parse(currentJobData);
+        localStorage.setItem(`import_job_${jobId}`, JSON.stringify({ ...parsed, job }));
+      }
       
       // Trigger storage event to refresh Client Master list
       window.dispatchEvent(new StorageEvent('storage', {

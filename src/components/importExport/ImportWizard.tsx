@@ -132,16 +132,69 @@ export const ImportWizard: React.FC<ImportWizardProps> = ({
     }
   };
 
-  const handleMappingComplete = (completedMapping: ColumnMapping) => {
+  const handleMappingComplete = async (completedMapping: ColumnMapping) => {
+    if (!importJob) return;
+
     setMapping(completedMapping);
-    // Save mapping to localStorage for persistence
-    if (importJob) {
+    setIsProcessing(true);
+
+    try {
+      // Save mapping to localStorage for persistence
       localStorage.setItem(
         `${STORAGE_KEY_PREFIX}${importJob.id}`,
         JSON.stringify(completedMapping)
       );
+
+      // Run validation to get accurate counts for preview
+      toast({
+        title: "Validating Data",
+        description: `Validating ${importJob.counts.total} rows...`
+      });
+
+      const validationResult = await importExportService.validateImportData(
+        importJob.id,
+        completedMapping
+      );
+
+      if (validationResult.success) {
+        // Update job with validation results
+        const updatedJob = {
+          ...importJob,
+          counts: {
+            ...importJob.counts,
+            valid: validationResult.validRecords.length,
+            invalid: validationResult.invalidRecords.length
+          },
+          errors: validationResult.errors
+        };
+
+        // Save updated job to localStorage
+        const jobData = localStorage.getItem(`import_job_${importJob.id}`);
+        if (jobData) {
+          const parsed = JSON.parse(jobData);
+          parsed.job = updatedJob;
+          localStorage.setItem(`import_job_${importJob.id}`, JSON.stringify(parsed));
+        }
+
+        setImportJob(updatedJob);
+        setCurrentStep('preview');
+
+        toast({
+          title: "Validation Complete",
+          description: `${validationResult.validRecords.length} valid, ${validationResult.invalidRecords.length} errors found`
+        });
+      } else {
+        throw new Error(validationResult.error || 'Validation failed');
+      }
+    } catch (error) {
+      toast({
+        title: "Validation Failed",
+        description: error instanceof Error ? error.message : "Failed to validate data",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
     }
-    setCurrentStep('preview');
   };
 
   const handleCommitImport = async () => {
