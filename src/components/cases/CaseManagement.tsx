@@ -20,7 +20,8 @@ import {
   Edit,
   Info,
   Check,
-  HelpCircle
+  HelpCircle,
+  Download
 } from 'lucide-react';
 import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 import { casesService } from '@/services/casesService';
@@ -398,6 +399,53 @@ export const CaseManagement: React.FC = () => {
           />
           <InlineHelp module="case-management" />
           <div className="flex gap-2">
+            <ThreeLayerHelp helpId="button-export-cases" showExplanation={false}>
+              <Button 
+                variant="outline"
+                onClick={async () => {
+                  if (filteredCases.length === 0) {
+                    toast({
+                      title: "No data to export",
+                      description: "There are no cases matching your current filters.",
+                    });
+                    return;
+                  }
+                  
+                  toast({
+                    title: "Exporting data...",
+                    description: "Preparing your case data export"
+                  });
+                  
+                  try {
+                    const { exportRows, prepareExportContext } = await import('@/utils/exporter');
+                    
+                    await exportRows({
+                      moduleKey: 'cases',
+                      rows: filteredCases,
+                      context: prepareExportContext(state),
+                      options: {
+                        format: 'xlsx',
+                        dateFormat: 'dd-MM-yyyy'
+                      }
+                    });
+                    
+                    toast({
+                      title: "Export complete!",
+                      description: `Exported ${filteredCases.length} cases successfully`
+                    });
+                  } catch (error) {
+                    console.error('Export error:', error);
+                    toast({
+                      title: "Export failed",
+                      description: "Failed to export case data",
+                    });
+                  }
+                }}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Export
+              </Button>
+            </ThreeLayerHelp>
             <ThreeLayerHelp helpId="button-create-case" showExplanation={false}>
               <Button 
                 onClick={() => setCaseModal({ isOpen: true, mode: 'create', case: null })}

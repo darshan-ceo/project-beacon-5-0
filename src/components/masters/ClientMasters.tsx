@@ -252,21 +252,41 @@ export const ClientMasters: React.FC = () => {
           <Button 
             variant="outline"
             onClick={async () => {
-              try {
-                await reportsService.exportCaseList(
-                  filteredClients.map(client => ({
-                    id: client.id,
-                    caseNumber: client.id,
-                    title: client.name,
-                    clientId: client.id,
-                    currentStage: 'Active',
-                    slaStatus: client.status === 'Active' ? 'Green' : 'Red'
-                  })),
-                  'excel'
-                );
-              } catch (error) {
+              if (filteredClients.length === 0) {
                 toast({
-                  title: "Export Failed",
+                  title: "No data to export",
+                  description: "There are no clients matching your current filters.",
+                  variant: "destructive"
+                });
+                return;
+              }
+              
+              toast({
+                title: "Exporting data...",
+                description: "Preparing your client data export"
+              });
+              
+              try {
+                const { exportRows, prepareExportContext } = await import('@/utils/exporter');
+                
+                await exportRows({
+                  moduleKey: 'clients',
+                  rows: filteredClients,
+                  context: prepareExportContext(state),
+                  options: {
+                    format: 'xlsx',
+                    dateFormat: 'dd-MM-yyyy'
+                  }
+                });
+                
+                toast({
+                  title: "Export complete!",
+                  description: `Exported ${filteredClients.length} clients successfully`
+                });
+              } catch (error) {
+                console.error('Export error:', error);
+                toast({
+                  title: "Export failed",
                   description: "Failed to export client data",
                   variant: "destructive"
                 });

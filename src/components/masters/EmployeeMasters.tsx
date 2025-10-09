@@ -208,7 +208,44 @@ export const EmployeeMasters: React.FC = () => {
           {featureFlagService.isEnabled('data_io_v1') && hasPermission('io.export.employee', 'write') && (
             <Button 
               variant="outline" 
-              onClick={() => setIsExportOpen(true)}
+              onClick={async () => {
+                if (filteredEmployees.length === 0) {
+                  toast({
+                    title: "No data to export",
+                    description: "There are no employees matching your current filters.",
+                  });
+                  return;
+                }
+                
+                toast({
+                  title: "Exporting data...",
+                  description: "Preparing your employee data export"
+                });
+                
+                try {
+                  const { exportRows } = await import('@/utils/exporter');
+                  
+                  await exportRows({
+                    moduleKey: 'employees',
+                    rows: filteredEmployees,
+                    options: {
+                      format: 'xlsx',
+                      dateFormat: 'dd-MM-yyyy'
+                    }
+                  });
+                  
+                  toast({
+                    title: "Export complete!",
+                    description: `Exported ${filteredEmployees.length} employees successfully`
+                  });
+                } catch (error) {
+                  console.error('Export error:', error);
+                  toast({
+                    title: "Export failed",
+                    description: "Failed to export employee data",
+                  });
+                }
+              }}
               className="flex items-center space-x-2"
             >
               <Download className="h-4 w-4" />
