@@ -17,6 +17,7 @@ import {
 } from '@/types/importExport';
 import { entityTemplatesService } from './entityTemplatesService';
 import { mappingService } from './mappingService';
+import { importIntegrationService } from './importIntegrationService';
 
 class ClientSideImportExportService {
   private generateJobId(): string {
@@ -243,19 +244,71 @@ class ClientSideImportExportService {
         }
       });
 
+      // Insert valid records into database
+      let insertedCount = 0;
+      const insertionErrors: Array<{ record: any; error: string }> = [];
+
+      if (validRecords.length > 0) {
+        try {
+          const insertResult = await importIntegrationService.insertRecords(
+            job.entityType,
+            validRecords
+          );
+          
+          insertedCount = insertResult.insertedCount;
+          
+          // Handle insertion errors
+          if (insertResult.errors.length > 0) {
+            insertResult.errors.forEach(err => {
+              insertionErrors.push(err);
+              // Move failed records from valid to invalid
+              const failedIndex = validRecords.findIndex(r => r === err.record);
+              if (failedIndex !== -1) {
+                const failedRecord = validRecords.splice(failedIndex, 1)[0];
+                invalidRecords.push(failedRecord);
+                errors.push({
+                  id: `insert_error_${invalidRecords.length}`,
+                  jobId,
+                  row: (failedRecord._rowIndex || 0) + 2,
+                  column: '',
+                  value: '',
+                  error: `Database insertion failed: ${err.error}`,
+                  severity: 'error' as const,
+                  canAutoFix: false
+                });
+              }
+            });
+          }
+        } catch (error) {
+          console.error('Database insertion failed:', error);
+          return {
+            success: false,
+            data: null,
+            error: `Failed to insert records: ${error instanceof Error ? error.message : 'Unknown error'}`
+          };
+        }
+      }
+
       // Store pending records for download
       if (invalidRecords.length > 0) {
         localStorage.setItem(`pending_records_${jobId}`, JSON.stringify(invalidRecords));
       }
 
-      // Update job with actual results
+      // Update job with actual insertion results
       job.status = 'completed';
-      job.counts.processed = validRecords.length;
-      job.counts.valid = validRecords.length;
+      job.counts.processed = insertedCount;
+      job.counts.valid = insertedCount;
       job.counts.invalid = invalidRecords.length;
       job.errors = errors;
+      job.completedAt = new Date().toISOString();
       
       localStorage.setItem(`import_job_${jobId}`, JSON.stringify({ job, headers, rows }));
+      
+      // Trigger storage event to refresh Client Master list
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'clients',
+        newValue: localStorage.getItem('clients')
+      }));
       
       return {
         success: true,
