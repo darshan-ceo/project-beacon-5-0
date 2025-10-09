@@ -32,7 +32,7 @@ export const HearingMiniCalendarItem: React.FC<HearingMiniCalendarItemProps> = (
   const handleOpenCase = (e: React.MouseEvent) => {
     e.preventDefault();
     if (caseData) {
-      navigate(`/case/${caseData.id}`);
+      navigate(`/cases?caseId=${caseData.id}`);
     }
   };
 
