@@ -45,8 +45,18 @@ class MappingService {
     // Fallback to heuristic mapping
     const used = new Set<string>();
 
+    console.log(`[MappingService] Starting auto-mapping for ${entityType}`);
+    console.log(`[MappingService] Source headers:`, sourceHeaders);
+
     for (const templateColumn of template.columns) {
       const bestMatch = this.findBestMatch(templateColumn.key, sourceHeaders, used);
+      
+      console.log(`[MappingService] Template: "${templateColumn.key}" (${templateColumn.label}) → Best match:`, {
+        sourceColumn: bestMatch?.header || 'NONE',
+        confidence: bestMatch?.confidence || 0,
+        reason: bestMatch?.reason || 'No match found',
+        isRequired: templateColumn.isRequired
+      });
       
       if (bestMatch) {
         mapping[templateColumn.key] = {
@@ -99,7 +109,7 @@ class MappingService {
       if (used.has(header)) continue;
 
       const confidence = this.calculateSimilarity(templateColumn, header);
-      if (confidence > highestConfidence && confidence > 0.5) {
+      if (confidence > highestConfidence && confidence > 0.4) {
         bestMatch = {
           header,
           confidence,
@@ -126,12 +136,17 @@ class MappingService {
     const synonyms = COLUMN_SYNONYMS[templateColumn] || [];
     for (const synonym of synonyms) {
       const normalizedSynonym = this.normalizeHeader(synonym);
+      
+      // Exact synonym match
       if (normalizedSynonym === source) {
         return 0.95;
       }
-      // Partial synonym match
+      
+      // Partial synonym match with better scoring
       if (source.includes(normalizedSynonym) || normalizedSynonym.includes(source)) {
-        return 0.85;
+        const lengthRatio = Math.min(normalizedSynonym.length, source.length) / 
+                           Math.max(normalizedSynonym.length, source.length);
+        return 0.85 * lengthRatio;
       }
     }
 

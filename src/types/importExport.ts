@@ -189,18 +189,27 @@ export const COLUMN_SYNONYMS: ColumnSynonyms = {
   'phone': ['phone', 'mobile', 'contact_number', 'phone_number', 'mobile_no'],
   'mobile': ['phone', 'mobile_no', 'contact', 'cell', 'mobile', 'phone_number'],
   'address': ['address', 'location', 'street_address', 'street address'],
-  'line1': ['address', 'address_line1', 'addr1', 'street', 'line1'],
-  'line2': ['address_line2', 'addr2', 'street2', 'line2'],
+  'line1': ['address', 'address_line1', 'addr1', 'street', 'line1', 'address line 1', 'address_line_1', 'addressline1'],
+  'line2': ['address_line2', 'addr2', 'street2', 'line2', 'address line 2', 'address_line_2', 'addressline2'],
+  'landmark': ['landmark', 'land mark', 'nearby', 'near by', 'reference point'],
+  
+  // Address fields
+  'address_line1': ['address_line1', 'address line 1', 'address_line_1', 'addressline1', 'line1', 'line 1', 'addr1', 'address1', 'primary address', 'address'],
+  'address_line2': ['address_line2', 'address line 2', 'address_line_2', 'addressline2', 'line2', 'line 2', 'addr2', 'address2', 'secondary address'],
   
   // Court/Judge fields
-  'court_name': ['court', 'court_name', 'tribunal'],
-  'judge_name': ['judge', 'judge_name', 'justice'],
+  'court_name': ['court', 'court_name', 'court name', 'courtname', 'tribunal', 'tribunal name'],
+  'court_code': ['court_code', 'court code', 'courtcode', 'code'],
+  'court_type': ['court_type', 'court type', 'courttype', 'type'],
+  'judge_name': ['judge', 'judge_name', 'judge name', 'judgename', 'justice', 'hon judge', 'honourable'],
+  'judge_code': ['judge_code', 'judge code', 'judgecode', 'code'],
   
-  // Employee fields
-  'employee_code': ['emp_code', 'employee_id', 'staff_id', 'employee_code'],
-  'full_name': ['name', 'employee_name', 'staff_name', 'full_name'],
-  'work_email': ['email', 'office_email', 'work_mail', 'work_email'],
-  'designation': ['designation', 'position', 'role', 'title', 'job_title'],
-  'department': ['department', 'dept'],
-  'joining_date': ['joining_date', 'date_of_joining', 'join_date', 'joining date', 'date of joining']
+  // Employee fields - Enhanced with space variants
+  'employee_code': ['employee_code', 'employee code', 'employeecode', 'emp_code', 'emp code', 'employee_id', 'employee id', 'staff_id', 'staff id', 'code', 'empcode'],
+  'full_name': ['full_name', 'full name', 'fullname', 'name', 'employee_name', 'employee name', 'staff_name', 'staff name', 'employeename'],
+  'work_email': ['work_email', 'work email', 'workemail', 'email', 'office_email', 'office email', 'work_mail', 'work mail', 'official email', 'official_email'],
+  'work_mobile': ['work_mobile', 'work mobile', 'workmobile', 'mobile', 'phone', 'work_phone', 'work phone', 'contact', 'office mobile', 'official mobile', 'work contact', 'contact_number', 'contact number'],
+  'designation': ['designation', 'position', 'role', 'title', 'job_title', 'job title', 'jobtitle'],
+  'department': ['department', 'dept', 'dep', 'deptartment'],
+  'joining_date': ['joining_date', 'joining date', 'joiningdate', 'date_of_joining', 'date of joining', 'join_date', 'join date', 'doj']
 };

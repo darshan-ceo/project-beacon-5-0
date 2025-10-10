@@ -494,7 +494,7 @@ class EntityTemplatesService {
           selectOptions: ['Partner', 'Senior Partner', 'Senior Advocate', 'Advocate', 'Junior Associate', 'Legal Executive', 'Paralegal', 'Secretary', 'Clerk', 'Administrator', 'Manager', 'Assistant Manager']
         },
         {
-          key: 'dept',
+          key: 'department',
           label: 'Department',
           isRequired: false,
           dataType: 'select',

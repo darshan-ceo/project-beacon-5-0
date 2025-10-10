@@ -43,11 +43,23 @@ export const MappingInterface: React.FC<MappingInterfaceProps> = ({
         const template = await entityTemplatesService.getTemplate(entityType);
         setTemplateColumns(template.columns);
         
-        // Extract source headers from import job (simulated)
-        const headers = [
-          'Name', 'Email', 'Phone', 'Address', 'City', 'State', 'PIN Code',
-          'GST Number', 'PAN Number', 'Contact Person', 'Type'
-        ];
+        // Extract source headers from actual import job data
+        const jobData = localStorage.getItem(`import_job_${importJob.id}`);
+        let headers: string[] = [];
+        
+        if (jobData) {
+          const parsed = JSON.parse(jobData);
+          headers = parsed.headers || [];
+          console.log('[MappingInterface] Loaded headers from import job:', headers);
+        } else {
+          // Fallback headers for testing
+          headers = [
+            'Name', 'Email', 'Phone', 'Address', 'City', 'State', 'PIN Code',
+            'GST Number', 'PAN Number', 'Contact Person', 'Type'
+          ];
+          console.warn('[MappingInterface] Using fallback headers - job data not found');
+        }
+        
         setSourceHeaders(headers);
         
         // Use saved mapping if available, otherwise generate auto-mapping
@@ -62,19 +74,28 @@ export const MappingInterface: React.FC<MappingInterfaceProps> = ({
           });
         } else {
           // Generate auto-mapping
+          console.log('[MappingInterface] Starting auto-mapping for entity:', entityType);
           const autoMapping = await mappingService.autoMapColumns(headers, entityType, true);
           setMapping(autoMapping.mapping);
+          
+          console.log('[MappingInterface] Auto-mapping complete:', {
+            mapped: Object.keys(autoMapping.mapping).length,
+            total: template.columns.length,
+            unmapped: autoMapping.unmapped
+          });
           
           // Validate initial mapping
           const validation = mappingService.validateMapping(autoMapping.mapping, headers);
           setValidationResults(validation);
           
+          const mappedCount = Object.keys(autoMapping.mapping).filter(key => autoMapping.mapping[key].sourceColumn).length;
           toast({
             title: "Auto-mapping Complete",
-            description: `${Object.keys(autoMapping.mapping).length} columns mapped automatically`
+            description: `${mappedCount} of ${template.columns.length} columns mapped automatically`
           });
         }
       } catch (error) {
+        console.error('[MappingInterface] Mapping error:', error);
         toast({
           title: "Mapping Error",
           description: "Failed to generate column mapping",
@@ -179,14 +200,21 @@ export const MappingInterface: React.FC<MappingInterfaceProps> = ({
     <div className="space-y-6">
       {/* Validation Status */}
       {validationResults.errors.length > 0 && (
-        <Alert>
+        <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            <div className="space-y-1">
+            <div className="space-y-2">
               <div className="font-medium">Mapping Errors:</div>
-              {validationResults.errors.map((error, index) => (
-                <div key={index} className="text-sm">• {error}</div>
-              ))}
+              <ul className="list-disc list-inside space-y-1">
+                {validationResults.errors.map((error, index) => (
+                  <li key={index} className="text-sm">{error}</li>
+                ))}
+              </ul>
+              <div className="mt-3 text-sm bg-destructive/10 p-3 rounded border border-destructive/20">
+                <strong>💡 Tip:</strong> Make sure your Excel headers match the expected format. 
+                For example: "Employee Code", "Full Name", "Department", "Work Email", etc. 
+                Headers with spaces should work automatically.
+              </div>
             </div>
           </AlertDescription>
         </Alert>
