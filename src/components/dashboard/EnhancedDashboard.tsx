@@ -433,104 +433,46 @@ export const EnhancedDashboard: React.FC = () => {
             </Card>
           </div>
 
-          {/* Mobile/Tablet: Show Hearing Mini-Calendar */}
-          <div className="block lg:hidden">
-            <HearingMiniCalendar />
-          </div>
+          {/* Hearing Mini-Calendar - All screens */}
+          <HearingMiniCalendar />
         </motion.div>
       </div>
 
-      {/* Client Summary & Upcoming Hearings */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Client-wise Summary */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="lg:col-span-2"
-        >
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Users className="mr-2 h-5 w-5 text-primary" />
-                Top Clients Summary
-              </CardTitle>
-              <CardDescription>Client-wise case distribution</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {clientSummary.map((client, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                    <div>
-                      <p className="font-medium text-foreground">{client.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {client.activeCases} active / {client.cases} total
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <Badge variant="outline">
-                        {client.cases} cases
-                      </Badge>
-                    </div>
+      {/* Top Clients Summary */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Users className="mr-2 h-5 w-5 text-primary" />
+              Top Clients Summary
+            </CardTitle>
+            <CardDescription>Client-wise case distribution</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {clientSummary.map((client, index) => (
+                <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                  <div>
+                    <p className="font-medium text-foreground">{client.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {client.activeCases} active / {client.cases} total
+                    </p>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Upcoming Hearings */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-        >
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center">
-                  <Calendar className="mr-2 h-5 w-5 text-primary" />
-                  Upcoming Hearings
-                </CardTitle>
-                <CardDescription>Next 7 days</CardDescription>
-              </div>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => handleExport('hearings')}
-                disabled={isExporting}
-              >
-                <Download className="h-4 w-4" />
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {upcomingHearings.slice(0, 5).map((hearing, index) => (
-                  <div key={index} className="flex items-start space-x-3 p-2 rounded-lg bg-muted/30">
-                    <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">
-                        Hearing {hearing.id}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatDateForDisplay(hearing.date)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {hearing.courtId || 'Court TBD'}
-                      </p>
-                    </div>
+                  <div className="text-right">
+                    <Badge variant="outline">
+                      {client.cases} cases
+                    </Badge>
                   </div>
-                ))}
-                {upcomingHearings.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    No upcoming hearings
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Quick Actions Panel */}
       <motion.div 

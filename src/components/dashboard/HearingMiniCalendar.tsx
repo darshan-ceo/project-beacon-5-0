@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar, ExternalLink, CalendarDays } from 'lucide-react';
@@ -31,7 +31,23 @@ export const HearingMiniCalendar: React.FC<HearingMiniCalendarProps> = ({ classN
   const [isLoading] = useState(false);
 
   // Responsive limit based on screen size
-  const limit = HEARING_MINI_CALENDAR_CONFIG.DESKTOP_LIMIT;
+  const [limit, setLimit] = useState<number>(HEARING_MINI_CALENDAR_CONFIG.DESKTOP_LIMIT);
+
+  useEffect(() => {
+    const updateLimit = () => {
+      if (window.innerWidth < 768) {
+        setLimit(HEARING_MINI_CALENDAR_CONFIG.MOBILE_LIMIT);
+      } else if (window.innerWidth < 1024) {
+        setLimit(HEARING_MINI_CALENDAR_CONFIG.TABLET_LIMIT);
+      } else {
+        setLimit(HEARING_MINI_CALENDAR_CONFIG.DESKTOP_LIMIT);
+      }
+    };
+
+    updateLimit();
+    window.addEventListener('resize', updateLimit);
+    return () => window.removeEventListener('resize', updateLimit);
+  }, []);
 
   const upcomingHearings = useUpcomingHearings({
     filter: filter as any,
@@ -122,20 +138,13 @@ export const HearingMiniCalendar: React.FC<HearingMiniCalendarProps> = ({ classN
           {/* Hearings List */}
           {!isLoading && upcomingHearings.length > 0 && (
             <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2 scroll-smooth">
-              {upcomingHearings.map((hearing, index) => (
-                <div 
+              {upcomingHearings.map((hearing) => (
+                <HearingMiniCalendarItem
                   key={hearing.id}
-                  className={`
-                    ${index >= 3 ? 'hidden md:block' : ''}
-                    ${index >= 5 ? 'hidden lg:block' : ''}
-                  `}
-                >
-                  <HearingMiniCalendarItem
-                    hearing={hearing}
-                    showClient={HEARING_MINI_CALENDAR_CONFIG.SHOW_CLIENT}
-                    showAssignee={HEARING_MINI_CALENDAR_CONFIG.SHOW_ASSIGNEE}
-                  />
-                </div>
+                  hearing={hearing}
+                  showClient={HEARING_MINI_CALENDAR_CONFIG.SHOW_CLIENT}
+                  showAssignee={HEARING_MINI_CALENDAR_CONFIG.SHOW_ASSIGNEE}
+                />
               ))}
             </div>
           )}
