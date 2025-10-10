@@ -493,13 +493,14 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
       });
       
       setCurrentStep(7);
-    } catch (error) {
-      console.error('Document linking error:', error);
+    } catch (error: any) {
+      console.error('[Wizard] Document linking failed:', error);
       toast({
         title: "Document linking error",
-        description: error instanceof Error ? error.message : "Failed to link document to case.",
+        description: error.message || "Failed to link document to case",
         variant: "destructive",
       });
+      // Don't block wizard - allow user to continue and upload manually later
     } finally {
       setLoading(false);
     }

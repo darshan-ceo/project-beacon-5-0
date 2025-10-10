@@ -60,6 +60,17 @@ class PolicyEngine {
    * Get user context with organizational hierarchy
    */
   async getUserContext(userId: string): Promise<ScopeContext> {
+    // Special handling for system user (automated operations)
+    if (userId === 'system') {
+      return {
+        userId: 'system',
+        employeeId: 'system',
+        managerChain: [],
+        reporteeIds: [],
+        tenantId: undefined
+      };
+    }
+    
     // Check cache first
     const cacheKey = `user_${userId}`;
     const cached = this.contextCache.get(cacheKey);
@@ -206,6 +217,15 @@ class PolicyEngine {
     resource: string, 
     action: 'read' | 'write' | 'delete' | 'admin'
   ): Promise<PolicyEvaluation> {
+    // Special handling for system user - grant all permissions
+    if (userId === 'system') {
+      return {
+        allowed: true,
+        scope: 'org',
+        reason: 'System user has unrestricted access'
+      };
+    }
+    
     try {
       // Get user's effective permissions
       const userRoles = await advancedRbacService.getUserRoles(userId);

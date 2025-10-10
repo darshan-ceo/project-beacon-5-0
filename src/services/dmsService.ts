@@ -591,38 +591,48 @@ export const dmsService = {
 
       // PHASE 3B: RBAC Security Check
       try {
-        const { policyEngine, secureDataAccess } = await import('@/security/policyEngine');
-        
-        // Check: Can user upload documents?
-        const canUpload = await policyEngine.evaluatePermission(userId, 'documents', 'write');
-        if (!canUpload.allowed) {
-          throw new Error('Permission denied: Cannot upload documents');
-        }
-        
-        // If document is linked to a case, validate case access
-        if (options.caseId) {
-          const { storageManager } = await import('@/data/StorageManager');
-          const storage = storageManager.getStorage();
-          const caseData = await storage.getById('cases', options.caseId);
+        // BYPASS: Skip RBAC for system/automated operations
+        if (userId !== 'system') {
+          const { policyEngine, secureDataAccess } = await import('@/security/policyEngine');
           
-          if (!caseData) {
-            throw new Error('Case not found');
+          // Check: Can user upload documents?
+          const canUpload = await policyEngine.evaluatePermission(userId, 'documents', 'write');
+          if (!canUpload.allowed) {
+            throw new Error('Permission denied: Cannot upload documents');
           }
           
-          const caseAccess = await secureDataAccess.secureGet(
-            userId,
-            'cases',
-            options.caseId,
-            async (id) => caseData
-          );
-          
-          if (!caseAccess) {
-            throw new Error('Access denied: Cannot upload documents for this case');
+          // If document is linked to a case, validate case access
+          if (options.caseId) {
+            const { storageManager } = await import('@/data/StorageManager');
+            const storage = storageManager.getStorage();
+            const caseData = await storage.getById('cases', options.caseId);
+            
+            if (!caseData) {
+              throw new Error('Case not found');
+            }
+            
+            const caseAccess = await secureDataAccess.secureGet(
+              userId,
+              'cases',
+              options.caseId,
+              async (id) => caseData
+            );
+            
+            if (!caseAccess) {
+              throw new Error('Access denied: Cannot upload documents for this case');
+            }
           }
+        } else {
+          // System user - log for audit trail
+          console.log('[DMS] System upload - RBAC bypassed:', {
+            fileName: file.name,
+            caseId: options.caseId,
+            stage: options.stage
+          });
         }
       } catch (error: any) {
         toast({
-          title: "Permission Denied",
+          title: "Upload Failed",
           description: error.message,
           variant: "destructive"
         });
@@ -804,6 +814,18 @@ export const dmsService = {
           console.error('[DMS] Failed to trigger task bundle automation:', error);
           // Don't fail the upload if automation fails
         }
+      }
+
+      // Audit trail for system operations
+      if (userId === 'system') {
+        console.log('[AUDIT] System document upload:', {
+          timestamp: new Date().toISOString(),
+          documentId: newDocument.id,
+          fileName: file.name,
+          caseId: options.caseId,
+          stage: options.stage,
+          source: 'automated_workflow'
+        });
       }
 
       // Update folder statistics
