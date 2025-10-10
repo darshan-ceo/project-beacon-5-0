@@ -816,6 +816,32 @@ export const dmsService = {
         }
       }
 
+      // Add timeline entry for document upload
+      if (options.caseId) {
+        try {
+          const { timelineService } = await import('./timelineService');
+          await timelineService.addEntry({
+            caseId: options.caseId,
+            type: 'doc_saved',
+            title: 'Document Uploaded',
+            description: `${file.name} uploaded to ${folder?.name || 'case documents'}`,
+            createdBy: userId === 'system' ? 'System' : 'Current User',
+            metadata: {
+              fileName: file.name,
+              fileSize: file.size,
+              fileType: file.type,
+              folderId: options.folderId,
+              stage: options.stage,
+              tags: options.tags
+            }
+          });
+          console.log(`[DMS] Timeline entry added for document: ${file.name}`);
+        } catch (error) {
+          console.warn('[DMS] Failed to add timeline entry:', error);
+          // Don't fail upload if timeline logging fails
+        }
+      }
+
       // Audit trail for system operations
       if (userId === 'system') {
         console.log('[AUDIT] System document upload:', {

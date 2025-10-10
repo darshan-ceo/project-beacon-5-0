@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { toast } from '@/hooks/use-toast';
+import { timelineService, TimelineEntry } from '@/services/timelineService';
 import { motion } from 'framer-motion';
 import { 
   Clock, 
@@ -53,114 +54,79 @@ interface CaseTimelineProps {
   selectedCase?: Case | null;
 }
 
-const mockTimelineEvents: TimelineEvent[] = [
-  {
-    id: '1',
-    type: 'stage_change',
-    title: 'Stage Advanced to Adjudication',
-    description: 'Case moved from Demand stage to Adjudication following response submission',
-    timestamp: '2024-01-20T10:30:00',
-    user: {
-      name: 'John Smith',
-      role: 'Senior Associate',
-      avatar: undefined
-    },
-    metadata: {
-      stage: 'Adjudication'
-    }
-  },
-  {
-    id: '2',
-    type: 'document_upload',
-    title: 'Response to Demand Notice Uploaded',
-    description: 'Comprehensive response with supporting evidence and legal precedents',
-    timestamp: '2024-01-19T15:45:00',
-    user: {
-      name: 'Sarah Johnson',
-      role: 'Junior Associate',
-      avatar: undefined
-    },
-    metadata: {
-      documentName: 'Response_DRC01_AcmeCorp.pdf'
-    }
-  },
-  {
-    id: '3',
-    type: 'hearing_scheduled',
-    title: 'Hearing Scheduled',
-    description: 'Final hearing scheduled before Income Tax Appellate Tribunal',
-    timestamp: '2024-01-18T11:20:00',
-    user: {
-      name: 'Mike Wilson',
-      role: 'Partner',
-      avatar: undefined
-    },
-    metadata: {
-      hearingDate: '2024-02-15',
-      court: 'Income Tax Appellate Tribunal'
-    }
-  },
-  {
-    id: '4',
-    type: 'deadline',
-    title: 'SLA Alert - Response Due',
-    description: 'Automated reminder for DRC-01 response deadline approaching',
-    timestamp: '2024-01-17T09:00:00',
-    user: {
-      name: 'System',
-      role: 'Automated Alert',
-      avatar: undefined
-    },
-    metadata: {
-      deadline: '2024-01-20T17:00:00',
-      status: 'Warning'
-    }
-  },
-  {
-    id: '5',
-    type: 'comment',
-    title: 'Case Discussion',
-    description: 'Client consultation completed. Strategy finalized for response preparation.',
-    timestamp: '2024-01-16T14:30:00',
-    user: {
-      name: 'John Smith',
-      role: 'Senior Associate',
-      avatar: undefined
-    }
-  },
-  {
-    id: '6',
-    type: 'document_upload',
-    title: 'Demand Notice Received',
-    description: 'Original demand notice from tax department uploaded to case file',
-    timestamp: '2024-01-15T16:20:00',
-    user: {
-      name: 'Reception',
-      role: 'Administrative',
-      avatar: undefined
-    },
-    metadata: {
-      documentName: 'Demand_Notice_Original.pdf'
-    }
-  },
-  {
-    id: '7',
-    type: 'stage_change',
-    title: 'Case Initiated',
-    description: 'New case created and assigned to legal team for initial review',
-    timestamp: '2024-01-10T09:15:00',
-    user: {
-      name: 'Mike Wilson',
-      role: 'Partner',
-      avatar: undefined
-    },
-    metadata: {
-      stage: 'Scrutiny'
-    }
-  }
-];
 
 export const CaseTimeline: React.FC<CaseTimelineProps> = ({ selectedCase }) => {
+  const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch timeline entries when case changes
+  useEffect(() => {
+    const loadTimeline = async () => {
+      if (!selectedCase) {
+        setTimelineEvents([]);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const entries = await timelineService.getEntriesForCase(selectedCase.id);
+        
+        // Map timeline service entries to UI format
+        const mappedEvents: TimelineEvent[] = entries.map(entry => ({
+          id: entry.id,
+          type: mapServiceTypeToUIType(entry.type),
+          title: entry.title,
+          description: entry.description,
+          timestamp: entry.createdAt,
+          user: {
+            name: entry.createdBy,
+            role: entry.createdBy === 'System' ? 'Automated' : 'User',
+            avatar: undefined
+          },
+          metadata: {
+            stage: entry.metadata?.stage,
+            documentName: entry.metadata?.fileName,
+            hearingDate: entry.metadata?.hearingDate,
+            court: entry.metadata?.court,
+            deadline: entry.metadata?.deadline,
+            status: entry.metadata?.status
+          }
+        }));
+
+        setTimelineEvents(mappedEvents);
+        console.log(`[Timeline] Loaded ${mappedEvents.length} events for case ${selectedCase.id}`);
+      } catch (error) {
+        console.error('[Timeline] Failed to load timeline:', error);
+        toast({
+          title: "Timeline Load Error",
+          description: "Failed to load case timeline. Please refresh the page.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadTimeline();
+  }, [selectedCase]);
+
+  // Map timeline service types to UI types
+  const mapServiceTypeToUIType = (serviceType: string): TimelineEvent['type'] => {
+    switch (serviceType) {
+      case 'doc_saved':
+      case 'ai_draft_generated':
+        return 'document_upload';
+      case 'case_created':
+        return 'stage_change';
+      case 'hearing_scheduled':
+        return 'hearing_scheduled';
+      case 'task_completed':
+        return 'approval';
+      default:
+        return 'comment';
+    }
+  };
+
   const getEventIcon = (type: string) => {
     switch (type) {
       case 'stage_change': return Scale;
@@ -272,11 +238,28 @@ export const CaseTimeline: React.FC<CaseTimelineProps> = ({ selectedCase }) => {
           <CardContent className="p-6">
             {selectedCase ? (
               <div className="relative">
-                {/* Timeline line */}
-                <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-border"></div>
-                
-                <div className="space-y-8">
-                  {mockTimelineEvents.map((event, index) => {
+                {isLoading ? (
+                  <div className="text-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                    <p className="text-muted-foreground">Loading timeline...</p>
+                  </div>
+                ) : timelineEvents.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Clock className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-foreground mb-2">
+                      No Timeline Events Yet
+                    </h3>
+                    <p className="text-muted-foreground">
+                      Timeline events will appear here as you work on this case
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Timeline line */}
+                    <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-border"></div>
+                    
+                    <div className="space-y-8">
+                      {timelineEvents.map((event, index) => {
                     const EventIcon = getEventIcon(event.type);
                     const formatted = formatTimestamp(event.timestamp);
                     
@@ -386,7 +369,7 @@ export const CaseTimeline: React.FC<CaseTimelineProps> = ({ selectedCase }) => {
                           </div>
                           
                           {/* Separator */}
-                          {index < mockTimelineEvents.length - 1 && (
+                          {index < timelineEvents.length - 1 && (
                             <Separator className="mt-6" />
                           )}
                         </div>
@@ -394,7 +377,9 @@ export const CaseTimeline: React.FC<CaseTimelineProps> = ({ selectedCase }) => {
                     );
                   })}
                 </div>
-              </div>
+              </>
+            )}
+          </div>
             ) : (
               <div className="text-center py-12">
                 <Scale className="h-16 w-16 text-muted-foreground mx-auto mb-4" />

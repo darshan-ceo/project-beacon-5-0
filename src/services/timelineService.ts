@@ -1,9 +1,10 @@
 import { toast } from '@/hooks/use-toast';
+import { storageManager } from '@/data/StorageManager';
 
 export interface TimelineEntry {
   id: string;
   caseId: string;
-  type: 'doc_saved' | 'ai_draft_generated' | 'case_created' | 'hearing_scheduled' | 'task_completed';
+  type: 'doc_saved' | 'ai_draft_generated' | 'case_created' | 'hearing_scheduled' | 'task_completed' | 'stage_change' | 'comment' | 'deadline' | 'case_assigned';
   title: string;
   description: string;
   createdBy: string;
@@ -12,12 +13,58 @@ export interface TimelineEntry {
     templateCode?: string;
     version?: number;
     fileName?: string;
+    fileSize?: number;
+    fileType?: string;
+    folderId?: string;
+    stage?: string;
+    tags?: string[];
+    noticeType?: string;
+    source?: string;
+    hearingDate?: string;
+    court?: string;
+    deadline?: string;
+    status?: string;
     [key: string]: any;
   };
 }
 
 class TimelineService {
-  private mockTimeline: TimelineEntry[] = [];
+  private storage = storageManager.getStorage();
+  private readonly STORAGE_KEY = 'timeline_entries';
+
+  /**
+   * Initialize and load timeline entries from storage
+   */
+  private async loadTimeline(): Promise<TimelineEntry[]> {
+    try {
+      const stored = await this.storage.getAll(this.STORAGE_KEY);
+      return (stored as TimelineEntry[]) || [];
+    } catch (error) {
+      console.error('[Timeline] Failed to load from storage:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Save timeline entries to storage
+   */
+  private async saveTimeline(entries: TimelineEntry[]): Promise<void> {
+    try {
+      // Clear existing entries
+      const existing = await this.storage.getAll(this.STORAGE_KEY);
+      for (const entry of existing) {
+        const entryWithId = entry as TimelineEntry;
+        await this.storage.delete(this.STORAGE_KEY, entryWithId.id);
+      }
+      
+      // Save new entries
+      for (const entry of entries) {
+        await this.storage.create(this.STORAGE_KEY, entry);
+      }
+    } catch (error) {
+      console.error('[Timeline] Failed to save to storage:', error);
+    }
+  }
 
   /**
    * Add a new timeline entry
@@ -25,11 +72,16 @@ class TimelineService {
   async addEntry(entry: Omit<TimelineEntry, 'id' | 'createdAt'>): Promise<TimelineEntry> {
     const newEntry: TimelineEntry = {
       ...entry,
-      id: `timeline-${Date.now()}`,
+      id: `timeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       createdAt: new Date().toISOString()
     };
 
-    this.mockTimeline.push(newEntry);
+    // Load current timeline
+    const timeline = await this.loadTimeline();
+    timeline.push(newEntry);
+    
+    // Save to storage
+    await this.saveTimeline(timeline);
     
     console.log(`[Timeline] Added entry for case ${entry.caseId}:`, newEntry);
     
@@ -40,7 +92,8 @@ class TimelineService {
    * Get timeline entries for a case
    */
   async getEntriesForCase(caseId: string): Promise<TimelineEntry[]> {
-    return this.mockTimeline
+    const timeline = await this.loadTimeline();
+    return timeline
       .filter(entry => entry.caseId === caseId)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
@@ -86,7 +139,8 @@ class TimelineService {
    * Get recent timeline entries across all cases (for dashboard)
    */
   async getRecentEntries(limit: number = 10): Promise<TimelineEntry[]> {
-    return this.mockTimeline
+    const timeline = await this.loadTimeline();
+    return timeline
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, limit);
   }
@@ -95,8 +149,15 @@ class TimelineService {
    * Clear timeline entries (for testing)
    */
   async clearTimeline(): Promise<void> {
-    this.mockTimeline = [];
-    console.log('[Timeline] Timeline cleared');
+    try {
+      const entries = await this.loadTimeline();
+      for (const entry of entries) {
+        await this.storage.delete(this.STORAGE_KEY, entry.id);
+      }
+      console.log('[Timeline] Timeline cleared');
+    } catch (error) {
+      console.error('[Timeline] Failed to clear timeline:', error);
+    }
   }
 }
 

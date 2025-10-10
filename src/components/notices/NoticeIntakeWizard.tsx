@@ -487,6 +487,26 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
         console.warn('[Wizard] Duplicate document detected, proceeding anyway');
       }
 
+      // Log to timeline
+      try {
+        const { timelineService } = await import('@/services/timelineService');
+        await timelineService.addEntry({
+          caseId: createdCase.id,
+          type: 'doc_saved',
+          title: 'Notice Document Linked',
+          description: `${uploadedFile.name} uploaded via Notice Intake Wizard`,
+          createdBy: 'System',
+          metadata: {
+            fileName: uploadedFile.name,
+            noticeType: createdCase.noticeType,
+            stage: createdCase.currentStage,
+            source: 'notice_intake_wizard'
+          }
+        });
+      } catch (error) {
+        console.warn('[Wizard] Failed to log timeline entry:', error);
+      }
+
       toast({
         title: "Document linked",
         description: `Notice PDF "${uploadedFile.name}" has been linked to the case.`,
