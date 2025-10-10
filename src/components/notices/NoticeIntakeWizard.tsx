@@ -424,7 +424,7 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
         ...caseData,
         clientId: selectedClient.id,
         title: caseData.title || `ASMT-10 Case - ${selectedClient.name}`,
-        currentStage: caseData.currentStage || 'Notice Received',
+        currentStage: caseData.currentStage || 'ASMT-10 Notice Received',
         priority: caseData.priority || 'High',
         status: caseData.status || 'Active'
       };
@@ -452,25 +452,52 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
   };
 
   const handleLinkDocument = async () => {
-    if (!uploadedFile || !createdCase) return;
+    if (!uploadedFile || !createdCase) {
+      toast({
+        title: "Missing required data",
+        description: "Cannot link document without uploaded file and created case.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setLoading(true);
     try {
-      const result = { success: true };
+      console.log('[Wizard] Uploading document to case:', {
+        fileName: uploadedFile.name,
+        caseId: createdCase.id,
+        stage: createdCase.currentStage
+      });
 
-      if (result.success) {
-        toast({
-          title: "Document linked",
-          description: "Notice PDF has been linked to the case.",
-        });
+      // Upload document using dmsService - this will also trigger task automation
+      const uploadResult = await dmsService.files.upload(
+        'system',
+        uploadedFile,
+        {
+          caseId: createdCase.id,
+          stage: createdCase.currentStage,
+          folderId: 'gst-assessment',
+          tags: ['ASMT-10', 'Notice', 'Automated'],
+        },
+        dispatch
+      );
+
+      // Handle potential duplicate response
+      if (uploadResult && 'isDuplicate' in uploadResult) {
+        console.warn('[Wizard] Duplicate document detected, proceeding anyway');
       }
+
+      toast({
+        title: "Document linked",
+        description: `Notice PDF "${uploadedFile.name}" has been linked to the case.`,
+      });
       
       setCurrentStep(7);
     } catch (error) {
       console.error('Document linking error:', error);
       toast({
         title: "Document linking error",
-        description: "Failed to link document to case.",
+        description: error instanceof Error ? error.message : "Failed to link document to case.",
         variant: "destructive",
       });
     } finally {
@@ -483,17 +510,22 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
 
     setLoading(true);
     try {
-      // Trigger task bundle automation
+      // Trigger task bundle automation for case_created
       const result = await taskBundleTriggerService.triggerTaskBundles(
         {
           id: createdCase.id,
-          currentStage: createdCase.currentStage || 'Notice Received',
-          clientId: createdCase.clientId
+          currentStage: createdCase.currentStage || 'ASMT-10 Notice Received',
+          clientId: createdCase.clientId,
+          caseNumber: createdCase.caseNumber,
+          assignedToId: createdCase.assignedToId || 'emp-1',
+          assignedToName: createdCase.assignedToName || 'Current User'
         } as any,
-        'case_created', // trigger type
-        createdCase.currentStage || 'Notice Received', // GST stage
-        dispatch // for persisting tasks
+        'case_created',
+        createdCase.currentStage || 'ASMT-10 Notice Received',
+        dispatch
       );
+
+      console.log('[Wizard] Task automation complete:', result);
 
       toast({
         title: "Tasks generated",
@@ -506,7 +538,7 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
       console.error('Task generation error:', error);
       toast({
         title: "Task generation error",
-        description: "Failed to generate automated tasks.",
+        description: error instanceof Error ? error.message : "Failed to generate automated tasks.",
         variant: "destructive",
       });
     } finally {

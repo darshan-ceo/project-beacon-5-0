@@ -194,11 +194,31 @@ export class TaskBundleRepository extends BaseRepository<TaskBundle> {
 
   // Get bundles by trigger and stage
   async getBundlesByTrigger(trigger: string, stageCode?: string): Promise<TaskBundleWithItems[]> {
-    const bundles = await this.query(bundle => 
-      bundle.active && 
-      bundle.trigger === trigger && 
-      (!stageCode || !bundle.stage_code || bundle.stage_code === stageCode || bundle.stage_code === 'Any Stage')
-    );
+    // Normalize stage for flexible matching
+    const normalizeStage = (stage: string | undefined) => 
+      stage?.trim().toLowerCase().replace(/\s+/g, '-') || '';
+    
+    const normalizedStageCode = normalizeStage(stageCode);
+    
+    const bundles = await this.query(bundle => {
+      if (!bundle.active || bundle.trigger !== trigger) {
+        return false;
+      }
+      
+      // If no stage filter provided, return all bundles with this trigger
+      if (!stageCode) {
+        return true;
+      }
+      
+      // If bundle has no stage_code or is "Any Stage", include it
+      if (!bundle.stage_code || bundle.stage_code === 'Any Stage') {
+        return true;
+      }
+      
+      // Check both exact match and normalized match for flexibility
+      const normalizedBundleStage = normalizeStage(bundle.stage_code);
+      return bundle.stage_code === stageCode || normalizedBundleStage === normalizedStageCode;
+    });
 
     // Get items for each bundle
     const bundlesWithItems: TaskBundleWithItems[] = [];
