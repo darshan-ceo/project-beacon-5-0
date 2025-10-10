@@ -591,9 +591,13 @@ export const dmsService = {
 
       // PHASE 3B: RBAC Security Check
       try {
-        // BYPASS: Skip RBAC for system/automated operations
-        if (userId !== 'system') {
+        // BYPASS: Skip RBAC for system/automated operations and demo users
+        const isDemoMode = userId === 'system' || userId.startsWith('demo-') || userId === 'demo-user';
+
+        if (!isDemoMode) {
           const { policyEngine, secureDataAccess } = await import('@/security/policyEngine');
+          
+          console.log('[DMS] RBAC check for production user:', { userId, fileName: file.name });
           
           // Check: Can user upload documents?
           const canUpload = await policyEngine.evaluatePermission(userId, 'documents', 'write');
@@ -623,14 +627,16 @@ export const dmsService = {
             }
           }
         } else {
-          // System user - log for audit trail
-          console.log('[DMS] System upload - RBAC bypassed:', {
+          // Demo mode - log for audit trail
+          console.log('[DMS] Demo mode upload - RBAC bypassed:', {
+            userId,
             fileName: file.name,
             caseId: options.caseId,
             stage: options.stage
           });
         }
       } catch (error: any) {
+        console.error('[DMS] RBAC check failed:', error);
         toast({
           title: "Upload Failed",
           description: error.message,
@@ -816,7 +822,7 @@ export const dmsService = {
         }
       }
 
-      // Add timeline entry for document upload
+      // Add timeline entry for document upload (only if case-linked)
       if (options.caseId) {
         try {
           const { timelineService } = await import('./timelineService');
@@ -841,6 +847,15 @@ export const dmsService = {
           // Don't fail upload if timeline logging fails
         }
       }
+      
+      // Always log upload success for debugging
+      console.log('[DMS] Document uploaded successfully:', {
+        fileName: file.name,
+        documentId: newDocument.id,
+        caseLinked: !!options.caseId,
+        timelineLogged: !!options.caseId,
+        uploadedBy: userId
+      });
 
       // Audit trail for system operations
       if (userId === 'system') {

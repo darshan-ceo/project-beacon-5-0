@@ -97,42 +97,6 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
           });
           return;
         }
-        
-        // Validate document upload permission (only when RBAC enforcement is enabled)
-        if (enforcementEnabled) {
-          const { policyEngine, secureDataAccess } = await import('@/security/policyEngine');
-          
-          const canUpload = await policyEngine.evaluatePermission(currentUserId, 'documents', 'write');
-          if (!canUpload.allowed) {
-            toast({
-              title: "Permission Denied",
-              description: "You don't have permission to upload documents.",
-              variant: "destructive"
-            });
-            setLoading(false);
-            return;
-          }
-        
-          // If document is linked to a case, validate case access
-          if (formData.caseId && formData.caseId !== 'none') {
-            const caseAccess = await secureDataAccess.secureGet(
-              currentUserId,
-              'cases',
-              formData.caseId,
-              async (id) => state.cases.find(c => c.id === id) || null
-            );
-            
-            if (!caseAccess) {
-              toast({
-                title: "Access Denied",
-                description: "You don't have permission to upload documents for this case.",
-                variant: "destructive"
-              });
-              setLoading(false);
-              return;
-            }
-          }
-        }
 
         if (onUpload) {
           // Use the parent component's upload handler

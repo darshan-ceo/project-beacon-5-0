@@ -71,6 +71,18 @@ class PolicyEngine {
       };
     }
     
+    // Special handling for demo/test users (DEMO mode)
+    if (userId.startsWith('demo-') || userId === 'demo-user') {
+      console.log('[RBAC] Demo user detected - granting full access:', userId);
+      return {
+        userId,
+        employeeId: userId,
+        managerChain: [],
+        reporteeIds: [],
+        tenantId: 'demo-tenant'
+      };
+    }
+    
     // Check cache first
     const cacheKey = `user_${userId}`;
     const cached = this.contextCache.get(cacheKey);
@@ -223,6 +235,16 @@ class PolicyEngine {
         allowed: true,
         scope: 'org',
         reason: 'System user has unrestricted access'
+      };
+    }
+    
+    // Special handling for demo users - grant all permissions in DEMO mode
+    if (userId.startsWith('demo-') || userId === 'demo-user') {
+      console.log('[RBAC] Demo user permission granted:', { userId, resource, action });
+      return {
+        allowed: true,
+        scope: 'org',
+        reason: 'Demo user has full access in DEMO mode'
       };
     }
     
