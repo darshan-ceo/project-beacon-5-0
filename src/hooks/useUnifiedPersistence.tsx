@@ -93,7 +93,7 @@ export const useUnifiedPersistence = () => {
   const loadAllData = async (): Promise<void> => {
     try {
       const storage = storageManager.getStorage();
-      const [clients, cases, tasks, taskBundles, documents, rawHearings, judges, courts, employees, folders] = await Promise.all([
+      const [clients, cases, tasks, taskBundles, documents, rawHearings, judges, courts, employees, folders, timelineEntries] = await Promise.all([
         storage.getAll<any>('clients'),
         storage.getAll<any>('cases'),
         storage.getAll<any>('tasks'),
@@ -103,7 +103,8 @@ export const useUnifiedPersistence = () => {
         storage.getAll<any>('judges'), 
         storage.getAll<any>('courts'),
         storage.getAll<any>('employees'), 
-        storage.getAll<any>('folders')
+        storage.getAll<any>('folders'),
+        storage.getAll<any>('timeline_entries')
       ]);
 
       // Migrate cases: ensure timelineBreachStatus exists + migrate stage names + add new fields
@@ -205,19 +206,20 @@ export const useUnifiedPersistence = () => {
           judges, 
           courts, 
           employees, 
-          folders 
+          folders,
+          timelineEntries 
         } 
       });
 
       const counts = {
         clients: clients.length, cases: migratedCases.length, tasks: tasks.length, task_bundles: taskBundles.length,
         documents: documents.length, hearings: hearings.length, judges: judges.length, courts: courts.length,
-        employees: employees.length, folders: folders.length
+        employees: employees.length, folders: folders.length, timeline_entries: timelineEntries.length
       };
       
       setEntityCounts(counts);
       lastKnownEntityCounts.current = counts;
-      mirrorToLocalStorage({ clients, cases: migratedCases, tasks, documents, hearings, judges, courts, employees, folders });
+      mirrorToLocalStorage({ clients, cases: migratedCases, tasks, documents, hearings, judges, courts, employees, folders, timelineEntries });
       
       console.log('✅ Loaded data from IndexedDB:', counts);
     } catch (error) {
@@ -253,7 +255,8 @@ export const useUnifiedPersistence = () => {
         state.judges.length > 0 && storage.bulkCreate('judges', state.judges),
         state.courts.length > 0 && storage.bulkCreate('courts', state.courts),
         state.employees.length > 0 && storage.bulkCreate('employees', state.employees),
-        state.folders.length > 0 && storage.bulkCreate('folders', state.folders)
+        state.folders.length > 0 && storage.bulkCreate('folders', state.folders),
+        state.timelineEntries && state.timelineEntries.length > 0 && storage.bulkCreate('timeline_entries', state.timelineEntries)
       ]);
       
       const counts = {
@@ -266,6 +269,7 @@ export const useUnifiedPersistence = () => {
         courts: state.courts.length,
         employees: state.employees.length,
         folders: state.folders.length,
+        timeline_entries: state.timelineEntries?.length || 0
       };
       
       setEntityCounts(counts);

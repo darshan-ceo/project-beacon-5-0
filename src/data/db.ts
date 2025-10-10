@@ -350,6 +350,7 @@ export class HofficeDB extends Dexie {
   settings!: Table<Setting>;
   sync_queue!: Table<SyncQueueItem>;
   migration_meta!: Table<MigrationMeta>;
+  timeline_entries!: Table<any>; // Timeline entries for case history
 
   constructor() {
     super('hoffice_dev_local');
@@ -419,7 +420,35 @@ export class HofficeDB extends Dexie {
       roles: 'id, name, isActive, isSystemRole, createdAt',
       permissions: 'id, name, category, resource, action, effect, createdAt',
       user_roles: 'id, userId, roleId, isActive, assignedAt',
-      policy_audit: 'id, actorId, action, entityType, entityId, timestamp'
+      policy_audit: 'id, actorId, action, entityType, entityId, timestamp',
+      // Timeline Table
+      timeline_entries: 'id, caseId, type, createdAt, createdBy'
+    }).upgrade(async tx => {
+      // Populate timeline entries from existing documents
+      console.log('[Migration] Populating timeline entries from existing documents...');
+      
+      const documents = await tx.table('documents').toArray();
+      const timelineEntries = documents
+        .filter((doc: any) => doc.case_id) // Only case-linked documents
+        .map((doc: any) => ({
+          id: `timeline-doc-${doc.id}`,
+          caseId: doc.case_id,
+          type: 'doc_saved',
+          title: 'Document Uploaded',
+          description: `Document uploaded (migrated from existing data)`,
+          createdBy: 'system',
+          createdAt: doc.added_on || doc.created_at || new Date().toISOString(),
+          metadata: {
+            fileName: doc.file_name,
+            documentId: doc.id,
+            migratedFromExisting: true
+          }
+        }));
+      
+      if (timelineEntries.length > 0) {
+        await tx.table('timeline_entries').bulkAdd(timelineEntries);
+        console.log(`[Migration] ✅ Added ${timelineEntries.length} timeline entries from existing documents`);
+      }
     });
   }
 }

@@ -37,10 +37,12 @@ class TimelineService {
    */
   private async loadTimeline(): Promise<TimelineEntry[]> {
     try {
+      console.log('[Timeline] Loading entries from IndexedDB...');
       const stored = await this.storage.getAll(this.STORAGE_KEY);
+      console.log(`[Timeline] ✅ Loaded ${stored.length} entries from storage`);
       return (stored as TimelineEntry[]) || [];
     } catch (error) {
-      console.error('[Timeline] Failed to load from storage:', error);
+      console.error('[Timeline] ❌ Failed to load from storage:', error);
       return [];
     }
   }
@@ -70,22 +72,23 @@ class TimelineService {
    * Add a new timeline entry
    */
   async addEntry(entry: Omit<TimelineEntry, 'id' | 'createdAt'>): Promise<TimelineEntry> {
+    console.log('[Timeline] Creating entry:', { caseId: entry.caseId, type: entry.type });
+    
     const newEntry: TimelineEntry = {
       ...entry,
       id: `timeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       createdAt: new Date().toISOString()
     };
 
-    // Load current timeline
-    const timeline = await this.loadTimeline();
-    timeline.push(newEntry);
-    
-    // Save to storage
-    await this.saveTimeline(timeline);
-    
-    console.log(`[Timeline] Added entry for case ${entry.caseId}:`, newEntry);
-    
-    return newEntry;
+    try {
+      // Save directly to storage (no need to load/push/save pattern)
+      await this.storage.create(this.STORAGE_KEY, newEntry);
+      console.log('[Timeline] ✅ Entry saved to IndexedDB:', newEntry.id);
+      return newEntry;
+    } catch (error) {
+      console.error('[Timeline] ❌ Failed to save entry:', error);
+      throw error;
+    }
   }
 
   /**

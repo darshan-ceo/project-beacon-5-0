@@ -309,6 +309,7 @@ export interface AppState {
   folders: Folder[];
   hearings: Hearing[];
   employees: Employee[];
+  timelineEntries: any[]; // Timeline entries for case history
   tags: string[]; // Global tags for consistent usage
   userProfile: UserProfile;
   isLoading: boolean;
@@ -355,6 +356,8 @@ export type AppAction =
   | { type: 'ADD_TAG'; payload: string }
   | { type: 'REMOVE_TAG'; payload: string }
   | { type: 'UPDATE_USER_PROFILE'; payload: Partial<UserProfile> }
+  | { type: 'ADD_TIMELINE_ENTRY'; payload: any }
+  | { type: 'REMOVE_TIMELINE_ENTRY'; payload: string }
   | { type: 'RESTORE_STATE'; payload: Partial<AppState> }
   | { type: 'CLEAR_ALL_DATA' };
 
@@ -1963,6 +1966,7 @@ const initialState: AppState = {
     }
   ],
   tags: [],
+  timelineEntries: [],
   isLoading: false,
   error: null
 };
@@ -2158,8 +2162,22 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         userProfile: { ...state.userProfile, ...action.payload }
       };
+    case 'ADD_TIMELINE_ENTRY':
+      return {
+        ...state,
+        timelineEntries: [...state.timelineEntries, action.payload]
+      };
+    case 'REMOVE_TIMELINE_ENTRY':
+      return {
+        ...state,
+        timelineEntries: state.timelineEntries.filter(e => e.id !== action.payload)
+      };
     case 'RESTORE_STATE':
-      return { ...state, ...action.payload };
+      return { 
+        ...state, 
+        ...action.payload,
+        timelineEntries: action.payload.timelineEntries || []
+      };
     case 'CLEAR_ALL_DATA':
       return {
         ...initialState,
@@ -2172,6 +2190,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         folders: [],
         hearings: [],
         employees: [],
+        timelineEntries: [],
         tags: [],
       };
     default:

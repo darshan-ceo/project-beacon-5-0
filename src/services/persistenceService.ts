@@ -3,7 +3,7 @@ import { AppState, Case, Client, Court, Judge, Employee, Hearing, Task, Document
 import { toast } from '@/hooks/use-toast';
 
 // Entity types for type-safe operations
-export type EntityType = 'cases' | 'clients' | 'courts' | 'judges' | 'employees' | 'hearings' | 'tasks' | 'documents' | 'folders';
+export type EntityType = 'cases' | 'clients' | 'courts' | 'judges' | 'employees' | 'hearings' | 'tasks' | 'documents' | 'folders' | 'timeline_entries';
 
 export interface EntityOperation {
   id: string;
@@ -447,7 +447,7 @@ class PersistenceService {
   // Data export/import
   async exportAllData(): Promise<AppState> {
     try {
-      const [cases, clients, courts, judges, employees, hearings, tasks, documents, folders] = await Promise.all([
+      const [cases, clients, courts, judges, employees, hearings, tasks, documents, folders, timelineEntries] = await Promise.all([
         this.getAll('cases'),
         this.getAll('clients'),
         this.getAll('courts'),
@@ -456,7 +456,8 @@ class PersistenceService {
         this.getAll('hearings'),
         this.getAll('tasks'),
         this.getAll('documents'),
-        this.getAll('folders')
+        this.getAll('folders'),
+        this.getAll('timeline_entries')
       ]);
 
       return {
@@ -469,6 +470,7 @@ class PersistenceService {
         tasks: tasks as Task[],
         documents: documents as Document[],
         folders: folders as Folder[],
+        timelineEntries: timelineEntries as any[],
         tags: [], // Default empty tags array
         userProfile: {
           id: 'user-1',
