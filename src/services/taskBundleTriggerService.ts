@@ -65,6 +65,19 @@ class TaskBundleTriggerService {
       const repository = await this.getRepository();
       const applicableBundles = await repository.getBundlesByTrigger(trigger, stage);
       
+      console.log(`[BundleTrigger] Found ${applicableBundles.length} applicable bundle(s):`, {
+        trigger,
+        stage,
+        bundles: applicableBundles.map(b => ({
+          id: b.id,
+          name: b.name,
+          trigger: b.trigger,
+          stage_code: b.stage_code,
+          active: b.active,
+          itemCount: b.items?.length || 0
+        }))
+      });
+      
       const createdTasks: BundleCreationFootprint[] = [];
       const skippedBundles: string[] = [];
       let totalTasksCreated = 0;
@@ -190,10 +203,26 @@ class TaskBundleTriggerService {
   }
 
   private evaluateBundleConditions(bundle: TaskBundleWithItems, caseData: CaseData): boolean {
+    // Normalize both stage codes for comparison
+    const normalizeStage = (stage: string | undefined) => 
+      stage?.trim().toLowerCase().replace(/\s+/g, '-') || '';
+    
+    const bundleStage = normalizeStage(bundle.stage_code);
+    const caseStage = normalizeStage(caseData.currentStage);
+    
+    console.log(`[BundleTrigger] Evaluating conditions for "${bundle.name}":`, {
+      bundleStage,
+      caseStage,
+      bundleStageRaw: bundle.stage_code,
+      caseStageRaw: caseData.currentStage
+    });
+    
     // If bundle has stage_code specified, check if it matches
     if (bundle.stage_code && 
         bundle.stage_code !== 'Any Stage' && 
+        bundleStage !== caseStage &&
         bundle.stage_code !== caseData.currentStage) {
+      console.log(`[BundleTrigger] Stage mismatch - bundle: ${bundleStage}, case: ${caseStage}`);
       return false;
     }
 

@@ -771,6 +771,41 @@ export const dmsService = {
         console.warn('📄 Immediate persistence failed, relying on autosave:', persistError);
       }
 
+      // Trigger task bundle automation for document_received
+      if (options.caseId) {
+        try {
+          const { taskBundleTriggerService } = await import('./taskBundleTriggerService');
+          const { StorageManager } = await import('@/data/StorageManager');
+          
+          // Get case data for automation
+          const storage = StorageManager.getInstance().getStorage();
+          const caseData = await storage.getById('cases', options.caseId) as any;
+          
+          if (caseData) {
+            await taskBundleTriggerService.triggerTaskBundles(
+              {
+                id: caseData.id,
+                caseNumber: caseData.caseNumber,
+                clientId: caseData.clientId,
+                assignedToId: caseData.assignedToId || 'emp-1',
+                assignedToName: caseData.assignedToName || 'Current User',
+                currentStage: caseData.currentStage || options.stage || 'Any Stage',
+                noticeType: caseData.noticeType,
+                clientTier: caseData.clientTier
+              },
+              'document_received',
+              caseData.currentStage as any,
+              dispatch
+            );
+            
+            console.log(`[DMS] Task bundle automation triggered for document: ${file.name}`);
+          }
+        } catch (error) {
+          console.error('[DMS] Failed to trigger task bundle automation:', error);
+          // Don't fail the upload if automation fails
+        }
+      }
+
       // Update folder statistics
       if (folder) {
         folder.documentCount++;
