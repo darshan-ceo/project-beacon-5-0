@@ -420,12 +420,41 @@ export class HofficeDB extends Dexie {
       roles: 'id, name, isActive, isSystemRole, createdAt',
       permissions: 'id, name, category, resource, action, effect, createdAt',
       user_roles: 'id, userId, roleId, isActive, assignedAt',
+      policy_audit: 'id, actorId, action, entityType, entityId, timestamp'
+    });
+
+    // Migration for v4 - Add Timeline Table and migrate existing documents
+    this.version(4).stores({
+      clients: 'id, display_name, gstin, city, state, created_at',
+      cases: 'id, client_id, stage_code, status, opened_on, updated_at, case_number',
+      notices: 'id, case_id, type_code, notice_no, notice_date, due_date, status',
+      replies: 'id, notice_id, reply_date, status',
+      hearings: 'id, case_id, hearing_date, judge_id, outcome_code, next_hearing_date, status',
+      tasks: 'id, case_id, assigned_to, due_date, status, priority, [related_entity_type+related_entity_id], bundle_id, is_auto_generated',
+      task_bundles: 'id, stage_code, trigger, active, name, stages, execution_mode, version, usage_count',
+      task_bundle_items: 'id, bundle_id, order_index, assigned_role, category, due_offset',
+      documents: 'id, case_id, doc_type_code, version, status, added_on, folder_id',
+      attachments: 'id, owner_type, owner_id, filename, mime, size, hash, created_at',
+      folders: 'id, name, parent_id, path, is_default',
+      tags: 'id, name',
+      entity_tags: 'id, entity_type, entity_id, tag_id, [entity_type+entity_id]',
+      courts: 'id, name, level, city, state',
+      judges: 'id, name, court_id',
+      employees: 'id, name, email, role_id, active',
+      audit_logs: 'id, entity_type, entity_id, at, actor_user_id',
+      settings: 'id, key',
+      sync_queue: 'id, entity_type, entity_id, operation, queued_at',
+      migration_meta: '++id, schema_version, applied_at',
+      // RBAC Tables
+      roles: 'id, name, isActive, isSystemRole, createdAt',
+      permissions: 'id, name, category, resource, action, effect, createdAt',
+      user_roles: 'id, userId, roleId, isActive, assignedAt',
       policy_audit: 'id, actorId, action, entityType, entityId, timestamp',
-      // Timeline Table
+      // Timeline Table (NEW in v4)
       timeline_entries: 'id, caseId, type, createdAt, createdBy'
     }).upgrade(async tx => {
       // Populate timeline entries from existing documents
-      console.log('[Migration] Populating timeline entries from existing documents...');
+      console.log('[Migration v4] Populating timeline entries from existing documents...');
       
       const documents = await tx.table('documents').toArray();
       const timelineEntries = documents
@@ -435,19 +464,23 @@ export class HofficeDB extends Dexie {
           caseId: doc.case_id,
           type: 'doc_saved',
           title: 'Document Uploaded',
-          description: `Document uploaded (migrated from existing data)`,
-          createdBy: 'system',
+          description: `Document "${doc.name || 'Unknown'}" uploaded (migrated from existing data)`,
+          createdBy: doc.uploaded_by_name || 'system',
           createdAt: doc.added_on || doc.created_at || new Date().toISOString(),
           metadata: {
-            fileName: doc.file_name,
+            fileName: doc.name || doc.file_name,
             documentId: doc.id,
+            fileSize: doc.size,
+            folderId: doc.folder_id,
             migratedFromExisting: true
           }
         }));
       
       if (timelineEntries.length > 0) {
         await tx.table('timeline_entries').bulkAdd(timelineEntries);
-        console.log(`[Migration] ✅ Added ${timelineEntries.length} timeline entries from existing documents`);
+        console.log(`[Migration v4] ✅ Added ${timelineEntries.length} timeline entries from existing documents`);
+      } else {
+        console.log('[Migration v4] No case-linked documents found to migrate');
       }
     });
   }
@@ -492,4 +525,4 @@ export const getCurrentSchemaVersion = async (): Promise<number> => {
 };
 
 // Export current database schema version for validation
-export const CURRENT_SCHEMA_VERSION = 3;
+export const CURRENT_SCHEMA_VERSION = 4;
