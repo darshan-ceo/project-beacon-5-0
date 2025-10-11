@@ -41,7 +41,7 @@ import { AITaskAssistant } from './AITaskAssistant';
 import { TaskCollaboration } from './TaskCollaboration';
 import { TaskModal } from '@/components/modals/TaskModal';
 import { FilterDropdown } from '@/components/ui/filter-dropdown';
-import { Task, useAppState } from '@/contexts/AppStateContext';
+import { Task, Client, useAppState } from '@/contexts/AppStateContext';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { storageManager } from '@/data/StorageManager';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -84,6 +84,18 @@ const taskBundles: TaskBundle[] = [
     sequenceRequired: true
   }
 ];
+
+// Helper function to enrich tasks with client and assignee names
+const enrichTasksWithClientNames = (tasks: Task[], clients: Client[]): Array<Task & { assignedTo: string; clientName?: string }> => {
+  return tasks.map(task => {
+    const client = clients.find(c => c.id === task.clientId);
+    return {
+      ...task,
+      assignedTo: task.assignedToName,
+      clientName: client?.name || undefined
+    };
+  });
+};
 
 export const TaskManagement: React.FC = () => {
   const { state, dispatch } = useAppState();
@@ -587,14 +599,14 @@ export const TaskManagement: React.FC = () => {
           {/* Conditional View Rendering */}
           {viewMode === 'board' ? (
             <TaskBoard 
-              tasks={filteredTasks.map(t => ({ ...t, assignedTo: t.assignedToName }))} 
+              tasks={enrichTasksWithClientNames(filteredTasks, state.clients)} 
               highlightedTaskId={highlightedTaskId}
               onTaskUpdate={handleTaskUpdate}
               onTaskDelete={handleTaskDelete}
             />
           ) : (
             <TaskList 
-              tasks={filteredTasks.map(t => ({ ...t, assignedTo: t.assignedToName }))} 
+              tasks={enrichTasksWithClientNames(filteredTasks, state.clients)} 
               highlightedTaskId={highlightedTaskId}
               onTaskUpdate={handleTaskUpdate}
               onTaskDelete={handleTaskDelete}
@@ -607,7 +619,7 @@ export const TaskManagement: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="escalation" className="mt-6">
-          <EscalationMatrix tasks={state.tasks.map(t => ({ ...t, assignedToName: t.assignedToName }))} />
+          <EscalationMatrix tasks={enrichTasksWithClientNames(state.tasks, state.clients)} />
         </TabsContent>
 
         <TabsContent value="templates" className="mt-6">
