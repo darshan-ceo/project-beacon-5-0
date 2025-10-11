@@ -7,13 +7,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, Building2, MapPin, IndianRupee } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
 import { Task, useAppState } from '@/contexts/AppStateContext';
 import { cn } from '@/lib/utils';
 import { CaseSelector } from '@/components/ui/relationship-selector';
 import { ContextBadge } from '@/components/ui/context-badge';
+import { Badge } from '@/components/ui/badge';
 import { useRelationships } from '@/hooks/useRelationships';
 import { useContextualForms } from '@/hooks/useContextualForms';
 import { EmployeeSelector } from '@/components/ui/employee-selector';
@@ -265,14 +266,52 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               />
             </div>
 
-            {/* Context Information */}
-            {context.clientId && (
-              <div className="space-y-2">
-                <ContextBadge
-                  label="Client"
-                  value={getContextDetails().client?.name || 'Unknown Client'}
-                  variant="outline"
-                />
+            {/* Client & Case Context Card */}
+            {mode !== 'create' && context.clientId && (
+              <div className="bg-muted/30 rounded-lg p-4 space-y-3">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <Building2 className="h-4 w-4" />
+                  Client & Case Context
+                </h3>
+                
+                {/* Client Info */}
+                <div className="bg-background rounded p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">{getContextDetails().clientName}</span>
+                    {getContextDetails().clientTier && (
+                      <Badge variant="outline">{getContextDetails().clientTier}</Badge>
+                    )}
+                  </div>
+                  {getContextDetails().clientLocation && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <MapPin className="h-3 w-3" />
+                      {getContextDetails().clientLocation}
+                    </p>
+                  )}
+                </div>
+                
+                {/* Case Info */}
+                {context.caseId && (
+                  <div className="bg-background rounded p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">{getContextDetails().caseNumber}</span>
+                      {getContextDetails().caseStage && (
+                        <Badge variant="outline">{getContextDetails().caseStage}</Badge>
+                      )}
+                    </div>
+                    {getContextDetails().caseTitle && (
+                      <p className="text-xs text-muted-foreground">
+                        {getContextDetails().caseTitle}
+                      </p>
+                    )}
+                    {getContextDetails().amountInDispute && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <IndianRupee className="h-3 w-3" />
+                        Amount: ₹{getContextDetails().amountInDispute.toLocaleString('en-IN')}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 

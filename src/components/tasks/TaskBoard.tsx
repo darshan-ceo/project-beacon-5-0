@@ -12,7 +12,8 @@ import {
   Edit,
   Eye,
   MoreVertical,
-  Plus
+  Plus,
+  Building2
 } from 'lucide-react';
 import { TaskDrawer } from './TaskDrawer';
 import { Task } from '@/contexts/AppStateContext';
@@ -31,6 +32,7 @@ import {
 
 interface TaskDisplay extends Task {
   assignedTo: string; // Display name for the assigned user
+  clientName?: string; // Client name for display
 }
 
 interface TaskBoardProps {
@@ -140,9 +142,17 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
               <h4 className="font-medium text-foreground text-sm leading-tight">
                 {task.title}
               </h4>
-              <p className="text-xs text-muted-foreground mt-1">
-                {task.caseNumber}
-              </p>
+              <div className="space-y-0.5 mt-1">
+                {task.clientName && (
+                  <p className="text-xs text-foreground font-medium flex items-center gap-1">
+                    <Building2 className="h-3 w-3" />
+                    {task.clientName}
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  {task.caseNumber}
+                </p>
+              </div>
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

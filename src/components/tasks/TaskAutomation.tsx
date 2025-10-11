@@ -738,7 +738,7 @@ export const TaskAutomation: React.FC = () => {
                           <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
                             {template.description}
                           </p>
-                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          <div className="flex items-center gap-4 text-xs text-muted-foreground mb-2">
                             <div className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />
                               {template.estimatedHours}h
@@ -750,6 +750,21 @@ export const TaskAutomation: React.FC = () => {
                             <Badge variant="outline" className="text-xs">
                               {template.category}
                             </Badge>
+                          </div>
+                          
+                          {/* Template Application Context */}
+                          <div className="bg-blue-50 dark:bg-blue-950/20 rounded p-2 space-y-1">
+                            <p className="text-xs font-medium">Applies to:</p>
+                            <div className="flex flex-wrap gap-1">
+                              {template.stageScope.map(stage => (
+                                <Badge key={stage} variant="secondary" className="text-xs">
+                                  {stage}
+                                </Badge>
+                              ))}
+                            </div>
+                            <p className="text-xs text-muted-foreground italic mt-1">
+                              Tasks inherit client & case context automatically
+                            </p>
                           </div>
                         </div>
                         <Button 
@@ -864,6 +879,39 @@ export const TaskAutomation: React.FC = () => {
                   </PopoverContent>
                 </Popover>
               </div>
+            </div>
+
+            <Separator />
+
+            {/* Bundle Trigger Context Preview */}
+            <div className="bg-amber-50 dark:bg-amber-950/20 rounded-lg p-4 space-y-2">
+              <h4 className="text-sm font-semibold flex items-center gap-2">
+                <Workflow className="h-4 w-4" />
+                When This Bundle Executes
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                <strong>Trigger:</strong> {bundleTrigger || 'Not set'}
+              </p>
+              {bundleItems.length > 0 && (
+                <>
+                  <p className="text-xs text-muted-foreground">
+                    This bundle will create <strong>{bundleItems.length} task{bundleItems.length !== 1 ? 's' : ''}</strong> when triggered.
+                    Each task will be linked to the triggering case and its client.
+                  </p>
+                  <div className="bg-background rounded p-3 mt-2">
+                    <p className="text-xs font-medium mb-1">Example:</p>
+                    <p className="text-xs text-muted-foreground">
+                      If triggered for Case "GST/2024/001" (Client: ABC Corp),
+                      all {bundleItems.length} task{bundleItems.length !== 1 ? 's' : ''} will show:
+                    </p>
+                    <ul className="text-xs space-y-0.5 mt-1 ml-4 list-disc">
+                      <li>🏢 Client: ABC Corp</li>
+                      <li>📁 Case: GST/2024/001</li>
+                      <li>⚙️ Stage: {bundleStages.join(', ')}</li>
+                    </ul>
+                  </div>
+                </>
+              )}
             </div>
 
             <Separator />

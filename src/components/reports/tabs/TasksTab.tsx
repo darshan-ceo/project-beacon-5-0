@@ -5,6 +5,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ExportButton } from '@/components/ui/export-button';
 import { getTaskReport } from '@/services/reportsService';
 import { ReportFilter, TaskReportData } from '@/types/reports';
+import { Building2 } from 'lucide-react';
+import { useAppState } from '@/contexts/AppStateContext';
 
 interface TasksTabProps {
   filters: ReportFilter;
@@ -13,6 +15,7 @@ interface TasksTabProps {
 }
 
 export const TasksTab: React.FC<TasksTabProps> = ({ filters }) => {
+  const { state } = useAppState();
   const [data, setData] = useState<TaskReportData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -30,6 +33,16 @@ export const TasksTab: React.FC<TasksTabProps> = ({ filters }) => {
     };
     loadData();
   }, [filters]);
+
+  // Helper function to get client name from task's case
+  const getClientName = (caseId: string) => {
+    const taskCase = state.cases.find(c => c.id === caseId);
+    if (taskCase) {
+      const client = state.clients.find(cl => cl.id === taskCase.clientId);
+      return client?.name || 'Unknown Client';
+    }
+    return 'Unknown Client';
+  };
 
   if (loading) {
     return (
@@ -54,12 +67,12 @@ export const TasksTab: React.FC<TasksTabProps> = ({ filters }) => {
       
       <div className="flex-1 overflow-auto">
         <div className="overflow-x-auto">
-          <Table className="min-w-[900px]">
+          <Table className="min-w-[1000px]">
             <TableHeader>
             <TableRow>
-              <TableHead>Task ID</TableHead>
-              <TableHead>Title</TableHead>
+              <TableHead>Client</TableHead>
               <TableHead>Case ID</TableHead>
+              <TableHead>Task Title</TableHead>
               <TableHead>Assignee</TableHead>
               <TableHead>Due Date</TableHead>
               <TableHead>Status</TableHead>
@@ -70,9 +83,14 @@ export const TasksTab: React.FC<TasksTabProps> = ({ filters }) => {
           <TableBody>
             {data.map((item) => (
               <TableRow key={item.id}>
-                <TableCell className="font-medium">{item.id}</TableCell>
-                <TableCell>{item.title}</TableCell>
-                <TableCell>{item.caseId}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-3 w-3 text-muted-foreground" />
+                    <span className="font-medium">{getClientName(item.caseId)}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="text-muted-foreground">{item.caseId}</TableCell>
+                <TableCell className="font-medium">{item.title}</TableCell>
                 <TableCell>{item.assignee}</TableCell>
                 <TableCell>{item.dueDate}</TableCell>
                 <TableCell>

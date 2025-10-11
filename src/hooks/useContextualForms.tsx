@@ -66,14 +66,37 @@ export const useContextualForms = (initialContext?: FormContext) => {
     return state.judges.filter(j => j.status === 'Active');
   };
 
-  // Get current context details
+  // Get current context details with extended metadata
   const getContextDetails = () => {
     const client = context.clientId ? state.clients.find(c => c.id === context.clientId) : null;
     const case_ = context.caseId ? state.cases.find(c => c.id === context.caseId) : null;
     const court = context.courtId ? state.courts.find(c => c.id === context.courtId) : null;
     const judge = context.judgeId ? state.judges.find(j => j.id === context.judgeId) : null;
 
-    return { client, case: case_, court, judge };
+    // Safely extract location from client address
+    let clientLocation: string | undefined;
+    if (client?.address) {
+      if (typeof client.address === 'object' && 'city' in client.address && 'state' in client.address) {
+        clientLocation = `${client.address.city}, ${client.address.state}`;
+      } else if (typeof client.address === 'string') {
+        clientLocation = client.address;
+      }
+    }
+
+    return { 
+      client, 
+      case: case_, 
+      court, 
+      judge,
+      // Extended metadata for client context display
+      clientName: client?.name,
+      clientLocation,
+      clientTier: client?.category, // Using category as tier proxy
+      caseNumber: case_?.caseNumber,
+      caseTitle: case_?.title,
+      caseStage: case_?.currentStage,
+      amountInDispute: case_?.amountInDispute
+    };
   };
 
   // Update context (with validation)
