@@ -17,6 +17,7 @@ import { TemplateBuilder } from './TemplateBuilder';
 import { RichTextTemplateBuilder } from './RichTextTemplateBuilder';
 import { TemplateUploadModal } from './TemplateUploadModal';
 import { UnifiedTemplateBuilder, UnifiedTemplate } from './UnifiedTemplateBuilder';
+import { UnifiedTemplateGenerateModal } from './UnifiedTemplateGenerateModal';
 import { DocxTemplatePreview } from './DocxTemplatePreview';
 import { DocxGenerationModal } from './DocxGenerationModal';
 import { useAppState } from '@/contexts/AppStateContext';
@@ -62,6 +63,8 @@ export const TemplatesManagement: React.FC = () => {
   const [richTextBuilderOpen, setRichTextBuilderOpen] = useState(false);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [unifiedBuilderOpen, setUnifiedBuilderOpen] = useState(false);
+  const [unifiedGenerateModalOpen, setUnifiedGenerateModalOpen] = useState(false);
+  const [selectedUnifiedTemplate, setSelectedUnifiedTemplate] = useState<UnifiedTemplate | null>(null);
   const [editingTemplate, setEditingTemplate] = useState<FormTemplate | null>(null);
   const [activeTab, setActiveTab] = useState('standard');
   const [docxPreviewOpen, setDocxPreviewOpen] = useState(false);
@@ -137,7 +140,11 @@ export const TemplatesManagement: React.FC = () => {
   };
 
   const handleGenerate = (template: FormTemplate | CustomTemplate) => {
-    if ('templateType' in template && template.templateType === 'docx') {
+    // Check if this is a unified template (has richContent field)
+    if ('templateType' in template && template.templateType === 'unified' && 'richContent' in template) {
+      setSelectedUnifiedTemplate(template as unknown as UnifiedTemplate);
+      setUnifiedGenerateModalOpen(true);
+    } else if ('templateType' in template && template.templateType === 'docx') {
       setSelectedTemplate(template);
       setDocxGenerateModalOpen(true);
     } else {
@@ -907,6 +914,16 @@ export const TemplatesManagement: React.FC = () => {
           onGenerate={handleGenerateDocx}
         />
       )}
+
+      {/* Unified Template Generation Modal */}
+      <UnifiedTemplateGenerateModal
+        template={selectedUnifiedTemplate}
+        open={unifiedGenerateModalOpen}
+        onOpenChange={(open) => {
+          setUnifiedGenerateModalOpen(open);
+          if (!open) setSelectedUnifiedTemplate(null);
+        }}
+      />
     </div>
   );
 };

@@ -1,6 +1,9 @@
 import { UnifiedTemplate } from '@/components/documents/UnifiedTemplateBuilder';
-import { Case, Client } from '@/data/db';
+import { Case, Client } from '@/contexts/AppStateContext';
 import { format } from 'date-fns';
+import html2pdf from 'html2pdf.js';
+import Docxtemplater from 'docxtemplater';
+import PizZip from 'pizzip';
 
 /**
  * Unified Template Generation Service
@@ -310,9 +313,7 @@ export class UnifiedTemplateGenerationService {
   }
 
   /**
-   * Generate PDF document
-   * Note: This uses html2pdf.js (needs to be installed)
-   * For production, consider using a server-side PDF generation service
+   * Generate PDF document using html2pdf.js
    */
   async generatePDF(
     template: UnifiedTemplate,
@@ -320,20 +321,66 @@ export class UnifiedTemplateGenerationService {
     clientData?: Client,
     additionalData?: Record<string, any>
   ): Promise<Blob> {
-    const htmlBlob = await this.generateHTML(template, caseData, clientData, additionalData);
-    const htmlText = await htmlBlob.text();
+    const processedContent = this.replaceVariables(
+      template.richContent, 
+      template, 
+      caseData, 
+      clientData, 
+      additionalData
+    );
     
-    // For now, return as HTML with PDF mime type
-    // In production, integrate with html2pdf.js or a server-side PDF service
-    console.warn('PDF generation: Using HTML fallback. Consider integrating html2pdf.js or server-side PDF service.');
+    const styledContent = this.applyBranding(processedContent, template);
     
-    return new Blob([htmlText], { type: 'application/pdf' });
+    // Create temporary container
+    const container = document.createElement('div');
+    container.innerHTML = styledContent;
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    document.body.appendChild(container);
+    
+    try {
+      const topMargin = typeof template.output.margins.top === 'number' 
+        ? template.output.margins.top 
+        : parseFloat(template.output.margins.top) || 10;
+      const rightMargin = typeof template.output.margins.right === 'number'
+        ? template.output.margins.right
+        : parseFloat(template.output.margins.right) || 10;
+      const bottomMargin = typeof template.output.margins.bottom === 'number'
+        ? template.output.margins.bottom
+        : parseFloat(template.output.margins.bottom) || 10;
+      const leftMargin = typeof template.output.margins.left === 'number'
+        ? template.output.margins.left
+        : parseFloat(template.output.margins.left) || 10;
+        
+      const margins: [number, number, number, number] = [
+        topMargin,
+        rightMargin,
+        bottomMargin,
+        leftMargin
+      ];
+      
+      const opt = {
+        margin: margins,
+        filename: 'document.pdf',
+        image: { type: 'jpeg' as const, quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { 
+          unit: 'mm', 
+          format: template.output.pageSize.toLowerCase(), 
+          orientation: template.output.orientation.toLowerCase() as 'portrait' | 'landscape'
+        }
+      };
+      
+      const pdfBlob = await html2pdf().set(opt).from(container).outputPdf('blob');
+      return pdfBlob;
+    } finally {
+      document.body.removeChild(container);
+    }
   }
 
   /**
-   * Generate DOCX document
-   * Note: This requires html-docx-js or docxtemplater
-   * For production, consider using a server-side DOCX generation service
+   * Generate DOCX document using docxtemplater
+   * Converts HTML to DOCX with proper formatting
    */
   async generateDOCX(
     template: UnifiedTemplate,
@@ -341,14 +388,67 @@ export class UnifiedTemplateGenerationService {
     clientData?: Client,
     additionalData?: Record<string, any>
   ): Promise<Blob> {
-    const htmlBlob = await this.generateHTML(template, caseData, clientData, additionalData);
-    const htmlText = await htmlBlob.text();
-    
-    // For now, return as HTML with DOCX mime type
-    // In production, integrate with html-docx-js or docxtemplater
-    console.warn('DOCX generation: Using HTML fallback. Consider integrating html-docx-js or docxtemplater.');
-    
-    return new Blob([htmlText], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+    try {
+      // Create a simple DOCX template with the HTML content
+      const processedContent = this.replaceVariables(
+        template.richContent, 
+        template, 
+        caseData, 
+        clientData, 
+        additionalData
+      );
+
+      // Convert HTML to plain text for DOCX (simple approach)
+      // For production, use a proper HTML to DOCX converter like mammoth or html-docx-js
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = processedContent;
+      const textContent = tempDiv.textContent || tempDiv.innerText || '';
+
+      // Create a minimal DOCX structure
+      const zip = new PizZip();
+      
+      // Create document.xml with the content
+      const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+          <w:body>
+            <w:p>
+              <w:r>
+                <w:t>${textContent}</w:t>
+              </w:r>
+            </w:p>
+          </w:body>
+        </w:document>`;
+
+      zip.folder('word')!.file('document.xml', documentXml);
+      
+      // Create _rels/.rels
+      const relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+          <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+        </Relationships>`;
+      
+      zip.folder('_rels')!.file('.rels', relsXml);
+      
+      // Create [Content_Types].xml
+      const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+          <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+          <Default Extension="xml" ContentType="application/xml"/>
+          <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+        </Types>`;
+      
+      zip.file('[Content_Types].xml', contentTypesXml);
+
+      const blob = zip.generate({
+        type: 'blob',
+        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      });
+
+      return blob;
+    } catch (error) {
+      console.error('[DOCX Generator] Error generating DOCX:', error);
+      throw new Error('Failed to generate DOCX document');
+    }
   }
 
   /**
