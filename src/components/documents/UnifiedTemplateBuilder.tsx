@@ -187,6 +187,9 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [previewMode, setPreviewMode] = useState(false);
   const [logoFile, setLogoFile] = useState<string | null>(null);
+  const [docxFile, setDocxFile] = useState<File | null>(null);
+  const [detectedVariables, setDetectedVariables] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
 
   const editor = useEditor({
     extensions: [
@@ -290,6 +293,176 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleDocxUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.docx')) {
+      toast({ title: 'Invalid File', description: 'Please upload a .docx file', variant: 'destructive' });
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: 'File Too Large', description: 'DOCX must be under 10MB', variant: 'destructive' });
+      return;
+    }
+
+    setIsUploading(true);
+    setDocxFile(file);
+
+    try {
+      const { docxTemplateService } = await import('@/services/docxTemplateService');
+      const { detectedVariables } = await docxTemplateService.parseDocxTemplate(file);
+      
+      setDetectedVariables(detectedVariables.map(v => v.placeholder));
+      
+      toast({
+        title: 'DOCX Uploaded',
+        description: `Detected ${detectedVariables.length} variables`,
+      });
+    } catch (error) {
+      console.error('Error parsing DOCX:', error);
+      toast({
+        title: 'Upload Failed',
+        description: 'Could not parse DOCX file',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleExportJSON = () => {
+    const json = JSON.stringify(templateData, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${templateData.templateCode}_${templateData.version}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: 'JSON Exported',
+      description: `Template exported successfully`,
+    });
+  };
+
+  const handleImportJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const json = JSON.parse(event.target?.result as string);
+        
+        // Validate JSON structure
+        if (!json.templateCode || !json.title || !json.richContent) {
+          throw new Error('Invalid template JSON structure');
+        }
+        
+        updateTemplateData({
+          ...json,
+          updatedAt: new Date().toISOString(),
+        });
+        
+        toast({
+          title: 'JSON Imported',
+          description: `Template "${json.title}" imported successfully`,
+        });
+      } catch (error) {
+        console.error('Error importing JSON:', error);
+        toast({
+          title: 'Import Failed',
+          description: 'Invalid JSON file format',
+          variant: 'destructive',
+        });
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const renderPreview = () => {
+    const { getMockData } = require('@/services/seedTemplatesService');
+    const mockData = getMockData();
+    
+    let previewContent = templateData.richContent;
+    
+    // Replace variables with mock data
+    Object.entries(templateData.variableMappings).forEach(([variable, path]) => {
+      const pathParts = path.split('.');
+      let value: any = mockData;
+      
+      for (const part of pathParts) {
+        if (value && typeof value === 'object') {
+          value = value[part];
+        }
+      }
+      
+      if (value) {
+        previewContent = previewContent.replace(
+          new RegExp(`{{${variable}}}`, 'g'),
+          String(value)
+        );
+      }
+    });
+
+    return (
+      <div className="bg-background border rounded-lg shadow-lg mx-auto" style={{ 
+        width: templateData.output.pageSize === 'A4' ? '210mm' : '216mm',
+        minHeight: '297mm',
+        padding: `${templateData.output.margins.top}mm ${templateData.output.margins.right}mm ${templateData.output.margins.bottom}mm ${templateData.output.margins.left}mm`
+      }}>
+        {/* Header */}
+        {templateData.output.includeHeader && templateData.branding.header && (
+          <div className="pb-4 mb-6 border-b-2" style={{ borderColor: templateData.branding.primaryColor || '#0B5FFF' }}>
+            {templateData.branding.logo && (
+              <img src={templateData.branding.logo} alt="Logo" className="h-12 mb-2" />
+            )}
+            <h2 className="text-lg font-semibold" style={{ color: templateData.branding.primaryColor || '#0B5FFF' }}>
+              {templateData.branding.header}
+            </h2>
+          </div>
+        )}
+
+        {/* Watermark */}
+        {templateData.branding.watermark?.enabled && (
+          <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-0">
+            <div 
+              className="text-6xl font-bold transform -rotate-45"
+              style={{ 
+                opacity: (templateData.branding.watermark.opacity || 10) / 100,
+                color: templateData.branding.primaryColor || '#0B5FFF'
+              }}
+            >
+              CONFIDENTIAL
+            </div>
+          </div>
+        )}
+
+        {/* Content */}
+        <div 
+          className="prose prose-sm max-w-none relative z-10"
+          style={{ fontFamily: templateData.branding.font || 'Inter' }}
+          dangerouslySetInnerHTML={{ __html: previewContent }}
+        />
+
+        {/* Footer */}
+        {templateData.output.includeFooter && templateData.branding.footer && (
+          <div className="pt-4 mt-6 border-t text-sm text-muted-foreground">
+            <p>{templateData.branding.footer}</p>
+            {templateData.output.includePageNumbers && (
+              <p className="text-right text-xs mt-2">Page 1</p>
+            )}
+          </div>
+        )}
+      </div>
+    );
   };
 
   const handleSave = () => {
@@ -569,8 +742,29 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
 
               {/* Editor Content */}
               <ScrollArea className="flex-1 border border-t-0 rounded-b-lg">
-                <EditorContent editor={editor} />
+                {previewMode ? (
+                  <div className="bg-muted/20 p-8">
+                    {renderPreview()}
+                  </div>
+                ) : (
+                  <EditorContent editor={editor} />
+                )}
               </ScrollArea>
+
+              {/* Preview Toggle */}
+              <div className="border-t p-2 flex justify-between items-center bg-muted/30">
+                <div className="text-xs text-muted-foreground">
+                  {previewMode ? 'Preview Mode with Mock Data' : 'Editor Mode'}
+                </div>
+                <Button
+                  variant={previewMode ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setPreviewMode(!previewMode)}
+                >
+                  <Eye className="mr-2 h-4 w-4" />
+                  {previewMode ? 'Back to Editor' : 'Preview Document'}
+                </Button>
+              </div>
             </div>
           </TabsContent>
 
@@ -964,10 +1158,30 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
                 <p className="text-sm text-muted-foreground mb-4">
                   Upload a Word document with variable placeholders (e.g., {`{{client_name}}`}) for automatic detection and mapping.
                 </p>
-                <Button variant="outline" className="w-full">
-                  <Upload className="mr-2 h-4 w-4" />
-                  Choose DOCX File
-                </Button>
+                <Input
+                  type="file"
+                  accept=".docx"
+                  onChange={handleDocxUpload}
+                  disabled={isUploading}
+                  className="cursor-pointer"
+                />
+                {isUploading && (
+                  <p className="text-sm text-muted-foreground mt-2">Processing DOCX file...</p>
+                )}
+                {detectedVariables.length > 0 && (
+                  <div className="mt-4 p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded">
+                    <p className="text-sm font-medium text-green-900 dark:text-green-100 mb-2">
+                      Detected {detectedVariables.length} variables:
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {detectedVariables.map(variable => (
+                        <Badge key={variable} variant="secondary" className="text-xs">
+                          {`{{${variable}}}`}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="p-6 border rounded-lg bg-muted/30">
@@ -979,14 +1193,24 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
                   Export or import template configuration as JSON for version control and sharing.
                 </p>
                 <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1">
+                  <Button variant="outline" className="flex-1" onClick={handleExportJSON}>
                     <Download className="mr-2 h-4 w-4" />
                     Download JSON
                   </Button>
-                  <Button variant="outline" className="flex-1">
-                    <Upload className="mr-2 h-4 w-4" />
-                    Import JSON
-                  </Button>
+                  <label className="flex-1">
+                    <Button variant="outline" className="w-full" asChild>
+                      <span>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Import JSON
+                      </span>
+                    </Button>
+                    <Input
+                      type="file"
+                      accept=".json"
+                      onChange={handleImportJSON}
+                      className="hidden"
+                    />
+                  </label>
                 </div>
               </div>
 
