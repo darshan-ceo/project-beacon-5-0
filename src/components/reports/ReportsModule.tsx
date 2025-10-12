@@ -79,28 +79,32 @@ const reportTabs = [
 
 export const ReportsModule: React.FC<ReportsModuleProps> = ({ userRole }) => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState<ReportType>('case-reports');
   const [globalFilters, setGlobalFilters] = useState<ReportFilter>({});
   const [showSavedViews, setShowSavedViews] = useState(false);
+  
+  // Initialize activeTab from URL on mount only
+  const [activeTab, setActiveTab] = useState<ReportType>(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && reportTabs.some(t => t.id === tabParam)) {
+      return tabParam as ReportType;
+    }
+    return 'case-reports';
+  });
   
   // Check if user has reports access
   const hasReportsAccess = usePermission('reports', 'read');
   
-  // Read tab from URL on mount
-  useEffect(() => {
-    const tabParam = searchParams.get('tab');
-    if (tabParam && reportTabs.some(t => t.id === tabParam)) {
-      setActiveTab(tabParam as ReportType);
-    }
-  }, [searchParams]);
-  
-  // Update URL when tab changes
+  // Update URL when tab changes (with proper guards)
   useEffect(() => {
     const currentTab = searchParams.get('tab');
     if (currentTab !== activeTab) {
-      setSearchParams({ tab: activeTab }, { replace: true });
+      try {
+        setSearchParams({ tab: activeTab }, { replace: true });
+      } catch (error) {
+        console.error('Failed to update URL:', error);
+      }
     }
-  }, [activeTab]);
+  }, [activeTab, setSearchParams, searchParams]);
   
   if (!hasReportsAccess) {
     return (
