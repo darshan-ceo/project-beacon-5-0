@@ -197,7 +197,7 @@ export const DashboardTile: React.FC<TileProps> = ({ tile }) => {
   };
 
   return (
-    <Card className={`hover-lift tile-${tile.colorTheme} rounded-2xl shadow-sm border-0`}>
+    <Card className={`hover-lift tile-${tile.colorTheme} rounded-2xl shadow-sm border-0 !bg-transparent`}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
         <CardTitle className="text-sm font-semibold text-white">{tile.title}</CardTitle>
         {Icon && <Icon className="h-5 w-5 text-white/80" />}
