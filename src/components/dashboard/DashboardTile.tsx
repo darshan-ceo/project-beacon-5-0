@@ -7,8 +7,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import * as Icons from 'lucide-react';
-import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, ResponsiveContainer } from 'recharts';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { DashboardTile as TileType } from '@/utils/rbacHelper';
 import { format } from 'date-fns';
 
@@ -91,7 +90,14 @@ export const DashboardTile: React.FC<TileProps> = ({ tile }) => {
               <XAxis dataKey="name" stroke="#ffffff80" style={{ fontSize: '12px' }} />
               <YAxis stroke="#ffffff80" style={{ fontSize: '12px' }} />
               <Bar dataKey="value" fill="#ffffff" radius={[4, 4, 0, 0]} />
-              <ChartTooltip content={<ChartTooltipContent />} />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'rgba(0, 0, 0, 0.8)', 
+                  border: 'none', 
+                  borderRadius: '6px',
+                  color: '#fff'
+                }} 
+              />
             </BarChart>
           </ResponsiveContainer>
         );
@@ -118,7 +124,14 @@ export const DashboardTile: React.FC<TileProps> = ({ tile }) => {
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <ChartTooltip content={<ChartTooltipContent />} />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'rgba(0, 0, 0, 0.8)', 
+                  border: 'none', 
+                  borderRadius: '6px',
+                  color: '#fff'
+                }} 
+              />
             </PieChart>
           </ResponsiveContainer>
         );
