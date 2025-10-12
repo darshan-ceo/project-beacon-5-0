@@ -28,9 +28,10 @@ import {
   Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, AlignLeft,
   AlignCenter, AlignRight, Table as TableIcon, Undo, Redo, Eye, Plus,
   Building2, Briefcase, User, Landmark, Calendar, Hash, Mail, Phone,
-  FileType, Sparkles, Save
+  FileType, Sparkles, Save, Shield
 } from 'lucide-react';
 import { FormField } from '@/services/formTemplatesService';
+import { useRBAC } from '@/hooks/useRBAC';
 
 export interface UnifiedTemplate {
   // Metadata
@@ -175,6 +176,9 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
   onSave,
   initialTemplate
 }) => {
+  const { hasPermission } = useRBAC();
+  const isAdmin = hasPermission('admin', 'admin');
+  
   const [activeTab, setActiveTab] = useState<'design' | 'fields' | 'branding' | 'output' | 'import'>('design');
   const [templateData, setTemplateData] = useState<UnifiedTemplate>(
     initialTemplate || createDefaultTemplate()
@@ -412,9 +416,10 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
                 <Settings className="h-4 w-4" />
                 Output
               </TabsTrigger>
-              <TabsTrigger value="import" className="flex items-center gap-2">
+              <TabsTrigger value="import" className="flex items-center gap-2" disabled={!isAdmin}>
                 <Upload className="h-4 w-4" />
                 Import/Export
+                {!isAdmin && <Shield className="h-3 w-3 ml-1 text-muted-foreground" />}
               </TabsTrigger>
             </TabsList>
           </div>
