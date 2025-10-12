@@ -20,6 +20,26 @@ export const DashboardTile: React.FC<TileProps> = ({ tile }) => {
   const [loading, setLoading] = useState(true);
   const Icon = Icons[tile.icon as keyof typeof Icons] as React.ComponentType<{ className?: string }>;
 
+  // Map tile color theme to gradient
+  const getTileGradient = (theme: string): string => {
+    const gradients: Record<string, string> = {
+      'vibrant-green': 'linear-gradient(135deg, hsl(174 100% 38%) 0%, hsl(174 100% 45%) 100%)',
+      'vibrant-blue': 'linear-gradient(135deg, hsl(217 100% 52%) 0%, hsl(188 100% 50%) 100%)',
+      'vibrant-cyan': 'linear-gradient(135deg, hsl(188 100% 50%) 0%, hsl(174 100% 45%) 100%)',
+      'vibrant-purple': 'linear-gradient(135deg, hsl(258 90% 66%) 0%, hsl(266 85% 75%) 100%)',
+      'vibrant-teal': 'linear-gradient(135deg, hsl(173 80% 40%) 0%, hsl(174 100% 38%) 100%)',
+      'vibrant-amber': 'linear-gradient(135deg, hsl(38 92% 50%) 0%, hsl(25 95% 53%) 100%)',
+      'vibrant-red': 'linear-gradient(135deg, hsl(0 84% 60%) 0%, hsl(0 72% 51%) 100%)',
+      'vibrant-orange': 'linear-gradient(135deg, hsl(25 95% 53%) 0%, hsl(38 92% 50%) 100%)',
+      'vibrant-pink': 'linear-gradient(135deg, hsl(330 81% 60%) 0%, hsl(336 84% 73%) 100%)',
+      'vibrant-lavender': 'linear-gradient(135deg, hsl(258 90% 66%) 0%, hsl(266 85% 80%) 100%)',
+      'vibrant-yellow': 'linear-gradient(135deg, hsl(45 93% 47%) 0%, hsl(48 96% 53%) 100%)',
+      'vibrant-indigo': 'linear-gradient(135deg, hsl(239 84% 67%) 0%, hsl(243 75% 79%) 100%)',
+      'vibrant-gray': 'linear-gradient(135deg, hsl(215 16% 47%) 0%, hsl(218 11% 65%) 100%)',
+    };
+    return gradients[theme] || 'linear-gradient(135deg, hsl(217 100% 52%) 0%, hsl(174 100% 38%) 100%)';
+  };
+
   // Load mock data
   useEffect(() => {
     fetch(tile.mockDataSource)
@@ -197,7 +217,10 @@ export const DashboardTile: React.FC<TileProps> = ({ tile }) => {
   };
 
   return (
-    <Card className={`hover-lift tile-${tile.colorTheme} rounded-2xl shadow-sm border-0 !bg-transparent`}>
+    <Card 
+      className="hover-lift rounded-2xl shadow-sm border-0 text-white"
+      style={{ background: getTileGradient(tile.colorTheme) }}
+    >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
         <CardTitle className="text-sm font-semibold text-white">{tile.title}</CardTitle>
         {Icon && <Icon className="h-5 w-5 text-white/80" />}
