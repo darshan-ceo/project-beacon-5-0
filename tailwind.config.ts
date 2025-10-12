@@ -107,6 +107,21 @@ export default {
 					pending: 'hsl(var(--legal-pending))',
 					approved: 'hsl(var(--legal-approved))',
 					draft: 'hsl(var(--legal-draft))'
+				},
+				vibrant: {
+					green: { DEFAULT: 'hsl(174 100% 38%)', light: 'hsl(174 100% 45%)', dark: 'hsl(174 80% 30%)' },
+					blue: { DEFAULT: 'hsl(217 100% 52%)', light: 'hsl(188 100% 50%)', dark: 'hsl(217 80% 40%)' },
+					cyan: { DEFAULT: 'hsl(188 100% 50%)', light: 'hsl(174 100% 45%)', dark: 'hsl(188 80% 40%)' },
+					purple: { DEFAULT: 'hsl(258 90% 66%)', light: 'hsl(266 85% 75%)', dark: 'hsl(258 80% 50%)' },
+					teal: { DEFAULT: 'hsl(173 80% 40%)', light: 'hsl(174 100% 38%)', dark: 'hsl(173 80% 30%)' },
+					amber: { DEFAULT: 'hsl(38 92% 50%)', light: 'hsl(25 95% 53%)', dark: 'hsl(38 80% 40%)' },
+					red: { DEFAULT: 'hsl(0 84% 60%)', light: 'hsl(0 72% 51%)', dark: 'hsl(0 80% 45%)' },
+					orange: { DEFAULT: 'hsl(25 95% 53%)', light: 'hsl(38 92% 50%)', dark: 'hsl(25 80% 45%)' },
+					pink: { DEFAULT: 'hsl(330 81% 60%)', light: 'hsl(336 84% 73%)', dark: 'hsl(330 80% 50%)' },
+					lavender: { DEFAULT: 'hsl(258 90% 66%)', light: 'hsl(266 85% 80%)', dark: 'hsl(258 80% 50%)' },
+					yellow: { DEFAULT: 'hsl(45 93% 47%)', light: 'hsl(48 96% 53%)', dark: 'hsl(45 80% 40%)' },
+					indigo: { DEFAULT: 'hsl(239 84% 67%)', light: 'hsl(243 75% 79%)', dark: 'hsl(239 80% 50%)' },
+					gray: { DEFAULT: 'hsl(215 16% 47%)', light: 'hsl(218 11% 65%)', dark: 'hsl(215 20% 35%)' }
 				}
 			},
 			borderRadius: {
