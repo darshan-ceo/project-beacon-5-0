@@ -5,10 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
 import { Document, useAppState } from '@/contexts/AppStateContext';
 import { dmsService } from '@/services/dmsService';
-import { FieldTooltip } from '@/components/ui/field-tooltip';
+import { Upload, FileText, Link2, Tag } from 'lucide-react';
 import { TagInput } from '@/components/ui/TagInput';
 import { useRBAC } from '@/hooks/useAdvancedRBAC';
 
@@ -37,14 +38,13 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
     caseId: 'none',
     folderId: selectedFolderId || 'none',
     tags: [] as string[],
-    isShared: false,
+    sharedWithClient: false,
     file: null as File | null
   });
   const [newTag, setNewTag] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Load folders on component mount
     const loadFolders = async () => {
       try {
         const folderList = await dmsService.folders.listAll();
@@ -65,7 +65,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
         caseId: documentData.caseId || 'none',
         folderId: (documentData as any).folderId || 'none',
         tags: documentData.tags,
-        isShared: documentData.isShared,
+        sharedWithClient: documentData.isShared,
         file: null
       });
     } else if (mode === 'upload') {
@@ -75,7 +75,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
         caseId: 'none',
         folderId: selectedFolderId || 'none',
         tags: [],
-        isShared: false,
+        sharedWithClient: false,
         file: null
       });
     }
@@ -86,8 +86,6 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
     setLoading(true);
     
     try {
-      // PHASE 3B: RBAC Security Check - currentUserId now from component top level
-      
       if (mode === 'upload') {
         if (!formData.file) {
           toast({
@@ -99,14 +97,12 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
         }
 
         if (onUpload) {
-          // Use the parent component's upload handler
           await onUpload(formData.file, {
             folderId: formData.folderId === "none" ? undefined : formData.folderId,
             caseId: formData.caseId === "none" ? undefined : formData.caseId,
             tags: formData.tags
           });
         } else {
-          // Fallback to direct upload
           const uploadOptions = {
             folderId: formData.folderId === "none" ? undefined : formData.folderId,
             caseId: formData.caseId === "none" ? undefined : formData.caseId,
@@ -117,7 +113,6 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
           const result = await dmsService.files.upload(currentUserId, formData.file, uploadOptions, dispatch);
           
           if (!result.success && result.duplicate) {
-            // Handle duplicates through parent component
             toast({
               title: "Duplicate File",
               description: "A file with this name already exists.",
@@ -132,7 +127,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
           name: formData.name,
           caseId: formData.caseId,
           tags: formData.tags,
-          isShared: formData.isShared
+          isShared: formData.sharedWithClient
         };
 
         await dmsService.files.updateMetadata(documentData.id, {
@@ -192,144 +187,262 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-beacon-modal max-h-[90vh]" data-tour="document-metadata">
+      <DialogContent className="max-w-beacon-modal max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Upload className="h-5 w-5" />
             {mode === 'upload' && 'Upload Document'}
             {mode === 'edit' && 'Edit Document'}
             {mode === 'view' && 'Document Details'}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4" data-tour="upload-form">
-          {mode === 'upload' && (
-            <div>
-              <div className="flex items-center gap-1">
-                <Label htmlFor="file">Select File</Label>
-                <FieldTooltip formId="upload-document" fieldId="file" />
-              </div>
-              <Input
-                id="file"
-                type="file"
-                onChange={handleFileChange}
-                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-                required
-              />
-              {formData.file && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  {formData.file.name} ({formatFileSize(formData.file.size)})
-                </p>
-              )}
-            </div>
-          )}
-
-          {mode === 'view' && documentData && (
-            <div className="bg-muted p-4 rounded-lg">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="font-medium">File Size:</span> {formatFileSize(documentData.size)}
+        <DialogBody className="overflow-y-auto max-h-[60vh]">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {mode === 'upload' && (
+              <>
+                {/* Section 1: File Selection */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 pb-2 border-b">
+                    <FileText className="h-4 w-4 text-primary" />
+                    <h3 className="text-sm font-semibold">File Selection</h3>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      Supported formats: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG. Maximum size: 50MB
+                    </p>
+                    <div>
+                      <Label htmlFor="file">Select File <span className="text-destructive">*</span></Label>
+                      <Input
+                        id="file"
+                        type="file"
+                        onChange={handleFileChange}
+                        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                        required
+                      />
+                      {formData.file && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {formData.file.name} ({formatFileSize(formData.file.size)})
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <span className="font-medium">Uploaded By:</span> {documentData.uploadedByName}
+
+                {/* Section 2: Document Details */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 pb-2 border-b">
+                    <FileText className="h-4 w-4 text-primary" />
+                    <h3 className="text-sm font-semibold">Document Details</h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="name">Document Name <span className="text-destructive">*</span></Label>
+                      <Input
+                        id="name"
+                        value={formData.name}
+                        onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="e.g., GST Return - March 2024"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="folder">Folder</Label>
+                      <Select
+                        value={formData.folderId}
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, folderId: value }))}
+                      >
+                        <SelectTrigger id="folder">
+                          <SelectValue placeholder="Select folder" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No folder</SelectItem>
+                          {state.folders.map((folder) => (
+                            <SelectItem key={folder.id} value={folder.id}>
+                              {folder.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <span className="font-medium">Upload Date:</span> {new Date(documentData.uploadedAt).toLocaleDateString()}
+
+                {/* Section 3: Associations */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 pb-2 border-b">
+                    <Link2 className="h-4 w-4 text-primary" />
+                    <h3 className="text-sm font-semibold">Associations</h3>
+                  </div>
+                  <div>
+                    <Label htmlFor="case">Associate with Case</Label>
+                    <Select
+                      value={formData.caseId || 'none'}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, caseId: value }))}
+                    >
+                      <SelectTrigger id="case">
+                        <SelectValue placeholder="Select case (optional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No Case Association</SelectItem>
+                        {state.cases.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.caseNumber} - {c.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div>
-                  <span className="font-medium">File Path:</span> {documentData.path}
+
+                {/* Section 4: Tags & Sharing */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 pb-2 border-b">
+                    <Tag className="h-4 w-4 text-primary" />
+                    <h3 className="text-sm font-semibold">Tags & Sharing</h3>
+                  </div>
+                  <div>
+                    <Label htmlFor="tags">Tags</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="tags"
+                        value={newTag}
+                        onChange={(e) => setNewTag(e.target.value)}
+                        placeholder="Add a tag"
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddTag();
+                          }
+                        }}
+                      />
+                      <Button type="button" variant="outline" onClick={handleAddTag}>
+                        Add
+                      </Button>
+                    </div>
+                    {formData.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {formData.tags.map((tag, index) => (
+                          <Badge key={index} variant="secondary" className="cursor-pointer" onClick={() => handleRemoveTag(tag)}>
+                            {tag} ×
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="share"
+                      checked={formData.sharedWithClient}
+                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, sharedWithClient: checked }))}
+                    />
+                    <Label htmlFor="share">Share with client</Label>
+                  </div>
                 </div>
-              </div>
-            </div>
-          )}
+              </>
+            )}
 
-          <div>
-            <div className="flex items-center gap-1">
-              <Label htmlFor="name">Document Name</Label>
-              <FieldTooltip formId="upload-document" fieldId="name" />
-            </div>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              disabled={mode === 'view'}
-              required
-            />
-          </div>
+            {/* Edit and View modes */}
+            {mode !== 'upload' && (
+              <>
+                {mode === 'view' && documentData && (
+                  <div className="bg-muted p-4 rounded-lg mb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="font-medium">File Size:</span> {formatFileSize(documentData.size)}
+                      </div>
+                      <div>
+                        <span className="font-medium">Uploaded By:</span> {documentData.uploadedByName}
+                      </div>
+                      <div>
+                        <span className="font-medium">Upload Date:</span> {new Date(documentData.uploadedAt).toLocaleDateString()}
+                      </div>
+                      <div>
+                        <span className="font-medium">File Path:</span> {documentData.path}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-          <div>
-            <div className="flex items-center gap-1">
-              <Label htmlFor="folderId">Folder</Label>
-              <FieldTooltip formId="upload-document" fieldId="folder" />
-            </div>
-            <Select 
-              value={formData.folderId} 
-              onValueChange={(value) => setFormData(prev => ({ ...prev, folderId: value }))}
-              disabled={mode === 'view'}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select folder" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No folder</SelectItem>
-                {state.folders.map((folder) => (
-                  <SelectItem key={folder.id} value={folder.id}>
-                    {folder.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+                <div>
+                  <Label htmlFor="name">Document Name <span className="text-destructive">*</span></Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    disabled={mode === 'view'}
+                    required
+                  />
+                </div>
 
-          <div>
-            <div className="flex items-center gap-1">
-              <Label htmlFor="caseId">Associated Case</Label>
-              <FieldTooltip formId="upload-document" fieldId="case-association" />
-            </div>
-            <Select 
-              value={formData.caseId} 
-              onValueChange={(value) => setFormData(prev => ({ ...prev, caseId: value }))}
-              disabled={mode === 'view'}
-              data-tour="case-selector-dms"
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select case (optional)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No Case Association</SelectItem>
-                {state.cases.map((case_) => (
-                  <SelectItem key={case_.id} value={case_.id}>
-                    {case_.caseNumber} - {case_.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="folderId">Folder</Label>
+                    <Select 
+                      value={formData.folderId} 
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, folderId: value }))}
+                      disabled={mode === 'view'}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select folder" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No folder</SelectItem>
+                        {state.folders.map((folder) => (
+                          <SelectItem key={folder.id} value={folder.id}>
+                            {folder.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-          <div>
-            <div className="flex items-center gap-1">
-              <Label>Tags</Label>
-              <FieldTooltip formId="upload-document" fieldId="tags" />
-            </div>
-            <TagInput
-              value={formData.tags}
-              onChange={(tags) => setFormData(prev => ({ ...prev, tags }))}
-              placeholder="Add tags to organize documents..."
-              disabled={mode === 'view'}
-              maxTags={8}
-            />
-          </div>
+                  <div>
+                    <Label htmlFor="caseId">Associated Case</Label>
+                    <Select 
+                      value={formData.caseId} 
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, caseId: value }))}
+                      disabled={mode === 'view'}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select case (optional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No Case Association</SelectItem>
+                        {state.cases.map((case_) => (
+                          <SelectItem key={case_.id} value={case_.id}>
+                            {case_.caseNumber} - {case_.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
 
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="isShared"
-              checked={formData.isShared}
-              onChange={(e) => setFormData(prev => ({ ...prev, isShared: e.target.checked }))}
-              disabled={mode === 'view'}
-            />
-            <Label htmlFor="isShared">Share with client</Label>
-          </div>
-        </form>
+                <div>
+                  <Label>Tags</Label>
+                  <TagInput
+                    value={formData.tags}
+                    onChange={(tags) => setFormData(prev => ({ ...prev, tags }))}
+                    placeholder="Add tags to organize documents..."
+                    disabled={mode === 'view'}
+                    maxTags={8}
+                  />
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="isShared"
+                    checked={formData.sharedWithClient}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, sharedWithClient: checked }))}
+                    disabled={mode === 'view'}
+                  />
+                  <Label htmlFor="isShared">Share with client</Label>
+                </div>
+              </>
+            )}
+          </form>
+        </DialogBody>
 
         <DialogFooter className="gap-3">
           <Button type="button" variant="outline" onClick={onClose}>
@@ -339,7 +452,6 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
             <Button 
               type="button"
               onClick={() => {
-                // In a real app, this would download the file
                 toast({
                   title: "Download Started",
                   description: `Downloading ${documentData?.name}...`,

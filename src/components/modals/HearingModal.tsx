@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, MapPin } from 'lucide-react';
+import { CalendarIcon, MapPin, Scale, Calendar as CalendarCheckIcon, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
 import { Hearing, useAppState } from '@/contexts/AppStateContext';
@@ -186,15 +186,16 @@ export const HearingModal: React.FC<HearingModalProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-beacon-modal max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Scale className="h-5 w-5" />
             {mode === 'create' && 'Schedule New Hearing'}
             {mode === 'edit' && 'Edit Hearing'}
             {mode === 'view' && 'Hearing Details'}
           </DialogTitle>
         </DialogHeader>
 
-        <DialogBody>
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <DialogBody className="overflow-y-auto max-h-[60vh]">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {/* Context Information */}
             {context.clientId && (
               <ContextBadge
@@ -204,7 +205,13 @@ export const HearingModal: React.FC<HearingModalProps> = ({
               />
             )}
 
-            <div className="grid grid-cols-2 gap-4">
+            {/* Section 1: Case & Court Details */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 pb-2 border-b">
+                <Scale className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-semibold">Case & Court Details</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 {contextCaseId ? (
                   <ContextBadge
@@ -249,8 +256,15 @@ export const HearingModal: React.FC<HearingModalProps> = ({
                 disabled={mode === 'view' || !formData.courtId}
               />
             </div>
+            </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            {/* Section 2: Schedule Information */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 pb-2 border-b">
+                <CalendarCheckIcon className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-semibold">Schedule Information</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <div className="flex items-center gap-1">
                   <Label>Hearing Date</Label>
@@ -296,6 +310,7 @@ export const HearingModal: React.FC<HearingModalProps> = ({
                 />
               </div>
             </div>
+            </div>
 
             {/* Court Address Display */}
             {formData.courtId && isAddressMasterEnabled && (() => {
@@ -329,19 +344,26 @@ export const HearingModal: React.FC<HearingModalProps> = ({
               ) : null;
             })()}
 
-            <div>
-              <div className="flex items-center gap-1">
-                <Label htmlFor="agenda">Agenda</Label>
-                <FieldTooltip formId="create-hearing" fieldId="agenda" />
+            {/* Section 3: Hearing Details */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 pb-2 border-b">
+                <FileText className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-semibold">Hearing Details</h3>
               </div>
-              <Textarea
-                id="agenda"
-                value={formData.agenda}
-                onChange={(e) => setFormData(prev => ({ ...prev, agenda: e.target.value }))}
-                disabled={mode === 'view'}
-                rows={3}
-                required
-              />
+              <div>
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="agenda">Agenda <span className="text-destructive">*</span></Label>
+                  <FieldTooltip formId="create-hearing" fieldId="agenda" />
+                </div>
+                <Textarea
+                  id="agenda"
+                  value={formData.agenda}
+                  onChange={(e) => setFormData(prev => ({ ...prev, agenda: e.target.value }))}
+                  disabled={mode === 'view'}
+                  rows={3}
+                  required
+                />
+              </div>
             </div>
           </form>
         </DialogBody>

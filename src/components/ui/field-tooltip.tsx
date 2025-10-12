@@ -357,17 +357,19 @@ export const FieldTooltip: React.FC<FieldTooltipProps> = ({
   }
 
   return (
-    <TooltipProvider delayDuration={300}>
+    <TooltipProvider delayDuration={500}>
       <Tooltip open={isOpen} onOpenChange={setIsOpen}>
         <TooltipTrigger asChild>
           <button
             type="button"
             className="inline-flex items-center justify-center w-4 h-4 ml-1 text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
             aria-label={`Help for ${helpContent.title || fieldId}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsOpen(!isOpen);
+            }}
             onMouseEnter={() => setIsOpen(true)}
             onMouseLeave={() => setIsOpen(false)}
-            onFocus={() => setIsOpen(true)}
-            onBlur={() => setIsOpen(false)}
           >
             <HelpCircle className="w-3 h-3" />
           </button>

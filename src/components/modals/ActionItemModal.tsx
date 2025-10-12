@@ -9,8 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAppState } from '@/contexts/AppStateContext';
 import { useToast } from '@/hooks/use-toast';
-import { AlertTriangle, Plus, Clock, User } from 'lucide-react';
-import { FieldTooltip } from '@/components/ui/field-tooltip';
+import { CheckSquare, FileText, User, Plus } from 'lucide-react';
 
 interface ActionItemModalProps {
   isOpen: boolean;
@@ -34,16 +33,10 @@ export const ActionItemModal: React.FC<ActionItemModalProps> = ({
     description: '',
     priority: urgencyLevel,
     assignee: '',
-    dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0] // Tomorrow
+    dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   });
 
-  const availableAssignees = [
-    'Partner 1',
-    'Associate 1', 
-    'Associate 2',
-    'Paralegal 1',
-    'Paralegal 2'
-  ];
+  const availableAssignees = ['Partner 1', 'Associate 1', 'Associate 2', 'Paralegal 1', 'Paralegal 2'];
 
   const handleCreateTask = () => {
     if (!caseId || !formData.title || !formData.assignee) {
@@ -89,112 +82,95 @@ export const ActionItemModal: React.FC<ActionItemModalProps> = ({
     });
 
     onClose();
-    setFormData({
-      title: '',
-      description: '',
-      priority: 'Medium',
-      assignee: '',
-      dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-    });
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-beacon-modal max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-warning" />
-            Create Action Item
-          </DialogTitle>
-          <DialogDescription>
-            Create a task to address the SLA breach
-          </DialogDescription>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center gap-2">
+              <CheckSquare className="h-5 w-5" />
+              Create Action Item
+            </DialogTitle>
+            <Badge variant={urgencyLevel === 'High' ? 'destructive' : urgencyLevel === 'Medium' ? 'default' : 'secondary'}>
+              {urgencyLevel}
+            </Badge>
+          </div>
         </DialogHeader>
 
-        <DialogBody className="space-y-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Urgency Level</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Badge variant={
-                urgencyLevel === 'High' ? 'destructive' : 
-                urgencyLevel === 'Medium' ? 'default' : 
-                'secondary'
-              }>
-                {urgencyLevel} Priority
-              </Badge>
-            </CardContent>
-          </Card>
-
-          <div className="space-y-2">
-            <div className="flex items-center gap-1">
-              <Label htmlFor="title">Task Title *</Label>
-              <FieldTooltip formId="create-action-item" fieldId="title" />
+        <DialogBody className="overflow-y-auto max-h-[60vh]">
+          <form className="space-y-6">
+            {/* Section 1: Task Information */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 pb-2 border-b">
+                <FileText className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-semibold">Task Information</h3>
+              </div>
+              <div>
+                <Label htmlFor="title">Task Title <span className="text-destructive">*</span></Label>
+                <Input
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  placeholder="Enter task title"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Enter task description"
+                  rows={3}
+                />
+              </div>
             </div>
-            <Input
-              id="title"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              placeholder="Enter task title..."
-            />
-          </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center gap-1">
-              <Label htmlFor="description">Description</Label>
-              <FieldTooltip formId="create-action-item" fieldId="description" />
+            {/* Section 2: Assignment & Schedule */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 pb-2 border-b">
+                <User className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-semibold">Assignment & Schedule</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="assignee">Assign To <span className="text-destructive">*</span></Label>
+                  <Select value={formData.assignee} onValueChange={(value) => setFormData({ ...formData, assignee: value })}>
+                    <SelectTrigger id="assignee">
+                      <SelectValue placeholder="Select assignee" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableAssignees.map((assignee) => (
+                        <SelectItem key={assignee} value={assignee}>
+                          {assignee}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="dueDate">Due Date <span className="text-destructive">*</span></Label>
+                  <Input
+                    id="dueDate"
+                    type="date"
+                    value={formData.dueDate}
+                    onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
             </div>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Add task details..."
-              rows={3}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center gap-1">
-              <Label htmlFor="assignee">Assign To *</Label>
-              <FieldTooltip formId="create-action-item" fieldId="assignee" />
-            </div>
-            <Select value={formData.assignee} onValueChange={(value) => setFormData({ ...formData, assignee: value })}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select assignee" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableAssignees.map((assignee) => (
-                  <SelectItem key={assignee} value={assignee}>
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4" />
-                      {assignee}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="dueDate">Due Date *</Label>
-            <Input
-              id="dueDate"
-              type="date"
-              value={formData.dueDate}
-              onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-            />
-          </div>
+          </form>
         </DialogBody>
 
         <DialogFooter className="gap-3">
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleCreateTask} 
-            disabled={!formData.title || !formData.assignee}
-          >
+          <Button onClick={handleCreateTask} disabled={!formData.title || !formData.assignee}>
             <Plus className="mr-2 h-4 w-4" />
             Create Task
           </Button>

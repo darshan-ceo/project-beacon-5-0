@@ -14,7 +14,7 @@ import { AddressForm } from '@/components/ui/AddressForm';
 import { AddressView } from '@/components/ui/AddressView';
 import { EnhancedAddressData, addressMasterService } from '@/services/addressMasterService';
 import { featureFlagService } from '@/services/featureFlagService';
-import { MapPin, Phone, Mail } from 'lucide-react';
+import { MapPin, Phone, Mail, Building2, Scale } from 'lucide-react';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
 
 interface CourtModalProps {
@@ -220,7 +220,8 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-beacon-modal max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Building2 className="h-5 w-5" />
             {mode === 'create' ? 'Add New Court' : mode === 'edit' ? 'Edit Court' : 'View Court'}
           </DialogTitle>
           <DialogDescription>
@@ -230,57 +231,64 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
           </DialogDescription>
         </DialogHeader>
 
-        <DialogBody>
+        <DialogBody className="overflow-y-auto max-h-[60vh]">
           <form id="court-form" onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <div className="flex items-center gap-1">
-              <Label htmlFor="name">Court Name</Label>
-              <FieldTooltip formId="create-court" fieldId="name" />
-            </div>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              disabled={mode === 'view'}
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <div className="flex items-center gap-1">
-                <Label htmlFor="type">Court Type</Label>
-                <FieldTooltip formId="create-court" fieldId="type" />
-              </div>
-              <Select 
-                value={formData.type} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, type: value as any }))}
-                disabled={mode === 'view'}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Supreme Court">Supreme Court</SelectItem>
-                  <SelectItem value="High Court">High Court</SelectItem>
-                  <SelectItem value="District Court">District Court</SelectItem>
-                  <SelectItem value="Tribunal">Tribunal</SelectItem>
-                  <SelectItem value="Commission">Commission</SelectItem>
-                </SelectContent>
-              </Select>
+          {/* Section 1: Basic Information */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b">
+              <Scale className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-semibold">Basic Information</h3>
             </div>
             <div>
               <div className="flex items-center gap-1">
-                <Label htmlFor="jurisdiction">Jurisdiction</Label>
-                <FieldTooltip formId="create-court" fieldId="jurisdiction" />
+                <Label htmlFor="name">Court Name <span className="text-destructive">*</span></Label>
+                <FieldTooltip formId="create-court" fieldId="name" />
               </div>
               <Input
-                id="jurisdiction"
-                value={formData.jurisdiction}
-                onChange={(e) => setFormData(prev => ({ ...prev, jurisdiction: e.target.value }))}
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 disabled={mode === 'view'}
                 required
               />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="type">Court Type <span className="text-destructive">*</span></Label>
+                  <FieldTooltip formId="create-court" fieldId="type" />
+                </div>
+                <Select 
+                  value={formData.type} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, type: value as any }))}
+                  disabled={mode === 'view'}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Supreme Court">Supreme Court</SelectItem>
+                    <SelectItem value="High Court">High Court</SelectItem>
+                    <SelectItem value="District Court">District Court</SelectItem>
+                    <SelectItem value="Tribunal">Tribunal</SelectItem>
+                    <SelectItem value="Commission">Commission</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="jurisdiction">Jurisdiction <span className="text-destructive">*</span></Label>
+                  <FieldTooltip formId="create-court" fieldId="jurisdiction" />
+                </div>
+                <Input
+                  id="jurisdiction"
+                  value={formData.jurisdiction}
+                  onChange={(e) => setFormData(prev => ({ ...prev, jurisdiction: e.target.value }))}
+                  disabled={mode === 'view'}
+                  required
+                />
+              </div>
             </div>
           </div>
 
@@ -354,61 +362,68 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="establishedYear">Established Year</Label>
-              <Input
-                id="establishedYear"
-                type="number"
-                value={formData.establishedYear}
-                onChange={(e) => setFormData(prev => ({ ...prev, establishedYear: parseInt(e.target.value) || new Date().getFullYear() }))}
-                disabled={mode === 'view'}
-                min="1800"
-                max={new Date().getFullYear()}
-                required
-              />
+          {/* Section 3: Court Details */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b">
+              <Building2 className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-semibold">Court Details</h3>
             </div>
-            <div>
-              <div className="flex items-center gap-1">
-                <Label htmlFor="totalJudges">Total Judges</Label>
-                <FieldTooltip formId="create-court" fieldId="total-judges" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="establishedYear">Established Year <span className="text-destructive">*</span></Label>
+                <Input
+                  id="establishedYear"
+                  type="number"
+                  value={formData.establishedYear}
+                  onChange={(e) => setFormData(prev => ({ ...prev, establishedYear: parseInt(e.target.value) || new Date().getFullYear() }))}
+                  disabled={mode === 'view'}
+                  min="1800"
+                  max={new Date().getFullYear()}
+                  required
+                />
               </div>
-              <Input
-                id="totalJudges"
-                type="number"
-                value={formData.totalJudges}
-                onChange={(e) => setFormData(prev => ({ ...prev, totalJudges: parseInt(e.target.value) || 1 }))}
-                disabled={mode === 'view'}
-                min="1"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="digitalFiling"
-              checked={formData.digitalFiling}
-              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, digitalFiling: checked }))}
-              disabled={mode === 'view'}
-            />
-            <Label htmlFor="digitalFiling">Digital Filing Enabled</Label>
-          </div>
-
-          <div>
-            <Label>Working Days</Label>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {workingDayOptions.map(day => (
-                <div key={day} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={day}
-                    checked={formData.workingDays.includes(day)}
-                    onCheckedChange={(checked) => handleWorkingDayChange(day, checked as boolean)}
-                    disabled={mode === 'view'}
-                  />
-                  <Label htmlFor={day} className="text-sm">{day}</Label>
+              <div>
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="totalJudges">Total Judges <span className="text-destructive">*</span></Label>
+                  <FieldTooltip formId="create-court" fieldId="total-judges" />
                 </div>
-              ))}
+                <Input
+                  id="totalJudges"
+                  type="number"
+                  value={formData.totalJudges}
+                  onChange={(e) => setFormData(prev => ({ ...prev, totalJudges: parseInt(e.target.value) || 1 }))}
+                  disabled={mode === 'view'}
+                  min="1"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="digitalFiling"
+                checked={formData.digitalFiling}
+                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, digitalFiling: checked }))}
+                disabled={mode === 'view'}
+              />
+              <Label htmlFor="digitalFiling">Digital Filing Enabled</Label>
+            </div>
+
+            <div>
+              <Label>Working Days</Label>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {workingDayOptions.map(day => (
+                  <div key={day} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={day}
+                      checked={formData.workingDays.includes(day)}
+                      onCheckedChange={(checked) => handleWorkingDayChange(day, checked as boolean)}
+                      disabled={mode === 'view'}
+                    />
+                    <Label htmlFor={day} className="text-sm">{day}</Label>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
           </form>
