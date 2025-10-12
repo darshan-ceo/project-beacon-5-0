@@ -14,7 +14,8 @@ import {
   Tag,
   MessageSquare,
   Paperclip,
-  MoreVertical
+  MoreVertical,
+  Building2
 } from 'lucide-react';
 import {
   Drawer,
@@ -34,7 +35,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Task } from '@/contexts/AppStateContext';
+import { Task, useAppState } from '@/contexts/AppStateContext';
 import { formatDistanceToNow } from 'date-fns';
 
 interface TaskDrawerProps {
@@ -67,8 +68,25 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
   onUpdateTask,
   onDeleteTask
 }) => {
+  const { state } = useAppState();
   const [isEditing, setIsEditing] = useState(false);
   const [editedTask, setEditedTask] = useState<Partial<Task>>({});
+
+  // Get client name
+  const getClientName = () => {
+    if (!task) return null;
+    
+    // First, check if task has clientName property (from enrichment)
+    if ((task as any).clientName) {
+      return (task as any).clientName;
+    }
+    
+    // Otherwise, look up from clientId
+    const client = state.clients.find(c => c.id === task.clientId);
+    return client?.name || null;
+  };
+  
+  const clientName = getClientName();
 
   useEffect(() => {
     if (task) {
@@ -118,6 +136,15 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
                   task.title
                 )}
               </DrawerTitle>
+              
+              {/* Client Name Section */}
+              {clientName && (
+                <div className="flex items-center gap-2 text-sm text-foreground font-medium">
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                  <span>{clientName}</span>
+                </div>
+              )}
+              
               <DrawerDescription className="text-left">
                 {task.caseNumber} • {task.stage}
               </DrawerDescription>
