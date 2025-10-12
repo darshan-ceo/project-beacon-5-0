@@ -169,6 +169,18 @@ export const DocumentManagement: React.FC = () => {
     const returnTo = searchParams.get('returnTo');
     const returnCaseId = searchParams.get('returnCaseId');
     const openTemplateBuilder = searchParams.get('openTemplateBuilder');
+    const filterParam = searchParams.get('filter');
+    
+    // Handle filter=today drill-down from dashboard
+    if (filterParam === 'today') {
+      setActiveTab('recent');
+      const today = new Date().toISOString().split('T')[0];
+      setActiveFilters(prev => ({ 
+        ...prev, 
+        dateFrom: today,
+        dateTo: today 
+      }));
+    }
     
     if (search) {
       setSearchTerm(search);

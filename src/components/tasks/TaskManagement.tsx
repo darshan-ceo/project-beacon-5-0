@@ -126,6 +126,12 @@ export const TaskManagement: React.FC = () => {
     const caseId = searchParams.get('caseId');
     const returnTo = searchParams.get('returnTo');
     const returnCaseId = searchParams.get('returnCaseId');
+    const statusParam = searchParams.get('status');
+    
+    // Read status from URL for drill-down filtering
+    if (statusParam && ['Pending', 'In Progress', 'Overdue', 'Completed', 'Review', 'Not Started'].includes(statusParam)) {
+      setFilterStatus(statusParam as Task['status']);
+    }
     
     if (highlight) {
       setHighlightedTaskId(highlight);

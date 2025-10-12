@@ -76,6 +76,7 @@ export const CaseManagement: React.FC = () => {
   
   const [filterStage, setFilterStage] = useState<'all' | string>('all');
   const [filterTimelineBreach, setFilterTimelineBreach] = useState<'all' | string>('all');
+  const [filterCaseStatus, setFilterCaseStatus] = useState<'all' | 'Active' | 'Completed'>('all');
   const [advanceStageModal, setAdvanceStageModal] = useState<{
     isOpen: boolean;
     caseData: Case | null;
@@ -107,6 +108,20 @@ export const CaseManagement: React.FC = () => {
     const tab = searchParams.get('tab');
     const returnTo = searchParams.get('returnTo');
     const returnCaseId = searchParams.get('returnCaseId');
+    
+    // Read stage and status from URL for drill-down filtering
+    const stageParam = searchParams.get('stage');
+    const statusParam = searchParams.get('status');
+    
+    if (stageParam && stageParam !== 'all') {
+      // Convert to title case to match stage names
+      const stageName = stageParam.charAt(0).toUpperCase() + stageParam.slice(1);
+      setFilterStage(stageName);
+    }
+    
+    if (statusParam && (statusParam === 'Active' || statusParam === 'Completed')) {
+      setFilterCaseStatus(statusParam);
+    }
     
     if (caseId) {
       const caseToSelect = state.cases.find(c => c.id === caseId);
@@ -320,9 +335,12 @@ export const CaseManagement: React.FC = () => {
       const timelineStatus = caseItem.timelineBreachStatus || caseItem.slaStatus || 'Green';
       const matchesTimelineBreach = filterTimelineBreach === 'all' || timelineStatus === filterTimelineBreach;
 
-      return matchesSearch && matchesStage && matchesTimelineBreach;
+      // 4. Case status filter (Active/Completed)
+      const matchesStatus = filterCaseStatus === 'all' || caseItem.status === filterCaseStatus;
+
+      return matchesSearch && matchesStage && matchesTimelineBreach && matchesStatus;
     });
-  }, [state.cases, state.clients, searchTerm, filterStage, filterTimelineBreach]);
+  }, [state.cases, state.clients, searchTerm, filterStage, filterTimelineBreach, filterCaseStatus]);
 
   return (
     <div className="space-y-6">

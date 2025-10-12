@@ -33,7 +33,7 @@
       "order": 2,
       "showDetails": true,
       "clickAction": {
-        "navigateTo": "/cases?status=open",
+        "navigateTo": "/cases?status=Active",
         "tooltip": "View all open cases",
         "requiresPermission": "cases_read"
       }
@@ -52,7 +52,7 @@
       "order": 3,
       "showDetails": false,
       "clickAction": {
-        "navigateTo": "/reports/timeline",
+        "navigateTo": "/reports?tab=timeline-breach-compliance",
         "tooltip": "View timeline report",
         "requiresPermission": "reports_read"
       }
@@ -90,7 +90,7 @@
       "order": 5,
       "showDetails": true,
       "clickAction": {
-        "navigateTo": "/reports/timeline",
+        "navigateTo": "/reports?tab=timeline-breach-compliance",
         "tooltip": "View timeline breach details",
         "requiresPermission": "reports_read"
       }
@@ -204,7 +204,7 @@
       "order": 11,
       "showDetails": true,
       "clickAction": {
-        "navigateTo": "/tasks?status=pending",
+        "navigateTo": "/tasks?status=Pending",
         "tooltip": "View all pending tasks",
         "requiresPermission": "tasks_read"
       }
@@ -261,7 +261,7 @@
       "order": 14,
       "showDetails": false,
       "clickAction": {
-        "navigateTo": "/reports/compliance",
+        "navigateTo": "/reports?tab=timeline-breach-compliance",
         "tooltip": "View compliance report",
         "requiresPermission": "reports_read"
       }

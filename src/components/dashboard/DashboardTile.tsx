@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { toast } from 'sonner';
 import * as Icons from 'lucide-react';
 import { ArrowRight, ExternalLink } from 'lucide-react';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
@@ -150,7 +151,34 @@ export const DashboardTile: React.FC<TileProps> = ({ tile }) => {
             <BarChart data={barData}>
               <XAxis dataKey="name" stroke="#ffffff80" style={{ fontSize: '12px' }} />
               <YAxis stroke="#ffffff80" style={{ fontSize: '12px' }} />
-              <Bar dataKey="value" fill="#ffffff" radius={[4, 4, 0, 0]} />
+              <Bar 
+                dataKey="value" 
+                fill="#ffffff" 
+                radius={[4, 4, 0, 0]}
+                cursor="pointer"
+                onClick={(data: any) => {
+                  const label = data?.name;
+                  if (!label) return;
+                  
+                  try {
+                    if (tile.id === 'casesByStage') {
+                      if (!hasPermission('cases', 'read')) {
+                        toast.error('Access Denied', { description: 'You do not have permission to access Cases.' });
+                        return;
+                      }
+                      navigate(`/cases?stage=${encodeURIComponent(label)}`);
+                    } else if (tile.id === 'teamPerformance') {
+                      if (!hasPermission('employees', 'read')) {
+                        toast.error('Access Denied', { description: 'You do not have permission to access Team Performance.' });
+                        return;
+                      }
+                      navigate(`/employees/performance?employee=${encodeURIComponent(label)}`);
+                    }
+                  } catch (err) {
+                    console.error('Bar click navigation error:', err);
+                  }
+                }}
+              />
               <Tooltip 
                 contentStyle={{ 
                   backgroundColor: 'rgba(0, 0, 0, 0.9)', 
@@ -186,6 +214,29 @@ export const DashboardTile: React.FC<TileProps> = ({ tile }) => {
                 cy="50%"
                 outerRadius={70}
                 label
+                cursor="pointer"
+                onClick={(data: any) => {
+                  const name = data?.name;
+                  if (!name) return;
+                  
+                  try {
+                    if (tile.id === 'clientByCategory') {
+                      if (!hasPermission('clients', 'read')) {
+                        toast.error('Access Denied', { description: 'You do not have permission to access Clients.' });
+                        return;
+                      }
+                      navigate(`/clients?category=${encodeURIComponent(name)}`);
+                    } else if (tile.id === 'hearingOutcomeTrend') {
+                      if (!hasPermission('hearings', 'read')) {
+                        toast.error('Access Denied', { description: 'You do not have permission to access Hearings.' });
+                        return;
+                      }
+                      navigate(`/hearings/list?outcome=${encodeURIComponent(name)}`);
+                    }
+                  } catch (err) {
+                    console.error('Pie click navigation error:', err);
+                  }
+                }}
               >
                 {pieData?.map((_: any, index: number) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />

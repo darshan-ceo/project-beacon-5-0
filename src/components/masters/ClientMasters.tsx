@@ -48,6 +48,8 @@ export const ClientMasters: React.FC = () => {
   const { hasPermission } = useRBAC();
   const { checkDependencies, safeDelete } = useRelationships();
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterDateFrom, setFilterDateFrom] = useState<string>('');
+  const [filterDateTo, setFilterDateTo] = useState<string>('');
   const [clientModal, setClientModal] = useState<{ isOpen: boolean; mode: 'create' | 'edit' | 'view'; client?: Client | null }>({
     isOpen: false,
     mode: 'create',
@@ -66,7 +68,27 @@ export const ClientMasters: React.FC = () => {
                          (client.gstin || client.gstNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (client.pan || client.panNumber || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterStatus === 'all' || client.status === filterStatus;
-    return matchesSearch && matchesFilter;
+    
+    // Duration filter based on registration date
+    let matchesDateRange = true;
+    if (filterDateFrom || filterDateTo) {
+      const clientDate = client.registrationDate || (client as any).createdAt;
+      if (clientDate) {
+        const date = new Date(clientDate);
+        if (filterDateFrom) {
+          const fromDate = new Date(filterDateFrom);
+          matchesDateRange = matchesDateRange && date >= fromDate;
+        }
+        if (filterDateTo) {
+          const toDate = new Date(filterDateTo + 'T23:59:59');
+          matchesDateRange = matchesDateRange && date <= toDate;
+        }
+      } else {
+        matchesDateRange = false;
+      }
+    }
+    
+    return matchesSearch && matchesFilter && matchesDateRange;
   });
 
   const getPrimaryContact = (client: Client) => {
@@ -224,7 +246,7 @@ export const ClientMasters: React.FC = () => {
           />
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline">
@@ -248,6 +270,39 @@ export const ClientMasters: React.FC = () => {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          
+          <div className="flex gap-2 items-center">
+            <Input
+              type="date"
+              value={filterDateFrom}
+              onChange={(e) => setFilterDateFrom(e.target.value)}
+              placeholder="From Date"
+              className="w-40"
+              title="Filter by registration date (From)"
+            />
+            <span className="text-muted-foreground text-sm">to</span>
+            <Input
+              type="date"
+              value={filterDateTo}
+              onChange={(e) => setFilterDateTo(e.target.value)}
+              placeholder="To Date"
+              className="w-40"
+              title="Filter by registration date (To)"
+            />
+            {(filterDateFrom || filterDateTo) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setFilterDateFrom('');
+                  setFilterDateTo('');
+                }}
+                title="Clear date filter"
+              >
+                Clear
+              </Button>
+            )}
+          </div>
           
           <Button 
             variant="outline"

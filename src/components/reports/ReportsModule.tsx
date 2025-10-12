@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -77,12 +78,29 @@ const reportTabs = [
 ];
 
 export const ReportsModule: React.FC<ReportsModuleProps> = ({ userRole }) => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<ReportType>('case-reports');
   const [globalFilters, setGlobalFilters] = useState<ReportFilter>({});
   const [showSavedViews, setShowSavedViews] = useState(false);
   
   // Check if user has reports access
   const hasReportsAccess = usePermission('reports', 'read');
+  
+  // Read tab from URL on mount
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && reportTabs.some(t => t.id === tabParam)) {
+      setActiveTab(tabParam as ReportType);
+    }
+  }, [searchParams]);
+  
+  // Update URL when tab changes
+  useEffect(() => {
+    const currentTab = searchParams.get('tab');
+    if (currentTab !== activeTab) {
+      setSearchParams({ tab: activeTab }, { replace: true });
+    }
+  }, [activeTab]);
   
   if (!hasReportsAccess) {
     return (
