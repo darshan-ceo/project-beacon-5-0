@@ -1,0 +1,34 @@
+{
+  "value": 5,
+  "trend": "+1 this week",
+  "details": [
+    {
+      "caseId": "case-001",
+      "client": "ABC Traders Pvt Ltd",
+      "stage": "Tribunal",
+      "daysOpen": 48,
+      "priority": "high"
+    },
+    {
+      "caseId": "case-002",
+      "client": "XYZ Exports Pvt Ltd",
+      "stage": "First Appeal",
+      "daysOpen": 35,
+      "priority": "medium"
+    },
+    {
+      "caseId": "case-003",
+      "client": "TechCorp Industries",
+      "stage": "Adjudication",
+      "daysOpen": 22,
+      "priority": "high"
+    },
+    {
+      "caseId": "case-005",
+      "client": "ServiceHub Pvt Ltd",
+      "stage": "Notice Response",
+      "daysOpen": 15,
+      "priority": "medium"
+    }
+  ]
+}

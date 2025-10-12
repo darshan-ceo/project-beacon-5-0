@@ -17,6 +17,12 @@ export interface DashboardTile {
   description: string;
   defaultEnabled: boolean;
   order: number;
+  showDetails?: boolean;
+  clickAction?: {
+    navigateTo: string;
+    tooltip?: string;
+    requiresPermission?: string;
+  };
 }
 
 /**

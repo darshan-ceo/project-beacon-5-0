@@ -4,12 +4,18 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import * as Icons from 'lucide-react';
+import { ArrowRight, ExternalLink } from 'lucide-react';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { DashboardTile as TileType } from '@/utils/rbacHelper';
 import { format } from 'date-fns';
+import { motion } from 'framer-motion';
+import { useRBAC } from '@/hooks/useAdvancedRBAC';
+import { handleTileNavigation, getLastUpdatedTimestamp } from '@/utils/navigationHelper';
 
 interface TileProps {
   tile: TileType;
@@ -18,7 +24,19 @@ interface TileProps {
 export const DashboardTile: React.FC<TileProps> = ({ tile }) => {
   const [mockData, setMockData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [lastUpdated] = useState(getLastUpdatedTimestamp());
+  const navigate = useNavigate();
+  const { hasPermission } = useRBAC();
   const Icon = Icons[tile.icon as keyof typeof Icons] as React.ComponentType<{ className?: string }>;
+
+  // Handle tile click navigation
+  const handleClick = () => {
+    if (tile.clickAction) {
+      handleTileNavigation(tile.clickAction, hasPermission, navigate);
+    }
+  };
+
+  const isClickable = !!tile.clickAction;
 
   // Map tile color theme to gradient
   const getTileGradient = (theme: string): string => {
@@ -73,10 +91,32 @@ export const DashboardTile: React.FC<TileProps> = ({ tile }) => {
     switch (tile.type) {
       case 'metric':
         return (
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div className="text-4xl font-bold text-white">{mockData.value}</div>
             {mockData.trend && (
               <p className="text-sm text-white/80">{mockData.trend}</p>
+            )}
+            
+            {tile.showDetails && mockData.details && (
+              <div className="mt-4 space-y-2 pt-3 border-t border-white/20">
+                {mockData.details.slice(0, 3).map((item: any, i: number) => (
+                  <div key={i} className="text-xs text-white/90 flex justify-between gap-2">
+                    <span className="truncate">{item.client}</span>
+                    <span className="text-white/70 flex-shrink-0">
+                      {item.stage || item.daysOpen ? `${item.daysOpen}d` : item.responsible || ''}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {tile.clickAction && mockData.details && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); handleClick(); }}
+                className="text-xs text-white/80 hover:text-white flex items-center gap-1 mt-2 transition-colors"
+              >
+                View All <ArrowRight className="h-3 w-3" />
+              </button>
             )}
           </div>
         );
@@ -104,6 +144,7 @@ export const DashboardTile: React.FC<TileProps> = ({ tile }) => {
           name: label,
           value: mockData.values?.[i] || 0,
         }));
+        const barTotal = barData?.reduce((sum: number, d: any) => sum + d.value, 0) || 1;
         return (
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={barData}>
@@ -112,11 +153,16 @@ export const DashboardTile: React.FC<TileProps> = ({ tile }) => {
               <Bar dataKey="value" fill="#ffffff" radius={[4, 4, 0, 0]} />
               <Tooltip 
                 contentStyle={{ 
-                  backgroundColor: 'rgba(0, 0, 0, 0.8)', 
+                  backgroundColor: 'rgba(0, 0, 0, 0.9)', 
                   border: 'none', 
-                  borderRadius: '6px',
-                  color: '#fff'
-                }} 
+                  borderRadius: '8px',
+                  color: '#fff',
+                  padding: '8px 12px'
+                }}
+                formatter={(value: number) => {
+                  const percentage = ((value / barTotal) * 100).toFixed(1);
+                  return [`${value} (${percentage}%)`, ''];
+                }}
               />
             </BarChart>
           </ResponsiveContainer>
@@ -128,6 +174,7 @@ export const DashboardTile: React.FC<TileProps> = ({ tile }) => {
           value: mockData.values[i],
         }));
         const COLORS = ['#00C2A8', '#0B5FFF', '#F59E0B', '#EF4444', '#8B5CF6'];
+        const pieTotal = pieData?.reduce((sum: number, d: any) => sum + d.value, 0) || 1;
         return (
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
@@ -146,11 +193,16 @@ export const DashboardTile: React.FC<TileProps> = ({ tile }) => {
               </Pie>
               <Tooltip 
                 contentStyle={{ 
-                  backgroundColor: 'rgba(0, 0, 0, 0.8)', 
+                  backgroundColor: 'rgba(0, 0, 0, 0.9)', 
                   border: 'none', 
-                  borderRadius: '6px',
-                  color: '#fff'
-                }} 
+                  borderRadius: '8px',
+                  color: '#fff',
+                  padding: '8px 12px'
+                }}
+                formatter={(value: number) => {
+                  const percentage = ((value / pieTotal) * 100).toFixed(1);
+                  return [`${value} (${percentage}%)`, ''];
+                }}
               />
             </PieChart>
           </ResponsiveContainer>
@@ -159,12 +211,27 @@ export const DashboardTile: React.FC<TileProps> = ({ tile }) => {
       case 'list':
         return (
           <div className="space-y-2">
-            {mockData.slice(0, 5).map((item: any, i: number) => (
-              <div key={i} className="flex justify-between text-sm border-b border-white/20 pb-2">
-                <span className="text-white">{item.task}</span>
-                <span className="text-white/70">{item.due}</span>
+            {mockData.slice(0, 4).map((item: any, i: number) => (
+              <div key={i} className="flex flex-col text-sm border-b border-white/20 pb-2 last:border-0">
+                <span className="text-white font-medium truncate">{item.task}</span>
+                <div className="flex justify-between text-xs text-white/70 mt-1">
+                  <span className="truncate pr-2">{item.case || 'General'}</span>
+                  <span className="flex-shrink-0">{item.due}</span>
+                </div>
+                {item.assignedTo && (
+                  <span className="text-xs text-white/60 mt-0.5">{item.assignedTo}</span>
+                )}
               </div>
             ))}
+            
+            {tile.clickAction && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); handleClick(); }}
+                className="text-xs text-white/80 hover:text-white flex items-center gap-1 mt-2 transition-colors"
+              >
+                View All Tasks <ArrowRight className="h-3 w-3" />
+              </button>
+            )}
           </div>
         );
 
@@ -183,13 +250,23 @@ export const DashboardTile: React.FC<TileProps> = ({ tile }) => {
           <div className="space-y-3">
             {mockData.slice(0, 3).map((hearing: any, i: number) => (
               <div key={i} className="border-l-2 border-white/40 pl-3 text-white">
-                <p className="font-medium text-sm">{hearing.case}</p>
+                <p className="font-medium text-sm truncate">{hearing.client}</p>
+                <p className="text-xs text-white/90 truncate">{hearing.case}</p>
                 <p className="text-xs text-white/70">
                   {format(new Date(hearing.date), 'MMM dd, yyyy')} • {hearing.time}
                 </p>
-                <p className="text-xs text-white/60">{hearing.court}</p>
+                <p className="text-xs text-white/60">{hearing.location}</p>
               </div>
             ))}
+            
+            {tile.clickAction && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); handleClick(); }}
+                className="text-xs text-white/80 hover:text-white flex items-center gap-1 mt-2 transition-colors"
+              >
+                View Full Calendar <ArrowRight className="h-3 w-3" />
+              </button>
+            )}
           </div>
         );
 
@@ -217,15 +294,62 @@ export const DashboardTile: React.FC<TileProps> = ({ tile }) => {
   };
 
   return (
-    <Card 
-      className="hover-lift rounded-2xl shadow-sm border-0 text-white"
-      style={{ background: getTileGradient(tile.colorTheme) }}
-    >
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-        <CardTitle className="text-sm font-semibold text-white">{tile.title}</CardTitle>
-        {Icon && <Icon className="h-5 w-5 text-white/80" />}
-      </CardHeader>
-      <CardContent className="pt-0">{renderContent()}</CardContent>
-    </Card>
+    <TooltipProvider>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        whileHover={isClickable ? { scale: 1.02 } : {}}
+        whileTap={isClickable ? { scale: 0.98 } : {}}
+      >
+        <Card 
+          className={`hover-lift rounded-2xl shadow-sm border-0 text-white transition-all duration-200 ${
+            isClickable ? 'cursor-pointer hover:shadow-lg' : ''
+          }`}
+          style={{ background: getTileGradient(tile.colorTheme) }}
+          onClick={isClickable ? handleClick : undefined}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+              {tile.title}
+              {tile.clickAction && (
+                <UITooltip>
+                  <TooltipTrigger asChild>
+                    <ExternalLink className="h-3 w-3 text-white/60 hover:text-white/90 transition-colors" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p>{tile.clickAction.tooltip || tile.description}</p>
+                  </TooltipContent>
+                </UITooltip>
+              )}
+            </CardTitle>
+            {Icon && (
+              <UITooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    <Icon className="h-5 w-5 text-white/80" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>{tile.description}</p>
+                </TooltipContent>
+              </UITooltip>
+            )}
+          </CardHeader>
+          <CardContent className="pt-0">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.1 }}
+            >
+              {renderContent()}
+            </motion.div>
+            <div className="text-[10px] text-white/50 mt-3 text-right">
+              Updated {lastUpdated}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </TooltipProvider>
   );
 };

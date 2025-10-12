@@ -1,0 +1,42 @@
+[
+  {
+    "taskId": "task-001",
+    "task": "Submit reply to show cause notice",
+    "case": "ABC Traders - ASMT-10",
+    "due": "2025-10-16",
+    "priority": "high",
+    "assignedTo": "Ravi Mehta"
+  },
+  {
+    "taskId": "task-002",
+    "task": "Prepare hearing brief",
+    "case": "XYZ Exports - DRC-07",
+    "due": "2025-10-17",
+    "priority": "high",
+    "assignedTo": "Priya Sharma"
+  },
+  {
+    "taskId": "task-003",
+    "task": "File appeal documents",
+    "case": "TechCorp - Appeal-15",
+    "due": "2025-10-19",
+    "priority": "medium",
+    "assignedTo": "Anil Kumar"
+  },
+  {
+    "taskId": "task-004",
+    "task": "Review audit findings",
+    "case": "Manufacturing Plus - GST Audit",
+    "due": "2025-10-20",
+    "priority": "medium",
+    "assignedTo": "Sonal Desai"
+  },
+  {
+    "taskId": "task-005",
+    "task": "Client meeting preparation",
+    "case": "ServiceHub - Notice Response",
+    "due": "2025-10-21",
+    "priority": "low",
+    "assignedTo": "Priya Sharma"
+  }
+]

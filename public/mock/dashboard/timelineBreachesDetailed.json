@@ -1,0 +1,31 @@
+{
+  "value": 3,
+  "critical": 1,
+  "warning": 2,
+  "details": [
+    {
+      "caseId": "case-004",
+      "client": "Manufacturing Plus Ltd",
+      "case": "DRC-01 Delayed Response",
+      "delayDays": 5,
+      "responsible": "Ravi Mehta",
+      "dueDate": "2025-10-10"
+    },
+    {
+      "caseId": "case-005",
+      "client": "ServiceHub Pvt Ltd",
+      "case": "Notice Response Pending",
+      "delayDays": 2,
+      "responsible": "Priya Sharma",
+      "dueDate": "2025-10-13"
+    },
+    {
+      "caseId": "case-006",
+      "client": "Global Industries Ltd",
+      "case": "Appeal Filing Overdue",
+      "delayDays": 1,
+      "responsible": "Anil Kumar",
+      "dueDate": "2025-10-14"
+    }
+  ]
+}

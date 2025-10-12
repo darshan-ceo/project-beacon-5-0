@@ -8,10 +8,16 @@
       "icon": "Users",
       "colorTheme": "vibrant-green",
       "rbacTag": ["clients"],
-      "mockDataSource": "/mock/dashboard/activeClients.json",
+      "mockDataSource": "/mock/dashboard/activeClientsDetailed.json",
       "description": "Total active clients in system",
       "defaultEnabled": true,
-      "order": 1
+      "order": 1,
+      "showDetails": true,
+      "clickAction": {
+        "navigateTo": "/clients",
+        "tooltip": "View all clients",
+        "requiresPermission": "clients_read"
+      }
     },
     {
       "id": "openCases",
@@ -21,10 +27,16 @@
       "icon": "Scale",
       "colorTheme": "vibrant-blue",
       "rbacTag": ["cases"],
-      "mockDataSource": "/mock/dashboard/openCases.json",
+      "mockDataSource": "/mock/dashboard/openCasesDetailed.json",
       "description": "Cases currently in progress",
       "defaultEnabled": true,
-      "order": 2
+      "order": 2,
+      "showDetails": true,
+      "clickAction": {
+        "navigateTo": "/cases?status=open",
+        "tooltip": "View all open cases",
+        "requiresPermission": "cases_read"
+      }
     },
     {
       "id": "timelineStatus",
@@ -37,7 +49,13 @@
       "mockDataSource": "/mock/dashboard/timelineStatus.json",
       "description": "Green/Amber/Red case timeline status",
       "defaultEnabled": true,
-      "order": 3
+      "order": 3,
+      "showDetails": false,
+      "clickAction": {
+        "navigateTo": "/reports/timeline",
+        "tooltip": "View timeline report",
+        "requiresPermission": "reports_read"
+      }
     },
     {
       "id": "upcomingHearings",
@@ -47,10 +65,16 @@
       "icon": "Calendar",
       "colorTheme": "vibrant-lavender",
       "rbacTag": ["hearings"],
-      "mockDataSource": "/mock/dashboard/upcomingHearings.json",
+      "mockDataSource": "/mock/dashboard/upcomingHearingsDetailed.json",
       "description": "Next scheduled hearings",
       "defaultEnabled": true,
-      "order": 4
+      "order": 4,
+      "showDetails": true,
+      "clickAction": {
+        "navigateTo": "/hearings/calendar",
+        "tooltip": "Open full hearing calendar",
+        "requiresPermission": "hearings_read"
+      }
     },
     {
       "id": "timelineBreaches",
@@ -60,10 +84,16 @@
       "icon": "AlertTriangle",
       "colorTheme": "vibrant-red",
       "rbacTag": ["reports"],
-      "mockDataSource": "/mock/dashboard/timelineBreaches.json",
+      "mockDataSource": "/mock/dashboard/timelineBreachesDetailed.json",
       "description": "Cases exceeding timeline limits",
       "defaultEnabled": true,
-      "order": 5
+      "order": 5,
+      "showDetails": true,
+      "clickAction": {
+        "navigateTo": "/reports/timeline",
+        "tooltip": "View timeline breach details",
+        "requiresPermission": "reports_read"
+      }
     },
     {
       "id": "casesByStage",
@@ -76,7 +106,13 @@
       "mockDataSource": "/mock/dashboard/casesByStage.json",
       "description": "Distribution across workflow stages",
       "defaultEnabled": true,
-      "order": 6
+      "order": 6,
+      "showDetails": false,
+      "clickAction": {
+        "navigateTo": "/cases",
+        "tooltip": "View all cases by stage",
+        "requiresPermission": "cases_read"
+      }
     },
     {
       "id": "caseAgingSummary",
@@ -89,7 +125,13 @@
       "mockDataSource": "/mock/dashboard/caseAgingSummary.json",
       "description": "Average case duration by stage",
       "defaultEnabled": false,
-      "order": 7
+      "order": 7,
+      "showDetails": false,
+      "clickAction": {
+        "navigateTo": "/reports/aging",
+        "tooltip": "View detailed aging report",
+        "requiresPermission": "reports_read"
+      }
     },
     {
       "id": "caseLoadByAdvocate",
@@ -102,7 +144,13 @@
       "mockDataSource": "/mock/dashboard/caseLoadByAdvocate.json",
       "description": "Cases handled per advocate",
       "defaultEnabled": false,
-      "order": 8
+      "order": 8,
+      "showDetails": false,
+      "clickAction": {
+        "navigateTo": "/employees/performance",
+        "tooltip": "View advocate workload",
+        "requiresPermission": "employees_read"
+      }
     },
     {
       "id": "hearingOutcomeTrend",
@@ -115,7 +163,13 @@
       "mockDataSource": "/mock/dashboard/hearingOutcomeTrend.json",
       "description": "Adjourned vs Closed vs Pending",
       "defaultEnabled": false,
-      "order": 9
+      "order": 9,
+      "showDetails": false,
+      "clickAction": {
+        "navigateTo": "/hearings",
+        "tooltip": "View hearing outcomes",
+        "requiresPermission": "hearings_read"
+      }
     },
     {
       "id": "taskCompletionRate",
@@ -125,10 +179,16 @@
       "icon": "CheckCircle",
       "colorTheme": "vibrant-green",
       "rbacTag": ["tasks"],
-      "mockDataSource": "/mock/dashboard/taskCompletionRate.json",
+      "mockDataSource": "/mock/dashboard/taskCompletionRateDetailed.json",
       "description": "Overall task completion percentage",
       "defaultEnabled": false,
-      "order": 10
+      "order": 10,
+      "showDetails": false,
+      "clickAction": {
+        "navigateTo": "/tasks",
+        "tooltip": "View all tasks",
+        "requiresPermission": "tasks_read"
+      }
     },
     {
       "id": "pendingTasks",
@@ -138,10 +198,16 @@
       "icon": "ListTodo",
       "colorTheme": "vibrant-orange",
       "rbacTag": ["tasks"],
-      "mockDataSource": "/mock/dashboard/pendingTasks.json",
+      "mockDataSource": "/mock/dashboard/pendingTasksDetailed.json",
       "description": "Top 5 pending or overdue tasks",
       "defaultEnabled": false,
-      "order": 11
+      "order": 11,
+      "showDetails": true,
+      "clickAction": {
+        "navigateTo": "/tasks?status=pending",
+        "tooltip": "View all pending tasks",
+        "requiresPermission": "tasks_read"
+      }
     },
     {
       "id": "clientByCategory",
@@ -151,10 +217,16 @@
       "icon": "Building",
       "colorTheme": "vibrant-pink",
       "rbacTag": ["clients"],
-      "mockDataSource": "/mock/dashboard/clientByCategory.json",
+      "mockDataSource": "/mock/dashboard/clientByCategoryDetailed.json",
       "description": "Client distribution by industry",
       "defaultEnabled": false,
-      "order": 12
+      "order": 12,
+      "showDetails": false,
+      "clickAction": {
+        "navigateTo": "/clients",
+        "tooltip": "View clients by category",
+        "requiresPermission": "clients_read"
+      }
     },
     {
       "id": "documentsUploadedToday",
@@ -164,10 +236,16 @@
       "icon": "FileText",
       "colorTheme": "vibrant-gray",
       "rbacTag": ["documents"],
-      "mockDataSource": "/mock/dashboard/documentsUploadedToday.json",
+      "mockDataSource": "/mock/dashboard/documentsUploadedTodayDetailed.json",
       "description": "New documents uploaded today",
       "defaultEnabled": false,
-      "order": 13
+      "order": 13,
+      "showDetails": true,
+      "clickAction": {
+        "navigateTo": "/documents?filter=today",
+        "tooltip": "View today's documents",
+        "requiresPermission": "documents_read"
+      }
     },
     {
       "id": "timelineCompliance",
@@ -180,7 +258,13 @@
       "mockDataSource": "/mock/dashboard/timelineCompliance.json",
       "description": "Compliance percentage breakdown",
       "defaultEnabled": false,
-      "order": 14
+      "order": 14,
+      "showDetails": false,
+      "clickAction": {
+        "navigateTo": "/reports/compliance",
+        "tooltip": "View compliance report",
+        "requiresPermission": "reports_read"
+      }
     },
     {
       "id": "teamPerformance",
@@ -190,10 +274,16 @@
       "icon": "UserCheck",
       "colorTheme": "vibrant-indigo",
       "rbacTag": ["employees"],
-      "mockDataSource": "/mock/dashboard/teamPerformance.json",
+      "mockDataSource": "/mock/dashboard/teamPerformanceDetailed.json",
       "description": "Team member case handling",
       "defaultEnabled": false,
-      "order": 15
+      "order": 15,
+      "showDetails": false,
+      "clickAction": {
+        "navigateTo": "/employees/performance",
+        "tooltip": "View team performance",
+        "requiresPermission": "employees_read"
+      }
     },
     {
       "id": "systemHealth",
@@ -206,7 +296,13 @@
       "mockDataSource": "/mock/dashboard/systemHealth.json",
       "description": "App uptime, sync status, RBAC audit",
       "defaultEnabled": false,
-      "order": 16
+      "order": 16,
+      "showDetails": false,
+      "clickAction": {
+        "navigateTo": "/admin/system",
+        "tooltip": "View system status",
+        "requiresPermission": "admin_read"
+      }
     }
   ]
 }

@@ -1,0 +1,30 @@
+{
+  "value": 5,
+  "trend": "+2 this month",
+  "details": [
+    {
+      "clientId": "client-001",
+      "name": "ABC Traders Pvt Ltd",
+      "activeCases": 2,
+      "lastActivity": "2025-10-12"
+    },
+    {
+      "clientId": "client-002",
+      "name": "XYZ Exports Pvt Ltd",
+      "activeCases": 1,
+      "lastActivity": "2025-10-11"
+    },
+    {
+      "clientId": "client-003",
+      "name": "TechCorp Industries",
+      "activeCases": 1,
+      "lastActivity": "2025-10-10"
+    },
+    {
+      "clientId": "client-004",
+      "name": "Manufacturing Plus Ltd",
+      "activeCases": 1,
+      "lastActivity": "2025-10-09"
+    }
+  ]
+}
