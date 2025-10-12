@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { FormField } from '@/services/formTemplatesService';
 import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
+import { getMockData } from '@/services/seedTemplatesService';
 
 export interface UnifiedTemplate {
   // Metadata
@@ -398,7 +399,6 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
   };
 
   const renderPreview = () => {
-    const { getMockData } = require('@/services/seedTemplatesService');
     const mockData = getMockData();
     
     let previewContent = templateData.richContent;
