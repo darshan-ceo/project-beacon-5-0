@@ -17,6 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
+import { Case as AppStateCase } from '@/contexts/AppStateContext';
 
 interface Case {
   id: string;
@@ -28,7 +29,8 @@ interface Case {
 }
 
 interface TimelineBreachTrackerProps {
-  cases: Case[];
+  cases: Array<Case & { client: string }>;
+  selectedCase?: AppStateCase | null;
 }
 
 interface TimelineBreachMetrics {
@@ -78,10 +80,13 @@ const criticalCases = [
   }
 ];
 
-export const TimelineBreachTracker: React.FC<TimelineBreachTrackerProps> = ({ cases }) => {
+export const TimelineBreachTracker: React.FC<TimelineBreachTrackerProps> = ({ cases, selectedCase }) => {
   const [selectedCaseForAction, setSelectedCaseForAction] = useState<{ id: string; urgency: string } | null>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [timelineBreachMetrics, setTimelineBreachMetrics] = useState<TimelineBreachMetrics[]>([]);
+
+  // Filter cases for display based on selectedCase
+  const displayedCases = selectedCase ? cases.filter(c => c.id === selectedCase.id) : cases;
 
   useEffect(() => {
     const loadMetrics = async () => {
@@ -165,6 +170,18 @@ export const TimelineBreachTracker: React.FC<TimelineBreachTrackerProps> = ({ ca
 
   return (
     <div className="space-y-6">
+      {/* Header with context */}
+      {selectedCase && (
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold text-foreground">
+            Timeline Compliance for {selectedCase.caseNumber}
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Track compliance and deadlines for this specific case
+          </p>
+        </div>
+      )}
+
       {/* Timeline Breach Overview */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}

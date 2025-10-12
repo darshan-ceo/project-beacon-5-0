@@ -26,7 +26,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { NotificationConfigModal } from '@/components/modals/NotificationConfigModal';
 import { HearingModal } from '@/components/modals/HearingModal';
-import { useAppState } from '@/contexts/AppStateContext';
+import { useAppState, Case as AppStateCase } from '@/contexts/AppStateContext';
 
 interface Case {
   id: string;
@@ -52,10 +52,11 @@ interface Hearing {
 }
 
 interface HearingSchedulerProps {
-  cases: Case[];
+  cases: Array<Case & { client: string }>;
+  selectedCase?: AppStateCase | null;
 }
 
-export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases }) => {
+export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases, selectedCase }) => {
   const navigate = useNavigate();
   const { dispatch } = useAppState();
   const [selectedDate, setSelectedDate] = useState('');
@@ -63,6 +64,7 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases }) => 
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
   const [globalHearings, setGlobalHearings] = useState<GlobalHearing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'global' | 'case'>('global');
   const [calendarStatus, setCalendarStatus] = useState<{
     google: CalendarConnectionStatus;
     outlook: CalendarConnectionStatus;
@@ -70,6 +72,10 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases }) => 
     google: { connected: false },
     outlook: { connected: false }
   });
+
+  useEffect(() => {
+    setViewMode(selectedCase ? 'case' : 'global');
+  }, [selectedCase]);
 
   useEffect(() => {
     const fetchHearings = async () => {
@@ -99,7 +105,7 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases }) => 
   }, []);
 
   // Transform global hearings to local format for compatibility
-  const hearings: Hearing[] = globalHearings.map(h => ({
+  const allHearings: Hearing[] = globalHearings.map(h => ({
     id: h.id,
     caseId: h.clientId || h.case_id,
     caseNumber: `CASE-${h.case_id}`,
@@ -114,6 +120,11 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases }) => 
     location: (h as any).location || h.courtroom,
     notes: h.notes
   }));
+
+  // Filter hearings based on view mode
+  const hearings = viewMode === 'case' && selectedCase 
+    ? allHearings.filter(h => h.caseId === selectedCase.id)
+    : allHearings;
 
   const today = new Date().toISOString().split('T')[0];
   const upcomingHearings = hearings.filter(h => h.status === 'Scheduled');
@@ -156,7 +167,10 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases }) => 
         <div>
           <h2 className="text-2xl font-bold text-foreground">Hearing Scheduler</h2>
           <p className="text-muted-foreground mt-1">
-            Manage court hearings with calendar sync and reminders
+            {viewMode === 'case' && selectedCase
+              ? `Hearings for ${selectedCase.caseNumber} (${hearings.length} total)`
+              : `Manage court hearings with calendar sync and reminders (${hearings.length} total)`
+            }
           </p>
         </div>
         <Button 
@@ -298,7 +312,19 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases }) => 
               ) : (
                 <div className="text-center py-8">
                   <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No hearings scheduled for today</p>
+                  {viewMode === 'case' && selectedCase ? (
+                    <>
+                      <h3 className="text-lg font-semibold mb-2">No Hearings Today</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        No hearings scheduled for today for case: <strong>{selectedCase.caseNumber}</strong>
+                      </p>
+                      <Button onClick={() => setIsScheduleDialogOpen(true)}>
+                        Schedule Hearing
+                      </Button>
+                    </>
+                  ) : (
+                    <p className="text-muted-foreground">No hearings scheduled for today</p>
+                  )}
                 </div>
               )}
             </CardContent>

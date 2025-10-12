@@ -40,6 +40,7 @@ import { AIAssistant } from './AIAssistant';
 import { CommunicationHub } from './CommunicationHub';
 import { CaseDocuments } from './CaseDocuments';
 import { CaseModal } from '@/components/modals/CaseModal';
+import { CaseContextHeader } from './CaseContextHeader';
 
 import { AdvanceStageConfirmationModal } from '@/components/modals/AdvanceStageConfirmationModal';
 import { FilterDropdown } from '@/components/ui/filter-dropdown';
@@ -269,6 +270,16 @@ export const CaseManagement: React.FC = () => {
     if (showHelpText) {
       setShowHelpText(false);
     }
+  };
+
+  // Handler to clear case selection
+  const handleClearSelection = () => {
+    setSelectedCase(null);
+    setActiveTab('overview');
+    // Clear URL params
+    searchParams.delete('caseId');
+    searchParams.delete('tab');
+    setSearchParams(searchParams);
   };
 
   // Helper function to check if tabs should be disabled
@@ -630,24 +641,58 @@ export const CaseManagement: React.FC = () => {
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-1 p-1 h-auto">
-          <TabsTrigger value="overview" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Overview</TabsTrigger>
+          <TabsTrigger value="overview" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">
+            Overview
+          </TabsTrigger>
           <TabsTrigger 
             value="lifecycle" 
             disabled={getTabDisabled('lifecycle')}
             className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
             title={getTabDisabled('lifecycle') ? "Select a case from Overview to proceed" : ""}
           >
-            Lifecycle
+            <span className="flex items-center gap-1.5">
+              Lifecycle
+              {selectedCase && (
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-950/30 dark:text-blue-400">
+                  Case
+                </Badge>
+              )}
+            </span>
           </TabsTrigger>
-          <TabsTrigger value="sla" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Timeline Tracker</TabsTrigger>
-          <TabsTrigger value="hearings" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Hearings</TabsTrigger>
+          <TabsTrigger value="sla" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">
+            <span className="flex items-center gap-1.5">
+              Timeline Tracker
+              {selectedCase && (
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-950/30 dark:text-blue-400">
+                  Case
+                </Badge>
+              )}
+            </span>
+          </TabsTrigger>
+          <TabsTrigger value="hearings" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">
+            <span className="flex items-center gap-1.5">
+              Hearings
+              {selectedCase && (
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-950/30 dark:text-blue-400">
+                  Case
+                </Badge>
+              )}
+            </span>
+          </TabsTrigger>
           <TabsTrigger 
             value="documents"
             disabled={getTabDisabled('documents')}
             className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
             title={getTabDisabled('documents') ? "Select a case from Overview to proceed" : ""}
           >
-            Documents
+            <span className="flex items-center gap-1.5">
+              Documents
+              {selectedCase && (
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-950/30 dark:text-blue-400">
+                  Case
+                </Badge>
+              )}
+            </span>
           </TabsTrigger>
           <TabsTrigger 
             value="timeline"
@@ -655,7 +700,14 @@ export const CaseManagement: React.FC = () => {
             className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
             title={getTabDisabled('timeline') ? "Select a case from Overview to proceed" : ""}
           >
-            Timeline
+            <span className="flex items-center gap-1.5">
+              Timeline
+              {selectedCase && (
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-950/30 dark:text-blue-400">
+                  Case
+                </Badge>
+              )}
+            </span>
           </TabsTrigger>
           <TabsTrigger 
             value="ai-assistant"
@@ -663,7 +715,14 @@ export const CaseManagement: React.FC = () => {
             className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
             title={getTabDisabled('ai-assistant') ? "Select a case from Overview to proceed" : ""}
           >
-            AI Assistant
+            <span className="flex items-center gap-1.5">
+              AI Assistant
+              {selectedCase && (
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-950/30 dark:text-blue-400">
+                  Case
+                </Badge>
+              )}
+            </span>
           </TabsTrigger>
           <TabsTrigger 
             value="communications"
@@ -671,9 +730,29 @@ export const CaseManagement: React.FC = () => {
             className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
             title={getTabDisabled('communications') ? "Select a case from Overview to proceed" : ""}
           >
-            Communications
+            <span className="flex items-center gap-1.5">
+              Communications
+              {selectedCase && (
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-950/30 dark:text-blue-400">
+                  Case
+                </Badge>
+              )}
+            </span>
           </TabsTrigger>
         </TabsList>
+
+        {/* Case Context Header - Shows when case is selected */}
+        {selectedCase && (
+          <CaseContextHeader
+            selectedCase={selectedCase}
+            onClearSelection={handleClearSelection}
+            clientName={state.clients.find(c => c.id === selectedCase.clientId)?.name}
+            courtName={selectedCase.nextHearing 
+              ? state.courts.find(c => c.id === selectedCase.nextHearing?.courtId)?.name 
+              : undefined
+            }
+          />
+        )}
 
         <TabsContent value="overview" className="mt-6">
           <motion.div 
@@ -703,32 +782,6 @@ export const CaseManagement: React.FC = () => {
               </motion.div>
             )}
             
-            {!showHelpText && selectedCase && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-                className="bg-secondary/5 border border-secondary/20 rounded-lg p-3"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-secondary" />
-                    <span className="text-sm font-medium text-foreground">
-                      Selected: {selectedCase.title} ({selectedCase.caseNumber})
-                    </span>
-                  </div>
-                  <Button
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => setShowHelpText(true)}
-                    className="text-xs h-auto p-1"
-                  >
-                    <Info className="h-3 w-3 mr-1" />
-                    Help
-                  </Button>
-                </div>
-              </motion.div>
-            )}
             <div data-tour="case-list">
             {filteredCases.length === 0 && (
               <Card>
@@ -992,11 +1045,17 @@ export const CaseManagement: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="sla" className="mt-6">
-          <TimelineBreachTracker cases={state.cases.map(c => ({ ...c, client: state.clients.find(cl => cl.id === c.clientId)?.name || 'Unknown' }))} />
+          <TimelineBreachTracker 
+            cases={state.cases.map(c => ({ ...c, client: state.clients.find(cl => cl.id === c.clientId)?.name || 'Unknown' }))} 
+            selectedCase={selectedCase}
+          />
         </TabsContent>
 
         <TabsContent value="hearings" className="mt-6">
-          <HearingScheduler cases={state.cases.map(c => ({ ...c, client: state.clients.find(cl => cl.id === c.clientId)?.name || 'Unknown' }))} />
+          <HearingScheduler 
+            cases={state.cases.map(c => ({ ...c, client: state.clients.find(cl => cl.id === c.clientId)?.name || 'Unknown' }))} 
+            selectedCase={selectedCase}
+          />
         </TabsContent>
 
         <TabsContent value="documents" className="mt-6">
