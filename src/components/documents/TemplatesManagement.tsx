@@ -16,13 +16,14 @@ import { TemplateEditor } from './TemplateEditor';
 import { TemplateBuilder } from './TemplateBuilder';
 import { RichTextTemplateBuilder } from './RichTextTemplateBuilder';
 import { TemplateUploadModal } from './TemplateUploadModal';
+import { UnifiedTemplateBuilder, UnifiedTemplate } from './UnifiedTemplateBuilder';
 import { DocxTemplatePreview } from './DocxTemplatePreview';
 import { DocxGenerationModal } from './DocxGenerationModal';
 import { useAppState } from '@/contexts/AppStateContext';
 import { useRBAC } from '@/hooks/useAdvancedRBAC';
 import { HelpButton } from '@/components/ui/help-button';
 import { docxTemplateService } from '@/services/docxTemplateService';
-import { 
+import {
   FileText, 
   Search, 
   Filter, 
@@ -39,7 +40,8 @@ import {
   Copy,
   Import,
   Trash2,
-  History
+  History,
+  Sparkles
 } from 'lucide-react';
 
 export const TemplatesManagement: React.FC = () => {
@@ -58,6 +60,7 @@ export const TemplatesManagement: React.FC = () => {
   const [builderOpen, setBuilderOpen] = useState(false);
   const [richTextBuilderOpen, setRichTextBuilderOpen] = useState(false);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [unifiedBuilderOpen, setUnifiedBuilderOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<FormTemplate | null>(null);
   const [activeTab, setActiveTab] = useState('standard');
   const [docxPreviewOpen, setDocxPreviewOpen] = useState(false);
@@ -415,6 +418,53 @@ export const TemplatesManagement: React.FC = () => {
     }
   };
 
+  const handleSaveUnifiedTemplate = async (template: UnifiedTemplate) => {
+    try {
+      await customTemplatesService.saveTemplate({
+        code: template.templateCode,
+        title: template.title,
+        stage: template.stage,
+        version: template.version,
+        prefill: template.variableMappings,
+        fields: template.fields,
+        output: {
+          filename: template.output.filenamePattern,
+          dms_folder_by_stage: true,
+          timeline_event: `Generated ${template.title}`
+        },
+        createdBy: 'Current User',
+        templateType: 'unified' as any,
+        richContent: template.richContent,
+        variableMappings: template.variableMappings,
+        customization: {
+          companyHeader: template.branding.header,
+          companyFooter: template.branding.footer,
+          branding: {
+            logoUrl: template.branding.logo,
+            primaryColor: template.branding.primaryColor,
+            fontFamily: template.branding.font
+          }
+        }
+      });
+      
+      await loadCustomTemplates();
+      setUnifiedBuilderOpen(false);
+      setEditingTemplate(null);
+      
+      toast({
+        title: "Template Created",
+        description: `"${template.title}" has been created successfully.`
+      });
+    } catch (error) {
+      console.error('Error saving unified template:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save template",
+        variant: "destructive"
+      });
+    }
+  };
+
   const getStageColor = (stage: string) => {
     switch (stage) {
       case 'Scrutiny': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
@@ -489,22 +539,32 @@ export const TemplatesManagement: React.FC = () => {
         </div>
         {canEdit && (
           <div className="flex gap-2">
-            <HelpButton helpId="button-rich-text-template" onClick={() => setRichTextBuilderOpen(true)}>
-              <FileText className="mr-2 h-4 w-4" />
-              Rich Text Template
-            </HelpButton>
-            <HelpButton helpId="button-docx-upload" variant="outline" onClick={() => setUploadModalOpen(true)}>
-              <Import className="mr-2 h-4 w-4" />
-              Upload DOCX
-            </HelpButton>
-            <HelpButton helpId="button-template-builder" variant="outline" onClick={() => setBuilderOpen(true)}>
-              <Wrench className="mr-2 h-4 w-4" />
-              Field Builder
-            </HelpButton>
-            <HelpButton helpId="button-create-template" variant="outline" onClick={() => { setEditingTemplate(null); setEditorOpen(true); }}>
-              <Code className="mr-2 h-4 w-4" />
-              JSON Editor
-            </HelpButton>
+            <Button onClick={() => setUnifiedBuilderOpen(true)} size="lg" className="gap-2">
+              <Plus className="h-5 w-5" />
+              Create Template
+            </Button>
+            
+            {/* Legacy builders - Hidden by default */}
+            {false && (
+              <>
+                <HelpButton helpId="button-rich-text-template" onClick={() => setRichTextBuilderOpen(true)}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Rich Text Template
+                </HelpButton>
+                <HelpButton helpId="button-docx-upload" variant="outline" onClick={() => setUploadModalOpen(true)}>
+                  <Import className="mr-2 h-4 w-4" />
+                  Upload DOCX
+                </HelpButton>
+                <HelpButton helpId="button-template-builder" variant="outline" onClick={() => setBuilderOpen(true)}>
+                  <Wrench className="mr-2 h-4 w-4" />
+                  Field Builder
+                </HelpButton>
+                <HelpButton helpId="button-create-template" variant="outline" onClick={() => { setEditingTemplate(null); setEditorOpen(true); }}>
+                  <Code className="mr-2 h-4 w-4" />
+                  JSON Editor
+                </HelpButton>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -657,7 +717,18 @@ export const TemplatesManagement: React.FC = () => {
                         <Badge variant="outline" className={getStageColor(template.stage)}>
                           {template.stage}
                         </Badge>
-                        <Badge variant="default">Custom</Badge>
+                        <div className="flex gap-1">
+                          {template.templateType === 'unified' && (
+                            <Badge variant="default" className="bg-primary">
+                              <Sparkles className="mr-1 h-3 w-3" />
+                              Builder 2.0
+                            </Badge>
+                          )}
+                          {template.templateType !== 'unified' && (
+                            <Badge variant="secondary">Legacy</Badge>
+                          )}
+                          <Badge variant="default">Custom</Badge>
+                        </div>
                       </div>
                       <CardTitle className="text-lg leading-6">{template.title}</CardTitle>
                       <CardDescription className="text-sm">
@@ -791,6 +862,17 @@ export const TemplatesManagement: React.FC = () => {
         isOpen={uploadModalOpen}
         onClose={() => setUploadModalOpen(false)}
         onSave={handleCreateFromUpload}
+      />
+
+      {/* Unified Template Builder 2.0 */}
+      <UnifiedTemplateBuilder
+        isOpen={unifiedBuilderOpen}
+        onClose={() => {
+          setUnifiedBuilderOpen(false);
+          setEditingTemplate(null);
+        }}
+        onSave={handleSaveUnifiedTemplate}
+        initialTemplate={null}
       />
 
       {/* DOCX-specific modals */}
