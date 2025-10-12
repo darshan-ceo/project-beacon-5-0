@@ -23,6 +23,7 @@ import { useAppState } from '@/contexts/AppStateContext';
 import { useRBAC } from '@/hooks/useAdvancedRBAC';
 import { HelpButton } from '@/components/ui/help-button';
 import { docxTemplateService } from '@/services/docxTemplateService';
+import { initializeSeedTemplates } from '@/services/seedTemplatesService';
 import {
   FileText, 
   Search, 
@@ -71,8 +72,12 @@ export const TemplatesManagement: React.FC = () => {
   const canGenerate = hasPermission('documents', 'write') || hasPermission('admin', 'admin');
 
   useEffect(() => {
-    loadTemplates();
-    loadCustomTemplates();
+    const initialize = async () => {
+      await initializeSeedTemplates(); // Initialize seed templates first
+      await loadTemplates();
+      await loadCustomTemplates();
+    };
+    initialize();
   }, []);
 
   // Keyboard shortcuts

@@ -31,7 +31,7 @@ import {
   FileType, Sparkles, Save, Shield
 } from 'lucide-react';
 import { FormField } from '@/services/formTemplatesService';
-import { useRBAC } from '@/hooks/useRBAC';
+import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 
 export interface UnifiedTemplate {
   // Metadata
@@ -176,8 +176,8 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
   onSave,
   initialTemplate
 }) => {
-  const { hasPermission } = useRBAC();
-  const isAdmin = hasPermission('admin', 'admin');
+  const { can } = useAdvancedRBAC();
+  const isAdmin = can('admin', 'admin');
   
   const [activeTab, setActiveTab] = useState<'design' | 'fields' | 'branding' | 'output' | 'import'>('design');
   const [templateData, setTemplateData] = useState<UnifiedTemplate>(
