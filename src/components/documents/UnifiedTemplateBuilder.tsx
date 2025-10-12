@@ -258,6 +258,7 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
     
     const exists = templateData.fields.some(f => f.key === field.key);
     if (!exists) {
+      // Add to fields list and mappings
       updateTemplateData({
         fields: [...templateData.fields, newField],
         variableMappings: {
@@ -265,7 +266,16 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
           [field.key]: field.prefillPath || field.key,
         },
       });
-      toast({ title: 'Field Added', description: `${field.label} added to template` });
+      
+      // Also insert the variable into the editor content
+      if (editor) {
+        const variable = `{{${field.key}}}`;
+        editor.chain().focus().insertContent(variable + ' ').run();
+      }
+      
+      toast({ title: 'Field Added', description: `${field.label} added to template and editor` });
+    } else {
+      toast({ title: 'Field Already Added', description: `${field.label} is already in your template`, variant: 'destructive' });
     }
   };
 
