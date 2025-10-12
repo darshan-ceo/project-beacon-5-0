@@ -237,8 +237,13 @@ const App = () => {
                   <TooltipDiagnostics />
                 </AdminLayout>
               } />
-              {/* Redirect legacy document-management URLs */}
+              {/* Redirect legacy URLs */}
               <Route path="/document-management" element={
+                <AdminLayout currentUser={currentUser}>
+                  <DocumentManagement />
+                </AdminLayout>
+              } />
+              <Route path="/documents/templates/custom/new" element={
                 <AdminLayout currentUser={currentUser}>
                   <DocumentManagement />
                 </AdminLayout>

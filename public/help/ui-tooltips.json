@@ -1,833 +1,335 @@
 {
   "version": "1.0",
-  "lastUpdated": "2025-10-02",
+  "lastUpdated": "2025-10-12",
   "modules": {
-    "cases": {
-      "buttons": [
-        {
-          "id": "button-create-case",
-          "label": "Create Case",
-          "explanation": "Start a new litigation case",
-          "tooltip": {
-            "title": "Create New Case",
-            "content": "Open a wizard to register a new GST litigation case. You'll enter client details, case type, court jurisdiction, and initial stage information.",
-            "learnMoreUrl": "/help/case-management"
-          },
-          "accessibility": {
-            "ariaLabel": "Create a new case",
-            "keyboardShortcut": "Ctrl+N"
-          }
-        },
-        {
-          "id": "button-advance-stage",
-          "label": "Advance Stage",
-          "explanation": "Move case to next lifecycle stage",
-          "tooltip": {
-            "title": "Advance Case Stage",
-            "content": "Progress the case to the next stage in the GST litigation lifecycle. System validates prerequisites and generates required tasks automatically.",
-            "learnMoreUrl": "/help/case-management/lifecycle"
-          },
-          "accessibility": {
-            "ariaLabel": "Advance case to next stage"
-          }
-        },
-        {
-          "id": "button-mark-complete",
-          "label": "Mark Complete",
-          "explanation": "Close the case as resolved",
-          "tooltip": {
-            "title": "Mark Case Complete",
-            "content": "Close this case and archive all related documents, tasks, and hearings. This action can be reversed if needed.",
-            "learnMoreUrl": "/help/case-management/overview"
-          },
-          "accessibility": {
-            "ariaLabel": "Mark case as complete"
-          }
-        },
-        {
-          "id": "button-export-case",
-          "label": "Export",
-          "explanation": "Download case data",
-          "tooltip": {
-            "title": "Export Case Data",
-            "content": "Export case details, documents, tasks, and timeline to Excel or PDF format for reporting or archival purposes.",
-            "learnMoreUrl": "/help/case-management"
-          },
-          "accessibility": {
-            "ariaLabel": "Export case data"
-          }
-        }
-      ],
-      "cards": [
-        {
-          "id": "card-case-overview",
-          "label": "Case Overview",
-          "explanation": "Summary of case details and current status",
-          "tooltip": {
-            "title": "Case Overview Card",
-            "content": "Displays case number, client name, current stage, priority, assigned team, and key dates at a glance.",
-            "learnMoreUrl": "/help/case-management/overview"
-          },
-          "accessibility": {
-            "ariaLabel": "View case overview information"
-          }
-        }
-      ],
+    "template_builder_2_0": {
       "fields": [
         {
-          "id": "field-case-title",
-          "label": "Case Title",
-          "explanation": "Main identifier for this case",
+          "id": "tb2_template_code",
+          "label": "Template Code",
+          "explanation": "Unique identifier for this template",
           "tooltip": {
-            "title": "Case Title",
-            "content": "Use format: Client Name vs Opposing Party or descriptive case name. Keep it searchable.",
-            "learnMoreUrl": "/help/case-management/overview"
+            "title": "Template Code",
+            "content": "Auto-generated unique code (e.g., SCRUTINY_TEMPLATE_123456). Used for referencing in automation and reports. Click sparkle icon to regenerate."
           },
           "accessibility": {
-            "ariaLabel": "Enter case title"
+            "ariaLabel": "Enter template code"
           }
         },
         {
-          "id": "field-case-number",
-          "label": "Case Number",
-          "explanation": "Court-assigned identifier",
+          "id": "tb2_template_title",
+          "label": "Template Title",
+          "explanation": "Descriptive name shown in template lists",
           "tooltip": {
-            "title": "Case Number",
-            "content": "Court-assigned case number. Leave blank if not yet assigned - system can auto-generate internal ID.",
-            "learnMoreUrl": "/help/case-management/overview"
+            "title": "Template Title",
+            "content": "Human-friendly name that appears in selection lists. Use clear, descriptive titles like 'GST Scrutiny Response Letter' or 'Demand Notice Reply'."
           },
           "accessibility": {
-            "ariaLabel": "Enter case number"
-          }
-        }
-      ]
-    },
-    "clients": {
-      "buttons": [
-        {
-          "id": "button-create-client",
-          "label": "Add Client",
-          "explanation": "Register a new client profile",
-          "tooltip": {
-            "title": "Add New Client",
-            "content": "Create a new client master record with PAN, GSTIN, contact details, and billing information. Use GST API for auto-fill if enabled.",
-            "learnMoreUrl": "/help/best-practices/users-workflow"
-          },
-          "accessibility": {
-            "ariaLabel": "Add a new client"
+            "ariaLabel": "Enter template title"
           }
         },
         {
-          "id": "button-import-clients",
-          "label": "Import",
-          "explanation": "Upload client data from file",
+          "id": "tb2_stage",
+          "label": "Case Stage",
+          "explanation": "Litigation stage where template applies",
           "tooltip": {
-            "title": "Import Clients",
-            "content": "Bulk import client records from Excel or CSV. Map columns to fields and validate data before import.",
-            "learnMoreUrl": "/help/best-practices/users-workflow"
+            "title": "Case Stage",
+            "content": "The litigation stage this template is designed for. Templates are organized and filtered by stage for easier discovery."
           },
           "accessibility": {
-            "ariaLabel": "Import clients from file"
+            "ariaLabel": "Select case stage"
           }
         },
         {
-          "id": "button-export-clients",
-          "label": "Export",
-          "explanation": "Download client list",
+          "id": "tb2_version",
+          "label": "Version",
+          "explanation": "Template version number (auto-managed)",
           "tooltip": {
-            "title": "Export Clients",
-            "content": "Export all client records to Excel format with selected columns and filters applied.",
-            "learnMoreUrl": "/help/best-practices/users-workflow"
+            "title": "Template Version",
+            "content": "Version number tracks template changes. System automatically increments when you save modifications."
           },
           "accessibility": {
-            "ariaLabel": "Export client list"
+            "ariaLabel": "Template version"
           }
         },
         {
-          "id": "button-gst-autofill",
-          "label": "GST Autofill",
-          "explanation": "Fetch client data from GST portal",
+          "id": "tb2_visibility",
+          "label": "Visibility",
+          "explanation": "Who can see and use this template",
           "tooltip": {
-            "title": "GST API Autofill",
-            "content": "Automatically fetch and populate client details from GSTIN using official GST API. Requires API credentials.",
-            "learnMoreUrl": "/help/best-practices/users-workflow"
+            "title": "Template Visibility",
+            "content": "Admin: Only administrators. Team: All team members. All: Everyone including clients (use with caution)."
           },
           "accessibility": {
-            "ariaLabel": "Autofill client details from GST API"
-          }
-        }
-      ],
-      "fields": [
-        {
-          "id": "field-client-name",
-          "label": "Client Name",
-          "explanation": "Full legal name of the client",
-          "tooltip": {
-            "title": "Client Name",
-            "content": "Full legal name as it appears on official documents. Use individual or entity name.",
-            "learnMoreUrl": "/help/best-practices/users-workflow"
-          },
-          "accessibility": {
-            "ariaLabel": "Enter client name"
+            "ariaLabel": "Select visibility level"
           }
         },
         {
-          "id": "field-gstin",
-          "label": "GSTIN",
-          "explanation": "15-digit GST identification number",
+          "id": "tb2_editor_area",
+          "label": "Rich Text Editor",
+          "explanation": "Design your document with formatting",
           "tooltip": {
-            "title": "GSTIN",
-            "content": "15-character GST Identification Number. Format: 22AAAAA0000A1Z5. Use autofill for verified data.",
-            "learnMoreUrl": "/help/faqs/client-gstin-autofill"
+            "title": "Template Editor",
+            "content": "Create document content with rich formatting. Use toolbar for bold, italic, lists, tables, alignment. Insert {{variables}} from the sidebar."
           },
           "accessibility": {
-            "ariaLabel": "Enter GSTIN"
+            "ariaLabel": "Template content editor"
           }
         },
         {
-          "id": "field-pan",
-          "label": "PAN",
-          "explanation": "Permanent Account Number",
+          "id": "tb2_variable_list",
+          "label": "Insert Variables",
+          "explanation": "Dynamic fields auto-filled from case data",
           "tooltip": {
-            "title": "PAN",
-            "content": "10-character Permanent Account Number. Format: AAAAA0000A. Required for tax verification.",
-            "learnMoreUrl": "/help/best-practices/users-workflow"
+            "title": "Variable Library",
+            "content": "Click any variable to insert into your template. Variables like {{client_name}} or {{case_number}} are replaced with actual data when generating documents."
           },
           "accessibility": {
-            "ariaLabel": "Enter PAN"
-          }
-        }
-      ]
-    },
-    "tasks": {
-      "buttons": [
-        {
-          "id": "button-create-task",
-          "label": "New Task",
-          "explanation": "Add a task to track work",
-          "tooltip": {
-            "title": "Create Task",
-            "content": "Create a standalone task or link it to a case. Assign to team members, set priority, due date, and estimated hours.",
-            "learnMoreUrl": "/help/pages/task-automation"
-          },
-          "accessibility": {
-            "ariaLabel": "Create a new task",
-            "keyboardShortcut": "Ctrl+T"
+            "ariaLabel": "Variable library"
           }
         },
         {
-          "id": "button-ai-assistant",
-          "label": "AI Assistant",
-          "explanation": "Get AI-powered task suggestions",
+          "id": "tb2_field_library",
+          "label": "Field Library",
+          "explanation": "Available data fields from your system",
           "tooltip": {
-            "title": "AI Task Assistant",
-            "content": "Leverages AI to suggest task breakdowns, time estimates, dependencies, and optimal assignment based on team workload and case context.",
-            "learnMoreUrl": "/help/pages/task-automation/ai-assistant-tab"
+            "title": "Field Library",
+            "content": "Pre-defined fields from your case management system. Click + to add fields to your template and automatically insert them into the editor."
           },
           "accessibility": {
-            "ariaLabel": "Open AI task assistant"
+            "ariaLabel": "Browse field library"
           }
         },
         {
-          "id": "button-task-board",
-          "label": "Board View",
-          "explanation": "Kanban-style task board",
+          "id": "tb2_add_field",
+          "label": "Add Field",
+          "explanation": "Include this field in template",
           "tooltip": {
-            "title": "Task Board",
-            "content": "View tasks in a Kanban board layout organized by status. Drag and drop to update status and reorder priorities.",
-            "learnMoreUrl": "/help/pages/task-automation/board-tab"
+            "title": "Add Field to Template",
+            "content": "Adds the field to your template's field list and inserts the variable into the editor at cursor position."
           },
           "accessibility": {
-            "ariaLabel": "Switch to board view"
+            "ariaLabel": "Add field to template"
           }
         },
         {
-          "id": "button-task-templates",
-          "label": "Templates",
-          "explanation": "Pre-defined task blueprints",
+          "id": "tb2_logo",
+          "label": "Company Logo",
+          "explanation": "Upload logo for document header",
           "tooltip": {
-            "title": "Task Templates",
-            "content": "Create and manage task templates for common workflows. Templates auto-populate task details based on case stage and type.",
-            "learnMoreUrl": "/help/pages/task-automation/templates-tab"
+            "title": "Company Logo",
+            "content": "Upload your firm's logo (PNG, JPG, max 2MB). Appears in document header when enabled. Recommended size: 200x80px."
           },
           "accessibility": {
-            "ariaLabel": "Manage task templates"
+            "ariaLabel": "Upload company logo"
           }
         },
         {
-          "id": "button-task-analytics",
-          "label": "Analytics",
-          "explanation": "Task performance insights",
+          "id": "tb2_header",
+          "label": "Header Text",
+          "explanation": "Text appearing at top of every page",
           "tooltip": {
-            "title": "Task Analytics",
-            "content": "View team productivity metrics, task completion rates, bottlenecks, and time tracking analytics.",
-            "learnMoreUrl": "/help/pages/task-automation/analytics-tab"
+            "title": "Document Header",
+            "content": "Text displayed at the top of every page. Typically includes firm name and practice area. Shows below logo if uploaded."
           },
           "accessibility": {
-            "ariaLabel": "View task analytics"
+            "ariaLabel": "Enter header text"
           }
         },
         {
-          "id": "button-bulk-assign",
-          "label": "Bulk Assign",
-          "explanation": "Assign multiple tasks at once",
+          "id": "tb2_footer",
+          "label": "Footer Text",
+          "explanation": "Text appearing at bottom of every page",
           "tooltip": {
-            "title": "Bulk Task Assignment",
-            "content": "Select multiple tasks and assign them to team members in one action. Useful for workload distribution.",
-            "learnMoreUrl": "/help/pages/task-automation"
+            "title": "Document Footer",
+            "content": "Text displayed at the bottom of every page. Common uses: confidentiality notices, firm contact info, disclaimer."
           },
           "accessibility": {
-            "ariaLabel": "Bulk assign tasks"
-          }
-        }
-      ],
-      "fields": [
-        {
-          "id": "field-task-title",
-          "label": "Task Title",
-          "explanation": "Clear description of the task",
-          "tooltip": {
-            "title": "Task Title",
-            "content": "Use a clear, descriptive title that explains what needs to be done. Include case reference if applicable.",
-            "learnMoreUrl": "/help/pages/task-automation"
-          },
-          "accessibility": {
-            "ariaLabel": "Enter task title"
+            "ariaLabel": "Enter footer text"
           }
         },
         {
-          "id": "field-due-date",
-          "label": "Due Date",
-          "explanation": "Task completion deadline",
+          "id": "tb2_watermark",
+          "label": "Watermark",
+          "explanation": "Add 'CONFIDENTIAL' diagonal overlay",
           "tooltip": {
-            "title": "Due Date",
-            "content": "Set realistic deadlines accounting for complexity and dependencies. Consider court schedules.",
-            "learnMoreUrl": "/help/pages/task-automation"
+            "title": "Document Watermark",
+            "content": "Enable to display 'CONFIDENTIAL' watermark diagonally across pages. Adjust opacity slider to control visibility (10-50% recommended)."
           },
           "accessibility": {
-            "ariaLabel": "Select due date"
+            "ariaLabel": "Toggle watermark"
           }
         },
         {
-          "id": "field-priority",
-          "label": "Priority",
-          "explanation": "Task urgency level",
+          "id": "tb2_font",
+          "label": "Font Family",
+          "explanation": "Primary font for document text",
           "tooltip": {
-            "title": "Task Priority",
-            "content": "Critical: Court deadlines. High: Urgent matters. Medium: Standard work. Low: Administrative tasks.",
-            "learnMoreUrl": "/help/pages/task-automation"
+            "title": "Document Font",
+            "content": "Choose the font for your document. Inter and Roboto are recommended for professional legal documents. Font applies to all body text."
           },
           "accessibility": {
-            "ariaLabel": "Select priority level"
-          }
-        }
-      ]
-    },
-    "documents": {
-      "buttons": [
-        {
-          "id": "button-upload-document",
-          "label": "Upload Document",
-          "explanation": "Add files to case folders",
-          "tooltip": {
-            "title": "Upload Document",
-            "content": "Upload PDFs, Word docs, spreadsheets, or images. Link to cases, tag for search, and organize into folders automatically.",
-            "learnMoreUrl": "/help/pages/document-management"
-          },
-          "accessibility": {
-            "ariaLabel": "Upload a document"
+            "ariaLabel": "Select font family"
           }
         },
         {
-          "id": "button-ai-draft",
-          "label": "AI Draft Assistant",
-          "explanation": "Auto-generate legal drafts",
+          "id": "tb2_colors",
+          "label": "Brand Colors",
+          "explanation": "Primary and accent colors for document",
           "tooltip": {
-            "title": "AI Draft Assistant",
-            "content": "Use AI to generate replies, objections, petitions, and other legal documents based on case context and templates.",
-            "learnMoreUrl": "/help/guides/notice-intake-wizard-guide"
+            "title": "Brand Colors",
+            "content": "Primary color: Used for headers and important elements. Accent color: Used for highlights and secondary elements. Pick colors matching your firm's branding."
           },
           "accessibility": {
-            "ariaLabel": "Open AI draft assistant"
+            "ariaLabel": "Select brand colors"
           }
         },
         {
-          "id": "button-create-folder",
-          "label": "New Folder",
-          "explanation": "Organize documents",
+          "id": "tb2_format",
+          "label": "Output Format",
+          "explanation": "File format for generated documents",
           "tooltip": {
-            "title": "Create Folder",
-            "content": "Create a new folder to organize documents by case, stage, or custom categories. Set access permissions per folder.",
-            "learnMoreUrl": "/help/pages/document-management/overview-tab"
+            "title": "Output Format",
+            "content": "PDF: Best for final documents, cannot be edited. DOCX: Editable Word format. HTML: Web-viewable format. PDF is recommended for legal documents."
           },
           "accessibility": {
-            "ariaLabel": "Create a new folder"
+            "ariaLabel": "Select output format"
           }
         },
         {
-          "id": "button-form-templates",
-          "label": "Form Templates",
-          "explanation": "Standard GST forms",
+          "id": "tb2_page_size",
+          "label": "Page Size",
+          "explanation": "Paper size for document layout",
           "tooltip": {
-            "title": "Form Templates",
-            "content": "Access pre-built templates for GSTAT, DRC-01, ASMT-10, and other GST forms. Auto-fill from case data.",
-            "learnMoreUrl": "/help/pages/document-management/templates-tab"
+            "title": "Page Size",
+            "content": "A4: International standard (210x297mm). Letter: US standard (8.5x11in). Legal: US legal size (8.5x14in). Choose based on your jurisdiction."
           },
           "accessibility": {
-            "ariaLabel": "View form templates"
-          }
-        }
-      ],
-      "fields": [
-        {
-          "id": "field-document-title",
-          "label": "Document Title",
-          "explanation": "Name for this document",
-          "tooltip": {
-            "title": "Document Name",
-            "content": "Use descriptive names with case references. Avoid generic names like 'document1.pdf'.",
-            "learnMoreUrl": "/help/pages/document-management"
-          },
-          "accessibility": {
-            "ariaLabel": "Enter document title"
+            "ariaLabel": "Select page size"
           }
         },
         {
-          "id": "field-tags",
-          "label": "Tags",
-          "explanation": "Keywords for document search",
+          "id": "tb2_orientation",
+          "label": "Page Orientation",
+          "explanation": "Portrait (vertical) or Landscape (horizontal)",
           "tooltip": {
-            "title": "Document Tags",
-            "content": "Add keywords for searchability: 'motion', 'evidence', 'correspondence', etc.",
-            "learnMoreUrl": "/help/pages/document-management"
+            "title": "Page Orientation",
+            "content": "Portrait: Standard vertical orientation for most documents. Landscape: Horizontal orientation, useful for wide tables or charts."
           },
           "accessibility": {
-            "ariaLabel": "Add document tags"
+            "ariaLabel": "Select page orientation"
           }
         },
         {
-          "id": "field-category",
-          "label": "Category",
-          "explanation": "Document classification",
+          "id": "tb2_margins",
+          "label": "Page Margins",
+          "explanation": "White space around document edges",
           "tooltip": {
-            "title": "Document Category",
-            "content": "Classify documents by type: Pleadings, Evidence, Orders, Correspondence, etc. for better organization.",
-            "learnMoreUrl": "/help/pages/document-management"
+            "title": "Page Margins",
+            "content": "Set margins in millimeters for each edge. Standard: 20mm all sides. Wider margins (25-30mm) provide more white space for binding or notes."
           },
           "accessibility": {
-            "ariaLabel": "Select document category"
-          }
-        }
-      ]
-    },
-    "hearings": {
-      "buttons": [
-        {
-          "id": "button-schedule-hearing",
-          "label": "Schedule Hearing",
-          "explanation": "Book a court date and time",
-          "tooltip": {
-            "title": "Schedule Hearing",
-            "content": "Create hearing entry with date, time, court, judge, purpose, and agenda. System syncs with calendar and sends reminders.",
-            "learnMoreUrl": "/help/pages/hearings"
-          },
-          "accessibility": {
-            "ariaLabel": "Schedule a hearing"
+            "ariaLabel": "Adjust page margins"
           }
         },
         {
-          "id": "button-calendar-view",
-          "label": "Calendar",
-          "explanation": "View hearings in calendar",
+          "id": "tb2_toggles",
+          "label": "Header/Footer Options",
+          "explanation": "Show/hide headers, footers, page numbers",
           "tooltip": {
-            "title": "Calendar View",
-            "content": "View all scheduled hearings in a monthly calendar. Click dates to see hearing details and add new hearings.",
-            "learnMoreUrl": "/help/pages/hearings/calendar-tab"
+            "title": "Header/Footer Options",
+            "content": "Toggle to include/exclude header, footer, and page numbers. Disable for shorter documents or when not needed."
           },
           "accessibility": {
-            "ariaLabel": "Switch to calendar view"
+            "ariaLabel": "Toggle header and footer options"
           }
         },
         {
-          "id": "button-list-view",
-          "label": "List",
-          "explanation": "View hearings as list",
+          "id": "tb2_filename",
+          "label": "Filename Pattern",
+          "explanation": "Template for generated document names",
           "tooltip": {
-            "title": "List View",
-            "content": "View hearings in a sortable, filterable list format. Export to Excel or sync with external calendars.",
-            "learnMoreUrl": "/help/pages/hearings/list-tab"
+            "title": "Filename Pattern",
+            "content": "Use variables to create dynamic filenames. Example: ${code}_${case.caseNumber}_${now:YYYYMMDD}.pdf generates 'SCRUTINY_GST001_20251012.pdf'. Variables: ${code}, ${case.caseNumber}, ${now:format}."
           },
           "accessibility": {
-            "ariaLabel": "Switch to list view"
+            "ariaLabel": "Enter filename pattern"
           }
         },
         {
-          "id": "button-calendar-integration",
-          "label": "Sync Calendar",
-          "explanation": "Connect Google/Outlook",
+          "id": "tb2_docx_upload",
+          "label": "Upload DOCX",
+          "explanation": "Import existing Word templates",
           "tooltip": {
-            "title": "Calendar Integration",
-            "content": "Sync hearings with Google Calendar or Outlook. Automatic two-way sync keeps all calendars updated.",
-            "learnMoreUrl": "/help/pages/hearings"
+            "title": "DOCX Template Upload",
+            "content": "Upload existing Word templates with {{placeholder}} variables (max 10MB). System detects variables and maps them to case data fields. Preserves formatting."
           },
           "accessibility": {
-            "ariaLabel": "Configure calendar integration"
+            "ariaLabel": "Upload DOCX template"
           }
         },
         {
-          "id": "button-calendar-sync",
-          "label": "Sync Now",
-          "explanation": "Manually trigger calendar sync",
+          "id": "tb2_json_import",
+          "label": "JSON Import/Export",
+          "explanation": "Backup or share template configuration",
           "tooltip": {
-            "title": "Manual Calendar Sync",
-            "content": "Immediately sync hearing data with connected Google Calendar or Outlook. Automatic sync runs every hour.",
-            "learnMoreUrl": "/help/pages/hearings"
+            "title": "JSON Import/Export",
+            "content": "Export: Download template as JSON for backup or sharing. Import: Restore template from JSON file. Useful for template versioning and team collaboration."
           },
           "accessibility": {
-            "ariaLabel": "Sync hearings to calendar"
-          }
-        },
-        {
-          "id": "button-outcome",
-          "label": "Record Outcome",
-          "explanation": "Log hearing result",
-          "tooltip": {
-            "title": "Record Hearing Outcome",
-            "content": "Document the hearing result: Concluded, Adjourned, or Part-heard. Add notes and next hearing date if applicable.",
-            "learnMoreUrl": "/help/faqs/hearing-outcome"
-          },
-          "accessibility": {
-            "ariaLabel": "Record hearing outcome"
-          }
-        }
-      ],
-      "fields": [
-        {
-          "id": "field-hearing-date",
-          "label": "Hearing Date",
-          "explanation": "Court appearance date",
-          "tooltip": {
-            "title": "Hearing Date",
-            "content": "Exact date and time as scheduled by court. Double-check court calendar for conflicts.",
-            "learnMoreUrl": "/help/pages/hearings"
-          },
-          "accessibility": {
-            "ariaLabel": "Select hearing date"
-          }
-        },
-        {
-          "id": "field-court",
-          "label": "Court",
-          "explanation": "Hearing location",
-          "tooltip": {
-            "title": "Court/Jurisdiction",
-            "content": "Select the court where case will be heard. This affects filing rules and procedures.",
-            "learnMoreUrl": "/help/pages/hearings"
-          },
-          "accessibility": {
-            "ariaLabel": "Select court"
-          }
-        },
-        {
-          "id": "field-judge",
-          "label": "Judge",
-          "explanation": "Presiding judge",
-          "tooltip": {
-            "title": "Presiding Judge",
-            "content": "Select the judge assigned to hear this matter. Judge preferences may affect strategy.",
-            "learnMoreUrl": "/help/pages/hearings"
-          },
-          "accessibility": {
-            "ariaLabel": "Select judge"
-          }
-        }
-      ]
-    },
-    "reports": {
-      "buttons": [
-        {
-          "id": "button-generate-report",
-          "label": "Generate Report",
-          "explanation": "Create custom report",
-          "tooltip": {
-            "title": "Generate Report",
-            "content": "Generate custom reports with selected metrics, date ranges, and filters. Export to PDF or Excel.",
-            "learnMoreUrl": "/help/pages/reports"
-          },
-          "accessibility": {
-            "ariaLabel": "Generate a custom report"
-          }
-        },
-        {
-          "id": "button-case-reports",
-          "label": "Case Reports",
-          "explanation": "Case-level analytics",
-          "tooltip": {
-            "title": "Case Reports",
-            "content": "View case-level metrics including stage distribution, completion rates, and average case duration.",
-            "learnMoreUrl": "/help/pages/reports/case-reports-tab"
-          },
-          "accessibility": {
-            "ariaLabel": "View case reports"
-          }
-        },
-        {
-          "id": "button-hearing-reports",
-          "label": "Hearing Reports",
-          "explanation": "Hearing analytics",
-          "tooltip": {
-            "title": "Hearing Reports",
-            "content": "Analyze hearing outcomes, judge performance, adjournment rates, and court-wise statistics.",
-            "learnMoreUrl": "/help/pages/reports/hearings-tab"
-          },
-          "accessibility": {
-            "ariaLabel": "View hearing reports"
-          }
-        },
-        {
-          "id": "button-timeline-breach",
-          "label": "Timeline Breach",
-          "explanation": "Track deadline violations",
-          "tooltip": {
-            "title": "Timeline Breach Report",
-            "content": "Identify cases and tasks that missed deadlines. View breach reasons and patterns to improve compliance.",
-            "learnMoreUrl": "/help/pages/reports"
-          },
-          "accessibility": {
-            "ariaLabel": "View timeline breach report"
-          }
-        },
-        {
-          "id": "button-export-csv",
-          "label": "Export CSV",
-          "explanation": "Download report as spreadsheet",
-          "tooltip": {
-            "title": "Export to CSV",
-            "content": "Export current report data to CSV format for analysis in Excel or other tools. Includes all visible columns.",
-            "learnMoreUrl": "/help/pages/reports"
-          },
-          "accessibility": {
-            "ariaLabel": "Export report to CSV"
-          }
-        },
-        {
-          "id": "button-save-view",
-          "label": "Save View",
-          "explanation": "Save current filters and columns",
-          "tooltip": {
-            "title": "Save Report View",
-            "content": "Save current filters, column selection, and sort order as a named view for quick access later.",
-            "learnMoreUrl": "/help/pages/reports"
-          },
-          "accessibility": {
-            "ariaLabel": "Save current report view"
-          }
-        },
-        {
-          "id": "button-filter",
-          "label": "Filter",
-          "explanation": "Apply report filters",
-          "tooltip": {
-            "title": "Filter Reports",
-            "content": "Filter report data by date range, case stage, priority, assigned team, or custom criteria.",
-            "learnMoreUrl": "/help/pages/reports"
-          },
-          "accessibility": {
-            "ariaLabel": "Open filter options"
-          }
-        }
-      ],
-      "cards": [
-        {
-          "id": "card-case-reports",
-          "label": "Case Reports",
-          "explanation": "Case analytics and metrics",
-          "tooltip": {
-            "title": "Case Reports",
-            "content": "View case-level metrics including stage distribution, completion rates, and average case duration by type and court.",
-            "learnMoreUrl": "/help/pages/reports/case-reports-tab"
-          },
-          "accessibility": {
-            "ariaLabel": "View case reports"
-          }
-        },
-        {
-          "id": "card-hearings-report",
-          "label": "Hearings Report",
-          "explanation": "Hearing analytics",
-          "tooltip": {
-            "title": "Hearings Report",
-            "content": "Analyze hearing outcomes, judge performance, adjournment rates, and court-wise statistics.",
-            "learnMoreUrl": "/help/pages/reports/hearings-tab"
-          },
-          "accessibility": {
-            "ariaLabel": "View hearings report"
-          }
-        }
-      ]
-    },
-    "admin": {
-      "menu-items": [
-        {
-          "id": "menu-rbac",
-          "label": "Role Management",
-          "explanation": "Control user permissions",
-          "tooltip": {
-            "title": "RBAC Management",
-            "content": "Define roles (Partner, CA, Staff), assign permissions, and control access to sensitive case data and admin functions.",
-            "learnMoreUrl": "/help/best-practices/admin-management"
-          },
-          "accessibility": {
-            "ariaLabel": "Manage roles and permissions"
-          }
-        },
-        {
-          "id": "menu-storage",
-          "label": "Storage Mode",
-          "explanation": "Switch between local/API storage",
-          "tooltip": {
-            "title": "Storage Configuration",
-            "content": "Choose storage mode: Browser (IndexedDB), API (backend), or Hybrid. Affects data persistence and sync behavior.",
-            "learnMoreUrl": "/help/best-practices/admin-management"
-          },
-          "accessibility": {
-            "ariaLabel": "Configure storage mode"
-          }
-        },
-        {
-          "id": "menu-data-management",
-          "label": "Data Management",
-          "explanation": "Import/export and backup",
-          "tooltip": {
-            "title": "Data Management",
-            "content": "Import and export all system data, create backups, and restore from previous snapshots.",
-            "learnMoreUrl": "/help/best-practices/admin-management"
-          },
-          "accessibility": {
-            "ariaLabel": "Manage data import and export"
-          }
-        },
-        {
-          "id": "menu-global-parameters",
-          "label": "Global Parameters",
-          "explanation": "Configure system defaults",
-          "tooltip": {
-            "title": "Global Parameters",
-            "content": "Set organization-wide defaults for case numbering, task priorities, reminder schedules, and notification preferences.",
-            "learnMoreUrl": "/help/best-practices/admin-management"
-          },
-          "accessibility": {
-            "ariaLabel": "Configure global parameters"
-          }
-        },
-        {
-          "id": "menu-calendar-integration",
-          "label": "Calendar Integration",
-          "explanation": "Connect external calendars",
-          "tooltip": {
-            "title": "Calendar Integration",
-            "content": "Configure Google Calendar or Outlook integration for automatic hearing sync across your organization.",
-            "learnMoreUrl": "/help/best-practices/admin-management"
-          },
-          "accessibility": {
-            "ariaLabel": "Configure calendar integration"
-          }
-        },
-        {
-          "id": "menu-session-timeout",
-          "label": "Session Timeout",
-          "explanation": "Configure auto-logout settings",
-          "tooltip": {
-            "title": "Session Timeout Settings",
-            "content": "Configure automatic session timeout duration for security. Users will be logged out after the specified period of inactivity.",
-            "learnMoreUrl": "/help/best-practices/admin-management"
-          },
-          "accessibility": {
-            "ariaLabel": "Configure session timeout settings"
+            "ariaLabel": "Import or export JSON"
           }
         }
       ],
       "buttons": [
         {
-          "id": "button-export-data",
-          "label": "Export Data",
-          "explanation": "Download system data backup",
+          "id": "tb2_save_template",
+          "label": "Save Template",
+          "explanation": "Save changes to template library",
           "tooltip": {
-            "title": "Export System Data",
-            "content": "Export all system data (cases, clients, tasks, documents) to JSON format for backup or migration purposes.",
-            "learnMoreUrl": "/help/best-practices/admin-management"
+            "title": "Save Template",
+            "content": "Saves template to your library. Required fields: Template Code, Title, Stage. Template becomes available for document generation immediately."
           },
           "accessibility": {
-            "ariaLabel": "Export all system data"
+            "ariaLabel": "Save template"
           }
         },
         {
-          "id": "button-import-data",
-          "label": "Import Data",
-          "explanation": "Upload system data backup",
+          "id": "tb2_preview_document",
+          "label": "Preview",
+          "explanation": "See how document looks with sample data",
           "tooltip": {
-            "title": "Import System Data",
-            "content": "Import previously exported system data. Warning: This will overwrite existing data. Create a backup first.",
-            "learnMoreUrl": "/help/best-practices/admin-management"
+            "title": "Preview Document",
+            "content": "Renders template with mock case data to show final appearance. All {{variables}} are replaced with sample values. Check formatting before saving."
           },
           "accessibility": {
-            "ariaLabel": "Import system data"
+            "ariaLabel": "Preview document with mock data"
+          }
+        },
+        {
+          "id": "tb2_generate_code",
+          "label": "Generate Code",
+          "explanation": "Auto-create unique template code",
+          "tooltip": {
+            "title": "Generate Template Code",
+            "content": "Automatically creates unique template code based on stage and timestamp. Recommended to ensure no conflicts with existing templates."
+          },
+          "accessibility": {
+            "ariaLabel": "Generate unique template code"
           }
         }
-      ]
-    },
-    "dashboard": {
-      "cards": [
+      ],
+      "features": [
         {
-          "id": "card-pending-tasks",
-          "label": "Pending Tasks",
-          "explanation": "Tasks due soon",
+          "id": "tb2_feature_overview",
+          "label": "Template Builder 2.0",
+          "explanation": "Unified interface for creating all template types",
           "tooltip": {
-            "title": "Pending Tasks",
-            "content": "View all tasks assigned to you or your team with upcoming deadlines. Click to view task details or mark complete.",
-            "learnMoreUrl": "/help/pages/dashboard"
+            "title": "Template Builder 2.0",
+            "content": "All-in-one tool for creating rich text templates, field-based forms, or importing DOCX files. Features visual editor, variable library, branding controls, and output settings in a single workflow."
           },
           "accessibility": {
-            "ariaLabel": "View pending tasks"
-          }
-        },
-        {
-          "id": "card-upcoming-hearings",
-          "label": "Upcoming Hearings",
-          "explanation": "Next 7 days",
-          "tooltip": {
-            "title": "Upcoming Hearings",
-            "content": "Hearings scheduled in the next 7 days. Includes court, time, and case details. Click to view full hearing information.",
-            "learnMoreUrl": "/help/pages/dashboard"
-          },
-          "accessibility": {
-            "ariaLabel": "View upcoming hearings"
-          }
-        },
-        {
-          "id": "card-active-cases",
-          "label": "Active Cases",
-          "explanation": "Cases in progress",
-          "tooltip": {
-            "title": "Active Cases",
-            "content": "Total number of cases currently in progress across all stages. Click to filter by stage or priority.",
-            "learnMoreUrl": "/help/pages/dashboard"
-          },
-          "accessibility": {
-            "ariaLabel": "View active cases"
-          }
-        },
-        {
-          "id": "card-breach-alerts",
-          "label": "Breach Alerts",
-          "explanation": "Overdue deadlines",
-          "tooltip": {
-            "title": "Timeline Breach Alerts",
-            "content": "Cases and tasks that have missed statutory deadlines or internal due dates. Requires immediate attention.",
-            "learnMoreUrl": "/help/pages/dashboard"
-          },
-          "accessibility": {
-            "ariaLabel": "View breach alerts"
+            "ariaLabel": "Template Builder 2.0 overview"
           }
         }
       ]

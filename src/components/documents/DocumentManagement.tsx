@@ -168,6 +168,7 @@ export const DocumentManagement: React.FC = () => {
     const action = searchParams.get('action');
     const returnTo = searchParams.get('returnTo');
     const returnCaseId = searchParams.get('returnCaseId');
+    const openTemplateBuilder = searchParams.get('openTemplateBuilder');
     
     if (search) {
       setSearchTerm(search);
@@ -191,6 +192,15 @@ export const DocumentManagement: React.FC = () => {
       // Clear action parameter from URL to prevent re-opening modal on refresh
       const newSearchParams = new URLSearchParams(searchParams);
       newSearchParams.delete('action');
+      navigate(`?${newSearchParams.toString()}`, { replace: true });
+    }
+
+    // Handle template builder redirect
+    if (openTemplateBuilder === '1') {
+      setActiveTab('templates');
+      // Clear the parameter
+      const newSearchParams = new URLSearchParams(searchParams);
+      newSearchParams.delete('openTemplateBuilder');
       navigate(`?${newSearchParams.toString()}`, { replace: true });
     }
 

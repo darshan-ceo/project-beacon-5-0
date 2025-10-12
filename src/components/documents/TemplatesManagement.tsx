@@ -698,15 +698,7 @@ export const TemplatesManagement: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="custom" className="space-y-6">
-          {/* Custom Templates Header with Action Button */}
-          {canEdit && filteredCustomTemplates.length > 0 && (
-            <div className="flex justify-end">
-              <Button onClick={() => { setEditingTemplate(null); setEditorOpen(true); }}>
-                <Plus className="mr-2 h-4 w-4" />
-                New Custom Template
-              </Button>
-            </div>
-          )}
+          {/* Custom Templates Display - No duplicate header button */}
 
           {/* Custom Templates Display */}
           {Object.entries(groupedCustomTemplates).map(([stage, stageTemplates]) => (
@@ -806,14 +798,10 @@ export const TemplatesManagement: React.FC = () => {
                   : 'Create your first custom template to get started.'}
               </p>
               {canEdit && (
-                <div className="flex gap-2 justify-center mt-4">
-                  <Button onClick={() => { setEditingTemplate(null); setEditorOpen(true); }}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    New Custom Template
-                  </Button>
-                  <Button variant="outline" onClick={() => setBuilderOpen(true)}>
-                    <Wrench className="mr-2 h-4 w-4" />
-                    Template Builder
+                <div className="flex justify-center mt-4">
+                  <Button onClick={() => setUnifiedBuilderOpen(true)} size="lg">
+                    <Plus className="mr-2 h-5 w-5" />
+                    Create Your First Template
                   </Button>
                 </div>
               )}

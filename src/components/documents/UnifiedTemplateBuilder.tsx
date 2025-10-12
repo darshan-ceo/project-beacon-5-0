@@ -33,6 +33,7 @@ import {
 import { FormField } from '@/services/formTemplatesService';
 import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 import { getMockData } from '@/services/seedTemplatesService';
+import { ThreeLayerHelp } from '@/components/ui/three-layer-help';
 
 export interface UnifiedTemplate {
   // Metadata
@@ -515,9 +516,9 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
           </DialogTitle>
           
           {/* Header Metadata */}
-          <div className="grid grid-cols-3 gap-3 mt-4 text-sm">
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Template Code</Label>
+          <div className="grid grid-cols-3 gap-4 mt-4 text-sm">
+            <div className="space-y-2">
+              <ThreeLayerHelp helpId="tb2_template_code" showExplanation={false} />
               <div className="flex gap-2">
                 <Input
                   value={templateData.templateCode}
@@ -529,21 +530,23 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
                   <Sparkles className="h-3 w-3" />
                 </Button>
               </div>
+              <p className="text-[12px] text-muted-foreground mt-1">Unique identifier for this template</p>
             </div>
             
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Template Title</Label>
+            <div className="space-y-2">
+              <ThreeLayerHelp helpId="tb2_template_title" showExplanation={false} />
               <Input
                 value={templateData.title}
                 onChange={(e) => updateTemplateData({ title: e.target.value })}
                 placeholder="e.g., GST Scrutiny Response"
                 className="h-8 text-sm"
               />
+              <p className="text-[12px] text-muted-foreground mt-1">Descriptive name shown in template lists</p>
             </div>
             
             <div className="grid grid-cols-3 gap-2">
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Stage</Label>
+              <div className="space-y-2">
+                <ThreeLayerHelp helpId="tb2_stage" showExplanation={false} />
                 <Select value={templateData.stage} onValueChange={(stage) => updateTemplateData({ stage })}>
                   <SelectTrigger className="h-8 text-sm">
                     <SelectValue />
@@ -554,13 +557,13 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
                 </Select>
               </div>
               
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Version</Label>
+              <div className="space-y-2">
+                <ThreeLayerHelp helpId="tb2_version" showExplanation={false} />
                 <Input value={templateData.version} readOnly className="h-8 text-sm bg-muted" />
               </div>
               
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Visibility</Label>
+              <div className="space-y-2">
+                <ThreeLayerHelp helpId="tb2_visibility" showExplanation={false} />
                 <Select 
                   value={templateData.visibility} 
                   onValueChange={(visibility: any) => updateTemplateData({ visibility })}
@@ -602,7 +605,7 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
               <TabsTrigger value="import" className="flex items-center gap-2" disabled={!isAdmin}>
                 <Upload className="h-4 w-4" />
                 Import/Export
-                {!isAdmin && <Shield className="h-3 w-3 ml-1 text-muted-foreground" />}
+                {!isAdmin && <Badge variant="outline" className="text-xs ml-auto">Admin Only</Badge>}
               </TabsTrigger>
             </TabsList>
           </div>
@@ -612,8 +615,10 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
             {/* Left Sidebar - Variables */}
             <div className="w-64 flex flex-col border rounded-lg overflow-hidden">
               <div className="p-3 bg-muted/50 border-b">
-                <h3 className="font-medium text-sm">Insert Variables</h3>
-                <p className="text-xs text-muted-foreground mt-1">Click to insert</p>
+                <ThreeLayerHelp helpId="tb2_variable_list" showExplanation={false}>
+                  <h3 className="font-medium text-sm">Insert Variables</h3>
+                </ThreeLayerHelp>
+                <p className="text-xs text-muted-foreground mt-1">Dynamic fields auto-filled from case data</p>
               </div>
               
               <Input
@@ -780,10 +785,12 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
 
           {/* Tab 2: Fields */}
           <TabsContent value="fields" className="flex-1 flex gap-4 px-6 pb-4 overflow-hidden mt-4">
-            <div className="w-1/2 flex flex-col border rounded-lg overflow-hidden">
+            <div className="w-1/4 flex flex-col border rounded-lg overflow-hidden">
               <div className="p-4 bg-muted/50 border-b">
-                <h3 className="font-medium">Field Library</h3>
-                <p className="text-sm text-muted-foreground">Click to add fields to template</p>
+                <ThreeLayerHelp helpId="tb2_field_library" showExplanation={false}>
+                  <h3 className="font-medium">Field Library</h3>
+                </ThreeLayerHelp>
+                <p className="text-sm text-muted-foreground mt-1">Available data fields from your system</p>
               </div>
               
               <div className="p-3 border-b flex gap-2">
@@ -830,7 +837,7 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
               </ScrollArea>
             </div>
 
-            <div className="w-1/2 flex flex-col border rounded-lg overflow-hidden">
+            <div className="w-3/4 flex flex-col border rounded-lg overflow-hidden">
               <div className="p-4 bg-muted/50 border-b">
                 <h3 className="font-medium">Selected Fields ({templateData.fields.length})</h3>
                 <p className="text-sm text-muted-foreground">Fields in your template</p>
@@ -867,9 +874,9 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
           {/* Tab 3: Branding */}
           <TabsContent value="branding" className="flex-1 px-6 pb-4 overflow-auto mt-4">
             <div className="max-w-3xl mx-auto space-y-6">
-              <div className="space-y-4 p-6 border rounded-lg">
-                <div>
-                  <Label htmlFor="logo-upload">Company Logo</Label>
+              <div className="space-y-6 p-6 border rounded-lg">
+                <div className="space-y-2">
+                  <ThreeLayerHelp helpId="tb2_logo" showExplanation={false} />
                   <div className="mt-2 flex items-center gap-4">
                     {logoFile ? (
                       <img src={logoFile} alt="Logo" className="h-16 w-16 object-contain border rounded" />
@@ -958,48 +965,53 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
 
                 <Separator />
 
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <Label>Font Family</Label>
-                    <Select
-                      value={templateData.branding.font}
-                      onValueChange={(font) => updateTemplateData({
-                        branding: { ...templateData.branding, font }
-                      })}
-                    >
-                      <SelectTrigger className="mt-2">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {FONTS.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="space-y-2">
+                  <ThreeLayerHelp helpId="tb2_font" showExplanation={false} />
+                  <p className="text-[12px] text-muted-foreground">Primary font for document text</p>
+                  <Select
+                    value={templateData.branding.font}
+                    onValueChange={(font) => updateTemplateData({
+                      branding: { ...templateData.branding, font }
+                    })}
+                  >
+                    <SelectTrigger className="mt-2">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {FONTS.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                  <div>
-                    <Label htmlFor="primary-color">Primary Color</Label>
-                    <Input
-                      id="primary-color"
-                      type="color"
-                      value={templateData.branding.primaryColor}
-                      onChange={(e) => updateTemplateData({
-                        branding: { ...templateData.branding, primaryColor: e.target.value }
-                      })}
-                      className="mt-2 h-10"
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <ThreeLayerHelp helpId="tb2_colors" showExplanation={false} />
+                  <p className="text-[12px] text-muted-foreground">Brand colors for document</p>
+                  <div className="grid grid-cols-2 gap-4 mt-2">
+                    <div>
+                      <Label htmlFor="primary-color" className="text-xs">Primary</Label>
+                      <Input
+                        id="primary-color"
+                        type="color"
+                        value={templateData.branding.primaryColor}
+                        onChange={(e) => updateTemplateData({
+                          branding: { ...templateData.branding, primaryColor: e.target.value }
+                        })}
+                        className="h-10 mt-1"
+                      />
+                    </div>
 
-                  <div>
-                    <Label htmlFor="accent-color">Accent Color</Label>
-                    <Input
-                      id="accent-color"
-                      type="color"
-                      value={templateData.branding.accentColor}
-                      onChange={(e) => updateTemplateData({
-                        branding: { ...templateData.branding, accentColor: e.target.value }
-                      })}
-                      className="mt-2 h-10"
-                    />
+                    <div>
+                      <Label htmlFor="accent-color" className="text-xs">Accent</Label>
+                      <Input
+                        id="accent-color"
+                        type="color"
+                        value={templateData.branding.accentColor}
+                        onChange={(e) => updateTemplateData({
+                          branding: { ...templateData.branding, accentColor: e.target.value }
+                        })}
+                        className="h-10 mt-1"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1009,17 +1021,18 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
           {/* Tab 4: Output */}
           <TabsContent value="output" className="flex-1 px-6 pb-4 overflow-auto mt-4">
             <div className="max-w-3xl mx-auto space-y-6">
-              <div className="space-y-4 p-6 border rounded-lg">
+              <div className="space-y-6 p-6 border rounded-lg">
                 <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <Label>Output Format</Label>
+                  <div className="space-y-2">
+                    <ThreeLayerHelp helpId="tb2_format" showExplanation={false} />
+                    <p className="text-[12px] text-muted-foreground">File format for generated documents</p>
                     <Select
                       value={templateData.output.format}
                       onValueChange={(format: any) => updateTemplateData({
                         output: { ...templateData.output, format }
                       })}
                     >
-                      <SelectTrigger className="mt-2">
+                      <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -1030,15 +1043,16 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
                     </Select>
                   </div>
 
-                  <div>
-                    <Label>Page Size</Label>
+                  <div className="space-y-2">
+                    <ThreeLayerHelp helpId="tb2_page_size" showExplanation={false} />
+                    <p className="text-[12px] text-muted-foreground">Paper size for document layout</p>
                     <Select
                       value={templateData.output.pageSize}
                       onValueChange={(pageSize: any) => updateTemplateData({
                         output: { ...templateData.output, pageSize }
                       })}
                     >
-                      <SelectTrigger className="mt-2">
+                      <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -1049,14 +1063,14 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
                     </Select>
                   </div>
 
-                  <div>
-                    <Label>Orientation</Label>
+                  <div className="space-y-2">
+                    <ThreeLayerHelp helpId="tb2_orientation" showExplanation={false} />
+                    <p className="text-[12px] text-muted-foreground">Portrait or Landscape</p>
                     <RadioGroup
                       value={templateData.output.orientation}
                       onValueChange={(orientation: any) => updateTemplateData({
                         output: { ...templateData.output, orientation }
                       })}
-                      className="mt-2"
                     >
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="Portrait" id="portrait" />
@@ -1072,9 +1086,10 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
 
                 <Separator />
 
-                <div>
-                  <Label className="mb-3 block">Margins (mm)</Label>
-                  <div className="grid grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <ThreeLayerHelp helpId="tb2_margins" showExplanation={false} />
+                  <p className="text-[12px] text-muted-foreground">White space around document edges</p>
+                  <div className="grid grid-cols-4 gap-4 mt-2">
                     {['top', 'bottom', 'left', 'right'].map(side => (
                       <div key={side}>
                         <Label className="text-xs capitalize">{side}</Label>
@@ -1102,6 +1117,11 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
                 <Separator />
 
                 <div className="space-y-3">
+                  <ThreeLayerHelp helpId="tb2_toggles" showExplanation={false}>
+                    <div className="font-medium text-sm">Header/Footer Options</div>
+                  </ThreeLayerHelp>
+                  <p className="text-[12px] text-muted-foreground mb-3">Show/hide headers, footers, page numbers</p>
+                  
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="include-header"
@@ -1138,8 +1158,9 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
 
                 <Separator />
 
-                <div>
-                  <Label htmlFor="filename-pattern">Filename Pattern</Label>
+                <div className="space-y-2">
+                  <ThreeLayerHelp helpId="tb2_filename" showExplanation={false} />
+                  <p className="text-[12px] text-muted-foreground">Template for generated document names</p>
                   <Input
                     id="filename-pattern"
                     value={templateData.output.filenamePattern}
@@ -1147,9 +1168,9 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
                       output: { ...templateData.output, filenamePattern: e.target.value }
                     })}
                     placeholder="${code}_${case.caseNumber}_${now:YYYYMMDD}.pdf"
-                    className="mt-2 font-mono text-sm"
+                    className="font-mono text-sm"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-muted-foreground">
                     Use variables: ${`{code}`}, ${`{case.caseNumber}`}, ${`{now:YYYYMMDD}`}
                   </p>
                 </div>
@@ -1161,12 +1182,14 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
           <TabsContent value="import" className="flex-1 px-6 pb-4 overflow-auto mt-4">
             <div className="max-w-3xl mx-auto space-y-6">
               <div className="p-6 border rounded-lg bg-muted/30">
-                <div className="flex items-center gap-2 mb-4">
+                <div className="flex items-center gap-2 mb-2">
                   <Upload className="h-5 w-5" />
-                  <h3 className="font-medium">Upload DOCX Template</h3>
+                  <ThreeLayerHelp helpId="tb2_docx_upload" showExplanation={false}>
+                    <h3 className="font-medium">Upload DOCX Template</h3>
+                  </ThreeLayerHelp>
                 </div>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Upload a Word document with variable placeholders (e.g., {`{{client_name}}`}) for automatic detection and mapping.
+                  Upload a Word document with variable placeholders (e.g., {`{{client_name}}`}) for automatic detection and mapping. Max 10MB.
                 </p>
                 <Input
                   type="file"
@@ -1195,20 +1218,22 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
               </div>
 
               <div className="p-6 border rounded-lg bg-muted/30">
-                <div className="flex items-center gap-2 mb-4">
+                <div className="flex items-center gap-2 mb-2">
                   <Code className="h-5 w-5" />
-                  <h3 className="font-medium">JSON Schema</h3>
+                  <ThreeLayerHelp helpId="tb2_json_import" showExplanation={false}>
+                    <h3 className="font-medium">JSON Schema</h3>
+                  </ThreeLayerHelp>
                 </div>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Export or import template configuration as JSON for version control and sharing.
+                  Export or import template configuration as JSON for backup, version control, and team sharing.
                 </p>
                 <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1" onClick={handleExportJSON}>
+                  <Button variant="outline" className="flex-1 rounded-lg hover:opacity-90" onClick={handleExportJSON}>
                     <Download className="mr-2 h-4 w-4" />
                     Download JSON
                   </Button>
                   <label className="flex-1">
-                    <Button variant="outline" className="w-full" asChild>
+                    <Button variant="outline" className="w-full rounded-lg hover:opacity-90" asChild>
                       <span>
                         <Upload className="mr-2 h-4 w-4" />
                         Import JSON
@@ -1242,11 +1267,11 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
           </TabsContent>
         </Tabs>
 
-        <DialogFooter className="px-6 py-4 border-t">
-          <Button variant="outline" onClick={onClose}>
+        <DialogFooter className="px-6 py-4 border-t flex justify-end gap-3">
+          <Button variant="outline" onClick={onClose} className="rounded-lg hover:opacity-90">
             Cancel
           </Button>
-          <Button onClick={handleSave}>
+          <Button onClick={handleSave} className="rounded-lg hover:opacity-90">
             <Save className="mr-2 h-4 w-4" />
             Save & Publish
           </Button>

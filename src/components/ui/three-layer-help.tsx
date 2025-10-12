@@ -71,20 +71,20 @@ export const ThreeLayerHelp: React.FC<ThreeLayerHelpProps> = ({
                 {isOpen && (
                   <TooltipContent
                     side="top"
-                    className="max-w-[280px] break-words p-0 overflow-hidden"
+                    className="max-w-[280px] break-words p-0 overflow-hidden bg-[#1E293B] text-[#F8FAFC] border-none"
                     asChild
                   >
                     <motion.div
                       initial={{ opacity: 0, y: 10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      transition={{ duration: 0.2, ease: "easeOut" }}
+                      transition={{ duration: 0.15, ease: "easeOut" }}
                     >
-                      <div className="p-3 space-y-2">
-                        <p className="font-semibold text-sm text-foreground">
+                      <div className="p-3 space-y-2 rounded-[6px]">
+                        <p className="font-semibold text-sm text-[#F8FAFC]">
                           {helpData.tooltip.title}
                         </p>
-                        <p className="text-xs leading-relaxed text-muted-foreground break-words">
+                        <p className="text-xs leading-relaxed text-[#CBD5E1] break-words">
                           {helpData.tooltip.content}
                         </p>
                         {helpData.tooltip.learnMoreUrl && (
