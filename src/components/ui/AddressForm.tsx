@@ -523,7 +523,7 @@ export const AddressForm: React.FC<AddressFormProps> = ({
 
           {/* City */}
           {isFieldVisible('cityId') && (
-            <div className="space-y-2">
+            <div className={`space-y-2 ${manualCityMode ? 'md:col-span-3' : ''}`}>
               <div className="flex items-center justify-between">
                 <Label htmlFor="city">
                   City {(required || isFieldRequired('cityId')) && '*'}
