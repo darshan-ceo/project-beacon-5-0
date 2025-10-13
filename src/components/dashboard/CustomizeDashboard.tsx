@@ -123,13 +123,14 @@ export const CustomizeDashboard: React.FC<CustomizeDashboardProps> = ({
       }
     >
       <Tabs defaultValue={modules[0]} className="flex-1 flex flex-col">
-        {/* Responsive TabsList */}
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1 mb-4 border-b bg-background z-10">
+        {/* Responsive TabsList - No wrapping, better spacing */}
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mb-6 border-b bg-background z-10 p-1 min-h-[48px]">
           {modules.map((module) => (
             <TabsTrigger 
               key={module} 
               value={module} 
-              className="text-xs sm:text-sm px-2 py-1.5"
+              title={module}
+              className="text-xs sm:text-sm px-2 py-1.5 whitespace-nowrap truncate"
             >
               {module}
             </TabsTrigger>
