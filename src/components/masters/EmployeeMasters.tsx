@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { FilterDropdown } from '@/components/ui/filter-dropdown';
 import { ExportButton } from '@/components/ui/export-button';
-import { EmployeeModal } from '@/components/modals/EmployeeModal';
+import { EmployeeModalV2 } from '@/components/modals/EmployeeModalV2';
 import { ImportWizard } from '@/components/importExport/ImportWizard';
 import { ExportWizard } from '@/components/importExport/ExportWizard';
 import { useAppState } from '@/contexts/AppStateContext';
@@ -358,12 +358,15 @@ export const EmployeeMasters: React.FC = () => {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Code</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Role</TableHead>
-                <TableHead>RBAC Roles</TableHead>
+                <TableHead>Designation</TableHead>
+                <TableHead>Department</TableHead>
+                <TableHead>Branch</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Mobile</TableHead>
-                <TableHead>Department</TableHead>
+                <TableHead className="text-right">₹/hr</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Joining Date</TableHead>
                 <TableHead className="w-[100px]">Actions</TableHead>
@@ -373,6 +376,9 @@ export const EmployeeMasters: React.FC = () => {
               {filteredEmployees.map((employee) => (
                 <TableRow key={employee.id}>
                   <TableCell>
+                    <span className="font-mono text-sm">{employee.employeeCode || '-'}</span>
+                  </TableCell>
+                  <TableCell>
                     <div className="flex items-center space-x-3">
                       <div className="flex-shrink-0">
                         <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
@@ -381,14 +387,7 @@ export const EmployeeMasters: React.FC = () => {
                           </span>
                         </div>
                       </div>
-                      <div>
-                        <div className="font-medium text-foreground">{employee.full_name}</div>
-                        {employee.specialization && employee.specialization.length > 0 && (
-                          <div className="text-sm text-muted-foreground">
-                            {employee.specialization.join(', ')}
-                          </div>
-                        )}
-                      </div>
+                      <div className="font-medium text-foreground">{employee.full_name}</div>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -397,27 +396,18 @@ export const EmployeeMasters: React.FC = () => {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="flex flex-wrap gap-1">
-                            {roleMapperService.getRBACRoleNamesForEmployee(employee.role).map((rbacRole) => (
-                              <Badge key={rbacRole} variant="secondary" className="text-xs">
-                                {rbacRole}
-                              </Badge>
-                            ))}
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="text-sm">Auto-assigned based on employee role</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <span className="text-sm">{employee.designation || '-'}</span>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm">{employee.department}</span>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm">{employee.branch || '-'}</span>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
                       <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{employee.email}</span>
+                      <span className="text-sm">{employee.officialEmail || employee.email}</span>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -430,8 +420,10 @@ export const EmployeeMasters: React.FC = () => {
                       <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
-                  <TableCell>
-                    <span className="text-sm">{employee.department}</span>
+                  <TableCell className="text-right">
+                    <span className="text-sm font-mono">
+                      {employee.billingRate ? `₹${employee.billingRate}` : '-'}
+                    </span>
                   </TableCell>
                   <TableCell>
                     <Badge className={getStatusColor(employee.status)}>
@@ -440,7 +432,7 @@ export const EmployeeMasters: React.FC = () => {
                   </TableCell>
                   <TableCell>
                     <span className="text-sm">
-                      {employee.date_of_joining ? new Date(employee.date_of_joining).toLocaleDateString() : '-'}
+                      {employee.date_of_joining ? new Date(employee.date_of_joining).toLocaleDateString('en-GB') : '-'}
                     </span>
                   </TableCell>
                   <TableCell>

@@ -206,7 +206,7 @@ export interface Employee {
   role: 'Partner' | 'CA' | 'Advocate' | 'Manager' | 'Staff' | 'RM' | 'Finance' | 'Admin';
   email: string;
   mobile?: string;
-  status: 'Active' | 'Inactive';
+  status: 'Active' | 'Inactive' | 'Suspended';
   date_of_joining?: string;
   notes?: string;
   department: string;
@@ -214,8 +214,74 @@ export interface Employee {
   specialization?: string[];
   managerId?: string;
   tenantId?: string;
-  address?: any; // Support enhanced address
-  addressId?: string; // For address master integration
+  address?: any;
+  addressId?: string;
+  
+  // Personal Tab
+  employeeCode?: string;
+  profilePhoto?: string;
+  gender?: 'Male' | 'Female' | 'Other';
+  dob?: string;
+  pan?: string;
+  aadhaar?: string;
+  bloodGroup?: 'A+' | 'A-' | 'B+' | 'B-' | 'O+' | 'O-' | 'AB+' | 'AB-';
+  
+  // Contact Tab
+  officialEmail?: string;
+  personalEmail?: string;
+  alternateContact?: string;
+  currentAddress?: string;
+  permanentAddress?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  
+  // Employment Tab
+  designation?: string;
+  reportingTo?: string;
+  branch?: string;
+  employmentType?: 'Permanent' | 'Contract' | 'Intern' | 'Consultant';
+  confirmationDate?: string;
+  weeklyOff?: 'Sunday' | 'Alternate Saturday' | 'Custom';
+  workShift?: 'Regular' | 'Remote' | 'Flexible';
+  
+  // Credentials Tab
+  barCouncilNo?: string;
+  icaiNo?: string;
+  gstPractitionerId?: string;
+  qualification?: string;
+  experienceYears?: number;
+  areasOfPractice?: string[];
+  university?: string;
+  graduationYear?: number;
+  
+  // Billing Tab
+  billingRate?: number;
+  billable?: boolean;
+  defaultTaskCategory?: string;
+  incentiveEligible?: boolean;
+  
+  // Access Tab
+  moduleAccess?: string[];
+  dataScope?: 'Own Cases' | 'Team Cases' | 'All Cases';
+  aiAccess?: boolean;
+  whatsappAccess?: boolean;
+  
+  // Documents Tab (DMS references)
+  documents?: {
+    resume?: string;
+    idProof?: string;
+    addressProof?: string;
+    barOrIcaiCert?: string;
+    nda?: string;
+    offerLetter?: string;
+  };
+  
+  // Audit Tab
+  createdBy?: string;
+  createdAt?: string;
+  updatedBy?: string;
+  updatedAt?: string;
 }
 
 // Enhanced Hearing interface with lifecycle integration

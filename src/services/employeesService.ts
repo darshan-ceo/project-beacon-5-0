@@ -8,15 +8,94 @@ export interface Employee {
   role: 'Partner' | 'CA' | 'Advocate' | 'Manager' | 'Staff' | 'RM' | 'Finance' | 'Admin';
   email: string;
   mobile?: string;
-  status: 'Active' | 'Inactive';
+  status: 'Active' | 'Inactive' | 'Suspended';
   date_of_joining?: string;
   notes?: string;
   department: string;
   workloadCapacity: number;
   specialization?: string[];
-  managerId?: string; // For organizational hierarchy
-  tenantId?: string; // For multi-tenant support
+  managerId?: string;
+  tenantId?: string;
+  
+  // Personal Tab
+  employeeCode?: string;
+  profilePhoto?: string;
+  gender?: 'Male' | 'Female' | 'Other';
+  dob?: string;
+  pan?: string;
+  aadhaar?: string;
+  bloodGroup?: 'A+' | 'A-' | 'B+' | 'B-' | 'O+' | 'O-' | 'AB+' | 'AB-';
+  
+  // Contact Tab
+  officialEmail?: string;
+  personalEmail?: string;
+  alternateContact?: string;
+  currentAddress?: string;
+  permanentAddress?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  
+  // Employment Tab
+  designation?: string;
+  reportingTo?: string;
+  branch?: string;
+  employmentType?: 'Permanent' | 'Contract' | 'Intern' | 'Consultant';
+  confirmationDate?: string;
+  weeklyOff?: 'Sunday' | 'Alternate Saturday' | 'Custom';
+  workShift?: 'Regular' | 'Remote' | 'Flexible';
+  
+  // Credentials Tab
+  barCouncilNo?: string;
+  icaiNo?: string;
+  gstPractitionerId?: string;
+  qualification?: string;
+  experienceYears?: number;
+  areasOfPractice?: string[];
+  university?: string;
+  graduationYear?: number;
+  
+  // Billing Tab
+  billingRate?: number;
+  billable?: boolean;
+  defaultTaskCategory?: string;
+  incentiveEligible?: boolean;
+  
+  // Access Tab
+  moduleAccess?: string[];
+  dataScope?: 'Own Cases' | 'Team Cases' | 'All Cases';
+  aiAccess?: boolean;
+  whatsappAccess?: boolean;
+  
+  // Documents Tab (DMS references)
+  documents?: {
+    resume?: string;
+    idProof?: string;
+    addressProof?: string;
+    barOrIcaiCert?: string;
+    nda?: string;
+    offerLetter?: string;
+  };
+  
+  // Audit Tab
+  createdBy?: string;
+  createdAt?: string;
+  updatedBy?: string;
+  updatedAt?: string;
 }
+
+// Auto-generate employee code
+const generateEmployeeCode = (existingEmployees: Employee[]): string => {
+  const prefix = 'GSTE';
+  const existingCodes = existingEmployees
+    .map(e => e.employeeCode)
+    .filter(code => code?.startsWith(prefix))
+    .map(code => parseInt(code?.substring(4) || '0'))
+    .filter(num => !isNaN(num));
+  
+  const nextNum = existingCodes.length > 0 ? Math.max(...existingCodes) + 1 : 1;
+  return `${prefix}${nextNum.toString().padStart(4, '0')}`;
+};
 
 // Validation helper
 const validateEmployee = (employee: Partial<Employee>, existingEmployees: Employee[], currentId?: string) => {
@@ -30,14 +109,23 @@ const validateEmployee = (employee: Partial<Employee>, existingEmployees: Employ
     errors.push("Role is required");
   }
 
-  if (!employee.email?.trim()) {
+  if (!employee.department?.trim()) {
+    errors.push("Department is required");
+  }
+
+  if (!employee.date_of_joining) {
+    errors.push("Joining date is required");
+  }
+
+  // Email validation (official email or email field)
+  const emailToCheck = employee.officialEmail || employee.email;
+  if (!emailToCheck?.trim()) {
     errors.push("Email is required");
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(employee.email)) {
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailToCheck)) {
     errors.push("Invalid email format");
   } else {
-    // Check email uniqueness
     const emailExists = existingEmployees.some(emp => 
-      emp.email === employee.email && emp.id !== currentId
+      (emp.officialEmail === emailToCheck || emp.email === emailToCheck) && emp.id !== currentId
     );
     if (emailExists) {
       errors.push("Email already exists");
@@ -45,7 +133,6 @@ const validateEmployee = (employee: Partial<Employee>, existingEmployees: Employ
   }
 
   if (employee.mobile && employee.mobile.trim()) {
-    // Check mobile uniqueness
     const mobileExists = existingEmployees.some(emp => 
       emp.mobile === employee.mobile && emp.id !== currentId
     );
@@ -54,29 +141,62 @@ const validateEmployee = (employee: Partial<Employee>, existingEmployees: Employ
     }
   }
 
+  // PAN validation
+  if (employee.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(employee.pan)) {
+    errors.push("Invalid PAN format. Required: AAAAA9999A");
+  }
+
+  // Pincode validation
+  if (employee.pincode && !/^\d{6}$/.test(employee.pincode)) {
+    errors.push("Invalid pincode. Must be 6 digits");
+  }
+
+  // Billing rate validation
+  if (employee.billingRate !== undefined && employee.billingRate < 0) {
+    errors.push("Billing rate must be non-negative");
+  }
+
   return errors;
 };
 
 export const employeesService = {
   // Create new employee
   create: async (employeeData: Partial<Employee>, dispatch: React.Dispatch<AppAction>, existingEmployees: Employee[]): Promise<Employee> => {
+    // Auto-generate employee code if not provided
+    if (!employeeData.employeeCode) {
+      employeeData.employeeCode = generateEmployeeCode(existingEmployees);
+    }
+
+    // Set officialEmail as primary email if email not provided
+    if (!employeeData.email && employeeData.officialEmail) {
+      employeeData.email = employeeData.officialEmail;
+    }
+
     const errors = validateEmployee(employeeData, existingEmployees);
     if (errors.length > 0) {
       throw new Error(errors.join(", "));
     }
 
+    const now = new Date().toISOString();
     const newEmployee: Employee = {
       id: Math.random().toString(36).substr(2, 9),
       full_name: employeeData.full_name!,
       role: employeeData.role!,
-      email: employeeData.email!,
+      email: employeeData.email || employeeData.officialEmail!,
       mobile: employeeData.mobile,
       status: employeeData.status || 'Active',
       date_of_joining: employeeData.date_of_joining,
       notes: employeeData.notes,
-      department: employeeData.department || 'General',
+      department: employeeData.department!,
       workloadCapacity: employeeData.workloadCapacity || 40,
-      specialization: employeeData.specialization || []
+      specialization: employeeData.specialization || [],
+      ...employeeData,
+      createdAt: now,
+      updatedAt: now,
+      createdBy: 'system',
+      updatedBy: 'system',
+      billingRate: employeeData.billingRate || 0,
+      billable: employeeData.billable !== undefined ? employeeData.billable : true,
     };
 
     dispatch({ type: 'ADD_EMPLOYEE', payload: newEmployee });
@@ -88,7 +208,7 @@ export const employeesService = {
     
     toast({
       title: "Employee created",
-      description: `${newEmployee.full_name} has been added successfully.`,
+      description: `${newEmployee.full_name} (${newEmployee.employeeCode}) has been added successfully.`,
     });
 
     return newEmployee;
@@ -96,6 +216,11 @@ export const employeesService = {
 
   // Update existing employee
   update: async (employeeId: string, updates: Partial<Employee>, dispatch: React.Dispatch<AppAction>, existingEmployees: Employee[]): Promise<void> => {
+    // Set officialEmail as primary email if email not provided
+    if (!updates.email && updates.officialEmail) {
+      updates.email = updates.officialEmail;
+    }
+
     const errors = validateEmployee(updates, existingEmployees, employeeId);
     if (errors.length > 0) {
       throw new Error(errors.join(", "));
@@ -104,11 +229,17 @@ export const employeesService = {
     const currentEmployee = existingEmployees.find(emp => emp.id === employeeId);
     const roleChanged = updates.role && currentEmployee && updates.role !== currentEmployee.role;
 
-    dispatch({ type: 'UPDATE_EMPLOYEE', payload: { id: employeeId, updates } });
+    const updatedData = {
+      ...updates,
+      updatedAt: new Date().toISOString(),
+      updatedBy: 'system',
+    };
+
+    dispatch({ type: 'UPDATE_EMPLOYEE', payload: { id: employeeId, updates: updatedData } });
     
     // If role changed, sync RBAC roles (non-blocking)
     if (roleChanged && currentEmployee) {
-      const updatedEmployee = { ...currentEmployee, ...updates };
+      const updatedEmployee = { ...currentEmployee, ...updatedData };
       roleMapperService.syncEmployeeToRBAC(updatedEmployee as Employee).catch(err => 
         console.error('RBAC sync failed for updated employee:', err)
       );
