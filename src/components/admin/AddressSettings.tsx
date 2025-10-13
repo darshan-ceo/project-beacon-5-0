@@ -31,8 +31,6 @@ import {
   FieldConfig 
 } from '@/services/addressConfigService';
 import { toast } from 'sonner';
-import { featureFlagService } from '@/services/featureFlagService';
-import { apiService } from '@/services/apiService';
 
 const MODULE_LABELS: Record<ModuleName, string> = {
   employee: 'Employees',
@@ -76,51 +74,22 @@ export const AddressSettings: React.FC = () => {
   const loadConfigurations = async () => {
     setIsLoading(true);
     try {
-      if (featureFlagService.isEnabled('address_settings_v2')) {
-        // Use real API endpoints
-        const response = await apiService.get<Record<ModuleName, AddressFieldConfig>>('/api/settings/address');
-        if (response.success && response.data) {
-          // Ensure all modules exist with proper structure
-          const safeConfigs = {
-            employee: response.data.employee || {},
-            judge: response.data.judge || {},
-            client: response.data.client || {},
-            court: response.data.court || {}
-          };
-          setConfigs(safeConfigs);
-        } else {
-          // Fallback to service if API fails
-          const result = await addressConfigService.getAllConfigs();
-          if (result.success && result.data) {
-            const safeConfigs = {
-              employee: result.data.employee || {},
-              judge: result.data.judge || {},
-              client: result.data.client || {},
-              court: result.data.court || {}
-            };
-            setConfigs(safeConfigs);
-          } else {
-            toast.error('Failed to load configurations');
-          }
-        }
+      // Always use addressConfigService (localStorage-based)
+      const result = await addressConfigService.getAllConfigs();
+      if (result.success && result.data) {
+        const safeConfigs = {
+          employee: result.data.employee || {},
+          judge: result.data.judge || {},
+          client: result.data.client || {},
+          court: result.data.court || {}
+        };
+        setConfigs(safeConfigs);
       } else {
-        // Use existing service
-        const result = await addressConfigService.getAllConfigs();
-        if (result.success && result.data) {
-          const safeConfigs = {
-            employee: result.data.employee || {},
-            judge: result.data.judge || {},
-            client: result.data.client || {},
-            court: result.data.court || {}
-          };
-          setConfigs(safeConfigs);
-        } else {
-          toast.error('Failed to load configurations');
-        }
+        toast.error('Failed to load configurations');
       }
     } catch (error) {
       console.error('Error loading address configurations:', error);
-      toast.error('Error loading configurations');
+      toast.error('Unexpected error loading configurations');
     } finally {
       setIsLoading(false);
     }
@@ -148,33 +117,27 @@ export const AddressSettings: React.FC = () => {
   const saveConfigurations = async () => {
     setSaving(true);
     try {
-      if (featureFlagService.isEnabled('address_settings_v2')) {
-        // Use real API endpoint
-        const response = await apiService.post('/api/settings/address', configs);
-        if (response.success) {
-          toast.success('Configurations saved successfully');
-          setHasChanges(false);
-        } else {
-          toast.error(response.error || 'Failed to save configurations');
-        }
+      // Always use addressConfigService (localStorage-based)
+      const promises = Object.entries(configs).map(([moduleName, config]) =>
+        addressConfigService.updateModuleConfig(moduleName as ModuleName, config)
+      );
+
+      const results = await Promise.all(promises);
+      const hasErrors = results.some(result => !result.success);
+
+      if (hasErrors) {
+        const errors = results
+          .filter(r => !r.success)
+          .map(r => r.error)
+          .join(', ');
+        toast.error(`Failed to save: ${errors}`);
       } else {
-        // Use existing service
-        const promises = Object.entries(configs).map(([moduleName, config]) =>
-          addressConfigService.updateModuleConfig(moduleName as ModuleName, config)
-        );
-
-        const results = await Promise.all(promises);
-        const hasErrors = results.some(result => !result.success);
-
-        if (hasErrors) {
-          toast.error('Some configurations failed to save');
-        } else {
-          toast.success('Configurations saved successfully');
-          setHasChanges(false);
-        }
+        toast.success('Address configurations saved successfully');
+        setHasChanges(false);
       }
     } catch (error) {
-      toast.error('Error saving configurations');
+      console.error('Error saving address configurations:', error);
+      toast.error('Unexpected error saving configurations');
     } finally {
       setSaving(false);
     }

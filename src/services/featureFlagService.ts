@@ -152,10 +152,10 @@ class FeatureFlagService {
       version: 'v1'
     });
 
-    // Address Settings v2 (UAT enabled)
+    // Address Settings v2 (Deprecated - using addressConfigService directly)
     this.flags.set('address_settings_v2', {
       key: 'address_settings_v2',
-      isEnabled: true, // ON in UAT
+      isEnabled: false, // Deprecated - no API endpoint needed
       version: 'v2'
     });
 
