@@ -27,6 +27,7 @@ import { roleMapperService } from '@/services/roleMapperService';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { EmployeeDocumentUpload } from '@/components/employees/EmployeeDocumentUpload';
 import {
   User,
   Phone,
@@ -1036,6 +1037,26 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
     </div>
   );
 
+  const handleDocumentUpload = (category: keyof Employee['documents'], documentId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      documents: {
+        ...prev.documents,
+        [category]: documentId
+      }
+    }));
+  };
+
+  const handleDocumentDelete = (category: keyof Employee['documents']) => {
+    setFormData(prev => ({
+      ...prev,
+      documents: {
+        ...prev.documents,
+        [category]: undefined
+      }
+    }));
+  };
+
   const renderDocumentsTab = () => (
     <div className="space-y-4">
       <div className="flex items-start gap-2 p-4 bg-muted/50 rounded-lg">
@@ -1046,35 +1067,65 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>Resume / CV</Label>
-          <div className="text-sm text-muted-foreground">Document upload coming soon</div>
-        </div>
+        <EmployeeDocumentUpload
+          label="Resume / CV"
+          category="resume"
+          employeeCode={formData.employeeCode || ''}
+          existingDocumentId={formData.documents?.resume}
+          onUploadComplete={(docId) => handleDocumentUpload('resume', docId)}
+          onDelete={() => handleDocumentDelete('resume')}
+          disabled={!formData.employeeCode || isReadOnly}
+        />
 
-        <div className="space-y-2">
-          <Label>ID Proof (PAN/Aadhaar)</Label>
-          <div className="text-sm text-muted-foreground">Document upload coming soon</div>
-        </div>
+        <EmployeeDocumentUpload
+          label="ID Proof (PAN/Aadhaar)"
+          category="idProof"
+          employeeCode={formData.employeeCode || ''}
+          existingDocumentId={formData.documents?.idProof}
+          onUploadComplete={(docId) => handleDocumentUpload('idProof', docId)}
+          onDelete={() => handleDocumentDelete('idProof')}
+          disabled={!formData.employeeCode || isReadOnly}
+        />
 
-        <div className="space-y-2">
-          <Label>Address Proof</Label>
-          <div className="text-sm text-muted-foreground">Document upload coming soon</div>
-        </div>
+        <EmployeeDocumentUpload
+          label="Address Proof"
+          category="addressProof"
+          employeeCode={formData.employeeCode || ''}
+          existingDocumentId={formData.documents?.addressProof}
+          onUploadComplete={(docId) => handleDocumentUpload('addressProof', docId)}
+          onDelete={() => handleDocumentDelete('addressProof')}
+          disabled={!formData.employeeCode || isReadOnly}
+        />
 
-        <div className="space-y-2">
-          <Label>Bar Council / ICAI Certificate</Label>
-          <div className="text-sm text-muted-foreground">Document upload coming soon</div>
-        </div>
+        <EmployeeDocumentUpload
+          label="Bar Council / ICAI Certificate"
+          category="barOrIcaiCert"
+          employeeCode={formData.employeeCode || ''}
+          existingDocumentId={formData.documents?.barOrIcaiCert}
+          onUploadComplete={(docId) => handleDocumentUpload('barOrIcaiCert', docId)}
+          onDelete={() => handleDocumentDelete('barOrIcaiCert')}
+          disabled={!formData.employeeCode || isReadOnly}
+        />
 
-        <div className="space-y-2">
-          <Label>NDA / Confidentiality</Label>
-          <div className="text-sm text-muted-foreground">Document upload coming soon</div>
-        </div>
+        <EmployeeDocumentUpload
+          label="NDA / Confidentiality"
+          category="nda"
+          employeeCode={formData.employeeCode || ''}
+          existingDocumentId={formData.documents?.nda}
+          onUploadComplete={(docId) => handleDocumentUpload('nda', docId)}
+          onDelete={() => handleDocumentDelete('nda')}
+          disabled={!formData.employeeCode || isReadOnly}
+        />
 
-        <div className="space-y-2">
-          <Label>Offer Letter</Label>
-          <div className="text-sm text-muted-foreground">Document upload coming soon</div>
-        </div>
+        <EmployeeDocumentUpload
+          label="Offer Letter"
+          category="offerLetter"
+          employeeCode={formData.employeeCode || ''}
+          existingDocumentId={formData.documents?.offerLetter}
+          onUploadComplete={(docId) => handleDocumentUpload('offerLetter', docId)}
+          onDelete={() => handleDocumentDelete('offerLetter')}
+          disabled={!formData.employeeCode || isReadOnly}
+        />
       </div>
     </div>
   );

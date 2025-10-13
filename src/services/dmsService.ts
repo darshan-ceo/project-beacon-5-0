@@ -146,6 +146,16 @@ const initializeMockFolders = (): Folder[] => {
       path: '/folders/client-docs/uploads'
     },
     {
+      id: 'employees',
+      name: 'Employees',
+      documentCount: 0,
+      size: 0,
+      createdAt: '2024-01-01',
+      lastAccess: new Date().toISOString(),
+      description: 'Employee documents (resumes, certificates, etc.)',
+      path: '/folders/employees'
+    },
+    {
       id: 'internal-docs',
       name: 'Internal Documents',
       documentCount: 0,
