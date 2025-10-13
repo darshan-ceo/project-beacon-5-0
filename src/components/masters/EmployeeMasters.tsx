@@ -495,7 +495,7 @@ export const EmployeeMasters: React.FC = () => {
       </Card>
 
       {/* Employee Modal */}
-      <EmployeeModal
+      <EmployeeModalV2
         isOpen={isEmployeeModalOpen}
         onClose={() => setIsEmployeeModalOpen(false)}
         employee={selectedEmployee}
