@@ -58,11 +58,13 @@ export const AddressForm: React.FC<AddressFormProps> = ({
   useEffect(() => {
     const addressMasterEnabled = featureFlagService.isEnabled('address_master_v1');
     setIsAddressMasterEnabled(addressMasterEnabled);
-    
-    if (addressMasterEnabled) {
+  }, []);
+
+  useEffect(() => {
+    if (isAddressMasterEnabled) {
       loadFieldConfiguration();
     }
-  }, [module]);
+  }, [isAddressMasterEnabled, module]);
 
   useEffect(() => {
     if (value.countryId) {
@@ -110,8 +112,6 @@ export const AddressForm: React.FC<AddressFormProps> = ({
   };
 
   const loadFieldConfiguration = async () => {
-    if (!isAddressMasterEnabled) return;
-    
     try {
       const result = await addressConfigService.getModuleConfig(module);
       if (result.success) {
