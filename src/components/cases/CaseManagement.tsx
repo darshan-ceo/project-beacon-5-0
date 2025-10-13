@@ -39,6 +39,7 @@ import { TimelineBreachTracker } from './TimelineBreachTracker';
 import { AIAssistant } from './AIAssistant';
 import { CommunicationHub } from './CommunicationHub';
 import { CaseDocuments } from './CaseDocuments';
+import { CaseTasksTab } from './CaseTasksTab';
 import { CaseModal } from '@/components/modals/CaseModal';
 import { CaseContextHeader } from './CaseContextHeader';
 
@@ -284,7 +285,7 @@ export const CaseManagement: React.FC = () => {
 
   // Helper function to check if tabs should be disabled
   const getTabDisabled = (tabValue: string) => {
-    const caseRequiredTabs = ['lifecycle', 'documents', 'timeline', 'ai-assistant', 'communications'];
+    const caseRequiredTabs = ['lifecycle', 'documents', 'timeline', 'ai-assistant', 'communications', 'tasks'];
     return caseRequiredTabs.includes(tabValue) && !selectedCase;
   };
 
@@ -640,7 +641,7 @@ export const CaseManagement: React.FC = () => {
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-1 p-1 h-auto">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 gap-1 p-1 h-auto">
           <TabsTrigger value="overview" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">
             Overview
           </TabsTrigger>
@@ -732,6 +733,21 @@ export const CaseManagement: React.FC = () => {
           >
             <span className="flex items-center gap-1.5">
               Communications
+              {selectedCase && (
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-950/30 dark:text-blue-400">
+                  Case
+                </Badge>
+              )}
+            </span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="tasks"
+            disabled={getTabDisabled('tasks')}
+            className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+            title={getTabDisabled('tasks') ? "Select a case from Overview to proceed" : ""}
+          >
+            <span className="flex items-center gap-1.5">
+              Tasks
               {selectedCase && (
                 <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-950/30 dark:text-blue-400">
                   Case
@@ -1072,6 +1088,10 @@ export const CaseManagement: React.FC = () => {
 
         <TabsContent value="communications" className="mt-6">
           <CommunicationHub selectedCase={selectedCase} />
+        </TabsContent>
+
+        <TabsContent value="tasks" className="mt-6">
+          {selectedCase && <CaseTasksTab caseData={selectedCase} />}
         </TabsContent>
       </Tabs>
 
