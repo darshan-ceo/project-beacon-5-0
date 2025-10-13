@@ -282,10 +282,20 @@ class AddressLookupService {
   }
 
   async getCities(stateId?: string): Promise<City[]> {
+    // Import cityMasterService dynamically to avoid circular dependency
+    const { cityMasterService } = await import('./cityMasterService');
+    
     if (stateId) {
-      return this.cities.filter(city => city.stateId === stateId);
+      const defaultCities = this.cities.filter(city => city.stateId === stateId);
+      // Merge with custom cities
+      return await cityMasterService.mergeWithDefaultCities(defaultCities, stateId);
     }
-    return [...this.cities];
+    
+    // Return all cities (default + custom)
+    const customCities = await cityMasterService.getCustomCities();
+    const allCities = [...this.cities, ...customCities];
+    allCities.sort((a, b) => a.name.localeCompare(b.name));
+    return allCities;
   }
 
   async validatePincode(pincode: string): Promise<boolean> {

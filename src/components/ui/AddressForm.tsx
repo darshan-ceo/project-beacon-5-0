@@ -48,6 +48,8 @@ export const AddressForm: React.FC<AddressFormProps> = ({
   const [gstLoading, setGstLoading] = useState(false);
   const [fieldSources, setFieldSources] = useState<Record<string, DataSource>>({});
   const [isAddressMasterEnabled, setIsAddressMasterEnabled] = useState(false);
+  const [manualCityMode, setManualCityMode] = useState(false);
+  const [manualCityInput, setManualCityInput] = useState('');
 
   useEffect(() => {
     loadInitialData();
@@ -212,6 +214,42 @@ export const AddressForm: React.FC<AddressFormProps> = ({
       }
     } catch (error) {
       toast.error('Failed to populate GST address');
+    }
+  };
+
+  const handleManualCitySubmit = async () => {
+    if (!manualCityInput.trim() || !value.stateId) {
+      toast.error('Please enter a city name');
+      return;
+    }
+
+    try {
+      const { cityMasterService } = await import('@/services/cityMasterService');
+      
+      // Check if city already exists
+      const exists = await cityMasterService.cityExists(manualCityInput, value.stateId);
+      
+      if (exists) {
+        toast.error('City already exists');
+        return;
+      }
+      
+      // Add to master
+      const newCity = await cityMasterService.addCustomCity(manualCityInput, value.stateId);
+      
+      // Reload cities to include new one
+      await loadCities(value.stateId);
+      
+      // Set the new city as selected
+      handleFieldChange('cityId', newCity.id);
+      
+      // Reset manual mode
+      setManualCityMode(false);
+      setManualCityInput('');
+      
+      toast.success(`City "${newCity.name}" added successfully`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to add city');
     }
   };
 
@@ -488,21 +526,18 @@ export const AddressForm: React.FC<AddressFormProps> = ({
                 )}
               </div>
               
-              {/* Show manual input if allowManualInput is enabled and no cities available */}
-              {fieldConfig.cityId?.allowManualInput && cities.length === 0 && value.stateId && !citiesLoading ? (
-                <Input
-                  id="city-manual"
-                  value={value.cityId || ''}
-                  onChange={(e) => handleFieldChange('cityId', e.target.value)}
-                  placeholder="Enter city name manually"
-                  disabled={disabled || !isFieldEditable('cityId')}
-                  required={required || isFieldRequired('cityId')}
-                />
-              ) : (
+              {!manualCityMode ? (
+                // Normal dropdown with "Add New City" option
                 <Select
                   value={value.cityId || ''}
-                  onValueChange={(cityId) => handleFieldChange('cityId', cityId)}
-                  disabled={disabled || !isFieldEditable('cityId')}
+                  onValueChange={(val) => {
+                    if (val === '__ADD_NEW__') {
+                      setManualCityMode(true);
+                    } else {
+                      handleFieldChange('cityId', val);
+                    }
+                  }}
+                  disabled={disabled || !value.stateId || !isFieldEditable('cityId')}
                   required={required || isFieldRequired('cityId')}
                 >
                   <SelectTrigger>
@@ -511,9 +546,7 @@ export const AddressForm: React.FC<AddressFormProps> = ({
                         ? "Select state first" 
                         : citiesLoading 
                           ? "Loading cities..." 
-                          : cities.length === 0 
-                            ? (fieldConfig.cityId?.allowManualInput ? "No cities - manual entry available" : "No cities available")
-                            : "Select city"
+                          : "Select city"
                     } />
                   </SelectTrigger>
                   <SelectContent className="z-[200] bg-popover">
@@ -525,26 +558,59 @@ export const AddressForm: React.FC<AddressFormProps> = ({
                       <SelectItem value="_loading_cities" disabled>
                         Loading cities...
                       </SelectItem>
-                    ) : cities.length === 0 ? (
+                    ) : (
                       <>
-                        <SelectItem value="_no_cities" disabled>
-                          No cities available for this state
-                        </SelectItem>
+                        {cities.map((city) => (
+                          <SelectItem key={city.id} value={city.id}>
+                            {city.name}
+                            {city.id.startsWith('CUSTOM_') && (
+                              <Badge variant="secondary" className="ml-2 text-xs">Custom</Badge>
+                            )}
+                          </SelectItem>
+                        ))}
                         {fieldConfig.cityId?.allowManualInput && (
-                          <SelectItem value="_manual_hint" disabled className="text-xs text-muted-foreground">
-                            Manual entry will be enabled automatically
+                          <SelectItem value="__ADD_NEW__" className="text-primary font-medium border-t mt-1 pt-1">
+                            + Add New City
                           </SelectItem>
                         )}
                       </>
-                    ) : (
-                      cities.map((city) => (
-                        <SelectItem key={city.id} value={city.id}>
-                          {city.name}
-                        </SelectItem>
-                      ))
                     )}
                   </SelectContent>
                 </Select>
+              ) : (
+                // Manual input mode
+                <div className="flex gap-2">
+                  <Input
+                    value={manualCityInput}
+                    onChange={(e) => setManualCityInput(e.target.value)}
+                    placeholder="Enter city name"
+                    className="flex-1"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleManualCitySubmit();
+                      } else if (e.key === 'Escape') {
+                        setManualCityMode(false);
+                        setManualCityInput('');
+                      }
+                    }}
+                  />
+                  <Button onClick={handleManualCitySubmit} size="sm" type="button">
+                    Add
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      setManualCityMode(false);
+                      setManualCityInput('');
+                    }} 
+                    size="sm" 
+                    variant="outline"
+                    type="button"
+                  >
+                    Cancel
+                  </Button>
+                </div>
               )}
             </div>
           )}

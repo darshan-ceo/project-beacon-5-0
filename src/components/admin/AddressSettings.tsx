@@ -308,7 +308,7 @@ export const AddressSettings: React.FC = () => {
               <Label className="text-sm">Allow Manual City Input</Label>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Enable text input as fallback when no cities are available in dropdown
+              Allows users to add custom cities to the master list that will appear in dropdowns for future use
             </p>
           </div>
         )}

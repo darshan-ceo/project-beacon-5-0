@@ -49,7 +49,7 @@ const defaultModuleConfig: ModuleAddressConfig = {
     landmark: { visible: true, required: false, editable: true },
     locality: { visible: true, required: false, editable: true },
     district: { visible: true, required: true, editable: true },
-    cityId: { visible: true, required: true, editable: true, allowManualInput: false },
+    cityId: { visible: true, required: true, editable: true, allowManualInput: true },
     stateId: { visible: true, required: true, editable: true },
     countryId: { visible: true, required: true, editable: false },
     pincode: { visible: true, required: true, editable: true },
@@ -62,7 +62,7 @@ const defaultModuleConfig: ModuleAddressConfig = {
     landmark: { visible: true, required: false, editable: true },
     locality: { visible: true, required: false, editable: true },
     district: { visible: true, required: true, editable: true },
-    cityId: { visible: true, required: true, editable: true, allowManualInput: false },
+    cityId: { visible: true, required: true, editable: true, allowManualInput: true },
     stateId: { visible: true, required: true, editable: true },
     countryId: { visible: true, required: true, editable: false },
     pincode: { visible: true, required: true, editable: true },
@@ -75,7 +75,7 @@ const defaultModuleConfig: ModuleAddressConfig = {
     landmark: { visible: true, required: false, editable: true },
     locality: { visible: true, required: false, editable: true },
     district: { visible: true, required: true, editable: true },
-    cityId: { visible: true, required: true, editable: true, allowManualInput: false },
+    cityId: { visible: true, required: true, editable: true, allowManualInput: true },
     stateId: { visible: true, required: true, editable: true },
     countryId: { visible: true, required: true, editable: false },
     pincode: { visible: true, required: true, editable: true },
@@ -88,7 +88,7 @@ const defaultModuleConfig: ModuleAddressConfig = {
     landmark: { visible: true, required: false, editable: true },
     locality: { visible: true, required: false, editable: true },
     district: { visible: true, required: true, editable: true },
-    cityId: { visible: true, required: true, editable: true, allowManualInput: false },
+    cityId: { visible: true, required: true, editable: true, allowManualInput: true },
     stateId: { visible: true, required: true, editable: true },
     countryId: { visible: true, required: true, editable: false },
     pincode: { visible: true, required: true, editable: true },
@@ -183,6 +183,7 @@ class AddressConfigService {
   async updateFieldConfig(moduleName: ModuleName, fieldName: AddressFieldName, fieldConfig: FieldConfig): Promise<ApiResponse<FieldConfig>> {
     try {
       // Validate required fields cannot be made invisible or non-required
+      // Note: cityId can be optional if allowManualInput is enabled
       const requiredFields: AddressFieldName[] = ['line1', 'district', 'stateId', 'countryId', 'pincode'];
       
       if (requiredFields.includes(fieldName)) {
@@ -200,6 +201,11 @@ class AddressConfigService {
             error: `Field '${fieldName}' is required and cannot be made optional`
           };
         }
+      }
+      
+      // CityId has special handling - can be optional if manual input is enabled
+      if (fieldName === 'cityId' && fieldConfig.allowManualInput) {
+        // Allow cityId to be flexible when manual input is enabled
       }
 
       if (!this.config[moduleName]) {
