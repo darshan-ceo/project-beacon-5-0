@@ -1178,6 +1178,7 @@ export const DocumentManagement: React.FC = () => {
         selectedFolderId={selectedFolder || undefined}
         onClose={() => setDocumentModal({ isOpen: false, mode: 'upload', document: null })}
         onUpload={handleDocumentUpload}
+        contextCaseId={searchParams.get('caseId') || undefined}
       />
 
       <NewFolderModal

@@ -535,6 +535,8 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
         isOpen={showHearingModal}
         onClose={() => setShowHearingModal(false)}
         mode="create"
+        contextCaseId={selectedCase?.id}
+        contextClientId={selectedCase?.clientId}
       />
 
       {/* Form Render Modal */}

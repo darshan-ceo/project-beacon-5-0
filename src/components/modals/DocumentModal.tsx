@@ -20,6 +20,8 @@ interface DocumentModalProps {
   mode: 'upload' | 'view' | 'edit';
   selectedFolderId?: string;
   onUpload?: (file: File, options: any) => Promise<void>;
+  contextCaseId?: string;
+  contextClientId?: string;
 }
 
 export const DocumentModal: React.FC<DocumentModalProps> = ({ 
@@ -28,7 +30,9 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
   document: documentData, 
   mode, 
   selectedFolderId,
-  onUpload 
+  onUpload,
+  contextCaseId,
+  contextClientId
 }) => {
   const { state, dispatch } = useAppState();
   const { currentUserId, enforcementEnabled } = useRBAC();
@@ -72,7 +76,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
       setFormData({
         name: '',
         type: 'pdf',
-        caseId: 'none',
+        caseId: contextCaseId || 'none',
         folderId: selectedFolderId || 'none',
         tags: [],
         sharedWithClient: false,
@@ -276,22 +280,30 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
                   </div>
                   <div>
                     <Label htmlFor="case">Associate with Case</Label>
-                    <Select
-                      value={formData.caseId || 'none'}
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, caseId: value }))}
-                    >
-                      <SelectTrigger id="case">
-                        <SelectValue placeholder="Select case (optional)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">No Case Association</SelectItem>
-                        {state.cases.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.caseNumber} - {c.title}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {contextCaseId ? (
+                      <div className="flex items-center gap-2 p-2 bg-muted rounded">
+                        <Badge variant="outline">
+                          {state.cases.find(c => c.id === contextCaseId)?.caseNumber || 'Unknown Case'} - {state.cases.find(c => c.id === contextCaseId)?.title}
+                        </Badge>
+                      </div>
+                    ) : (
+                      <Select
+                        value={formData.caseId || 'none'}
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, caseId: value }))}
+                      >
+                        <SelectTrigger id="case">
+                          <SelectValue placeholder="Select case (optional)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No Case Association</SelectItem>
+                          {state.cases.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.caseNumber} - {c.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                 </div>
 

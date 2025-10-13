@@ -189,6 +189,8 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases, selec
             hearingsService.getHearings().then(setGlobalHearings);
           }}
           mode="create"
+          contextCaseId={selectedCase?.id}
+          contextClientId={selectedCase?.clientId}
         />
       </motion.div>
 

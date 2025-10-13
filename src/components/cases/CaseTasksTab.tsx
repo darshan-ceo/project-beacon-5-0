@@ -292,6 +292,8 @@ export const CaseTasksTab: React.FC<CaseTasksTabProps> = ({ caseData }) => {
         onClose={() => setTaskModal({ isOpen: false, mode: 'create', task: null })}
         task={taskModal.task}
         mode={taskModal.mode}
+        contextCaseId={caseData.id}
+        contextClientId={caseData.clientId}
       />
 
       {/* Bundle Run Modal */}

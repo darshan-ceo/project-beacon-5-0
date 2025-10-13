@@ -25,6 +25,8 @@ interface TaskModalProps {
   onClose: () => void;
   task?: Task | null;
   mode: 'create' | 'edit' | 'view';
+  contextCaseId?: string;
+  contextClientId?: string;
 }
 
 export const TaskModal: React.FC<TaskModalProps> = ({ 
@@ -34,7 +36,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   mode,
   contextCaseId, 
   contextClientId 
-}: TaskModalProps & { contextCaseId?: string; contextClientId?: string }) => {
+}) => {
   const { state, dispatch } = useAppState();
   const { validateTaskCase, getCaseWithClient } = useRelationships();
   const { context, updateContext, getAvailableCases, getContextDetails } = useContextualForms({

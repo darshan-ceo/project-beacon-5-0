@@ -216,6 +216,7 @@ export const HearingCalendar: React.FC<HearingCalendarProps> = ({ isOpen, onClos
         onClose={() => setHearingModal({ isOpen: false, mode: 'create', hearing: null })}
         hearing={hearingModal.hearing}
         mode={hearingModal.mode}
+        contextCaseId={hearingModal.hearing?.caseId}
       />
     </>
   );
