@@ -59,6 +59,32 @@ export const CustomizeDashboard: React.FC<CustomizeDashboardProps> = ({
     onClose();
   };
 
+  const handleModuleToggle = (module: string, selectAll: boolean) => {
+    const moduleIds = tilesByModule[module].map((t) => t.id);
+    setSelected((prev) => {
+      const set = new Set(prev);
+      if (selectAll) {
+        moduleIds.forEach((id) => set.add(id));
+      } else {
+        moduleIds.forEach((id) => set.delete(id));
+      }
+      return Array.from(set);
+    });
+  };
+
+  const getModuleSelectionState = (module: string) => {
+    const ids = tilesByModule[module].map((t) => t.id);
+    const total = ids.length;
+    const selectedCount = ids.filter((id) => selected.includes(id)).length;
+    return {
+      totalInModule: total,
+      selectedInModule: selectedCount,
+      allSelected: selectedCount === total && total > 0,
+      noneSelected: selectedCount === 0,
+      indeterminate: selectedCount > 0 && selectedCount < total,
+    };
+  };
+
   const modules = Object.keys(tilesByModule);
 
   return (
@@ -96,9 +122,9 @@ export const CustomizeDashboard: React.FC<CustomizeDashboardProps> = ({
         </div>
       }
     >
-      <Tabs defaultValue={modules[0]} className="flex-1 flex flex-col -mt-2">
+      <Tabs defaultValue={modules[0]} className="flex-1 flex flex-col">
         {/* Responsive TabsList */}
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1 mb-4">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1 mb-4 border-b bg-background z-10">
           {modules.map((module) => (
             <TabsTrigger 
               key={module} 
@@ -111,14 +137,47 @@ export const CustomizeDashboard: React.FC<CustomizeDashboardProps> = ({
         </TabsList>
 
         {/* Tabs Content - Scrolls naturally in DialogBody */}
-        {modules.map((module) => (
-          <TabsContent 
-            key={module} 
-            value={module} 
-            className="space-y-3 mt-0"
-          >
-            {tilesByModule[module].length > 0 ? (
-              tilesByModule[module].map((tile) => (
+        {modules.map((module) => {
+          const moduleState = getModuleSelectionState(module);
+          
+          return (
+            <TabsContent 
+              key={module} 
+              value={module} 
+              className="space-y-3 mt-0 min-h-[360px]"
+            >
+              {tilesByModule[module].length > 0 ? (
+                <>
+                  {/* Module-level Select All */}
+                  <div className="flex items-center justify-between p-2 sm:p-3 rounded-lg border bg-muted/30">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <Checkbox
+                        id={`select-all-${module}`}
+                        checked={
+                          moduleState.allSelected
+                            ? true
+                            : moduleState.indeterminate
+                            ? "indeterminate"
+                            : false
+                        }
+                        onCheckedChange={() =>
+                          handleModuleToggle(module, !moduleState.allSelected)
+                        }
+                      />
+                      <label
+                        htmlFor={`select-all-${module}`}
+                        className="text-sm font-medium cursor-pointer"
+                      >
+                        Select all in {module}
+                      </label>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {moduleState.selectedInModule}/{moduleState.totalInModule} selected
+                    </span>
+                  </div>
+
+                  {/* Individual Tiles */}
+                  {tilesByModule[module].map((tile) => (
                 <div
                   key={tile.id}
                   className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg border hover:bg-muted/50 transition-colors"
@@ -136,8 +195,9 @@ export const CustomizeDashboard: React.FC<CustomizeDashboardProps> = ({
                     </p>
                   </label>
                 </div>
-              ))
-            ) : (
+              ))}
+                </>
+              ) : (
               <div className="text-center py-12">
                 <LayoutGrid className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-sm text-muted-foreground">
@@ -145,8 +205,9 @@ export const CustomizeDashboard: React.FC<CustomizeDashboardProps> = ({
                 </p>
               </div>
             )}
-          </TabsContent>
-        ))}
+            </TabsContent>
+          );
+        })}
       </Tabs>
     </ModalLayout>
   );
