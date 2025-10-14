@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAppState, Task, Case } from '@/contexts/AppStateContext';
 import { TaskModal } from '@/components/modals/TaskModal';
+import { TaskDrawer } from '@/components/tasks/TaskDrawer';
 import { BundleRunModal } from './BundleRunModal';
 import { format } from 'date-fns';
 import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
@@ -34,6 +35,7 @@ export const CaseTasksTab: React.FC<CaseTasksTabProps> = ({ caseData }) => {
     mode: 'create',
     task: null,
   });
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [bundleModal, setBundleModal] = useState(false);
 
   // Filter tasks for this case
@@ -83,11 +85,24 @@ export const CaseTasksTab: React.FC<CaseTasksTabProps> = ({ caseData }) => {
       return;
     }
 
-    setTaskModal({
-      isOpen: true,
-      mode: 'edit',
-      task,
-    });
+    setSelectedTask(task);
+  };
+
+  const handleUpdateTask = (taskId: string, updates: Partial<Task>) => {
+    const existingTask = state.tasks.find(t => t.id === taskId);
+    if (existingTask) {
+      dispatch({ 
+        type: 'UPDATE_TASK', 
+        payload: { 
+          ...existingTask,
+          ...updates
+        } 
+      });
+      toast({
+        title: 'Task Updated',
+        description: 'The task has been successfully updated.',
+      });
+    }
   };
 
   const handleDeleteTask = (taskId: string) => {
@@ -286,7 +301,7 @@ export const CaseTasksTab: React.FC<CaseTasksTabProps> = ({ caseData }) => {
         </CardContent>
       </Card>
 
-      {/* Task Modal */}
+      {/* Task Modal (for creating new tasks) */}
       <TaskModal
         isOpen={taskModal.isOpen}
         onClose={() => setTaskModal({ isOpen: false, mode: 'create', task: null })}
@@ -294,6 +309,15 @@ export const CaseTasksTab: React.FC<CaseTasksTabProps> = ({ caseData }) => {
         mode={taskModal.mode}
         contextCaseId={caseData.id}
         contextClientId={caseData.clientId}
+      />
+
+      {/* Task Drawer (for editing existing tasks) */}
+      <TaskDrawer
+        isOpen={selectedTask !== null}
+        onClose={() => setSelectedTask(null)}
+        task={selectedTask}
+        onUpdateTask={handleUpdateTask}
+        onDeleteTask={handleDeleteTask}
       />
 
       {/* Bundle Run Modal */}
