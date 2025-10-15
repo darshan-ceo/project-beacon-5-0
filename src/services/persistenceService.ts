@@ -3,7 +3,7 @@ import { AppState, Case, Client, Court, Judge, Employee, Hearing, Task, Document
 import { toast } from '@/hooks/use-toast';
 
 // Entity types for type-safe operations
-export type EntityType = 'cases' | 'clients' | 'courts' | 'judges' | 'employees' | 'hearings' | 'tasks' | 'documents' | 'folders' | 'timeline_entries';
+export type EntityType = 'cases' | 'clients' | 'courts' | 'judges' | 'employees' | 'hearings' | 'tasks' | 'task_notes' | 'documents' | 'folders' | 'timeline_entries';
 
 export interface EntityOperation {
   id: string;
@@ -447,7 +447,7 @@ class PersistenceService {
   // Data export/import
   async exportAllData(): Promise<AppState> {
     try {
-      const [cases, clients, courts, judges, employees, hearings, tasks, documents, folders, timelineEntries] = await Promise.all([
+      const [cases, clients, courts, judges, employees, hearings, tasks, taskNotes, documents, folders, timelineEntries] = await Promise.all([
         this.getAll('cases'),
         this.getAll('clients'),
         this.getAll('courts'),
@@ -455,6 +455,7 @@ class PersistenceService {
         this.getAll('employees'),
         this.getAll('hearings'),
         this.getAll('tasks'),
+        this.getAll('task_notes'),
         this.getAll('documents'),
         this.getAll('folders'),
         this.getAll('timeline_entries')
@@ -468,6 +469,7 @@ class PersistenceService {
         employees: employees as Employee[],
         hearings: hearings as Hearing[],
         tasks: tasks as Task[],
+        taskNotes: taskNotes as any[],
         documents: documents as Document[],
         folders: folders as Folder[],
         timelineEntries: timelineEntries as any[],
@@ -498,7 +500,7 @@ class PersistenceService {
 
   async importAllData(data: Partial<AppState>): Promise<void> {
     try {
-      const entities: EntityType[] = ['cases', 'clients', 'courts', 'judges', 'employees', 'hearings', 'tasks', 'documents', 'folders'];
+      const entities: EntityType[] = ['cases', 'clients', 'courts', 'judges', 'employees', 'hearings', 'tasks', 'task_notes', 'documents', 'folders'];
       
       for (const entity of entities) {
         if (data[entity] && Array.isArray(data[entity])) {

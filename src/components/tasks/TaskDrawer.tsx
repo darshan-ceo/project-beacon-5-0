@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   Calendar,
@@ -35,8 +35,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Task, useAppState } from '@/contexts/AppStateContext';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Task, TaskNote, useAppState } from '@/contexts/AppStateContext';
 import { formatDistanceToNow } from 'date-fns';
+import { TaskTimeline } from './TaskTimeline';
+import { QuickActionButtons } from './QuickActionButtons';
+import { toast } from '@/hooks/use-toast';
+import { v4 as uuid } from 'uuid';
 
 interface TaskDrawerProps {
   isOpen: boolean;
@@ -68,9 +73,17 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
   onUpdateTask,
   onDeleteTask
 }) => {
-  const { state } = useAppState();
+  const { state, dispatch } = useAppState();
   const [isEditing, setIsEditing] = useState(false);
   const [editedTask, setEditedTask] = useState<Partial<Task>>({});
+
+  // Get task notes for this task
+  const taskNotes = useMemo(() => {
+    if (!task) return [];
+    return state.taskNotes
+      .filter(note => note.taskId === task.id)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [state.taskNotes, task]);
 
   // Get client name
   const getClientName = () => {
@@ -110,6 +123,122 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
 
   const updateField = (field: keyof Task, value: any) => {
     setEditedTask(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Quick action handlers
+  const handleAddNote = (note: string) => {
+    if (!task) return;
+    
+    const newNote: TaskNote = {
+      id: uuid(),
+      taskId: task.id,
+      type: 'comment',
+      note,
+      createdBy: state.userProfile.id,
+      createdByName: state.userProfile.name,
+      createdAt: new Date().toISOString()
+    };
+
+    dispatch({ type: 'ADD_TASK_NOTE', payload: newNote });
+    toast({
+      title: 'Note Added',
+      description: 'Your note has been added to the timeline.'
+    });
+  };
+
+  const handleLogTime = (hours: number, note: string) => {
+    if (!task || !onUpdateTask) return;
+
+    // Update task actualHours
+    const newActualHours = (task.actualHours || 0) + hours;
+    onUpdateTask(task.id, { actualHours: newActualHours });
+
+    // Create time log note
+    const newNote: TaskNote = {
+      id: uuid(),
+      taskId: task.id,
+      type: 'time_log',
+      note: note || `Logged ${hours} hours`,
+      createdBy: state.userProfile.id,
+      createdByName: state.userProfile.name,
+      createdAt: new Date().toISOString(),
+      metadata: { hours }
+    };
+
+    dispatch({ type: 'ADD_TASK_NOTE', payload: newNote });
+    toast({
+      title: 'Time Logged',
+      description: `${hours} hours logged successfully.`
+    });
+  };
+
+  const handleReschedule = (newDate: string) => {
+    if (!task || !onUpdateTask) return;
+
+    onUpdateTask(task.id, { dueDate: newDate });
+
+    const newNote: TaskNote = {
+      id: uuid(),
+      taskId: task.id,
+      type: 'comment',
+      note: `Due date rescheduled to ${newDate}`,
+      createdBy: state.userProfile.id,
+      createdByName: state.userProfile.name,
+      createdAt: new Date().toISOString()
+    };
+
+    dispatch({ type: 'ADD_TASK_NOTE', payload: newNote });
+    toast({
+      title: 'Task Rescheduled',
+      description: `Due date updated to ${newDate}`
+    });
+  };
+
+  const handleSetFollowUp = (followUpDate: string, note: string) => {
+    if (!task || !onUpdateTask) return;
+
+    onUpdateTask(task.id, { followUpDate });
+
+    const newNote: TaskNote = {
+      id: uuid(),
+      taskId: task.id,
+      type: 'follow_up',
+      note: note || `Follow-up scheduled for ${followUpDate}`,
+      createdBy: state.userProfile.id,
+      createdByName: state.userProfile.name,
+      createdAt: new Date().toISOString(),
+      metadata: { followUpDate }
+    };
+
+    dispatch({ type: 'ADD_TASK_NOTE', payload: newNote });
+    toast({
+      title: 'Follow-up Set',
+      description: `Reminder set for ${followUpDate}`
+    });
+  };
+
+  const handleChangeStatus = (newStatus: string, note: string) => {
+    if (!task || !onUpdateTask) return;
+
+    const oldStatus = task.status;
+    onUpdateTask(task.id, { status: newStatus as Task['status'] });
+
+    const newNote: TaskNote = {
+      id: uuid(),
+      taskId: task.id,
+      type: 'status_change',
+      note,
+      createdBy: state.userProfile.id,
+      createdByName: state.userProfile.name,
+      createdAt: new Date().toISOString(),
+      metadata: { oldStatus, newStatus }
+    };
+
+    dispatch({ type: 'ADD_TASK_NOTE', payload: newNote });
+    toast({
+      title: 'Status Updated',
+      description: `Status changed from ${oldStatus} to ${newStatus}`
+    });
   };
 
   if (!task) return null;
@@ -302,6 +431,30 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
                 </CardContent>
               </Card>
 
+              {/* Quick Actions & Activity Timeline */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm font-medium">Quick Actions & Activity</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <QuickActionButtons
+                    currentStatus={task.status}
+                    onAddNote={handleAddNote}
+                    onLogTime={handleLogTime}
+                    onReschedule={handleReschedule}
+                    onSetFollowUp={handleSetFollowUp}
+                    onChangeStatus={handleChangeStatus}
+                  />
+                  
+                  <Separator />
+
+                  <div>
+                    <h4 className="text-sm font-medium mb-3">Timeline</h4>
+                    <TaskTimeline notes={taskNotes} />
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Tags */}
               {(task as any).tags && (task as any).tags.length > 0 && (
                 <Card>
@@ -390,6 +543,21 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Follow-up */}
+              {task.followUpDate && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm font-medium">Follow-up</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">{task.followUpDate}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Escalation */}
               {task.escalationLevel > 0 && (

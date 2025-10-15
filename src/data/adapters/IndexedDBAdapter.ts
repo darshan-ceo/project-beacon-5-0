@@ -15,6 +15,7 @@ export class IndexedDBAdapter implements StoragePort {
     'userRoles': 'user_roles',
     'policyAudit': 'policy_audit',
     'taskBundles': 'task_bundles',
+    'taskNotes': 'task_notes',
     // Add other mappings as needed
     // Default: entity key matches table name
   };

@@ -83,6 +83,24 @@ interface Task {
   dependencies?: string[];
   attachments?: string[];
   escalationLevel: 0 | 1 | 2 | 3;
+  followUpDate?: string; // Next follow-up date
+}
+
+// Task Note/Activity interface
+export interface TaskNote {
+  id: string;
+  taskId: string;
+  type: 'comment' | 'status_change' | 'time_log' | 'follow_up';
+  note: string;
+  createdBy: string;
+  createdByName: string;
+  createdAt: string;
+  metadata?: {
+    oldStatus?: string;
+    newStatus?: string;
+    hours?: number;
+    followUpDate?: string;
+  };
 }
 
 interface Client {
@@ -368,6 +386,7 @@ export interface UserProfile {
 export interface AppState {
   cases: Case[];
   tasks: Task[];
+  taskNotes: TaskNote[];
   clients: Client[];
   courts: Court[];
   judges: Judge[];
@@ -392,6 +411,8 @@ export type AppAction =
   | { type: 'ADD_TASK'; payload: Task }
   | { type: 'UPDATE_TASK'; payload: Task }
   | { type: 'DELETE_TASK'; payload: string }
+  | { type: 'ADD_TASK_NOTE'; payload: TaskNote }
+  | { type: 'DELETE_TASK_NOTE'; payload: string }
   | { type: 'ADD_CLIENT'; payload: Client }
   | { type: 'UPDATE_CLIENT'; payload: Client }
   | { type: 'DELETE_CLIENT'; payload: string }
@@ -429,6 +450,7 @@ export type AppAction =
 
 // Initial state with mock data
 const initialState: AppState = {
+  taskNotes: [],
   cases: [
     {
       id: 'GST-001',
@@ -2067,6 +2089,13 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         tasks: state.tasks.filter(t => t.id !== action.payload)
+      };
+    case 'ADD_TASK_NOTE':
+      return { ...state, taskNotes: [...state.taskNotes, action.payload] };
+    case 'DELETE_TASK_NOTE':
+      return {
+        ...state,
+        taskNotes: state.taskNotes.filter(n => n.id !== action.payload)
       };
     case 'ADD_CLIENT':
       return { ...state, clients: [...state.clients, action.payload] };

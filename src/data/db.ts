@@ -85,6 +85,18 @@ export interface Task {
   is_auto_generated?: boolean;
   bundle_id?: string;
   estimated_hours?: number;
+  follow_up_date?: Date;
+}
+
+export interface TaskNote {
+  id: string;
+  task_id: string;
+  type: 'comment' | 'status_change' | 'time_log' | 'follow_up';
+  note: string;
+  created_by: string;
+  created_by_name: string;
+  created_at: Date;
+  metadata_json?: any;
 }
 
 export interface TaskBundle {
@@ -328,6 +340,7 @@ export class HofficeDB extends Dexie {
   replies!: Table<Reply>;
   hearings!: Table<Hearing>;
   tasks!: Table<Task>;
+  task_notes!: Table<TaskNote>;
   task_bundles!: Table<TaskBundle>;
   task_bundle_items!: Table<TaskBundleItem>;
   documents!: Table<Document>;
@@ -402,6 +415,7 @@ export class HofficeDB extends Dexie {
       replies: 'id, notice_id, reply_date, status',
       hearings: 'id, case_id, hearing_date, judge_id, outcome_code, next_hearing_date, status',
       tasks: 'id, case_id, assigned_to, due_date, status, priority, [related_entity_type+related_entity_id], bundle_id, is_auto_generated',
+      task_notes: 'id, task_id, type, created_by, created_at',
       task_bundles: 'id, stage_code, trigger, active, name, stages, execution_mode, version, usage_count',
       task_bundle_items: 'id, bundle_id, order_index, assigned_role, category, due_offset',
       documents: 'id, case_id, doc_type_code, version, status, added_on, folder_id',
@@ -431,6 +445,7 @@ export class HofficeDB extends Dexie {
       replies: 'id, notice_id, reply_date, status',
       hearings: 'id, case_id, hearing_date, judge_id, outcome_code, next_hearing_date, status',
       tasks: 'id, case_id, assigned_to, due_date, status, priority, [related_entity_type+related_entity_id], bundle_id, is_auto_generated',
+      task_notes: 'id, task_id, type, created_by, created_at',
       task_bundles: 'id, stage_code, trigger, active, name, stages, execution_mode, version, usage_count',
       task_bundle_items: 'id, bundle_id, order_index, assigned_role, category, due_offset',
       documents: 'id, case_id, doc_type_code, version, status, added_on, folder_id',
