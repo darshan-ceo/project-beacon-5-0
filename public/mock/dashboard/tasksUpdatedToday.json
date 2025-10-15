@@ -1,0 +1,9 @@
+{
+  "value": 18,
+  "trend": "Updated today",
+  "details": [
+    { "client": "Status changes", "daysOpen": "8" },
+    { "client": "Comments added", "daysOpen": "6" },
+    { "client": "Time logged", "daysOpen": "4" }
+  ]
+}

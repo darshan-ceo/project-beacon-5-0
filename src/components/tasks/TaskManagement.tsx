@@ -103,7 +103,7 @@ export const TaskManagement: React.FC = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [highlightedTaskId, setHighlightedTaskId] = useState<string | null>(null);
-  const [filterStatus, setFilterStatus] = useState<'all' | Task['status']>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | Task['status'] | 'followups_due' | 'updated_today'>('all');
   const [filterPriority, setFilterPriority] = useState<'all' | Task['priority']>('all');
   const [activeTab, setActiveTab] = useState('board');
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
@@ -127,10 +127,18 @@ export const TaskManagement: React.FC = () => {
     const returnTo = searchParams.get('returnTo');
     const returnCaseId = searchParams.get('returnCaseId');
     const statusParam = searchParams.get('status');
+    const filterParam = searchParams.get('filter');
     
     // Read status from URL for drill-down filtering
     if (statusParam && ['Pending', 'In Progress', 'Overdue', 'Completed', 'Review', 'Not Started'].includes(statusParam)) {
       setFilterStatus(statusParam as Task['status']);
+    }
+    
+    // Handle filter parameter for special filters like followups_due
+    if (filterParam === 'followups_due') {
+      setFilterStatus('followups_due');
+    } else if (filterParam === 'updated_today') {
+      setFilterStatus('updated_today');
     }
     
     if (highlight) {
@@ -167,7 +175,26 @@ export const TaskManagement: React.FC = () => {
       task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       task.description.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = filterStatus === 'all' || task.status === filterStatus;
+    // Handle special filters
+    let matchesStatus = true;
+    if (filterStatus === 'followups_due') {
+      // Show tasks with follow-up dates within next 7 days
+      matchesStatus = task.followUpDate && 
+        new Date(task.followUpDate) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    } else if (filterStatus === 'updated_today') {
+      // Show tasks that have notes created today
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const taskNotes = state.taskNotes?.filter(note => note.taskId === task.id) || [];
+      matchesStatus = taskNotes.some(note => {
+        const noteDate = new Date(note.createdAt);
+        noteDate.setHours(0, 0, 0, 0);
+        return noteDate.getTime() === today.getTime();
+      });
+    } else {
+      matchesStatus = filterStatus === 'all' || task.status === filterStatus;
+    }
+    
     const matchesPriority = filterPriority === 'all' || task.priority === filterPriority;
     
     // Apply case filter if specified in URL parameters

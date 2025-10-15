@@ -1,0 +1,10 @@
+{
+  "value": "42.5",
+  "trend": "+8.5 from last week",
+  "details": [
+    { "client": "Sarah Johnson", "daysOpen": "12.5h" },
+    { "client": "Ravi Mehta", "daysOpen": "15.0h" },
+    { "client": "Priya Sharma", "daysOpen": "8.0h" },
+    { "client": "Anil Kumar", "daysOpen": "7.0h" }
+  ]
+}

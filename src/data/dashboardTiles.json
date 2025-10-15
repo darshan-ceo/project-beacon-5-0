@@ -303,6 +303,82 @@
         "tooltip": "View system status",
         "requiresPermission": "admin_read"
       }
+    },
+    {
+      "id": "recentTaskUpdates",
+      "module": "Task Management",
+      "title": "Recent Task Updates",
+      "type": "list",
+      "icon": "MessageSquare",
+      "colorTheme": "vibrant-blue",
+      "rbacTag": ["tasks"],
+      "mockDataSource": "/mock/dashboard/recentTaskUpdates.json",
+      "description": "Latest task activity and changes",
+      "defaultEnabled": true,
+      "order": 17,
+      "showDetails": true,
+      "clickAction": {
+        "navigateTo": "/tasks",
+        "tooltip": "View all task updates",
+        "requiresPermission": "tasks_read"
+      }
+    },
+    {
+      "id": "timeLoggedThisWeek",
+      "module": "Task Management",
+      "title": "Time Logged This Week",
+      "type": "metric",
+      "icon": "Clock",
+      "colorTheme": "vibrant-green",
+      "rbacTag": ["tasks"],
+      "mockDataSource": "/mock/dashboard/timeLoggedThisWeek.json",
+      "description": "Total hours logged on tasks this week",
+      "defaultEnabled": true,
+      "order": 18,
+      "showDetails": true,
+      "clickAction": {
+        "navigateTo": "/tasks?view=analytics",
+        "tooltip": "View time tracking analytics",
+        "requiresPermission": "tasks_read"
+      }
+    },
+    {
+      "id": "tasksUpdatedToday",
+      "module": "Task Management",
+      "title": "Tasks Updated Today",
+      "type": "metric",
+      "icon": "RefreshCw",
+      "colorTheme": "vibrant-purple",
+      "rbacTag": ["tasks"],
+      "mockDataSource": "/mock/dashboard/tasksUpdatedToday.json",
+      "description": "Number of tasks modified today",
+      "defaultEnabled": true,
+      "order": 19,
+      "showDetails": true,
+      "clickAction": {
+        "navigateTo": "/tasks?filter=updated_today",
+        "tooltip": "View today's task activity",
+        "requiresPermission": "tasks_read"
+      }
+    },
+    {
+      "id": "pendingFollowups",
+      "module": "Task Management",
+      "title": "Pending Follow-ups",
+      "type": "list",
+      "icon": "Bell",
+      "colorTheme": "vibrant-amber",
+      "rbacTag": ["tasks"],
+      "mockDataSource": "/mock/dashboard/pendingFollowups.json",
+      "description": "Tasks requiring follow-up attention",
+      "defaultEnabled": true,
+      "order": 20,
+      "showDetails": true,
+      "clickAction": {
+        "navigateTo": "/tasks?filter=followups_due",
+        "tooltip": "View all pending follow-ups",
+        "requiresPermission": "tasks_read"
+      }
     }
   ]
 }

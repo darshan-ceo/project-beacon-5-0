@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, PlayCircle, CheckCircle, Clock, AlertCircle, Trash2, Edit } from 'lucide-react';
+import { Plus, PlayCircle, CheckCircle, Clock, AlertCircle, Trash2, Edit, Bell } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +10,7 @@ import { BundleRunModal } from './BundleRunModal';
 import { format } from 'date-fns';
 import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 import { toast } from '@/hooks/use-toast';
+import { getFollowUpBadgeVariant } from '@/utils/taskHelpers';
 import {
   Table,
   TableBody,
@@ -239,6 +240,7 @@ export const CaseTasksTab: React.FC<CaseTasksTabProps> = ({ caseData }) => {
                   <TableHead>Due Date</TableHead>
                   <TableHead>Priority</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Follow-up</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -274,6 +276,17 @@ export const CaseTasksTab: React.FC<CaseTasksTabProps> = ({ caseData }) => {
                       </TableCell>
                       <TableCell>{getPriorityBadge(task.priority)}</TableCell>
                       <TableCell>{getStatusBadge(task.status)}</TableCell>
+                      <TableCell>
+                        {task.followUpDate && (
+                          <Badge 
+                            variant={getFollowUpBadgeVariant(task.followUpDate)}
+                            className="flex items-center gap-1 w-fit"
+                          >
+                            <Bell className="h-3 w-3" />
+                            {format(new Date(task.followUpDate), 'MMM dd')}
+                          </Badge>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button

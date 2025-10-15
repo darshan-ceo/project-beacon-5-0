@@ -15,7 +15,8 @@ import {
   MessageSquare,
   Paperclip,
   MoreVertical,
-  Building2
+  Building2,
+  Bell
 } from 'lucide-react';
 import {
   Drawer,
@@ -42,6 +43,7 @@ import { TaskTimeline } from './TaskTimeline';
 import { QuickActionButtons } from './QuickActionButtons';
 import { toast } from '@/hooks/use-toast';
 import { v4 as uuid } from 'uuid';
+import { getFollowUpBadgeVariant, getFollowUpStatus } from '@/utils/taskHelpers';
 
 interface TaskDrawerProps {
   isOpen: boolean;
@@ -634,14 +636,32 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
 
               {/* Follow-up */}
               {task.followUpDate && (
-                <Card>
+                <Card className="border-amber-200 bg-amber-50/50">
                   <CardHeader>
-                    <CardTitle className="text-sm font-medium">Follow-up</CardTitle>
+                    <div className="flex items-center gap-2">
+                      <Bell className="h-5 w-5 text-amber-600" />
+                      <CardTitle className="text-sm font-medium text-amber-900">Follow-up Reminder</CardTitle>
+                      <Badge variant={getFollowUpBadgeVariant(task.followUpDate)} className="ml-auto">
+                        {getFollowUpStatus(task.followUpDate)}
+                      </Badge>
+                    </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{task.followUpDate}</span>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-amber-600" />
+                        <span className="text-sm text-amber-900 font-medium">
+                          {new Date(task.followUpDate).toLocaleDateString('en-US', { 
+                            weekday: 'long', 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                          })}
+                        </span>
+                      </div>
+                      <p className="text-xs text-amber-700 ml-6">
+                        {formatDistanceToNow(new Date(task.followUpDate), { addSuffix: true })}
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
