@@ -104,43 +104,6 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // PHASE 3A: RBAC Security Check - Validate case access before task creation
-    const currentUserId = '3'; // TODO: Get from auth context
-    
-    try {
-      const { policyEngine, secureDataAccess } = await import('@/security/policyEngine');
-      
-      // Check: Can user create tasks?
-      const canCreateTask = await policyEngine.evaluatePermission(currentUserId, 'tasks', 'write');
-      if (!canCreateTask.allowed) {
-        toast({
-          title: "Permission Denied",
-          description: "You don't have permission to create tasks.",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      // Check: Can user access the case?
-      const caseAccess = await secureDataAccess.secureGet(
-        currentUserId, 
-        'cases', 
-        formData.caseId,
-        async (id) => state.cases.find(c => c.id === id) || null
-      );
-      
-      if (!caseAccess) {
-        toast({
-          title: "Access Denied",
-          description: "You don't have permission to create tasks for this case.",
-          variant: "destructive"
-        });
-        return;
-      }
-    } catch (error) {
-      console.error('RBAC check failed:', error);
-    }
-    
     // Validate case relationship
     const caseValidation = validateTaskCase(formData.caseId);
     if (!caseValidation.isValid) {
@@ -348,14 +311,23 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               </div>
               <div>
                 <Label htmlFor="stage">Stage</Label>
-                <Input
-                  id="stage"
-                  value={formData.stage}
-                  onChange={(e) => setFormData(prev => ({ ...prev, stage: e.target.value }))}
+                <Select 
+                  value={formData.stage} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, stage: value }))}
                   disabled={mode === 'view'}
-                  required
-                  autoComplete="off"
-                />
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select stage..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Scrutiny">Scrutiny</SelectItem>
+                    <SelectItem value="Adjudication">Adjudication</SelectItem>
+                    <SelectItem value="First Appeal">First Appeal</SelectItem>
+                    <SelectItem value="Tribunal">Tribunal</SelectItem>
+                    <SelectItem value="High Court">High Court</SelectItem>
+                    <SelectItem value="Supreme Court">Supreme Court</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
