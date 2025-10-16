@@ -32,7 +32,7 @@ import { toast } from 'sonner';
 import { advancedRbacService, type CreateRoleData } from '@/services/advancedRbacService';
 import { permissionsResolver } from '@/services/permissionsResolver';
 import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
-import { type RoleEntity, type PermissionEntity, type PolicyAuditEntry } from '@/persistence/unifiedStore';
+import { type RoleEntity, type PermissionEntity, type PolicyAuditEntry, unifiedStore } from '@/persistence/unifiedStore';
 import { RoleBuilder } from './RoleBuilder';
 import { UserRoleAssignment } from './UserRoleAssignment';
 import { PermissionsMatrix } from './PermissionsMatrix';
@@ -148,6 +148,40 @@ export const RBACManagement: React.FC = () => {
     }
   };
 
+  const handleForceReseed = async () => {
+    if (!confirm('This will reset all RBAC permissions to defaults and recreate system roles. Continue?')) return;
+    
+    try {
+      setLoading(true);
+      
+      // Clear only system roles and all permissions for fresh start
+      const allRoles = await unifiedStore.roles.getAll();
+      const allPerms = await unifiedStore.permissions.getAll();
+      
+      // Delete system roles
+      for (const role of allRoles) {
+        if (role.isSystemRole) {
+          await unifiedStore.roles.delete(role.id);
+        }
+      }
+      
+      // Delete all permissions (they'll be recreated)
+      for (const perm of allPerms) {
+        await unifiedStore.permissions.delete(perm.id);
+      }
+      
+      console.log('🔄 Cleared existing RBAC data, triggering re-seed...');
+      
+      // Force reload the page to trigger re-initialization
+      window.location.reload();
+      
+    } catch (error: any) {
+      toast.error(`Failed to re-seed RBAC data: ${error.message}`);
+      console.error(error);
+      setLoading(false);
+    }
+  };
+
   const handleTogglePermission = (permissionId: string) => {
     setRoleForm(prev => ({
       ...prev,
@@ -188,6 +222,10 @@ export const RBACManagement: React.FC = () => {
           <Button variant="outline" onClick={refreshPermissions}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
+          </Button>
+          <Button variant="destructive" onClick={handleForceReseed} disabled={loading}>
+            <Shield className="h-4 w-4 mr-2" />
+            Force Re-seed RBAC
           </Button>
         </div>
       </div>

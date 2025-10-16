@@ -292,9 +292,24 @@ class AdvancedRBACService {
   // Seed default system roles and permissions
   private async seedDefaultData(): Promise<void> {
     try {
+      const existingPermissions = await unifiedStore.permissions.getAll();
+      if (existingPermissions.length >= 40) { // We expect ~46 default permissions
+        console.log('✅ RBAC permissions already seeded, skipping...');
+        return;
+      }
+
+      // Clear existing incomplete data and re-seed
+      console.log('🔄 Incomplete RBAC data detected, re-seeding...');
       const existingRoles = await unifiedStore.roles.getAll();
-      if (existingRoles.length > 0) {
-        return; // Already seeded
+      const existingPerms = await unifiedStore.permissions.getAll();
+
+      // Delete existing incomplete data
+      for (const role of existingRoles) {
+        if (!role.isSystemRole) continue; // Keep custom roles
+        await unifiedStore.roles.delete(role.id);
+      }
+      for (const perm of existingPerms) {
+        await unifiedStore.permissions.delete(perm.id);
       }
 
       console.log('🌱 Seeding default RBAC data...');
@@ -348,7 +363,23 @@ class AdvancedRBACService {
         // System
         { name: 'system.settings', category: 'System', description: 'Manage system settings', resource: 'system', action: 'admin' as const, scope: 'org' as const },
         { name: 'system.rbac', category: 'System', description: 'Manage roles and permissions', resource: 'rbac', action: 'admin' as const, scope: 'org' as const },
-        { name: 'system.audit', category: 'System', description: 'View audit logs', resource: 'audit', action: 'read' as const, scope: 'org' as const }
+        { name: 'system.audit', category: 'System', description: 'View audit logs', resource: 'audit', action: 'read' as const, scope: 'org' as const },
+        
+        // Reports - Scope-aware
+        { name: 'reports.read.own', category: 'Reports', description: 'View own reports', resource: 'reports', action: 'read' as const, scope: 'own' as const },
+        { name: 'reports.read.org', category: 'Reports', description: 'View all reports', resource: 'reports', action: 'read' as const, scope: 'org' as const },
+        { name: 'reports.write.org', category: 'Reports', description: 'Generate reports', resource: 'reports', action: 'write' as const, scope: 'org' as const },
+        { name: 'reports.admin.org', category: 'Reports', description: 'Manage report templates', resource: 'reports', action: 'admin' as const, scope: 'org' as const },
+
+        // Dashboard - Scope-aware
+        { name: 'dashboard.read.own', category: 'Dashboard', description: 'View own dashboard', resource: 'dashboard', action: 'read' as const, scope: 'own' as const },
+        { name: 'dashboard.read.org', category: 'Dashboard', description: 'View all dashboards', resource: 'dashboard', action: 'read' as const, scope: 'org' as const },
+        { name: 'dashboard.admin.org', category: 'Dashboard', description: 'Customize dashboards', resource: 'dashboard', action: 'admin' as const, scope: 'org' as const },
+
+        // Analytics - Scope-aware
+        { name: 'analytics.read.own', category: 'Analytics', description: 'View own analytics', resource: 'analytics', action: 'read' as const, scope: 'own' as const },
+        { name: 'analytics.read.org', category: 'Analytics', description: 'View all analytics', resource: 'analytics', action: 'read' as const, scope: 'org' as const },
+        { name: 'analytics.admin.org', category: 'Analytics', description: 'Configure analytics', resource: 'analytics', action: 'admin' as const, scope: 'org' as const }
       ];
 
       const permissions: PermissionEntity[] = [];
