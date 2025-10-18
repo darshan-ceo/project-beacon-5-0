@@ -103,24 +103,11 @@ export interface TaskNote {
   };
 }
 
-// Client Group Master Interface
-export interface ClientGroup {
-  id: string;
-  name: string;
-  description?: string;
-  headClientId?: string; // Reference to the main client in this group
-  totalClients: number;
-  status: 'Active' | 'Inactive';
-  createdAt: string;
-  updatedAt: string;
-}
-
 interface Client {
   id: string;
   name: string;
   type: 'Individual' | 'Company' | 'Partnership' | 'Trust' | 'Other';
   category?: 'Regular Dealer' | 'Composition' | 'Exporter' | 'Service' | 'Other';
-  clientGroupId?: string; // FK to ClientGroup.id
   registrationNo?: string;
   gstin?: string;
   pan: string;
@@ -401,7 +388,6 @@ export interface AppState {
   tasks: Task[];
   taskNotes: TaskNote[];
   clients: Client[];
-  clientGroups: ClientGroup[];
   courts: Court[];
   judges: Judge[];
   documents: Document[];
@@ -430,9 +416,6 @@ export type AppAction =
   | { type: 'ADD_CLIENT'; payload: Client }
   | { type: 'UPDATE_CLIENT'; payload: Client }
   | { type: 'DELETE_CLIENT'; payload: string }
-  | { type: 'ADD_CLIENT_GROUP'; payload: ClientGroup }
-  | { type: 'UPDATE_CLIENT_GROUP'; payload: ClientGroup }
-  | { type: 'DELETE_CLIENT_GROUP'; payload: string }
   | { type: 'ADD_SIGNATORY'; payload: { clientId: string; signatory: Signatory } }
   | { type: 'UPDATE_SIGNATORY'; payload: { clientId: string; signatory: Signatory } }
   | { type: 'DELETE_SIGNATORY'; payload: { clientId: string; signatoryId: string } }
@@ -468,27 +451,6 @@ export type AppAction =
 // Initial state with mock data
 const initialState: AppState = {
   taskNotes: [],
-  clientGroups: [
-    {
-      id: 'CG-001',
-      name: 'Landmark Group',
-      description: 'All companies under Landmark Holdings umbrella',
-      headClientId: 'CLT-MOCK-001',
-      totalClients: 3,
-      status: 'Active',
-      createdAt: '2024-01-01',
-      updatedAt: '2024-01-01'
-    },
-    {
-      id: 'CG-002',
-      name: 'TechVentures',
-      description: 'Technology startup portfolio companies',
-      totalClients: 2,
-      status: 'Active',
-      createdAt: '2024-01-15',
-      updatedAt: '2024-01-15'
-    }
-  ],
   cases: [
     {
       id: 'GST-001',
@@ -2149,23 +2111,6 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         clients: state.clients.filter(client => client.id !== action.payload)
-      };
-
-    case 'ADD_CLIENT_GROUP':
-      return { ...state, clientGroups: [...state.clientGroups, action.payload] };
-    
-    case 'UPDATE_CLIENT_GROUP':
-      return {
-        ...state,
-        clientGroups: state.clientGroups.map(group => 
-          group.id === action.payload.id ? action.payload : group
-        )
-      };
-    
-    case 'DELETE_CLIENT_GROUP':
-      return {
-        ...state,
-        clientGroups: state.clientGroups.filter(group => group.id !== action.payload)
       };
 
     case 'ADD_SIGNATORY':

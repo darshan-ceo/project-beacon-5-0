@@ -292,7 +292,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-beacon-modal max-h-[90vh]" data-tour="case-form">
         <DialogHeader>
           <DialogTitle>

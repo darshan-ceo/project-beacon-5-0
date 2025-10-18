@@ -1,7 +1,7 @@
 {
   "client-master-basics": {
-    "title": "Client Directory Structure",
-    "content": "View comprehensive client information including ID, name, tax details with state, client group classification, multiple contacts, constitution type, status, and active cases.",
-    "learnMoreUrl": "/help/articles/client-directory-overview"
+    "title": "Client Master Management",
+    "content": "Manage client information with GSTIN autofill and integrated case linking.",
+    "learnMoreUrl": "/help/articles/client-gstin-autofill"
   }
 }
