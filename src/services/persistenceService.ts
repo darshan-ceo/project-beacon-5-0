@@ -464,6 +464,7 @@ class PersistenceService {
       return {
         cases: cases as Case[],
         clients: clients as Client[],
+        clientGroups: [], // Initialize empty for migration
         courts: courts as Court[],
         judges: judges as Judge[],
         employees: employees as Employee[],

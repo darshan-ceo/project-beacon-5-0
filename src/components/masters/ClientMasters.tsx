@@ -70,7 +70,7 @@ export const ClientMasters: React.FC = () => {
                          (client.gstin || client.gstNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (client.pan || client.panNumber || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterStatus === 'all' || client.status === filterStatus;
-    const matchesClientGroup = filterClientGroup === 'all' || client.clientGroup === filterClientGroup;
+    const matchesClientGroup = filterClientGroup === 'all' || client.clientGroupId === filterClientGroup;
     
     // Duration filter based on registration date
     let matchesDateRange = true;
@@ -336,24 +336,11 @@ export const ClientMasters: React.FC = () => {
                 All Groups
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setFilterClientGroup('Corporate')}>
-                Corporate
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterClientGroup('SME')}>
-                SME
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterClientGroup('Individual')}>
-                Individual
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterClientGroup('Startup')}>
-                Startup
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterClientGroup('Government')}>
-                Government
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterClientGroup('MSME')}>
-                MSME
-              </DropdownMenuItem>
+              {state.clientGroups.map(group => (
+                <DropdownMenuItem key={group.id} onClick={() => setFilterClientGroup(group.id)}>
+                  {group.name}
+                </DropdownMenuItem>
+              ))}
             </DropdownMenuContent>
           </DropdownMenu>
           
@@ -501,9 +488,9 @@ export const ClientMasters: React.FC = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {client.clientGroup ? (
+                      {client.clientGroupId ? (
                         <Badge variant="outline" className="text-xs">
-                          {client.clientGroup}
+                          {state.clientGroups.find(g => g.id === client.clientGroupId)?.name || client.clientGroupId}
                         </Badge>
                       ) : (
                         <span className="text-sm text-muted-foreground">-</span>

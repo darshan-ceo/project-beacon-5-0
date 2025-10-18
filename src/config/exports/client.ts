@@ -31,7 +31,7 @@ export const CLIENT_EXPORT_COLUMNS: ExportColumn<Client>[] = [
     key: 'clientGroup', 
     label: 'Client Group', 
     type: 'string',
-    get: (client) => client.clientGroup || 'N/A'
+    get: (client) => client.clientGroupId || 'N/A'
   },
   { 
     key: 'category', 

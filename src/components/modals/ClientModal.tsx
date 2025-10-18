@@ -41,7 +41,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
     name: string;
     type: 'Individual' | 'Company' | 'Partnership' | 'Trust' | 'Other';
     category: 'Regular Dealer' | 'Composition' | 'Exporter' | 'Service' | 'Other';
-    clientGroup: string;
+    clientGroupId: string;
     registrationNo: string;
     gstin: string;
     pan: string;
@@ -59,7 +59,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
     name: '',
     type: 'Individual',
     category: 'Regular Dealer',
-    clientGroup: '',
+    clientGroupId: '',
     registrationNo: '',
     gstin: '',
     pan: '',
@@ -161,7 +161,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         name: clientData.name,
         type: clientData.type,
         category: clientData.category || 'Regular Dealer',
-        clientGroup: clientData.clientGroup || '',
+        clientGroupId: clientData.clientGroupId || '',
         registrationNo: clientData.registrationNo || '',
         gstin: clientData.gstin || '',
         pan: clientData.pan || clientData.panNumber || '',
@@ -180,7 +180,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         name: '',
         type: 'Individual',
         category: 'Regular Dealer',
-        clientGroup: '',
+        clientGroupId: '',
         registrationNo: '',
         gstin: '',
         pan: '',
@@ -522,6 +522,9 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                   <Building2 className="h-4 w-4" />
                   General Information
                 </CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Basic client details - only name, type, and PAN are required
+                </p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -589,27 +592,24 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                   </div>
 
                   <div>
-                    <Label htmlFor="clientGroup">
+                    <Label htmlFor="clientGroupId">
                       Client Group
                     </Label>
                     <Select
-                      value={formData.clientGroup || ''}
-                      onValueChange={(value) => setFormData({ ...formData, clientGroup: value })}
+                      value={formData.clientGroupId || ''}
+                      onValueChange={(value) => setFormData({ ...formData, clientGroupId: value })}
                       disabled={mode === 'view'}
                     >
-                      <SelectTrigger id="clientGroup">
+                      <SelectTrigger id="clientGroupId">
                         <SelectValue placeholder="Select client group" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="">None</SelectItem>
-                        <SelectItem value="Corporate">Corporate</SelectItem>
-                        <SelectItem value="SME">SME</SelectItem>
-                        <SelectItem value="Individual">Individual</SelectItem>
-                        <SelectItem value="Startup">Startup</SelectItem>
-                        <SelectItem value="Government">Government Entity</SelectItem>
-                        <SelectItem value="Non-Profit">Non-Profit</SelectItem>
-                        <SelectItem value="MNC">MNC</SelectItem>
-                        <SelectItem value="MSME">MSME</SelectItem>
+                        {state.clientGroups.map(group => (
+                          <SelectItem key={group.id} value={group.id}>
+                            {group.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -681,6 +681,9 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                   <MapPin className="h-4 w-4" />
                   Address Information
                 </CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Optional: You can add address details now or later
+                </p>
               </CardHeader>
               <CardContent>
                 {mode === 'view' && isAddressMasterEnabled ? (
@@ -873,6 +876,9 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                   <Shield className="h-4 w-4" />
                   Client Portal Access
                 </CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Optional: Configure client portal login credentials
+                </p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
