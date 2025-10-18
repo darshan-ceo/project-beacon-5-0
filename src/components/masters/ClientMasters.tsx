@@ -42,6 +42,7 @@ import { featureFlagService } from '@/services/featureFlagService';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { HelpButton } from '@/components/ui/help-button';
 import { ThreeLayerHelp } from '@/components/ui/three-layer-help';
+import { INDIAN_STATES } from '@/services/clientsService';
 
 export const ClientMasters: React.FC = () => {
   const { state, dispatch } = useAppState();
@@ -60,6 +61,7 @@ export const ClientMasters: React.FC = () => {
     contextClientId: undefined
   });
   const [filterStatus, setFilterStatus] = useState<'all' | 'Active' | 'Inactive' | 'Pending'>('all');
+  const [filterClientGroup, setFilterClientGroup] = useState<string>('all');
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
 
@@ -68,6 +70,7 @@ export const ClientMasters: React.FC = () => {
                          (client.gstin || client.gstNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (client.pan || client.panNumber || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterStatus === 'all' || client.status === filterStatus;
+    const matchesClientGroup = filterClientGroup === 'all' || client.clientGroup === filterClientGroup;
     
     // Duration filter based on registration date
     let matchesDateRange = true;
@@ -88,23 +91,73 @@ export const ClientMasters: React.FC = () => {
       }
     }
     
-    return matchesSearch && matchesFilter && matchesDateRange;
+    return matchesSearch && matchesFilter && matchesDateRange && matchesClientGroup;
   });
 
-  const getPrimaryContact = (client: Client) => {
-    // First, try to get from signatories (new way)
-    if (client.signatories && client.signatories.length > 0) {
-      const primarySignatory = client.signatories.find(s => s.isPrimary) || client.signatories[0];
-      return {
-        email: primarySignatory.email || 'N/A',
-        phone: primarySignatory.phone || 'N/A'
-      };
+  const getClientState = (client: Client): string => {
+    // Try to extract state from address
+    if (typeof client.address === 'object' && client.address !== null) {
+      if ('state' in client.address && client.address.state) {
+        return client.address.state;
+      }
+      if ('stateId' in client.address && client.address.stateId) {
+        const stateCode = client.address.stateId;
+        const stateName = INDIAN_STATES.find(s => s.startsWith(stateCode))?.split(' - ')[1];
+        return stateName || stateCode;
+      }
     }
     
-    // Fallback to legacy fields (old way)
+    // Fallback: Extract from GSTIN (first 2 digits = state code)
+    if (client.gstin && client.gstin.length >= 2) {
+      const stateCode = client.gstin.substring(0, 2);
+      const gstStateMap: Record<string, string> = {
+        '01': 'J&K', '02': 'HP', '03': 'Punjab', '04': 'Chandigarh',
+        '05': 'Uttarakhand', '06': 'Haryana', '07': 'Delhi', '08': 'Rajasthan',
+        '09': 'UP', '10': 'Bihar', '11': 'Sikkim', '12': 'Arunachal',
+        '13': 'Nagaland', '14': 'Manipur', '15': 'Mizoram', '16': 'Tripura',
+        '17': 'Meghalaya', '18': 'Assam', '19': 'WB', '20': 'Jharkhand',
+        '21': 'Odisha', '22': 'Chhattisgarh', '23': 'MP', '24': 'Gujarat',
+        '27': 'Maharashtra', '29': 'Karnataka', '32': 'Kerala', '33': 'TN',
+        '34': 'Puducherry', '35': 'A&N', '36': 'Telangana', '37': 'AP'
+      };
+      return gstStateMap[stateCode] || 'Unknown';
+    }
+    
+    return 'N/A';
+  };
+
+  const getAllContactInfo = (client: Client): { emails: string[]; phones: string[] } => {
+    const emails: string[] = [];
+    const phones: string[] = [];
+    
+    // Collect from signatories (new system)
+    if (client.signatories && client.signatories.length > 0) {
+      client.signatories.forEach(signatory => {
+        if (signatory.email && !emails.includes(signatory.email)) {
+          emails.push(signatory.email);
+        }
+        if (signatory.phone && !phones.includes(signatory.phone)) {
+          phones.push(signatory.phone);
+        }
+      });
+    }
+    
+    // Fallback to legacy fields
+    if (emails.length === 0 && client.email) {
+      emails.push(client.email);
+    }
+    if (phones.length === 0 && client.phone) {
+      phones.push(client.phone);
+    }
+    
+    // If still empty, show N/A
+    if (emails.length === 0) emails.push('N/A');
+    if (phones.length === 0) phones.push('N/A');
+    
+    // Limit display to first 2 of each
     return {
-      email: client.email || 'N/A',
-      phone: client.phone || 'N/A'
+      emails: emails.slice(0, 2),
+      phones: phones.slice(0, 2)
     };
   };
 
@@ -270,6 +323,39 @@ export const ClientMasters: React.FC = () => {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <Filter className="mr-2 h-4 w-4" />
+                Client Group
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => setFilterClientGroup('all')}>
+                All Groups
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setFilterClientGroup('Corporate')}>
+                Corporate
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilterClientGroup('SME')}>
+                SME
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilterClientGroup('Individual')}>
+                Individual
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilterClientGroup('Startup')}>
+                Startup
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilterClientGroup('Government')}>
+                Government
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilterClientGroup('MSME')}>
+                MSME
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           
           <div className="flex gap-2 items-center">
             <Input
@@ -367,14 +453,16 @@ export const ClientMasters: React.FC = () => {
               Complete list of registered clients with their details
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <Table>
+          <CardContent className="overflow-x-auto">
+            <Table className="min-w-[1200px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Client Details</TableHead>
-                  <TableHead>Tax Information</TableHead>
-                  <TableHead>Jurisdiction</TableHead>
+                  <TableHead>Client ID</TableHead>
+                  <TableHead>Client Name</TableHead>
+                  <TableHead>GSTN/PAN/State</TableHead>
+                  <TableHead>Client Group</TableHead>
                   <TableHead>Contact</TableHead>
+                  <TableHead>Constitution</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Cases</TableHead>
                   <TableHead>Actions</TableHead>
@@ -390,40 +478,58 @@ export const ClientMasters: React.FC = () => {
                     className="hover:bg-muted/50"
                   >
                     <TableCell>
+                      <span className="text-sm font-mono text-muted-foreground">
+                        {client.id.slice(0, 8)}
+                      </span>
+                    </TableCell>
+                    <TableCell>
                       <div className="space-y-1">
                         <p className="font-medium text-foreground">{client.name}</p>
-                        <p className="text-sm text-muted-foreground">{client.type}</p>
-                        <div className="flex items-center gap-1">
-                          <Badge variant="secondary" className="text-xs">
-                            {client.type}
-                          </Badge>
-                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Reg: {client.registrationDate || 'N/A'}
+                        </p>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">
                         <p className="text-sm font-mono">{client.gstin || client.gstNumber || 'N/A'}</p>
                         <p className="text-sm font-mono text-muted-foreground">{client.pan || client.panNumber || 'N/A'}</p>
+                        <p className="text-xs text-muted-foreground flex items-center">
+                          <MapPin className="h-3 w-3 mr-1" />
+                          {getClientState(client)}
+                        </p>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center">
-                        <MapPin className="mr-1 h-3 w-3 text-muted-foreground" />
-                        <span className="text-sm">{client.assignedCAName}</span>
+                      {client.clientGroup ? (
+                        <Badge variant="outline" className="text-xs">
+                          {client.clientGroup}
+                        </Badge>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        {getAllContactInfo(client).emails.map((email, idx) => (
+                          <div key={idx} className="flex items-center text-xs">
+                            <Mail className="mr-1 h-3 w-3 text-muted-foreground" />
+                            {email}
+                          </div>
+                        ))}
+                        {getAllContactInfo(client).phones.map((phone, idx) => (
+                          <div key={idx} className="flex items-center text-xs text-muted-foreground">
+                            <Phone className="mr-1 h-3 w-3" />
+                            {phone}
+                          </div>
+                        ))}
                       </div>
                     </TableCell>
-                     <TableCell>
-                       <div className="space-y-1">
-                         <div className="flex items-center text-sm">
-                           <Mail className="mr-1 h-3 w-3 text-muted-foreground" />
-                           {getPrimaryContact(client).email}
-                         </div>
-                         <div className="flex items-center text-sm text-muted-foreground">
-                           <Phone className="mr-1 h-3 w-3" />
-                           {getPrimaryContact(client).phone}
-                         </div>
-                       </div>
-                     </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="text-xs">
+                        {client.type}
+                      </Badge>
+                    </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className={getStatusColor(client.status)}>
                         {client.status}
@@ -431,8 +537,8 @@ export const ClientMasters: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <div className="text-center">
-                        <p className="font-medium">{client.activeCases}</p>
-                        <p className="text-xs text-muted-foreground">{client.registrationDate}</p>
+                        <p className="font-medium">{client.activeCases || 0}</p>
+                        <p className="text-xs text-muted-foreground">cases</p>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -548,6 +654,9 @@ export const ClientMasters: React.FC = () => {
                 ))}
               </TableBody>
             </Table>
+            <div className="text-xs text-muted-foreground text-center py-2 md:hidden">
+              ← Scroll horizontally to see all columns →
+            </div>
           </CardContent>
         </Card>
       </motion.div>

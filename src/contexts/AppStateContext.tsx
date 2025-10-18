@@ -108,6 +108,7 @@ interface Client {
   name: string;
   type: 'Individual' | 'Company' | 'Partnership' | 'Trust' | 'Other';
   category?: 'Regular Dealer' | 'Composition' | 'Exporter' | 'Service' | 'Other';
+  clientGroup?: string;
   registrationNo?: string;
   gstin?: string;
   pan: string;

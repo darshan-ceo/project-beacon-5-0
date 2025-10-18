@@ -14,13 +14,24 @@ export interface ExportColumn<T = any> {
 }
 
 export const CLIENT_EXPORT_COLUMNS: ExportColumn<Client>[] = [
-  { key: 'id', label: 'Client ID', type: 'string' },
+  { 
+    key: 'clientId', 
+    label: 'Client ID', 
+    type: 'string',
+    get: (client) => client.id 
+  },
   { key: 'name', label: 'Client Name', type: 'string' },
   { 
     key: 'type', 
-    label: 'Client Type', 
+    label: 'Constitution', 
     type: 'string',
     get: (client) => client.type || 'N/A'
+  },
+  { 
+    key: 'clientGroup', 
+    label: 'Client Group', 
+    type: 'string',
+    get: (client) => client.clientGroup || 'N/A'
   },
   { 
     key: 'category', 

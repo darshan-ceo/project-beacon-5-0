@@ -41,6 +41,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
     name: string;
     type: 'Individual' | 'Company' | 'Partnership' | 'Trust' | 'Other';
     category: 'Regular Dealer' | 'Composition' | 'Exporter' | 'Service' | 'Other';
+    clientGroup: string;
     registrationNo: string;
     gstin: string;
     pan: string;
@@ -58,6 +59,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
     name: '',
     type: 'Individual',
     category: 'Regular Dealer',
+    clientGroup: '',
     registrationNo: '',
     gstin: '',
     pan: '',
@@ -159,6 +161,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         name: clientData.name,
         type: clientData.type,
         category: clientData.category || 'Regular Dealer',
+        clientGroup: clientData.clientGroup || '',
         registrationNo: clientData.registrationNo || '',
         gstin: clientData.gstin || '',
         pan: clientData.pan || clientData.panNumber || '',
@@ -177,6 +180,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         name: '',
         type: 'Individual',
         category: 'Regular Dealer',
+        clientGroup: '',
         registrationNo: '',
         gstin: '',
         pan: '',
@@ -205,7 +209,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         },
         assignedCAId: '',
         assignedCAName: '',
-        status: 'Active'
+        status: 'Active',
+        tags: []
       });
       setSignatories([]);
       setPreloadedContacts([]);
@@ -583,6 +588,34 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                     </Select>
                   </div>
 
+                  <div>
+                    <Label htmlFor="clientGroup">
+                      Client Group
+                    </Label>
+                    <Select
+                      value={formData.clientGroup || ''}
+                      onValueChange={(value) => setFormData({ ...formData, clientGroup: value })}
+                      disabled={mode === 'view'}
+                    >
+                      <SelectTrigger id="clientGroup">
+                        <SelectValue placeholder="Select client group" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value="Corporate">Corporate</SelectItem>
+                        <SelectItem value="SME">SME</SelectItem>
+                        <SelectItem value="Individual">Individual</SelectItem>
+                        <SelectItem value="Startup">Startup</SelectItem>
+                        <SelectItem value="Government">Government Entity</SelectItem>
+                        <SelectItem value="Non-Profit">Non-Profit</SelectItem>
+                        <SelectItem value="MNC">MNC</SelectItem>
+                        <SelectItem value="MSME">MSME</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
                   {showSignatorySection && (
                     <div>
                       <Label htmlFor="registrationNo">Registration Number</Label>
