@@ -63,7 +63,7 @@ export const HearingsTab: React.FC<HearingsTabProps> = ({ filters }) => {
               <TableHead>Case ID</TableHead>
               <TableHead>Case Title</TableHead>
               <TableHead>Client</TableHead>
-              <TableHead>Court</TableHead>
+              <TableHead>Legal Forum</TableHead>
               <TableHead>Judge</TableHead>
               <TableHead>Status</TableHead>
             </TableRow>

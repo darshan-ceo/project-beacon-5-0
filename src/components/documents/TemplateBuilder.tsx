@@ -78,10 +78,10 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
     { key: 'employee_role', label: 'Employee Role', type: 'select', category: 'employee', description: 'Partner, CA, Advocate, etc.' },
     
     // Court Fields
-    { key: 'court_name', label: 'Court Name', type: 'string', category: 'court', description: 'Name of the court' },
+    { key: 'court_name', label: 'Legal Forum Name', type: 'string', category: 'court', description: 'Name of the legal forum' },
     { key: 'judge_name', label: 'Judge Name', type: 'string', category: 'court', description: 'Presiding judge name' },
     { key: 'hearing_date', label: 'Hearing Date', type: 'date', category: 'court', description: 'Next hearing date' },
-    { key: 'jurisdiction', label: 'Jurisdiction', type: 'string', category: 'court', description: 'Court jurisdiction' },
+    { key: 'jurisdiction', label: 'Jurisdiction', type: 'string', category: 'court', description: 'Legal forum jurisdiction' },
     
     // Common Fields
     { key: 'reference_number', label: 'Reference Number', type: 'string', category: 'common', required: true, description: 'Document reference number' },
@@ -105,7 +105,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
     { value: 'client', label: 'Client', icon: Users },
     { value: 'case', label: 'Case', icon: FileText },
     { value: 'employee', label: 'Employee', icon: Building2 },
-    { value: 'court', label: 'Court', icon: Scale },
+    { value: 'court', label: 'Legal Forum', icon: Scale },
     { value: 'common', label: 'Common', icon: Type }
   ];
 

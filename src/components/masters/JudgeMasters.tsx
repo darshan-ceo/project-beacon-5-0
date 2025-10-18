@@ -168,7 +168,7 @@ const JudgeMasters: React.FC = () => {
             </div>
             <div className="flex flex-col sm:flex-row flex-wrap gap-2">
               <FilterDropdown
-                label="Court"
+                label="Legal Forum"
                 value={filterCourt}
                 onChange={setFilterCourt}
                 options={uniqueCourts.map(court => ({ value: court, label: court }))}

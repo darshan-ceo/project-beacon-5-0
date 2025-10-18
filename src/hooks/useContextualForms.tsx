@@ -140,7 +140,7 @@ export const useContextualForms = (initialContext?: FormContext) => {
     if (!context.caseId) errors.push('Case is required');
     
     if (entityType === 'hearing') {
-      if (!context.courtId) errors.push('Court is required');
+      if (!context.courtId) errors.push('Legal Forum is required');
       if (!context.judgeId) errors.push('Judge is required');
     }
 

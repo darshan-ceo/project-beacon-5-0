@@ -183,7 +183,7 @@ export const HearingCalendar: React.FC<HearingCalendarProps> = ({ isOpen, onClos
                           <div className="text-sm text-muted-foreground mt-1">
                             <div className="flex items-center">
                               <MapPin className="h-3 w-3 mr-1" />
-                              <span>{courtInfo?.name || 'Unknown Court'}</span>
+                              <span>{courtInfo?.name || 'Unknown Legal Forum'}</span>
                             </div>
                             <div className="flex items-center mt-1">
                               <Scale className="h-3 w-3 mr-1" />

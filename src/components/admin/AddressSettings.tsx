@@ -36,7 +36,7 @@ const MODULE_LABELS: Record<ModuleName, string> = {
   employee: 'Employees',
   judge: 'Judges',
   client: 'Clients',
-  court: 'Courts'
+  court: 'Legal Forums'
 };
 
 const FIELD_LABELS: Record<AddressFieldName, string> = {

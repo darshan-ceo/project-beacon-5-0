@@ -907,7 +907,7 @@ export const CaseManagement: React.FC = () => {
                                    window.location.href = `/hearings?caseId=${caseItem.id}&hearingDate=${caseItem.nextHearing?.date}&courtId=${caseItem.nextHearing?.courtId}`;
                                  }}>
                                    <p className="text-sm font-medium">{caseItem.nextHearing.date}</p>
-                                   <p className="text-xs text-muted-foreground">{state.courts.find(c => c.id === caseItem.nextHearing?.courtId)?.name || 'Unknown Court'}</p>
+                                   <p className="text-xs text-muted-foreground">{state.courts.find(c => c.id === caseItem.nextHearing?.courtId)?.name || 'Unknown Legal Forum'}</p>
                                  </div>
                                ) : (
                                  <Button

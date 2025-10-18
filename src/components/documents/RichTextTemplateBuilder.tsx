@@ -69,9 +69,9 @@ const VARIABLE_OPTIONS: VariableOption[] = [
   { category: 'Case', label: 'Tax Period', value: '{{case.taxPeriod}}', description: 'Relevant tax period' },
   
   // Court/Forum variables
-  { category: 'Forum', label: 'Court Name', value: '{{court.name}}', description: 'Name of the court/tribunal' },
-  { category: 'Forum', label: 'Court Location', value: '{{court.location}}', description: 'Court city/state' },
-  { category: 'Forum', label: 'Bench', value: '{{court.bench}}', description: 'Court bench/division' },
+  { category: 'Forum', label: 'Legal Forum Name', value: '{{court.name}}', description: 'Name of the legal forum/tribunal' },
+  { category: 'Forum', label: 'Legal Forum Location', value: '{{court.location}}', description: 'Legal forum city/state' },
+  { category: 'Forum', label: 'Bench', value: '{{court.bench}}', description: 'Legal forum bench/division' },
   
   // Employee variables
   { category: 'Employee', label: 'Attorney Name', value: '{{employee.name}}', description: 'Assigned attorney name' },

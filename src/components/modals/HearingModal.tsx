@@ -209,7 +209,7 @@ export const HearingModal: React.FC<HearingModalProps> = ({
             <div className="space-y-4">
               <div className="flex items-center gap-2 pb-2 border-b">
                 <Scale className="h-4 w-4 text-primary" />
-                <h3 className="text-sm font-semibold">Case & Court Details</h3>
+                <h3 className="text-sm font-semibold">Case & Legal Forum Details</h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -320,7 +320,7 @@ export const HearingModal: React.FC<HearingModalProps> = ({
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm font-medium flex items-center gap-2">
                       <MapPin className="h-4 w-4" />
-                      Court Address
+                      Legal Forum Address
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0">

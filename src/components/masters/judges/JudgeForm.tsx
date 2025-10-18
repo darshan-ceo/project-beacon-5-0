@@ -324,14 +324,14 @@ export const JudgeForm: React.FC<JudgeFormProps> = ({
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="court">Court *</Label>
+              <Label htmlFor="court">Legal Forum *</Label>
               <Select 
                 value={formData.courtId} 
                 onValueChange={(value) => setFormData(prev => ({ ...prev, courtId: value }))}
                 disabled={isReadOnly}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select court" />
+                  <SelectValue placeholder="Select Legal Forum" />
                 </SelectTrigger>
                 <SelectContent>
                   {state.courts.map((court) => (

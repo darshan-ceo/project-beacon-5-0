@@ -190,9 +190,9 @@ export const CourtSelector: React.FC<{
 
   return (
     <RelationshipSelector
-      label="Court"
-      options={options}
-      placeholder="Select court"
+          label="Legal Forum"
+          options={options}
+          placeholder="Select Legal Forum"
       required
       {...props}
     />

@@ -114,7 +114,7 @@ export const HearingForm: React.FC<HearingFormProps> = ({
       <FieldTooltipWrapper
         formId="hearing-form"
         fieldId="court_id"
-        label="Court"
+        label="Legal Forum"
         required
       >
         <Select 
@@ -123,7 +123,7 @@ export const HearingForm: React.FC<HearingFormProps> = ({
           disabled={disabled}
         >
           <SelectTrigger>
-            <SelectValue placeholder="Select court" />
+            <SelectValue placeholder="Select Legal Forum" />
           </SelectTrigger>
           <SelectContent>
             {state.courts.map(court => (

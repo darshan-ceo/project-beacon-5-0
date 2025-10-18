@@ -127,8 +127,8 @@ const FIELD_LIBRARY: FieldLibraryItem[] = [
   { key: 'employee_phone', label: 'Attorney Phone', type: 'string', category: 'employee', prefillPath: 'employee.phone', description: 'Phone number', icon: Phone },
   
   // Court Fields
-  { key: 'court_name', label: 'Court Name', type: 'string', category: 'court', prefillPath: 'court.name', description: 'Name of forum', icon: Landmark },
-  { key: 'court_location', label: 'Court Location', type: 'string', category: 'court', prefillPath: 'court.location', description: 'City/State', icon: Landmark },
+  { key: 'court_name', label: 'Legal Forum Name', type: 'string', category: 'court', prefillPath: 'court.name', description: 'Name of legal forum', icon: Landmark },
+  { key: 'court_location', label: 'Legal Forum Location', type: 'string', category: 'court', prefillPath: 'court.location', description: 'City/State', icon: Landmark },
   
   // System Fields
   { key: 'current_date', label: 'Current Date', type: 'date', category: 'system', prefillPath: 'system.currentDate', description: 'Today\'s date', icon: Calendar },

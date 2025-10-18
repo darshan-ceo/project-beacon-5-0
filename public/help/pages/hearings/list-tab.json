@@ -4,13 +4,13 @@
   "quickStart": [
     "View all scheduled hearings in chronological order",
     "Use search to find specific case hearings",
-    "Apply filters by court, judge, or hearing type",
+    "Apply filters by legal forum, judge, or hearing type",
     "Click any hearing to view or edit details"
   ],
   "interactiveElements": [
     {
       "name": "Search Bar",
-      "purpose": "Find hearings by case number, court, or judge name",
+      "purpose": "Find hearings by case number, legal forum, or judge name",
       "example": "Search 'GST-2024-001' to find all hearings for that case"
     },
     {
@@ -45,8 +45,8 @@
       "benefit": "Proactive preparation and no missed hearings"
     },
     {
-      "scenario": "Court-specific preparation",
-      "solution": "Filter by specific court to batch prepare similar hearings",
+      "scenario": "Legal forum-specific preparation",
+      "solution": "Filter by specific legal forum to batch prepare similar hearings",
       "benefit": "Efficient preparation and travel planning"
     }
   ]

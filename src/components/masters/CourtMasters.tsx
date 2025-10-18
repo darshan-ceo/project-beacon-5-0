@@ -72,8 +72,8 @@ export const CourtMasters: React.FC = () => {
         className="flex justify-between items-center"
       >
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Court Masters</h1>
-          <p className="text-muted-foreground mt-2">Manage court information and jurisdictions</p>
+          <h1 className="text-3xl font-bold text-foreground">Legal Forum Masters</h1>
+          <p className="text-muted-foreground mt-2">Manage legal forum information and jurisdictions</p>
         </div>
           <div className="flex flex-wrap gap-2">
             {featureFlagService.isEnabled('data_io_v1') && hasPermission('io.import.court', 'write') && (
@@ -84,7 +84,7 @@ export const CourtMasters: React.FC = () => {
                 onClick={() => setImportWizardOpen(true)}
               >
                 <Upload className="h-4 w-4" />
-                <span className="hidden sm:inline">Import Courts</span>
+                <span className="hidden sm:inline">Import Legal Forums</span>
                 <span className="sm:hidden">Import</span>
               </Button>
             )}
@@ -96,7 +96,7 @@ export const CourtMasters: React.FC = () => {
                 onClick={() => setExportWizardOpen(true)}
               >
                 <Download className="h-4 w-4" />
-                <span className="hidden sm:inline">Export Courts</span>
+                <span className="hidden sm:inline">Export Legal Forums</span>
                 <span className="sm:hidden">Export</span>
               </Button>
             )}
@@ -110,8 +110,8 @@ export const CourtMasters: React.FC = () => {
               })}
             >
               <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Add New Court</span>
-              <span className="sm:hidden">Add Court</span>
+              <span className="hidden sm:inline">Add New Legal Forum</span>
+              <span className="sm:hidden">Add Legal Forum</span>
             </Button>
           </div>
       </motion.div>
@@ -125,7 +125,7 @@ export const CourtMasters: React.FC = () => {
       >
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Courts</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Legal Forums</CardTitle>
             <Building2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -168,7 +168,7 @@ export const CourtMasters: React.FC = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Courts</CardTitle>
+            <CardTitle className="text-sm font-medium">Active Legal Forums</CardTitle>
             <Phone className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -176,7 +176,7 @@ export const CourtMasters: React.FC = () => {
               {(state.courts || []).length}
             </div>
             <p className="text-xs text-muted-foreground">
-              Operational courts
+              Operational legal forums
             </p>
           </CardContent>
         </Card>
@@ -192,7 +192,7 @@ export const CourtMasters: React.FC = () => {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search courts by name, jurisdiction, or location..."
+            placeholder="Search legal forums by name, jurisdiction, or location..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -237,9 +237,9 @@ export const CourtMasters: React.FC = () => {
       >
         <Card>
           <CardHeader>
-            <CardTitle>Courts Directory</CardTitle>
+            <CardTitle>Legal Forums Directory</CardTitle>
             <CardDescription>
-              Comprehensive list of courts with jurisdiction and contact information
+              Comprehensive list of legal forums with jurisdiction and contact information
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -247,7 +247,7 @@ export const CourtMasters: React.FC = () => {
               <Table className="min-w-[800px]">
                 <TableHeader>
                 <TableRow>
-                  <TableHead>Court Details</TableHead>
+                  <TableHead>Legal Forum Details</TableHead>
                   <TableHead>Type & Jurisdiction</TableHead>
                   <TableHead>Contact Information</TableHead>
                   <TableHead>Bench Details</TableHead>

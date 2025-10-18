@@ -111,11 +111,11 @@ const fieldHelpRegistry: Record<string, Record<string, { title: string; content:
   },
   'create-court': {
     'name': {
-      title: 'Court Name',
-      content: 'Official court name as recognized legally. Include full designation and location.',
+      title: 'Legal Forum Name',
+      content: 'Official legal forum name as recognized legally. Include full designation and location.',
     },
     'type': {
-      title: 'Court Type',
+      title: 'Legal Forum Type',
       content: 'Hierarchy level: Supreme Court > High Court > District Court > Tribunal > Commission.',
     },
     'jurisdiction': {
@@ -169,8 +169,8 @@ const fieldHelpRegistry: Record<string, Record<string, { title: string; content:
       content: 'Choose existing client or create new. Ensure client profile is complete before case creation.',
     },
     'court': {
-      title: 'Court/Jurisdiction',
-      content: 'Select the court where case will be heard. This affects filing rules and procedures.',
+      title: 'Legal Forum/Jurisdiction',
+      content: 'Select the legal forum where case will be heard. This affects filing rules and procedures.',
     },
     'priority': {
       title: 'Case Priority',

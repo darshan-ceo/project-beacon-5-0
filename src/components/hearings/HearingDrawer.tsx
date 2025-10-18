@@ -379,14 +379,14 @@ export const HearingDrawer: React.FC<HearingDrawerProps> = ({
                 {mode !== 'view' ? (
                   <>
                     <div>
-                      <Label htmlFor="court_id">Court</Label>
+                      <Label htmlFor="court_id">Legal Forum</Label>
                       <Select
                         value={formData.court_id}
                         onValueChange={(value) => setFormData(prev => ({ ...prev, court_id: value }))}
                         data-tour="hearing-court"
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select court" />
+                          <SelectValue placeholder="Select Legal Forum" />
                         </SelectTrigger>
                         <SelectContent>
                           {state.courts.map(court => (

@@ -272,7 +272,7 @@ export const DataManagement: React.FC = () => {
                           <li>All tasks and assignments</li>
                           <li>All client information</li>
                           <li>All documents and uploads</li>
-                          <li>All court and judge records</li>
+                          <li>All legal forum and judge records</li>
                           <li>All application settings</li>
                         </ul>
                       </AlertDialogDescription>

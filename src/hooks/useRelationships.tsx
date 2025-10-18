@@ -31,8 +31,8 @@ export const useRelationships = () => {
   const validateJudgeCourt = (judgeId: string, courtId: string): RelationshipValidation => {
     const court = state.courts.find(c => c.id === courtId);
     
-    // Court is required
-    if (!court) return { isValid: false, errors: [`Court with ID ${courtId} not found`] };
+    // Legal Forum is required
+    if (!court) return { isValid: false, errors: [`Legal Forum with ID ${courtId} not found`] };
     
     // Judge is OPTIONAL - if not provided, validation passes
     if (!judgeId || judgeId === '') {

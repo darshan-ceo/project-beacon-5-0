@@ -169,7 +169,7 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases, selec
           <p className="text-muted-foreground mt-1">
             {viewMode === 'case' && selectedCase
               ? `Hearings for ${selectedCase.caseNumber} (${hearings.length} total)`
-              : `Manage court hearings with calendar sync and reminders (${hearings.length} total)`
+              : `Manage legal forum hearings with calendar sync and reminders (${hearings.length} total)`
             }
           </p>
         </div>

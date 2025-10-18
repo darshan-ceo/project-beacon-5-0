@@ -319,9 +319,9 @@ export const HearingFilters: React.FC<HearingFiltersProps> = ({
 
                 {/* Court Filter */}
                 <div>
-                  <Label className="text-sm font-medium mb-2 block">Court</Label>
+                  <Label className="text-sm font-medium mb-2 block">Legal Forum</Label>
                   <FilterDropdown
-                    label="Court"
+                    label="Legal Forum"
                     value={filters.courtIds.length > 0 ? `${filters.courtIds.length} selected` : 'all'}
                     options={courtOptions}
                     onChange={(value) => {

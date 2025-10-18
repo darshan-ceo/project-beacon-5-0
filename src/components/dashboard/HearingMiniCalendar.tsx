@@ -76,7 +76,7 @@ export const HearingMiniCalendar: React.FC<HearingMiniCalendarProps> = ({ classN
               <CalendarDays className="h-5 w-5 text-primary" />
               Upcoming Hearings
             </CardTitle>
-            <CardDescription>Next scheduled court appearances</CardDescription>
+            Next scheduled legal forum appearances
           </div>
           
           {/* Top-right actions */}

@@ -469,9 +469,9 @@ export const GlobalParameters: React.FC = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Court Records API</Label>
+                  <Label>Legal Forum Records API</Label>
                   <Input placeholder="API endpoint URL" />
-                  <p className="text-xs text-muted-foreground">Integration with court record systems</p>
+                  <p className="text-xs text-muted-foreground">Integration with legal forum record systems</p>
                 </div>
                 <div className="space-y-2">
                   <Label>Document Storage</Label>

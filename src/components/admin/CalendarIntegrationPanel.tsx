@@ -439,7 +439,7 @@ export const CalendarIntegrationPanel: React.FC = () => {
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
-                Automatically sync court hearings to calendar
+                Automatically sync legal forum hearings to calendar
               </p>
             </div>
 

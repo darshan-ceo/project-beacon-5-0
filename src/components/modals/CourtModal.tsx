@@ -167,8 +167,8 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
 
       dispatch({ type: 'ADD_COURT', payload: newCourt });
       toast({
-        title: "Court Added",
-        description: `Court "${formData.name}" has been added successfully.`,
+        title: "Legal Forum Added",
+        description: `Legal Forum "${formData.name}" has been added successfully.`,
       });
     } else if (mode === 'edit' && courtData) {
       // Handle address updates
@@ -197,8 +197,8 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
 
       dispatch({ type: 'UPDATE_COURT', payload: updatedCourt });
       toast({
-        title: "Court Updated",
-        description: `Court "${formData.name}" has been updated successfully.`,
+        title: "Legal Forum Updated",
+        description: `Legal Forum "${formData.name}" has been updated successfully.`,
       });
     }
 
@@ -209,8 +209,8 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     if (courtData) {
       dispatch({ type: 'DELETE_COURT', payload: courtData.id });
       toast({
-        title: "Court Deleted",
-        description: `Court "${courtData.name}" has been deleted.`,
+        title: "Legal Forum Deleted",
+        description: `Legal Forum "${courtData.name}" has been deleted.`,
       });
       onClose();
     }
@@ -222,12 +222,12 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5" />
-            {mode === 'create' ? 'Add New Court' : mode === 'edit' ? 'Edit Court' : 'View Court'}
+            {mode === 'create' ? 'Add New Legal Forum' : mode === 'edit' ? 'Edit Legal Forum' : 'View Legal Forum'}
           </DialogTitle>
           <DialogDescription>
-            {mode === 'create' ? 'Create a new court record with jurisdiction and contact details.' :
-             mode === 'edit' ? 'Update court information and address details.' :
-             'View court information and contact details.'}
+            {mode === 'create' ? 'Create a new legal forum record with jurisdiction and contact details.' :
+             mode === 'edit' ? 'Update legal forum information and address details.' :
+             'View legal forum information and contact details.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -241,7 +241,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
             </div>
             <div>
               <div className="flex items-center gap-1">
-                <Label htmlFor="name">Court Name <span className="text-destructive">*</span></Label>
+                <Label htmlFor="name">Legal Forum Name <span className="text-destructive">*</span></Label>
                 <FieldTooltip formId="create-court" fieldId="name" />
               </div>
               <Input
@@ -256,7 +256,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <div className="flex items-center gap-1">
-                  <Label htmlFor="type">Court Type <span className="text-destructive">*</span></Label>
+                  <Label htmlFor="type">Legal Forum Type <span className="text-destructive">*</span></Label>
                   <FieldTooltip formId="create-court" fieldId="type" />
                 </div>
                 <Select 
@@ -366,7 +366,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
           <div className="space-y-4">
             <div className="flex items-center gap-2 pb-2 border-b">
               <Building2 className="h-4 w-4 text-primary" />
-              <h3 className="text-sm font-semibold">Court Details</h3>
+              <h3 className="text-sm font-semibold">Legal Forum Details</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>

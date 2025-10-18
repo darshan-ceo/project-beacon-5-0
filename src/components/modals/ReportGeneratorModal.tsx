@@ -80,8 +80,8 @@ export const ReportGeneratorModal: React.FC<ReportGeneratorModalProps> = ({
       description: 'Upcoming hearings and court calendar overview',
       category: 'hearings',
       icon: <Calendar className="h-5 w-5" />,
-      fields: ['Date', 'Time', 'Case', 'Court', 'Judge', 'Type'],
-      filters: ['Date Range', 'Court', 'Judge', 'Hearing Type']
+      fields: ['Date', 'Time', 'Case', 'Legal Forum', 'Judge', 'Type'],
+      filters: ['Date Range', 'Legal Forum', 'Judge', 'Hearing Type']
     },
     {
       id: 'task-performance',
