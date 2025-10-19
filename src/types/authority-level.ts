@@ -72,7 +72,7 @@ export const AUTHORITY_LEVEL_METADATA: Record<AuthorityLevel, AuthorityLevelMeta
 };
 
 export const AUTHORITY_LEVEL_OPTIONS = [
-  { value: '', label: 'All Authority Levels' },
+  { value: 'all', label: 'All Authority Levels' },
   { value: 'ADJUDICATION', label: 'Adjudication Authority' },
   { value: 'FIRST_APPEAL', label: 'First Appeal' },
   { value: 'REVISIONAL', label: 'Revisional Authority' },

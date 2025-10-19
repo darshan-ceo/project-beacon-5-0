@@ -33,7 +33,7 @@ export const CourtMasters: React.FC = () => {
   });
   const [filterType, setFilterType] = useState<string>('all');
   const [filterJurisdiction, setFilterJurisdiction] = useState<string>('all');
-  const [filterAuthorityLevel, setFilterAuthorityLevel] = useState<string>('');
+  const [filterAuthorityLevel, setFilterAuthorityLevel] = useState<string>('all');
   const [importWizardOpen, setImportWizardOpen] = useState(false);
   const [exportWizardOpen, setExportWizardOpen] = useState(false);
 
@@ -49,7 +49,7 @@ export const CourtMasters: React.FC = () => {
                          addressText.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesType = filterType === 'all' || court.type === filterType;
-    const matchesAuthorityLevel = !filterAuthorityLevel || court.authorityLevel === filterAuthorityLevel;
+    const matchesAuthorityLevel = filterAuthorityLevel === 'all' || court.authorityLevel === filterAuthorityLevel;
     
     return matchesSearch && matchesType && matchesAuthorityLevel;
   });
