@@ -713,7 +713,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
             {/* Jurisdiction Information */}
             <Card>
               <CardHeader>
-                <CardTitle>Tax Jurisdiction</CardTitle>
+                <CardTitle>Jurisdiction (Center / State)</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-3 gap-4">
@@ -731,7 +731,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                   </div>
 
                   <div>
-                    <Label htmlFor="division">Division</Label>
+                    <Label htmlFor="division">Division / Circle</Label>
                     <Input
                       id="division"
                       value={formData.jurisdiction.division || ''}
@@ -744,7 +744,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                   </div>
 
                   <div>
-                    <Label htmlFor="range">Range</Label>
+                    <Label htmlFor="range">Range / Ward</Label>
                     <Input
                       id="range"
                       value={formData.jurisdiction.range || ''}

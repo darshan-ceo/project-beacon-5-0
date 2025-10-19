@@ -178,13 +178,13 @@ export const CLIENT_EXPORT_COLUMNS: ExportColumn<Client>[] = [
   },
   { 
     key: 'division', 
-    label: 'Division', 
+    label: 'Division / Circle', 
     type: 'string',
     get: (client) => client.jurisdiction?.division || 'N/A'
   },
   { 
     key: 'range', 
-    label: 'Range', 
+    label: 'Range / Ward', 
     type: 'string',
     get: (client) => client.jurisdiction?.range || 'N/A'
   },
