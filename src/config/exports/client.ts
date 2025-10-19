@@ -14,44 +14,59 @@ export interface ExportColumn<T = any> {
 }
 
 export const CLIENT_EXPORT_COLUMNS: ExportColumn<Client>[] = [
+  // Column 1: Client ID
   { key: 'id', label: 'Client ID', type: 'string' },
+  
+  // Column 2: Client Name
   { key: 'name', label: 'Client Name', type: 'string' },
-  { 
-    key: 'type', 
-    label: 'Client Type', 
-    type: 'string',
-    get: (client) => client.type || 'N/A'
-  },
-  { 
-    key: 'category', 
-    label: 'Category', 
-    type: 'string',
-    get: (client) => client.category || 'N/A'
-  },
+  
+  // Column 3: GSTN
   { 
     key: 'gstin', 
-    label: 'GSTIN', 
+    label: 'GSTN', 
     type: 'string',
     get: (client) => client.gstin || client.gstNumber || 'N/A'
   },
+  
+  // Column 3: PAN
   { 
     key: 'pan', 
     label: 'PAN', 
     type: 'string',
     get: (client) => client.pan || client.panNumber || 'N/A'
   },
-  { 
-    key: 'registrationNo', 
-    label: 'Registration No', 
-    type: 'string',
-    get: (client) => client.registrationNo || client.registrationNumber || 'N/A'
-  },
-  { key: 'status', label: 'Status', type: 'string' },
   
-  // Primary Contact Information (from signatories)
+  // Column 3: State
+  { 
+    key: 'state', 
+    label: 'State', 
+    type: 'string',
+    get: (client) => {
+      if (typeof client.address === 'object' && client.address !== null) {
+        return (client.address as Address).state || 'N/A';
+      }
+      return 'N/A';
+    }
+  },
+  
+  // Column 4: Client Group
+  {
+    key: 'clientGroup',
+    label: 'Client Group',
+    type: 'string',
+    get: (client, context) => {
+      if (client.clientGroupId && context?.clientGroups) {
+        const group = context.clientGroups.find((g: any) => g.id === client.clientGroupId);
+        return group?.name || '–';
+      }
+      return '–';
+    }
+  },
+  
+  // Column 5: Contact Name
   { 
     key: 'primaryContactName', 
-    label: 'Primary Contact Name', 
+    label: 'Contact Name', 
     type: 'string',
     get: (client) => {
       if (client.signatories && client.signatories.length > 0) {
@@ -61,9 +76,11 @@ export const CLIENT_EXPORT_COLUMNS: ExportColumn<Client>[] = [
       return 'N/A';
     }
   },
+  
+  // Column 5: Contact Email
   { 
     key: 'primaryContactEmail', 
-    label: 'Primary Email', 
+    label: 'Contact Email', 
     type: 'email',
     get: (client) => {
       if (client.signatories && client.signatories.length > 0) {
@@ -73,21 +90,56 @@ export const CLIENT_EXPORT_COLUMNS: ExportColumn<Client>[] = [
       return client.email || 'N/A';
     }
   },
+  
+  // Column 5: Contact Mobile
   {
-    key: 'primaryContactPhone',
-    label: 'Primary Phone',
+    key: 'primaryContactMobile',
+    label: 'Contact Mobile',
     type: 'phone',
     get: (client) => {
       if (client.signatories && client.signatories.length > 0) {
         const primary = client.signatories.find(s => s.isPrimary) || client.signatories[0];
-        return primary.phone || client.phone || 'N/A';
+        return primary.mobile || primary.phone || client.phone || 'N/A';
       }
       return client.phone || 'N/A';
     }
   },
+  
+  // Column 6: Constitution
+  { 
+    key: 'type', 
+    label: 'Constitution', 
+    type: 'string',
+    get: (client) => client.type || 'N/A'
+  },
+  
+  // Column 7: Status
+  { key: 'status', label: 'Status', type: 'string' },
+  
+  // Column 8: Cases
+  { 
+    key: 'activeCases', 
+    label: 'Active Cases', 
+    type: 'number',
+    get: (client) => client.activeCases || 0
+  },
+  
+  // Supplementary Fields
+  { 
+    key: 'category', 
+    label: 'Category', 
+    type: 'string',
+    get: (client) => client.category || 'N/A'
+  },
+  { 
+    key: 'registrationNo', 
+    label: 'Registration No', 
+    type: 'string',
+    get: (client) => client.registrationNo || client.registrationNumber || 'N/A'
+  },
   { 
     key: 'primaryContactDesignation', 
-    label: 'Primary Contact Designation', 
+    label: 'Contact Designation', 
     type: 'string',
     get: (client) => {
       if (client.signatories && client.signatories.length > 0) {
@@ -228,13 +280,16 @@ export const CLIENT_EXPORT_COLUMNS: ExportColumn<Client>[] = [
 
 // Define default visible columns (for "Export visible only" feature)
 export const CLIENT_VISIBLE_COLUMNS = [
-  'name', 
-  'gstin', 
-  'pan', 
-  'status', 
-  'primaryContactEmail', 
-  'primaryContactPhone', 
-  'city', 
-  'state',
-  'assignedCAName'
+  'id',                    // Client ID
+  'name',                  // Client Name
+  'gstin',                 // GSTN
+  'pan',                   // PAN
+  'state',                 // State
+  'clientGroup',           // Client Group
+  'primaryContactName',    // Contact Name
+  'primaryContactEmail',   // Contact Email
+  'primaryContactMobile',  // Contact Mobile
+  'type',                  // Constitution
+  'status',                // Status
+  'activeCases'            // Cases
 ];

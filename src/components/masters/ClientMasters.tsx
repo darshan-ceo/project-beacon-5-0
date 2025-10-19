@@ -64,9 +64,32 @@ export const ClientMasters: React.FC = () => {
   const [isExportOpen, setIsExportOpen] = useState(false);
 
   const filteredClients = state.clients.filter(client => {
-    const matchesSearch = (client.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (client.gstin || client.gstNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (client.pan || client.panNumber || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = 
+      // Client ID
+      (client.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      // Client Name
+      (client.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      // GSTN
+      (client.gstin || client.gstNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      // PAN
+      (client.pan || client.panNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      // Contact Name
+      (() => {
+        if (client.signatories && client.signatories.length > 0) {
+          const primary = client.signatories.find(s => s.isPrimary) || client.signatories[0];
+          return (primary.fullName || '').toLowerCase().includes(searchTerm.toLowerCase());
+        }
+        return false;
+      })() ||
+      // Contact Email
+      (() => {
+        if (client.signatories && client.signatories.length > 0) {
+          const primary = client.signatories.find(s => s.isPrimary) || client.signatories[0];
+          return (primary.email || '').toLowerCase().includes(searchTerm.toLowerCase());
+        }
+        return (client.email || '').toLowerCase().includes(searchTerm.toLowerCase());
+      })();
+      
     const matchesFilter = filterStatus === 'all' || client.status === filterStatus;
     
     // Duration filter based on registration date
@@ -229,8 +252,11 @@ export const ClientMasters: React.FC = () => {
         </Card>
       </motion.div>
 
+      {/* Divider */}
+      <div className="border-t border-border" />
+
       {/* Search and Filters */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.2 }}
@@ -239,7 +265,7 @@ export const ClientMasters: React.FC = () => {
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by name, GSTIN, or PAN..."
+            placeholder="Search by ID, name, GSTIN, PAN, or contact..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -368,83 +394,155 @@ export const ClientMasters: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Client Details</TableHead>
-                  <TableHead>Tax Information</TableHead>
-                  <TableHead>Client Group</TableHead>
-                  <TableHead>Jurisdiction</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Cases</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[100px]">Client ID</TableHead>
+                    <TableHead className="w-[200px]">Client Name</TableHead>
+                    <TableHead className="w-[180px]">GSTN / PAN / State</TableHead>
+                    <TableHead className="w-[140px] hidden md:table-cell">Client Group</TableHead>
+                    <TableHead className="w-[200px] hidden md:table-cell">Contact</TableHead>
+                    <TableHead className="w-[140px] hidden lg:table-cell">Constitution</TableHead>
+                    <TableHead className="w-[100px]">Status</TableHead>
+                    <TableHead className="w-[80px]">Cases</TableHead>
+                    <TableHead className="w-[80px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
               <TableBody>
                  {filteredClients.map((client, index) => (
-                  <motion.tr
+                   <motion.tr
                     key={client.id}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.3, delay: index * 0.05 }}
                     className="hover:bg-muted/50"
                   >
+                    {/* Column 1: Client ID */}
+                    <TableCell className="font-mono text-sm text-muted-foreground">
+                      {client.id || 'N/A'}
+                    </TableCell>
+
+                    {/* Column 2: Client Name */}
+                    <TableCell>
+                      <button
+                        onClick={() => setClientModal({ isOpen: true, mode: 'edit', client })}
+                        className="text-left hover:underline focus:outline-none"
+                      >
+                        <p className="font-medium text-foreground hover:text-primary transition-colors">
+                          {client.name}
+                        </p>
+                      </button>
+                    </TableCell>
+
+                    {/* Column 3: GSTN / PAN / State */}
                     <TableCell>
                       <div className="space-y-1">
-                        <p className="font-medium text-foreground">{client.name}</p>
-                        <p className="text-sm text-muted-foreground">{client.type}</p>
-                        <div className="flex items-center gap-1">
-                          <Badge variant="secondary" className="text-xs">
-                            {client.type}
-                          </Badge>
-                        </div>
+                        <p className="text-sm font-mono">
+                          {client.gstin || client.gstNumber || 'N/A'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {client.pan || client.panNumber || 'N/A'}
+                        </p>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {(() => {
+                            if (typeof client.address === 'object' && client.address !== null) {
+                              return client.address.state || 'N/A';
+                            }
+                            return 'N/A';
+                          })()}
+                        </p>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <p className="text-sm font-mono">{client.gstin || client.gstNumber || 'N/A'}</p>
-                        <p className="text-sm font-mono text-muted-foreground">{client.pan || client.panNumber || 'N/A'}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
+
+                    {/* Column 4: Client Group */}
+                    <TableCell className="hidden md:table-cell">
                       {client.clientGroupId ? (
                         <Badge variant="outline" className="gap-1">
                           <Building2 className="h-3 w-3" />
                           {state.clientGroups.find(g => g.id === client.clientGroupId)?.name || 'Unknown'}
                         </Badge>
                       ) : (
-                        <span className="text-xs text-muted-foreground">-</span>
+                        <span className="text-xs text-muted-foreground">–</span>
                       )}
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center">
-                        <MapPin className="mr-1 h-3 w-3 text-muted-foreground" />
-                        <span className="text-sm">{client.assignedCAName}</span>
-                      </div>
+
+                    {/* Column 5: Contact */}
+                    <TableCell className="hidden md:table-cell">
+                      {(() => {
+                        const primaryContact = (() => {
+                          if (client.signatories && client.signatories.length > 0) {
+                            const primary = client.signatories.find(s => s.isPrimary) || client.signatories[0];
+                            return {
+                              name: primary.fullName || 'N/A',
+                              email: primary.email || 'N/A',
+                              mobile: primary.mobile || primary.phone || 'N/A'
+                            };
+                          }
+                          return {
+                            name: 'N/A',
+                            email: client.email || 'N/A',
+                            mobile: client.phone || 'N/A'
+                          };
+                        })();
+
+                        return (
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium text-foreground">
+                              {primaryContact.name}
+                            </p>
+                            <div className="flex items-center gap-3 text-xs">
+                              {primaryContact.email !== 'N/A' && (
+                                <a 
+                                  href={`mailto:${primaryContact.email}`}
+                                  className="flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Mail className="h-3 w-3" />
+                                  <span className="truncate max-w-[120px]" title={primaryContact.email}>
+                                    {primaryContact.email}
+                                  </span>
+                                </a>
+                              )}
+                              {primaryContact.mobile !== 'N/A' && (
+                                <a 
+                                  href={`tel:${primaryContact.mobile}`}
+                                  className="flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Phone className="h-3 w-3" />
+                                  <span>{primaryContact.mobile}</span>
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </TableCell>
-                     <TableCell>
-                       <div className="space-y-1">
-                         <div className="flex items-center text-sm">
-                           <Mail className="mr-1 h-3 w-3 text-muted-foreground" />
-                           {getPrimaryContact(client).email}
-                         </div>
-                         <div className="flex items-center text-sm text-muted-foreground">
-                           <Phone className="mr-1 h-3 w-3" />
-                           {getPrimaryContact(client).phone}
-                         </div>
-                       </div>
-                     </TableCell>
+
+                    {/* Column 6: Constitution */}
+                    <TableCell className="hidden lg:table-cell">
+                      <Badge variant="outline" className="text-xs whitespace-nowrap">
+                        {client.type || 'N/A'}
+                      </Badge>
+                    </TableCell>
+
+                    {/* Column 7: Status */}
                     <TableCell>
                       <Badge variant="secondary" className={getStatusColor(client.status)}>
                         {client.status}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      <div className="text-center">
-                        <p className="font-medium">{client.activeCases}</p>
-                        <p className="text-xs text-muted-foreground">{client.registrationDate}</p>
-                      </div>
+
+                    {/* Column 8: Cases */}
+                    <TableCell className="text-center">
+                      <p className="text-lg font-bold text-foreground">
+                        {client.activeCases || client.totalCases || 0}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {client.activeCases ? 'active' : 'total'}
+                      </p>
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
@@ -558,7 +656,8 @@ export const ClientMasters: React.FC = () => {
                   </motion.tr>
                 ))}
               </TableBody>
-            </Table>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       </motion.div>
