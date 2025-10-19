@@ -1,0 +1,55 @@
+import { Court } from '@/contexts/AppStateContext';
+import { AUTHORITY_LEVEL_METADATA } from '@/types/authority-level';
+
+export interface ExportColumn<T = any> {
+  key: string;
+  label: string;
+  type: 'string' | 'number' | 'date' | 'boolean' | 'email' | 'phone';
+  get?: (item: T, context?: any) => any;
+}
+
+export const COURT_EXPORT_COLUMNS: ExportColumn<Court>[] = [
+  { key: 'id', label: 'Forum ID', type: 'string' },
+  { key: 'name', label: 'Forum Name', type: 'string' },
+  { 
+    key: 'authorityLevel', 
+    label: 'Authority Level', 
+    type: 'string',
+    get: (court) => court.authorityLevel 
+      ? AUTHORITY_LEVEL_METADATA[court.authorityLevel].label 
+      : 'N/A'
+  },
+  { key: 'type', label: 'Type', type: 'string' },
+  { key: 'jurisdiction', label: 'Jurisdiction', type: 'string' },
+  { key: 'benchLocation', label: 'Bench', type: 'string' },
+  { 
+    key: 'address', 
+    label: 'Address', 
+    type: 'string',
+    get: (court) => typeof court.address === 'string' 
+      ? court.address 
+      : `${court.address.line1}${court.address.line2 ? ', ' + court.address.line2 : ''}`
+  },
+  { key: 'phone', label: 'Phone', type: 'phone' },
+  { key: 'email', label: 'Email', type: 'email' },
+  { key: 'establishedYear', label: 'Established', type: 'number' },
+  { 
+    key: 'workingDays', 
+    label: 'Working Days', 
+    type: 'string',
+    get: (court) => court.workingDays.join(', ')
+  },
+  { key: 'totalJudges', label: 'Total Judges', type: 'number' },
+  { key: 'activeCases', label: 'Active Cases', type: 'number' }
+];
+
+export const COURT_VISIBLE_COLUMNS = [
+  'name',
+  'authorityLevel',
+  'type',
+  'jurisdiction',
+  'benchLocation',
+  'address',
+  'phone',
+  'email'
+];

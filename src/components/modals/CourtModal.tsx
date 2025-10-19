@@ -16,6 +16,7 @@ import { EnhancedAddressData, addressMasterService } from '@/services/addressMas
 import { featureFlagService } from '@/services/featureFlagService';
 import { MapPin, Phone, Mail, Building2, Scale } from 'lucide-react';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
+import { AUTHORITY_LEVEL_OPTIONS, AuthorityLevel } from '@/types/authority-level';
 
 interface CourtModalProps {
   isOpen: boolean;
@@ -33,6 +34,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
   const [formData, setFormData] = useState<{
     name: string;
     type: 'Supreme Court' | 'High Court' | 'District Court' | 'Tribunal' | 'Commission';
+    authorityLevel?: AuthorityLevel;
     jurisdiction: string;
     address: EnhancedAddressData;
     establishedYear: number;
@@ -46,6 +48,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
   }>({
     name: '',
     type: 'District Court',
+    authorityLevel: undefined,
     jurisdiction: '',
     address: {
       line1: '',
@@ -75,6 +78,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
       setFormData({
         name: courtData.name,
         type: courtData.type,
+        authorityLevel: courtData.authorityLevel,
         jurisdiction: courtData.jurisdiction,
         address: typeof courtData.address === 'string' 
           ? { line1: courtData.address, line2: '', locality: '', district: '', cityId: '', stateId: '', pincode: '', countryId: 'IN', source: 'manual' } as EnhancedAddressData
@@ -91,6 +95,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
       setFormData({
         name: '',
         type: 'District Court',
+        authorityLevel: undefined,
         jurisdiction: '',
         address: {
           line1: '',
@@ -146,6 +151,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         id: Date.now().toString(),
         name: formData.name,
         type: formData.type,
+        authorityLevel: formData.authorityLevel,
         jurisdiction: formData.jurisdiction,
         address: formData.address,
         establishedYear: formData.establishedYear,
@@ -184,6 +190,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         ...courtData,
         name: formData.name,
         type: formData.type,
+        authorityLevel: formData.authorityLevel,
         jurisdiction: formData.jurisdiction,
         address: formData.address,
         establishedYear: formData.establishedYear,
@@ -289,6 +296,35 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                   required
                 />
               </div>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-1">
+                <Label htmlFor="authorityLevel">Authority Level</Label>
+                <FieldTooltip formId="create-court" fieldId="authority-level" />
+              </div>
+              <Select
+                value={formData.authorityLevel || ''}
+                onValueChange={(value) => setFormData(prev => ({ 
+                  ...prev, 
+                  authorityLevel: value as AuthorityLevel || undefined
+                }))}
+                disabled={mode === 'view'}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select authority level (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {AUTHORITY_LEVEL_OPTIONS.slice(1).map(option => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Classification in the legal authority hierarchy
+              </p>
             </div>
           </div>
 

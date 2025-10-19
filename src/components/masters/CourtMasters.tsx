@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Building2, MapPin, Phone, Mail, Search, Filter, Plus, Edit, Eye, Users, Upload, Download } from 'lucide-react';
+import { Building2, MapPin, Phone, Mail, Search, Filter, Plus, Edit, Eye, Users, Upload, Download, Scale } from 'lucide-react';
 import { CourtModal } from '@/components/modals/CourtModal';
 import { ImportWizard } from '@/components/importExport/ImportWizard';
 import { ExportWizard } from '@/components/importExport/ExportWizard';
@@ -18,6 +18,8 @@ import { Court, useAppState } from '@/contexts/AppStateContext';
 import { courtsService } from '@/services/courtsService';
 import { useRBAC } from '@/hooks/useAdvancedRBAC';
 import { featureFlagService } from '@/services/featureFlagService';
+import { LegalAuthoritiesDashboard } from './LegalAuthoritiesDashboard';
+import { AUTHORITY_LEVEL_OPTIONS, AUTHORITY_LEVEL_METADATA } from '@/types/authority-level';
 
 
 export const CourtMasters: React.FC = () => {
@@ -31,6 +33,7 @@ export const CourtMasters: React.FC = () => {
   });
   const [filterType, setFilterType] = useState<string>('all');
   const [filterJurisdiction, setFilterJurisdiction] = useState<string>('all');
+  const [filterAuthorityLevel, setFilterAuthorityLevel] = useState<string>('');
   const [importWizardOpen, setImportWizardOpen] = useState(false);
   const [exportWizardOpen, setExportWizardOpen] = useState(false);
 
@@ -46,8 +49,9 @@ export const CourtMasters: React.FC = () => {
                          addressText.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesType = filterType === 'all' || court.type === filterType;
+    const matchesAuthorityLevel = !filterAuthorityLevel || court.authorityLevel === filterAuthorityLevel;
     
-    return matchesSearch && matchesType;
+    return matchesSearch && matchesType && matchesAuthorityLevel;
   });
 
   const getTypeColor = (type: string) => {
@@ -116,71 +120,17 @@ export const CourtMasters: React.FC = () => {
           </div>
       </motion.div>
 
-      {/* Summary Cards */}
+      {/* Legal Authorities Dashboard */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
       >
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Legal Forums</CardTitle>
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{(state.courts || []).length}</div>
-            <p className="text-xs text-muted-foreground">
-              Across all jurisdictions
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">ITAT Benches</CardTitle>
-            <MapPin className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {(state.courts || []).filter(c => c.type === 'Tribunal').length}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Primary jurisdiction
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">High Courts</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {(state.courts || []).filter(c => c.type === 'High Court').length}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Appeal jurisdiction
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Legal Forums</CardTitle>
-            <Phone className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {(state.courts || []).length}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Operational legal forums
-            </p>
-          </CardContent>
-        </Card>
+        <LegalAuthoritiesDashboard />
       </motion.div>
+
+      {/* Visual Divider */}
+      <div className="border-t border-border" />
 
       {/* Filters */}
       <motion.div
@@ -227,6 +177,20 @@ export const CourtMasters: React.FC = () => {
             ))}
           </SelectContent>
         </Select>
+
+        <Select value={filterAuthorityLevel} onValueChange={setFilterAuthorityLevel}>
+          <SelectTrigger className="w-full sm:w-60">
+            <Scale className="h-4 w-4 mr-2" />
+            <SelectValue placeholder="Filter by authority level" />
+          </SelectTrigger>
+          <SelectContent>
+            {AUTHORITY_LEVEL_OPTIONS.map(option => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </motion.div>
 
       {/* Courts Table */}
@@ -256,6 +220,21 @@ export const CourtMasters: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
+                {filteredCourts.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-12">
+                      <div className="flex flex-col items-center gap-2">
+                        <Building2 className="h-12 w-12 text-muted-foreground opacity-50" />
+                        <p className="text-muted-foreground">
+                          No legal forums found for the selected filters
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Try adjusting your search criteria or authority level filter
+                        </p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
                 {filteredCourts.map((court, index) => (
                   <motion.tr
                     key={court.id}
@@ -284,6 +263,14 @@ export const CourtMasters: React.FC = () => {
                         <Badge className={getTypeColor(court.type)}>
                           {court.type}
                         </Badge>
+                        {court.authorityLevel && (
+                          <Badge 
+                            variant="outline" 
+                            className={`text-xs ${AUTHORITY_LEVEL_METADATA[court.authorityLevel]?.color || 'bg-gray-100'}`}
+                          >
+                            {AUTHORITY_LEVEL_METADATA[court.authorityLevel]?.label || court.authorityLevel}
+                          </Badge>
+                        )}
                         <div className="text-sm font-medium">{court.jurisdiction}</div>
                         <div className="flex flex-wrap gap-1">
                           {(court.workingDays || []).slice(0, 2).map(day => (

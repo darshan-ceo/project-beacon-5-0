@@ -155,6 +155,7 @@ interface Court {
   id: string;
   name: string;
   type: 'Supreme Court' | 'High Court' | 'District Court' | 'Tribunal' | 'Commission';
+  authorityLevel?: 'ADJUDICATION' | 'FIRST_APPEAL' | 'REVISIONAL' | 'TRIBUNAL' | 'PRINCIPAL_BENCH' | 'HIGH_COURT' | 'SUPREME_COURT';
   jurisdiction: string;
   address: string | any; // Support both legacy string and enhanced address
   establishedYear: number;
