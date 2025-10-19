@@ -76,8 +76,8 @@ export const CourtMasters: React.FC = () => {
         className="flex justify-between items-center"
       >
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Legal Forum Masters</h1>
-          <p className="text-muted-foreground mt-2">Manage legal forum information and jurisdictions</p>
+          <h1 className="text-3xl font-bold text-foreground">Legal Authorities</h1>
+          <p className="text-muted-foreground mt-2">Manage legal authorities with jurisdiction hierarchy and contact information</p>
         </div>
           <div className="flex flex-wrap gap-2">
             {featureFlagService.isEnabled('data_io_v1') && hasPermission('io.import.court', 'write') && (
@@ -201,9 +201,9 @@ export const CourtMasters: React.FC = () => {
       >
         <Card>
           <CardHeader>
-            <CardTitle>Legal Forums Directory</CardTitle>
+            <CardTitle>Legal Authorities Directory</CardTitle>
             <CardDescription>
-              Comprehensive list of legal forums with jurisdiction and contact information
+              Comprehensive list of legal authorities with jurisdiction and contact information
             </CardDescription>
           </CardHeader>
           <CardContent>
