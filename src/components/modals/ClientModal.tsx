@@ -26,6 +26,7 @@ import { AddressView } from '@/components/ui/AddressView';
 import { EnhancedAddressData, addressMasterService } from '@/services/addressMasterService';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
 import { TagInput } from '@/components/ui/TagInput';
+import { format } from 'date-fns';
 
 interface ClientModalProps {
   isOpen: boolean;
@@ -815,16 +816,18 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                     </div>
                   ) : (
                     <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Designation</TableHead>
-                          <TableHead>Scope</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Mobile</TableHead>
+                      <TableHead>DOB</TableHead>
+                      <TableHead>Designation</TableHead>
+                      <TableHead>Scope</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
                       <TableBody>
                         {signatories.map((signatory) => (
                           <TableRow key={signatory.id}>
@@ -836,9 +839,32 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                                 )}
                               </div>
                             </TableCell>
-                            <TableCell>{signatory.email}</TableCell>
+                            <TableCell className="font-mono text-xs">
+                              {signatory.email}
+                            </TableCell>
+                            <TableCell className="font-mono text-xs">
+                              {signatory.mobile || signatory.phone || '-'}
+                            </TableCell>
+                            <TableCell>
+                              {signatory.dob ? (
+                                <div className="flex items-center gap-1">
+                                  <span>{format(new Date(signatory.dob), 'dd-MMM-yyyy')}</span>
+                                  <FieldTooltip 
+                                    formId="signatory-display" 
+                                    fieldId="dob-info"
+                                    content="Used for identification and digital signature records"
+                                  />
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
                             <TableCell>{signatory.designation || '-'}</TableCell>
-                            <TableCell>{signatory.scope}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-xs">
+                                {signatory.scope}
+                              </Badge>
+                            </TableCell>
                             <TableCell>
                               <Badge 
                                 variant={signatory.status === 'Active' ? 'default' : 'secondary'}

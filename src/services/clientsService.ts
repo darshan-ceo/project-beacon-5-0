@@ -87,6 +87,54 @@ export const clientsService = {
     return { isValid: true, errors: [] };
   },
 
+  validateMobile: (mobile: string): ValidationResult => {
+    if (!mobile) return { isValid: true, errors: [] };
+    
+    const cleaned = mobile.replace(/\s/g, '');
+    const mobileRegex = /^[+]?[0-9]{10,15}$/;
+    
+    if (!mobileRegex.test(cleaned)) {
+      return {
+        isValid: false,
+        errors: ['Mobile number must be 10-15 digits with optional country code (e.g., +91 9876543210)']
+      };
+    }
+    
+    return { isValid: true, errors: [] };
+  },
+
+  validateDOB: (dob: string): ValidationResult => {
+    if (!dob) return { isValid: true, errors: [] };
+    
+    const selectedDate = new Date(dob);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (selectedDate > today) {
+      return {
+        isValid: false,
+        errors: ['Date of birth cannot be in the future']
+      };
+    }
+    
+    const age = today.getFullYear() - selectedDate.getFullYear();
+    if (age < 18) {
+      return {
+        isValid: false,
+        errors: ['Signatory must be at least 18 years old']
+      };
+    }
+    
+    if (age > 100) {
+      return {
+        isValid: false,
+        errors: ['Please enter a valid date of birth']
+      };
+    }
+    
+    return { isValid: true, errors: [] };
+  },
+
   // Client operations
   create: async (clientData: Partial<Client>, dispatch: React.Dispatch<AppAction>): Promise<Client> => {
     try {
@@ -234,11 +282,27 @@ export const clientsService = {
         throw new Error(emailValidation.errors.join(', '));
       }
 
+      if (signatory.mobile) {
+        const mobileValidation = clientsService.validateMobile(signatory.mobile);
+        if (!mobileValidation.isValid) {
+          throw new Error(mobileValidation.errors.join(', '));
+        }
+      }
+
+      if (signatory.dob) {
+        const dobValidation = clientsService.validateDOB(signatory.dob);
+        if (!dobValidation.isValid) {
+          throw new Error(dobValidation.errors.join(', '));
+        }
+      }
+
       const newSignatory: Signatory = {
         ...signatory,
         id: Date.now().toString(),
         fullName: signatory.fullName.trim(),
-        email: signatory.email.toLowerCase().trim()
+        email: signatory.email.toLowerCase().trim(),
+        mobile: signatory.mobile?.trim(),
+        dob: signatory.dob
       };
 
       dispatch({ 
@@ -266,6 +330,20 @@ export const clientsService = {
       const emailValidation = clientsService.validateEmail(signatory.email);
       if (!emailValidation.isValid) {
         throw new Error(emailValidation.errors.join(', '));
+      }
+
+      if (signatory.mobile) {
+        const mobileValidation = clientsService.validateMobile(signatory.mobile);
+        if (!mobileValidation.isValid) {
+          throw new Error(mobileValidation.errors.join(', '));
+        }
+      }
+
+      if (signatory.dob) {
+        const dobValidation = clientsService.validateDOB(signatory.dob);
+        if (!dobValidation.isValid) {
+          throw new Error(dobValidation.errors.join(', '));
+        }
       }
 
       dispatch({ 

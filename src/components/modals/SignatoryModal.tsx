@@ -6,6 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 import type { Signatory } from '@/contexts/AppStateContext';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
 
@@ -31,6 +36,8 @@ export const SignatoryModal: React.FC<SignatoryModalProps> = ({
     designation: string;
     email: string;
     phone: string;
+    mobile: string;
+    dob: string;
     isPrimary: boolean;
     scope: 'All' | 'GST Filings' | 'Litigation' | 'Appeals';
     status: 'Active' | 'Inactive';
@@ -39,6 +46,8 @@ export const SignatoryModal: React.FC<SignatoryModalProps> = ({
     designation: '',
     email: '',
     phone: '',
+    mobile: '',
+    dob: '',
     isPrimary: false,
     scope: 'All',
     status: 'Active'
@@ -53,6 +62,8 @@ export const SignatoryModal: React.FC<SignatoryModalProps> = ({
         designation: signatory.designation || '',
         email: signatory.email,
         phone: signatory.phone || '',
+        mobile: signatory.mobile || '',
+        dob: signatory.dob || '',
         isPrimary: signatory.isPrimary,
         scope: signatory.scope,
         status: signatory.status
@@ -63,6 +74,8 @@ export const SignatoryModal: React.FC<SignatoryModalProps> = ({
         designation: '',
         email: '',
         phone: '',
+        mobile: '',
+        dob: '',
         isPrimary: false,
         scope: 'All',
         status: 'Active'
@@ -94,6 +107,49 @@ export const SignatoryModal: React.FC<SignatoryModalProps> = ({
           newErrors.email = 'This email is already used by another signatory';
         }
       }
+    }
+
+    // Mobile validation
+    if (formData.mobile.trim()) {
+      const cleanMobile = formData.mobile.replace(/\s/g, '');
+      const mobileRegex = /^[+]?[0-9]{10,15}$/;
+      
+      if (!mobileRegex.test(cleanMobile)) {
+        newErrors.mobile = 'Mobile must be 10-15 digits (with optional country code like +91)';
+      } else {
+        // Check for duplicate mobile
+        const isDuplicate = existingSignatories.some(sig => 
+          sig.mobile && sig.mobile.replace(/\s/g, '') === cleanMobile && 
+          (!signatory || sig.id !== signatory.id)
+        );
+        if (isDuplicate) {
+          newErrors.mobile = 'This mobile number is already used by another signatory';
+        }
+      }
+    }
+
+    // DOB validation
+    if (formData.dob) {
+      const selectedDate = new Date(formData.dob);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      if (selectedDate > today) {
+        newErrors.dob = 'Date of birth cannot be in the future';
+      }
+      
+      const age = today.getFullYear() - selectedDate.getFullYear();
+      if (age < 18) {
+        newErrors.dob = 'Signatory must be at least 18 years old';
+      } else if (age > 100) {
+        newErrors.dob = 'Please enter a valid date of birth';
+      }
+    }
+
+    // At least email OR mobile required
+    if (!formData.email.trim() && !formData.mobile.trim()) {
+      newErrors.email = 'Either email or mobile is required';
+      newErrors.mobile = 'Either email or mobile is required';
     }
 
     // Check if trying to set as primary when another primary exists
@@ -197,15 +253,87 @@ export const SignatoryModal: React.FC<SignatoryModalProps> = ({
               )}
             </div>
 
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="phone">Phone Number (Legacy)</Label>
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                  disabled={mode === 'view'}
+                  placeholder="+91 XXXXX XXXXX"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Optional - for backward compatibility</p>
+              </div>
+
+              <div>
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="mobile">Mobile Number *</Label>
+                  <FieldTooltip formId="create-signatory" fieldId="mobile" />
+                </div>
+                <Input
+                  id="mobile"
+                  value={formData.mobile}
+                  onChange={(e) => {
+                    setFormData(prev => ({ ...prev, mobile: e.target.value }));
+                    setErrors(prev => ({ ...prev, mobile: '' }));
+                  }}
+                  disabled={mode === 'view'}
+                  placeholder="+91 9876543210"
+                  className={errors.mobile ? 'border-destructive' : ''}
+                />
+                {errors.mobile && (
+                  <p className="text-sm text-destructive mt-1">{errors.mobile}</p>
+                )}
+                <p className="text-xs text-muted-foreground mt-1">E.164 format with country code</p>
+              </div>
+            </div>
+
             <div>
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input
-                id="phone"
-                value={formData.phone}
-                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                disabled={mode === 'view'}
-                placeholder="+91 XXXXX XXXXX"
-              />
+              <div className="flex items-center gap-1">
+                <Label htmlFor="dob">Date of Birth</Label>
+                <FieldTooltip formId="create-signatory" fieldId="dob" />
+              </div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !formData.dob && "text-muted-foreground",
+                      errors.dob && "border-destructive"
+                    )}
+                    disabled={mode === 'view'}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formData.dob ? format(new Date(formData.dob), 'PPP') : <span>Select date of birth</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={formData.dob ? new Date(formData.dob) : undefined}
+                    onSelect={(date) => {
+                      if (date) {
+                        setFormData(prev => ({ ...prev, dob: format(date, 'yyyy-MM-dd') }));
+                        setErrors(prev => ({ ...prev, dob: '' }));
+                      }
+                    }}
+                    disabled={(date) => date > new Date()}
+                    initialFocus
+                    captionLayout="dropdown-buttons"
+                    fromYear={1924}
+                    toYear={new Date().getFullYear()}
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+              {errors.dob && (
+                <p className="text-sm text-destructive mt-1">{errors.dob}</p>
+              )}
+              <p className="text-xs text-muted-foreground mt-1">
+                Used for KYC, digital signing, and document management
+              </p>
             </div>
 
             <div>

@@ -2549,6 +2549,8 @@ export interface Signatory {
   designation?: string;
   email: string;
   phone?: string;
+  mobile?: string;
+  dob?: string;
   isPrimary: boolean;
   scope: 'All' | 'GST Filings' | 'Litigation' | 'Appeals';
   status: 'Active' | 'Inactive';
