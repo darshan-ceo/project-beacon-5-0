@@ -197,15 +197,15 @@ export const ClientGroupModal: React.FC<ClientGroupModalProps> = ({
               Head Client (Optional)
             </Label>
             <Select
-              value={formData.headClientId}
-              onValueChange={(value) => setFormData({ ...formData, headClientId: value })}
+              value={formData.headClientId || 'none'}
+              onValueChange={(value) => setFormData({ ...formData, headClientId: value === 'none' ? '' : value })}
               disabled={isViewMode}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select main client of this group" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="none">None</SelectItem>
                 {state.clients
                   .filter(c => c.status === 'Active')
                   .sort((a, b) => a.name.localeCompare(b.name))

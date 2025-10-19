@@ -571,15 +571,15 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                 <div>
                   <Label htmlFor="clientGroupId">Client Group</Label>
                   <Select
-                    value={formData.clientGroupId || ''}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, clientGroupId: value || undefined }))}
+                    value={formData.clientGroupId || 'none'}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, clientGroupId: value === 'none' ? undefined : value }))}
                     disabled={mode === 'view'}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select client group (optional)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None (Unclassified)</SelectItem>
+                      <SelectItem value="none">None (Unclassified)</SelectItem>
                       {state.clientGroups
                         .filter(g => g.status === 'Active')
                         .sort((a, b) => a.name.localeCompare(b.name))
