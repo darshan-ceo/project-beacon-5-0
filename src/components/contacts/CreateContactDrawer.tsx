@@ -21,9 +21,13 @@ import {
   clientContactsService, 
   ClientContact, 
   ContactRole, 
-  CreateContactRequest 
+  CreateContactRequest,
+  ContactEmail,
+  ContactPhone
 } from '@/services/clientContactsService';
 import { toast } from '@/hooks/use-toast';
+import { EmailManager } from './EmailManager';
+import { PhoneManager } from './PhoneManager';
 
 interface CreateContactDrawerProps {
   isOpen: boolean;
@@ -45,9 +49,8 @@ export const CreateContactDrawer: React.FC<CreateContactDrawerProps> = ({
   const [formData, setFormData] = useState<CreateContactRequest>({
     name: '',
     designation: '',
-    email: '',
-    phone: '',
-    altPhone: '',
+    emails: [],
+    phones: [],
     roles: defaultRoles.length > 0 ? defaultRoles : ['primary'],
     isPrimary: false,
     notes: ''
@@ -82,9 +85,8 @@ export const CreateContactDrawer: React.FC<CreateContactDrawerProps> = ({
     setFormData({
       name: '',
       designation: '',
-      email: '',
-      phone: '',
-      altPhone: '',
+      emails: [],
+      phones: [],
       roles: defaultRoles.length > 0 ? defaultRoles : ['primary'],
       isPrimary: false,
       notes: ''
@@ -143,39 +145,19 @@ export const CreateContactDrawer: React.FC<CreateContactDrawerProps> = ({
             />
           </div>
 
-          {/* Email */}
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-              placeholder="contact@example.com"
-            />
-          </div>
+          {/* Email Manager */}
+          <EmailManager
+            emails={formData.emails || []}
+            onChange={(emails) => setFormData(prev => ({ ...prev, emails }))}
+            disabled={loading}
+          />
 
-          {/* Phone */}
-          <div className="space-y-2">
-            <Label htmlFor="phone">Phone</Label>
-            <Input
-              id="phone"
-              value={formData.phone}
-              onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-              placeholder="+91 9876543210"
-            />
-          </div>
-
-          {/* Alt Phone */}
-          <div className="space-y-2">
-            <Label htmlFor="altPhone">Alternate Phone</Label>
-            <Input
-              id="altPhone"
-              value={formData.altPhone}
-              onChange={(e) => setFormData(prev => ({ ...prev, altPhone: e.target.value }))}
-              placeholder="+91 9876543210"
-            />
-          </div>
+          {/* Phone Manager */}
+          <PhoneManager
+            phones={formData.phones || []}
+            onChange={(phones) => setFormData(prev => ({ ...prev, phones }))}
+            disabled={loading}
+          />
 
           {/* Roles */}
           <div className="space-y-3">

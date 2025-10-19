@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Edit, Trash2, Users, Mail, Phone } from 'lucide-react';
+import { Plus, Edit, Trash2, Users, Mail, Phone, MessageCircle } from 'lucide-react';
 import { 
   clientContactsService, 
   ClientContact, 
@@ -167,18 +167,60 @@ export const ClientContactsSection: React.FC<ClientContactsSectionProps> = ({
                   </TableCell>
                   <TableCell>
                     <div className="space-y-1">
-                      {contact.email && (
-                        <div className="flex items-center gap-1 text-sm">
-                          <Mail className="h-3 w-3" />
-                          {contact.email}
-                        </div>
-                      )}
-                      {contact.phone && (
-                        <div className="flex items-center gap-1 text-sm">
-                          <Phone className="h-3 w-3" />
-                          {contact.phone}
-                        </div>
-                      )}
+                      {/* Primary Email */}
+                      {(() => {
+                        const primaryEmail = contact.emails?.find(e => e.isPrimary);
+                        const emailCount = contact.emails?.length || 0;
+                        return (primaryEmail || contact.email) && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Mail className="h-3 w-3" />
+                            <a 
+                              href={`mailto:${primaryEmail?.email || contact.email}`}
+                              className="hover:underline"
+                            >
+                              {primaryEmail?.email || contact.email}
+                            </a>
+                            {emailCount > 1 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{emailCount - 1} more
+                              </Badge>
+                            )}
+                          </div>
+                        );
+                      })()}
+                      
+                      {/* Primary Phone */}
+                      {(() => {
+                        const primaryPhone = contact.phones?.find(p => p.isPrimary);
+                        const phoneCount = contact.phones?.length || 0;
+                        return (primaryPhone || contact.phone) && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Phone className="h-3 w-3" />
+                            <a 
+                              href={`tel:${primaryPhone ? primaryPhone.countryCode + primaryPhone.number : contact.phone}`}
+                              className="hover:underline"
+                            >
+                              {primaryPhone ? `${primaryPhone.countryCode} ${primaryPhone.number}` : contact.phone}
+                            </a>
+                            {primaryPhone?.isWhatsApp && (
+                              <a
+                                href={`https://wa.me/${primaryPhone.countryCode.replace('+', '')}${primaryPhone.number}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-green-600 hover:text-green-700"
+                                title="Open WhatsApp"
+                              >
+                                <MessageCircle className="h-3 w-3" />
+                              </a>
+                            )}
+                            {phoneCount > 1 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{phoneCount - 1} more
+                              </Badge>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </TableCell>
                   <TableCell>

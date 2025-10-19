@@ -5,14 +5,43 @@
 
 import { apiService, ApiResponse } from './apiService';
 
+export interface ContactEmail {
+  id: string;
+  email: string;
+  label: 'Work' | 'Personal' | 'Legal' | 'Other';
+  isPrimary: boolean;
+  isVerified: boolean;
+  emailOptIn: boolean;
+  status: 'Active' | 'Inactive';
+}
+
+export interface ContactPhone {
+  id: string;
+  countryCode: string;
+  number: string;
+  label: 'Mobile' | 'WhatsApp' | 'Office' | 'Home' | 'Legal' | 'Other';
+  isPrimary: boolean;
+  isWhatsApp: boolean;
+  smsOptIn: boolean;
+  isVerified: boolean;
+  status: 'Active' | 'Inactive';
+}
+
 export interface ClientContact {
   id: string;
   clientId: string;
   name: string;
   designation?: string;
+  
+  // NEW: Multiple emails and phones
+  emails: ContactEmail[];
+  phones: ContactPhone[];
+  
+  // DEPRECATED: Keep for backward compatibility
   email?: string;
   phone?: string;
   altPhone?: string;
+  
   roles: ContactRole[];
   isPrimary: boolean;
   source: 'manual' | 'gsp' | 'imported';
@@ -27,9 +56,16 @@ export type ContactRole = 'primary' | 'billing' | 'legal_notice' | 'authorized_s
 export interface CreateContactRequest {
   name: string;
   designation?: string;
+  
+  // NEW: Arrays for multiple entries
+  emails?: ContactEmail[];
+  phones?: ContactPhone[];
+  
+  // DEPRECATED: Still accepted for backward compatibility
   email?: string;
   phone?: string;
   altPhone?: string;
+  
   roles: ContactRole[];
   isPrimary?: boolean;
   notes?: string;
@@ -85,7 +121,38 @@ class ClientContactsService {
       };
     }
 
-    const validation = this.validateContact(contact);
+    // Migrate legacy data to new structure
+    const migratedContact = this.migrateContactData(contact);
+
+    // Validate all emails
+    if (migratedContact.emails) {
+      for (const email of migratedContact.emails) {
+        const validation = this.validateEmail(email);
+        if (!validation.isValid) {
+          return {
+            success: false,
+            error: validation.error,
+            data: null
+          };
+        }
+      }
+    }
+
+    // Validate all phones
+    if (migratedContact.phones) {
+      for (const phone of migratedContact.phones) {
+        const validation = this.validatePhone(phone);
+        if (!validation.isValid) {
+          return {
+            success: false,
+            error: validation.error,
+            data: null
+          };
+        }
+      }
+    }
+
+    const validation = this.validateContact(migratedContact);
     if (!validation.isValid) {
       return {
         success: false,
@@ -94,7 +161,7 @@ class ClientContactsService {
       };
     }
 
-    return apiService.post<ClientContact>(`/api/clients/${clientId}/contacts`, contact);
+    return apiService.post<ClientContact>(`/api/clients/${clientId}/contacts`, migratedContact);
   }
 
   /**
@@ -259,6 +326,159 @@ class ClientContactsService {
     };
 
     return roleColors[role] || 'bg-muted text-muted-foreground';
+  }
+
+  /**
+   * Validate email entry
+   */
+  private validateEmail(email: Partial<ContactEmail>): { isValid: boolean; error?: string } {
+    if (!email.email?.trim()) {
+      return { isValid: false, error: 'Email address is required' };
+    }
+    
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.email)) {
+      return { isValid: false, error: 'Invalid email format' };
+    }
+    
+    return { isValid: true };
+  }
+
+  /**
+   * Validate phone entry
+   */
+  private validatePhone(phone: Partial<ContactPhone>): { isValid: boolean; error?: string } {
+    if (!phone.number?.trim()) {
+      return { isValid: false, error: 'Phone number is required' };
+    }
+    
+    const cleanNumber = phone.number.replace(/\s/g, '');
+    if (!/^\+?[1-9]\d{1,14}$/.test(cleanNumber)) {
+      return { isValid: false, error: 'Invalid phone format. Use E.164 format (e.g., 9876543210)' };
+    }
+    
+    return { isValid: true };
+  }
+
+  /**
+   * Ensure only one primary email
+   */
+  ensureOnePrimaryEmail(emails: ContactEmail[]): ContactEmail[] {
+    let foundPrimary = false;
+    return emails.map((email, index) => {
+      if (email.isPrimary && !foundPrimary) {
+        foundPrimary = true;
+        return email;
+      }
+      if (index === 0 && !foundPrimary && email.status === 'Active') {
+        foundPrimary = true;
+        return { ...email, isPrimary: true };
+      }
+      return { ...email, isPrimary: false };
+    });
+  }
+
+  /**
+   * Ensure only one primary phone
+   */
+  ensureOnePrimaryPhone(phones: ContactPhone[]): ContactPhone[] {
+    let foundPrimary = false;
+    return phones.map((phone, index) => {
+      if (phone.isPrimary && !foundPrimary) {
+        foundPrimary = true;
+        return phone;
+      }
+      if (index === 0 && !foundPrimary && phone.status === 'Active') {
+        foundPrimary = true;
+        return { ...phone, isPrimary: true };
+      }
+      return { ...phone, isPrimary: false };
+    });
+  }
+
+  /**
+   * Migrate legacy single values to arrays
+   */
+  migrateContactData(contact: CreateContactRequest): CreateContactRequest {
+    const emails: ContactEmail[] = contact.emails || [];
+    const phones: ContactPhone[] = contact.phones || [];
+    
+    // Migrate single email to array
+    if (contact.email && !emails.length) {
+      emails.push({
+        id: `email_${Date.now()}`,
+        email: contact.email,
+        label: 'Work',
+        isPrimary: true,
+        isVerified: false,
+        emailOptIn: true,
+        status: 'Active'
+      });
+    }
+    
+    // Migrate single phone to array
+    if (contact.phone && !phones.length) {
+      const [countryCode, ...numberParts] = contact.phone.startsWith('+') 
+        ? contact.phone.split(' ')
+        : ['+91', contact.phone];
+      
+      phones.push({
+        id: `phone_${Date.now()}`,
+        countryCode: countryCode || '+91',
+        number: numberParts.join(''),
+        label: 'Mobile',
+        isPrimary: true,
+        isWhatsApp: false,
+        smsOptIn: true,
+        isVerified: false,
+        status: 'Active'
+      });
+    }
+    
+    // Migrate altPhone
+    if (contact.altPhone && phones.length < 5) {
+      const [countryCode, ...numberParts] = contact.altPhone.startsWith('+')
+        ? contact.altPhone.split(' ')
+        : ['+91', contact.altPhone];
+      
+      phones.push({
+        id: `phone_${Date.now()}_alt`,
+        countryCode: countryCode || '+91',
+        number: numberParts.join(''),
+        label: 'Office',
+        isPrimary: false,
+        isWhatsApp: false,
+        smsOptIn: true,
+        isVerified: false,
+        status: 'Active'
+      });
+    }
+    
+    return {
+      ...contact,
+      emails: this.ensureOnePrimaryEmail(emails),
+      phones: this.ensureOnePrimaryPhone(phones)
+    };
+  }
+
+  /**
+   * Get primary email from contact
+   */
+  getPrimaryEmail(contact: ClientContact): string | undefined {
+    return contact.emails?.find(e => e.isPrimary && e.status === 'Active')?.email 
+      || contact.emails?.find(e => e.status === 'Active')?.email
+      || contact.email;
+  }
+
+  /**
+   * Get primary phone from contact
+   */
+  getPrimaryPhone(contact: ClientContact): string | undefined {
+    const primaryPhone = contact.phones?.find(p => p.isPrimary && p.status === 'Active')
+      || contact.phones?.find(p => p.status === 'Active');
+    
+    return primaryPhone 
+      ? `${primaryPhone.countryCode} ${primaryPhone.number}`
+      : contact.phone;
   }
 }
 
