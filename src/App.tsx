@@ -11,6 +11,7 @@ import NotFound from "./pages/NotFound";
 import { AdminLayout } from "./components/layout/AdminLayout";
 import { EnhancedDashboard } from "@/components/dashboard/EnhancedDashboard";
 import { ClientMasters } from "@/components/masters/ClientMasters";
+import { ClientGroupMasters } from "@/components/masters/ClientGroupMasters";
 import { CourtMasters } from "@/components/masters/CourtMasters";
 import JudgeMasters from "@/components/masters/JudgeMasters";
 import { EmployeeMasters } from "@/components/masters/EmployeeMasters";
@@ -89,6 +90,11 @@ const App = () => {
               <Route path="/clients" element={
                 <AdminLayout currentUser={currentUser}>
                   <ClientMasters />
+                </AdminLayout>
+              } />
+              <Route path="/client-groups" element={
+                <AdminLayout currentUser={currentUser}>
+                  <ClientGroupMasters />
                 </AdminLayout>
               } />
               <Route path="/courts" element={

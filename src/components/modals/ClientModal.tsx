@@ -49,6 +49,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
     portalAccess: PortalAccess;
     assignedCAId: string;
     assignedCAName: string;
+    clientGroupId?: string;
     status: 'Active' | 'Inactive';
     gspSignatories?: any[];
     gstData?: any;
@@ -86,6 +87,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
     },
         assignedCAId: '',
         assignedCAName: '',
+        clientGroupId: '',
         status: 'Active',
         tags: []
   });
@@ -167,6 +169,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         portalAccess: clientData.portalAccess || { allowLogin: false },
         assignedCAId: clientData.assignedCAId,
         assignedCAName: clientData.assignedCAName,
+        clientGroupId: clientData.clientGroupId || '',
         status: clientData.status,
         tags: (clientData as any).tags || []
       });
@@ -205,7 +208,9 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         },
         assignedCAId: '',
         assignedCAName: '',
-        status: 'Active'
+        clientGroupId: '',
+        status: 'Active',
+        tags: []
       });
       setSignatories([]);
       setPreloadedContacts([]);
@@ -560,6 +565,34 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+
+                {/* Client Group Field */}
+                <div>
+                  <Label htmlFor="clientGroupId">Client Group</Label>
+                  <Select
+                    value={formData.clientGroupId || ''}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, clientGroupId: value || undefined }))}
+                    disabled={mode === 'view'}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select client group (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">None (Unclassified)</SelectItem>
+                      {state.clientGroups
+                        .filter(g => g.status === 'Active')
+                        .sort((a, b) => a.name.localeCompare(b.name))
+                        .map(group => (
+                          <SelectItem key={group.id} value={group.id}>
+                            🏢 {group.name} ({group.totalClients} clients)
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Organize clients by business group or category
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

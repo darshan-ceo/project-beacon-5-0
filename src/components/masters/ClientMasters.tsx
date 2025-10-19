@@ -373,6 +373,7 @@ export const ClientMasters: React.FC = () => {
                 <TableRow>
                   <TableHead>Client Details</TableHead>
                   <TableHead>Tax Information</TableHead>
+                  <TableHead>Client Group</TableHead>
                   <TableHead>Jurisdiction</TableHead>
                   <TableHead>Contact</TableHead>
                   <TableHead>Status</TableHead>
@@ -405,6 +406,16 @@ export const ClientMasters: React.FC = () => {
                         <p className="text-sm font-mono">{client.gstin || client.gstNumber || 'N/A'}</p>
                         <p className="text-sm font-mono text-muted-foreground">{client.pan || client.panNumber || 'N/A'}</p>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {client.clientGroupId ? (
+                        <Badge variant="outline" className="gap-1">
+                          <Building2 className="h-3 w-3" />
+                          {state.clientGroups.find(g => g.id === client.clientGroupId)?.name || 'Unknown'}
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center">

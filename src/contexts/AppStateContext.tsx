@@ -103,6 +103,21 @@ export interface TaskNote {
   };
 }
 
+// Client Group interface for organizing clients by business group
+export interface ClientGroup {
+  id: string;
+  name: string; // e.g., "Landmark Group", "Tata Group"
+  code: string; // Auto-generated slug: "landmark_group"
+  description?: string;
+  headClientId?: string; // FK to Client.id - main client of the group
+  totalClients: number; // Computed: count of linked clients
+  status: 'Active' | 'Inactive';
+  createdAt: string;
+  updatedAt: string;
+  createdBy?: string;
+  updatedBy?: string;
+}
+
 interface Client {
   id: string;
   name: string;
@@ -118,6 +133,7 @@ interface Client {
   status: 'Active' | 'Inactive';
   assignedCAId: string; // FK to Employee.id  
   assignedCAName: string; // Display name derived from Employee
+  clientGroupId?: string; // FK to ClientGroup.id
   createdAt?: string;
   updatedAt?: string;
   // Migration flags
@@ -388,6 +404,7 @@ export interface AppState {
   tasks: Task[];
   taskNotes: TaskNote[];
   clients: Client[];
+  clientGroups: ClientGroup[];
   courts: Court[];
   judges: Judge[];
   documents: Document[];
@@ -416,6 +433,10 @@ export type AppAction =
   | { type: 'ADD_CLIENT'; payload: Client }
   | { type: 'UPDATE_CLIENT'; payload: Client }
   | { type: 'DELETE_CLIENT'; payload: string }
+  | { type: 'ADD_CLIENT_GROUP'; payload: ClientGroup }
+  | { type: 'UPDATE_CLIENT_GROUP'; payload: ClientGroup }
+  | { type: 'DELETE_CLIENT_GROUP'; payload: string }
+  | { type: 'SYNC_CLIENT_GROUP_COUNTS' }
   | { type: 'ADD_SIGNATORY'; payload: { clientId: string; signatory: Signatory } }
   | { type: 'UPDATE_SIGNATORY'; payload: { clientId: string; signatory: Signatory } }
   | { type: 'DELETE_SIGNATORY'; payload: { clientId: string; signatoryId: string } }
@@ -1213,6 +1234,118 @@ const initialState: AppState = {
           status: 'Active'
         }
       ]
+    }
+  ],
+  clientGroups: [
+    {
+      id: 'cg-001',
+      name: 'Individual Clients',
+      code: 'individual_clients',
+      description: 'All individual taxpayers',
+      totalClients: 0,
+      status: 'Active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: 'cg-002',
+      name: 'Proprietorship Firms',
+      code: 'proprietorship_firms',
+      description: 'Sole proprietorship entities',
+      totalClients: 0,
+      status: 'Active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: 'cg-003',
+      name: 'Partnership Firms',
+      code: 'partnership_firms',
+      description: 'GST-registered partnerships',
+      totalClients: 0,
+      status: 'Active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: 'cg-004',
+      name: 'Private Limited Companies',
+      code: 'private_limited',
+      description: 'Corporate clients',
+      totalClients: 0,
+      status: 'Active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: 'cg-005',
+      name: 'LLP / Limited Liability Partnership',
+      code: 'llp',
+      description: 'LLP-registered clients',
+      totalClients: 0,
+      status: 'Active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: 'cg-006',
+      name: 'Trusts / NGOs',
+      code: 'trusts_ngos',
+      description: 'Charitable or non-profit entities',
+      totalClients: 0,
+      status: 'Active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: 'cg-007',
+      name: 'Chartered Accountant References',
+      code: 'ca_references',
+      description: 'Clients referred by CAs',
+      totalClients: 0,
+      status: 'Active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: 'cg-008',
+      name: 'Advocate References',
+      code: 'advocate_references',
+      description: 'Clients referred by legal practitioners',
+      totalClients: 0,
+      status: 'Active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: 'cg-009',
+      name: 'Landmark Group',
+      code: 'landmark_group',
+      description: 'Example corporate cluster',
+      totalClients: 0,
+      status: 'Active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: 'cg-010',
+      name: 'Tata Group',
+      code: 'tata_group',
+      description: 'Example corporate cluster',
+      totalClients: 0,
+      status: 'Active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: 'cg-999',
+      name: 'Unclassified Group',
+      code: 'unclassified',
+      description: 'Default fallback for clients without specified group',
+      totalClients: 0,
+      status: 'Active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     }
   ],
   courts: [
@@ -2113,6 +2246,43 @@ function appReducer(state: AppState, action: AppAction): AppState {
         clients: state.clients.filter(client => client.id !== action.payload)
       };
 
+    case 'ADD_CLIENT_GROUP':
+      return {
+        ...state,
+        clientGroups: [...state.clientGroups, action.payload]
+      };
+
+    case 'UPDATE_CLIENT_GROUP':
+      return {
+        ...state,
+        clientGroups: state.clientGroups.map(g =>
+          g.id === action.payload.id ? action.payload : g
+        )
+      };
+
+    case 'DELETE_CLIENT_GROUP':
+      return {
+        ...state,
+        clientGroups: state.clientGroups.filter(g => g.id !== action.payload)
+      };
+
+    case 'SYNC_CLIENT_GROUP_COUNTS':
+      // Recalculate totalClients for all groups
+      const groupCounts: Record<string, number> = {};
+      state.clients.forEach(client => {
+        if (client.clientGroupId) {
+          groupCounts[client.clientGroupId] = (groupCounts[client.clientGroupId] || 0) + 1;
+        }
+      });
+      
+      return {
+        ...state,
+        clientGroups: state.clientGroups.map(group => ({
+          ...group,
+          totalClients: groupCounts[group.id] || 0
+        }))
+      };
+
     case 'ADD_SIGNATORY':
       return {
         ...state,
@@ -2279,6 +2449,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         cases: [],
         tasks: [],
         clients: [],
+        clientGroups: [],
         courts: [],
         judges: [],
         documents: [],
