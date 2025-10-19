@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Edit, Trash2, User, Eye, Building2, MapPin, Shield } from 'lucide-react';
+import { Plus, Edit, Trash2, User, Eye, Building2, MapPin, Shield, AlertCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Client, useAppState, type Signatory, type Address, type Jurisdiction, type PortalAccess } from '@/contexts/AppStateContext';
 import { CASelector } from '@/components/ui/employee-selector';
@@ -305,6 +305,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
 
       if (!formData.portalAccess.mobile) {
         newErrors.portalMobile = 'Mobile number is required for portal access';
+      } else if (!/^[+]?[0-9]{10,15}$/.test(formData.portalAccess.mobile.replace(/\s/g, ''))) {
+        newErrors.portalMobile = 'Mobile must be 10-15 digits (with optional country code)';
       }
     }
 
@@ -451,14 +453,28 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
   };
 
   const handlePortalToggle = (enabled: boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      portalAccess: {
-        ...prev.portalAccess,
-        allowLogin: enabled,
-        ...(enabled ? clientsService.generateCredentials() : {})
-      }
-    }));
+    if (enabled) {
+      // Auto-populate username from portal email (if available)
+      const autoUsername = formData.portalAccess.email || '';
+      
+      setFormData(prev => ({
+        ...prev,
+        portalAccess: {
+          ...prev.portalAccess,
+          allowLogin: true,
+          username: autoUsername,
+          passwordHash: prev.portalAccess.mobile || ''
+        }
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        portalAccess: {
+          ...prev.portalAccess,
+          allowLogin: false
+        }
+      }));
+    }
   };
 
   const handleSignatoriesImport = (importedContacts: any[]) => {
@@ -900,9 +916,14 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                           type="email"
                           value={formData.portalAccess.email || ''}
                           onChange={(e) => {
+                            const newEmail = e.target.value;
                             setFormData(prev => ({ 
                               ...prev, 
-                              portalAccess: { ...prev.portalAccess, email: e.target.value }
+                              portalAccess: { 
+                                ...prev.portalAccess, 
+                                email: newEmail,
+                                username: newEmail // Auto-sync username
+                              }
                             }));
                             setErrors(prev => ({ ...prev, portalEmail: '' }));
                           }}
@@ -918,9 +939,14 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                           id="portalMobile"
                           value={formData.portalAccess.mobile || ''}
                           onChange={(e) => {
+                            const newMobile = e.target.value;
                             setFormData(prev => ({ 
                               ...prev, 
-                              portalAccess: { ...prev.portalAccess, mobile: e.target.value }
+                              portalAccess: { 
+                                ...prev.portalAccess, 
+                                mobile: newMobile,
+                                passwordHash: newMobile // Auto-sync password
+                              }
                             }));
                             setErrors(prev => ({ ...prev, portalMobile: '' }));
                           }}
@@ -933,34 +959,78 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="username">Username</Label>
+                        <Label htmlFor="username" className="flex items-center gap-2">
+                          Username
+                          <Badge variant="secondary" className="text-xs font-normal">
+                            Auto from Email
+                          </Badge>
+                        </Label>
                         <Input
                           id="username"
-                          value={formData.portalAccess.username || ''}
+                          value={formData.portalAccess.username || formData.portalAccess.email || ''}
                           onChange={(e) => setFormData(prev => ({ 
                             ...prev, 
                             portalAccess: { ...prev.portalAccess, username: e.target.value }
                           }))}
                           disabled={mode === 'view'}
-                          placeholder="Auto-generated"
+                          placeholder="Will auto-populate from Portal Email"
+                          className="font-mono text-sm"
                         />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Username defaults to Portal Email (can be manually changed)
+                        </p>
                       </div>
 
                       <div>
-                        <Label htmlFor="password">Password</Label>
+                        <Label htmlFor="password" className="flex items-center gap-2">
+                          Temporary Password
+                          <Badge variant="outline" className="text-xs font-normal">
+                            From Mobile
+                          </Badge>
+                        </Label>
                         <Input
                           id="password"
-                          type="password"
-                          value={formData.portalAccess.passwordHash || ''}
-                          onChange={(e) => setFormData(prev => ({ 
-                            ...prev, 
-                            portalAccess: { ...prev.portalAccess, passwordHash: e.target.value }
-                          }))}
-                          disabled={mode === 'view'}
-                          placeholder="Auto-generated"
+                          type="text"
+                          value={formData.portalAccess.mobile || ''}
+                          disabled={true}
+                          placeholder="Portal Mobile will be temporary password"
+                          className="font-mono text-sm bg-muted"
                         />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Client will use their Portal Mobile as temporary password (must change on first login)
+                        </p>
                       </div>
                     </div>
+
+                    {formData.portalAccess.email && formData.portalAccess.mobile && (
+                      <>
+                        <Separator />
+                        <div className="bg-muted/50 border rounded-lg p-4 space-y-2">
+                          <h4 className="text-sm font-semibold flex items-center gap-2">
+                            <Shield className="h-4 w-4" />
+                            Client Login Credentials Summary
+                          </h4>
+                          <div className="grid grid-cols-2 gap-3 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Username:</span>
+                              <p className="font-mono font-medium mt-1">
+                                {formData.portalAccess.username || formData.portalAccess.email}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Temporary Password:</span>
+                              <p className="font-mono font-medium mt-1">
+                                {formData.portalAccess.mobile}
+                              </p>
+                            </div>
+                          </div>
+                          <p className="text-xs text-amber-600 flex items-center gap-1 mt-2">
+                            <AlertCircle className="h-3 w-3" />
+                            Client must change password on first login
+                          </p>
+                        </div>
+                      </>
+                    )}
                   </>
                 )}
               </CardContent>
