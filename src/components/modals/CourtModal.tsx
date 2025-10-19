@@ -45,6 +45,8 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     email?: string;
     benchLocation?: string;
     addressId?: string;
+    city?: string;
+    pincode?: string;
   }>({
     name: '',
     type: 'District Court',
@@ -67,7 +69,9 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
     phone: '',
     email: '',
-    benchLocation: ''
+    benchLocation: '',
+    city: '',
+    pincode: ''
   });
   const [isAddressMasterEnabled, setIsAddressMasterEnabled] = useState(false);
 
@@ -89,7 +93,9 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         workingDays: courtData.workingDays,
         phone: courtData.phone || '',
         email: courtData.email || '',
-        benchLocation: courtData.benchLocation || ''
+        benchLocation: courtData.benchLocation || '',
+        city: courtData.city || '',
+        pincode: courtData.pincode || ''
       });
     } else if (mode === 'create') {
       setFormData({
@@ -114,7 +120,9 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
         phone: '',
         email: '',
-        benchLocation: ''
+        benchLocation: '',
+        city: '',
+        pincode: ''
       });
     }
   }, [courtData, mode]);
@@ -163,7 +171,9 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         phone: formData.phone,
         email: formData.email,
         benchLocation: formData.benchLocation,
-        addressId: addressId
+        addressId: addressId,
+        city: formData.city,
+        pincode: formData.pincode
       };
 
       // Link address if saved
@@ -199,7 +209,9 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         workingDays: formData.workingDays,
         phone: formData.phone,
         email: formData.email,
-        benchLocation: formData.benchLocation
+        benchLocation: formData.benchLocation,
+        city: formData.city,
+        pincode: formData.pincode
       };
 
       dispatch({ type: 'UPDATE_COURT', payload: updatedCourt });
@@ -336,37 +348,70 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                 Contact Information
               </CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                  disabled={mode === 'view'}
-                  placeholder="Enter phone number"
-                />
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="phone">Phone Number</Label>
+                  <Input
+                    id="phone"
+                    value={formData.phone}
+                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                    disabled={mode === 'view'}
+                    placeholder="Enter phone number"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="email">Email Address</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                    disabled={mode === 'view'}
+                    placeholder="Enter email address"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="benchLocation">Bench Location</Label>
+                  <Input
+                    id="benchLocation"
+                    value={formData.benchLocation}
+                    onChange={(e) => setFormData(prev => ({ ...prev, benchLocation: e.target.value }))}
+                    disabled={mode === 'view'}
+                    placeholder="Enter bench location"
+                  />
+                </div>
               </div>
-              <div>
-                <Label htmlFor="email">Email Address</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  disabled={mode === 'view'}
-                  placeholder="Enter email address"
-                />
-              </div>
-              <div>
-                <Label htmlFor="benchLocation">Bench Location</Label>
-                <Input
-                  id="benchLocation"
-                  value={formData.benchLocation}
-                  onChange={(e) => setFormData(prev => ({ ...prev, benchLocation: e.target.value }))}
-                  disabled={mode === 'view'}
-                  placeholder="Enter bench location"
-                />
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="city">City</Label>
+                  <Input
+                    id="city"
+                    value={formData.city}
+                    onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                    disabled={mode === 'view'}
+                    placeholder="Enter city or district"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    City or district where authority is located
+                  </p>
+                </div>
+                <div>
+                  <Label htmlFor="pincode">Geo-location PIN</Label>
+                  <Input
+                    id="pincode"
+                    value={formData.pincode}
+                    onChange={(e) => setFormData(prev => ({ ...prev, pincode: e.target.value }))}
+                    disabled={mode === 'view'}
+                    placeholder="Enter 6-digit PIN code"
+                    maxLength={6}
+                    pattern="[0-9]{6}"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Postal PIN for Google Maps integration
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>

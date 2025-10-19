@@ -19,7 +19,7 @@ export const COURT_EXPORT_COLUMNS: ExportColumn<Court>[] = [
       ? AUTHORITY_LEVEL_METADATA[court.authorityLevel].label 
       : 'N/A'
   },
-  { key: 'type', label: 'Type', type: 'string' },
+  { key: 'city', label: 'City', type: 'string' },
   { key: 'jurisdiction', label: 'Jurisdiction', type: 'string' },
   { key: 'benchLocation', label: 'Bench', type: 'string' },
   { 
@@ -30,6 +30,7 @@ export const COURT_EXPORT_COLUMNS: ExportColumn<Court>[] = [
       ? court.address 
       : `${court.address.line1}${court.address.line2 ? ', ' + court.address.line2 : ''}`
   },
+  { key: 'pincode', label: 'Geo-location PIN', type: 'string' },
   { key: 'phone', label: 'Phone', type: 'phone' },
   { key: 'email', label: 'Email', type: 'email' },
   { key: 'establishedYear', label: 'Established', type: 'number' },
@@ -46,10 +47,11 @@ export const COURT_EXPORT_COLUMNS: ExportColumn<Court>[] = [
 export const COURT_VISIBLE_COLUMNS = [
   'name',
   'authorityLevel',
-  'type',
+  'city',
   'jurisdiction',
   'benchLocation',
   'address',
+  'pincode',
   'phone',
   'email'
 ];

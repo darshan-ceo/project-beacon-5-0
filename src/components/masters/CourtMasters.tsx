@@ -212,9 +212,9 @@ export const CourtMasters: React.FC = () => {
                 <TableHeader>
                 <TableRow>
                   <TableHead>Legal Forum Details</TableHead>
-                  <TableHead>Type & Jurisdiction</TableHead>
+                  <TableHead>City</TableHead>
                   <TableHead>Contact Information</TableHead>
-                  <TableHead>Bench Details</TableHead>
+                  <TableHead>Geo-location PIN</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -259,10 +259,10 @@ export const CourtMasters: React.FC = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="space-y-2">
-                        <Badge className={getTypeColor(court.type)}>
-                          {court.type}
-                        </Badge>
+                      <div className="space-y-1">
+                        <div className="font-medium text-sm">
+                          {court.city || 'N/A'}
+                        </div>
                         {court.authorityLevel && (
                           <Badge 
                             variant="outline" 
@@ -271,19 +271,6 @@ export const CourtMasters: React.FC = () => {
                             {AUTHORITY_LEVEL_METADATA[court.authorityLevel]?.label || court.authorityLevel}
                           </Badge>
                         )}
-                        <div className="text-sm font-medium">{court.jurisdiction}</div>
-                        <div className="flex flex-wrap gap-1">
-                          {(court.workingDays || []).slice(0, 2).map(day => (
-                            <Badge key={day} variant="outline" className="text-xs">
-                              {day}
-                            </Badge>
-                          ))}
-                          {(court.workingDays || []).length > 2 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{(court.workingDays || []).length - 2}
-                            </Badge>
-                          )}
-                        </div>
                       </div>
                     </TableCell>
                      <TableCell>
@@ -302,14 +289,22 @@ export const CourtMasters: React.FC = () => {
                        </div>
                      </TableCell>
                     <TableCell>
-                      <div className="space-y-1">
-                        <div className="text-sm">
-                          <span className="font-medium">{court.totalJudges}</span> Judges
+                      {court.pincode ? (
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-blue-600 opacity-80" aria-hidden="true" />
+                          <a
+                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(court.pincode)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline font-medium"
+                            aria-label={`Open Google Maps for PIN ${court.pincode}`}
+                          >
+                            {court.pincode}
+                          </a>
                         </div>
-                        <div className="text-sm">
-                          <span className="font-medium">{court.activeCases}</span> Active Cases
-                        </div>
-                      </div>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">N/A</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary">
