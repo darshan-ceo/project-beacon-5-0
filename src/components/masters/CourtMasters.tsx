@@ -253,9 +253,6 @@ export const CourtMasters: React.FC = () => {
                             : `${court.address.line1}${court.address.line2 ? ', ' + court.address.line2 : ''}${court.address.locality ? ', ' + court.address.locality : ''}${court.address.district ? ', ' + court.address.district : ''}`
                           }
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          Est. {court.establishedYear}
-                        </div>
                       </div>
                     </TableCell>
                     <TableCell>

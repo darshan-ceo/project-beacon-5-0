@@ -33,14 +33,12 @@ export const COURT_EXPORT_COLUMNS: ExportColumn<Court>[] = [
   { key: 'pincode', label: 'Geo-location PIN', type: 'string' },
   { key: 'phone', label: 'Phone', type: 'phone' },
   { key: 'email', label: 'Email', type: 'email' },
-  { key: 'establishedYear', label: 'Established', type: 'number' },
   { 
     key: 'workingDays', 
     label: 'Working Days', 
     type: 'string',
     get: (court) => court.workingDays.join(', ')
   },
-  { key: 'totalJudges', label: 'Total Judges', type: 'number' },
   { key: 'activeCases', label: 'Active Cases', type: 'number' }
 ];
 

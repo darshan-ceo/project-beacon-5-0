@@ -5,7 +5,6 @@ export interface CreateCourtData {
   type: 'Supreme Court' | 'High Court' | 'District Court' | 'Tribunal' | 'Commission';
   jurisdiction: string;
   address: string;
-  establishedYear: number;
   digitalFiling: boolean;
   workingDays: string[];
   phone?: string;
@@ -27,8 +26,6 @@ class CourtsService {
       type: data.type,
       jurisdiction: data.jurisdiction,
       address: data.address,
-      establishedYear: data.establishedYear,
-      totalJudges: 0,
       activeCases: 0,
       avgHearingTime: '0 days',
       digitalFiling: data.digitalFiling,

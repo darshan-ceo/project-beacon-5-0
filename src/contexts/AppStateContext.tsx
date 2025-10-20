@@ -158,8 +158,6 @@ interface Court {
   authorityLevel?: 'ADJUDICATION' | 'FIRST_APPEAL' | 'REVISIONAL' | 'TRIBUNAL' | 'PRINCIPAL_BENCH' | 'HIGH_COURT' | 'SUPREME_COURT';
   jurisdiction: string;
   address: string | any; // Support both legacy string and enhanced address
-  establishedYear: number;
-  totalJudges: number;
   activeCases: number;
   avgHearingTime: string;
   digitalFiling: boolean;
@@ -1358,8 +1356,6 @@ const initialState: AppState = {
       type: 'Tribunal',
       jurisdiction: 'Mumbai',
       address: 'Aayakar Bhavan, M.K. Road, Mumbai',
-      establishedYear: 1941,
-      totalJudges: 15,
       activeCases: 450,
       avgHearingTime: '45 mins',
       digitalFiling: true,
@@ -1371,8 +1367,6 @@ const initialState: AppState = {
       type: 'Supreme Court',
       jurisdiction: 'National',
       address: 'Tilak Marg, New Delhi - 110001',
-      establishedYear: 1950,
-      totalJudges: 34,
       activeCases: 70000,
       avgHearingTime: '90 mins',
       digitalFiling: true,
@@ -1384,8 +1378,6 @@ const initialState: AppState = {
       type: 'Commission',
       jurisdiction: 'Mumbai Zone',
       address: 'GST Bhavan, BKC, Mumbai - 400051',
-      establishedYear: 2017,
-      totalJudges: 8,
       activeCases: 1200,
       avgHearingTime: '30 mins',
       digitalFiling: true,

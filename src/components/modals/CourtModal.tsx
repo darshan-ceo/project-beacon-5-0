@@ -37,8 +37,6 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     authorityLevel?: AuthorityLevel;
     jurisdiction: string;
     address: EnhancedAddressData;
-    establishedYear: number;
-    totalJudges: number;
     digitalFiling: boolean;
     workingDays: string[];
     phone?: string;
@@ -63,8 +61,6 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
       countryId: 'IN',
       source: 'manual'
     } as EnhancedAddressData,
-    establishedYear: new Date().getFullYear(),
-    totalJudges: 1,
     digitalFiling: false,
     workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
     phone: '',
@@ -87,8 +83,6 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         address: typeof courtData.address === 'string' 
           ? { line1: courtData.address, line2: '', locality: '', district: '', cityId: '', stateId: '', pincode: '', countryId: 'IN', source: 'manual' } as EnhancedAddressData
           : courtData.address as EnhancedAddressData,
-        establishedYear: courtData.establishedYear,
-        totalJudges: courtData.totalJudges,
         digitalFiling: courtData.digitalFiling,
         workingDays: courtData.workingDays,
         phone: courtData.phone || '',
@@ -114,8 +108,6 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
           countryId: 'IN',
           source: 'manual'
         } as EnhancedAddressData,
-        establishedYear: new Date().getFullYear(),
-        totalJudges: 1,
         digitalFiling: false,
         workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
         phone: '',
@@ -162,8 +154,6 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         authorityLevel: formData.authorityLevel,
         jurisdiction: formData.jurisdiction,
         address: formData.address,
-        establishedYear: formData.establishedYear,
-        totalJudges: formData.totalJudges,
         activeCases: 0,
         avgHearingTime: '30 mins',
         digitalFiling: formData.digitalFiling,
@@ -203,8 +193,6 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         authorityLevel: formData.authorityLevel,
         jurisdiction: formData.jurisdiction,
         address: formData.address,
-        establishedYear: formData.establishedYear,
-        totalJudges: formData.totalJudges,
         digitalFiling: formData.digitalFiling,
         workingDays: formData.workingDays,
         phone: formData.phone,
@@ -275,7 +263,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <div className="flex items-center gap-1">
-                  <Label htmlFor="type">Legal Forum Type <span className="text-destructive">*</span></Label>
+                  <Label htmlFor="type">Authority / Legal Forum Type <span className="text-destructive">*</span></Label>
                   <FieldTooltip formId="create-court" fieldId="type" />
                 </div>
                 <Select 
@@ -448,36 +436,6 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
             <div className="flex items-center gap-2 pb-2 border-b">
               <Building2 className="h-4 w-4 text-primary" />
               <h3 className="text-sm font-semibold">Legal Forum Details</h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="establishedYear">Established Year <span className="text-destructive">*</span></Label>
-                <Input
-                  id="establishedYear"
-                  type="number"
-                  value={formData.establishedYear}
-                  onChange={(e) => setFormData(prev => ({ ...prev, establishedYear: parseInt(e.target.value) || new Date().getFullYear() }))}
-                  disabled={mode === 'view'}
-                  min="1800"
-                  max={new Date().getFullYear()}
-                  required
-                />
-              </div>
-              <div>
-                <div className="flex items-center gap-1">
-                  <Label htmlFor="totalJudges">Total Judges <span className="text-destructive">*</span></Label>
-                  <FieldTooltip formId="create-court" fieldId="total-judges" />
-                </div>
-                <Input
-                  id="totalJudges"
-                  type="number"
-                  value={formData.totalJudges}
-                  onChange={(e) => setFormData(prev => ({ ...prev, totalJudges: parseInt(e.target.value) || 1 }))}
-                  disabled={mode === 'view'}
-                  min="1"
-                  required
-                />
-              </div>
             </div>
 
             <div className="flex items-center space-x-2">
