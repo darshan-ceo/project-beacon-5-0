@@ -30,7 +30,14 @@ export const COURT_EXPORT_COLUMNS: ExportColumn<Court>[] = [
       ? court.address 
       : `${court.address.line1}${court.address.line2 ? ', ' + court.address.line2 : ''}`
   },
-  { key: 'pincode', label: 'Geo-location PIN', type: 'string' },
+  { 
+    key: 'pincode', 
+    label: 'Pincode', 
+    type: 'string',
+    get: (court) => typeof court.address === 'string' 
+      ? 'N/A' 
+      : court.address.pincode || 'N/A'
+  },
   { key: 'phone', label: 'Phone', type: 'phone' },
   { key: 'email', label: 'Email', type: 'email' },
   { 

@@ -167,7 +167,6 @@ interface Court {
   email?: string;
   benchLocation?: string;
   city?: string; // City/District location
-  pincode?: string; // Postal PIN for Google Maps integration
 }
 
 interface Judge {

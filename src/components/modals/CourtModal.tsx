@@ -44,7 +44,6 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     benchLocation?: string;
     addressId?: string;
     city?: string;
-    pincode?: string;
   }>({
     name: '',
     type: 'District Court',
@@ -66,8 +65,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     phone: '',
     email: '',
     benchLocation: '',
-    city: '',
-    pincode: ''
+    city: ''
   });
   const [isAddressMasterEnabled, setIsAddressMasterEnabled] = useState(false);
 
@@ -88,8 +86,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         phone: courtData.phone || '',
         email: courtData.email || '',
         benchLocation: courtData.benchLocation || '',
-        city: courtData.city || '',
-        pincode: courtData.pincode || ''
+        city: courtData.city || ''
       });
     } else if (mode === 'create') {
       setFormData({
@@ -104,7 +101,6 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
           district: '',
           cityId: '',
           stateId: '',
-          pincode: '',
           countryId: 'IN',
           source: 'manual'
         } as EnhancedAddressData,
@@ -113,8 +109,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         phone: '',
         email: '',
         benchLocation: '',
-        city: '',
-        pincode: ''
+        city: ''
       });
     }
   }, [courtData, mode]);
@@ -162,8 +157,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         email: formData.email,
         benchLocation: formData.benchLocation,
         addressId: addressId,
-        city: formData.city,
-        pincode: formData.pincode
+        city: formData.city
       };
 
       // Link address if saved
@@ -198,8 +192,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         phone: formData.phone,
         email: formData.email,
         benchLocation: formData.benchLocation,
-        city: formData.city,
-        pincode: formData.pincode
+        city: formData.city
       };
 
       dispatch({ type: 'UPDATE_COURT', payload: updatedCourt });
@@ -383,21 +376,6 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     City or district where authority is located
-                  </p>
-                </div>
-                <div>
-                  <Label htmlFor="pincode">Geo-location PIN</Label>
-                  <Input
-                    id="pincode"
-                    value={formData.pincode}
-                    onChange={(e) => setFormData(prev => ({ ...prev, pincode: e.target.value }))}
-                    disabled={mode === 'view'}
-                    placeholder="Enter 6-digit PIN code"
-                    maxLength={6}
-                    pattern="[0-9]{6}"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Postal PIN for Google Maps integration
                   </p>
                 </div>
               </div>

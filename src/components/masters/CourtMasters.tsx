@@ -214,7 +214,7 @@ export const CourtMasters: React.FC = () => {
                   <TableHead>Legal Forum Details</TableHead>
                   <TableHead>City</TableHead>
                   <TableHead>Contact Information</TableHead>
-                  <TableHead>Geo-location PIN</TableHead>
+                  <TableHead>Pincode</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -285,24 +285,24 @@ export const CourtMasters: React.FC = () => {
                          </div>
                        </div>
                      </TableCell>
-                    <TableCell>
-                      {court.pincode ? (
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-blue-600 opacity-80" aria-hidden="true" />
-                          <a
-                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(court.pincode)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline font-medium"
-                            aria-label={`Open Google Maps for PIN ${court.pincode}`}
-                          >
-                            {court.pincode}
-                          </a>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">N/A</span>
-                      )}
-                    </TableCell>
+                     <TableCell>
+                       {typeof court.address === 'object' && court.address.pincode ? (
+                         <div className="flex items-center gap-2">
+                           <MapPin className="h-4 w-4 text-blue-600 opacity-80" aria-hidden="true" />
+                           <a
+                             href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(court.address.pincode)}`}
+                             target="_blank"
+                             rel="noopener noreferrer"
+                             className="text-blue-600 hover:underline font-medium"
+                             aria-label={`Open Google Maps for PIN ${court.address.pincode}`}
+                           >
+                             {court.address.pincode}
+                           </a>
+                         </div>
+                       ) : (
+                         <span className="text-muted-foreground text-sm">N/A</span>
+                       )}
+                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary">
                         Active
