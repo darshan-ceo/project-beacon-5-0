@@ -318,27 +318,27 @@ export const CourtMasters: React.FC = () => {
                                </DropdownMenuLabel>
                                <DropdownMenuSeparator />
                                
-                               {MAPPING_SERVICES.map((service) => {
-                                 const IconComponent = service.icon === 'Map' ? Map : service.icon === 'Globe' ? Globe : service.icon === 'MapPin' ? MapPin : Navigation;
-                                 return (
-                                   <DropdownMenuItem key={service.id} asChild>
-                                     <a
-                                       href={service.urlTemplate(court.address.pincode)}
-                                       target="_blank"
-                                       rel="noopener noreferrer"
-                                       className="flex items-start gap-3 cursor-pointer"
-                                     >
-                                       <IconComponent className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                                       <div className="flex flex-col">
-                                         <span className="font-medium">{service.name}</span>
-                                         <span className="text-xs text-muted-foreground">
-                                           {service.description}
-                                         </span>
-                                       </div>
-                                     </a>
-                                   </DropdownMenuItem>
-                                 );
-                               })}
+                                {MAPPING_SERVICES.map((service) => {
+                                  const IconComponent = service.icon === 'Map' ? Map : service.icon === 'Globe' ? Globe : service.icon === 'MapPin' ? MapPin : Navigation;
+                                  return (
+                                    <DropdownMenuItem key={service.id} asChild>
+                                      <a
+                                        href={service.urlTemplate(court.address)}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-start gap-3 cursor-pointer"
+                                      >
+                                        <IconComponent className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                                        <div className="flex flex-col">
+                                          <span className="font-medium">{service.name}</span>
+                                          <span className="text-xs text-muted-foreground">
+                                            {service.description}
+                                          </span>
+                                        </div>
+                                      </a>
+                                    </DropdownMenuItem>
+                                  );
+                                })}
                              </DropdownMenuContent>
                            </DropdownMenu>
                          </div>

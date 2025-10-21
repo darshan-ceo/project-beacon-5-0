@@ -247,8 +247,14 @@ export const AddressForm: React.FC<AddressFormProps> = ({
       // Reload cities to include new one
       await loadCities(value.stateId);
       
-      // Set the new city as selected
-      handleFieldChange('cityId', newCity.id);
+      // Set the new city as selected with name
+      const enhancedValue = {
+        ...value,
+        cityId: newCity.id,
+        cityName: newCity.name,
+        source: (value as any).source || 'manual'
+      };
+      onChange(enhancedValue);
       
       // Reset manual mode
       setManualCityMode(false);
@@ -503,7 +509,19 @@ export const AddressForm: React.FC<AddressFormProps> = ({
               </div>
               <Select
                 value={value.stateId || ''}
-                onValueChange={(stateId) => loadCities(stateId)}
+                onValueChange={(stateId) => {
+                  const selectedState = states.find(s => s.id === stateId);
+                  const enhancedValue = {
+                    ...value,
+                    stateId,
+                    stateName: selectedState?.name || '',
+                    cityId: '',
+                    cityName: '',
+                    source: (value as any).source || 'manual'
+                  };
+                  onChange(enhancedValue);
+                  loadCities(stateId);
+                }}
                 disabled={disabled || !value.countryId || !isFieldEditable('stateId')}
                 required={required || isFieldRequired('stateId')}
               >
@@ -541,7 +559,14 @@ export const AddressForm: React.FC<AddressFormProps> = ({
                     if (val === '__ADD_NEW__') {
                       setManualCityMode(true);
                     } else {
-                      handleFieldChange('cityId', val);
+                      const selectedCity = cities.find(c => c.id === val);
+                      const enhancedValue = {
+                        ...value,
+                        cityId: val,
+                        cityName: selectedCity?.name || '',
+                        source: (value as any).source || 'manual'
+                      };
+                      onChange(enhancedValue);
                     }
                   }}
                   disabled={disabled || !value.stateId || !isFieldEditable('cityId')}
