@@ -10,7 +10,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Building2, MapPin, Phone, Mail, Search, Filter, Plus, Edit, Eye, Users, Upload, Download, Scale } from 'lucide-react';
+import { Building2, MapPin, Phone, Mail, Search, Filter, Plus, Edit, Eye, Users, Upload, Download, Scale, Map, Globe, Navigation } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { CourtModal } from '@/components/modals/CourtModal';
 import { ImportWizard } from '@/components/importExport/ImportWizard';
 import { ExportWizard } from '@/components/importExport/ExportWizard';
@@ -20,6 +28,7 @@ import { useRBAC } from '@/hooks/useAdvancedRBAC';
 import { featureFlagService } from '@/services/featureFlagService';
 import { LegalAuthoritiesDashboard } from './LegalAuthoritiesDashboard';
 import { AUTHORITY_LEVEL_OPTIONS, AUTHORITY_LEVEL_METADATA } from '@/types/authority-level';
+import { MAPPING_SERVICES } from '@/utils/mappingServices';
 
 
 export const CourtMasters: React.FC = () => {
@@ -289,15 +298,49 @@ export const CourtMasters: React.FC = () => {
                        {typeof court.address === 'object' && court.address.pincode ? (
                          <div className="flex items-center gap-2">
                            <MapPin className="h-4 w-4 text-blue-600 opacity-80" aria-hidden="true" />
-                           <a
-                             href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(court.address.pincode)}`}
-                             target="_blank"
-                             rel="noopener noreferrer"
-                             className="text-blue-600 hover:underline font-medium"
-                             aria-label={`Open Google Maps for PIN ${court.address.pincode}`}
-                           >
-                             {court.address.pincode}
-                           </a>
+                           
+                           <DropdownMenu>
+                             <DropdownMenuTrigger asChild>
+                               <button
+                                 className="text-blue-600 hover:underline font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-1"
+                                 aria-label={`Open mapping service for PIN ${court.address.pincode}`}
+                               >
+                                 {court.address.pincode}
+                               </button>
+                             </DropdownMenuTrigger>
+                             
+                             <DropdownMenuContent 
+                               align="start" 
+                               className="w-56 bg-popover dark:bg-popover border shadow-lg z-50"
+                             >
+                               <DropdownMenuLabel className="text-xs text-muted-foreground">
+                                 Choose Mapping Service
+                               </DropdownMenuLabel>
+                               <DropdownMenuSeparator />
+                               
+                               {MAPPING_SERVICES.map((service) => {
+                                 const IconComponent = service.icon === 'Map' ? Map : service.icon === 'Globe' ? Globe : service.icon === 'MapPin' ? MapPin : Navigation;
+                                 return (
+                                   <DropdownMenuItem key={service.id} asChild>
+                                     <a
+                                       href={service.urlTemplate(court.address.pincode)}
+                                       target="_blank"
+                                       rel="noopener noreferrer"
+                                       className="flex items-start gap-3 cursor-pointer"
+                                     >
+                                       <IconComponent className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                                       <div className="flex flex-col">
+                                         <span className="font-medium">{service.name}</span>
+                                         <span className="text-xs text-muted-foreground">
+                                           {service.description}
+                                         </span>
+                                       </div>
+                                     </a>
+                                   </DropdownMenuItem>
+                                 );
+                               })}
+                             </DropdownMenuContent>
+                           </DropdownMenu>
                          </div>
                        ) : (
                          <span className="text-muted-foreground text-sm">N/A</span>
