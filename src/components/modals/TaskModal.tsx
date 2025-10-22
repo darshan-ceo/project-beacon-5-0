@@ -320,7 +320,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                     <SelectValue placeholder="Select stage..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Scrutiny">Scrutiny</SelectItem>
+                    <SelectItem value="Assessment">Assessment</SelectItem>
                     <SelectItem value="Adjudication">Adjudication</SelectItem>
                     <SelectItem value="First Appeal">First Appeal</SelectItem>
                     <SelectItem value="Tribunal">Tribunal</SelectItem>

@@ -91,7 +91,7 @@ class LifecycleService {
           type: 'UPDATE_CASE',
           payload: {
             id: request.caseId,
-            currentStage: request.toStageKey as 'Scrutiny' | 'Adjudication' | 'First Appeal' | 'Tribunal' | 'High Court' | 'Supreme Court',
+            currentStage: request.toStageKey as 'Assessment' | 'Adjudication' | 'First Appeal' | 'Tribunal' | 'High Court' | 'Supreme Court',
             slaStatus: slaStatus as 'Green' | 'Amber' | 'Red',
             lastUpdated: new Date().toISOString()
           }

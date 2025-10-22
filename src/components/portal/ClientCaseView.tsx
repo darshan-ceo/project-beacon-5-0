@@ -61,7 +61,7 @@ export const ClientCaseView: React.FC<ClientCaseViewProps> = ({ cases, clientId 
 
   const getStageProgress = (stage: string) => {
     const stageMap: Record<string, number> = {
-      'Scrutiny': 15,
+      'Assessment': 15,
       'Demand': 30,
       'Adjudication': 60,
       'Appeals': 80,

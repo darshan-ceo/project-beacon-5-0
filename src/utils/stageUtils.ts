@@ -2,7 +2,7 @@ import { Case, Task } from '@/contexts/AppStateContext';
 
 // Stage progression sequence for legal cases - UPDATED
 export const CASE_STAGES = [
-  'Scrutiny',
+  'Assessment',
   'Adjudication',
   'First Appeal',
   'Tribunal',
@@ -14,6 +14,7 @@ export type CaseStage = typeof CASE_STAGES[number];
 
 // Legacy stage mapping for backward compatibility
 export const LEGACY_STAGE_MAP: Record<string, CaseStage> = {
+  'Scrutiny': 'Assessment',  // Legacy: Scrutiny renamed to Assessment
   'Demand': 'Adjudication',
   'Appeals': 'First Appeal',
   'GSTAT': 'Tribunal',
@@ -88,7 +89,7 @@ export function validateStagePrerequisites(
 
   // Stage-specific validations
   switch (currentStage) {
-    case 'Scrutiny':
+    case 'Assessment':
       if (caseData.documents < 1) {
         missingItems.push('At least one document must be uploaded');
       }
@@ -147,7 +148,7 @@ export function generateStageDefaults(stage: string): {
   const mappedStage = LEGACY_STAGE_MAP[stage] || stage;
   
   switch (mappedStage) {
-    case 'Scrutiny':
+    case 'Assessment':
       return {
         suggestedTasks: [
           'Review case documents',

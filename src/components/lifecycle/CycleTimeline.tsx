@@ -147,7 +147,7 @@ export const CycleTimeline: React.FC<CycleTimelineProps> = ({ caseId, currentSta
                       Created by {instance.createdBy}
                     </p>
                     {/* Show stage-specific metadata */}
-                    {instance.stageKey === 'Scrutiny' && caseData?.matterType && (
+                    {instance.stageKey === 'Assessment' && caseData?.matterType && (
                       <p className="text-xs text-primary mt-1">
                         Matter Type: {caseData.matterType}
                       </p>

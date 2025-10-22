@@ -40,8 +40,8 @@ interface CaseLifecycleFlowProps {
 
 const lifecycleStages = [
   {
-    id: 'Scrutiny',
-    name: 'Scrutiny',
+    id: 'Assessment',
+    name: 'Assessment',
     description: 'Initial case review and documentation',
     icon: FileText,
     forms: ['ASMT-10', 'ASMT-11'],

@@ -445,8 +445,8 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
               )}
             </div>
 
-            {/* Matter Type Selector - shown when advancing TO Scrutiny */}
-            {selectedStage === 'Scrutiny' && (
+            {/* Matter Type Selector - shown when advancing TO Assessment */}
+            {selectedStage === 'Assessment' && (
               <Card className="border-primary/20">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm flex items-center gap-2">

@@ -175,7 +175,7 @@ export const casesService = {
                        nextStage === 'HC' ? 'Green' : 'Green';
 
       const updates = {
-        currentStage: nextStage as 'Scrutiny' | 'Adjudication' | 'First Appeal' | 'Tribunal' | 'High Court' | 'Supreme Court',
+        currentStage: nextStage as 'Assessment' | 'Adjudication' | 'First Appeal' | 'Tribunal' | 'High Court' | 'Supreme Court',
         slaStatus: slaStatus as 'Green' | 'Amber' | 'Red',
         lastUpdated: new Date().toISOString(),
         ...(assignedTo && { assignedToName: assignedTo }),
@@ -193,8 +193,8 @@ export const casesService = {
       });
       
       // Generate task bundle for new stage
-      if (nextStage === 'Scrutiny') {
-        dispatch({ 
+      if (nextStage === 'Assessment') {
+        dispatch({
           type: 'ADD_TASK', 
           payload: {
             id: `task-${Date.now()}`,

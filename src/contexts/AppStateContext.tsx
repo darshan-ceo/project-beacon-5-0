@@ -18,7 +18,7 @@ interface Case {
   caseNumber: string;
   title: string;
   clientId: string; // FK to Client.id
-  currentStage: 'Scrutiny' | 'Adjudication' | 'First Appeal' | 'Tribunal' | 'High Court' | 'Supreme Court';
+  currentStage: 'Assessment' | 'Adjudication' | 'First Appeal' | 'Tribunal' | 'High Court' | 'Supreme Court';
   priority: 'High' | 'Medium' | 'Low';
   timelineBreachStatus: 'Green' | 'Amber' | 'Red';
   status?: 'Active' | 'Completed';
@@ -52,7 +52,7 @@ interface Case {
   authority?: string; // Issuing authority name
   jurisdictionalCommissionerate?: string; // Jurisdictional office
   departmentLocation?: string; // Department location
-  matterType?: 'Scrutiny' | 'General Inquiry' | 'Audit' | 'Investigation' | 'Refund' | 'Advance Ruling' | 'Amnesty' | 'E-waybill'; // Matter type for Scrutiny stage
+  matterType?: 'Scrutiny' | 'General Inquiry' | 'Audit' | 'Investigation' | 'Refund' | 'Advance Ruling' | 'Amnesty' | 'E-waybill'; // Matter type for Assessment stage
   tribunalBench?: 'State Bench' | 'Principal Bench'; // Tribunal bench selection for routing
   
   // Backward compatibility
@@ -605,7 +605,7 @@ const initialState: AppState = {
       caseNumber: 'GST/2024/005',
       title: 'Place of Supply Determination - MultiState Logistics',
       clientId: 'CLT-MOCK-005', 
-      currentStage: 'Scrutiny',
+      currentStage: 'Assessment',
       priority: 'Medium',
       timelineBreachStatus: 'Amber',
       status: 'Active',

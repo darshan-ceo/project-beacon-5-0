@@ -190,7 +190,7 @@ export const CaseManagement: React.FC = () => {
   };
 
   const getStageProgress = (stage: string) => {
-    const stages = ['Scrutiny', 'Adjudication', 'First Appeal', 'Tribunal', 'High Court', 'Supreme Court'];
+    const stages = ['Assessment', 'Adjudication', 'First Appeal', 'Tribunal', 'High Court', 'Supreme Court'];
     return ((stages.indexOf(stage) + 1) / stages.length) * 100;
   };
 
@@ -610,7 +610,7 @@ export const CaseManagement: React.FC = () => {
             label="Stage"
             value={filterStage}
             options={[
-              { label: 'Scrutiny', value: 'Scrutiny' },
+              { label: 'Assessment', value: 'Assessment' },
               { label: 'Adjudication', value: 'Adjudication' },
               { label: 'First Appeal', value: 'First Appeal' },
               { label: 'Tribunal', value: 'Tribunal' },
@@ -928,9 +928,9 @@ export const CaseManagement: React.FC = () => {
                          </div>
 
                         {/* Additional Case Details */}
-                        {(caseItem.taxDemand || caseItem.period || caseItem.authority || caseItem.matterType) && (
+                         {(caseItem.taxDemand || caseItem.period || caseItem.authority || caseItem.matterType) && (
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3 pt-3 border-t border-border">
-                            {caseItem.matterType && caseItem.currentStage === 'Scrutiny' && (
+                            {caseItem.matterType && caseItem.currentStage === 'Assessment' && (
                               <div>
                                 <p className="text-xs text-muted-foreground">Matter Type</p>
                                 <p className="text-sm font-medium">{caseItem.matterType}</p>

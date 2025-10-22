@@ -54,7 +54,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
     issueType: string;
     title: string;
     clientId: string;
-    currentStage: 'Scrutiny' | 'Adjudication' | 'First Appeal' | 'Tribunal' | 'High Court' | 'Supreme Court';
+    currentStage: 'Assessment' | 'Adjudication' | 'First Appeal' | 'Tribunal' | 'High Court' | 'Supreme Court';
     priority: 'High' | 'Medium' | 'Low';
     assignedToId: string;
     assignedToName: string;
@@ -77,7 +77,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
     issueType: '',
     title: '',
     clientId: contextClientId || '',
-    currentStage: 'Scrutiny',
+    currentStage: 'Assessment',
     priority: 'Medium',
     assignedToId: '',
     assignedToName: '',
@@ -231,7 +231,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
         authority: formData.authority,
         jurisdictionalCommissionerate: formData.jurisdictionalCommissionerate,
         departmentLocation: formData.departmentLocation,
-        matterType: formData.currentStage === 'Scrutiny' ? formData.matterType as any : undefined,
+        matterType: formData.currentStage === 'Assessment' ? formData.matterType as any : undefined,
         tribunalBench: formData.currentStage === 'Tribunal' ? formData.tribunalBench : undefined,
         createdDate: new Date().toISOString().split('T')[0],
         lastUpdated: new Date().toISOString().split('T')[0],
@@ -265,7 +265,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
         authority: formData.authority,
         jurisdictionalCommissionerate: formData.jurisdictionalCommissionerate,
         departmentLocation: formData.departmentLocation,
-        matterType: formData.currentStage === 'Scrutiny' ? formData.matterType as any : undefined,
+        matterType: formData.currentStage === 'Assessment' ? formData.matterType as any : undefined,
         tribunalBench: formData.currentStage === 'Tribunal' ? formData.tribunalBench : undefined,
         lastUpdated: new Date().toISOString().split('T')[0]
       };
@@ -478,7 +478,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Scrutiny">Scrutiny</SelectItem>
+                      <SelectItem value="Assessment">Assessment</SelectItem>
                       <SelectItem value="Adjudication">Adjudication</SelectItem>
                       <SelectItem value="First Appeal">First Appeal</SelectItem>
                       <SelectItem value="Tribunal">Tribunal</SelectItem>
@@ -488,7 +488,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
                   </Select>
                 </div>
 
-                {formData.currentStage === 'Scrutiny' && (
+                {formData.currentStage === 'Assessment' && (
                   <div>
                     <Label htmlFor="matterType">Matter Type</Label>
                     <Select 

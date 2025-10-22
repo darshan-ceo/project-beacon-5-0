@@ -144,7 +144,7 @@ export const useUnifiedPersistence = () => {
         }
         
         // Set default values for new fields
-        if (!migrated.matterType && migrated.currentStage === 'Scrutiny') {
+        if (!migrated.matterType && migrated.currentStage === 'Assessment') {
           migrated.matterType = 'Scrutiny';
         }
         
