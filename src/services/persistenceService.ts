@@ -1,5 +1,5 @@
 import { idbStorage } from '@/utils/idb';
-import { AppState, Case, Client, Court, Judge, Employee, Hearing, Task, Document, Folder } from '@/contexts/AppStateContext';
+import { AppState, Case, Client, Court, Forum, Judge, Employee, Hearing, Task, Document, Folder } from '@/contexts/AppStateContext';
 import { toast } from '@/hooks/use-toast';
 
 // Entity types for type-safe operations

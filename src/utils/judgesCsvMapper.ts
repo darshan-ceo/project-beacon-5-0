@@ -91,6 +91,7 @@ export class JudgesCsvMapper {
       name: row.name,
       designation: row.designation,
       status: row.status as Judge['status'],
+      forumId: row.court_id,
       courtId: row.court_id,
       bench: row.bench,
       jurisdiction: row.jurisdiction,

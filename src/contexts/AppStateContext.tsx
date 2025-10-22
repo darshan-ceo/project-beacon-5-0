@@ -27,6 +27,7 @@ interface Case {
   nextHearing?: {
     date: string;
     forumId: string; // FK to Forum.id
+    courtId?: string; // BACKWARD COMPATIBILITY: Alias for forumId
     judgeId: string; // FK to Judge.id
     type: 'Adjourned' | 'Final' | 'Argued';
   };
@@ -178,6 +179,7 @@ interface Judge {
   designation: string;
   status: 'Active' | 'On Leave' | 'Retired' | 'Transferred' | 'Deceased';
   forumId: string; // FK to Forum.id
+  courtId?: string; // BACKWARD COMPATIBILITY: Alias for forumId
   bench?: string;
   jurisdiction?: string;
   city?: string;
