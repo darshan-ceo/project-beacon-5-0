@@ -465,7 +465,8 @@ class PersistenceService {
         cases: cases as Case[],
         clients: clients as Client[],
         clientGroups: [], // Initialize with empty array for now
-        courts: courts as Court[],
+        forums: courts as Forum[],
+        courts: courts as Court[], // BACKWARD COMPATIBILITY
         judges: judges as Judge[],
         employees: employees as Employee[],
         hearings: hearings as Hearing[],
