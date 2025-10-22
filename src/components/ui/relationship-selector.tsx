@@ -4,11 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { ContextBadge } from './context-badge';
-import { Forum, Judge } from '@/contexts/AppStateContext';
-// BACKWARD COMPATIBILITY
-type Court = Forum;
-type Client = any;
-type Case = any;
+import { Client, Case, Court, Judge } from '@/contexts/AppStateContext';
 
 interface RelationshipSelectorProps {
   label: string;

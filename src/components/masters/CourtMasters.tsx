@@ -19,10 +19,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ForumModal } from '@/components/modals/ForumModal';
+import { CourtModal } from '@/components/modals/CourtModal';
 import { ImportWizard } from '@/components/importExport/ImportWizard';
 import { ExportWizard } from '@/components/importExport/ExportWizard';
-import { useAppState, Forum } from '@/contexts/AppStateContext';
+import { Court, useAppState } from '@/contexts/AppStateContext';
+import { courtsService } from '@/services/courtsService';
 import { useRBAC } from '@/hooks/useAdvancedRBAC';
 import { featureFlagService } from '@/services/featureFlagService';
 import { LegalAuthoritiesDashboard } from './LegalAuthoritiesDashboard';
@@ -30,12 +31,11 @@ import { AUTHORITY_LEVEL_OPTIONS, AUTHORITY_LEVEL_METADATA } from '@/types/autho
 import { MAPPING_SERVICES } from '@/utils/mappingServices';
 
 
-function ForumsMaster() {
+export const CourtMasters: React.FC = () => {
   const { state, dispatch } = useAppState();
   const { hasPermission } = useRBAC();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCourt, setSelectedCourt] = useState<Forum | null>(null);
-  const [courtModal, setCourtModal] = useState<{ isOpen: boolean; mode: 'create' | 'edit' | 'view'; court?: Forum | null }>({
+  const [courtModal, setCourtModal] = useState<{ isOpen: boolean; mode: 'create' | 'edit' | 'view'; court?: Court | null }>({
     isOpen: false,
     mode: 'create',
     court: null
@@ -46,8 +46,9 @@ function ForumsMaster() {
   const [importWizardOpen, setImportWizardOpen] = useState(false);
   const [exportWizardOpen, setExportWizardOpen] = useState(false);
 
-  // BACKWARD COMPATIBILITY: Use courts array
+  // Filter courts based on search and filters
   const filteredCourts = (state.courts || []).filter(court => {
+    // Handle both string and object addresses for search
     const addressText = typeof court.address === 'string' 
       ? court.address 
       : `${court.address.line1} ${court.address.line2} ${court.address.locality} ${court.address.district}`.trim();
@@ -77,9 +78,6 @@ function ForumsMaster() {
 
   return (
     <div className="space-y-6">
-      {/* Dashboard Section */}
-      <LegalAuthoritiesDashboard />
-
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -129,6 +127,15 @@ function ForumsMaster() {
               <span className="sm:hidden">Add Legal Forum</span>
             </Button>
           </div>
+      </motion.div>
+
+      {/* Legal Authorities Dashboard */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
+        <LegalAuthoritiesDashboard />
       </motion.div>
 
       {/* Visual Divider */}
@@ -379,8 +386,7 @@ function ForumsMaster() {
         </Card>
       </motion.div>
 
-      {/* Modals */}
-      <ForumModal
+      <CourtModal
         isOpen={courtModal.isOpen}
         onClose={() => setCourtModal({ isOpen: false, mode: 'create', court: null })}
         court={courtModal.court}
@@ -393,6 +399,7 @@ function ForumsMaster() {
         entityType="court"
         onImportComplete={(job) => {
           console.log('Court import completed:', job);
+          // Refresh data if needed
         }}
       />
 
@@ -403,10 +410,4 @@ function ForumsMaster() {
       />
     </div>
   );
-}
-
-// Default export
-export default ForumsMaster;
-
-// BACKWARD COMPATIBILITY: Named export
-export { ForumsMaster as CourtMasters };
+};

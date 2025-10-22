@@ -1,4 +1,4 @@
-import { Forum, Court } from '@/contexts/AppStateContext';
+import { Court } from '@/contexts/AppStateContext';
 import { AUTHORITY_LEVEL_METADATA } from '@/types/authority-level';
 
 export interface ExportColumn<T = any> {
