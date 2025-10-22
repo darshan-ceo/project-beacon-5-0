@@ -26,7 +26,7 @@ interface Case {
   reviewDate?: string;
   nextHearing?: {
     date: string;
-    courtId: string; // FK to Court.id
+    forumId: string; // FK to Forum.id
     judgeId: string; // FK to Judge.id
     type: 'Adjourned' | 'Final' | 'Argued';
   };
@@ -151,11 +151,11 @@ interface Client {
   totalInvoiced?: number;
 }
 
-interface Court {
+interface Forum {
   id: string;
   name: string;
   type: 'Supreme Court' | 'High Court' | 'District Court' | 'Tribunal' | 'Commission';
-  authorityLevel?: 'ADJUDICATION' | 'FIRST_APPEAL' | 'REVISIONAL' | 'TRIBUNAL' | 'PRINCIPAL_BENCH' | 'HIGH_COURT' | 'SUPREME_COURT';
+  authorityLevel?: 'DIVISION' | 'COMMISSIONERATE' | 'APPEALS' | 'GSTAT_STATE' | 'GSTAT_PRINCIPAL' | 'HIGH_COURT' | 'SUPREME_COURT';
   jurisdiction: string;
   address: string | any; // Support both legacy string and enhanced address
   activeCases: number;
@@ -174,7 +174,7 @@ interface Judge {
   name: string;
   designation: string;
   status: 'Active' | 'On Leave' | 'Retired' | 'Transferred' | 'Deceased';
-  courtId: string; // FK to Court.id
+  forumId: string; // FK to Forum.id
   bench?: string;
   jurisdiction?: string;
   city?: string;
@@ -405,7 +405,7 @@ export interface AppState {
   taskNotes: TaskNote[];
   clients: Client[];
   clientGroups: ClientGroup[];
-  courts: Court[];
+  forums: Forum[];
   judges: Judge[];
   documents: Document[];
   folders: Folder[];
@@ -441,9 +441,9 @@ export type AppAction =
   | { type: 'UPDATE_SIGNATORY'; payload: { clientId: string; signatory: Signatory } }
   | { type: 'DELETE_SIGNATORY'; payload: { clientId: string; signatoryId: string } }
   | { type: 'UPDATE_PORTAL_ACCESS'; payload: { clientId: string; portalAccess: PortalAccess } }
-  | { type: 'ADD_COURT'; payload: Court }
-  | { type: 'UPDATE_COURT'; payload: Court }
-  | { type: 'DELETE_COURT'; payload: string }
+  | { type: 'ADD_FORUM'; payload: Forum }
+  | { type: 'UPDATE_FORUM'; payload: Forum }
+  | { type: 'DELETE_FORUM'; payload: string }
   | { type: 'ADD_JUDGE'; payload: Judge }
   | { type: 'UPDATE_JUDGE'; payload: Judge }
   | { type: 'DELETE_JUDGE'; payload: string }
@@ -2330,17 +2330,17 @@ function appReducer(state: AppState, action: AppAction): AppState {
             : client
         )
       };
-    case 'ADD_COURT':
-      return { ...state, courts: [...state.courts, action.payload] };
-    case 'UPDATE_COURT':
+    case 'ADD_FORUM':
+      return { ...state, forums: [...state.forums, action.payload] };
+    case 'UPDATE_FORUM':
       return {
         ...state,
-        courts: state.courts.map(c => c.id === action.payload.id ? action.payload : c)
+        forums: state.forums.map(f => f.id === action.payload.id ? action.payload : f)
       };
-    case 'DELETE_COURT':
+    case 'DELETE_FORUM':
       return {
         ...state,
-        courts: state.courts.filter(c => c.id !== action.payload)
+        forums: state.forums.filter(f => f.id !== action.payload)
       };
     case 'ADD_JUDGE':
       return { ...state, judges: [...state.judges, action.payload] };
@@ -2511,7 +2511,7 @@ export const useAppState = () => {
 };
 
 // Export types  
-export type { Case, Task, Client, Court, Judge, Document, Folder, Hearing, GeneratedForm };
+export type { Case, Task, Client, Forum, Judge, Document, Folder, Hearing, GeneratedForm };
 
 // New interfaces for enhanced Client Master
 export interface Address {
