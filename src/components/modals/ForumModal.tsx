@@ -90,7 +90,7 @@ function ForumModal({ isOpen, onClose, court: courtData, mode }: ForumModalProps
     if (isAddressMasterEnabled && formData.address) {
       try {
         const savedAddress = await addressMasterService.createAddress(formData.address);
-        addressId = savedAddress.data?.id;
+        addressId = savedAddress.id;
       } catch (error) {
         console.error('Failed to save address:', error);
       }
@@ -189,7 +189,7 @@ function ForumModal({ isOpen, onClose, court: courtData, mode }: ForumModalProps
             <div>
               <Label htmlFor="name" className="block text-sm font-medium text-gray-700">
                 Legal Forum Name
-                <FieldTooltip formId="forum-form" fieldId="name" content="Enter the official name of the legal forum." />
+                <FieldTooltip content="Enter the official name of the legal forum." />
               </Label>
               <Input
                 id="name"
@@ -203,7 +203,7 @@ function ForumModal({ isOpen, onClose, court: courtData, mode }: ForumModalProps
             <div>
               <Label htmlFor="type" className="block text-sm font-medium text-gray-700">
                 Legal Forum Type
-                <FieldTooltip formId="forum-form" fieldId="type" content="Select the type of legal forum." />
+                <FieldTooltip content="Select the type of legal forum." />
               </Label>
               <Select
                 value={formData.type}
@@ -228,7 +228,7 @@ function ForumModal({ isOpen, onClose, court: courtData, mode }: ForumModalProps
             <div>
               <Label htmlFor="authorityLevel" className="block text-sm font-medium text-gray-700">
                 Authority Level
-                <FieldTooltip formId="forum-form" fieldId="authorityLevel" content="Select the authority level of the legal forum." />
+                <FieldTooltip content="Select the authority level of the legal forum." />
               </Label>
               <Select
                 value={formData.authorityLevel || ''}
@@ -251,7 +251,7 @@ function ForumModal({ isOpen, onClose, court: courtData, mode }: ForumModalProps
             <div>
               <Label htmlFor="city" className="block text-sm font-medium text-gray-700">
                 City
-                <FieldTooltip formId="forum-form" fieldId="city" content="Enter the city where the legal forum is located." />
+                <FieldTooltip content="Enter the city where the legal forum is located." />
               </Label>
               <Input
                 id="city"
@@ -265,7 +265,7 @@ function ForumModal({ isOpen, onClose, court: courtData, mode }: ForumModalProps
           <div>
             <Label htmlFor="jurisdiction" className="block text-sm font-medium text-gray-700">
               Jurisdiction
-              <FieldTooltip formId="forum-form" fieldId="jurisdiction" content="Specify the jurisdiction covered by this legal forum." />
+              <FieldTooltip content="Specify the jurisdiction covered by this legal forum." />
             </Label>
             <Input
               id="jurisdiction"
@@ -279,16 +279,16 @@ function ForumModal({ isOpen, onClose, court: courtData, mode }: ForumModalProps
           <div>
             <Label className="block text-sm font-medium text-gray-700">
               Address
-              <FieldTooltip formId="forum-form" fieldId="address" content="Enter the complete address of the legal forum." />
+              <FieldTooltip content="Enter the complete address of the legal forum." />
             </Label>
             {isAddressMasterEnabled ? (
               mode === 'view' ? (
                 <AddressView address={formData.address} />
               ) : (
                 <AddressForm
-                  value={formData.address}
+                  address={formData.address}
                   onChange={(newAddress: EnhancedAddressData) => setFormData({ ...formData, address: newAddress })}
-                  disabled={false}
+                  disabled={mode === 'view'}
                 />
               )
             ) : (
@@ -305,7 +305,7 @@ function ForumModal({ isOpen, onClose, court: courtData, mode }: ForumModalProps
             <div>
               <Label htmlFor="phone" className="block text-sm font-medium text-gray-700">
                 Phone
-                <FieldTooltip formId="forum-form" fieldId="phone" content="Enter the contact phone number of the legal forum." />
+                <FieldTooltip content="Enter the contact phone number of the legal forum." />
               </Label>
               <Input
                 id="phone"
@@ -319,7 +319,7 @@ function ForumModal({ isOpen, onClose, court: courtData, mode }: ForumModalProps
             <div>
               <Label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email
-                <FieldTooltip formId="forum-form" fieldId="email" content="Enter the contact email address of the legal forum." />
+                <FieldTooltip content="Enter the contact email address of the legal forum." />
               </Label>
               <Input
                 id="email"
@@ -334,7 +334,7 @@ function ForumModal({ isOpen, onClose, court: courtData, mode }: ForumModalProps
           <div>
             <Label htmlFor="benchLocation" className="block text-sm font-medium text-gray-700">
               Bench Location
-              <FieldTooltip formId="forum-form" fieldId="benchLocation" content="Specify the bench location within the legal forum, if applicable." />
+              <FieldTooltip content="Specify the bench location within the legal forum, if applicable." />
             </Label>
             <Input
               id="benchLocation"
@@ -347,7 +347,7 @@ function ForumModal({ isOpen, onClose, court: courtData, mode }: ForumModalProps
           <div>
             <Label className="block text-sm font-medium text-gray-700">
               Working Days
-              <FieldTooltip formId="forum-form" fieldId="workingDays" content="Select the working days for this legal forum." />
+              <FieldTooltip content="Select the working days for this legal forum." />
             </Label>
             <div className="flex flex-wrap gap-2">
               {workingDayOptions.map((day) => (
@@ -369,7 +369,7 @@ function ForumModal({ isOpen, onClose, court: courtData, mode }: ForumModalProps
           <div className="flex items-center space-x-2">
             <Label htmlFor="digitalFiling" className="text-sm font-medium text-gray-700">
               Digital Filing Available
-              <FieldTooltip formId="forum-form" fieldId="digitalFiling" content="Indicate whether digital filing is available at this legal forum." />
+              <FieldTooltip content="Indicate whether digital filing is available at this legal forum." />
             </Label>
             <Switch
               id="digitalFiling"

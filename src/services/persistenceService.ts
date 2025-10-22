@@ -1,5 +1,5 @@
 import { idbStorage } from '@/utils/idb';
-import { AppState, Case, Client, Court, Forum, Judge, Employee, Hearing, Task, Document, Folder } from '@/contexts/AppStateContext';
+import { AppState, Case, Client, Court, Judge, Employee, Hearing, Task, Document, Folder } from '@/contexts/AppStateContext';
 import { toast } from '@/hooks/use-toast';
 
 // Entity types for type-safe operations
@@ -465,8 +465,7 @@ class PersistenceService {
         cases: cases as Case[],
         clients: clients as Client[],
         clientGroups: [], // Initialize with empty array for now
-        forums: courts as Forum[],
-        courts: courts as Court[], // BACKWARD COMPATIBILITY
+        courts: courts as Court[],
         judges: judges as Judge[],
         employees: employees as Employee[],
         hearings: hearings as Hearing[],

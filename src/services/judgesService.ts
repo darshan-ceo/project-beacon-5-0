@@ -47,7 +47,7 @@ class JudgesService {
 
   async create(data: CreateJudgeData): Promise<Judge> {
     const existingJudge = this.judges.find(j => 
-      j.name === data.name && j.forumId === data.courtId && j.designation === data.designation
+      j.name === data.name && j.courtId === data.courtId && j.designation === data.designation
     );
     
     if (existingJudge) {
@@ -63,8 +63,7 @@ class JudgesService {
       name: data.name,
       designation: data.designation,
       status: data.status,
-      forumId: data.courtId,
-      courtId: data.courtId, // BACKWARD COMPATIBILITY: Keep in sync
+      courtId: data.courtId,
       bench: data.bench,
       jurisdiction: data.jurisdiction,
       city: data.city,
@@ -108,13 +107,13 @@ class JudgesService {
     // Check for duplicate name/court/designation (excluding current judge)
     if ((data.name || data.courtId || data.designation)) {
       const nameToCheck = data.name || this.judges[index].name;
-      const courtToCheck = data.courtId || this.judges[index].forumId;
+      const courtToCheck = data.courtId || this.judges[index].courtId;
       const designationToCheck = data.designation || this.judges[index].designation;
       
       const existingJudge = this.judges.find(j => 
         j.id !== data.id && 
         j.name === nameToCheck && 
-        j.forumId === courtToCheck && 
+        j.courtId === courtToCheck && 
         j.designation === designationToCheck
       );
       
@@ -133,8 +132,6 @@ class JudgesService {
       ...this.judges[index],
       ...data,
       yearsOfService,
-      // Keep courtId in sync with forumId
-      ...(data.courtId ? { forumId: data.courtId, courtId: data.courtId } : {}),
       updatedAt: new Date().toISOString(),
       updatedBy: 'system',
       // Update legacy contactInfo if individual fields change
