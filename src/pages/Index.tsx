@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { DashboardOverview } from '@/components/dashboard/DashboardOverview';
 import { ClientMasters } from '@/components/masters/ClientMasters';
-import { CourtMasters } from '@/components/masters/ForumsMaster';
+import { CourtMasters } from '@/components/masters/CourtMasters';
 import JudgeMasters from '@/components/masters/JudgeMasters';
 import { CaseManagement } from '@/components/cases/CaseManagement';
 import { DocumentManagement } from '@/components/documents/DocumentManagement';

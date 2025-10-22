@@ -26,7 +26,7 @@ interface Case {
   reviewDate?: string;
   nextHearing?: {
     date: string;
-    courtId: string; // FK to Court.id
+    forumId: string; // FK to Forum.id
     judgeId: string; // FK to Judge.id
     type: 'Adjourned' | 'Final' | 'Argued';
   };
@@ -103,107 +103,89 @@ export interface TaskNote {
   };
 }
 
-interface ClientGroup {
+// Client Group interface for organizing clients by business group
+export interface ClientGroup {
   id: string;
-  name: string;
+  name: string; // e.g., "Landmark Group", "Tata Group"
+  code: string; // Auto-generated slug: "landmark_group"
   description?: string;
-  clients: string[]; // Array of Client IDs
-  createdDate: string;
-  lastUpdated: string;
-}
-
-interface Address {
-  street: string;
-  city: string;
-  state: string;
-  zip: string;
-  country: string;
-}
-
-interface Jurisdiction {
-  name: string;
-  type: 'State' | 'Federal' | 'International';
-}
-
-interface PortalAccess {
-  username?: string;
-  password?: string;
-  lastLogin?: string;
-  status: 'Active' | 'Inactive' | 'Pending';
-}
-
-interface Signatory {
-  name: string;
-  designation: string;
-  email?: string;
-  phone?: string;
-  signature?: string; // URL or base64 data
+  headClientId?: string; // FK to Client.id - main client of the group
+  totalClients: number; // Computed: count of linked clients
+  status: 'Active' | 'Inactive';
+  createdAt: string;
+  updatedAt: string;
+  createdBy?: string;
+  updatedBy?: string;
 }
 
 interface Client {
   id: string;
   name: string;
-  email: string;
-  phone: string;
-  address: Address;
-  jurisdiction: Jurisdiction;
-  cases: number;
-  openTasks: number;
-  documents: number;
-  portalAccess: PortalAccess;
-  signatories: Signatory[];
-  clientGroup?: string; // FK to ClientGroup.id
-  notes?: string;
-  matterType?: string;
+  type: 'Individual' | 'Company' | 'Partnership' | 'Trust' | 'Other';
+  category?: 'Regular Dealer' | 'Composition' | 'Exporter' | 'Service' | 'Other';
+  registrationNo?: string;
   gstin?: string;
-  pan?: string;
-  cin?: string;
-  iec?: string;
-  contactPerson?: string;
-  incorporationDate?: string;
-  registeredAddress?: Address;
-  billingAddress?: Address;
-  shippingAddress?: Address;
-  authorizedSignatory?: Signatory;
-  authorizedRepresentative?: Signatory;
-  complianceStatus?: string;
-  riskScore?: number;
-  tags?: string[];
+  pan: string;
+  address: Address | string | any; // Support both new and legacy format plus enhanced
+  jurisdiction?: Jurisdiction;
+  portalAccess?: PortalAccess;
+  signatories?: Signatory[];
+  status: 'Active' | 'Inactive';
+  assignedCAId: string; // FK to Employee.id  
+  assignedCAName: string; // Display name derived from Employee
+  clientGroupId?: string; // FK to ClientGroup.id
+  createdAt?: string;
+  updatedAt?: string;
+  // Migration flags
+  needsAddressReview?: boolean;
+  needsSignatoryReview?: boolean;
   // Legacy support
-  slaStatus?: 'Green' | 'Amber' | 'Red'; // Deprecated: use timelineBreachStatus
+  email?: string;
+  phone?: string;
+  registrationNumber?: string;
+  panNumber?: string;
+  gstNumber?: string;
+  registrationDate?: string;
+  totalCases?: number;
+  activeCases?: number;
+  totalInvoiced?: number;
 }
 
-export interface Court {
+interface Forum {
   id: string;
   name: string;
   type: 'Supreme Court' | 'High Court' | 'District Court' | 'Tribunal' | 'Commission';
+  authorityLevel?: 'DIVISION' | 'COMMISSIONERATE' | 'APPEALS' | 'GSTAT_STATE' | 'GSTAT_PRINCIPAL' | 'HIGH_COURT' | 'SUPREME_COURT';
   jurisdiction: string;
-  address: string;
+  address: string | any; // Support both legacy string and enhanced address
   activeCases: number;
   avgHearingTime: string;
   digitalFiling: boolean;
   workingDays: string[];
+  addressId?: string; // For address master integration
   phone?: string;
   email?: string;
   benchLocation?: string;
+  city?: string; // City/District location
 }
 
-export type Forum = Court;
+// BACKWARD COMPATIBILITY: Court is an alias for Forum
+export type Court = Forum;
 
 interface Judge {
   id: string;
   name: string;
   designation: string;
   status: 'Active' | 'On Leave' | 'Retired' | 'Transferred' | 'Deceased';
-  courtId: string; // FK to Court.id
+  forumId: string; // FK to Forum.id
   bench?: string;
   jurisdiction?: string;
   city?: string;
   state?: string;
   appointmentDate: string;
   retirementDate?: string;
-  yearsOfService: number;
-  specialization: string[];
+  yearsOfService?: number; // computed field
+  specialization: string[]; // from Admin taxonomy
   chambers?: string;
   email?: string;
   phone?: string;
@@ -212,392 +194,2416 @@ interface Judge {
     email?: string;
     phone?: string;
   };
-  address?: any;
+  address?: any; // Support both legacy string and enhanced address for address master integration
   availability?: {
     days?: ('Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat')[];
-    startTime?: string;
-    endTime?: string;
+    startTime?: string; // 24h format
+    endTime?: string; // 24h format
     notes?: string;
   };
   tags?: string[];
   notes?: string;
-  totalCases: number;
-  avgDisposalTime: string;
+  // Legacy fields for backwards compatibility
+  totalCases?: number;
+  avgDisposalTime?: string;
   contactInfo?: {
     chambers: string;
     phone?: string;
     email?: string;
   };
-  createdAt: string;
-  updatedAt: string;
-  createdBy: string;
-  updatedBy: string;
-}
-
-interface Employee {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  designation: string;
-  department: string;
-  roles: ('Admin' | 'Manager' | 'Associate' | 'Paralegal')[];
-  address: Address;
-  joiningDate: string;
-  leavingDate?: string;
-  salary: number;
-  bio?: string;
-  avatar?: string;
-  status: 'Active' | 'Inactive' | 'On Leave';
-  permissions: string[];
-  performanceScore: number;
-  reportingManagerId?: string; // FK to Employee.id
-  subordinates?: string[]; // Array of Employee IDs
-  documents: number;
-  tasks: number;
-  leaves: number;
-  location?: string;
-  timezone?: string;
-  notes?: string;
-  // Legacy support
-  level?: string; // Deprecated: use designation
-}
-
-interface Hearing {
-  id: string;
-  caseId: string; // FK to Case.id
-  courtId: string; // FK to Court.id
-  judgeId: string; // FK to Judge.id
-  date: string;
-  time: string;
-  type: 'Adjourned' | 'Final' | 'Argued';
-  status: 'Scheduled' | 'In Progress' | 'Completed' | 'Postponed' | 'Cancelled';
-  notes?: string;
-  documents: string[];
-  attendees: string[]; // Array of Employee IDs
-  outcome?: string;
-  nextHearingDate?: string;
-  nextSteps?: string;
-  court_id?: string; // Legacy court id
-  case_id?: string; // Legacy case id
+  addressId?: string; // For address master integration
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: string;
+  updatedBy?: string;
 }
 
 interface Document {
   id: string;
-  caseId: string; // FK to Case.id
-  clientId: string; // FK to Client.id
-  title: string;
-  description?: string;
-  type: 'Petition' | 'Evidence' | 'Order' | 'Judgment' | 'Correspondence' | 'Other';
-  status: 'Draft' | 'Final' | 'Filed' | 'Served';
-  uploadedBy: string; // FK to Employee.id
-  uploadedDate: string;
-  lastUpdated: string;
-  fileSize: string;
-  fileType: string;
-  fileName: string;
-  url: string;
-  folderId?: string; // FK to Folder.id
-  tags?: string[];
-  notes?: string;
+  name: string;
+  type: string;
+  size: number;
+  caseId: string; // FK to Case.id (required)
+  clientId: string; // Derived from Case.clientId (auto-populated)
+  uploadedById: string; // FK to Employee.id
+  uploadedByName: string; // Display name derived from Employee
+  uploadedAt: string;
+  createdAt?: string; // Make optional for backwards compatibility
+  tags: string[];
+  isShared: boolean;
+  path: string;
+  content?: string; // Base64 encoded file content
+  folderId?: string; // Associated folder ID
 }
 
+// Employee interface for universal assignment system
+export interface Employee {
+  id: string;
+  full_name: string;
+  role: 'Partner' | 'CA' | 'Advocate' | 'Manager' | 'Staff' | 'RM' | 'Finance' | 'Admin';
+  email: string;
+  mobile?: string;
+  status: 'Active' | 'Inactive' | 'Suspended';
+  date_of_joining?: string;
+  notes?: string;
+  department: string;
+  workloadCapacity: number;
+  specialization?: string[];
+  managerId?: string;
+  tenantId?: string;
+  address?: any;
+  addressId?: string;
+  
+  // Personal Tab
+  employeeCode?: string;
+  profilePhoto?: string;
+  gender?: 'Male' | 'Female' | 'Other';
+  dob?: string;
+  pan?: string;
+  aadhaar?: string;
+  bloodGroup?: 'A+' | 'A-' | 'B+' | 'B-' | 'O+' | 'O-' | 'AB+' | 'AB-';
+  
+  // Contact Tab
+  officialEmail?: string;
+  personalEmail?: string;
+  alternateContact?: string;
+  currentAddress?: string;
+  permanentAddress?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  
+  // Employment Tab
+  designation?: string;
+  reportingTo?: string;
+  branch?: string;
+  employmentType?: 'Permanent' | 'Contract' | 'Intern' | 'Consultant';
+  confirmationDate?: string;
+  weeklyOff?: 'Sunday' | 'Alternate Saturday' | 'Custom';
+  workShift?: 'Regular' | 'Remote' | 'Flexible';
+  
+  // Credentials Tab
+  barCouncilNo?: string;
+  icaiNo?: string;
+  gstPractitionerId?: string;
+  qualification?: string;
+  experienceYears?: number;
+  areasOfPractice?: string[];
+  university?: string;
+  graduationYear?: number;
+  
+  // Billing Tab
+  billingRate?: number;
+  billable?: boolean;
+  defaultTaskCategory?: string;
+  incentiveEligible?: boolean;
+  
+  // Access Tab
+  moduleAccess?: string[];
+  dataScope?: 'Own Cases' | 'Team Cases' | 'All Cases';
+  aiAccess?: boolean;
+  whatsappAccess?: boolean;
+  
+  // Documents Tab (DMS references)
+  documents?: {
+    resume?: string;
+    idProof?: string;
+    addressProof?: string;
+    barOrIcaiCert?: string;
+    nda?: string;
+    offerLetter?: string;
+  };
+  
+  // Audit Tab
+  createdBy?: string;
+  createdAt?: string;
+  updatedBy?: string;
+  updatedAt?: string;
+}
+
+// Enhanced Hearing interface with lifecycle integration
+interface Hearing {
+  id: string;
+  case_id: string;
+  stage_instance_id?: string;
+  cycle_no?: number;
+  date: string;
+  start_time: string;
+  end_time: string;
+  timezone: string;
+  court_id: string;
+  courtroom?: string;
+  judge_ids: string[];
+  purpose: 'PH' | 'mention' | 'final' | 'other';
+  status: 'scheduled' | 'concluded' | 'adjourned' | 'no-board' | 'withdrawn';
+  outcome?: 'Adjourned' | 'Part-heard' | 'Allowed' | 'Dismissed' | 'Withdrawn' | 'Other';
+  outcome_text?: string;
+  next_hearing_date?: string;
+  order_file_id?: string;
+  notes?: string;
+  attendance?: {
+    our_counsel_id?: string;
+    opposite_counsel?: string;
+    client_rep?: string;
+  };
+  reminders?: {
+    created: string[];
+    last_sent_at?: string;
+  };
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  // Legacy compatibility
+  caseId?: string;
+  clientId?: string;
+  courtId?: string;
+  judgeId?: string;
+  time?: string;
+  type?: 'Adjourned' | 'Final' | 'Argued' | 'Preliminary';
+  agenda?: string;
+  createdDate?: string;
+  lastUpdated?: string;
+  externalEventId?: string;
+  syncStatus?: 'synced' | 'not_synced' | 'sync_failed' | 'sync_pending';
+  syncError?: string;
+  lastSyncAt?: string;
+  syncAttempts?: number;
+}
+
+// New Folder interface for DMS
 interface Folder {
   id: string;
   name: string;
+  parentId?: string;
+  caseId?: string;
+  documentCount: number;
+  size: number;
+  createdAt: string;
+  lastAccess: string;
   description?: string;
-  parentId?: string; // FK to Folder.id (for subfolders)
-  createdBy: string; // FK to Employee.id
-  createdDate: string;
-  lastUpdated: string;
-  documents: number;
-  subfolders: number;
-  path?: string; // Full path for breadcrumbs
-  isShared: boolean;
-  sharedWith?: string[]; // Array of Employee IDs
-  tags?: string[];
-  notes?: string;
+  path: string;
 }
 
-// Timeline Entry interface
-interface TimelineEntry {
+// User Profile Interface
+export interface UserProfile {
   id: string;
-  caseId: string; // FK to Case.id
-  type: 'Case Created' | 'Task Created' | 'Hearing Scheduled' | 'Document Uploaded' | 'Status Change' | 'Note Added' | 'Other';
-  date: string;
-  description: string;
-  employeeId?: string; // FK to Employee.id
-  employeeName?: string;
-  relatedItemId?: string; // ID of related item (e.g., Task.id, Document.id)
-  metadata?: any; // Additional data (e.g., oldStatus, newStatus)
+  name: string;
+  email: string;
+  phone: string;
+  role: string;
+  department: string;
+  avatar: string;
+  bio: string;
+  location: string;
+  timezone: string;
+  joinedDate: string;
+  lastLogin: string;
+  isActive: boolean;
 }
 
-// AppState interface
+// Application State
 export interface AppState {
   cases: Case[];
-  clients: Client[];
-  clientGroups: ClientGroup[];
-  courts: Court[];
-  judges: Judge[];
-  employees: Employee[];
-  hearings: Hearing[];
   tasks: Task[];
   taskNotes: TaskNote[];
+  clients: Client[];
+  clientGroups: ClientGroup[];
+  forums: Forum[];
+  courts: Forum[]; // BACKWARD COMPATIBILITY: Alias for forums, kept in sync
+  judges: Judge[];
   documents: Document[];
   folders: Folder[];
-  timelineEntries: TimelineEntry[];
-  tags: string[];
-  userProfile: {
-    id: string;
-    name: string;
-    email: string;
-    phone: string;
-    role: string;
-    department: string;
-    avatar: string;
-    bio: string;
-    location: string;
-    timezone: string;
-    joinedDate: string;
-    lastLogin: string;
-    isActive: boolean;
-  };
+  hearings: Hearing[];
+  employees: Employee[];
+  timelineEntries: any[]; // Timeline entries for case history
+  tags: string[]; // Global tags for consistent usage
+  userProfile: UserProfile;
   isLoading: boolean;
-  error: null | string;
+  error: string | null;
 }
 
-// Action Types
-type ActionType =
+// Actions  
+export type AppAction =
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_ERROR'; payload: string | null }
   | { type: 'ADD_CASE'; payload: Case }
-  | { type: 'UPDATE_CASE'; payload: Case }
+  | { type: 'UPDATE_CASE'; payload: Partial<Case> & { id: string } }
   | { type: 'DELETE_CASE'; payload: string }
-  | { type: 'ADD_CLIENT'; payload: Client }
-  | { type: 'UPDATE_CLIENT'; payload: Client }
-  | { type: 'DELETE_CLIENT'; payload: string }
-  | { type: 'ADD_COURT'; payload: Court }
-  | { type: 'UPDATE_COURT'; payload: Court }
-  | { type: 'DELETE_COURT'; payload: string }
-  | { type: 'ADD_JUDGE'; payload: Judge }
-  | { type: 'UPDATE_JUDGE'; payload: Judge }
-  | { type: 'DELETE_JUDGE'; payload: string }
-  | { type: 'ADD_EMPLOYEE'; payload: Employee }
-  | { type: 'UPDATE_EMPLOYEE'; payload: Employee }
-  | { type: 'DELETE_EMPLOYEE'; payload: string }
-  | { type: 'ADD_HEARING'; payload: Hearing }
-  | { type: 'UPDATE_HEARING'; payload: Hearing }
-  | { type: 'DELETE_HEARING'; payload: string }
   | { type: 'ADD_TASK'; payload: Task }
   | { type: 'UPDATE_TASK'; payload: Task }
   | { type: 'DELETE_TASK'; payload: string }
   | { type: 'ADD_TASK_NOTE'; payload: TaskNote }
-  | { type: 'UPDATE_TASK_NOTE'; payload: TaskNote }
   | { type: 'DELETE_TASK_NOTE'; payload: string }
+  | { type: 'ADD_CLIENT'; payload: Client }
+  | { type: 'UPDATE_CLIENT'; payload: Client }
+  | { type: 'DELETE_CLIENT'; payload: string }
+  | { type: 'ADD_CLIENT_GROUP'; payload: ClientGroup }
+  | { type: 'UPDATE_CLIENT_GROUP'; payload: ClientGroup }
+  | { type: 'DELETE_CLIENT_GROUP'; payload: string }
+  | { type: 'SYNC_CLIENT_GROUP_COUNTS' }
+  | { type: 'ADD_SIGNATORY'; payload: { clientId: string; signatory: Signatory } }
+  | { type: 'UPDATE_SIGNATORY'; payload: { clientId: string; signatory: Signatory } }
+  | { type: 'DELETE_SIGNATORY'; payload: { clientId: string; signatoryId: string } }
+  | { type: 'UPDATE_PORTAL_ACCESS'; payload: { clientId: string; portalAccess: PortalAccess } }
+  | { type: 'ADD_FORUM'; payload: Forum }
+  | { type: 'UPDATE_FORUM'; payload: Forum }
+  | { type: 'DELETE_FORUM'; payload: string }
+  // BACKWARD COMPATIBILITY: Deprecated actions, use FORUM variants
+  | { type: 'ADD_COURT'; payload: Forum }
+  | { type: 'UPDATE_COURT'; payload: Forum }
+  | { type: 'DELETE_COURT'; payload: string }
+  | { type: 'ADD_JUDGE'; payload: Judge }
+  | { type: 'UPDATE_JUDGE'; payload: Judge }
+  | { type: 'DELETE_JUDGE'; payload: string }
   | { type: 'ADD_DOCUMENT'; payload: Document }
-  | { type: 'UPDATE_DOCUMENT'; payload: Document }
+  | { type: 'UPDATE_DOCUMENT'; payload: Partial<Document> & { id: string } }
   | { type: 'DELETE_DOCUMENT'; payload: string }
+  | { type: 'SET_FOLDERS'; payload: Folder[] }
   | { type: 'ADD_FOLDER'; payload: Folder }
-  | { type: 'UPDATE_FOLDER'; payload: Folder }
+  | { type: 'UPDATE_FOLDER'; payload: Partial<Folder> & { id: string } }
   | { type: 'DELETE_FOLDER'; payload: string }
-  | { type: 'ADD_TIMELINE_ENTRY'; payload: TimelineEntry }
-  | { type: 'UPDATE_TIMELINE_ENTRY'; payload: TimelineEntry }
-  | { type: 'DELETE_TIMELINE_ENTRY'; payload: string }
-  | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_ERROR'; payload: string | null };
+  | { type: 'ADD_HEARING'; payload: Hearing }
+  | { type: 'UPDATE_HEARING'; payload: Partial<Hearing> & { id: string } }
+  | { type: 'DELETE_HEARING'; payload: string }
+  | { type: 'ADD_EMPLOYEE'; payload: Employee }
+  | { type: 'UPDATE_EMPLOYEE'; payload: { id: string; updates: Partial<Employee> } }
+  | { type: 'DELETE_EMPLOYEE'; payload: string }
+  | { type: 'SET_TAGS'; payload: string[] }
+  | { type: 'ADD_TAG'; payload: string }
+  | { type: 'REMOVE_TAG'; payload: string }
+  | { type: 'UPDATE_USER_PROFILE'; payload: Partial<UserProfile> }
+  | { type: 'ADD_TIMELINE_ENTRY'; payload: any }
+  | { type: 'REMOVE_TIMELINE_ENTRY'; payload: string }
+  | { type: 'RESTORE_STATE'; payload: Partial<AppState> }
+  | { type: 'CLEAR_ALL_DATA' };
 
-// Reducer Function
-const reducer = (state: AppState, action: ActionType): AppState => {
+// Initial state with mock data
+const initialState: AppState = {
+  taskNotes: [],
+  cases: [
+    {
+      id: 'GST-001',
+      caseNumber: 'GST/2024/001',
+      title: 'Input Tax Credit Disallowance - TechCorp Industries',
+      clientId: 'CLT-MOCK-001',
+      currentStage: 'First Appeal',
+      priority: 'High',
+      timelineBreachStatus: 'Green',
+      status: 'Active',
+      nextHearing: {
+        date: '2024-03-15',
+        forumId: '1',
+        judgeId: '1',
+        type: 'Final'
+      },
+      assignedToId: '2',
+      assignedToName: 'Sarah Johnson',
+      createdDate: '2024-01-15',
+      lastUpdated: '2024-02-20',
+      documents: 25,
+      progress: 75,
+      generatedForms: [
+        {
+          formCode: 'GSTAT',
+          version: 1,
+          generatedDate: '2024-01-15T09:30:00Z',
+          employeeId: '2',
+          employeeName: 'Sarah Johnson',
+          documentId: 'doc-gstat-001',
+          fileName: 'GSTAT_Form_GST001_20240115.pdf',
+          status: 'Uploaded'
+        }
+      ],
+      amountInDispute: 2500000,
+      description: 'Challenge to disallowance of Input Tax Credit worth ₹25 lakhs on capital goods purchased for expansion project'
+    },
+    {
+      id: 'GST-002', 
+      caseNumber: 'GST/2024/002',
+      title: 'Output Tax Liability Dispute - ManufacturingPlus Ltd',
+      clientId: 'CLT-MOCK-002',
+      currentStage: 'Adjudication',
+      priority: 'High',
+      timelineBreachStatus: 'Red',
+      status: 'Active',
+      nextHearing: {
+        date: '2024-02-28',
+        forumId: '2',
+        judgeId: '2', 
+        type: 'Final'
+      },
+      assignedToId: '1',
+      assignedToName: 'John Smith',
+      createdDate: '2024-01-08',
+      lastUpdated: '2024-02-22',
+      documents: 42,
+      progress: 45,
+      generatedForms: [
+        {
+          formCode: 'DRC07_OBJECTION',
+          version: 1,
+          generatedDate: '2024-01-20T14:15:00Z',
+          employeeId: '1',
+          employeeName: 'John Smith', 
+          documentId: 'doc-drc07-001',
+          fileName: 'DRC07_Objection_GST002_20240120.pdf',
+          status: 'Uploaded'
+        }
+      ],
+      amountInDispute: 4500000,
+      description: 'Dispute regarding classification of products leading to differential output tax liability of ₹45 lakhs'
+    },
+    {
+      id: 'GST-003',
+      caseNumber: 'GST/2024/003', 
+      title: 'Reverse Charge Mechanism Non-Compliance - ServiceHub Pvt Ltd',
+      clientId: 'CLT-MOCK-003',
+      currentStage: 'Adjudication',
+      priority: 'Medium',
+      timelineBreachStatus: 'Amber',
+      status: 'Active',
+      assignedToId: '5',
+      assignedToName: 'David Kumar',
+      createdDate: '2024-01-22',
+      lastUpdated: '2024-02-18',
+      documents: 18,
+      progress: 30,
+      generatedForms: [],
+      amountInDispute: 1200000,
+      description: 'Show cause notice for non-payment of GST under Reverse Charge Mechanism on imported services worth ₹12 lakhs'
+    },
+    {
+      id: 'GST-004',
+      caseNumber: 'GST/2024/004',
+      title: 'IGST Refund Rejection Appeal - ExportKing Enterprises', 
+      clientId: 'CLT-MOCK-004',
+      currentStage: 'First Appeal',
+      priority: 'High',
+      timelineBreachStatus: 'Green',
+      status: 'Active',
+      nextHearing: {
+        date: '2024-03-08',
+        forumId: '1',
+        judgeId: '3',
+        type: 'Final'
+      },
+      assignedToId: '2',
+      assignedToName: 'Sarah Johnson',
+      createdDate: '2024-01-30',
+      lastUpdated: '2024-02-25',
+      documents: 35,
+      progress: 85,
+      generatedForms: [
+        {
+          formCode: 'APPEAL_FIRST',
+          version: 1,
+          generatedDate: '2024-02-05T11:20:00Z',
+          employeeId: '2',
+          employeeName: 'Sarah Johnson',
+          documentId: 'doc-appeal-001',
+          fileName: 'FirstAppeal_GST004_20240205.pdf', 
+          status: 'Uploaded'
+        }
+      ],
+      amountInDispute: 3200000,
+      description: 'Appeal against rejection of IGST refund claim of ₹32 lakhs on zero-rated export supplies'
+    },
+    {
+      id: 'GST-005',
+      caseNumber: 'GST/2024/005',
+      title: 'Place of Supply Determination - MultiState Logistics',
+      clientId: 'CLT-MOCK-005', 
+      currentStage: 'Assessment',
+      priority: 'Medium',
+      timelineBreachStatus: 'Amber',
+      status: 'Active',
+      assignedToId: '4',
+      assignedToName: 'Emily Chen',
+      createdDate: '2024-02-05',
+      lastUpdated: '2024-02-20',
+      documents: 22,
+      progress: 20,
+      generatedForms: [
+        {
+          formCode: 'ASMT11_REPRESENTATION',
+          version: 1,
+          generatedDate: '2024-02-10T16:45:00Z',
+          employeeId: '4',
+          employeeName: 'Emily Chen',
+          documentId: 'doc-asmt11-001',
+          fileName: 'ASMT11_Representation_GST005_20240210.pdf',
+          status: 'Generated'
+        }
+      ],
+      amountInDispute: 1800000,
+      description: 'Dispute over place of supply determination for interstate logistics services affecting tax liability by ₹18 lakhs'
+    }
+  ],
+  tasks: [
+    // Scrutiny Stage Tasks
+    {
+      id: 'TSK-001',
+      title: 'Document Verification and Compliance Check',
+      description: 'Verify all GST registration documents and compliance records for Input Tax Credit claim',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      caseNumber: 'GST/2024/001',
+      stage: 'Scrutiny',
+      priority: 'High',
+      status: 'Completed',
+      assignedToId: '2',
+      assignedToName: 'Sarah Johnson',
+      assignedById: '1',
+      assignedByName: 'John Smith',
+      createdDate: '2024-01-15',
+      dueDate: '2024-01-20',
+      completedDate: '2024-01-19',
+      estimatedHours: 8,
+      actualHours: 6,
+      isAutoGenerated: true,
+      escalationLevel: 0
+    },
+    {
+      id: 'TSK-002',
+      title: 'Initial Case Assessment and Categorization',
+      description: 'Assess case complexity, categorize issues, and determine litigation strategy',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      caseNumber: 'GST/2024/001',
+      stage: 'Scrutiny',
+      priority: 'Medium',
+      status: 'Completed',
+      assignedToId: '2',
+      assignedToName: 'Sarah Johnson',
+      assignedById: '1',
+      assignedByName: 'John Smith',
+      createdDate: '2024-01-16',
+      dueDate: '2024-01-22',
+      completedDate: '2024-01-21',
+      estimatedHours: 4,
+      actualHours: 5,
+      isAutoGenerated: false,
+      escalationLevel: 0
+    },
+    {
+      id: 'TSK-003',
+      title: 'Client Information Validation',
+      description: 'Validate client corporate documents, signatory powers, and authorization letters',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      caseNumber: 'GST/2024/001',
+      stage: 'Scrutiny',
+      priority: 'High',
+      status: 'Completed',
+      assignedToId: '5',
+      assignedToName: 'David Kumar',
+      assignedById: '2',
+      assignedByName: 'Sarah Johnson',
+      createdDate: '2024-01-17',
+      dueDate: '2024-01-24',
+      completedDate: '2024-01-23',
+      estimatedHours: 6,
+      actualHours: 4,
+      isAutoGenerated: false,
+      escalationLevel: 0
+    },
+    // Demand Stage Tasks
+    {
+      id: 'TSK-004',
+      title: 'Draft Response to Show Cause Notice',
+      description: 'Prepare comprehensive legal response to SCN regarding ITC disallowance of ₹25 lakhs',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      caseNumber: 'GST/2024/001',
+      stage: 'Demand',
+      priority: 'Critical',
+      status: 'Completed',
+      assignedToId: '2',
+      assignedToName: 'Sarah Johnson',
+      assignedById: '1',
+      assignedByName: 'John Smith',
+      createdDate: '2024-01-25',
+      dueDate: '2024-02-05',
+      completedDate: '2024-02-03',
+      estimatedHours: 16,
+      actualHours: 18,
+      isAutoGenerated: true,
+      escalationLevel: 1
+    },
+    {
+      id: 'TSK-005',
+      title: 'Gather Supporting Documents and Evidence',
+      description: 'Collect invoices, transport documents, and proof of receipt for disputed ITC claims',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      caseNumber: 'GST/2024/001',
+      stage: 'Demand',
+      priority: 'High',
+      status: 'Completed',
+      assignedToId: '5',
+      assignedToName: 'David Kumar',
+      assignedById: '2',
+      assignedByName: 'Sarah Johnson',
+      createdDate: '2024-01-26',
+      dueDate: '2024-02-02',
+      completedDate: '2024-01-31',
+      estimatedHours: 12,
+      actualHours: 10,
+      isAutoGenerated: false,
+      escalationLevel: 0
+    },
+    {
+      id: 'TSK-006',
+      title: 'Prepare Preliminary Objections',
+      description: 'Draft preliminary objections to jurisdiction and procedural violations by department',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      caseNumber: 'GST/2024/001',
+      stage: 'Demand',
+      priority: 'Medium',
+      status: 'Completed',
+      assignedToId: '2',
+      assignedToName: 'Sarah Johnson',
+      assignedById: '1',
+      assignedByName: 'John Smith',
+      createdDate: '2024-02-01',
+      dueDate: '2024-02-08',
+      completedDate: '2024-02-06',
+      estimatedHours: 8,
+      actualHours: 9,
+      isAutoGenerated: false,
+      escalationLevel: 0
+    },
+    // Adjudication Stage Tasks
+    {
+      id: 'TSK-007',
+      title: 'File Detailed Written Submissions',
+      description: 'Submit comprehensive written arguments with legal precedents and case law citations',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      caseNumber: 'GST/2024/001',
+      stage: 'Adjudication',
+      priority: 'Critical',
+      status: 'Completed',
+      assignedToId: '2',
+      assignedToName: 'Sarah Johnson',
+      assignedById: '1',
+      assignedByName: 'John Smith',
+      createdDate: '2024-02-10',
+      dueDate: '2024-02-20',
+      completedDate: '2024-02-18',
+      estimatedHours: 20,
+      actualHours: 22,
+      isAutoGenerated: true,
+      escalationLevel: 0
+    },
+    {
+      id: 'TSK-008',
+      title: 'Prepare for Personal Hearing',
+      description: 'Prepare arguments, exhibits, and brief for personal hearing before adjudicating authority',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      caseNumber: 'GST/2024/001',
+      stage: 'Adjudication',
+      priority: 'High',
+      status: 'Completed',
+      assignedToId: '2',
+      assignedToName: 'Sarah Johnson',
+      assignedById: '1',
+      assignedByName: 'John Smith',
+      createdDate: '2024-02-15',
+      dueDate: '2024-02-25',
+      completedDate: '2024-02-24',
+      estimatedHours: 10,
+      actualHours: 8,
+      isAutoGenerated: false,
+      escalationLevel: 0
+    },
+    {
+      id: 'TSK-009',
+      title: 'Submit Additional Evidence and Clarifications',
+      description: 'Provide additional documents and clarifications requested during personal hearing',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      caseNumber: 'GST/2024/001',
+      stage: 'Adjudication',
+      priority: 'Medium',
+      status: 'Completed',
+      assignedToId: '5',
+      assignedToName: 'David Kumar',
+      assignedById: '2',
+      assignedByName: 'Sarah Johnson',
+      createdDate: '2024-02-26',
+      dueDate: '2024-03-05',
+      completedDate: '2024-03-03',
+      estimatedHours: 6,
+      actualHours: 7,
+      isAutoGenerated: false,
+      escalationLevel: 0
+    },
+    // Appeals Stage Tasks (Current Stage)
+    {
+      id: 'TSK-010',
+      title: 'Draft First Appeal Petition',
+      description: 'Prepare comprehensive first appeal petition challenging adjudication order',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      caseNumber: 'GST/2024/001',
+      stage: 'Appeals',
+      priority: 'Critical',
+      status: 'In Progress',
+      assignedToId: '2',
+      assignedToName: 'Sarah Johnson',
+      assignedById: '1',
+      assignedByName: 'John Smith',
+      createdDate: '2024-03-08',
+      dueDate: '2024-03-20',
+      estimatedHours: 24,
+      actualHours: 16,
+      isAutoGenerated: true,
+      escalationLevel: 0
+    },
+    {
+      id: 'TSK-011',
+      title: 'Compile Appeal Documents Bundle',
+      description: 'Organize and compile all supporting documents, orders, and correspondence for appeal',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      caseNumber: 'GST/2024/001',
+      stage: 'Appeals',
+      priority: 'High',
+      status: 'Overdue',
+      assignedToId: '5',
+      assignedToName: 'David Kumar',
+      assignedById: '2',
+      assignedByName: 'Sarah Johnson',
+      createdDate: '2024-03-10',
+      dueDate: '2024-03-18',
+      estimatedHours: 8,
+      isAutoGenerated: false,
+      escalationLevel: 1
+    },
+    {
+      id: 'TSK-012',
+      title: 'Prepare Grounds of Appeal',
+      description: 'Draft detailed grounds of appeal with legal and factual basis for challenging the order',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      caseNumber: 'GST/2024/001',
+      stage: 'Appeals',
+      priority: 'High',
+      status: 'Not Started',
+      assignedToId: '2',
+      assignedToName: 'Sarah Johnson',
+      assignedById: '1',
+      assignedByName: 'John Smith',
+      createdDate: '2024-03-12',
+      dueDate: '2024-03-25',
+      estimatedHours: 12,
+      isAutoGenerated: false,
+      escalationLevel: 0
+    },
+    // GSTAT Stage Tasks  
+    {
+      id: 'TSK-013',
+      title: 'Prepare GSTAT Application',
+      description: 'Draft GST Appellate Tribunal application with required formats and documentation',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      caseNumber: 'GST/2024/001',
+      stage: 'GSTAT',
+      priority: 'Critical',
+      status: 'Not Started',
+      assignedToId: '2',
+      assignedToName: 'Sarah Johnson',
+      assignedById: '1',
+      assignedByName: 'John Smith',
+      createdDate: '2024-04-01',
+      dueDate: '2024-04-15',
+      estimatedHours: 20,
+      isAutoGenerated: true,
+      escalationLevel: 0
+    },
+    {
+      id: 'TSK-014',
+      title: 'Submit Statutory Compliance Certificates',
+      description: 'Obtain and submit all required compliance certificates and no-objection certificates',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      caseNumber: 'GST/2024/001',
+      stage: 'GSTAT',
+      priority: 'High',
+      status: 'Not Started',
+      assignedToId: '5',
+      assignedToName: 'David Kumar',
+      assignedById: '2',
+      assignedByName: 'Sarah Johnson',
+      createdDate: '2024-04-02',
+      dueDate: '2024-04-12',
+      estimatedHours: 10,
+      isAutoGenerated: false,
+      escalationLevel: 0
+    },
+    {
+      id: 'TSK-015',
+      title: 'Track Tribunal Application Status',
+      description: 'Monitor application processing status and follow up on any deficiency notices',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      caseNumber: 'GST/2024/001',
+      stage: 'GSTAT',
+      priority: 'Medium',
+      status: 'Not Started',
+      assignedToId: '3',
+      assignedToName: 'Mike Wilson',
+      assignedById: '2',
+      assignedByName: 'Sarah Johnson',
+      createdDate: '2024-04-05',
+      dueDate: '2024-04-30',
+      estimatedHours: 4,
+      isAutoGenerated: false,
+      escalationLevel: 0
+    },
+    // HC Stage Tasks
+    {
+      id: 'TSK-016',
+      title: 'Draft High Court Petition',
+      description: 'Prepare writ petition challenging tribunal order on questions of law',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      caseNumber: 'GST/2024/001',
+      stage: 'HC',
+      priority: 'Critical',
+      status: 'Not Started',
+      assignedToId: '2',
+      assignedToName: 'Sarah Johnson',
+      assignedById: '1',
+      assignedByName: 'John Smith',
+      createdDate: '2024-06-01',
+      dueDate: '2024-06-20',
+      estimatedHours: 32,
+      isAutoGenerated: true,
+      escalationLevel: 0
+    },
+    {
+      id: 'TSK-017',
+      title: 'File Writ Petition Documents',
+      description: 'File complete set of writ petition documents with High Court registry',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      caseNumber: 'GST/2024/001',
+      stage: 'HC',
+      priority: 'High',
+      status: 'Not Started',
+      assignedToId: '3',
+      assignedToName: 'Mike Wilson',
+      assignedById: '2',
+      assignedByName: 'Sarah Johnson',
+      createdDate: '2024-06-15',
+      dueDate: '2024-06-25',
+      estimatedHours: 6,
+      isAutoGenerated: false,
+      escalationLevel: 0
+    },
+    {
+      id: 'TSK-018',
+      title: 'Prepare HC Hearing Arguments',
+      description: 'Prepare oral arguments and case brief for High Court hearing',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      caseNumber: 'GST/2024/001',
+      stage: 'HC',
+      priority: 'High',
+      status: 'Not Started',
+      assignedToId: '2',
+      assignedToName: 'Sarah Johnson',
+      assignedById: '1',
+      assignedByName: 'John Smith',
+      createdDate: '2024-07-01',
+      dueDate: '2024-07-15',
+      estimatedHours: 16,
+      isAutoGenerated: false,
+      escalationLevel: 0
+    },
+    // SC Stage Tasks
+    {
+      id: 'TSK-019',
+      title: 'Prepare SLP Petition',
+      description: 'Draft Special Leave Petition for Supreme Court challenging High Court judgment',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      caseNumber: 'GST/2024/001',
+      stage: 'SC',
+      priority: 'Critical',
+      status: 'Not Started',
+      assignedToId: '1',
+      assignedToName: 'John Smith',
+      assignedById: '1',
+      assignedByName: 'John Smith',
+      createdDate: '2024-09-01',
+      dueDate: '2024-09-20',
+      estimatedHours: 40,
+      isAutoGenerated: true,
+      escalationLevel: 0
+    },
+    {
+      id: 'TSK-020',
+      title: 'File Supreme Court Documents',
+      description: 'File complete SLP petition and supporting documents with Supreme Court registry',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      caseNumber: 'GST/2024/001',
+      stage: 'SC',
+      priority: 'Critical',
+      status: 'Not Started',
+      assignedToId: '3',
+      assignedToName: 'Mike Wilson',
+      assignedById: '1',
+      assignedByName: 'John Smith',
+      createdDate: '2024-09-15',
+      dueDate: '2024-09-25',
+      estimatedHours: 8,
+      isAutoGenerated: false,
+      escalationLevel: 0
+    },
+    {
+      id: 'TSK-021',
+      title: 'Final Argument Preparation',
+      description: 'Prepare comprehensive oral arguments and legal brief for Supreme Court final hearing',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      caseNumber: 'GST/2024/001',
+      stage: 'SC',
+      priority: 'Critical',
+      status: 'Not Started',
+      assignedToId: '1',
+      assignedToName: 'John Smith',
+      assignedById: '1',
+      assignedByName: 'John Smith',
+      createdDate: '2024-10-01',
+      dueDate: '2024-10-20',
+      estimatedHours: 24,
+      isAutoGenerated: false,
+      escalationLevel: 0
+    }
+  ],
+  clients: [
+    {
+      id: 'CLT-MOCK-001',
+      name: 'TechCorp Industries Private Limited',
+      type: 'Company',
+      email: 'legal@techcorp.in',
+      phone: '+91-9876543220',
+      address: '15th Floor, Tech Tower, Cyber City, Gurgaon, Haryana - 122002',
+      registrationNumber: 'U72200HR2018PTC074521',
+      pan: 'AACTC1234M',
+      panNumber: 'AACTC1234M',
+      gstNumber: '06AACTC1234M1ZX',
+      status: 'Active',
+      assignedCAId: '2',
+      assignedCAName: 'Sarah Johnson',
+      registrationDate: '2018-05-15',
+      totalCases: 8,
+      activeCases: 3,
+      totalInvoiced: 850000,
+      signatories: [
+        {
+          id: 'SIG-001',
+          fullName: 'Rajesh Gupta',
+          designation: 'Chief Executive Officer',
+          email: 'rajesh.gupta@techcorp.in',
+          phone: '+91-9876543221',
+          isPrimary: true,
+          scope: 'All',
+          status: 'Active'
+        }
+      ]
+    },
+    {
+      id: 'CLT-MOCK-002',
+      name: 'ManufacturingPlus Limited',
+      type: 'Company', 
+      email: 'compliance@manufacturingplus.com',
+      phone: '+91-9876543222',
+      address: 'Plot No. 45, Industrial Area Phase-2, Chandigarh - 160002',
+      registrationNumber: 'U25200CH2015PLC035896',
+      pan: 'AABCM5678N',
+      panNumber: 'AABCM5678N',
+      gstNumber: '04AABCM5678N1Z1',
+      status: 'Active',
+      assignedCAId: '1',
+      assignedCAName: 'John Smith',
+      registrationDate: '2015-03-20',
+      totalCases: 12,
+      activeCases: 4,
+      totalInvoiced: 1250000,
+      signatories: [
+        {
+          id: 'SIG-002',
+          fullName: 'Priya Sharma',
+          designation: 'Chief Financial Officer',
+          email: 'priya.sharma@manufacturingplus.com',
+          phone: '+91-9876543223',
+          isPrimary: true,
+          scope: 'All',
+          status: 'Active'
+        }
+      ]
+    },
+    {
+      id: 'CLT-MOCK-003',
+      name: 'ServiceHub Private Limited',
+      type: 'Company',
+      email: 'info@servicehub.co.in',
+      phone: '+91-9876543224',
+      address: '3rd Floor, Business Center, MG Road, Bangalore - 560001',
+      registrationNumber: 'U74200KA2019PTC125847',
+      pan: 'AACSH9012P',
+      panNumber: 'AACSH9012P',
+      gstNumber: '29AACSH9012P1Z5',
+      status: 'Active',
+      assignedCAId: '5',
+      assignedCAName: 'David Kumar',
+      registrationDate: '2019-07-10',
+      totalCases: 5,
+      activeCases: 2,
+      totalInvoiced: 420000,
+      signatories: [
+        {
+          id: 'SIG-003',
+          fullName: 'Amit Patel',
+          designation: 'Managing Director',
+          email: 'amit.patel@servicehub.co.in',
+          phone: '+91-9876543225',
+          isPrimary: true,
+          scope: 'All',
+          status: 'Active'
+        }
+      ]
+    },
+    {
+      id: 'CLT-MOCK-004',
+      name: 'ExportKing Enterprises',
+      type: 'Company',
+      email: 'exports@exportking.in',
+      phone: '+91-9876543226',
+      address: 'Export House, SEEPZ, Andheri East, Mumbai - 400096',
+      registrationNumber: 'U51200MH2020PTC342158',
+      pan: 'AABEK3456Q',
+      panNumber: 'AABEK3456Q',
+      gstNumber: '27AABEK3456Q1ZY',
+      status: 'Active',
+      assignedCAId: '2',
+      assignedCAName: 'Sarah Johnson',
+      registrationDate: '2020-01-25',
+      totalCases: 6,
+      activeCases: 2,
+      totalInvoiced: 680000,
+      signatories: [
+        {
+          id: 'SIG-004',
+          fullName: 'Sunita Agarwal',
+          designation: 'Export Manager',
+          email: 'sunita.agarwal@exportking.in',
+          phone: '+91-9876543227',
+          isPrimary: true,
+          scope: 'All',
+          status: 'Active'
+        }
+      ]
+    },
+    {
+      id: 'CLT-MOCK-005',
+      name: 'MultiState Logistics Limited',
+      type: 'Company',
+      email: 'legal@multistatelogistics.com',
+      phone: '+91-9876543228',
+      address: 'Transport Nagar, Ring Road, New Delhi - 110020',
+      registrationNumber: 'U60200DL2017PLC316472',
+      pan: 'AACMS7890R',
+      panNumber: 'AACMS7890R',
+      gstNumber: '07AACMS7890R1Z8',
+      status: 'Active',
+      assignedCAId: '4',
+      assignedCAName: 'Emily Chen',
+      registrationDate: '2017-09-15',
+      totalCases: 9,
+      activeCases: 3,
+      totalInvoiced: 920000,
+      signatories: [
+        {
+          id: 'SIG-005',
+          fullName: 'Vikram Singh',
+          designation: 'General Manager',
+          email: 'vikram.singh@multistatelogistics.com',
+          phone: '+91-9876543229',
+          isPrimary: true,
+          scope: 'All',
+          status: 'Active'
+        }
+      ]
+    }
+  ],
+  clientGroups: [
+    {
+      id: 'cg-001',
+      name: 'Individual Clients',
+      code: 'individual_clients',
+      description: 'All individual taxpayers',
+      totalClients: 0,
+      status: 'Active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: 'cg-002',
+      name: 'Proprietorship Firms',
+      code: 'proprietorship_firms',
+      description: 'Sole proprietorship entities',
+      totalClients: 0,
+      status: 'Active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: 'cg-003',
+      name: 'Partnership Firms',
+      code: 'partnership_firms',
+      description: 'GST-registered partnerships',
+      totalClients: 0,
+      status: 'Active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: 'cg-004',
+      name: 'Private Limited Companies',
+      code: 'private_limited',
+      description: 'Corporate clients',
+      totalClients: 0,
+      status: 'Active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: 'cg-005',
+      name: 'LLP / Limited Liability Partnership',
+      code: 'llp',
+      description: 'LLP-registered clients',
+      totalClients: 0,
+      status: 'Active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: 'cg-006',
+      name: 'Trusts / NGOs',
+      code: 'trusts_ngos',
+      description: 'Charitable or non-profit entities',
+      totalClients: 0,
+      status: 'Active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: 'cg-007',
+      name: 'Chartered Accountant References',
+      code: 'ca_references',
+      description: 'Clients referred by CAs',
+      totalClients: 0,
+      status: 'Active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: 'cg-008',
+      name: 'Advocate References',
+      code: 'advocate_references',
+      description: 'Clients referred by legal practitioners',
+      totalClients: 0,
+      status: 'Active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: 'cg-009',
+      name: 'Landmark Group',
+      code: 'landmark_group',
+      description: 'Example corporate cluster',
+      totalClients: 0,
+      status: 'Active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: 'cg-010',
+      name: 'Tata Group',
+      code: 'tata_group',
+      description: 'Example corporate cluster',
+      totalClients: 0,
+      status: 'Active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: 'cg-999',
+      name: 'Unclassified Group',
+      code: 'unclassified',
+      description: 'Default fallback for clients without specified group',
+      totalClients: 0,
+      status: 'Active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+  ],
+  forums: [
+    {
+      id: '1',
+      name: 'Income Tax Appellate Tribunal',
+      type: 'Tribunal',
+      jurisdiction: 'Mumbai',
+      address: 'Aayakar Bhavan, M.K. Road, Mumbai',
+      activeCases: 450,
+      avgHearingTime: '45 mins',
+      digitalFiling: true,
+      workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+    },
+    {
+      id: '2',
+      name: 'Supreme Court of India',
+      type: 'Supreme Court',
+      jurisdiction: 'National',
+      address: 'Tilak Marg, New Delhi - 110001',
+      activeCases: 70000,
+      avgHearingTime: '90 mins',
+      digitalFiling: true,
+      workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+    },
+    {
+      id: '3',
+      name: 'GST Commissioner Office',
+      type: 'Commission',
+      jurisdiction: 'Mumbai Zone',
+      address: 'GST Bhavan, BKC, Mumbai - 400051',
+      activeCases: 1200,
+      avgHearingTime: '30 mins',
+      digitalFiling: true,
+      workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+    }
+  ],
+  courts: [
+    {
+      id: '1',
+      name: 'Income Tax Appellate Tribunal',
+      type: 'Tribunal',
+      jurisdiction: 'Mumbai',
+      address: 'Aayakar Bhavan, M.K. Road, Mumbai',
+      activeCases: 450,
+      avgHearingTime: '45 mins',
+      digitalFiling: true,
+      workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+    },
+    {
+      id: '2',
+      name: 'Supreme Court of India',
+      type: 'Supreme Court',
+      jurisdiction: 'National',
+      address: 'Tilak Marg, New Delhi - 110001',
+      activeCases: 70000,
+      avgHearingTime: '90 mins',
+      digitalFiling: true,
+      workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+    },
+    {
+      id: '3',
+      name: 'GST Commissioner Office',
+      type: 'Commission',
+      jurisdiction: 'Mumbai Zone',
+      address: 'GST Bhavan, BKC, Mumbai - 400051',
+      activeCases: 1200,
+      avgHearingTime: '30 mins',
+      digitalFiling: true,
+      workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+    }
+  ],
+  judges: [
+    {
+      id: '1',
+      name: 'Justice Rajesh Sharma',
+      designation: 'Chief Justice',
+      forumId: '1',
+      appointmentDate: '2015-06-15',
+      specialization: ['Tax Law', 'Corporate Law'],
+      totalCases: 1250,
+      avgDisposalTime: '8 months',
+      retirementDate: '2030-06-14',
+      status: 'Active',
+      contactInfo: {
+        chambers: 'Chamber No. 15, ITAT Mumbai',
+        phone: '+91-22-12345678',
+        email: 'justice.sharma@itat.gov.in'
+      }
+    },
+    {
+      id: '2',
+      name: 'Hon\'ble Chief Justice D.Y. Chandrachud',
+      designation: 'Chief Justice of India',
+      forumId: '2',
+      appointmentDate: '2016-05-13',
+      specialization: ['Constitutional Law', 'Human Rights', 'Criminal Law'],
+      totalCases: 2800,
+      avgDisposalTime: '12 months',
+      retirementDate: '2029-11-10',
+      status: 'Active',
+      contactInfo: {
+        chambers: 'Chamber No. 1, Supreme Court',
+        phone: '+91-11-23388922',
+        email: 'cji@sci.gov.in'
+      }
+    },
+    {
+      id: '3',
+      name: 'Shri A.K. Verma',
+      designation: 'Additional Commissioner',
+      forumId: '3',
+      appointmentDate: '2018-07-01',
+      specialization: ['GST Law', 'Tax Assessment', 'Revenue Recovery'],
+      totalCases: 800,
+      avgDisposalTime: '4 months',
+      retirementDate: '2032-03-31',
+      status: 'Active',
+      contactInfo: {
+        chambers: 'Office No. 301, GST Bhavan',
+        phone: '+91-22-26572000',
+        email: 'addl.comm@gstmumbai.gov.in'
+      }
+    }
+  ],
+  documents: [
+    // Scrutiny Stage Documents
+    {
+      id: 'DOC-001',
+      name: 'GST Registration Certificate.pdf',
+      type: 'pdf',
+      size: 856000,
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      uploadedById: '5',
+      uploadedByName: 'David Kumar',
+      uploadedAt: '2024-01-15T09:15:00Z',
+      tags: ['Registration', 'GST Certificate', 'Scrutiny'],
+      isShared: true,
+      path: '/documents/gst-001/scrutiny/gst-registration-certificate.pdf'
+    },
+    {
+      id: 'DOC-002',
+      name: 'Assessment Order - Original.pdf',
+      type: 'pdf',
+      size: 1245000,
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      uploadedById: '2',
+      uploadedByName: 'Sarah Johnson',
+      uploadedAt: '2024-01-16T11:30:00Z',
+      tags: ['Assessment', 'Original Order', 'Scrutiny'],
+      isShared: false,
+      path: '/documents/gst-001/scrutiny/assessment-order-original.pdf'
+    },
+    {
+      id: 'DOC-003',
+      name: 'Client Authorization Letter.pdf',
+      type: 'pdf',
+      size: 512000,
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      uploadedById: '2',
+      uploadedByName: 'Sarah Johnson',
+      uploadedAt: '2024-01-17T14:45:00Z',
+      tags: ['Authorization', 'Client Documents', 'Scrutiny'],
+      isShared: true,
+      path: '/documents/gst-001/scrutiny/client-authorization-letter.pdf'
+    },
+    // Demand Stage Documents
+    {
+      id: 'DOC-004',
+      name: 'Show Cause Notice - SCN.pdf',
+      type: 'pdf',
+      size: 1856000,
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      uploadedById: '2',
+      uploadedByName: 'Sarah Johnson',
+      uploadedAt: '2024-01-25T10:00:00Z',
+      tags: ['SCN', 'Show Cause Notice', 'Demand'],
+      isShared: false,
+      path: '/documents/gst-001/demand/show-cause-notice.pdf'
+    },
+    {
+      id: 'DOC-005',
+      name: 'Response to SCN - Draft.pdf',
+      type: 'pdf',
+      size: 2156000,
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      uploadedById: '2',
+      uploadedByName: 'Sarah Johnson',
+      uploadedAt: '2024-02-03T16:20:00Z',
+      tags: ['Response', 'SCN Reply', 'Demand'],
+      isShared: true,
+      path: '/documents/gst-001/demand/response-to-scn-draft.pdf'
+    },
+    {
+      id: 'DOC-006',
+      name: 'ITC Supporting Invoices.pdf',
+      type: 'pdf',
+      size: 3456000,
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      uploadedById: '5',
+      uploadedByName: 'David Kumar',
+      uploadedAt: '2024-01-31T12:15:00Z',
+      tags: ['ITC', 'Invoices', 'Evidence'],
+      isShared: true,
+      path: '/documents/gst-001/demand/itc-supporting-invoices.pdf'
+    },
+    // Adjudication Stage Documents
+    {
+      id: 'DOC-007',
+      name: 'Written Submissions - Final.pdf',
+      type: 'pdf',
+      size: 2856000,
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      uploadedById: '2',
+      uploadedByName: 'Sarah Johnson',
+      uploadedAt: '2024-02-18T17:30:00Z',
+      tags: ['Submissions', 'Written Arguments', 'Adjudication'],
+      isShared: false,
+      path: '/documents/gst-001/adjudication/written-submissions-final.pdf'
+    },
+    {
+      id: 'DOC-008',
+      name: 'Case Law Compilation.pdf',
+      type: 'pdf',
+      size: 4256000,
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      uploadedById: '2',
+      uploadedByName: 'Sarah Johnson',
+      uploadedAt: '2024-02-20T09:45:00Z',
+      tags: ['Case Law', 'Precedents', 'Adjudication'],
+      isShared: true,
+      path: '/documents/gst-001/adjudication/case-law-compilation.pdf'
+    },
+    {
+      id: 'DOC-009',
+      name: 'Adjudication Order.pdf',
+      type: 'pdf',
+      size: 1656000,
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      uploadedById: '2',
+      uploadedByName: 'Sarah Johnson',
+      uploadedAt: '2024-03-07T11:00:00Z',
+      tags: ['Order', 'Adjudication Order', 'Final'],
+      isShared: false,
+      path: '/documents/gst-001/adjudication/adjudication-order.pdf'
+    },
+    // Appeals Stage Documents (Current Stage)
+    {
+      id: 'DOC-010',
+      name: 'First Appeal Petition - Draft.pdf',
+      type: 'pdf',
+      size: 2956000,
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      uploadedById: '2',
+      uploadedByName: 'Sarah Johnson',
+      uploadedAt: '2024-03-15T15:20:00Z',
+      tags: ['Appeal', 'First Appeal', 'Draft'],
+      isShared: true,
+      path: '/documents/gst-001/appeals/first-appeal-petition-draft.pdf'
+    },
+    {
+      id: 'DOC-011',
+      name: 'Grounds of Appeal.pdf',
+      type: 'pdf',
+      size: 1456000,
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      uploadedById: '2',
+      uploadedByName: 'Sarah Johnson',
+      uploadedAt: '2024-03-18T10:30:00Z',
+      tags: ['Grounds', 'Appeal Grounds', 'Legal'],
+      isShared: false,
+      path: '/documents/gst-001/appeals/grounds-of-appeal.pdf'
+    },
+    {
+      id: 'DOC-012',
+      name: 'Appeal Documents Bundle.pdf',
+      type: 'pdf',
+      size: 5656000,
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      uploadedById: '5',
+      uploadedByName: 'David Kumar',
+      uploadedAt: '2024-03-20T14:00:00Z',
+      tags: ['Bundle', 'Supporting Documents', 'Appeals'],
+      isShared: true,
+      path: '/documents/gst-001/appeals/appeal-documents-bundle.pdf'
+    },
+    // GSTAT Stage Documents
+    {
+      id: 'DOC-013',
+      name: 'GSTAT Application Form.pdf',
+      type: 'pdf',
+      size: 1856000,
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      uploadedById: '2',
+      uploadedByName: 'Sarah Johnson',
+      uploadedAt: '2024-04-10T09:15:00Z',
+      tags: ['GSTAT', 'Application Form', 'Tribunal'],
+      isShared: false,
+      path: '/documents/gst-001/gstat/gstat-application-form.pdf'
+    },
+    {
+      id: 'DOC-014',
+      name: 'Compliance Certificates.pdf',
+      type: 'pdf',
+      size: 1256000,
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      uploadedById: '5',
+      uploadedByName: 'David Kumar',
+      uploadedAt: '2024-04-12T13:30:00Z',
+      tags: ['Compliance', 'Certificates', 'GSTAT'],
+      isShared: true,
+      path: '/documents/gst-001/gstat/compliance-certificates.pdf'
+    },
+    {
+      id: 'DOC-015',
+      name: 'Tribunal Order.pdf',
+      type: 'pdf',
+      size: 1956000,
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      uploadedById: '2',
+      uploadedByName: 'Sarah Johnson',
+      uploadedAt: '2024-05-25T16:45:00Z',
+      tags: ['Order', 'Tribunal Order', 'Final'],
+      isShared: false,
+      path: '/documents/gst-001/gstat/tribunal-order.pdf'
+    },
+    // HC Stage Documents
+    {
+      id: 'DOC-016',
+      name: 'Writ Petition.pdf',
+      type: 'pdf',
+      size: 3456000,
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      uploadedById: '2',
+      uploadedByName: 'Sarah Johnson',
+      uploadedAt: '2024-06-20T11:00:00Z',
+      tags: ['Writ', 'High Court', 'Petition'],
+      isShared: false,
+      path: '/documents/gst-001/hc/writ-petition.pdf'
+    },
+    {
+      id: 'DOC-017',
+      name: 'HC Affidavits.pdf',
+      type: 'pdf',
+      size: 2156000,
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      uploadedById: '2',
+      uploadedByName: 'Sarah Johnson',
+      uploadedAt: '2024-06-25T14:20:00Z',
+      tags: ['Affidavit', 'High Court', 'Supporting'],
+      isShared: true,
+      path: '/documents/gst-001/hc/hc-affidavits.pdf'
+    },
+    {
+      id: 'DOC-018',
+      name: 'HC Judgment.pdf',
+      type: 'pdf',
+      size: 2456000,
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      uploadedById: '2',
+      uploadedByName: 'Sarah Johnson',
+      uploadedAt: '2024-08-30T10:15:00Z',
+      tags: ['Judgment', 'High Court', 'Final'],
+      isShared: false,
+      path: '/documents/gst-001/hc/hc-judgment.pdf'
+    },
+    // SC Stage Documents
+    {
+      id: 'DOC-019',
+      name: 'SLP Petition.pdf',
+      type: 'pdf',
+      size: 4256000,
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      uploadedById: '1',
+      uploadedByName: 'John Smith',
+      uploadedAt: '2024-09-20T15:30:00Z',
+      tags: ['SLP', 'Supreme Court', 'Petition'],
+      isShared: false,
+      path: '/documents/gst-001/sc/slp-petition.pdf'
+    },
+    {
+      id: 'DOC-020',
+      name: 'Counter Affidavit.pdf',
+      type: 'pdf',
+      size: 1856000,
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      uploadedById: '1',
+      uploadedByName: 'John Smith',
+      uploadedAt: '2024-10-05T12:45:00Z',
+      tags: ['Counter', 'Affidavit', 'Supreme Court'],
+      isShared: true,
+      path: '/documents/gst-001/sc/counter-affidavit.pdf'
+    },
+    {
+      id: 'DOC-021',
+      name: 'SC Final Judgment.pdf',
+      type: 'pdf',
+      size: 2756000,
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      uploadedById: '1',
+      uploadedByName: 'John Smith',
+      uploadedAt: '2024-12-15T09:00:00Z',
+      tags: ['Judgment', 'Supreme Court', 'Final'],
+      isShared: false,
+      path: '/documents/gst-001/sc/sc-final-judgment.pdf'
+    }
+  ],
+  folders: [
+    {
+      id: 'litigation-docs',
+      name: 'Litigation Documents',
+      documentCount: 15,
+      size: 25600000,
+      createdAt: '2024-01-10',
+      lastAccess: '2024-01-25',
+      description: 'Legal documents for litigation cases',
+      path: '/folders/litigation-docs'
+    },
+    {
+      id: 'gst-assessment',
+      name: 'GST Assessment',
+      parentId: 'litigation-docs',
+      documentCount: 8,
+      size: 12800000,
+      createdAt: '2024-01-15',
+      lastAccess: '2024-01-24',
+      description: 'GST assessment related documents',
+      path: '/folders/litigation-docs/gst-assessment'
+    },
+    {
+      id: 'appeals',
+      name: 'Appeals',
+      parentId: 'litigation-docs',
+      documentCount: 7,
+      size: 12800000,
+      createdAt: '2024-01-15',
+      lastAccess: '2024-01-24',
+      description: 'Appeal documents and submissions',
+      path: '/folders/litigation-docs/appeals'
+    },
+    {
+      id: 'client-docs',
+      name: 'Client Documents',
+      documentCount: 23,
+      size: 35200000,
+      createdAt: '2024-01-05',
+      lastAccess: '2024-01-25',
+      description: 'Client-related documents organized by case',
+      path: '/folders/client-docs'
+    },
+    {
+      id: 'client-uploads',
+      name: 'Client Uploads',
+      parentId: 'client-docs',
+      documentCount: 12,
+      size: 18000000,
+      createdAt: '2024-01-05',
+      lastAccess: '2024-01-25',
+      description: 'Documents uploaded by clients via portal',
+      path: '/folders/client-docs/uploads'
+    },
+    {
+      id: 'internal-docs',
+      name: 'Internal Documents',
+      documentCount: 18,
+      size: 28800000,
+      createdAt: '2024-01-01',
+      lastAccess: '2024-01-25',
+      description: 'Internal firm documents and templates',
+      path: '/folders/internal-docs'
+    },
+    {
+      id: 'templates',
+      name: 'Templates',
+      parentId: 'internal-docs',
+      documentCount: 15,
+      size: 20480000,
+      createdAt: '2024-01-01',
+      lastAccess: '2024-01-25',
+      description: 'Document templates and forms',
+      path: '/folders/internal-docs/templates'
+    }
+  ],
+  hearings: [
+    // Adjudication Stage Hearings
+    {
+      id: 'HRG-001',
+      case_id: 'GST-001',
+      start_time: '10:30',
+      end_time: '11:30',
+      timezone: 'Asia/Kolkata',
+      court_id: '1',
+      judge_ids: ['1'],
+      purpose: 'mention',
+      status: 'concluded',
+      created_by: 'USR-001',
+      created_at: '2024-02-10T10:00:00Z',
+      updated_at: '2024-02-25T11:30:00Z',
+      outcome_text: 'Preliminary arguments heard. Department requested additional time to file counter.',
+      date: '2024-02-25',
+      // Legacy support
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      courtId: '1',
+      judgeId: '1',
+      time: '10:30',
+      type: 'Preliminary',
+      agenda: 'Initial hearing for ITC disallowance case - preliminary arguments',
+      notes: 'Preliminary arguments heard. Department requested additional time to file counter.',
+      createdDate: '2024-02-10',
+      lastUpdated: '2024-02-25'
+    },
+    {
+      id: 'HRG-002',
+      case_id: 'GST-001',
+      start_time: '11:00',
+      end_time: '12:00',
+      timezone: 'Asia/Kolkata',
+      court_id: '1',
+      judge_ids: ['1'],
+      purpose: 'PH',
+      status: 'concluded',
+      created_by: 'USR-001',
+      created_at: '2024-02-26T10:00:00Z',
+      updated_at: '2024-03-05T12:00:00Z',
+      outcome_text: 'Detailed arguments concluded. Matter reserved for orders. Order expected by March 15.',
+      date: '2024-03-05',
+      // Legacy support
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      courtId: '1',
+      judgeId: '1',
+      time: '11:00',
+      type: 'Argued',
+      agenda: 'Main hearing - detailed arguments on ITC eligibility and compliance',
+      notes: 'Detailed arguments concluded. Matter reserved for orders. Order expected by March 15.',
+      createdDate: '2024-02-26',
+      lastUpdated: '2024-03-05'
+    },
+    {
+      id: 'HRG-003',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      courtId: '1',
+      judgeId: '1',
+      date: '2024-03-07',
+      time: '10:00',
+      type: 'Final',
+      status: 'concluded',
+      agenda: 'Order pronouncement - adjudication decision',
+      notes: 'Order pronounced. ITC disallowance upheld. Appeal rights explained to taxpayer.',
+      createdDate: '2024-03-06',
+      lastUpdated: '2024-03-07'
+    },
+    // Appeals Stage Hearings (Current Stage)
+    {
+      id: 'HRG-004',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      courtId: '1',
+      judgeId: '1',
+      date: '2024-03-25',
+      time: '10:30',
+      type: 'Preliminary',
+      status: 'scheduled',
+      agenda: 'First appeal admission hearing - preliminary review of grounds',
+      createdDate: '2024-03-15',
+      lastUpdated: '2024-03-20',
+      syncStatus: 'synced',
+      externalEventId: 'goog_cal_event_001'
+    },
+    {
+      id: 'HRG-005',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      courtId: '1',
+      judgeId: '1',
+      date: '2024-04-10',
+      time: '11:30',
+      type: 'Argued',
+      status: 'scheduled',
+      agenda: 'Main appeal hearing - detailed arguments on legal and factual grounds',
+      createdDate: '2024-03-25',
+      lastUpdated: '2024-03-25',
+      syncStatus: 'sync_pending'
+    },
+    {
+      id: 'HRG-006',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      courtId: '1',
+      judgeId: '1',
+      date: '2024-04-25',
+      time: '09:30',
+      type: 'Final',
+      status: 'scheduled',
+      agenda: 'Final appeal hearing and order reserved',
+      createdDate: '2024-04-10',
+      lastUpdated: '2024-04-10',
+      syncStatus: 'not_synced'
+    },
+    // GSTAT Stage Hearings
+    {
+      id: 'HRG-007',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      courtId: '1',
+      judgeId: '1',
+      date: '2024-05-15',
+      time: '10:00',
+      type: 'Preliminary',
+      status: 'scheduled',
+      agenda: 'GSTAT application hearing - admission and preliminary issues',
+      createdDate: '2024-04-30',
+      lastUpdated: '2024-05-01',
+      syncStatus: 'synced',
+      externalEventId: 'outlook_event_002'
+    },
+    {
+      id: 'HRG-008',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      courtId: '1',
+      judgeId: '1',
+      date: '2024-05-25',
+      time: '11:00',
+      type: 'Final',
+      status: 'scheduled',
+      agenda: 'Final GSTAT hearing and tribunal order',
+      createdDate: '2024-05-15',
+      lastUpdated: '2024-05-15',
+      syncStatus: 'synced',
+      externalEventId: 'goog_cal_event_003'
+    },
+    // HC Stage Hearings
+    {
+      id: 'HRG-009',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      courtId: '1',
+      judgeId: '1',
+      date: '2024-07-10',
+      time: '10:30',
+      type: 'Preliminary',
+      status: 'scheduled',
+      agenda: 'Writ petition admission hearing - prima facie case review',
+      createdDate: '2024-06-25',
+      lastUpdated: '2024-06-25',
+      syncStatus: 'not_synced'
+    },
+    {
+      id: 'HRG-010',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      courtId: '1',
+      judgeId: '1',
+      date: '2024-08-05',
+      time: '11:30',
+      type: 'Argued',
+      status: 'scheduled',
+      agenda: 'High Court main hearing - constitutional and legal questions',
+      createdDate: '2024-07-10',
+      lastUpdated: '2024-07-10',
+      syncStatus: 'sync_pending'
+    },
+    {
+      id: 'HRG-011',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      courtId: '1',
+      judgeId: '1',
+      date: '2024-08-20',
+      time: '10:00',
+      type: 'Argued',
+      status: 'scheduled',
+      agenda: 'Additional arguments and case law submissions',
+      createdDate: '2024-08-05',
+      lastUpdated: '2024-08-05',
+      syncStatus: 'synced',
+      externalEventId: 'outlook_event_004'
+    },
+    {
+      id: 'HRG-012',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      courtId: '1',
+      judgeId: '1',
+      date: '2024-08-30',
+      time: '09:30',
+      type: 'Final',
+      status: 'scheduled',
+      agenda: 'High Court judgment pronouncement',
+      createdDate: '2024-08-20',
+      lastUpdated: '2024-08-20',
+      syncStatus: 'synced',
+      externalEventId: 'goog_cal_event_005'
+    },
+    // SC Stage Hearings
+    {
+      id: 'HRG-013',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      courtId: '1',
+      judgeId: '1',
+      date: '2024-10-15',
+      time: '10:30',
+      type: 'Preliminary',
+      status: 'scheduled',
+      agenda: 'SLP admission hearing - substantial question of law',
+      createdDate: '2024-09-25',
+      lastUpdated: '2024-09-25',
+      syncStatus: 'not_synced'
+    },
+    {
+      id: 'HRG-014',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      courtId: '1',
+      judgeId: '1',
+      date: '2024-11-20',
+      time: '11:00',
+      type: 'Argued',
+      status: 'scheduled',
+      agenda: 'Supreme Court main hearing - final arguments',
+      createdDate: '2024-10-15',
+      lastUpdated: '2024-10-15',
+      syncStatus: 'sync_pending'
+    },
+    {
+      id: 'HRG-015',
+      caseId: 'GST-001',
+      clientId: 'CLT-MOCK-001',
+      courtId: '1',
+      judgeId: '1',
+      date: '2024-12-15',
+      time: '10:00',
+      type: 'Final',
+      status: 'scheduled',
+      agenda: 'Supreme Court final judgment pronouncement',
+      createdDate: '2024-11-20',
+      lastUpdated: '2024-11-20',
+      syncStatus: 'synced',
+      externalEventId: 'goog_cal_event_006'
+    }
+  ] as any,
+  userProfile: {
+    id: '1',
+    name: 'John Doe',
+    email: 'john@lawfirm.com',
+    phone: '+1 (555) 123-4567',
+    role: 'Admin',
+    department: 'Administration',
+    avatar: '/placeholder.svg',
+    bio: 'Experienced legal professional with over 10 years in practice management and administration.',
+    location: 'New York, NY',
+    timezone: 'America/New_York',
+    joinedDate: '2024-01-15',
+    lastLogin: '2024-01-20 10:30:00',
+    isActive: true
+  },
+  employees: [
+    {
+      id: 'demo-user',
+      full_name: 'Demo User',
+      role: 'Admin',
+      email: 'demo@lawfirm.com',
+      mobile: '+91-0000000000',
+      status: 'Active',
+      date_of_joining: '2024-01-01',
+      department: 'Administration',
+      workloadCapacity: 30,
+      specialization: ['General Administration', 'System Management']
+    },
+    {
+      id: '1',
+      full_name: 'John Smith',
+      role: 'Partner',
+      email: 'john.smith@lawfirm.com',
+      mobile: '+91-9876543210',
+      status: 'Active',
+      date_of_joining: '2018-03-15',
+      department: 'Corporate Law',
+      workloadCapacity: 40,
+      specialization: ['Corporate Law', 'Tax Law', 'Mergers & Acquisitions']
+    },
+    {
+      id: '2',
+      full_name: 'Sarah Johnson',
+      role: 'Advocate',
+      email: 'sarah.johnson@lawfirm.com',
+      mobile: '+91-9876543211',
+      status: 'Active',
+      date_of_joining: '2020-08-01',
+      department: 'Tax Law',
+      workloadCapacity: 35,
+      specialization: ['Tax Law', 'GST', 'Income Tax Appeals'],
+      managerId: '3'
+    },
+    {
+      id: '3',
+      full_name: 'Mike Wilson',
+      role: 'Manager',
+      email: 'mike.wilson@lawfirm.com',
+      mobile: '+91-9876543212',
+      status: 'Active',
+      date_of_joining: '2017-01-10',
+      department: 'Operations',
+      workloadCapacity: 30,
+      specialization: ['Team Management', 'Operations', 'Client Relations']
+    },
+    {
+      id: '4',
+      full_name: 'Emily Chen',
+      role: 'Advocate',
+      email: 'emily.chen@lawfirm.com',
+      mobile: '+91-9876543213',
+      status: 'Active',
+      date_of_joining: '2022-06-15',
+      department: 'Litigation',
+      workloadCapacity: 25,
+      specialization: ['Litigation', 'Civil Law', 'Commercial Disputes'],
+      managerId: '3'
+    },
+    {
+      id: '5',
+      full_name: 'David Kumar',
+      role: 'CA',
+      email: 'david.kumar@lawfirm.com',
+      mobile: '+91-9876543214',
+      status: 'Active',
+      date_of_joining: '2019-11-20',
+      department: 'Tax Law',
+      workloadCapacity: 30,
+      specialization: ['Chartered Accountancy', 'Tax Planning', 'Audit']
+    },
+    {
+      id: '6',
+      full_name: 'Lisa Patel',
+      role: 'Staff',
+      email: 'lisa.patel@lawfirm.com',
+      mobile: '+91-9876543215',
+      status: 'Inactive',
+      date_of_joining: '2021-02-12',
+      department: 'Support',
+      workloadCapacity: 20,
+      specialization: ['Research', 'Documentation', 'Case Management']
+    }
+  ],
+  tags: [],
+  timelineEntries: [],
+  isLoading: false,
+  error: null
+};
+
+// Reducer
+function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
+    case 'SET_LOADING':
+      return { ...state, isLoading: action.payload };
+    case 'SET_ERROR':
+      return { ...state, error: action.payload };
     case 'ADD_CASE':
       return { ...state, cases: [...state.cases, action.payload] };
     case 'UPDATE_CASE':
       return {
         ...state,
-        cases: state.cases.map(c => (c.id === action.payload.id ? action.payload : c)),
+        cases: state.cases.map(c => c.id === action.payload.id ? { ...c, ...action.payload } : c)
       };
     case 'DELETE_CASE':
-      return { ...state, cases: state.cases.filter(c => c.id !== action.payload) };
-    case 'ADD_CLIENT':
-      return { ...state, clients: [...state.clients, action.payload] };
-    case 'UPDATE_CLIENT':
       return {
         ...state,
-        clients: state.clients.map(client =>
-          client.id === action.payload.id ? action.payload : client
-        ),
+        cases: state.cases.filter(c => c.id !== action.payload)
       };
-    case 'DELETE_CLIENT':
-      return { ...state, clients: state.clients.filter(client => client.id !== action.payload) };
-    case 'ADD_COURT':
-      return { ...state, courts: [...state.courts, action.payload] };
-    case 'UPDATE_COURT':
-      return {
-        ...state,
-        courts: state.courts.map(court => (court.id === action.payload.id ? action.payload : court)),
-      };
-    case 'DELETE_COURT':
-      return { ...state, courts: state.courts.filter(court => court.id !== action.payload) };
-    case 'ADD_JUDGE':
-      return { ...state, judges: [...state.judges, action.payload] };
-    case 'UPDATE_JUDGE':
-      return {
-        ...state,
-        judges: state.judges.map(judge => (judge.id === action.payload.id ? action.payload : judge)),
-      };
-    case 'DELETE_JUDGE':
-      return { ...state, judges: state.judges.filter(judge => judge.id !== action.payload) };
-    case 'ADD_EMPLOYEE':
-      return { ...state, employees: [...state.employees, action.payload] };
-    case 'UPDATE_EMPLOYEE':
-      return {
-        ...state,
-        employees: state.employees.map(employee =>
-          employee.id === action.payload.id ? action.payload : employee
-        ),
-      };
-    case 'DELETE_EMPLOYEE':
-      return { ...state, employees: state.employees.filter(employee => employee.id !== action.payload) };
-    case 'ADD_HEARING':
-      return { ...state, hearings: [...state.hearings, action.payload] };
-    case 'UPDATE_HEARING':
-      return {
-        ...state,
-        hearings: state.hearings.map(hearing =>
-          hearing.id === action.payload.id ? action.payload : hearing
-        ),
-      };
-    case 'DELETE_HEARING':
-      return { ...state, hearings: state.hearings.filter(hearing => hearing.id !== action.payload) };
     case 'ADD_TASK':
       return { ...state, tasks: [...state.tasks, action.payload] };
     case 'UPDATE_TASK':
       return {
         ...state,
-        tasks: state.tasks.map(task => (task.id === action.payload.id ? action.payload : task)),
+        tasks: state.tasks.map(t => t.id === action.payload.id ? action.payload : t)
       };
     case 'DELETE_TASK':
-      return { ...state, tasks: state.tasks.filter(task => task.id !== action.payload) };
-    case 'ADD_TASK_NOTE':
-      return { ...state, taskNotes: [...state.taskNotes, action.payload] };
-    case 'UPDATE_TASK_NOTE':
       return {
         ...state,
-        taskNotes: state.taskNotes.map(taskNote =>
-          taskNote.id === action.payload.id ? action.payload : taskNote
-        ),
+        tasks: state.tasks.filter(t => t.id !== action.payload)
       };
+    case 'ADD_TASK_NOTE':
+      return { ...state, taskNotes: [...state.taskNotes, action.payload] };
     case 'DELETE_TASK_NOTE':
-      return { ...state, taskNotes: state.taskNotes.filter(taskNote => taskNote.id !== action.payload) };
+      return {
+        ...state,
+        taskNotes: state.taskNotes.filter(n => n.id !== action.payload)
+      };
+    case 'ADD_CLIENT':
+      return { ...state, clients: [...state.clients, action.payload] };
+    case 'UPDATE_CLIENT':
+      return {
+        ...state,
+        clients: state.clients.map(client => 
+          client.id === action.payload.id ? action.payload : client
+        )
+      };
+
+    case 'DELETE_CLIENT':
+      return {
+        ...state,
+        clients: state.clients.filter(client => client.id !== action.payload)
+      };
+
+    case 'ADD_CLIENT_GROUP':
+      return {
+        ...state,
+        clientGroups: [...state.clientGroups, action.payload]
+      };
+
+    case 'UPDATE_CLIENT_GROUP':
+      return {
+        ...state,
+        clientGroups: state.clientGroups.map(g =>
+          g.id === action.payload.id ? action.payload : g
+        )
+      };
+
+    case 'DELETE_CLIENT_GROUP':
+      return {
+        ...state,
+        clientGroups: state.clientGroups.filter(g => g.id !== action.payload)
+      };
+
+    case 'SYNC_CLIENT_GROUP_COUNTS':
+      // Recalculate totalClients for all groups
+      const groupCounts: Record<string, number> = {};
+      state.clients.forEach(client => {
+        if (client.clientGroupId) {
+          groupCounts[client.clientGroupId] = (groupCounts[client.clientGroupId] || 0) + 1;
+        }
+      });
+      
+      return {
+        ...state,
+        clientGroups: state.clientGroups.map(group => ({
+          ...group,
+          totalClients: groupCounts[group.id] || 0
+        }))
+      };
+
+    case 'ADD_SIGNATORY':
+      return {
+        ...state,
+        clients: state.clients.map(client => 
+          client.id === action.payload.clientId
+            ? {
+                ...client,
+                signatories: [...(client.signatories || []), action.payload.signatory]
+              }
+            : client
+        )
+      };
+
+    case 'UPDATE_SIGNATORY':
+      return {
+        ...state,
+        clients: state.clients.map(client => 
+          client.id === action.payload.clientId
+            ? {
+                ...client,
+                signatories: (client.signatories || []).map(sig =>
+                  sig.id === action.payload.signatory.id ? action.payload.signatory : sig
+                )
+              }
+            : client
+        )
+      };
+
+    case 'DELETE_SIGNATORY':
+      return {
+        ...state,
+        clients: state.clients.map(client => 
+          client.id === action.payload.clientId
+            ? {
+                ...client,
+                signatories: (client.signatories || []).filter(sig => sig.id !== action.payload.signatoryId)
+              }
+            : client
+        )
+      };
+
+    case 'UPDATE_PORTAL_ACCESS':
+      return {
+        ...state,
+        clients: state.clients.map(client => 
+          client.id === action.payload.clientId
+            ? {
+                ...client,
+                portalAccess: action.payload.portalAccess
+              }
+            : client
+        )
+      };
+    case 'ADD_FORUM':
+    case 'ADD_COURT':
+      const newForums = [...state.forums, action.payload];
+      return {
+        ...state,
+        forums: newForums,
+        courts: newForums
+      };
+    case 'UPDATE_FORUM':
+    case 'UPDATE_COURT':
+      const updatedForums = state.forums.map(f => f.id === action.payload.id ? action.payload : f);
+      return {
+        ...state,
+        forums: updatedForums,
+        courts: updatedForums
+      };
+    case 'DELETE_FORUM':
+    case 'DELETE_COURT':
+      const filteredForums = state.forums.filter(f => f.id !== action.payload);
+      return {
+        ...state,
+        forums: filteredForums,
+        courts: filteredForums
+      };
+    case 'ADD_JUDGE':
+      return { ...state, judges: [...state.judges, action.payload] };
+    case 'UPDATE_JUDGE':
+      return {
+        ...state,
+        judges: state.judges.map(j => j.id === action.payload.id ? action.payload : j)
+      };
+    case 'DELETE_JUDGE':
+      return {
+        ...state,
+        judges: state.judges.filter(j => j.id !== action.payload)
+      };
     case 'ADD_DOCUMENT':
       return { ...state, documents: [...state.documents, action.payload] };
     case 'UPDATE_DOCUMENT':
       return {
         ...state,
-        documents: state.documents.map(document =>
-          document.id === action.payload.id ? action.payload : document
-        ),
+        documents: state.documents.map(d => d.id === action.payload.id ? { ...d, ...action.payload } : d)
       };
     case 'DELETE_DOCUMENT':
-      return { ...state, documents: state.documents.filter(document => document.id !== action.payload) };
+      return {
+        ...state,
+        documents: state.documents.filter(d => d.id !== action.payload)
+      };
+    case 'SET_FOLDERS':
+      return { ...state, folders: action.payload };
     case 'ADD_FOLDER':
       return { ...state, folders: [...state.folders, action.payload] };
     case 'UPDATE_FOLDER':
       return {
         ...state,
-        folders: state.folders.map(folder => (folder.id === action.payload.id ? action.payload : folder)),
+        folders: state.folders.map(f => f.id === action.payload.id ? { ...f, ...action.payload } : f)
       };
     case 'DELETE_FOLDER':
-      return { ...state, folders: state.folders.filter(folder => folder.id !== action.payload) };
+      return {
+        ...state,
+        folders: state.folders.filter(f => f.id !== action.payload)
+      };
+    case 'ADD_HEARING':
+      return { ...state, hearings: [...state.hearings, action.payload] };
+    case 'UPDATE_HEARING':
+      return {
+        ...state,
+        hearings: state.hearings.map(h => h.id === action.payload.id ? { ...h, ...action.payload } : h)
+      };
+    case 'DELETE_HEARING':
+      return {
+        ...state,
+        hearings: state.hearings.filter(h => h.id !== action.payload)
+      };
+    case 'ADD_EMPLOYEE':
+      return { ...state, employees: [...state.employees, action.payload] };
+    case 'UPDATE_EMPLOYEE':
+      return {
+        ...state,
+        employees: state.employees.map(e => e.id === action.payload.id ? { ...e, ...action.payload.updates } : e)
+      };
+    case 'DELETE_EMPLOYEE':
+      return {
+        ...state,
+        employees: state.employees.filter(e => e.id !== action.payload)
+      };
+    case 'SET_TAGS':
+      return { ...state, tags: action.payload };
+    case 'ADD_TAG':
+      return {
+        ...state,
+        tags: [...state.tags, action.payload].filter((tag, index, self) => self.indexOf(tag) === index)
+      };
+    case 'REMOVE_TAG':
+      return {
+        ...state,
+        tags: state.tags.filter(tag => tag !== action.payload)
+      };
+    case 'UPDATE_USER_PROFILE':
+      return {
+        ...state,
+        userProfile: { ...state.userProfile, ...action.payload }
+      };
     case 'ADD_TIMELINE_ENTRY':
-      return { ...state, timelineEntries: [...state.timelineEntries, action.payload] };
-    case 'UPDATE_TIMELINE_ENTRY':
       return {
         ...state,
-        timelineEntries: state.timelineEntries.map(timelineEntry =>
-          timelineEntry.id === action.payload.id ? action.payload : timelineEntry
-        ),
+        timelineEntries: [...state.timelineEntries, action.payload]
       };
-    case 'DELETE_TIMELINE_ENTRY':
+    case 'REMOVE_TIMELINE_ENTRY':
       return {
         ...state,
-        timelineEntries: state.timelineEntries.filter(timelineEntry => timelineEntry.id !== action.payload),
+        timelineEntries: state.timelineEntries.filter(e => e.id !== action.payload)
       };
-    case 'SET_LOADING':
-      return { ...state, isLoading: action.payload };
-    case 'SET_ERROR':
-      return { ...state, error: action.payload };
+    case 'RESTORE_STATE':
+      return { 
+        ...state, 
+        ...action.payload,
+        courts: action.payload.forums || action.payload.courts || state.forums,
+        forums: action.payload.forums || action.payload.courts || state.forums,
+        timelineEntries: action.payload.timelineEntries || []
+      };
+    case 'CLEAR_ALL_DATA':
+      return {
+        ...initialState,
+        cases: [],
+        tasks: [],
+        clients: [],
+        clientGroups: [],
+        forums: [],
+        courts: [],
+        judges: [],
+        documents: [],
+        folders: [],
+        hearings: [],
+        employees: [],
+        timelineEntries: [],
+        tags: [],
+      };
     default:
       return state;
   }
-};
-
-// Initial State
-const initialState: AppState = {
-  cases: [],
-  clients: [],
-  clientGroups: [],
-  courts: [],
-  judges: [],
-  employees: [],
-  hearings: [],
-  tasks: [],
-  taskNotes: [],
-  documents: [],
-  folders: [],
-  timelineEntries: [],
-  tags: [],
-  userProfile: {
-    id: 'user-1',
-    name: 'Default User',
-    email: 'user@example.com',
-    phone: '',
-    role: 'Admin',
-    department: 'Legal',
-    avatar: '',
-    bio: '',
-    location: '',
-    timezone: 'UTC',
-    joinedDate: new Date().toISOString(),
-    lastLogin: new Date().toISOString(),
-    isActive: true,
-  },
-  isLoading: false,
-  error: null,
-};
+}
 
 // Context
-interface AppContextProps {
+const AppStateContext = createContext<{
   state: AppState;
-  dispatch: React.Dispatch<ActionType>;
-}
-
-const AppContext = createContext<AppContextProps>({
-  state: initialState,
-  dispatch: () => null,
-});
+  dispatch: React.Dispatch<AppAction>;
+} | null>(null);
 
 // Provider
-interface AppProviderProps {
-  children: ReactNode;
-}
+export const AppStateProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [state, dispatch] = useReducer(appReducer, initialState);
 
-const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
-  const [state, dispatch] = useReducer(reducer, initialState);
-
+  // Initialize calendar auto-sync
   useEffect(() => {
-    const syncCalendar = async () => {
-      if (state.hearings && state.hearings.length > 0) {
-        await calendarSyncService.syncEvents(state.hearings);
+    const initializeCalendarSync = async () => {
+      try {
+        const { integrationsService } = await import('@/services/integrationsService');
+        const settings = integrationsService.loadCalendarSettings('default');
+        
+        if (settings?.autoSync && settings.provider !== 'none') {
+          // Start with configured interval or default to 5 minutes
+          const interval = settings.syncInterval || 5;
+          calendarSyncService.startAutoSync(interval);
+          console.log(`Calendar auto-sync started with ${interval} minute interval`);
+        }
+      } catch (error) {
+        console.error('Failed to initialize calendar auto-sync:', error);
       }
     };
 
-    syncCalendar();
-  }, [state.hearings]);
+    initializeCalendarSync();
 
-  return <AppContext.Provider value={{ state, dispatch }}>{children}</AppContext.Provider>;
+    // Cleanup on unmount
+    return () => {
+      calendarSyncService.stopAutoSync();
+    };
+  }, []);
+
+  return (
+    <AppStateContext.Provider value={{ state, dispatch }}>
+      {children}
+    </AppStateContext.Provider>
+  );
 };
 
-// Custom Hook
-const useAppContext = () => useContext(AppContext);
+// Hook
+export const useAppState = () => {
+  const context = useContext(AppStateContext);
+  if (!context) {
+    throw new Error('useAppState must be used within AppStateProvider');
+  }
+  return context;
+};
 
-export { AppProvider, useAppContext };
-export type { ActionType };
+// Export types  
+export type { Case, Task, Client, Forum, Judge, Document, Folder, Hearing, GeneratedForm };
+
+// New interfaces for enhanced Client Master
+export interface Address {
+  line1: string;
+  line2?: string;
+  city: string;
+  state: string;
+  pincode: string;
+  country: string;
+}
+
+export interface Jurisdiction {
+  commissionerate?: string;
+  division?: string;
+  range?: string;
+}
+
+export interface PortalAccess {
+  allowLogin: boolean;
+  email?: string;
+  mobile?: string;
+  username?: string;
+  passwordHash?: string;
+}
+
+export interface Signatory {
+  id: string;
+  fullName: string;
+  designation?: string;
+  email: string;
+  phone?: string;
+  mobile?: string;
+  dob?: string;
+  isPrimary: boolean;
+  scope: 'All' | 'GST Filings' | 'Litigation' | 'Appeals';
+  status: 'Active' | 'Inactive';
+}
