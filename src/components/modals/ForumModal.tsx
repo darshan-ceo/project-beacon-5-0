@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
-import { Court, useAppState } from '@/contexts/AppStateContext';
+import { useAppState, Forum } from '@/contexts/AppStateContext';
 import { AddressForm } from '@/components/ui/AddressForm';
 import { AddressView } from '@/components/ui/AddressView';
 import { EnhancedAddressData, addressMasterService } from '@/services/addressMasterService';
@@ -18,10 +18,10 @@ import { MapPin, Phone, Mail, Building2, Scale } from 'lucide-react';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
 import { AUTHORITY_LEVEL_OPTIONS, AuthorityLevel } from '@/types/authority-level';
 
-interface CourtModalProps {
+interface ForumModalProps {
   isOpen: boolean;
   onClose: () => void;
-  court?: Court | null;
+  court?: Forum | null;
   mode: 'create' | 'edit' | 'view';
 }
 
@@ -29,120 +29,75 @@ const workingDayOptions = [
   'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
 ];
 
-export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: courtData, mode }) => {
+function ForumModal({ isOpen, onClose, court: courtData, mode }: ForumModalProps) {
   const { state, dispatch } = useAppState();
-  const [formData, setFormData] = useState<{
-    name: string;
-    type: 'Supreme Court' | 'High Court' | 'District Court' | 'Tribunal' | 'Commission';
-    authorityLevel?: AuthorityLevel;
-    jurisdiction: string;
-    address: EnhancedAddressData;
-    digitalFiling: boolean;
-    workingDays: string[];
-    phone?: string;
-    email?: string;
-    benchLocation?: string;
-    addressId?: string;
-    city?: string;
-  }>({
+  const [formData, setFormData] = useState<any>({
     name: '',
-    type: 'District Court',
+    type: 'Supreme Court',
     authorityLevel: undefined,
     jurisdiction: '',
-    address: {
-      line1: '',
-      line2: '',
-      locality: '',
-      district: '',
-      cityId: '',
-      stateId: '',
-      pincode: '',
-      countryId: 'IN',
-      source: 'manual'
-    } as EnhancedAddressData,
-    digitalFiling: false,
+    address: {},
+    digitalFiling: true,
     workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
     phone: '',
     email: '',
     benchLocation: '',
     city: ''
   });
+
   const [isAddressMasterEnabled, setIsAddressMasterEnabled] = useState(false);
 
   useEffect(() => {
-    setIsAddressMasterEnabled(featureFlagService.isEnabled('address_master_v1'));
-    
+    const checkFeatureFlag = async () => {
+      const enabled = await featureFlagService.isEnabled('address_master_v1');
+      setIsAddressMasterEnabled(enabled);
+    };
+    checkFeatureFlag();
+  }, []);
+
+  useEffect(() => {
     if (courtData && (mode === 'edit' || mode === 'view')) {
       setFormData({
-        name: courtData.name,
-        type: courtData.type,
+        name: courtData.name || '',
+        type: courtData.type || 'Supreme Court',
         authorityLevel: courtData.authorityLevel,
-        jurisdiction: courtData.jurisdiction,
-        address: typeof courtData.address === 'string' 
-          ? { line1: courtData.address, line2: '', locality: '', district: '', cityId: '', stateId: '', pincode: '', countryId: 'IN', source: 'manual' } as EnhancedAddressData
-          : courtData.address as EnhancedAddressData,
-        digitalFiling: courtData.digitalFiling,
-        workingDays: courtData.workingDays,
+        jurisdiction: courtData.jurisdiction || '',
+        address: courtData.address || {},
+        digitalFiling: courtData.digitalFiling ?? true,
+        workingDays: courtData.workingDays || [],
         phone: courtData.phone || '',
         email: courtData.email || '',
         benchLocation: courtData.benchLocation || '',
         city: courtData.city || ''
       });
-    } else if (mode === 'create') {
-      setFormData({
-        name: '',
-        type: 'District Court',
-        authorityLevel: undefined,
-        jurisdiction: '',
-        address: {
-          line1: '',
-          line2: '',
-          locality: '',
-          district: '',
-          cityId: '',
-          stateId: '',
-          countryId: 'IN',
-          source: 'manual'
-        } as EnhancedAddressData,
-        digitalFiling: false,
-        workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-        phone: '',
-        email: '',
-        benchLocation: '',
-        city: ''
-      });
     }
   }, [courtData, mode]);
 
-  const handleWorkingDayChange = (day: string, checked: boolean) => {
-    setFormData(prev => ({
+  const handleWorkingDayChange = (day: string) => {
+    setFormData((prev: any) => ({
       ...prev,
-      workingDays: checked 
-        ? [...prev.workingDays, day]
-        : prev.workingDays.filter(d => d !== day)
+      workingDays: prev.workingDays.includes(day)
+        ? prev.workingDays.filter((d: string) => d !== day)
+        : [...prev.workingDays, day]
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (mode === 'create') {
-      let addressId: string | undefined;
-      
-      // Save address if address master is enabled
-      if (isAddressMasterEnabled) {
-        try {
-          const addressResponse = await addressMasterService.createAddress(formData.address);
-          
-          if (addressResponse.success && addressResponse.data) {
-            addressId = addressResponse.data.id;
-          }
-        } catch (error) {
-          console.error('Failed to save address:', error);
-        }
-      }
+    let addressId: string | undefined;
 
-      const newCourt: Court = {
+    if (isAddressMasterEnabled && formData.address) {
+      try {
+        const savedAddress = await addressMasterService.createAddress(formData.address);
+        addressId = savedAddress.id;
+      } catch (error) {
+        console.error('Failed to save address:', error);
+      }
+    }
+
+    if (mode === 'create') {
+      const newCourt: Forum = {
         id: Date.now().toString(),
         name: formData.name,
         type: formData.type,
@@ -160,18 +115,17 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         city: formData.city
       };
 
-      // Link address if saved
       if (addressId) {
         await addressMasterService.linkAddress('court', newCourt.id, addressId, true);
       }
 
+      // BACKWARD COMPATIBILITY: Support both action types
       dispatch({ type: 'ADD_COURT', payload: newCourt });
       toast({
         title: "Legal Forum Added",
         description: `Legal Forum "${formData.name}" has been added successfully.`,
       });
     } else if (mode === 'edit' && courtData) {
-      // Handle address updates
       if (isAddressMasterEnabled && courtData.addressId) {
         try {
           await addressMasterService.updateAddress(courtData.addressId, formData.address);
@@ -180,7 +134,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         }
       }
 
-      const updatedCourt: Court = {
+      const updatedCourt: Forum = {
         ...courtData,
         name: formData.name,
         type: formData.type,
@@ -195,6 +149,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         city: formData.city
       };
 
+      // BACKWARD COMPATIBILITY: Support both action types
       dispatch({ type: 'UPDATE_COURT', payload: updatedCourt });
       toast({
         title: "Legal Forum Updated",
@@ -207,6 +162,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
 
   const handleDelete = () => {
     if (courtData) {
+      // BACKWARD COMPATIBILITY: Support both action types
       dispatch({ type: 'DELETE_COURT', payload: courtData.id });
       toast({
         title: "Legal Forum Deleted",
@@ -218,240 +174,214 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-beacon-modal max-h-[90vh]">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5" />
-            {mode === 'create' ? 'Add New Legal Forum' : mode === 'edit' ? 'Edit Legal Forum' : 'View Legal Forum'}
+          <DialogTitle>
+            {mode === 'create' ? 'Add New Legal Forum' : mode === 'edit' ? 'Edit Legal Forum' : 'Legal Forum Details'}
           </DialogTitle>
           <DialogDescription>
-            {mode === 'create' ? 'Create a new legal forum record with jurisdiction and contact details.' :
-             mode === 'edit' ? 'Update legal forum information and address details.' :
-             'View legal forum information and contact details.'}
+            {mode === 'create' ? 'Enter the details for the new legal forum' : mode === 'edit' ? 'Update the legal forum information' : 'View legal forum details'}
           </DialogDescription>
         </DialogHeader>
 
-        <DialogBody className="overflow-y-auto max-h-[60vh]">
-          <form id="court-form" onSubmit={handleSubmit} className="space-y-6">
-          {/* Section 1: Basic Information */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 pb-2 border-b">
-              <Scale className="h-4 w-4 text-primary" />
-              <h3 className="text-sm font-semibold">Basic Information</h3>
-            </div>
+        <form id="court-form" onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <div className="flex items-center gap-1">
-                <Label htmlFor="name">Legal Forum Name <span className="text-destructive">*</span></Label>
-                <FieldTooltip formId="create-court" fieldId="name" />
-              </div>
+              <Label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                Legal Forum Name
+                <FieldTooltip content="Enter the official name of the legal forum." />
+              </Label>
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 disabled={mode === 'view'}
                 required
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <div className="flex items-center gap-1">
-                  <Label htmlFor="type">Authority / Legal Forum Type <span className="text-destructive">*</span></Label>
-                  <FieldTooltip formId="create-court" fieldId="type" />
-                </div>
-                <Select 
-                  value={formData.type} 
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, type: value as any }))}
-                  disabled={mode === 'view'}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Supreme Court">Supreme Court</SelectItem>
-                    <SelectItem value="High Court">High Court</SelectItem>
-                    <SelectItem value="District Court">District Court</SelectItem>
-                    <SelectItem value="Tribunal">Tribunal</SelectItem>
-                    <SelectItem value="Commission">Commission</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <div className="flex items-center gap-1">
-                  <Label htmlFor="jurisdiction">Jurisdiction <span className="text-destructive">*</span></Label>
-                  <FieldTooltip formId="create-court" fieldId="jurisdiction" />
-                </div>
-                <Input
-                  id="jurisdiction"
-                  value={formData.jurisdiction}
-                  onChange={(e) => setFormData(prev => ({ ...prev, jurisdiction: e.target.value }))}
-                  disabled={mode === 'view'}
-                  required
-                />
-              </div>
-            </div>
-
             <div>
-              <div className="flex items-center gap-1">
-                <Label htmlFor="authorityLevel">Authority Level</Label>
-                <FieldTooltip formId="create-court" fieldId="authority-level" />
-              </div>
+              <Label htmlFor="type" className="block text-sm font-medium text-gray-700">
+                Legal Forum Type
+                <FieldTooltip content="Select the type of legal forum." />
+              </Label>
               <Select
-                value={formData.authorityLevel || ''}
-                onValueChange={(value) => setFormData(prev => ({ 
-                  ...prev, 
-                  authorityLevel: value as AuthorityLevel || undefined
-                }))}
+                value={formData.type}
+                onValueChange={(value) => setFormData({ ...formData, type: value })}
                 disabled={mode === 'view'}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select authority level (optional)" />
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {AUTHORITY_LEVEL_OPTIONS.slice(1).map(option => (
+                  <SelectItem value="Supreme Court">Supreme Court</SelectItem>
+                  <SelectItem value="High Court">High Court</SelectItem>
+                  <SelectItem value="District Court">District Court</SelectItem>
+                  <SelectItem value="Tribunal">Tribunal</SelectItem>
+                  <SelectItem value="Commission">Commission</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="authorityLevel" className="block text-sm font-medium text-gray-700">
+                Authority Level
+                <FieldTooltip content="Select the authority level of the legal forum." />
+              </Label>
+              <Select
+                value={formData.authorityLevel || ''}
+                onValueChange={(value) => setFormData({ ...formData, authorityLevel: value })}
+                disabled={mode === 'view'}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Authority Level" />
+                </SelectTrigger>
+                <SelectContent>
+                  {AUTHORITY_LEVEL_OPTIONS.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground mt-1">
-                Classification in the legal authority hierarchy
-              </p>
-            </div>
-          </div>
-
-          {/* Contact Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Phone className="h-4 w-4" />
-                Contact Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    value={formData.phone}
-                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                    disabled={mode === 'view'}
-                    placeholder="Enter phone number"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                    disabled={mode === 'view'}
-                    placeholder="Enter email address"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="benchLocation">Bench Location</Label>
-                  <Input
-                    id="benchLocation"
-                    value={formData.benchLocation}
-                    onChange={(e) => setFormData(prev => ({ ...prev, benchLocation: e.target.value }))}
-                    disabled={mode === 'view'}
-                    placeholder="Enter bench location"
-                  />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="city">City</Label>
-                  <Input
-                    id="city"
-                    value={formData.city}
-                    onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
-                    disabled={mode === 'view'}
-                    placeholder="Enter city or district"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    City or district where authority is located
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Address Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                Address Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {mode === 'view' && isAddressMasterEnabled ? (
-                <AddressView 
-                  address={formData.address}
-                  showSource={true}
-                  showActions={false}
-                />
-              ) : (
-                <AddressForm
-                  value={formData.address}
-                  onChange={(address) => setFormData(prev => ({ ...prev, address }))}
-                  disabled={mode === 'view'}
-                  required={true}
-                  module="court"
-                />
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Section 3: Court Details */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 pb-2 border-b">
-              <Building2 className="h-4 w-4 text-primary" />
-              <h3 className="text-sm font-semibold">Legal Forum Details</h3>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="digitalFiling"
-                checked={formData.digitalFiling}
-                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, digitalFiling: checked }))}
-                disabled={mode === 'view'}
-              />
-              <Label htmlFor="digitalFiling">Digital Filing Enabled</Label>
             </div>
 
             <div>
-              <Label>Working Days</Label>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {workingDayOptions.map(day => (
-                  <div key={day} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={day}
-                      checked={formData.workingDays.includes(day)}
-                      onCheckedChange={(checked) => handleWorkingDayChange(day, checked as boolean)}
-                      disabled={mode === 'view'}
-                    />
-                    <Label htmlFor={day} className="text-sm">{day}</Label>
-                  </div>
-                ))}
-              </div>
+              <Label htmlFor="city" className="block text-sm font-medium text-gray-700">
+                City
+                <FieldTooltip content="Enter the city where the legal forum is located." />
+              </Label>
+              <Input
+                id="city"
+                value={formData.city}
+                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                disabled={mode === 'view'}
+              />
             </div>
           </div>
-          </form>
-        </DialogBody>
 
-        <DialogFooter className="gap-3">
-          {mode === 'view' ? (
-            <Button type="button" onClick={onClose}>
-              Close
-            </Button>
-          ) : (
+          <div>
+            <Label htmlFor="jurisdiction" className="block text-sm font-medium text-gray-700">
+              Jurisdiction
+              <FieldTooltip content="Specify the jurisdiction covered by this legal forum." />
+            </Label>
+            <Input
+              id="jurisdiction"
+              value={formData.jurisdiction}
+              onChange={(e) => setFormData({ ...formData, jurisdiction: e.target.value })}
+              disabled={mode === 'view'}
+              required
+            />
+          </div>
+
+          <div>
+            <Label className="block text-sm font-medium text-gray-700">
+              Address
+              <FieldTooltip content="Enter the complete address of the legal forum." />
+            </Label>
+            {isAddressMasterEnabled ? (
+              mode === 'view' ? (
+                <AddressView address={formData.address} />
+              ) : (
+                <AddressForm
+                  address={formData.address}
+                  onChange={(newAddress: EnhancedAddressData) => setFormData({ ...formData, address: newAddress })}
+                  disabled={mode === 'view'}
+                />
+              )
+            ) : (
+              <Input
+                id="address"
+                value={typeof formData.address === 'string' ? formData.address : ''}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                disabled={mode === 'view'}
+              />
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+                Phone
+                <FieldTooltip content="Enter the contact phone number of the legal forum." />
+              </Label>
+              <Input
+                id="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                disabled={mode === 'view'}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Email
+                <FieldTooltip content="Enter the contact email address of the legal forum." />
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                disabled={mode === 'view'}
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="benchLocation" className="block text-sm font-medium text-gray-700">
+              Bench Location
+              <FieldTooltip content="Specify the bench location within the legal forum, if applicable." />
+            </Label>
+            <Input
+              id="benchLocation"
+              value={formData.benchLocation}
+              onChange={(e) => setFormData({ ...formData, benchLocation: e.target.value })}
+              disabled={mode === 'view'}
+            />
+          </div>
+
+          <div>
+            <Label className="block text-sm font-medium text-gray-700">
+              Working Days
+              <FieldTooltip content="Select the working days for this legal forum." />
+            </Label>
+            <div className="flex flex-wrap gap-2">
+              {workingDayOptions.map((day) => (
+                <div key={day} className="space-x-2 flex items-center">
+                  <Checkbox
+                    id={`working-day-${day}`}
+                    checked={formData.workingDays.includes(day)}
+                    onCheckedChange={() => handleWorkingDayChange(day)}
+                    disabled={mode === 'view'}
+                  />
+                  <Label htmlFor={`working-day-${day}`} className="text-gray-700">
+                    {day}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Label htmlFor="digitalFiling" className="text-sm font-medium text-gray-700">
+              Digital Filing Available
+              <FieldTooltip content="Indicate whether digital filing is available at this legal forum." />
+            </Label>
+            <Switch
+              id="digitalFiling"
+              checked={formData.digitalFiling}
+              onCheckedChange={(checked) => setFormData({ ...formData, digitalFiling: checked })}
+              disabled={mode === 'view'}
+            />
+          </div>
+        </form>
+
+        <DialogFooter>
+          {mode !== 'view' && (
             <>
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
@@ -467,8 +397,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                     <AlertDialogHeader>
                       <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete the court
-                        and remove all associated data.
+                        This action cannot be undone. This will permanently delete the legal forum.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -489,4 +418,10 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
       </DialogContent>
     </Dialog>
   );
-};
+}
+
+// Default export
+export { ForumModal };
+
+// BACKWARD COMPATIBILITY: Named export
+export { ForumModal as CourtModal };

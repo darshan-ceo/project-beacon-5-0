@@ -169,6 +169,9 @@ interface Forum {
   city?: string; // City/District location
 }
 
+// BACKWARD COMPATIBILITY: Court is an alias for Forum
+export type Court = Forum;
+
 interface Judge {
   id: string;
   name: string;
@@ -406,6 +409,7 @@ export interface AppState {
   clients: Client[];
   clientGroups: ClientGroup[];
   forums: Forum[];
+  courts: Forum[]; // BACKWARD COMPATIBILITY: Alias for forums, kept in sync
   judges: Judge[];
   documents: Document[];
   folders: Folder[];
@@ -444,6 +448,10 @@ export type AppAction =
   | { type: 'ADD_FORUM'; payload: Forum }
   | { type: 'UPDATE_FORUM'; payload: Forum }
   | { type: 'DELETE_FORUM'; payload: string }
+  // BACKWARD COMPATIBILITY: Deprecated actions, use FORUM variants
+  | { type: 'ADD_COURT'; payload: Forum }
+  | { type: 'UPDATE_COURT'; payload: Forum }
+  | { type: 'DELETE_COURT'; payload: string }
   | { type: 'ADD_JUDGE'; payload: Judge }
   | { type: 'UPDATE_JUDGE'; payload: Judge }
   | { type: 'DELETE_JUDGE'; payload: string }
@@ -484,7 +492,7 @@ const initialState: AppState = {
       status: 'Active',
       nextHearing: {
         date: '2024-03-15',
-        courtId: '1',
+        forumId: '1',
         judgeId: '1',
         type: 'Final'
       },
@@ -520,7 +528,7 @@ const initialState: AppState = {
       status: 'Active',
       nextHearing: {
         date: '2024-02-28',
-        courtId: '2',
+        forumId: '2',
         judgeId: '2', 
         type: 'Final'
       },
@@ -575,7 +583,7 @@ const initialState: AppState = {
       status: 'Active',
       nextHearing: {
         date: '2024-03-08',
-        courtId: '1',
+        forumId: '1',
         judgeId: '3',
         type: 'Final'
       },
@@ -1348,6 +1356,41 @@ const initialState: AppState = {
       updatedAt: new Date().toISOString()
     }
   ],
+  forums: [
+    {
+      id: '1',
+      name: 'Income Tax Appellate Tribunal',
+      type: 'Tribunal',
+      jurisdiction: 'Mumbai',
+      address: 'Aayakar Bhavan, M.K. Road, Mumbai',
+      activeCases: 450,
+      avgHearingTime: '45 mins',
+      digitalFiling: true,
+      workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+    },
+    {
+      id: '2',
+      name: 'Supreme Court of India',
+      type: 'Supreme Court',
+      jurisdiction: 'National',
+      address: 'Tilak Marg, New Delhi - 110001',
+      activeCases: 70000,
+      avgHearingTime: '90 mins',
+      digitalFiling: true,
+      workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+    },
+    {
+      id: '3',
+      name: 'GST Commissioner Office',
+      type: 'Commission',
+      jurisdiction: 'Mumbai Zone',
+      address: 'GST Bhavan, BKC, Mumbai - 400051',
+      activeCases: 1200,
+      avgHearingTime: '30 mins',
+      digitalFiling: true,
+      workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+    }
+  ],
   courts: [
     {
       id: '1',
@@ -1388,7 +1431,7 @@ const initialState: AppState = {
       id: '1',
       name: 'Justice Rajesh Sharma',
       designation: 'Chief Justice',
-      courtId: '1', // FK to Income Tax Appellate Tribunal
+      forumId: '1',
       appointmentDate: '2015-06-15',
       specialization: ['Tax Law', 'Corporate Law'],
       totalCases: 1250,
@@ -1405,7 +1448,7 @@ const initialState: AppState = {
       id: '2',
       name: 'Hon\'ble Chief Justice D.Y. Chandrachud',
       designation: 'Chief Justice of India',
-      courtId: '2', // FK to Supreme Court of India
+      forumId: '2',
       appointmentDate: '2016-05-13',
       specialization: ['Constitutional Law', 'Human Rights', 'Criminal Law'],
       totalCases: 2800,
@@ -1422,7 +1465,7 @@ const initialState: AppState = {
       id: '3',
       name: 'Shri A.K. Verma',
       designation: 'Additional Commissioner',
-      courtId: '3', // FK to GST Commissioner Office
+      forumId: '3',
       appointmentDate: '2018-07-01',
       specialization: ['GST Law', 'Tax Assessment', 'Revenue Recovery'],
       totalCases: 800,
@@ -2331,16 +2374,28 @@ function appReducer(state: AppState, action: AppAction): AppState {
         )
       };
     case 'ADD_FORUM':
-      return { ...state, forums: [...state.forums, action.payload] };
-    case 'UPDATE_FORUM':
+    case 'ADD_COURT':
+      const newForums = [...state.forums, action.payload];
       return {
         ...state,
-        forums: state.forums.map(f => f.id === action.payload.id ? action.payload : f)
+        forums: newForums,
+        courts: newForums
+      };
+    case 'UPDATE_FORUM':
+    case 'UPDATE_COURT':
+      const updatedForums = state.forums.map(f => f.id === action.payload.id ? action.payload : f);
+      return {
+        ...state,
+        forums: updatedForums,
+        courts: updatedForums
       };
     case 'DELETE_FORUM':
+    case 'DELETE_COURT':
+      const filteredForums = state.forums.filter(f => f.id !== action.payload);
       return {
         ...state,
-        forums: state.forums.filter(f => f.id !== action.payload)
+        forums: filteredForums,
+        courts: filteredForums
       };
     case 'ADD_JUDGE':
       return { ...state, judges: [...state.judges, action.payload] };
@@ -2435,6 +2490,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { 
         ...state, 
         ...action.payload,
+        courts: action.payload.forums || action.payload.courts || state.forums,
+        forums: action.payload.forums || action.payload.courts || state.forums,
         timelineEntries: action.payload.timelineEntries || []
       };
     case 'CLEAR_ALL_DATA':
@@ -2444,6 +2501,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         tasks: [],
         clients: [],
         clientGroups: [],
+        forums: [],
         courts: [],
         judges: [],
         documents: [],
