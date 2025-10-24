@@ -63,6 +63,17 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
           availability: formData.availability,
           tags: formData.tags,
           notes: formData.notes,
+          // Phase 1 fields
+          memberType: formData.memberType,
+          authorityLevel: formData.authorityLevel,
+          qualifications: formData.qualifications,
+          tenureDetails: formData.tenureDetails ? {
+            tenureStartDate: formData.tenureDetails.tenureStartDate?.toISOString().split('T')[0],
+            tenureEndDate: formData.tenureDetails.tenureEndDate?.toISOString().split('T')[0],
+            maxTenureYears: formData.tenureDetails.maxTenureYears,
+            extensionGranted: formData.tenureDetails.extensionGranted,
+            ageLimit: formData.tenureDetails.ageLimit
+          } : undefined,
           // Legacy fields
           totalCases: 0,
           avgDisposalTime: '0 days',
@@ -106,6 +117,17 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
           availability: formData.availability,
           tags: formData.tags,
           notes: formData.notes,
+          // Phase 1 fields
+          memberType: formData.memberType,
+          authorityLevel: formData.authorityLevel,
+          qualifications: formData.qualifications,
+          tenureDetails: formData.tenureDetails ? {
+            tenureStartDate: formData.tenureDetails.tenureStartDate?.toISOString().split('T')[0],
+            tenureEndDate: formData.tenureDetails.tenureEndDate?.toISOString().split('T')[0],
+            maxTenureYears: formData.tenureDetails.maxTenureYears,
+            extensionGranted: formData.tenureDetails.extensionGranted,
+            ageLimit: formData.tenureDetails.ageLimit
+          } : undefined,
           contactInfo: {
             chambers: formData.chambers || '',
             phone: formData.phone,

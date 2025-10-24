@@ -34,6 +34,19 @@ export interface JudgeCsvRow {
   availability_notes?: string;
   tags?: string; // semicolon-separated
   notes?: string;
+  // Phase 1 fields
+  member_type?: string;
+  authority_level?: string;
+  educational_qualification?: string;
+  years_of_experience?: number;
+  previous_position?: string;
+  qualification_specialization?: string;
+  government_nominee?: string;
+  tenure_start_date?: string;
+  tenure_end_date?: string;
+  max_tenure_years?: number;
+  extension_granted?: string;
+  age_limit?: number;
   created_at?: string;
   updated_at?: string;
   created_by?: string;
@@ -76,6 +89,19 @@ export class JudgesCsvMapper {
       availability_notes: judge.availability?.notes,
       tags: judge.tags?.join(';'),
       notes: judge.notes,
+      // Phase 1 fields
+      member_type: judge.memberType,
+      authority_level: judge.authorityLevel,
+      educational_qualification: judge.qualifications?.educationalQualification,
+      years_of_experience: judge.qualifications?.yearsOfExperience,
+      previous_position: judge.qualifications?.previousPosition,
+      qualification_specialization: judge.qualifications?.specialization,
+      government_nominee: judge.qualifications?.governmentNominee,
+      tenure_start_date: judge.tenureDetails?.tenureStartDate,
+      tenure_end_date: judge.tenureDetails?.tenureEndDate,
+      max_tenure_years: judge.tenureDetails?.maxTenureYears,
+      extension_granted: judge.tenureDetails?.extensionGranted?.toString(),
+      age_limit: judge.tenureDetails?.ageLimit,
       created_at: judge.createdAt,
       updated_at: judge.updatedAt,
       created_by: judge.createdBy,
@@ -129,6 +155,23 @@ export class JudgesCsvMapper {
       } : undefined,
       tags: row.tags ? row.tags.split(';').filter(t => t.trim()) : undefined,
       notes: row.notes,
+      // Phase 1 fields
+      memberType: row.member_type as Judge['memberType'],
+      authorityLevel: row.authority_level as Judge['authorityLevel'],
+      qualifications: (row.educational_qualification || row.years_of_experience || row.previous_position || row.qualification_specialization || row.government_nominee) ? {
+        educationalQualification: row.educational_qualification,
+        yearsOfExperience: row.years_of_experience,
+        previousPosition: row.previous_position,
+        specialization: row.qualification_specialization,
+        governmentNominee: row.government_nominee as 'Centre' | 'State' | 'None'
+      } : undefined,
+      tenureDetails: (row.tenure_start_date || row.tenure_end_date || row.max_tenure_years || row.age_limit) ? {
+        tenureStartDate: row.tenure_start_date,
+        tenureEndDate: row.tenure_end_date,
+        maxTenureYears: row.max_tenure_years,
+        extensionGranted: row.extension_granted === 'true',
+        ageLimit: row.age_limit
+      } : undefined,
       // Legacy fields
       totalCases: 0,
       avgDisposalTime: '0 days',
@@ -238,6 +281,18 @@ export class JudgesCsvMapper {
       'availability_notes',
       'tags',
       'notes',
+      'member_type',
+      'authority_level',
+      'educational_qualification',
+      'years_of_experience',
+      'previous_position',
+      'qualification_specialization',
+      'government_nominee',
+      'tenure_start_date',
+      'tenure_end_date',
+      'max_tenure_years',
+      'extension_granted',
+      'age_limit',
       'created_at',
       'updated_at',
       'created_by',
@@ -282,6 +337,18 @@ export class JudgesCsvMapper {
         availability_notes: 'Available for hearings 9 AM to 5 PM',
         tags: 'Senior;Expert',
         notes: 'Experienced in GST matters',
+        member_type: 'Judicial',
+        authority_level: 'HIGH_COURT',
+        educational_qualification: 'LLB, LLM',
+        years_of_experience: '25',
+        previous_position: 'District Judge',
+        qualification_specialization: 'GST and Constitutional Law',
+        government_nominee: 'None',
+        tenure_start_date: '2015-04-15',
+        tenure_end_date: '2030-04-14',
+        max_tenure_years: '15',
+        extension_granted: 'false',
+        age_limit: '65',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         created_by: 'admin',

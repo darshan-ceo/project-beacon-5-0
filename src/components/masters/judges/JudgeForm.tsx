@@ -50,6 +50,24 @@ interface JudgeFormData {
   };
   tags?: string[];
   notes?: string;
+  
+  // Phase 1 fields
+  memberType?: 'Judicial' | 'Technical-Centre' | 'Technical-State' | 'President' | 'Vice President' | 'Not Applicable';
+  authorityLevel?: 'ADJUDICATION' | 'FIRST_APPEAL' | 'TRIBUNAL' | 'HIGH_COURT' | 'SUPREME_COURT';
+  qualifications?: {
+    educationalQualification?: string;
+    yearsOfExperience?: number;
+    previousPosition?: string;
+    specialization?: string;
+    governmentNominee?: 'Centre' | 'State' | 'None';
+  };
+  tenureDetails?: {
+    tenureStartDate?: Date | null;
+    tenureEndDate?: Date | null;
+    maxTenureYears?: number;
+    extensionGranted?: boolean;
+    ageLimit?: number;
+  };
 }
 
 interface JudgeFormProps {
@@ -77,6 +95,29 @@ const STATUS_OPTIONS = [
   'Retired',
   'Transferred',
   'Deceased'
+];
+
+const MEMBER_TYPE_OPTIONS = [
+  { value: 'Judicial', label: 'Judicial Member' },
+  { value: 'Technical-Centre', label: 'Technical Member (Centre)' },
+  { value: 'Technical-State', label: 'Technical Member (State)' },
+  { value: 'President', label: 'President' },
+  { value: 'Vice President', label: 'Vice President' },
+  { value: 'Not Applicable', label: 'Not Applicable' }
+];
+
+const AUTHORITY_LEVEL_OPTIONS = [
+  { value: 'ADJUDICATION', label: 'Adjudication' },
+  { value: 'FIRST_APPEAL', label: 'First Appeal' },
+  { value: 'TRIBUNAL', label: 'Tribunal (GSTAT)' },
+  { value: 'HIGH_COURT', label: 'High Court' },
+  { value: 'SUPREME_COURT', label: 'Supreme Court' }
+];
+
+const GOVERNMENT_NOMINEE_OPTIONS = [
+  { value: 'Centre', label: 'Central Government' },
+  { value: 'State', label: 'State Government' },
+  { value: 'None', label: 'None' }
 ];
 
 const DAY_OPTIONS = [
@@ -189,7 +230,18 @@ export const JudgeForm: React.FC<JudgeFormProps> = ({
         endTime: '17:00'
       },
       tags: (judge as any).tags || [],
-      notes: (judge as any).notes
+      notes: (judge as any).notes,
+      // Phase 1 fields
+      memberType: judge.memberType,
+      authorityLevel: judge.authorityLevel,
+      qualifications: judge.qualifications,
+      tenureDetails: judge.tenureDetails ? {
+        tenureStartDate: judge.tenureDetails.tenureStartDate ? new Date(judge.tenureDetails.tenureStartDate) : null,
+        tenureEndDate: judge.tenureDetails.tenureEndDate ? new Date(judge.tenureDetails.tenureEndDate) : null,
+        maxTenureYears: judge.tenureDetails.maxTenureYears,
+        extensionGranted: judge.tenureDetails.extensionGranted,
+        ageLimit: judge.tenureDetails.ageLimit
+      } : undefined
     });
   };
 
@@ -438,6 +490,47 @@ export const JudgeForm: React.FC<JudgeFormProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
+              <Label htmlFor="memberType">Member Type</Label>
+              <Select 
+                value={formData.memberType || ''} 
+                onValueChange={(value) => setFormData(prev => ({ ...prev, memberType: value as any }))}
+                disabled={isReadOnly}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select member type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MEMBER_TYPE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="authorityLevel">Authority Level</Label>
+              <Select 
+                value={formData.authorityLevel || ''} 
+                onValueChange={(value) => setFormData(prev => ({ ...prev, authorityLevel: value as any }))}
+                disabled={isReadOnly}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select authority level" />
+                </SelectTrigger>
+                <SelectContent>
+                  {AUTHORITY_LEVEL_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
               <Label>Appointment Date</Label>
               <Popover>
                 <PopoverTrigger asChild>
@@ -526,6 +619,220 @@ export const JudgeForm: React.FC<JudgeFormProps> = ({
                 </Label>
               </div>
             ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Qualifications Section - PHASE 1 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Qualifications & Experience</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="educationalQualification">Educational Qualification</Label>
+              <Input
+                id="educationalQualification"
+                value={formData.qualifications?.educationalQualification || ''}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  qualifications: { ...prev.qualifications, educationalQualification: e.target.value }
+                }))}
+                disabled={isReadOnly}
+                placeholder="e.g., LLB, CA, IRS"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="yearsOfExperience">Years of Experience</Label>
+              <Input
+                id="yearsOfExperience"
+                type="number"
+                value={formData.qualifications?.yearsOfExperience || ''}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  qualifications: { ...prev.qualifications, yearsOfExperience: parseInt(e.target.value) || undefined }
+                }))}
+                disabled={isReadOnly}
+                placeholder="Years"
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="previousPosition">Previous Position</Label>
+              <Input
+                id="previousPosition"
+                value={formData.qualifications?.previousPosition || ''}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  qualifications: { ...prev.qualifications, previousPosition: e.target.value }
+                }))}
+                disabled={isReadOnly}
+                placeholder="e.g., Retired High Court Judge"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="governmentNominee">Government Nominee</Label>
+              <Select
+                value={formData.qualifications?.governmentNominee || ''}
+                onValueChange={(value) => setFormData(prev => ({
+                  ...prev,
+                  qualifications: { ...prev.qualifications, governmentNominee: value as any }
+                }))}
+                disabled={isReadOnly}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select nominee type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {GOVERNMENT_NOMINEE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="qualificationSpecialization">Area of Specialization</Label>
+            <Textarea
+              id="qualificationSpecialization"
+              value={formData.qualifications?.specialization || ''}
+              onChange={(e) => setFormData(prev => ({
+                ...prev,
+                qualifications: { ...prev.qualifications, specialization: e.target.value }
+              }))}
+              disabled={isReadOnly}
+              placeholder="e.g., GST, Customs, Excise expertise"
+              rows={2}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Tenure Details Section - PHASE 1 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Tenure Details</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Tenure Start Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !formData.tenureDetails?.tenureStartDate && "text-muted-foreground"
+                    )}
+                    disabled={isReadOnly}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formData.tenureDetails?.tenureStartDate 
+                      ? format(formData.tenureDetails.tenureStartDate, "PPP") 
+                      : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={formData.tenureDetails?.tenureStartDate || undefined}
+                    onSelect={(date) => setFormData(prev => ({
+                      ...prev,
+                      tenureDetails: { ...prev.tenureDetails, tenureStartDate: date || null }
+                    }))}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="space-y-2">
+              <Label>Tenure End Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !formData.tenureDetails?.tenureEndDate && "text-muted-foreground"
+                    )}
+                    disabled={isReadOnly}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formData.tenureDetails?.tenureEndDate 
+                      ? format(formData.tenureDetails.tenureEndDate, "PPP") 
+                      : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={formData.tenureDetails?.tenureEndDate || undefined}
+                    onSelect={(date) => setFormData(prev => ({
+                      ...prev,
+                      tenureDetails: { ...prev.tenureDetails, tenureEndDate: date || null }
+                    }))}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="maxTenureYears">Max Tenure Years</Label>
+              <Input
+                id="maxTenureYears"
+                type="number"
+                value={formData.tenureDetails?.maxTenureYears || ''}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  tenureDetails: { ...prev.tenureDetails, maxTenureYears: parseInt(e.target.value) || undefined }
+                }))}
+                disabled={isReadOnly}
+                placeholder="e.g., 4 for GSTAT"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ageLimit">Age Limit</Label>
+              <Input
+                id="ageLimit"
+                type="number"
+                value={formData.tenureDetails?.ageLimit || ''}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  tenureDetails: { ...prev.tenureDetails, ageLimit: parseInt(e.target.value) || undefined }
+                }))}
+                disabled={isReadOnly}
+                placeholder="e.g., 67"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="extensionGranted">Extension Granted</Label>
+              <Select
+                value={formData.tenureDetails?.extensionGranted?.toString() || ''}
+                onValueChange={(value) => setFormData(prev => ({
+                  ...prev,
+                  tenureDetails: { ...prev.tenureDetails, extensionGranted: value === 'true' }
+                }))}
+                disabled={isReadOnly}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="false">No</SelectItem>
+                  <SelectItem value="true">Yes</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>

@@ -200,6 +200,25 @@ interface Judge {
   };
   tags?: string[];
   notes?: string;
+  
+  // PHASE 1: GST Compliance Fields
+  memberType?: 'Judicial' | 'Technical-Centre' | 'Technical-State' | 'President' | 'Vice President' | 'Not Applicable';
+  authorityLevel?: 'ADJUDICATION' | 'FIRST_APPEAL' | 'TRIBUNAL' | 'HIGH_COURT' | 'SUPREME_COURT';
+  qualifications?: {
+    educationalQualification?: string;
+    yearsOfExperience?: number;
+    previousPosition?: string;
+    specialization?: string;
+    governmentNominee?: 'Centre' | 'State' | 'None';
+  };
+  tenureDetails?: {
+    tenureStartDate?: string;
+    tenureEndDate?: string;
+    maxTenureYears?: number;
+    extensionGranted?: boolean;
+    ageLimit?: number;
+  };
+  
   // Legacy fields for backwards compatibility
   totalCases?: number;
   avgDisposalTime?: string;
