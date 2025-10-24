@@ -9,6 +9,7 @@ export interface JudgeCsvRow {
   jurisdiction?: string;
   city?: string;
   state?: string;
+  photo_url?: string;
   appointment_date: string;
   retirement_date?: string;
   years_of_service?: number;
@@ -64,6 +65,7 @@ export class JudgesCsvMapper {
       jurisdiction: judge.jurisdiction,
       city: judge.city,
       state: judge.state,
+      photo_url: judge.photoUrl,
       appointment_date: judge.appointmentDate,
       retirement_date: judge.retirementDate,
       years_of_service: judge.yearsOfService,
@@ -122,6 +124,7 @@ export class JudgesCsvMapper {
       jurisdiction: row.jurisdiction,
       city: row.city,
       state: row.state,
+      photoUrl: row.photo_url,
       appointmentDate: row.appointment_date,
       retirementDate: row.retirement_date,
       yearsOfService: row.years_of_service || (row.appointment_date ? 
@@ -256,6 +259,7 @@ export class JudgesCsvMapper {
       'jurisdiction',
       'city',
       'state',
+      'photo_url',
       'appointment_date',
       'retirement_date',
       'years_of_service',
@@ -312,6 +316,7 @@ export class JudgesCsvMapper {
         jurisdiction: 'Delhi',
         city: 'New Delhi',
         state: 'Delhi',
+        photo_url: '',
         appointment_date: '2015-04-15',
         retirement_date: '2030-04-14',
         years_of_service: '9',

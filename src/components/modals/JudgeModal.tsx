@@ -50,6 +50,7 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
           jurisdiction: formData.jurisdiction,
           city: formData.city,
           state: formData.state,
+          photoUrl: formData.photoUrl,
           appointmentDate: formData.appointmentDate?.toISOString().split('T')[0] || '',
           retirementDate: formData.retirementDate?.toISOString().split('T')[0],
           yearsOfService: formData.appointmentDate ? 
@@ -104,6 +105,7 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
           jurisdiction: formData.jurisdiction,
           city: formData.city,
           state: formData.state,
+          photoUrl: formData.photoUrl,
           appointmentDate: formData.appointmentDate?.toISOString().split('T')[0] || judgeData.appointmentDate,
           retirementDate: formData.retirementDate?.toISOString().split('T')[0],
           yearsOfService: formData.appointmentDate ? 

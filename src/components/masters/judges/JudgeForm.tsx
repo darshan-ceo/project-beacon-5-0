@@ -20,6 +20,7 @@ import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { TagInput } from '@/components/ui/TagInput';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
+import { JudgePhotoUpload } from '@/components/masters/judges/JudgePhotoUpload';
 
 interface JudgeFormData {
   name: string;
@@ -30,6 +31,7 @@ interface JudgeFormData {
   jurisdiction?: string;
   city?: string;
   state?: string;
+  photoUrl?: string;
   appointmentDate: Date | null;
   retirementDate: Date | null;
   specializations: string[];
@@ -142,6 +144,7 @@ export const JudgeForm: React.FC<JudgeFormProps> = ({
     designation: '',
     status: 'Active',
     courtId: '',
+    photoUrl: '',
     appointmentDate: null,
     retirementDate: null,
     specializations: [],
@@ -216,6 +219,7 @@ export const JudgeForm: React.FC<JudgeFormProps> = ({
       jurisdiction: (judge as any).jurisdiction,
       city: (judge as any).city,
       state: (judge as any).state,
+      photoUrl: judge.photoUrl || '',
       appointmentDate: judge.appointmentDate ? new Date(judge.appointmentDate) : null,
       retirementDate: judge.retirementDate ? new Date(judge.retirementDate) : null,
       specializations: judge.specialization || [],
@@ -359,10 +363,16 @@ export const JudgeForm: React.FC<JudgeFormProps> = ({
               />
             </div>
             <div className="space-y-2">
-              <Label>Photo</Label>
-              <div className="h-10 px-3 py-2 border rounded-md bg-muted text-muted-foreground text-sm">
-                Photo upload functionality (to be implemented)
-              </div>
+              <JudgePhotoUpload
+                photoUrl={formData.photoUrl}
+                onPhotoChange={(url) => setFormData(prev => ({ 
+                  ...prev, 
+                  photoUrl: url || undefined 
+                }))}
+                disabled={isReadOnly}
+                judgeName={formData.name}
+                judgeId={initialData?.id}
+              />
             </div>
           </div>
         </CardContent>

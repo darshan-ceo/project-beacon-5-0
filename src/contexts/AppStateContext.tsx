@@ -179,6 +179,7 @@ interface Judge {
   jurisdiction?: string;
   city?: string;
   state?: string;
+  photoUrl?: string;
   appointmentDate: string;
   retirementDate?: string;
   yearsOfService?: number; // computed field
