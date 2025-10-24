@@ -4,8 +4,8 @@ import { formTemplatesService, type FormTemplate } from './formTemplatesService'
 import { Case, Client } from '@/contexts/AppStateContext';
 import { normalizeStage } from '@/utils/stageUtils';
 
-// Mock export service - in real app would integrate with external APIs
-// DEPRECATED: Use @/utils/exporter with exportRows() for real data exports
+// DEPRECATED: Export functions moved to @/utils/reportExporter
+// Use the new reportExporter utility for proper Excel and PDF exports
 export const reportsService = {
   // @deprecated Use exportRows from @/utils/exporter instead
   exportCaseList: async (
