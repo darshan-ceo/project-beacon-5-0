@@ -180,11 +180,21 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
 }) => {
   const { can } = useAdvancedRBAC();
   const isAdmin = can('admin', 'admin');
+  const isEditMode = !!initialTemplate;
   
   const [activeTab, setActiveTab] = useState<'design' | 'fields' | 'branding' | 'output' | 'import'>('design');
   const [templateData, setTemplateData] = useState<UnifiedTemplate>(
     initialTemplate || createDefaultTemplate()
   );
+  
+  // Update templateData when initialTemplate changes
+  useEffect(() => {
+    if (initialTemplate) {
+      setTemplateData(initialTemplate);
+    } else {
+      setTemplateData(createDefaultTemplate());
+    }
+  }, [initialTemplate]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [previewMode, setPreviewMode] = useState(false);
@@ -512,7 +522,7 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            Template Builder 2.0
+            {isEditMode ? 'Edit Template' : 'Template Builder 2.0'}
           </DialogTitle>
           
           {/* Header Metadata */}

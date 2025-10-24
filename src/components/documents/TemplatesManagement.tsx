@@ -12,7 +12,6 @@ import { toast } from '@/hooks/use-toast';
 import { formTemplatesService, FormTemplate } from '@/services/formTemplatesService';
 import { customTemplatesService, CustomTemplate } from '@/services/customTemplatesService';
 import { FormRenderModal } from './FormRenderModal';
-import { TemplateEditor } from './TemplateEditor';
 import { TemplateBuilder } from './TemplateBuilder';
 import { RichTextTemplateBuilder } from './RichTextTemplateBuilder';
 import { TemplateUploadModal } from './TemplateUploadModal';
@@ -58,7 +57,6 @@ export const TemplatesManagement: React.FC = () => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [generateModalOpen, setGenerateModalOpen] = useState(false);
   const [selectedCaseId, setSelectedCaseId] = useState<string>('');
-  const [editorOpen, setEditorOpen] = useState(false);
   const [builderOpen, setBuilderOpen] = useState(false);
   const [richTextBuilderOpen, setRichTextBuilderOpen] = useState(false);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
@@ -154,8 +152,44 @@ export const TemplatesManagement: React.FC = () => {
   };
 
   const handleEdit = (template: FormTemplate) => {
+    // Convert any template type to unified format for editing
+    const unifiedTemplate: UnifiedTemplate = {
+      templateCode: template.code,
+      title: template.title,
+      stage: template.stage || '',
+      version: template.version || '1.0',
+      visibility: 'team',
+      createdBy: (('createdBy' in template && typeof template.createdBy === 'string') ? template.createdBy : 'Current User'),
+      createdAt: (('createdAt' in template && typeof template.createdAt === 'string') ? template.createdAt : new Date().toISOString()),
+      updatedAt: new Date().toISOString(),
+      richContent: (('richContent' in template && typeof template.richContent === 'string') ? template.richContent : '<p>Edit your template content here...</p>'),
+      fields: template.fields || [],
+      variableMappings: (('variableMappings' in template && typeof template.variableMappings === 'object' && template.variableMappings) ? template.variableMappings as Record<string, string> : {}),
+      branding: (('branding' in template && template.branding) ? template.branding : {
+        header: 'H-Office Legal Team – GST Practice',
+        footer: 'Confidential | Generated via Beacon 5.0',
+        watermark: { enabled: false, opacity: 10 },
+        font: 'Inter',
+        primaryColor: '#0B5FFF',
+        accentColor: '#00C2A8',
+      }) as any,
+      output: (('output' in template && template.output && typeof template.output === 'object' && 'format' in template.output) ? template.output : {
+        format: 'PDF' as const,
+        orientation: 'Portrait' as const,
+        pageSize: 'A4' as const,
+        margins: { top: 20, bottom: 20, left: 20, right: 20 },
+        includeHeader: true,
+        includeFooter: true,
+        includePageNumbers: true,
+        filenamePattern: '${code}_${case.caseNumber}_${now:YYYYMMDD}.pdf',
+      }) as any,
+      templateType: 'unified',
+      sourceType: (('templateType' in template && (template.templateType === 'richtext' || template.templateType === 'fields' || template.templateType === 'docx' || template.templateType === 'json')) ? template.templateType : 'richtext'),
+    };
+    
     setEditingTemplate(template);
-    setEditorOpen(true);
+    setSelectedUnifiedTemplate(unifiedTemplate);
+    setUnifiedBuilderOpen(true);
   };
 
   const handleDuplicate = async (template: CustomTemplate) => {
@@ -194,36 +228,6 @@ export const TemplatesManagement: React.FC = () => {
     }
   };
 
-  const handleSaveTemplate = async (template: FormTemplate) => {
-    try {
-      if (editingTemplate && 'isCustom' in editingTemplate) {
-        // Update existing custom template
-        await customTemplatesService.updateTemplate((editingTemplate as CustomTemplate).id, template);
-      } else {
-        // Create new custom template from standard template or new template
-        await customTemplatesService.saveTemplate({
-          ...template,
-          createdBy: 'Current User'
-        });
-      }
-      
-      await loadCustomTemplates();
-      setEditorOpen(false);
-      setEditingTemplate(null);
-      
-      toast({
-        title: "Success",
-        description: editingTemplate ? "Template updated successfully" : "Template created successfully",
-      });
-    } catch (error) {
-      console.error('Error saving template:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save template",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleCreateFromBuilder = async (template: FormTemplate) => {
     try {
@@ -571,10 +575,6 @@ export const TemplatesManagement: React.FC = () => {
                   <Wrench className="mr-2 h-4 w-4" />
                   Field Builder
                 </HelpButton>
-                <HelpButton helpId="button-create-template" variant="outline" onClick={() => { setEditingTemplate(null); setEditorOpen(true); }}>
-                  <Code className="mr-2 h-4 w-4" />
-                  JSON Editor
-                </HelpButton>
               </>
             )}
           </div>
@@ -825,15 +825,6 @@ export const TemplatesManagement: React.FC = () => {
         />
       )}
 
-      <TemplateEditor
-        template={editingTemplate}
-        onSave={handleSaveTemplate}
-        onCancel={() => {
-          setEditorOpen(false);
-          setEditingTemplate(null);
-        }}
-        isOpen={editorOpen}
-      />
 
       {builderOpen && (
         <Dialog open={builderOpen} onOpenChange={() => setBuilderOpen(false)}>
@@ -870,9 +861,10 @@ export const TemplatesManagement: React.FC = () => {
         onClose={() => {
           setUnifiedBuilderOpen(false);
           setEditingTemplate(null);
+          setSelectedUnifiedTemplate(null);
         }}
         onSave={handleSaveUnifiedTemplate}
-        initialTemplate={null}
+        initialTemplate={selectedUnifiedTemplate}
       />
 
       {/* DOCX-specific modals */}
