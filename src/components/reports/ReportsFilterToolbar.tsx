@@ -10,7 +10,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { CalendarIcon, ChevronDown, ChevronUp, X, RotateCcw } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { CASE_STAGES } from '@/utils/stageUtils';
+import { getStageOptionsWithAliases } from '@/utils/stageUtils';
 import { ReportType, ReportFilter } from '@/types/reports';
 
 interface ReportsFilterToolbarProps {
@@ -45,10 +45,7 @@ export const ReportsFilterToolbar: React.FC<ReportsFilterToolbarProps> = ({
     { value: 'legal-associates', label: 'Legal Associates' }
   ];
 
-  const stages = CASE_STAGES.map(stage => ({
-    value: stage,
-    label: stage
-  }));
+  const stages = getStageOptionsWithAliases();
 
   const mockCourts = [
     { value: 'high-court', label: 'High Court' },

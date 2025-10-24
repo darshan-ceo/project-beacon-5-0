@@ -18,9 +18,52 @@ export const LEGACY_STAGE_MAP: Record<string, CaseStage> = {
   'Demand': 'Adjudication',
   'Appeals': 'First Appeal',
   'GSTAT': 'Tribunal',
+  'CESTAT': 'Tribunal',
   'HC': 'High Court',
   'SC': 'Supreme Court'
 };
+
+// Stage aliases for UI display
+export const STAGE_ALIASES: Record<CaseStage, string[]> = {
+  'Assessment': ['Scrutiny'],
+  'Adjudication': ['Demand'],
+  'First Appeal': ['Appeals'],
+  'Tribunal': ['GSTAT', 'CESTAT'],
+  'High Court': ['HC'],
+  'Supreme Court': ['SC']
+};
+
+/**
+ * Normalize a stage name to its canonical form
+ * Handles both legacy and canonical stage names
+ */
+export function normalizeStage(stage: string): string {
+  // Already canonical
+  if (CASE_STAGES.includes(stage as CaseStage)) {
+    return stage;
+  }
+  
+  // Map legacy to canonical
+  return LEGACY_STAGE_MAP[stage] || stage;
+}
+
+/**
+ * Get stage options with aliases for filter dropdowns
+ * Returns array of {value: canonical, label: "Canonical (aka Alias1, Alias2)"}
+ */
+export function getStageOptionsWithAliases(): Array<{ value: string; label: string }> {
+  return CASE_STAGES.map(stage => {
+    const aliases = STAGE_ALIASES[stage];
+    const label = aliases.length > 0 
+      ? `${stage} (aka ${aliases.join(', ')})`
+      : stage;
+    
+    return {
+      value: stage,
+      label
+    };
+  });
+}
 
 /**
  * Get the next stage in the case lifecycle

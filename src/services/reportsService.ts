@@ -2,6 +2,7 @@ import { toast } from '@/hooks/use-toast';
 import { AppAction } from '@/contexts/AppStateContext';
 import { formTemplatesService, type FormTemplate } from './formTemplatesService';
 import { Case, Client } from '@/contexts/AppStateContext';
+import { normalizeStage } from '@/utils/stageUtils';
 
 // Mock export service - in real app would integrate with external APIs
 // DEPRECATED: Use @/utils/exporter with exportRows() for real data exports
@@ -26,7 +27,8 @@ export const reportsService = {
         filteredCases = filteredCases.filter(c => c.clientId === filters.clientId);
       }
       if (filters?.stage) {
-        filteredCases = filteredCases.filter(c => c.currentStage === filters.stage);
+        const normalizedFilterStage = normalizeStage(filters.stage);
+        filteredCases = filteredCases.filter(c => normalizeStage(c.currentStage) === normalizedFilterStage);
       }
 
       // Mock file generation
@@ -222,7 +224,8 @@ export const reportsService = {
       }
 
       if (filters.stage) {
-        filteredCases = filteredCases.filter((c: any) => c.currentStage === filters.stage);
+        const normalizedFilterStage = normalizeStage(filters.stage);
+        filteredCases = filteredCases.filter((c: any) => normalizeStage(c.currentStage) === normalizedFilterStage);
       }
 
       if (filters.ragStatus) {
@@ -369,7 +372,8 @@ export const reportsService = {
       }
 
       if (filters.stage) {
-        filteredCases = filteredCases.filter((c: any) => c.currentStage === filters.stage);
+        const normalizedFilterStage = normalizeStage(filters.stage);
+        filteredCases = filteredCases.filter((c: any) => normalizeStage(c.currentStage) === normalizedFilterStage);
       }
 
       if (filters.ownerId) {
