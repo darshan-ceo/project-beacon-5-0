@@ -19,15 +19,17 @@ import {
 
 /**
  * Format cell value based on column type
+ * @param row - The full row object from the data array
+ * @param column - The column definition with type and optional getter
  */
-function formatCellValue(value: any, column: ReportColumn): string {
-  // Handle null/undefined
-  if (value === null || value === undefined || value === '') {
+function formatCellValue(row: any, column: ReportColumn): string {
+  // Use custom getter if provided, otherwise use the key directly
+  const rawValue = column.get ? column.get(row) : row[column.key];
+
+  // Handle null/undefined AFTER getting the value
+  if (rawValue === null || rawValue === undefined || rawValue === '') {
     return 'N/A';
   }
-
-  // Use custom getter if provided
-  const rawValue = column.get ? column.get(value) : value;
 
   switch (column.type) {
     case 'date': {
@@ -102,11 +104,7 @@ export async function exportReportToExcel(
     // Convert data to array format
     const headers = columns.map(col => col.header);
     const rows = data.map(row => 
-      columns.map(col => {
-        const key = col.key;
-        const value = row[key];
-        return formatCellValue(value, col);
-      })
+      columns.map(col => formatCellValue(row, col))
     );
 
     const sheetData = [headers, ...rows];
@@ -247,8 +245,7 @@ function generatePDFHTML(data: any[], columns: ReportColumn[], title: string): s
           ${data.map(row => `
             <tr>
               ${columns.map(col => {
-                const value = row[col.key];
-                const formattedValue = formatCellValue(value, col);
+                const formattedValue = formatCellValue(row, col);
                 const badgeClass = getBadgeClass(formattedValue, col.key);
                 return `<td class="${badgeClass}">${formattedValue}</td>`;
               }).join('')}
