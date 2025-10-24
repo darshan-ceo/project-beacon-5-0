@@ -165,12 +165,14 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
           </DialogTitle>
         </DialogHeader>
 
-        <JudgeForm
-          initialData={judgeData}
-          onSubmit={handleSubmit}
-          onCancel={onClose}
-          mode={mode}
-        />
+        <DialogBody>
+          <JudgeForm
+            initialData={judgeData}
+            onSubmit={handleSubmit}
+            onCancel={onClose}
+            mode={mode}
+          />
+        </DialogBody>
       </DialogContent>
     </Dialog>
   );
