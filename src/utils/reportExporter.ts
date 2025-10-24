@@ -127,7 +127,45 @@ export async function exportReportToExcel(
 }
 
 /**
- * Generate HTML for PDF with professional styling
+ * Inject PDF-specific styles into document head
+ * Returns a cleanup function to remove the styles
+ */
+function injectPDFStyles(): () => void {
+  const css = `
+    .pdf-root { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; color: #1f2937; background: #ffffff; }
+    .pdf-root .header { border-bottom: 3px solid #4F46E5; padding-bottom: 15px; margin-bottom: 20px; }
+    .pdf-root h1 { color: #1f2937; font-size: 24px; font-weight: 600; margin-bottom: 8px; }
+    .pdf-root .meta { color: #6b7280; font-size: 12px; }
+    .pdf-root .pdf-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 11px; table-layout: fixed; }
+    .pdf-root .pdf-table th { background-color: #4F46E5; color: #ffffff; padding: 10px 8px; text-align: left; font-weight: 600; border: 1px solid #4338CA; }
+    .pdf-root .pdf-table td { padding: 8px; border: 1px solid #e5e7eb; color: #374151; word-wrap: break-word; }
+    .pdf-root .pdf-table tr:nth-child(even) { background-color: #f9fafb; }
+    .pdf-root .pdf-table tr:hover { background-color: #f3f4f6; }
+    .pdf-root .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #e5e7eb; font-size: 11px; color: #6b7280; text-align: center; }
+    .pdf-root .footer strong { color: #374151; }
+    .badge-green { color: #059669; font-weight: 600; }
+    .badge-amber { color: #D97706; font-weight: 600; }
+    .badge-red { color: #DC2626; font-weight: 600; }
+  `;
+  
+  const id = 'pdf-export-styles';
+  let style = document.getElementById(id) as HTMLStyleElement | null;
+  if (!style) {
+    style = document.createElement('style') as HTMLStyleElement;
+    style.id = id;
+    style.type = 'text/css';
+    style.appendChild(document.createTextNode(css));
+    document.head.appendChild(style);
+  }
+  
+  return () => {
+    const s = document.getElementById(id);
+    if (s) s.remove();
+  };
+}
+
+/**
+ * Generate HTML fragment for PDF (not a full document)
  */
 function generatePDFHTML(data: any[], columns: ReportColumn[], title: string): string {
   const now = new Date();
@@ -152,97 +190,25 @@ function generatePDFHTML(data: any[], columns: ReportColumn[], title: string): s
     return '';
   };
 
+  // Generate "No records" row if data is empty
+  const noDataRow = data.length === 0
+    ? `<tr><td colspan="${columns.length}" style="padding:12px;color:#6b7280;text-align:center;">No records found</td></tr>`
+    : '';
+
   return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-          font-family: 'Segoe UI', Arial, sans-serif; 
-          padding: 20px; 
-          background: white;
-          color: #1f2937;
-        }
-        .header {
-          border-bottom: 3px solid #4F46E5;
-          padding-bottom: 15px;
-          margin-bottom: 20px;
-        }
-        h1 { 
-          color: #1f2937; 
-          font-size: 24px;
-          font-weight: 600;
-          margin-bottom: 8px;
-        }
-        .meta { 
-          color: #6b7280; 
-          font-size: 12px;
-        }
-        table { 
-          width: 100%; 
-          border-collapse: collapse; 
-          margin-top: 20px;
-          font-size: 11px;
-        }
-        th { 
-          background-color: #4F46E5; 
-          color: white; 
-          padding: 10px 8px; 
-          text-align: left;
-          font-weight: 600;
-          border: 1px solid #4338CA;
-        }
-        td { 
-          padding: 8px; 
-          border: 1px solid #e5e7eb;
-          color: #374151;
-        }
-        tr:nth-child(even) { 
-          background-color: #f9fafb; 
-        }
-        tr:hover {
-          background-color: #f3f4f6;
-        }
-        .badge-green { 
-          color: #059669; 
-          font-weight: 600;
-        }
-        .badge-amber { 
-          color: #D97706; 
-          font-weight: 600;
-        }
-        .badge-red { 
-          color: #DC2626; 
-          font-weight: 600;
-        }
-        .footer { 
-          margin-top: 30px; 
-          padding-top: 15px;
-          border-top: 1px solid #e5e7eb;
-          font-size: 11px; 
-          color: #6b7280; 
-          text-align: center;
-        }
-        .footer strong {
-          color: #374151;
-        }
-      </style>
-    </head>
-    <body>
+    <div class="pdf-root">
       <div class="header">
         <h1>${title}</h1>
         <div class="meta">Generated on: ${dateStr} | Total Records: ${data.length}</div>
       </div>
-      <table>
+      <table class="pdf-table">
         <thead>
           <tr>
             ${columns.map(col => `<th>${col.header}</th>`).join('')}
           </tr>
         </thead>
         <tbody>
-          ${data.map(row => `
+          ${noDataRow || data.map(row => `
             <tr>
               ${columns.map(col => {
                 const formattedValue = formatCellValue(row, col);
@@ -256,8 +222,7 @@ function generatePDFHTML(data: any[], columns: ReportColumn[], title: string): s
       <div class="footer">
         <strong>Project Beacon</strong> | Legal Case Management System
       </div>
-    </body>
-    </html>
+    </div>
   `;
 }
 
@@ -270,40 +235,81 @@ export async function exportReportToPDF(
   filename: string,
   title: string
 ): Promise<void> {
+  let cleanupStyles: (() => void) | null = null;
+  let container: HTMLElement | null = null;
+
   try {
-    // Generate styled HTML
+    // Determine orientation and set fixed width for A4
+    const isLandscape = columns.length > 6;
+    const pxWidth = isLandscape ? 1122 : 794; // A4 landscape : portrait in pixels
+
+    // Inject styles into document head
+    cleanupStyles = injectPDFStyles();
+
+    // Generate HTML fragment
     const htmlContent = generatePDFHTML(data, columns, title);
 
-    // Create temporary container
-    const container = document.createElement('div');
+    // Create off-screen container with fixed width
+    container = document.createElement('div');
+    container.style.position = 'fixed';
+    container.style.left = '0';
+    container.style.top = '0';
+    container.style.width = pxWidth + 'px';
+    container.style.zIndex = '-1';
+    container.style.opacity = '0';
+    container.style.pointerEvents = 'none';
     container.innerHTML = htmlContent;
-    container.style.position = 'absolute';
-    container.style.left = '-9999px';
     document.body.appendChild(container);
 
-    try {
-      // Configure html2pdf
-      const options = {
-        margin: [10, 10, 10, 10] as [number, number, number, number],
-        filename: filename,
-        image: { type: 'jpeg' as const, quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
-        jsPDF: {
-          unit: 'mm' as const,
-          format: 'a4' as const,
-          orientation: (columns.length > 6 ? 'landscape' : 'portrait') as 'landscape' | 'portrait'
-        },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-      };
+    // Get the actual content element to pass to html2pdf
+    const target = container.querySelector('.pdf-root') as HTMLElement;
+    if (!target) {
+      throw new Error('PDF root element not found');
+    }
 
-      // Generate and download PDF
-      await html2pdf().set(options).from(container).save();
-    } finally {
+    // Debug logging
+    console.debug('[PDF Export] Target element size:', {
+      width: target.scrollWidth,
+      height: target.scrollHeight,
+      rows: data.length,
+      columns: columns.length
+    });
+
+    // Configure html2pdf options
+    const options = {
+      margin: [10, 10, 10, 10] as [number, number, number, number],
+      filename: filename,
+      image: { type: 'jpeg' as const, quality: 0.98 },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        windowWidth: pxWidth
+      },
+      jsPDF: {
+        unit: 'mm' as const,
+        format: 'a4' as const,
+        orientation: (isLandscape ? 'landscape' : 'portrait') as 'landscape' | 'portrait'
+      },
+      pagebreak: { mode: ['css', 'legacy'] as const }
+    };
+
+    // Generate and download PDF from the target element
+    await html2pdf().set(options).from(target).save();
+    
+    console.debug('[PDF Export] Successfully generated PDF:', filename);
+  } catch (error) {
+    console.error('[PDF Export] Error:', error);
+    throw new Error('Failed to export to PDF format');
+  } finally {
+    // Cleanup
+    if (container && document.body.contains(container)) {
       document.body.removeChild(container);
     }
-  } catch (error) {
-    console.error('PDF export error:', error);
-    throw new Error('Failed to export to PDF format');
+    if (cleanupStyles) {
+      cleanupStyles();
+    }
   }
 }
 
