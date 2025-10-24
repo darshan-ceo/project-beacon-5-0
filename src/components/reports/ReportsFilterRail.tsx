@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CalendarIcon, Filter, X, RotateCcw } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { CASE_STAGES } from '@/utils/stageUtils';
 
 import { ReportType, ReportFilter } from '@/types/reports';
 
@@ -43,14 +44,10 @@ export const ReportsFilterRail: React.FC<ReportsFilterRailProps> = ({
     { value: 'legal-associates', label: 'Legal Associates' }
   ];
 
-  const mockStages = [
-    { value: 'filing', label: 'Filing' },
-    { value: 'notice', label: 'Notice' },
-    { value: 'evidence', label: 'Evidence' },
-    { value: 'arguments', label: 'Arguments' },
-    { value: 'judgment', label: 'Judgment' },
-    { value: 'appeal', label: 'Appeal' }
-  ];
+  const stages = CASE_STAGES.map(stage => ({
+    value: stage,
+    label: stage
+  }));
 
   const mockCourts = [
     { value: 'high-court', label: 'High Court' },
@@ -167,7 +164,7 @@ export const ReportsFilterRail: React.FC<ReportsFilterRailProps> = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All stages</SelectItem>
-                  {mockStages.map(stage => (
+                  {stages.map(stage => (
                     <SelectItem key={stage.value} value={stage.value}>{stage.label}</SelectItem>
                   ))}
                 </SelectContent>

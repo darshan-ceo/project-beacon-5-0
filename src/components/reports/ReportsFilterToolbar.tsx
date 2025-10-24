@@ -10,6 +10,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { CalendarIcon, ChevronDown, ChevronUp, X, RotateCcw } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { CASE_STAGES } from '@/utils/stageUtils';
 import { ReportType, ReportFilter } from '@/types/reports';
 
 interface ReportsFilterToolbarProps {
@@ -44,14 +45,10 @@ export const ReportsFilterToolbar: React.FC<ReportsFilterToolbarProps> = ({
     { value: 'legal-associates', label: 'Legal Associates' }
   ];
 
-  const mockStages = [
-    { value: 'filing', label: 'Filing' },
-    { value: 'notice', label: 'Notice' },
-    { value: 'evidence', label: 'Evidence' },
-    { value: 'arguments', label: 'Arguments' },
-    { value: 'judgment', label: 'Judgment' },
-    { value: 'appeal', label: 'Appeal' }
-  ];
+  const stages = CASE_STAGES.map(stage => ({
+    value: stage,
+    label: stage
+  }));
 
   const mockCourts = [
     { value: 'high-court', label: 'High Court' },
@@ -171,7 +168,7 @@ export const ReportsFilterToolbar: React.FC<ReportsFilterToolbarProps> = ({
       case 'clientId':
         return mockClients.find(c => c.value === value)?.label || value;
       case 'stage':
-        return mockStages.find(s => s.value === value)?.label || value;
+        return stages.find(s => s.value === value)?.label || value;
       case 'priority':
         return priorities.find(p => p.value === value)?.label || value;
       case 'ragStatus':
@@ -234,7 +231,7 @@ export const ReportsFilterToolbar: React.FC<ReportsFilterToolbarProps> = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All stages</SelectItem>
-                  {mockStages.map(stage => (
+                  {stages.map(stage => (
                     <SelectItem key={stage.value} value={stage.value}>{stage.label}</SelectItem>
                   ))}
                 </SelectContent>
