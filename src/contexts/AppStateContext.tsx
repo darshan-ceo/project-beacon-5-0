@@ -83,7 +83,49 @@ interface Task {
   dependencies?: string[];
   attachments?: string[];
   escalationLevel: 0 | 1 | 2 | 3;
-  followUpDate?: string; // Next follow-up date
+  followUpDate?: string; // Next follow-up date (legacy - use currentFollowUpDate)
+  
+  // Phase 1: Follow-up system enhancements
+  isLocked?: boolean; // Task locked after first follow-up
+  lockedAt?: string; // When task was locked
+  lockedBy?: string; // User ID who created first follow-up
+  currentFollowUpDate?: string; // Current follow-up date from latest follow-up
+}
+
+// Task Follow-Up interface - First-class entity for follow-up records
+export interface TaskFollowUp {
+  id: string;
+  taskId: string; // FK to Task.id
+  
+  // Follow-up details
+  remarks: string; // What was done/observed (required)
+  outcome?: 'Progressing' | 'Blocked' | 'Completed' | 'Need Support' | 'Pending Input';
+  status: Task['status']; // Status after this follow-up
+  
+  // Time tracking
+  hoursLogged?: number;
+  workDate: string; // Date when work was done
+  
+  // Next actions
+  nextFollowUpDate?: string; // When to follow up again
+  nextActions?: string; // What needs to be done next
+  
+  // Blockers/Issues
+  blockers?: string;
+  supportNeeded?: boolean;
+  escalationRequested?: boolean;
+  
+  // Attachments
+  attachments?: string[]; // File IDs/paths
+  
+  // Metadata
+  createdBy: string; // Employee ID
+  createdByName: string;
+  createdAt: string; // When follow-up was logged
+  
+  // Optional fields
+  clientInteraction?: boolean; // Was there client communication?
+  internalReview?: boolean; // Was this reviewed internally?
 }
 
 // Task Note/Activity interface
@@ -423,6 +465,7 @@ export interface AppState {
   cases: Case[];
   tasks: Task[];
   taskNotes: TaskNote[];
+  taskFollowUps: TaskFollowUp[]; // Phase 1: Follow-up records
   clients: Client[];
   clientGroups: ClientGroup[];
   courts: Court[];
@@ -450,6 +493,9 @@ export type AppAction =
   | { type: 'DELETE_TASK'; payload: string }
   | { type: 'ADD_TASK_NOTE'; payload: TaskNote }
   | { type: 'DELETE_TASK_NOTE'; payload: string }
+  | { type: 'ADD_TASK_FOLLOWUP'; payload: TaskFollowUp }
+  | { type: 'UPDATE_TASK_FOLLOWUP'; payload: TaskFollowUp }
+  | { type: 'DELETE_TASK_FOLLOWUP'; payload: string }
   | { type: 'ADD_CLIENT'; payload: Client }
   | { type: 'UPDATE_CLIENT'; payload: Client }
   | { type: 'DELETE_CLIENT'; payload: string }
@@ -492,6 +538,7 @@ export type AppAction =
 // Initial state with mock data
 const initialState: AppState = {
   taskNotes: [],
+  taskFollowUps: [], // Phase 1: Follow-up records
   cases: [
     {
       id: 'GST-001',
@@ -2243,6 +2290,18 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         taskNotes: state.taskNotes.filter(n => n.id !== action.payload)
+      };
+    case 'ADD_TASK_FOLLOWUP':
+      return { ...state, taskFollowUps: [...state.taskFollowUps, action.payload] };
+    case 'UPDATE_TASK_FOLLOWUP':
+      return {
+        ...state,
+        taskFollowUps: state.taskFollowUps.map(f => f.id === action.payload.id ? action.payload : f)
+      };
+    case 'DELETE_TASK_FOLLOWUP':
+      return {
+        ...state,
+        taskFollowUps: state.taskFollowUps.filter(f => f.id !== action.payload)
       };
     case 'ADD_CLIENT':
       return { ...state, clients: [...state.clients, action.payload] };

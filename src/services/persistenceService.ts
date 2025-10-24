@@ -471,6 +471,7 @@ class PersistenceService {
         hearings: hearings as Hearing[],
         tasks: tasks as Task[],
         taskNotes: taskNotes as any[],
+        taskFollowUps: [], // Phase 1: Follow-up records
         documents: documents as Document[],
         folders: folders as Folder[],
         timelineEntries: timelineEntries as any[],

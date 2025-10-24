@@ -16,7 +16,13 @@ import {
   Paperclip,
   MoreVertical,
   Building2,
-  Bell
+  Bell,
+  Lock,
+  Plus,
+  CheckCircle2,
+  Blocks,
+  Phone,
+  ShieldAlert
 } from 'lucide-react';
 import {
   Drawer,
@@ -28,7 +34,7 @@ import {
 } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
@@ -37,10 +43,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Task, TaskNote, useAppState } from '@/contexts/AppStateContext';
-import { formatDistanceToNow } from 'date-fns';
+import { Task, TaskNote, TaskFollowUp, useAppState } from '@/contexts/AppStateContext';
+import { formatDistanceToNow, format as formatDate } from 'date-fns';
 import { TaskTimeline } from './TaskTimeline';
 import { QuickActionButtons } from './QuickActionButtons';
+import { LogFollowUpModal } from './LogFollowUpModal';
+import { FollowUpCard } from './FollowUpCard';
 import { toast } from '@/hooks/use-toast';
 import { v4 as uuid } from 'uuid';
 import { getFollowUpBadgeVariant, getFollowUpStatus } from '@/utils/taskHelpers';
@@ -78,6 +86,7 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
   const { state, dispatch } = useAppState();
   const [isEditing, setIsEditing] = useState(false);
   const [editedTask, setEditedTask] = useState<Partial<Task>>({});
+  const [followUpModalOpen, setFollowUpModalOpen] = useState(false);
 
   // Get task notes for this task
   const taskNotes = useMemo(() => {
@@ -86,6 +95,14 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
       .filter(note => note.taskId === task.id)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [state.taskNotes, task]);
+
+  // Get task follow-ups for this task
+  const taskFollowUps = useMemo(() => {
+    if (!task) return [];
+    return state.taskFollowUps
+      .filter(followUp => followUp.taskId === task.id)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [state.taskFollowUps, task]);
 
   // Get client name
   const getClientName = () => {
@@ -300,6 +317,7 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
 
     if (updates.followUpDate) {
       taskUpdates.followUpDate = updates.followUpDate;
+      taskUpdates.currentFollowUpDate = updates.followUpDate; // Update new field
       notes.push({
         id: uuid(),
         taskId: task.id,
@@ -330,6 +348,67 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
     toast({
       title: 'Task Updated',
       description: `Updated: ${changes.join(', ')}`
+    });
+  };
+
+  // Handle follow-up submission
+  const handleFollowUpSubmit = (followUpData: Omit<TaskFollowUp, 'id' | 'createdAt' | 'createdBy' | 'createdByName'>) => {
+    if (!task || !onUpdateTask) return;
+
+    const newFollowUp: TaskFollowUp = {
+      ...followUpData,
+      id: uuid(),
+      createdBy: state.userProfile.id,
+      createdByName: state.userProfile.name,
+      createdAt: new Date().toISOString(),
+    };
+
+    // Lock task on first follow-up
+    const taskUpdates: Partial<Task> = {
+      status: followUpData.status,
+      currentFollowUpDate: followUpData.nextFollowUpDate,
+    };
+
+    if (!task.isLocked) {
+      taskUpdates.isLocked = true;
+      taskUpdates.lockedAt = new Date().toISOString();
+      taskUpdates.lockedBy = state.userProfile.id;
+    }
+
+    // Update actual hours if logged
+    if (followUpData.hoursLogged) {
+      taskUpdates.actualHours = (task.actualHours || 0) + followUpData.hoursLogged;
+    }
+
+    // Set completed date if status is Completed
+    if (followUpData.status === 'Completed') {
+      taskUpdates.completedDate = new Date().toISOString().split('T')[0];
+    }
+
+    // Dispatch follow-up
+    dispatch({ type: 'ADD_TASK_FOLLOWUP', payload: newFollowUp });
+
+    // Update task
+    onUpdateTask(task.id, taskUpdates);
+
+    // Create status change note if status changed
+    if (followUpData.status !== task.status) {
+      const statusNote: TaskNote = {
+        id: uuid(),
+        taskId: task.id,
+        type: 'status_change',
+        note: `Status changed via follow-up: ${followUpData.remarks.substring(0, 50)}...`,
+        createdBy: state.userProfile.id,
+        createdByName: state.userProfile.name,
+        createdAt: new Date().toISOString(),
+        metadata: { oldStatus: task.status, newStatus: followUpData.status }
+      };
+      dispatch({ type: 'ADD_TASK_NOTE', payload: statusNote });
+    }
+
+    toast({
+      title: 'Follow-Up Logged',
+      description: `Follow-up recorded successfully${!task.isLocked ? ' • Task is now locked' : ''}`,
     });
   };
 
@@ -454,13 +533,26 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
                 </CardContent>
               </Card>
 
-              {/* Description */}
-              <Card>
+              {/* Task Definition with Lock Notice */}
+              <Card className={task.isLocked ? "border-amber-200" : ""}>
                 <CardHeader>
-                  <CardTitle className="text-sm font-medium">Description</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-medium">Task Assignment</CardTitle>
+                    {task.isLocked && (
+                      <Badge variant="secondary" className="bg-amber-50 text-amber-700 border-amber-200">
+                        <Lock className="h-3 w-3 mr-1" />
+                        Locked
+                      </Badge>
+                    )}
+                  </div>
+                  {task.isLocked && (
+                    <CardDescription className="text-xs text-amber-700">
+                      Task details locked on {task.lockedAt ? new Date(task.lockedAt).toLocaleDateString() : 'N/A'} • Only follow-ups can be added
+                    </CardDescription>
+                  )}
                 </CardHeader>
                 <CardContent>
-                  {isEditing ? (
+                  {isEditing && !task.isLocked ? (
                     <Textarea
                       value={editedTask.description || ''}
                       onChange={(e) => updateField('description', e.target.value)}
@@ -471,6 +563,37 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
                     <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                       {task.description || 'No description provided.'}
                     </p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Follow-Up Records */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-medium">Follow-Up Records</CardTitle>
+                    <Button size="sm" onClick={() => setFollowUpModalOpen(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Follow-Up
+                    </Button>
+                  </div>
+                  <CardDescription>
+                    {taskFollowUps.length} follow-up{taskFollowUps.length !== 1 ? 's' : ''} recorded
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {taskFollowUps.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                      <p className="text-sm">No follow-ups yet</p>
+                      <p className="text-xs mt-1">Click "Add Follow-Up" to record progress</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {taskFollowUps.map(followUp => (
+                        <FollowUpCard key={followUp.id} followUp={followUp} />
+                      ))}
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -711,6 +834,14 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
             </div>
           </DrawerFooter>
         )}
+
+        {/* Log Follow-Up Modal */}
+        <LogFollowUpModal
+          isOpen={followUpModalOpen}
+          onClose={() => setFollowUpModalOpen(false)}
+          task={task}
+          onSubmit={handleFollowUpSubmit}
+        />
       </DrawerContent>
     </Drawer>
   );
