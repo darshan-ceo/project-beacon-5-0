@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
+import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 import { DocumentModal } from '@/components/modals/DocumentModal';
 import { NewFolderModal } from './NewFolderModal';
 import { UnifiedDocumentSearch } from './UnifiedDocumentSearch';
@@ -112,6 +113,7 @@ const mockFolders: Folder[] = [
 
 export const DocumentManagement: React.FC = () => {
   const { state, dispatch } = useAppState();
+  const { currentUserId } = useAdvancedRBAC();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
@@ -482,9 +484,6 @@ export const DocumentManagement: React.FC = () => {
 
   const handleDocumentUpload = async (file: File, options: any = {}) => {
     try {
-      // PHASE 3B: Pass userId for RBAC
-      const currentUserId = '3'; // TODO: Get from auth context
-      
       // Prepare options with existing documents for duplicate checking
       const uploadOptions = {
         ...options,

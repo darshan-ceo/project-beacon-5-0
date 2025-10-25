@@ -52,6 +52,7 @@ const queryClient = new QueryClient();
 
 // Mock current user - in real app this would come from auth context
 const currentUser = {
+  id: 'demo-user',
   name: 'John Doe',
   role: 'Admin' as const,
   avatar: undefined
