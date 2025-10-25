@@ -15,7 +15,8 @@ import {
   Settings,
   Building2,
   Filter,
-  Lock
+  Lock,
+  Plus
 } from 'lucide-react';
 import {
   Table,
@@ -43,9 +44,12 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Progress } from '@/components/ui/progress';
-import { Task, useAppState } from '@/contexts/AppStateContext';
+import { Task, useAppState, TaskFollowUp } from '@/contexts/AppStateContext';
 import { TaskDrawer } from './TaskDrawer';
+import { LogFollowUpModal } from './LogFollowUpModal';
 import { formatDateForDisplay } from '@/utils/dateFormatters';
+import { v4 as uuid } from 'uuid';
+import { toast } from '@/hooks/use-toast';
 
 interface TaskDisplay extends Task {
   assignedTo: string;
@@ -79,7 +83,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   onTaskDelete,
   onTaskClick
 }) => {
-  const { state } = useAppState();
+  const { state, dispatch } = useAppState();
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
   const [sortField, setSortField] = useState<SortField>('dueDate');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
@@ -88,6 +92,8 @@ export const TaskList: React.FC<TaskListProps> = ({
   const [density, setDensity] = useState<'compact' | 'comfortable'>('comfortable');
   const [clientFilter, setClientFilter] = useState<string>('all');
   const [lockFilter, setLockFilter] = useState<'all' | 'locked' | 'unlocked'>('all');
+  const [followUpModalOpen, setFollowUpModalOpen] = useState(false);
+  const [followUpTask, setFollowUpTask] = useState<TaskDisplay | null>(null);
 
   // Filter and sort tasks
   const filteredAndSortedTasks = useMemo(() => {
@@ -195,6 +201,51 @@ export const TaskList: React.FC<TaskListProps> = ({
     const diffTime = due.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
+  };
+
+  const handleFollowUpSubmit = (followUp: Omit<TaskFollowUp, 'id' | 'createdAt' | 'createdBy' | 'createdByName'>) => {
+    if (!followUpTask) return;
+    
+    const newFollowUp: TaskFollowUp = {
+      ...followUp,
+      id: uuid(),
+      createdAt: new Date().toISOString(),
+      createdBy: state.userProfile.id,
+      createdByName: state.userProfile.name
+    };
+
+    // Task updates
+    const taskUpdates: Partial<Task> = {
+      status: followUp.status,
+      isLocked: true,
+      lockedAt: followUpTask.isLocked ? followUpTask.lockedAt : new Date().toISOString(),
+      lockedBy: followUpTask.lockedBy || state.userProfile.id,
+      currentFollowUpDate: followUp.nextFollowUpDate
+    };
+
+    // Update actual hours if logged
+    if (followUp.hoursLogged) {
+      taskUpdates.actualHours = (followUpTask.actualHours || 0) + followUp.hoursLogged;
+    }
+
+    // Set completed date if status is Completed
+    if (followUp.status === 'Completed') {
+      taskUpdates.completedDate = new Date().toISOString().split('T')[0];
+    }
+
+    // Dispatch follow-up to state
+    dispatch({ type: 'ADD_TASK_FOLLOWUP', payload: newFollowUp });
+
+    // Update task
+    onTaskUpdate?.(followUpTask.id, taskUpdates);
+
+    setFollowUpModalOpen(false);
+    setFollowUpTask(null);
+
+    toast({
+      title: "Follow-up Added",
+      description: "Task progress has been logged successfully."
+    });
   };
 
   const getSortIcon = (field: SortField) => {
@@ -500,6 +551,13 @@ export const TaskList: React.FC<TaskListProps> = ({
                           View Details
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => {
+                          setFollowUpTask(task);
+                          setFollowUpModalOpen(true);
+                        }}>
+                          <Plus className="mr-2 h-4 w-4" />
+                          Add Follow-Up
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => {
                           setSelectedTask(task);
                           setIsDrawerOpen(true);
                         }}>
@@ -545,6 +603,19 @@ export const TaskList: React.FC<TaskListProps> = ({
         onUpdateTask={onTaskUpdate}
         onDeleteTask={onTaskDelete}
       />
+
+      {/* Log Follow-Up Modal */}
+      {followUpTask && (
+        <LogFollowUpModal
+          isOpen={followUpModalOpen}
+          onClose={() => {
+            setFollowUpModalOpen(false);
+            setFollowUpTask(null);
+          }}
+          task={followUpTask}
+          onSubmit={handleFollowUpSubmit}
+        />
+      )}
     </div>
   );
 };

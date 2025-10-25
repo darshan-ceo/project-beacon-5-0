@@ -17,8 +17,11 @@ import {
   Lock
 } from 'lucide-react';
 import { TaskDrawer } from './TaskDrawer';
-import { Task } from '@/contexts/AppStateContext';
+import { LogFollowUpModal } from './LogFollowUpModal';
+import { Task, TaskFollowUp, useAppState } from '@/contexts/AppStateContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { v4 as uuid } from 'uuid';
+import { toast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -59,10 +62,13 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
   onTaskDelete, 
   onTaskClick 
 }) => {
+  const { state, dispatch } = useAppState();
   const [draggedTask, setDraggedTask] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<TaskDisplay | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [followUpModalOpen, setFollowUpModalOpen] = useState(false);
+  const [followUpTask, setFollowUpTask] = useState<TaskDisplay | null>(null);
 
   const getTasksByStatus = (status: string) => {
     return tasks.filter(task => task.status === status);
@@ -110,6 +116,51 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
     if (onTaskUpdate) {
       onTaskUpdate(taskId, { status: newStatus as Task['status'] });
     }
+  };
+
+  const handleFollowUpSubmit = (followUp: Omit<TaskFollowUp, 'id' | 'createdAt' | 'createdBy' | 'createdByName'>) => {
+    if (!followUpTask) return;
+    
+    const newFollowUp: TaskFollowUp = {
+      ...followUp,
+      id: uuid(),
+      createdAt: new Date().toISOString(),
+      createdBy: state.userProfile.id,
+      createdByName: state.userProfile.name
+    };
+
+    // Task updates
+    const taskUpdates: Partial<Task> = {
+      status: followUp.status,
+      isLocked: true,
+      lockedAt: followUpTask.isLocked ? followUpTask.lockedAt : new Date().toISOString(),
+      lockedBy: followUpTask.lockedBy || state.userProfile.id,
+      currentFollowUpDate: followUp.nextFollowUpDate
+    };
+
+    // Update actual hours if logged
+    if (followUp.hoursLogged) {
+      taskUpdates.actualHours = (followUpTask.actualHours || 0) + followUp.hoursLogged;
+    }
+
+    // Set completed date if status is Completed
+    if (followUp.status === 'Completed') {
+      taskUpdates.completedDate = new Date().toISOString().split('T')[0];
+    }
+
+    // Dispatch follow-up to state
+    dispatch({ type: 'ADD_TASK_FOLLOWUP', payload: newFollowUp });
+
+    // Update task
+    onTaskUpdate?.(followUpTask.id, taskUpdates);
+
+    setFollowUpModalOpen(false);
+    setFollowUpTask(null);
+
+    toast({
+      title: "Follow-up Added",
+      description: "Task progress has been logged successfully."
+    });
   };
 
   const TaskCard: React.FC<{ task: TaskDisplay }> = ({ task }) => {
@@ -168,6 +219,14 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
                 }}>
                   <Eye className="mr-2 h-4 w-4" />
                   View Details
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => {
+                  e.stopPropagation();
+                  setFollowUpTask(task);
+                  setFollowUpModalOpen(true);
+                }}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Follow-Up
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={(e) => {
                   e.stopPropagation();
@@ -432,6 +491,19 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
         onUpdateTask={onTaskUpdate}
         onDeleteTask={onTaskDelete}
       />
+
+      {/* Log Follow-Up Modal */}
+      {followUpTask && (
+        <LogFollowUpModal
+          isOpen={followUpModalOpen}
+          onClose={() => {
+            setFollowUpModalOpen(false);
+            setFollowUpTask(null);
+          }}
+          task={followUpTask}
+          onSubmit={handleFollowUpSubmit}
+        />
+      )}
     </div>
   );
 };
