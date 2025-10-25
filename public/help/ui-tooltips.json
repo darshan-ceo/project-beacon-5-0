@@ -333,6 +333,250 @@
           }
         }
       ]
+    },
+    "task_followups": {
+      "fields": [
+        {
+          "id": "followup_remarks",
+          "label": "Progress Remarks",
+          "explanation": "Describe work completed and key findings (min. 20 chars)",
+          "tooltip": {
+            "title": "What to Include in Remarks",
+            "content": "Document specific work done, decisions made, findings discovered, or milestones reached. Be detailed enough for team members to understand progress without additional context. Examples: 'Reviewed client documents and identified missing Form GSTR-1' or 'Drafted reply addressing 3 key objections in notice'.",
+            "learnMoreUrl": "/help/pages/tasks"
+          },
+          "accessibility": {
+            "ariaLabel": "Enter progress remarks"
+          }
+        },
+        {
+          "id": "followup_outcome",
+          "label": "Outcome",
+          "explanation": "Current status of this work activity",
+          "tooltip": {
+            "title": "Outcome Types Explained",
+            "content": "Progressing: Work is moving forward smoothly. Blocked: Cannot proceed due to external factors. Completed: This work item is finished. Need Support: Require help from team. Pending Input: Waiting for client/department response. This helps the team quickly understand progress health.",
+            "learnMoreUrl": "/help/pages/tasks"
+          },
+          "accessibility": {
+            "ariaLabel": "Select outcome type"
+          }
+        },
+        {
+          "id": "followup_status",
+          "label": "Task Status",
+          "explanation": "Update the overall task progress state",
+          "tooltip": {
+            "title": "Status Updates",
+            "content": "Updates the parent task's current state. Not Started: No work begun. In Progress: Actively working. Review: Ready for review/approval. Completed: Task fully finished. Overdue: Passed due date. Updating status here reflects in task lists and dashboards.",
+            "learnMoreUrl": "/help/pages/tasks"
+          },
+          "accessibility": {
+            "ariaLabel": "Update task status"
+          }
+        },
+        {
+          "id": "followup_hours",
+          "label": "Hours Worked",
+          "explanation": "Time spent on this activity (optional)",
+          "tooltip": {
+            "title": "Time Tracking",
+            "content": "Record time spent in hours (e.g., 0.25 = 15 mins, 0.5 = 30 mins, 1.5 = 1hr 30mins). Used for billing, workload analysis, and project time estimation. Leave blank if time tracking not required. Maximum 24 hours per entry.",
+            "learnMoreUrl": "/help/pages/tasks"
+          },
+          "accessibility": {
+            "ariaLabel": "Enter hours worked"
+          }
+        },
+        {
+          "id": "followup_work_date",
+          "label": "Work Date",
+          "explanation": "When was this work performed?",
+          "tooltip": {
+            "title": "Work Date vs Entry Date",
+            "content": "Date when work was actually performed (defaults to today). Use this to log work from previous days (up to 30 days back). Important for accurate time tracking and billing. The system records entry date separately for audit purposes.",
+            "learnMoreUrl": "/help/pages/tasks"
+          },
+          "accessibility": {
+            "ariaLabel": "Select work date"
+          }
+        },
+        {
+          "id": "followup_next_date",
+          "label": "Next Follow-Up Date",
+          "explanation": "Schedule when to check this task again (optional)",
+          "tooltip": {
+            "title": "Follow-Up Reminders",
+            "content": "Set a future date when this task needs attention again. Creates a reminder for the assigned person. Use quick buttons (Tomorrow, 3 days, 1 week) for common intervals. Leave blank if no specific follow-up needed. Appears in 'Pending Follow-ups' dashboard tile.",
+            "learnMoreUrl": "/help/pages/tasks"
+          },
+          "accessibility": {
+            "ariaLabel": "Set next follow-up date"
+          }
+        },
+        {
+          "id": "followup_next_actions",
+          "label": "Next Actions",
+          "explanation": "What needs to be done next? (optional)",
+          "tooltip": {
+            "title": "Defining Next Steps",
+            "content": "Outline specific actions required to move task forward. Examples: 'Schedule client meeting to discuss findings', 'Draft response to points 4-7 in notice', 'Obtain approval from partner'. Helps team members pick up where you left off.",
+            "learnMoreUrl": "/help/pages/tasks"
+          },
+          "accessibility": {
+            "ariaLabel": "Enter next actions"
+          }
+        },
+        {
+          "id": "followup_blockers",
+          "label": "Blockers/Issues",
+          "explanation": "What's preventing progress? (optional)",
+          "tooltip": {
+            "title": "Identifying Blockers",
+            "content": "Document obstacles preventing progress. Examples: 'Waiting for client to provide bank statements', 'Need clarification from tax authority', 'Resource unavailable until next week'. Makes blockers visible to management for intervention. Triggers support workflows if marked.",
+            "learnMoreUrl": "/help/pages/tasks"
+          },
+          "accessibility": {
+            "ariaLabel": "Enter blockers or issues"
+          }
+        },
+        {
+          "id": "followup_support_needed",
+          "label": "Support Needed",
+          "explanation": "Mark if you need team assistance",
+          "tooltip": {
+            "title": "Request Team Support",
+            "content": "Check this when you need help from colleagues. Effect: Flags task in team dashboard's 'Support Needed' section. Task creator and team leads receive notification. Task appears with support badge in lists. Use for technical questions, workload assistance, or expertise needs.",
+            "learnMoreUrl": "/help/pages/tasks"
+          },
+          "accessibility": {
+            "ariaLabel": "Toggle support needed flag"
+          }
+        },
+        {
+          "id": "followup_escalation",
+          "label": "Request Escalation",
+          "explanation": "Alert task creator about critical issues",
+          "tooltip": {
+            "title": "Escalation Process",
+            "content": "Check this for urgent issues requiring management attention. Effect: Sends immediate email/notification to task creator. Task marked with escalation badge (red flag icon). Appears in creator's priority list. Use sparingly for critical blockers, client emergencies, or deadline risks.",
+            "learnMoreUrl": "/help/pages/tasks"
+          },
+          "accessibility": {
+            "ariaLabel": "Toggle escalation request"
+          }
+        },
+        {
+          "id": "followup_client_interaction",
+          "label": "Client Communication",
+          "explanation": "Mark if you contacted the client",
+          "tooltip": {
+            "title": "Client Interaction Tracking",
+            "content": "Check this when you've communicated with the client (call, email, meeting). Effect: Records client touchpoint in case timeline. Helps track client engagement frequency. Useful for billing justification and relationship management. Shows phone icon on follow-up in timeline.",
+            "learnMoreUrl": "/help/pages/tasks"
+          },
+          "accessibility": {
+            "ariaLabel": "Toggle client interaction flag"
+          }
+        },
+        {
+          "id": "followup_internal_review",
+          "label": "Internal Review",
+          "explanation": "Mark if work was peer-reviewed",
+          "tooltip": {
+            "title": "Quality Assurance",
+            "content": "Check this when work has been reviewed by a peer or supervisor. Effect: Adds quality badge to follow-up. Indicates work met internal standards. Useful for compliance tracking and quality metrics. Required for certain sensitive tasks per firm policy.",
+            "learnMoreUrl": "/help/pages/tasks"
+          },
+          "accessibility": {
+            "ariaLabel": "Toggle internal review flag"
+          }
+        }
+      ],
+      "cards": [
+        {
+          "id": "followup_card_progress",
+          "label": "Progress & Remarks",
+          "explanation": "Document what work was completed",
+          "tooltip": {
+            "title": "Progress Section",
+            "content": "Core section for recording work performed. Remarks field is required (min 20 chars) and forms the main record of progress. Outcome and Status updates provide at-a-glance health indicators for dashboards and reports.",
+            "learnMoreUrl": "/help/pages/tasks"
+          },
+          "accessibility": {
+            "ariaLabel": "Progress and remarks section"
+          }
+        },
+        {
+          "id": "followup_card_time",
+          "label": "Time & Scheduling",
+          "explanation": "Track time and set reminders",
+          "tooltip": {
+            "title": "Time Tracking & Scheduling",
+            "content": "Log hours worked for billing and analytics. Set work date if logging past work (up to 30 days). Schedule next follow-up to create automatic reminders. All fields optional but recommended for accurate project tracking.",
+            "learnMoreUrl": "/help/pages/tasks"
+          },
+          "accessibility": {
+            "ariaLabel": "Time and scheduling section"
+          }
+        },
+        {
+          "id": "followup_card_actions",
+          "label": "Actions & Blockers",
+          "explanation": "Plan ahead and flag obstacles",
+          "tooltip": {
+            "title": "Next Actions & Blockers",
+            "content": "Define clear next steps so anyone can continue work. Document blockers to make issues visible to management. Both fields optional but highly recommended for team coordination and project continuity.",
+            "learnMoreUrl": "/help/pages/tasks"
+          },
+          "accessibility": {
+            "ariaLabel": "Actions and blockers section"
+          }
+        },
+        {
+          "id": "followup_card_options",
+          "label": "Additional Options",
+          "explanation": "Special flags for team coordination",
+          "tooltip": {
+            "title": "Follow-Up Flags",
+            "content": "Four optional flags for specific scenarios: Support Needed (team help), Escalation (urgent issues to creator), Client Interaction (contact logged), Internal Review (QA completed). Each triggers specific workflows and notifications. Use strategically.",
+            "learnMoreUrl": "/help/pages/tasks"
+          },
+          "accessibility": {
+            "ariaLabel": "Additional options section"
+          }
+        }
+      ],
+      "buttons": [
+        {
+          "id": "followup_btn_add",
+          "label": "Add Follow-Up",
+          "explanation": "Save this follow-up to task history",
+          "tooltip": {
+            "title": "Save Follow-Up",
+            "content": "Saves follow-up entry to task history. Updates task status if changed. Sends notifications based on flags (escalation, support needed). Creates next follow-up reminder if date set. Disabled until remarks field has 20+ characters.",
+            "learnMoreUrl": "/help/pages/tasks"
+          },
+          "accessibility": {
+            "ariaLabel": "Add follow-up entry"
+          }
+        }
+      ],
+      "features": [
+        {
+          "id": "followup_modal_overview",
+          "label": "Add New Follow-Up",
+          "explanation": "Record progress, track time, and coordinate with team",
+          "tooltip": {
+            "title": "Follow-Up System Overview",
+            "content": "Follow-ups create a detailed activity log for each task. Required: Progress remarks (20+ chars) and status update. Optional: Time tracking, next actions, blockers, and coordination flags. All entries timestamped and attributed to you. Visible in task timeline and analytics.",
+            "learnMoreUrl": "/help/pages/tasks"
+          },
+          "accessibility": {
+            "ariaLabel": "Follow-up modal overview"
+          }
+        }
+      ]
     }
   }
 }

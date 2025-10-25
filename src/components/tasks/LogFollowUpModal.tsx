@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Calendar, Clock, AlertTriangle, CheckCircle2, FileText, Blocks, Phone, Plus } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Calendar, Clock, AlertTriangle, CheckCircle2, FileText, Blocks, Phone, Plus, Info } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -21,6 +21,8 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { Task, TaskFollowUp } from '@/contexts/AppStateContext';
 import { cn } from '@/lib/utils';
+import { ThreeLayerHelp } from '@/components/ui/three-layer-help';
+import { uiHelpService } from '@/services/uiHelpService';
 
 interface LogFollowUpModalProps {
   isOpen: boolean;
@@ -60,6 +62,11 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
 
   const [workDateOpen, setWorkDateOpen] = useState(false);
   const [followUpDateOpen, setFollowUpDateOpen] = useState(false);
+
+  // Load help data on mount
+  useEffect(() => {
+    uiHelpService.loadHelpData();
+  }, []);
 
   const resetForm = () => {
     setFormData({
@@ -122,6 +129,20 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
           <DialogDescription>
             Record progress and next steps for: {task.title}
           </DialogDescription>
+          <div className="mt-3 p-3 bg-muted/50 rounded-lg border border-border flex items-start gap-2">
+            <Info className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+            <div className="text-sm text-muted-foreground">
+              <ThreeLayerHelp 
+                helpId="followup_modal_overview" 
+                showExplanation={false}
+                showTooltipIcon={true}
+                className="inline-flex"
+              >
+                <span className="font-medium text-foreground">Quick Tip:</span>
+              </ThreeLayerHelp>
+              <span className="ml-1">Fill in progress remarks (required) and optionally track time, set reminders, or flag issues for team coordination.</span>
+            </div>
+          </div>
         </DialogHeader>
 
         <DialogBody>
@@ -129,22 +150,35 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
             {/* Progress & Remarks Card */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Progress & Remarks
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Progress & Remarks
+                  </CardTitle>
+                  <ThreeLayerHelp 
+                    helpId="followup_card_progress"
+                    showExplanation={false}
+                    showTooltipIcon={true}
+                  />
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Remarks - Required */}
                 <div className="space-y-2">
-                  <Label htmlFor="remarks">
-                    What progress was made? What did you do? *
-                  </Label>
+                  <ThreeLayerHelp 
+                    helpId="followup_remarks"
+                    showExplanation={true}
+                    showTooltipIcon={true}
+                  >
+                    <Label htmlFor="remarks">
+                      What progress was made? What did you do? *
+                    </Label>
+                  </ThreeLayerHelp>
                   <Textarea
                     id="remarks"
                     value={formData.remarks}
                     onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
-                    placeholder="Describe the work done, findings, or observations... (minimum 20 characters)"
+                    placeholder="Example: 'Reviewed notice dated 15-Oct-2025. Identified 3 key issues requiring clarification. Drafted preliminary response addressing GST liability concerns. Next: Client meeting to discuss strategy.' (minimum 20 characters)"
                     rows={4}
                     className={cn(
                       "resize-none",
@@ -159,7 +193,13 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
                 {/* Outcome and Status */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Outcome</Label>
+                    <ThreeLayerHelp 
+                      helpId="followup_outcome"
+                      showExplanation={true}
+                      showTooltipIcon={true}
+                    >
+                      <Label>Outcome</Label>
+                    </ThreeLayerHelp>
                     <Select
                       value={formData.outcome}
                       onValueChange={(value) => setFormData({ ...formData, outcome: value as TaskFollowUp['outcome'] })}
@@ -184,7 +224,13 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Update Status *</Label>
+                    <ThreeLayerHelp 
+                      helpId="followup_status"
+                      showExplanation={true}
+                      showTooltipIcon={true}
+                    >
+                      <Label>Update Status *</Label>
+                    </ThreeLayerHelp>
                     <Select
                       value={formData.status}
                       onValueChange={(value) => setFormData({ ...formData, status: value as Task['status'] })}
@@ -208,16 +254,29 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
             {/* Time & Scheduling Card */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  Time & Scheduling
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    Time & Scheduling
+                  </CardTitle>
+                  <ThreeLayerHelp 
+                    helpId="followup_card_time"
+                    showExplanation={false}
+                    showTooltipIcon={true}
+                  />
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Time and Work Date */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="hours">Hours Worked</Label>
+                    <ThreeLayerHelp 
+                      helpId="followup_hours"
+                      showExplanation={true}
+                      showTooltipIcon={true}
+                    >
+                      <Label htmlFor="hours">Hours Worked</Label>
+                    </ThreeLayerHelp>
                     <div className="relative">
                       <Clock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -235,7 +294,13 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Work Date</Label>
+                    <ThreeLayerHelp 
+                      helpId="followup_work_date"
+                      showExplanation={true}
+                      showTooltipIcon={true}
+                    >
+                      <Label>Work Date</Label>
+                    </ThreeLayerHelp>
                     <Popover open={workDateOpen} onOpenChange={setWorkDateOpen}>
                       <PopoverTrigger asChild>
                         <Button variant="outline" className="w-full justify-start text-left font-normal">
@@ -261,7 +326,13 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
 
                 {/* Next Follow-Up Date */}
                 <div className="space-y-2">
-                  <Label>Set Next Follow-Up</Label>
+                  <ThreeLayerHelp 
+                    helpId="followup_next_date"
+                    showExplanation={true}
+                    showTooltipIcon={true}
+                  >
+                    <Label>Set Next Follow-Up</Label>
+                  </ThreeLayerHelp>
                   <Popover open={followUpDateOpen} onOpenChange={setFollowUpDateOpen}>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-full justify-start text-left font-normal">
@@ -327,20 +398,33 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
             {/* Next Actions & Blockers Card */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Blocks className="h-4 w-4" />
-                  Next Actions & Blockers
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Blocks className="h-4 w-4" />
+                    Next Actions & Blockers
+                  </CardTitle>
+                  <ThreeLayerHelp 
+                    helpId="followup_card_actions"
+                    showExplanation={false}
+                    showTooltipIcon={true}
+                  />
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Next Actions */}
                 <div className="space-y-2">
-                  <Label htmlFor="nextActions">Next Actions</Label>
+                  <ThreeLayerHelp 
+                    helpId="followup_next_actions"
+                    showExplanation={true}
+                    showTooltipIcon={true}
+                  >
+                    <Label htmlFor="nextActions">Next Actions</Label>
+                  </ThreeLayerHelp>
                   <Textarea
                     id="nextActions"
                     value={formData.nextActions}
                     onChange={(e) => setFormData({ ...formData, nextActions: e.target.value })}
-                    placeholder="What needs to be done next?"
+                    placeholder="Example: 'Schedule client meeting by Friday', 'Draft response to points 4-7', 'Obtain partner approval for strategy'"
                     rows={2}
                     className="resize-none"
                   />
@@ -348,12 +432,18 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
 
                 {/* Blockers */}
                 <div className="space-y-2">
-                  <Label htmlFor="blockers">Blockers/Issues</Label>
+                  <ThreeLayerHelp 
+                    helpId="followup_blockers"
+                    showExplanation={true}
+                    showTooltipIcon={true}
+                  >
+                    <Label htmlFor="blockers">Blockers/Issues</Label>
+                  </ThreeLayerHelp>
                   <Textarea
                     id="blockers"
                     value={formData.blockers}
                     onChange={(e) => setFormData({ ...formData, blockers: e.target.value })}
-                    placeholder="Any blockers or help needed?"
+                    placeholder="Example: 'Waiting for client bank statements', 'Need tax authority clarification on Section 73', 'Resource on leave until Monday'"
                     rows={2}
                     className="resize-none"
                   />
@@ -364,55 +454,102 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
             {/* Additional Options Card */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4" />
-                  Additional Options
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    Additional Options
+                  </CardTitle>
+                  <ThreeLayerHelp 
+                    helpId="followup_card_options"
+                    showExplanation={false}
+                    showTooltipIcon={true}
+                  />
+                </div>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="supportNeeded"
-                    checked={formData.supportNeeded}
-                    onCheckedChange={(checked) => setFormData({ ...formData, supportNeeded: checked as boolean })}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="supportNeeded"
+                      checked={formData.supportNeeded}
+                      onCheckedChange={(checked) => setFormData({ ...formData, supportNeeded: checked as boolean })}
+                    />
+                    <Label htmlFor="supportNeeded" className="cursor-pointer font-normal">
+                      Support needed from team
+                      <span className="ml-2 text-xs text-muted-foreground bg-blue-500/10 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded">
+                        Team Dashboard
+                      </span>
+                    </Label>
+                  </div>
+                  <ThreeLayerHelp 
+                    helpId="followup_support_needed"
+                    showExplanation={false}
+                    showTooltipIcon={true}
                   />
-                  <Label htmlFor="supportNeeded" className="cursor-pointer font-normal">
-                    Support needed from team
-                  </Label>
                 </div>
 
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="escalationRequested"
-                    checked={formData.escalationRequested}
-                    onCheckedChange={(checked) => setFormData({ ...formData, escalationRequested: checked as boolean })}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="escalationRequested"
+                      checked={formData.escalationRequested}
+                      onCheckedChange={(checked) => setFormData({ ...formData, escalationRequested: checked as boolean })}
+                    />
+                    <Label htmlFor="escalationRequested" className="cursor-pointer font-normal text-destructive">
+                      Request escalation
+                      <span className="ml-2 text-xs text-muted-foreground bg-red-500/10 text-red-600 dark:text-red-400 px-1.5 py-0.5 rounded">
+                        Notifies Creator
+                      </span>
+                    </Label>
+                  </div>
+                  <ThreeLayerHelp 
+                    helpId="followup_escalation"
+                    showExplanation={false}
+                    showTooltipIcon={true}
                   />
-                  <Label htmlFor="escalationRequested" className="cursor-pointer font-normal text-destructive">
-                    Request escalation (sends notification to task creator)
-                  </Label>
                 </div>
 
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="clientInteraction"
-                    checked={formData.clientInteraction}
-                    onCheckedChange={(checked) => setFormData({ ...formData, clientInteraction: checked as boolean })}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="clientInteraction"
+                      checked={formData.clientInteraction}
+                      onCheckedChange={(checked) => setFormData({ ...formData, clientInteraction: checked as boolean })}
+                    />
+                    <Label htmlFor="clientInteraction" className="cursor-pointer font-normal">
+                      <Phone className="inline h-3 w-3 mr-1" />
+                      Client communication occurred
+                      <span className="ml-2 text-xs text-muted-foreground bg-green-500/10 text-green-600 dark:text-green-400 px-1.5 py-0.5 rounded">
+                        Timeline Badge
+                      </span>
+                    </Label>
+                  </div>
+                  <ThreeLayerHelp 
+                    helpId="followup_client_interaction"
+                    showExplanation={false}
+                    showTooltipIcon={true}
                   />
-                  <Label htmlFor="clientInteraction" className="cursor-pointer font-normal">
-                    <Phone className="inline h-3 w-3 mr-1" />
-                    Client communication occurred
-                  </Label>
                 </div>
 
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="internalReview"
-                    checked={formData.internalReview}
-                    onCheckedChange={(checked) => setFormData({ ...formData, internalReview: checked as boolean })}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="internalReview"
+                      checked={formData.internalReview}
+                      onCheckedChange={(checked) => setFormData({ ...formData, internalReview: checked as boolean })}
+                    />
+                    <Label htmlFor="internalReview" className="cursor-pointer font-normal">
+                      Internal review completed
+                      <span className="ml-2 text-xs text-muted-foreground bg-purple-500/10 text-purple-600 dark:text-purple-400 px-1.5 py-0.5 rounded">
+                        Quality Badge
+                      </span>
+                    </Label>
+                  </div>
+                  <ThreeLayerHelp 
+                    helpId="followup_internal_review"
+                    showExplanation={false}
+                    showTooltipIcon={true}
                   />
-                  <Label htmlFor="internalReview" className="cursor-pointer font-normal">
-                    Internal review completed
-                  </Label>
                 </div>
               </CardContent>
             </Card>
@@ -423,9 +560,15 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
           <Button variant="outline" onClick={handleClose}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={!isValid}>
-            Add Follow-Up
-          </Button>
+          <ThreeLayerHelp 
+            helpId="followup_btn_add"
+            showExplanation={false}
+            showTooltipIcon={true}
+          >
+            <Button onClick={handleSubmit} disabled={!isValid}>
+              Add Follow-Up
+            </Button>
+          </ThreeLayerHelp>
         </DialogFooter>
       </DialogContent>
     </Dialog>
