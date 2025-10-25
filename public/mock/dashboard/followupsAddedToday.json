@@ -1,0 +1,9 @@
+{
+  "value": 12,
+  "trend": "Added today",
+  "details": [
+    { "client": "Status changes", "daysOpen": "5" },
+    { "client": "Progress notes", "daysOpen": "4" },
+    { "client": "Next steps defined", "daysOpen": "3" }
+  ]
+}

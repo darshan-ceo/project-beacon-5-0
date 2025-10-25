@@ -165,6 +165,9 @@
     }
   ],
   "whatsNew": [
+    "Task Follow-up tracking replaces generic task updates",
+    "Enhanced follow-up visibility with Recent Follow-ups tile",
+    "Follow-ups Added Today metric for daily activity tracking",
     "Real-time SLA tracking with predictive alerts",
     "Enhanced financial analytics with profitability insights",
     "Custom dashboard layouts and widget configuration",

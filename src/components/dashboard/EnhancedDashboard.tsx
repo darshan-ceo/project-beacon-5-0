@@ -24,12 +24,27 @@ export const EnhancedDashboard: React.FC = () => {
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [selectedTiles, setSelectedTiles] = useState<string[]>([]);
 
+  // Migrate old tile IDs to new ones
+  const migrateOldTileIds = (tiles: string[]): string[] => {
+    return tiles.map(tileId => {
+      if (tileId === 'recentTaskUpdates') return 'recentFollowups';
+      if (tileId === 'tasksUpdatedToday') return 'followupsAddedToday';
+      return tileId;
+    });
+  };
+
   // Load user preferences from localStorage
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
-        setSelectedTiles(JSON.parse(saved));
+        const parsedTiles = JSON.parse(saved);
+        const migratedTiles = migrateOldTileIds(parsedTiles);
+        setSelectedTiles(migratedTiles);
+        // Save migrated version back to localStorage
+        if (JSON.stringify(parsedTiles) !== JSON.stringify(migratedTiles)) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(migratedTiles));
+        }
       } catch (error) {
         console.error('Failed to parse saved tiles:', error);
         const defaults = getDefaultTiles();

@@ -305,21 +305,21 @@
       }
     },
     {
-      "id": "recentTaskUpdates",
+      "id": "recentFollowups",
       "module": "Task Management",
-      "title": "Recent Task Updates",
+      "title": "Recent Follow-ups",
       "type": "list",
       "icon": "MessageSquare",
       "colorTheme": "vibrant-blue",
       "rbacTag": ["tasks"],
-      "mockDataSource": "/mock/dashboard/recentTaskUpdates.json",
-      "description": "Latest task activity and changes",
+      "mockDataSource": "/mock/dashboard/recentFollowups.json",
+      "description": "Latest task follow-up activity",
       "defaultEnabled": true,
       "order": 17,
       "showDetails": true,
       "clickAction": {
-        "navigateTo": "/tasks",
-        "tooltip": "View all task updates",
+        "navigateTo": "/tasks?view=analytics",
+        "tooltip": "View all follow-ups",
         "requiresPermission": "tasks_read"
       }
     },
@@ -343,21 +343,21 @@
       }
     },
     {
-      "id": "tasksUpdatedToday",
+      "id": "followupsAddedToday",
       "module": "Task Management",
-      "title": "Tasks Updated Today",
+      "title": "Follow-ups Added Today",
       "type": "metric",
-      "icon": "RefreshCw",
+      "icon": "MessageCircle",
       "colorTheme": "vibrant-purple",
       "rbacTag": ["tasks"],
-      "mockDataSource": "/mock/dashboard/tasksUpdatedToday.json",
-      "description": "Number of tasks modified today",
+      "mockDataSource": "/mock/dashboard/followupsAddedToday.json",
+      "description": "Number of follow-ups created today",
       "defaultEnabled": true,
       "order": 19,
       "showDetails": true,
       "clickAction": {
-        "navigateTo": "/tasks?filter=updated_today",
-        "tooltip": "View today's task activity",
+        "navigateTo": "/tasks?view=analytics",
+        "tooltip": "View today's follow-up activity",
         "requiresPermission": "tasks_read"
       }
     },
