@@ -10,7 +10,8 @@ import {
   Calendar,
   Target,
   ArrowRight,
-  BarChart3
+  BarChart3,
+  Lock
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -65,6 +66,11 @@ export const TaskAnalytics: React.FC<TaskAnalyticsProps> = ({ tasks }) => {
       return acc;
     }, {} as Record<string, number>);
 
+    // Lock statistics
+    const lockedTasks = tasks.filter(t => t.isLocked).length;
+    const unlockedTasks = tasks.filter(t => !t.isLocked).length;
+    const lockedPercentage = totalTasks > 0 ? (lockedTasks / totalTasks) * 100 : 0;
+
     return {
       totalTasks,
       completedTasks,
@@ -73,7 +79,10 @@ export const TaskAnalytics: React.FC<TaskAnalyticsProps> = ({ tasks }) => {
       completionRate,
       overdueRate,
       priorityStats,
-      stageStats
+      stageStats,
+      lockedTasks,
+      unlockedTasks,
+      lockedPercentage
     };
   }, [tasks]);
 
@@ -299,6 +308,39 @@ export const TaskAnalytics: React.FC<TaskAnalyticsProps> = ({ tasks }) => {
                       </div>
                     </div>
                   ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Lock className="h-5 w-5" />
+                  Task Lock Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Locked Tasks</p>
+                      <p className="text-2xl font-bold text-amber-700">{analytics.lockedTasks}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Unlocked Tasks</p>
+                      <p className="text-2xl font-bold">{analytics.unlockedTasks}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Lock Rate</span>
+                      <span className="font-medium">{Math.round(analytics.lockedPercentage)}%</span>
+                    </div>
+                    <Progress value={analytics.lockedPercentage} className="h-2" />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Tasks are locked after the first follow-up to maintain audit integrity
+                  </p>
                 </div>
               </CardContent>
             </Card>

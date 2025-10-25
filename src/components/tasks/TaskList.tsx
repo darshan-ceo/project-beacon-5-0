@@ -14,7 +14,8 @@ import {
   Target,
   Settings,
   Building2,
-  Filter
+  Filter,
+  Lock
 } from 'lucide-react';
 import {
   Table,
@@ -86,13 +87,19 @@ export const TaskList: React.FC<TaskListProps> = ({
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [density, setDensity] = useState<'compact' | 'comfortable'>('comfortable');
   const [clientFilter, setClientFilter] = useState<string>('all');
+  const [lockFilter, setLockFilter] = useState<'all' | 'locked' | 'unlocked'>('all');
 
   // Filter and sort tasks
   const filteredAndSortedTasks = useMemo(() => {
-    // First filter by client
+    // First filter by client and lock status
     let filtered = tasks;
     if (clientFilter !== 'all') {
-      filtered = tasks.filter(task => task.clientId === clientFilter);
+      filtered = filtered.filter(task => task.clientId === clientFilter);
+    }
+    if (lockFilter !== 'all') {
+      filtered = filtered.filter(task => 
+        lockFilter === 'locked' ? task.isLocked === true : task.isLocked !== true
+      );
     }
     
     // Then sort
@@ -123,7 +130,7 @@ export const TaskList: React.FC<TaskListProps> = ({
         return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
       }
     });
-  }, [tasks, sortField, sortDirection, clientFilter]);
+  }, [tasks, sortField, sortDirection, clientFilter, lockFilter]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -255,6 +262,23 @@ export const TaskList: React.FC<TaskListProps> = ({
               ))}
             </SelectContent>
           </Select>
+
+          {/* Lock Status Filter */}
+          <Select value={lockFilter} onValueChange={(value: any) => setLockFilter(value)}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Lock Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Tasks</SelectItem>
+              <SelectItem value="locked">
+                <div className="flex items-center gap-2">
+                  <Lock className="h-3 w-3" />
+                  Locked Only
+                </div>
+              </SelectItem>
+              <SelectItem value="unlocked">Unlocked Only</SelectItem>
+            </SelectContent>
+          </Select>
           
           {selectedTasks.size > 0 && (
             <Button 
@@ -304,6 +328,8 @@ export const TaskList: React.FC<TaskListProps> = ({
                   onCheckedChange={handleSelectAll}
                 />
               </TableHead>
+
+              <TableHead className="w-16">Status</TableHead>
               
               <TableHead className="cursor-pointer min-w-[200px]" onClick={() => handleSort('title')}>
                 <div className="flex items-center gap-2">
@@ -365,11 +391,31 @@ export const TaskList: React.FC<TaskListProps> = ({
                       onCheckedChange={(checked) => handleSelectTask(task.id, checked as boolean)}
                     />
                   </TableCell>
+
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      {task.isLocked && (
+                        <Badge variant="secondary" className="bg-amber-50 text-amber-700 border-amber-200">
+                          <Lock className="h-3 w-3" />
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
                   
                   <TableCell>
                     <div className="space-y-1">
-                      <div className="font-medium text-foreground">
-                        {task.title}
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-foreground">{task.title}</span>
+                        {task.isLocked && (
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <Lock className="h-3 w-3 text-amber-600" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Task locked after follow-up</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         {task.clientName && (

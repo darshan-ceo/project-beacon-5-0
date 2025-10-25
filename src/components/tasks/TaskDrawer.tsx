@@ -24,6 +24,7 @@ import {
   Phone,
   ShieldAlert
 } from 'lucide-react';
+import { evaluateTaskPermissions } from '@/utils/taskPermissions';
 import {
   Drawer,
   DrawerContent,
@@ -104,6 +105,18 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [state.taskFollowUps, task]);
 
+  // Evaluate permissions for this task
+  const permissions = useMemo(() => {
+    if (!task) return {
+      canEdit: false,
+      canDelete: false,
+      canAddFollowUp: false,
+      canUnlock: false,
+      canForceEdit: false,
+    };
+    return evaluateTaskPermissions(task, state.userProfile);
+  }, [task, state.userProfile]);
+
   // Get client name
   const getClientName = () => {
     if (!task) return null;
@@ -128,8 +141,35 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
 
   const handleSave = () => {
     if (task && onUpdateTask) {
+      const isAdminOverride = task.isLocked && state.userProfile.role === 'Admin';
+      
       onUpdateTask(task.id, editedTask);
       setIsEditing(false);
+      
+      if (isAdminOverride) {
+        // Log admin override action
+        const overrideNote: TaskNote = {
+          id: uuid(),
+          taskId: task.id,
+          type: 'comment',
+          note: 'Task edited by administrator (locked task override)',
+          createdBy: state.userProfile.id,
+          createdByName: state.userProfile.name,
+          createdAt: new Date().toISOString(),
+        };
+        dispatch({ type: 'ADD_TASK_NOTE', payload: overrideNote });
+        
+        toast({
+          title: 'Task Updated (Admin Override)',
+          description: 'Locked task edited by administrator. This action has been logged.',
+          variant: 'default'
+        });
+      } else {
+        toast({
+          title: 'Task Updated',
+          description: 'Changes saved successfully.'
+        });
+      }
     }
   };
 
@@ -142,6 +182,34 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
 
   const updateField = (field: keyof Task, value: any) => {
     setEditedTask(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleUnlockTask = () => {
+    if (!task || !onUpdateTask) return;
+
+    onUpdateTask(task.id, {
+      isLocked: false,
+      lockedAt: undefined,
+      lockedBy: undefined,
+    });
+
+    // Create unlock note
+    const unlockNote: TaskNote = {
+      id: uuid(),
+      taskId: task.id,
+      type: 'comment',
+      note: 'Task unlocked by administrator. Task details can now be edited.',
+      createdBy: state.userProfile.id,
+      createdByName: state.userProfile.name,
+      createdAt: new Date().toISOString(),
+    };
+
+    dispatch({ type: 'ADD_TASK_NOTE', payload: unlockNote });
+
+    toast({
+      title: 'Task Unlocked',
+      description: 'This task can now be edited. The unlock has been logged.',
+    });
   };
 
   // Quick action handlers
@@ -450,14 +518,66 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
               </DrawerDescription>
             </div>
             <div className="flex items-center space-x-2">
-              {!isEditing && (
+              {/* Show unlock button for admins on locked tasks */}
+              {task.isLocked && permissions.canUnlock && (
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setIsEditing(true)}
+                  className="text-amber-700 border-amber-200"
+                  onClick={() => {
+                    if (window.confirm(
+                      'Are you sure you want to unlock this task? This will allow the task details to be edited again. This action will be logged.'
+                    )) {
+                      handleUnlockTask();
+                    }
+                  }}
+                >
+                  <Lock className="h-4 w-4 mr-2" />
+                  Unlock Task
+                </Button>
+              )}
+              
+              {/* Edit button */}
+              {permissions.canEdit && !isEditing && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (task.isLocked && !permissions.canForceEdit) {
+                      toast({
+                        title: "Cannot Edit Task",
+                        description: permissions.reason || "This task is locked.",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
+                    setIsEditing(true);
+                  }}
                 >
                   <Edit className="h-4 w-4 mr-2" />
                   Edit
+                  {task.isLocked && permissions.canForceEdit && (
+                    <Badge variant="destructive" className="ml-2 text-xs">
+                      Override
+                    </Badge>
+                  )}
+                </Button>
+              )}
+              {!permissions.canEdit && !isEditing && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled
+                  onClick={() => {
+                    toast({
+                      title: "Cannot Edit Task",
+                      description: permissions.reason || "You don't have permission to edit this task.",
+                      variant: "destructive"
+                    });
+                  }}
+                >
+                  <Lock className="h-4 w-4 mr-2" />
+                  Locked
                 </Button>
               )}
               <Button variant="ghost" size="sm" onClick={onClose}>
@@ -534,31 +654,55 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
               </Card>
 
               {/* Task Definition with Lock Notice */}
-              <Card className={task.isLocked ? "border-amber-200" : ""}>
+              <Card className={task.isLocked ? "border-amber-200 bg-amber-50/20" : ""}>
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-sm font-medium">Task Assignment</CardTitle>
-                    {task.isLocked && (
-                      <Badge variant="secondary" className="bg-amber-50 text-amber-700 border-amber-200">
-                        <Lock className="h-3 w-3 mr-1" />
-                        Locked
-                      </Badge>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {task.isLocked && (
+                        <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-300">
+                          <Lock className="h-3 w-3 mr-1" />
+                          Locked {task.lockedAt && formatDistanceToNow(new Date(task.lockedAt))} ago
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   {task.isLocked && (
-                    <CardDescription className="text-xs text-amber-700">
-                      Task details locked on {task.lockedAt ? new Date(task.lockedAt).toLocaleDateString() : 'N/A'} • Only follow-ups can be added
+                    <CardDescription className="text-xs text-amber-800 bg-amber-50 p-3 rounded-md border border-amber-200 mt-2">
+                      <div className="space-y-1">
+                        <div className="flex items-start gap-2">
+                          <ShieldAlert className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="font-medium">Task details are locked</p>
+                            <p className="text-amber-700">
+                              Locked on {task.lockedAt ? new Date(task.lockedAt).toLocaleDateString() : 'N/A'}
+                              {task.lockedBy && ` by ${state.employees.find(e => e.id === task.lockedBy)?.full_name || 'Unknown'}`}
+                            </p>
+                            <p className="text-amber-700 mt-1">
+                              • Only follow-ups can be added to track progress<br/>
+                              • Contact an administrator if the task definition needs to be changed
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     </CardDescription>
                   )}
                 </CardHeader>
                 <CardContent>
-                  {isEditing && !task.isLocked ? (
-                    <Textarea
-                      value={editedTask.description || ''}
-                      onChange={(e) => updateField('description', e.target.value)}
-                      rows={4}
-                      placeholder="Task description..."
-                    />
+                  {isEditing && permissions.canEdit ? (
+                    <div className="space-y-2">
+                      {task.isLocked && permissions.canForceEdit && (
+                        <div className="bg-destructive/10 border border-destructive/30 rounded p-2 text-xs text-destructive mb-3">
+                          <strong>⚠️ Admin Override Active:</strong> You are editing a locked task. This action will be logged.
+                        </div>
+                      )}
+                      <Textarea
+                        value={editedTask.description || ''}
+                        onChange={(e) => updateField('description', e.target.value)}
+                        rows={4}
+                        placeholder="Task description..."
+                      />
+                    </div>
                   ) : (
                     <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                       {task.description || 'No description provided.'}
