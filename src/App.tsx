@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppStateProvider, useAppState } from "@/contexts/AppStateContext";
 import { AdvancedRBACProvider } from "@/hooks/useAdvancedRBAC";
 import { FollowUpReminderService } from "@/services/followUpReminderService";
+import { FollowUpSystemTutorial } from "@/components/tasks/FollowUpSystemTutorial";
 import { toast } from "@/hooks/use-toast";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -87,7 +88,8 @@ const AppContent = () => {
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <FollowUpSystemTutorial />
+        <BrowserRouter>
             <Routes>
               <Route path="/" element={
                 <AdminLayout currentUser={currentUser}>

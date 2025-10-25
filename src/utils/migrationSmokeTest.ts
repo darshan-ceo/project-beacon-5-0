@@ -164,6 +164,61 @@ export async function runMigrationSmokeTest(): Promise<SmokeTestResult> {
     });
   }
 
+  // Test 6: Follow-up specific tests
+  const test6Start = Date.now();
+  try {
+    const followUps = await db.task_followups.toArray();
+    const tasks = await db.tasks.toArray();
+    
+    // Check: Tasks with follow-ups should be locked
+    const tasksWithFollowUps = tasks.filter((t: any) => 
+      followUps.some((f: any) => f.taskId === t.id)
+    );
+    const unlockedWithFollowUps = tasksWithFollowUps.filter((t: any) => !t.isLocked);
+    
+    tests.push({
+      name: 'Task Locking Consistency',
+      passed: unlockedWithFollowUps.length === 0,
+      error: unlockedWithFollowUps.length > 0 ? 
+        `${unlockedWithFollowUps.length} tasks have follow-ups but are not locked` : undefined,
+      duration: Date.now() - test6Start
+    });
+  } catch (error) {
+    tests.push({
+      name: 'Task Locking Consistency',
+      passed: false,
+      error: String(error),
+      duration: Date.now() - test6Start
+    });
+  }
+
+  // Test 7: Follow-up migration integrity
+  const test7Start = Date.now();
+  try {
+    const followUps = await db.task_followups.toArray();
+    const tasks = await db.tasks.toArray();
+    
+    // Check for orphaned follow-ups
+    const orphanedFollowUps = followUps.filter(f => 
+      !tasks.some(t => t.id === f.taskId)
+    );
+    
+    tests.push({
+      name: 'Follow-Up Migration Integrity',
+      passed: orphanedFollowUps.length === 0,
+      error: orphanedFollowUps.length > 0 ? 
+        `${orphanedFollowUps.length} orphaned follow-ups found` : undefined,
+      duration: Date.now() - test7Start
+    });
+  } catch (error) {
+    tests.push({
+      name: 'Follow-Up Migration Integrity',
+      passed: false,
+      error: String(error),
+      duration: Date.now() - test7Start
+    });
+  }
+
   const allPassed = tests.every(t => t.passed);
 
   return {

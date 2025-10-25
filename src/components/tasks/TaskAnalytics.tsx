@@ -11,13 +11,16 @@ import {
   Target,
   ArrowRight,
   BarChart3,
-  Lock
+  Lock,
+  MessageSquare
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Task } from '@/contexts/AppStateContext';
+import { useAppState } from '@/contexts/AppStateContext';
+import { calculateFollowUpMetrics } from '@/utils/followUpAnalytics';
 
 interface TaskAnalyticsProps {
   tasks: Task[];
@@ -41,6 +44,7 @@ interface TeamPerformance {
 }
 
 export const TaskAnalytics: React.FC<TaskAnalyticsProps> = ({ tasks }) => {
+  const { state } = useAppState();
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'quarter'>('month');
 
   const analytics = useMemo(() => {
@@ -85,6 +89,11 @@ export const TaskAnalytics: React.FC<TaskAnalyticsProps> = ({ tasks }) => {
       lockedPercentage
     };
   }, [tasks]);
+
+  const followUpMetrics = useMemo(() => 
+    calculateFollowUpMetrics(state.tasks, state.taskFollowUps),
+    [state.tasks, state.taskFollowUps]
+  );
 
   const performanceMetrics: PerformanceMetric[] = [
     {
@@ -341,6 +350,51 @@ export const TaskAnalytics: React.FC<TaskAnalyticsProps> = ({ tasks }) => {
                   <p className="text-xs text-muted-foreground">
                     Tasks are locked after the first follow-up to maintain audit integrity
                   </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5" />
+                  Follow-Up Activity
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">This Week</p>
+                      <p className="text-2xl font-bold">{followUpMetrics.followUpsThisWeek}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">This Month</p>
+                      <p className="text-2xl font-bold">{followUpMetrics.followUpsThisMonth}</p>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">Top Contributors</p>
+                    <div className="space-y-1">
+                      {followUpMetrics.mostActiveUsers.slice(0, 3).map(user => (
+                        <div key={user.userId} className="flex justify-between text-sm py-1">
+                          <span className="truncate">{user.userName}</span>
+                          <Badge variant="secondary">{user.count}</Badge>
+                        </div>
+                      ))}
+                      {followUpMetrics.mostActiveUsers.length === 0 && (
+                        <p className="text-xs text-muted-foreground">No follow-ups yet</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-sm text-muted-foreground">Avg. Time to First Follow-Up</p>
+                    <p className="text-xl font-semibold">
+                      {followUpMetrics.averageTimeToFirstFollowUp.toFixed(1)} hours
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { storageMigrator } from '@/utils/storageConsolidation';
 import { runMigrationSmokeTest, quickCanary } from '@/utils/migrationSmokeTest';
+import { FollowUpMigrationReport } from '@/components/admin/FollowUpMigrationReport';
 import { useToast } from '@/hooks/use-toast';
 import type { MigrationStatus } from '@/utils/storageConsolidation';
 import type { SmokeTestResult } from '@/utils/migrationSmokeTest';
@@ -317,6 +318,9 @@ export const MigrationHealth: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Follow-Up Migration Report */}
+      <FollowUpMigrationReport />
     </div>
   );
 };
