@@ -69,7 +69,7 @@ export const ThreeLayerHelp: React.FC<ThreeLayerHelpProps> = ({
         
         {/* Layer 3: Tooltip icon (hover/focus) */}
         {showTooltipIcon && (
-          <TooltipProvider delayDuration={300}>
+          <TooltipProvider delayDuration={100}>
             <Tooltip open={effectiveIsOpen} onOpenChange={setIsOpen} disableHoverableContent={false}>
               <TooltipTrigger asChild>
                 <button
@@ -85,8 +85,6 @@ export const ThreeLayerHelp: React.FC<ThreeLayerHelpProps> = ({
                       ? "text-primary bg-primary/10" 
                       : "text-muted-foreground hover:text-primary"
                   )}
-                  onMouseEnter={() => !('ontouchstart' in window) && setIsOpen(true)}
-                  onMouseLeave={() => !('ontouchstart' in window) && setIsOpen(false)}
                   onFocus={() => setIsOpen(true)}
                   onBlur={() => setIsOpen(false)}
                   onClick={(e) => {
@@ -128,22 +126,9 @@ export const ThreeLayerHelp: React.FC<ThreeLayerHelpProps> = ({
                           <p className="font-semibold text-sm font-inter text-slate-50">
                             {helpData.tooltip.title}
                           </p>
-                          <p className="text-[13px] leading-5 text-slate-300 break-words">
-                            {helpData.tooltip.content}
-                          </p>
-                          {helpData.tooltip.learnMoreUrl && (
-                            <a
-                              href={helpData.tooltip.learnMoreUrl}
-                              className="text-[13px] text-blue-400 hover:text-blue-300 hover:underline inline-flex items-center gap-1 cursor-pointer transition-colors"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                              }}
-                            >
-                              Learn more →
-                            </a>
-                          )}
+              <p className="text-[13px] leading-5 text-slate-300 break-words">
+                {helpData.tooltip.content}
+              </p>
                           {helpData.accessibility.keyboardShortcut && (
                             <div className="text-xs text-slate-400 pt-1 border-t border-slate-700">
                               Shortcut: <kbd className="px-1.5 py-0.5 bg-slate-700 rounded text-xs font-mono">{helpData.accessibility.keyboardShortcut}</kbd>

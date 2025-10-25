@@ -340,11 +340,10 @@
           "id": "followup_remarks",
           "label": "Progress Remarks",
           "explanation": "Summarize GST case work (min. 20 chars)",
-          "tooltip": {
-            "title": "Document GST Case Progress",
-            "content": "Record specific work done for this GST litigation task. Include form references when relevant (e.g., 'ASMT-10 reply drafted addressing 3 key objections', 'DRC-01 review completed - liability confirmed at ₹2.4L', 'Form GSTR-9C reconciliation in progress'). Be detailed enough for handoff to other team members.",
-            "learnMoreUrl": "/help/gst-litigation/follow-ups/progress-remarks"
-          },
+      "tooltip": {
+        "title": "Document GST Case Progress",
+        "content": "Record specific work done for this GST litigation task. Include form references when relevant (e.g., 'ASMT-10 reply drafted addressing 3 key objections', 'DRC-01 review completed - liability confirmed at ₹2.4L', 'Form GSTR-9C reconciliation in progress'). Be detailed enough for handoff to other team members."
+      },
           "accessibility": {
             "ariaLabel": "Enter progress remarks for GST case"
           }
@@ -355,8 +354,7 @@
           "explanation": "Current status of this GST work activity",
           "tooltip": {
             "title": "Outcome Types for GST Cases",
-            "content": "Progressing: GST work moving forward smoothly (e.g., reply drafting on track). Blocked: Cannot proceed due to external factors (e.g., awaiting client GSTR data). Completed: This GST work item is finished (e.g., notice reply filed). Need Support: Require help from team (e.g., section reference verification). Pending Input: Waiting for client/department response (e.g., missing GST invoices).",
-            "learnMoreUrl": "/help/gst-litigation/follow-ups/outcomes"
+            "content": "Progressing: GST work moving forward smoothly (e.g., reply drafting on track). Blocked: Cannot proceed due to external factors (e.g., awaiting client GSTR data). Completed: This GST work item is finished (e.g., notice reply filed). Need Support: Require help from team (e.g., section reference verification). Pending Input: Waiting for client/department response (e.g., missing GST invoices)."
           },
           "accessibility": {
             "ariaLabel": "Select outcome type for GST work"
@@ -368,8 +366,7 @@
           "explanation": "Update the overall GST task progress state",
           "tooltip": {
             "title": "GST Task Status Updates",
-            "content": "Updates the parent GST task's current state. Not Started: No work begun on GST matter. In Progress: Actively working on GST case (e.g., drafting ASMT-10 reply). Review: GST work ready for partner review. Completed: GST task fully finished (e.g., appeal filed). Overdue: Passed GST authority deadline. Updates reflect in task lists and GST dashboards.",
-            "learnMoreUrl": "/help/gst-litigation/task-status"
+            "content": "Updates the parent GST task's current state. Not Started: No work begun on GST matter. In Progress: Actively working on GST case (e.g., drafting ASMT-10 reply). Review: GST work ready for partner review. Completed: GST task fully finished (e.g., appeal filed). Overdue: Passed GST authority deadline. Updates reflect in task lists and GST dashboards."
           },
           "accessibility": {
             "ariaLabel": "Update GST task status"
@@ -381,8 +378,7 @@
           "explanation": "Time spent on this GST activity (optional)",
           "tooltip": {
             "title": "Time Tracking for GST Work",
-            "content": "Record time spent on GST case in hours (e.g., 0.25 = 15 mins for quick notice review, 1.5 = 1hr 30mins for detailed ASMT-10 reply). Used for GST matter billing, workload analysis, and project time estimation. Leave blank if time tracking not required. Maximum 24 hours per entry.",
-            "learnMoreUrl": "/help/gst-litigation/time-tracking"
+            "content": "Record time spent on GST case in hours (e.g., 0.25 = 15 mins for quick notice review, 1.5 = 1hr 30mins for detailed ASMT-10 reply). Used for GST matter billing, workload analysis, and project time estimation. Leave blank if time tracking not required. Maximum 24 hours per entry."
           },
           "accessibility": {
             "ariaLabel": "Enter hours worked on GST case"
@@ -394,8 +390,7 @@
           "explanation": "When was this GST work performed?",
           "tooltip": {
             "title": "GST Work Date vs Entry Date",
-            "content": "Date when GST work was actually performed (defaults to today). Use this to log GST work from previous days (up to 30 days back) - e.g., backdating hearing attendance or client meeting. Important for accurate GST billing and compliance tracking. The system records entry date separately for audit purposes.",
-            "learnMoreUrl": "/help/gst-litigation/work-date"
+            "content": "Date when GST work was actually performed (defaults to today). Use this to log GST work from previous days (up to 30 days back) - e.g., backdating hearing attendance or client meeting. Important for accurate GST billing and compliance tracking. The system records entry date separately for audit purposes."
           },
           "accessibility": {
             "ariaLabel": "Select GST work date"
@@ -407,8 +402,7 @@
           "explanation": "Schedule when to check this GST task again (optional)",
           "tooltip": {
             "title": "GST Follow-Up Reminders",
-            "content": "Set a future date when this GST task needs attention again (e.g., DRC-07 submission deadline, hearing date preparation reminder). Creates a reminder for the assigned person. Use quick buttons (Tomorrow, 3 days, 1 week) for common intervals. Leave blank if no specific GST follow-up needed. Appears in 'Pending GST Follow-ups' dashboard.",
-            "learnMoreUrl": "/help/gst-litigation/follow-up-reminders"
+            "content": "Set a future date when this GST task needs attention again (e.g., DRC-07 submission deadline, hearing date preparation reminder). Creates a reminder for the assigned person. Use quick buttons (Tomorrow, 3 days, 1 week) for common intervals. Leave blank if no specific GST follow-up needed. Appears in 'Pending GST Follow-ups' dashboard."
           },
           "accessibility": {
             "ariaLabel": "Set next GST follow-up date"
@@ -420,8 +414,7 @@
           "explanation": "What GST work needs to be done next? (optional)",
           "tooltip": {
             "title": "Defining Next Steps in GST Cases",
-            "content": "Outline specific GST actions required to move task forward. Examples: 'Schedule client meeting to discuss GST liability implications', 'Draft response to objections 4-7 in ASMT-10 notice', 'Obtain partner approval for Section 73 defence strategy', 'Prepare annexures for DRC-01 submission'. Helps GST team members pick up where you left off.",
-            "learnMoreUrl": "/help/gst-litigation/next-actions"
+            "content": "Outline specific GST actions required to move task forward. Examples: 'Schedule client meeting to discuss GST liability implications', 'Draft response to objections 4-7 in ASMT-10 notice', 'Obtain partner approval for Section 73 defence strategy', 'Prepare annexures for DRC-01 submission'. Helps GST team members pick up where you left off."
           },
           "accessibility": {
             "ariaLabel": "Enter next actions for GST case"
@@ -433,8 +426,7 @@
           "explanation": "What's preventing GST work progress? (optional)",
           "tooltip": {
             "title": "GST Case Blockers",
-            "content": "Document obstacles preventing GST case progress. Examples: 'Waiting for client to provide GSTR-1 data for period April-June 2024', 'Need GST department clarification on Section 73 applicability', 'Missing Form DRC-01 acknowledgement from portal', 'Tax consultant unavailable until hearing date'. Helps identify bottlenecks in GST workflows and prioritize resolution.",
-            "learnMoreUrl": "/help/gst-litigation/blockers"
+            "content": "Document obstacles preventing GST case progress. Examples: 'Waiting for client to provide GSTR-1 data for period April-June 2024', 'Need GST department clarification on Section 73 applicability', 'Missing Form DRC-01 acknowledgement from portal', 'Tax consultant unavailable until hearing date'. Helps identify bottlenecks in GST workflows and prioritize resolution."
           },
           "accessibility": {
             "ariaLabel": "Enter GST case blockers or issues"
@@ -446,8 +438,7 @@
           "explanation": "Mark if you need GST team assistance",
           "tooltip": {
             "title": "Request GST Team Support",
-            "content": "Flags the task on the Team Dashboard to request assistance on GST matter (e.g., section reference check for ASMT-10 reply, annexure preparation for DRC-07, GST portal navigation help). Task creator and team leads receive notification. Use for technical GST questions or workload assistance.",
-            "learnMoreUrl": "/help/gst-litigation/follow-ups/support-needed"
+            "content": "Flags the task on the Team Dashboard to request assistance on GST matter (e.g., section reference check for ASMT-10 reply, annexure preparation for DRC-07, GST portal navigation help). Task creator and team leads receive notification. Use for technical GST questions or workload assistance."
           },
           "accessibility": {
             "ariaLabel": "Toggle GST support needed flag"
@@ -459,8 +450,7 @@
           "explanation": "Alert task creator about critical GST issues",
           "tooltip": {
             "title": "GST Case Escalation",
-            "content": "Notifies the task creator for urgent attention on GST matter (e.g., DRC-07 due date risk, missed hearing date correction needed, client non-cooperation affecting GST compliance). Sends immediate notification. Task marked with red flag. Use for critical GST deadline risks or client emergencies.",
-            "learnMoreUrl": "/help/gst-litigation/follow-ups/escalation"
+            "content": "Notifies the task creator for urgent attention on GST matter (e.g., DRC-07 due date risk, missed hearing date correction needed, client non-cooperation affecting GST compliance). Sends immediate notification. Task marked with red flag. Use for critical GST deadline risks or client emergencies."
           },
           "accessibility": {
             "ariaLabel": "Toggle GST escalation request"
@@ -472,8 +462,7 @@
           "explanation": "Mark if you contacted client about GST case",
           "tooltip": {
             "title": "GST Client Communication Tracking",
-            "content": "Check when you have contacted client (call/email/meeting) about GST matter. Logs a touchpoint on case timeline for GST engagement tracking. Examples: 'Discussed GST liability implications', 'Explained ASMT-10 notice objections', 'Requested missing GSTR-1 data'. Shows phone icon on timeline.",
-            "learnMoreUrl": "/help/gst-litigation/client-communication-tracking"
+            "content": "Check when you have contacted client (call/email/meeting) about GST matter. Logs a touchpoint on case timeline for GST engagement tracking. Examples: 'Discussed GST liability implications', 'Explained ASMT-10 notice objections', 'Requested missing GSTR-1 data'. Shows phone icon on timeline."
           },
           "accessibility": {
             "ariaLabel": "Toggle GST client interaction flag"
@@ -485,8 +474,7 @@
           "explanation": "Mark if GST work was peer-reviewed",
           "tooltip": {
             "title": "GST Quality Assurance",
-            "content": "Mark when peer/partner has completed internal review (quality badge) before submitting GST reply/appeal. Examples: 'Partner reviewed ASMT-10 reply', 'Senior reviewed Section 73 defence strategy', 'Quality check on DRC-07 calculations'. Indicates GST work met internal standards.",
-            "learnMoreUrl": "/help/gst-litigation/internal-review"
+            "content": "Mark when peer/partner has completed internal review (quality badge) before submitting GST reply/appeal. Examples: 'Partner reviewed ASMT-10 reply', 'Senior reviewed Section 73 defence strategy', 'Quality check on DRC-07 calculations'. Indicates GST work met internal standards."
           },
           "accessibility": {
             "ariaLabel": "Toggle GST internal review flag"
@@ -500,8 +488,7 @@
           "explanation": "Document what work was completed",
           "tooltip": {
             "title": "Progress Section",
-            "content": "Core section for recording work performed. Remarks field is required (min 20 chars) and forms the main record of progress. Outcome and Status updates provide at-a-glance health indicators for dashboards and reports.",
-            "learnMoreUrl": "/help/pages/tasks"
+            "content": "Core section for recording work performed. Remarks field is required (min 20 chars) and forms the main record of progress. Outcome and Status updates provide at-a-glance health indicators for dashboards and reports."
           },
           "accessibility": {
             "ariaLabel": "Progress and remarks section"
@@ -513,8 +500,7 @@
           "explanation": "Track time and set reminders",
           "tooltip": {
             "title": "Time Tracking & Scheduling",
-            "content": "Log hours worked for billing and analytics. Set work date if logging past work (up to 30 days). Schedule next follow-up to create automatic reminders. All fields optional but recommended for accurate project tracking.",
-            "learnMoreUrl": "/help/pages/tasks"
+            "content": "Log hours worked for billing and analytics. Set work date if logging past work (up to 30 days). Schedule next follow-up to create automatic reminders. All fields optional but recommended for accurate project tracking."
           },
           "accessibility": {
             "ariaLabel": "Time and scheduling section"
@@ -526,8 +512,7 @@
           "explanation": "Plan ahead and flag obstacles",
           "tooltip": {
             "title": "Next Actions & Blockers",
-            "content": "Define clear next steps so anyone can continue work. Document blockers to make issues visible to management. Both fields optional but highly recommended for team coordination and project continuity.",
-            "learnMoreUrl": "/help/pages/tasks"
+            "content": "Define clear next steps so anyone can continue work. Document blockers to make issues visible to management. Both fields optional but highly recommended for team coordination and project continuity."
           },
           "accessibility": {
             "ariaLabel": "Actions and blockers section"
@@ -554,8 +539,7 @@
           "explanation": "Save this follow-up to task history",
           "tooltip": {
             "title": "Save Follow-Up",
-            "content": "Saves follow-up entry to task history. Updates task status if changed. Sends notifications based on flags (escalation, support needed). Creates next follow-up reminder if date set. Disabled until remarks field has 20+ characters.",
-            "learnMoreUrl": "/help/pages/tasks"
+            "content": "Saves follow-up entry to task history. Updates task status if changed. Sends notifications based on flags (escalation, support needed). Creates next follow-up reminder if date set. Disabled until remarks field has 20+ characters."
           },
           "accessibility": {
             "ariaLabel": "Add follow-up entry"
@@ -569,8 +553,7 @@
           "explanation": "Record progress, track time, and coordinate with team",
           "tooltip": {
             "title": "Follow-Up System Overview",
-            "content": "Follow-ups create a detailed activity log for each task. Required: Progress remarks (20+ chars) and status update. Optional: Time tracking, next actions, blockers, and coordination flags. All entries timestamped and attributed to you. Visible in task timeline and analytics.",
-            "learnMoreUrl": "/help/pages/tasks"
+            "content": "Follow-ups create a detailed activity log for each task. Required: Progress remarks (20+ chars) and status update. Optional: Time tracking, next actions, blockers, and coordination flags. All entries timestamped and attributed to you. Visible in task timeline and analytics."
           },
           "accessibility": {
             "ariaLabel": "Follow-up modal overview"
