@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, AlertTriangle, CheckCircle2, FileText, Blocks, Phone, Plus, Info } from 'lucide-react';
+import { Calendar, Clock, AlertTriangle, CheckCircle2, FileText, Blocks, Phone, Plus, Info, HelpCircle } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -62,11 +62,37 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
 
   const [workDateOpen, setWorkDateOpen] = useState(false);
   const [followUpDateOpen, setFollowUpDateOpen] = useState(false);
+  
+  // Centralized tooltip manager - only one tooltip visible at a time
+  const [activeTooltipId, setActiveTooltipId] = useState<string | null>(null);
 
   // Load help data on mount
   useEffect(() => {
     uiHelpService.loadHelpData();
   }, []);
+  
+  // Wrapper to control tooltip visibility globally
+  const ControlledThreeLayerHelp: React.FC<{
+    helpId: string;
+    children?: React.ReactNode;
+    showExplanation?: boolean;
+    showTooltipIcon?: boolean;
+    className?: string;
+  }> = (props) => {
+    return (
+      <div
+        onMouseEnter={() => setActiveTooltipId(props.helpId)}
+        onMouseLeave={() => setActiveTooltipId(null)}
+        onFocus={() => setActiveTooltipId(props.helpId)}
+        onBlur={() => setActiveTooltipId(null)}
+      >
+        <ThreeLayerHelp
+          {...props}
+          forceOpen={activeTooltipId === props.helpId}
+        />
+      </div>
+    );
+  };
 
   const resetForm = () => {
     setFormData({
@@ -129,19 +155,11 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
           <DialogDescription>
             Record progress and next steps for: {task.title}
           </DialogDescription>
-          <div className="mt-3 p-3 bg-muted/50 rounded-lg border border-border flex items-start gap-2">
-            <Info className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-            <div className="text-sm text-muted-foreground">
-              <ThreeLayerHelp 
-                helpId="followup_modal_overview" 
-                showExplanation={false}
-                showTooltipIcon={true}
-                className="inline-flex"
-              >
-                <span className="font-medium text-foreground">Quick Tip:</span>
-              </ThreeLayerHelp>
-              <span className="ml-1">Fill in progress remarks (required) and optionally track time, set reminders, or flag issues for team coordination.</span>
-            </div>
+          <div className="mt-3 p-2.5 bg-muted/40 rounded-md border border-border/50 flex items-center gap-2">
+            <Info className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <p className="text-xs text-muted-foreground">
+              Record GST case progress with remarks (required). Use help icons <HelpCircle className="inline h-3 w-3 mx-0.5" /> for guidance.
+            </p>
           </div>
         </DialogHeader>
 
@@ -155,7 +173,7 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
                     <FileText className="h-4 w-4" />
                     Progress & Remarks
                   </CardTitle>
-                  <ThreeLayerHelp 
+                  <ControlledThreeLayerHelp 
                     helpId="followup_card_progress"
                     showExplanation={false}
                     showTooltipIcon={true}
@@ -165,15 +183,15 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
               <CardContent className="space-y-4">
                 {/* Remarks - Required */}
                 <div className="space-y-2">
-                  <ThreeLayerHelp 
+                  <ControlledThreeLayerHelp 
                     helpId="followup_remarks"
-                    showExplanation={true}
+                    showExplanation={false}
                     showTooltipIcon={true}
                   >
                     <Label htmlFor="remarks">
                       What progress was made? What did you do? *
                     </Label>
-                  </ThreeLayerHelp>
+                  </ControlledThreeLayerHelp>
                   <Textarea
                     id="remarks"
                     value={formData.remarks}
@@ -193,13 +211,13 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
                 {/* Outcome and Status */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <ThreeLayerHelp 
+                    <ControlledThreeLayerHelp 
                       helpId="followup_outcome"
-                      showExplanation={true}
+                      showExplanation={false}
                       showTooltipIcon={true}
                     >
                       <Label>Outcome</Label>
-                    </ThreeLayerHelp>
+                    </ControlledThreeLayerHelp>
                     <Select
                       value={formData.outcome}
                       onValueChange={(value) => setFormData({ ...formData, outcome: value as TaskFollowUp['outcome'] })}
@@ -224,13 +242,13 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
                   </div>
 
                   <div className="space-y-2">
-                    <ThreeLayerHelp 
+                    <ControlledThreeLayerHelp 
                       helpId="followup_status"
-                      showExplanation={true}
+                      showExplanation={false}
                       showTooltipIcon={true}
                     >
                       <Label>Update Status *</Label>
-                    </ThreeLayerHelp>
+                    </ControlledThreeLayerHelp>
                     <Select
                       value={formData.status}
                       onValueChange={(value) => setFormData({ ...formData, status: value as Task['status'] })}
@@ -259,7 +277,7 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
                     <Clock className="h-4 w-4" />
                     Time & Scheduling
                   </CardTitle>
-                  <ThreeLayerHelp 
+                  <ControlledThreeLayerHelp 
                     helpId="followup_card_time"
                     showExplanation={false}
                     showTooltipIcon={true}
@@ -270,13 +288,13 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
                 {/* Time and Work Date */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <ThreeLayerHelp 
+                    <ControlledThreeLayerHelp 
                       helpId="followup_hours"
-                      showExplanation={true}
+                      showExplanation={false}
                       showTooltipIcon={true}
                     >
                       <Label htmlFor="hours">Hours Worked</Label>
-                    </ThreeLayerHelp>
+                    </ControlledThreeLayerHelp>
                     <div className="relative">
                       <Clock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -294,13 +312,13 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
                   </div>
 
                   <div className="space-y-2">
-                    <ThreeLayerHelp 
+                    <ControlledThreeLayerHelp 
                       helpId="followup_work_date"
-                      showExplanation={true}
+                      showExplanation={false}
                       showTooltipIcon={true}
                     >
                       <Label>Work Date</Label>
-                    </ThreeLayerHelp>
+                    </ControlledThreeLayerHelp>
                     <Popover open={workDateOpen} onOpenChange={setWorkDateOpen}>
                       <PopoverTrigger asChild>
                         <Button variant="outline" className="w-full justify-start text-left font-normal">
@@ -326,13 +344,13 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
 
                 {/* Next Follow-Up Date */}
                 <div className="space-y-2">
-                  <ThreeLayerHelp 
+                  <ControlledThreeLayerHelp 
                     helpId="followup_next_date"
-                    showExplanation={true}
+                    showExplanation={false}
                     showTooltipIcon={true}
                   >
                     <Label>Set Next Follow-Up</Label>
-                  </ThreeLayerHelp>
+                  </ControlledThreeLayerHelp>
                   <Popover open={followUpDateOpen} onOpenChange={setFollowUpDateOpen}>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-full justify-start text-left font-normal">
@@ -403,7 +421,7 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
                     <Blocks className="h-4 w-4" />
                     Next Actions & Blockers
                   </CardTitle>
-                  <ThreeLayerHelp 
+                  <ControlledThreeLayerHelp 
                     helpId="followup_card_actions"
                     showExplanation={false}
                     showTooltipIcon={true}
@@ -413,13 +431,13 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
               <CardContent className="space-y-4">
                 {/* Next Actions */}
                 <div className="space-y-2">
-                  <ThreeLayerHelp 
+                  <ControlledThreeLayerHelp 
                     helpId="followup_next_actions"
-                    showExplanation={true}
+                    showExplanation={false}
                     showTooltipIcon={true}
                   >
                     <Label htmlFor="nextActions">Next Actions</Label>
-                  </ThreeLayerHelp>
+                  </ControlledThreeLayerHelp>
                   <Textarea
                     id="nextActions"
                     value={formData.nextActions}
@@ -432,13 +450,13 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
 
                 {/* Blockers */}
                 <div className="space-y-2">
-                  <ThreeLayerHelp 
+                  <ControlledThreeLayerHelp 
                     helpId="followup_blockers"
-                    showExplanation={true}
+                    showExplanation={false}
                     showTooltipIcon={true}
                   >
                     <Label htmlFor="blockers">Blockers/Issues</Label>
-                  </ThreeLayerHelp>
+                  </ControlledThreeLayerHelp>
                   <Textarea
                     id="blockers"
                     value={formData.blockers}
@@ -459,7 +477,7 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
                     <AlertTriangle className="h-4 w-4" />
                     Additional Options
                   </CardTitle>
-                  <ThreeLayerHelp 
+                  <ControlledThreeLayerHelp 
                     helpId="followup_card_options"
                     showExplanation={false}
                     showTooltipIcon={true}
@@ -481,7 +499,7 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
                       </span>
                     </Label>
                   </div>
-                  <ThreeLayerHelp 
+                  <ControlledThreeLayerHelp 
                     helpId="followup_support_needed"
                     showExplanation={false}
                     showTooltipIcon={true}
@@ -502,7 +520,7 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
                       </span>
                     </Label>
                   </div>
-                  <ThreeLayerHelp 
+                  <ControlledThreeLayerHelp 
                     helpId="followup_escalation"
                     showExplanation={false}
                     showTooltipIcon={true}
@@ -524,7 +542,7 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
                       </span>
                     </Label>
                   </div>
-                  <ThreeLayerHelp 
+                  <ControlledThreeLayerHelp 
                     helpId="followup_client_interaction"
                     showExplanation={false}
                     showTooltipIcon={true}
@@ -545,7 +563,7 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
                       </span>
                     </Label>
                   </div>
-                  <ThreeLayerHelp 
+                  <ControlledThreeLayerHelp 
                     helpId="followup_internal_review"
                     showExplanation={false}
                     showTooltipIcon={true}
@@ -560,7 +578,7 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
           <Button variant="outline" onClick={handleClose}>
             Cancel
           </Button>
-          <ThreeLayerHelp 
+          <ControlledThreeLayerHelp 
             helpId="followup_btn_add"
             showExplanation={false}
             showTooltipIcon={true}
@@ -568,7 +586,7 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
             <Button onClick={handleSubmit} disabled={!isValid}>
               Add Follow-Up
             </Button>
-          </ThreeLayerHelp>
+          </ControlledThreeLayerHelp>
         </DialogFooter>
       </DialogContent>
     </Dialog>
