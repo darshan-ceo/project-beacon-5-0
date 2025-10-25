@@ -47,7 +47,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Task, TaskNote, TaskFollowUp, useAppState } from '@/contexts/AppStateContext';
 import { formatDistanceToNow, format as formatDate } from 'date-fns';
 import { TaskTimeline } from './TaskTimeline';
-import { QuickActionButtons } from './QuickActionButtons';
 import { LogFollowUpModal } from './LogFollowUpModal';
 import { FollowUpCard } from './FollowUpCard';
 import { toast } from '@/hooks/use-toast';
@@ -328,96 +327,6 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
     });
   };
 
-  const handleBatchUpdate = (updates: {
-    status?: string;
-    hours?: number;
-    dueDate?: string;
-    followUpDate?: string;
-    comment: string;
-  }) => {
-    if (!task || !onUpdateTask) return;
-
-    const timestamp = new Date().toISOString();
-    const taskUpdates: Partial<Task> = {};
-    const notes: TaskNote[] = [];
-
-    // Apply all task updates at once
-    if (updates.status && updates.status !== task.status) {
-      taskUpdates.status = updates.status as Task['status'];
-      notes.push({
-        id: uuid(),
-        taskId: task.id,
-        type: 'status_change',
-        note: updates.comment,
-        createdBy: state.userProfile.id,
-        createdByName: state.userProfile.name,
-        createdAt: timestamp,
-        metadata: { oldStatus: task.status, newStatus: updates.status }
-      });
-    }
-
-    if (updates.hours) {
-      taskUpdates.actualHours = (task.actualHours || 0) + updates.hours;
-      notes.push({
-        id: uuid(),
-        taskId: task.id,
-        type: 'time_log',
-        note: updates.comment,
-        createdBy: state.userProfile.id,
-        createdByName: state.userProfile.name,
-        createdAt: timestamp,
-        metadata: { hours: updates.hours }
-      });
-    }
-
-    if (updates.dueDate && updates.dueDate !== task.dueDate) {
-      taskUpdates.dueDate = updates.dueDate;
-      notes.push({
-        id: uuid(),
-        taskId: task.id,
-        type: 'comment',
-        note: `${updates.comment} (Due date changed to ${new Date(updates.dueDate).toLocaleDateString()})`,
-        createdBy: state.userProfile.id,
-        createdByName: state.userProfile.name,
-        createdAt: timestamp
-      });
-    }
-
-    if (updates.followUpDate) {
-      taskUpdates.followUpDate = updates.followUpDate;
-      taskUpdates.currentFollowUpDate = updates.followUpDate; // Update new field
-      notes.push({
-        id: uuid(),
-        taskId: task.id,
-        type: 'follow_up',
-        note: updates.comment,
-        createdBy: state.userProfile.id,
-        createdByName: state.userProfile.name,
-        createdAt: timestamp,
-        metadata: { followUpDate: updates.followUpDate }
-      });
-    }
-
-    // Update task
-    onUpdateTask(task.id, taskUpdates);
-
-    // Dispatch all notes at once
-    notes.forEach(note => {
-      dispatch({ type: 'ADD_TASK_NOTE', payload: note });
-    });
-
-    // Show consolidated toast
-    const changes = [];
-    if (updates.status) changes.push('status');
-    if (updates.hours) changes.push(`${updates.hours}h logged`);
-    if (updates.dueDate) changes.push('due date');
-    if (updates.followUpDate) changes.push('follow-up');
-
-    toast({
-      title: 'Task Updated',
-      description: `Updated: ${changes.join(', ')}`
-    });
-  };
 
   // Handle follow-up submission
   const handleFollowUpSubmit = (followUpData: Omit<TaskFollowUp, 'id' | 'createdAt' | 'createdBy' | 'createdByName'>) => {
@@ -790,25 +699,13 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
                 </CardContent>
               </Card>
 
-              {/* Quick Actions & Activity Timeline */}
+              {/* Activity Timeline */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-sm font-medium">Quick Actions & Activity</CardTitle>
+                  <CardTitle className="text-sm font-medium">Activity Timeline</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <QuickActionButtons
-                    currentStatus={task.status}
-                    currentDueDate={task.dueDate}
-                    currentFollowUpDate={task.followUpDate}
-                    onBatchUpdate={handleBatchUpdate}
-                  />
-                  
-                  <Separator />
-
-                  <div>
-                    <h4 className="text-sm font-medium mb-3">Timeline</h4>
-                    <TaskTimeline notes={taskNotes} />
-                  </div>
+                <CardContent>
+                  <TaskTimeline notes={taskNotes} />
                 </CardContent>
               </Card>
 
