@@ -6,9 +6,11 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HelpCircle } from 'lucide-react';
+import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { uiHelpService } from '@/services/uiHelpService';
 import { featureFlagService } from '@/services/featureFlagService';
+import { cn } from '@/lib/utils';
 
 interface ThreeLayerHelpProps {
   helpId: string;
@@ -55,8 +57,14 @@ export const ThreeLayerHelp: React.FC<ThreeLayerHelpProps> = ({
               <TooltipTrigger asChild>
                 <button
                   type="button"
-                  className="inline-flex items-center justify-center w-4 h-4 text-muted-foreground hover:text-primary transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
+                  className={cn(
+                    "inline-flex items-center justify-center w-4 h-4 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm",
+                    isOpen 
+                      ? "text-primary bg-primary/10" 
+                      : "text-muted-foreground hover:text-primary"
+                  )}
                   aria-label={helpData.accessibility.ariaLabel}
+                  aria-expanded={isOpen}
                   onMouseEnter={() => setIsOpen(true)}
                   onMouseLeave={() => setIsOpen(false)}
                   onFocus={() => setIsOpen(true)}
@@ -67,46 +75,52 @@ export const ThreeLayerHelp: React.FC<ThreeLayerHelpProps> = ({
                 </button>
               </TooltipTrigger>
               
-              <AnimatePresence>
-                {isOpen && (
-                  <TooltipContent
-                    side="top"
-                    className="max-w-[280px] break-words p-0 overflow-hidden bg-[#1E293B] text-[#F8FAFC] border-none"
-                    asChild
-                  >
-                    <motion.div
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      transition={{ duration: 0.15, ease: "easeOut" }}
+              <TooltipPrimitive.Portal>
+                <AnimatePresence>
+                  {isOpen && (
+                    <TooltipContent
+                      side="top"
+                      align="center"
+                      sideOffset={8}
+                      collisionPadding={16}
+                      avoidCollisions={true}
+                      className="z-[9999] max-w-[280px] break-words p-0 overflow-hidden bg-[#1E293B] text-[#F8FAFC] border-none"
+                      asChild
                     >
-                      <div className="p-3 space-y-2 rounded-[6px]">
-                        <p className="font-semibold text-sm text-[#F8FAFC]">
-                          {helpData.tooltip.title}
-                        </p>
-                        <p className="text-xs leading-relaxed text-[#CBD5E1] break-words">
-                          {helpData.tooltip.content}
-                        </p>
-                        {helpData.tooltip.learnMoreUrl && (
-                          <a
-                            href={helpData.tooltip.learnMoreUrl}
-                            className="text-xs text-primary hover:underline inline-flex items-center gap-1"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            Learn more →
-                          </a>
-                        )}
-                        {helpData.accessibility.keyboardShortcut && (
-                          <div className="text-xs text-muted-foreground pt-1 border-t border-border">
-                            Shortcut: <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">{helpData.accessibility.keyboardShortcut}</kbd>
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  </TooltipContent>
-                )}
-              </AnimatePresence>
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        transition={{ duration: 0.15, ease: "easeOut" }}
+                      >
+                        <div className="p-3 space-y-2 rounded-[6px]">
+                          <p className="font-semibold text-sm text-[#F8FAFC]">
+                            {helpData.tooltip.title}
+                          </p>
+                          <p className="text-xs leading-relaxed text-[#CBD5E1] break-words">
+                            {helpData.tooltip.content}
+                          </p>
+                          {helpData.tooltip.learnMoreUrl && (
+                            <a
+                              href={helpData.tooltip.learnMoreUrl}
+                              className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              Learn more →
+                            </a>
+                          )}
+                          {helpData.accessibility.keyboardShortcut && (
+                            <div className="text-xs text-muted-foreground pt-1 border-t border-border">
+                              Shortcut: <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">{helpData.accessibility.keyboardShortcut}</kbd>
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    </TooltipContent>
+                  )}
+                </AnimatePresence>
+              </TooltipPrimitive.Portal>
             </Tooltip>
           </TooltipProvider>
         )}

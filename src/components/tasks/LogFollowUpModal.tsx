@@ -145,7 +145,7 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
           </div>
         </DialogHeader>
 
-        <DialogBody>
+        <DialogBody className="relative">
           <form className="space-y-6">
             {/* Progress & Remarks Card */}
             <Card>
