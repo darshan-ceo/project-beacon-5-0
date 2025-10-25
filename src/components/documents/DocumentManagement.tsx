@@ -901,15 +901,30 @@ export const DocumentManagement: React.FC = () => {
                   <div>
                     <h3 className="font-medium mb-3">Quick Actions</h3>
                     <div className="space-y-2">
-                      <Button variant="outline" size="sm" className="w-full justify-start">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full justify-start"
+                        onClick={() => setDocumentModal({ isOpen: true, mode: 'upload', document: null })}
+                      >
                         <Upload className="mr-2 h-4 w-4" />
                         Upload Documents
                       </Button>
-                      <Button variant="outline" size="sm" className="w-full justify-start">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full justify-start"
+                        onClick={() => setNewFolderModal(true)}
+                      >
                         <FolderOpen className="mr-2 h-4 w-4" />
                         Create New Folder
                       </Button>
-                      <Button variant="outline" size="sm" className="w-full justify-start">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full justify-start"
+                        onClick={() => setActiveTab('documents')}
+                      >
                         <Search className="mr-2 h-4 w-4" />
                         Advanced Search
                       </Button>
