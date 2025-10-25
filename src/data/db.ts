@@ -341,6 +341,7 @@ export class HofficeDB extends Dexie {
   hearings!: Table<Hearing>;
   tasks!: Table<Task>;
   task_notes!: Table<TaskNote>;
+  task_followups!: Table<any>;
   task_bundles!: Table<TaskBundle>;
   task_bundle_items!: Table<TaskBundleItem>;
   documents!: Table<Document>;
@@ -446,6 +447,7 @@ export class HofficeDB extends Dexie {
       hearings: 'id, case_id, hearing_date, judge_id, outcome_code, next_hearing_date, status',
       tasks: 'id, case_id, assigned_to, due_date, status, priority, [related_entity_type+related_entity_id], bundle_id, is_auto_generated',
       task_notes: 'id, task_id, type, created_by, created_at',
+      task_followups: 'id, task_id, created_by, created_at, work_date, status, outcome',
       task_bundles: 'id, stage_code, trigger, active, name, stages, execution_mode, version, usage_count',
       task_bundle_items: 'id, bundle_id, order_index, assigned_role, category, due_offset',
       documents: 'id, case_id, doc_type_code, version, status, added_on, folder_id',

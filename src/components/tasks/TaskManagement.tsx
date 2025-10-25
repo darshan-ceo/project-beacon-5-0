@@ -47,6 +47,8 @@ import { storageManager } from '@/data/StorageManager';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { HelpButton } from '@/components/ui/help-button';
 import { ThreeLayerHelp } from '@/components/ui/three-layer-help';
+import { MigrationBanner } from './MigrationBanner';
+import { Lock } from 'lucide-react';
 
 interface TaskBundle {
   id: string;
@@ -352,9 +354,17 @@ export const TaskManagement: React.FC = () => {
     }
   };
 
+  const lockedTasksCount = state.tasks.filter(t => t.isLocked).length;
+
   return (
     <TooltipProvider>
       <div className="space-y-6">
+      {/* Migration Banner */}
+      <MigrationBanner 
+        migratedCount={lockedTasksCount}
+        onDismiss={() => console.log('Migration banner dismissed')}
+      />
+
       {/* Return Navigation Breadcrumb */}
       {hasReturnCtx && (
         <motion.div

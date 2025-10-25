@@ -4,10 +4,11 @@
  */
 
 import { useEffect, useState, useRef } from 'react';
-import { useAppState } from '@/contexts/AppStateContext';
+import { useAppState, TaskFollowUp } from '@/contexts/AppStateContext';
 import { storageManager } from '@/data/StorageManager';
 import { toast } from 'sonner';
 import JSZip from 'jszip';
+import { v4 as uuid } from 'uuid';
 
 export interface StorageHealth {
   healthy: boolean;
@@ -90,14 +91,79 @@ export const useUnifiedPersistence = () => {
     }
   };
 
+  // Migration function to convert legacy follow-up notes to TaskFollowUp records
+  const migrateFollowUpNotes = async (
+    tasks: any[], 
+    taskNotes: any[]
+  ): Promise<{ tasks: any[], taskFollowUps: TaskFollowUp[] }> => {
+    console.log('🔄 Starting follow-up migration...');
+    
+    const followUpNotes = taskNotes.filter((note: any) => note.type === 'follow_up');
+    
+    if (followUpNotes.length === 0) {
+      console.log('✅ No follow-up notes to migrate');
+      return { tasks, taskFollowUps: [] };
+    }
+    
+    const taskFollowUps: TaskFollowUp[] = [];
+    const updatedTasks = tasks.map(task => {
+      const taskFollowUpNotes = followUpNotes.filter((note: any) => note.taskId === task.id);
+      
+      if (taskFollowUpNotes.length === 0) {
+        return task;
+      }
+      
+      // Sort by creation date (oldest first)
+      taskFollowUpNotes.sort((a: any, b: any) => 
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
+      
+      // Convert each follow-up note to TaskFollowUp
+      taskFollowUpNotes.forEach((note: any) => {
+        const followUp: TaskFollowUp = {
+          id: uuid(),
+          taskId: task.id,
+          remarks: note.note || 'Follow-up logged (migrated from legacy system)',
+          outcome: 'Progressing',
+          status: task.status,
+          workDate: note.createdAt.split('T')[0],
+          nextFollowUpDate: note.metadata?.followUpDate,
+          createdBy: note.createdBy,
+          createdByName: note.createdByName,
+          createdAt: note.createdAt,
+          clientInteraction: false,
+          internalReview: false
+        };
+        
+        taskFollowUps.push(followUp);
+      });
+      
+      // Lock the task if it has follow-ups
+      const firstFollowUp = taskFollowUpNotes[0];
+      return {
+        ...task,
+        isLocked: true,
+        lockedAt: firstFollowUp.createdAt,
+        lockedBy: firstFollowUp.createdBy,
+        currentFollowUpDate: task.followUpDate || task.currentFollowUpDate
+      };
+    });
+    
+    console.log(`✅ Migrated ${taskFollowUps.length} follow-up notes across ${updatedTasks.filter((t: any) => t.isLocked).length} tasks`);
+    
+    return { tasks: updatedTasks, taskFollowUps };
+  };
+
   const loadAllData = async (): Promise<void> => {
     try {
       const storage = storageManager.getStorage();
-      const [clients, cases, tasks, taskBundles, documents, rawHearings, judges, courts, employees, folders, timelineEntries] = await Promise.all([
+      const [clients, cases, tasks, taskBundles, taskNotes, taskFollowUps, documents, rawHearings, judges, courts, employees, folders, timelineEntries] = await Promise.all([
         storage.getAll<any>('clients'),
         storage.getAll<any>('cases'),
         storage.getAll<any>('tasks'),
         storage.getAll<any>('task_bundles'),
+        storage.getAll<any>('task_notes'),
+        storage.getAll<any>('task_followups'),
         storage.getAll<any>('documents'), 
         storage.getAll<any>('hearings'), 
         storage.getAll<any>('judges'), 
@@ -163,6 +229,31 @@ export const useUnifiedPersistence = () => {
         console.log(`🔄 Migrated ${migratedCount} cases with new schema (stages, fields, etc.)`);
       }
 
+      // NEW: Follow-up migration logic
+      let finalTasks = tasks;
+      let finalTaskFollowUps = taskFollowUps;
+      
+      // Run migration if we have follow-up notes but no TaskFollowUp records
+      const hasLegacyFollowUps = taskNotes.some((note: any) => note.type === 'follow_up');
+      const hasNewFollowUps = taskFollowUps.length > 0;
+      
+      if (hasLegacyFollowUps && !hasNewFollowUps) {
+        console.log('🔄 Detected legacy follow-up notes, running migration...');
+        const migrated = await migrateFollowUpNotes(tasks, taskNotes);
+        finalTasks = migrated.tasks;
+        finalTaskFollowUps = migrated.taskFollowUps;
+        
+        // Persist migrated data
+        await Promise.all([
+          storage.bulkCreate('tasks', finalTasks),
+          storage.bulkCreate('task_followups', finalTaskFollowUps)
+        ]);
+        
+        toast.success(`Migrated ${finalTaskFollowUps.length} follow-up records`, {
+          description: 'Your task follow-ups have been upgraded to the new system'
+        });
+      }
+
       // Check if storage is empty (no meaningful data)
       const hasData = clients.length > 0 || migratedCases.length > 0 || employees.length > 0 || judges.length > 0;
 
@@ -189,7 +280,7 @@ export const useUnifiedPersistence = () => {
       }));
 
       // Normalize tasks to ensure assignedTo property exists for TaskList/TaskBoard compatibility
-      const normalizedTasks = tasks.map((task: any) => ({
+      const normalizedTasks = finalTasks.map((task: any) => ({
         ...task,
         assignedTo: task.assignedTo || task.assignedToName || 'Unassigned'
       }));
@@ -201,6 +292,8 @@ export const useUnifiedPersistence = () => {
           clients, 
           cases: migratedCases, 
           tasks: normalizedTasks,
+          taskNotes,
+          taskFollowUps: finalTaskFollowUps,
           documents, 
           hearings, 
           judges, 
@@ -212,9 +305,19 @@ export const useUnifiedPersistence = () => {
       });
 
       const counts = {
-        clients: clients.length, cases: migratedCases.length, tasks: tasks.length, task_bundles: taskBundles.length,
-        documents: documents.length, hearings: hearings.length, judges: judges.length, courts: courts.length,
-        employees: employees.length, folders: folders.length, timeline_entries: timelineEntries.length
+        clients: clients.length, 
+        cases: migratedCases.length, 
+        tasks: finalTasks.length, 
+        task_notes: taskNotes.length,
+        task_followups: finalTaskFollowUps.length,
+        task_bundles: taskBundles.length,
+        documents: documents.length, 
+        hearings: hearings.length, 
+        judges: judges.length, 
+        courts: courts.length,
+        employees: employees.length, 
+        folders: folders.length, 
+        timeline_entries: timelineEntries.length
       };
       
       setEntityCounts(counts);
@@ -251,6 +354,7 @@ export const useUnifiedPersistence = () => {
         state.cases.length > 0 && storage.bulkCreate('cases', state.cases),
         state.tasks.length > 0 && storage.bulkCreate('tasks', state.tasks),
         state.taskNotes.length > 0 && storage.bulkCreate('task_notes', state.taskNotes),
+        state.taskFollowUps.length > 0 && storage.bulkCreate('task_followups', state.taskFollowUps),
         state.documents.length > 0 && storage.bulkCreate('documents', state.documents),
         state.hearings.length > 0 && storage.bulkCreate('hearings', state.hearings),
         state.judges.length > 0 && storage.bulkCreate('judges', state.judges),
@@ -265,6 +369,7 @@ export const useUnifiedPersistence = () => {
         cases: state.cases.length,
         tasks: state.tasks.length,
         task_notes: state.taskNotes.length,
+        task_followups: state.taskFollowUps.length,
         documents: state.documents.length,
         hearings: state.hearings.length,
         judges: state.judges.length,

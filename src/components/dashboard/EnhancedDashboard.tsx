@@ -14,6 +14,7 @@ import { DashboardTile } from './DashboardTile';
 import { filterTilesByRBAC, getDefaultTiles } from '@/utils/rbacHelper';
 import { PageHelp } from '@/components/help/PageHelp';
 import { InlineHelp } from '@/components/help/InlineHelp';
+import { FollowUpsDueWidget } from './FollowUpsDueWidget';
 
 const STORAGE_KEY = 'dashboard_user_tiles';
 
@@ -78,6 +79,15 @@ export const EnhancedDashboard: React.FC = () => {
           <PageHelp pageId="dashboard" variant="floating" />
           <InlineHelp module="dashboard" />
         </div>
+      </motion.div>
+
+      {/* Follow-Ups Due Widget (always visible) */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+      >
+        <FollowUpsDueWidget />
       </motion.div>
 
       {/* Tiles Grid */}

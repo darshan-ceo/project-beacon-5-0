@@ -4,8 +4,10 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AppStateProvider } from "@/contexts/AppStateContext";
+import { AppStateProvider, useAppState } from "@/contexts/AppStateContext";
 import { AdvancedRBACProvider } from "@/hooks/useAdvancedRBAC";
+import { FollowUpReminderService } from "@/services/followUpReminderService";
+import { toast } from "@/hooks/use-toast";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { AdminLayout } from "./components/layout/AdminLayout";
@@ -54,7 +56,10 @@ const currentUser = {
   avatar: undefined
 };
 
-const App = () => {
+// Inner component to access AppState context
+const AppContent = () => {
+  const { state } = useAppState();
+
   // Initialize UI Help Service on app startup
   useEffect(() => {
     const initializeApp = async () => {
@@ -65,15 +70,24 @@ const App = () => {
     initializeApp();
   }, []);
 
+  // Start follow-up reminder monitoring
+  useEffect(() => {
+    FollowUpReminderService.startMonitoring(state.tasks, (overdueTasks) => {
+      toast({
+        title: "Follow-Ups Overdue",
+        description: `${overdueTasks.length} task${overdueTasks.length !== 1 ? 's have' : ' has'} overdue follow-ups`,
+        variant: "destructive",
+      });
+    });
+
+    return () => FollowUpReminderService.stopMonitoring();
+  }, [state.tasks]);
+
   return (
-    <QueryClientProvider client={queryClient}>
-    <AdvancedRBACProvider>
-      <AppStateProvider>
-        <AppWithPersistence>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
             <Routes>
               <Route path="/" element={
                 <AdminLayout currentUser={currentUser}>
@@ -256,12 +270,22 @@ const App = () => {
               } />
               <Route path="*" element={<NotFound />} />
             </Routes>
-            </BrowserRouter>
-          </TooltipProvider>
-        </AppWithPersistence>
-      </AppStateProvider>
-    </AdvancedRBACProvider>
-  </QueryClientProvider>
+      </BrowserRouter>
+    </TooltipProvider>
+  );
+};
+
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AdvancedRBACProvider>
+        <AppStateProvider>
+          <AppWithPersistence>
+            <AppContent />
+          </AppWithPersistence>
+        </AppStateProvider>
+      </AdvancedRBACProvider>
+    </QueryClientProvider>
   );
 };
 

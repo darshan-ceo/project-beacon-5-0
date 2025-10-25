@@ -60,6 +60,6 @@ export interface StorageConfig {
 
 export type EntityType = 
   | 'clients' | 'cases' | 'notices' | 'replies' | 'hearings' 
-  | 'tasks' | 'task_notes' | 'task_bundles' | 'task_bundle_items' | 'documents' | 'attachments'
+  | 'tasks' | 'task_notes' | 'task_followups' | 'task_bundles' | 'task_bundle_items' | 'documents' | 'attachments'
   | 'tags' | 'entity_tags' | 'courts' | 'judges' | 'employees'
   | 'audit_logs' | 'settings' | 'sync_queue' | 'migration_meta' | 'folders';
