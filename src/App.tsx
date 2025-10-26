@@ -47,6 +47,8 @@ import { DebugSearchInspector } from "./pages/DebugSearchInspector";
 import { MigrationHealth } from "@/components/qa/MigrationHealth";
 import { TooltipDiagnostics } from "@/pages/TooltipDiagnostics";
 import { OAuthCallback } from "@/pages/OAuthCallback";
+import { TopLevelErrorBoundary } from "@/components/ui/TopLevelErrorBoundary";
+import { EmergencyReset } from "@/components/admin/EmergencyReset";
 
 const queryClient = new QueryClient();
 
@@ -92,6 +94,15 @@ const AppContent = () => {
       <FollowUpSystemTutorial />
         <BrowserRouter>
             <Routes>
+              {/* Emergency Reset Route - No Layout */}
+              <Route path="/emergency-reset" element={
+                <div className="min-h-screen flex items-center justify-center p-6 bg-background">
+                  <div className="max-w-md w-full">
+                    <EmergencyReset />
+                  </div>
+                </div>
+              } />
+              
               <Route path="/" element={
                 <AdminLayout currentUser={currentUser}>
                   <EnhancedDashboard />
@@ -280,15 +291,17 @@ const AppContent = () => {
 
 const App = () => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AdvancedRBACProvider>
-        <AppStateProvider>
-          <AppWithPersistence>
-            <AppContent />
-          </AppWithPersistence>
-        </AppStateProvider>
-      </AdvancedRBACProvider>
-    </QueryClientProvider>
+    <TopLevelErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AdvancedRBACProvider>
+          <AppStateProvider>
+            <AppWithPersistence>
+              <AppContent />
+            </AppWithPersistence>
+          </AppStateProvider>
+        </AdvancedRBACProvider>
+      </QueryClientProvider>
+    </TopLevelErrorBoundary>
   );
 };
 
