@@ -13,7 +13,7 @@ import { format } from 'date-fns';
 // Demo search data will be loaded dynamically
 
 export interface SearchResult {
-  type: 'case' | 'client' | 'task' | 'document' | 'hearing';
+  type: 'case' | 'client' | 'task' | 'document' | 'hearing' | 'clientGroup';
   id: string;
   title: string;
   subtitle: string;
@@ -36,7 +36,7 @@ export interface SearchSuggestion {
   count?: number;
 }
 
-export type SearchScope = 'all' | 'cases' | 'clients' | 'tasks' | 'documents' | 'hearings';
+export type SearchScope = 'all' | 'cases' | 'clients' | 'tasks' | 'documents' | 'hearings' | 'clientGroups';
 
 // Search provider types
 export type SearchProvider = 'API' | 'DEMO';
@@ -527,7 +527,7 @@ class SearchService {
    * Fetch entities from both Dexie (StorageManager) and KV (persistenceService)
    * Merge and deduplicate, preferring Dexie records when available
    */
-  private async fetchEntities(entity: 'documents' | 'cases' | 'clients' | 'tasks' | 'hearings'): Promise<{ items: any[], source: string }> {
+  private async fetchEntities(entity: 'documents' | 'cases' | 'clients' | 'tasks' | 'hearings' | 'clientGroups'): Promise<{ items: any[], source: string }> {
     let dexieItems: any[] = [];
     let kvItems: any[] = [];
     
@@ -543,7 +543,11 @@ class SearchService {
     
     // Fallback to KV store
     try {
-      kvItems = await persistenceService.getAll(entity);
+      if (entity === 'clientGroups') {
+        kvItems = await idbStorage.get('clientGroups').catch(() => []) as any[];
+      } else {
+        kvItems = await persistenceService.getAll(entity);
+      }
     } catch (error) {
       console.warn(`[Search] KV fetch failed for ${entity}:`, error);
     }
@@ -593,12 +597,16 @@ class SearchService {
       const hearingsData = scope === 'all' || scope === 'hearings' 
         ? await this.fetchEntities('hearings')
         : { items: [], source: 'none' };
+      const clientGroupsData = scope === 'all' || scope === 'clientGroups'
+        ? await this.fetchEntities('clientGroups')
+        : { items: [], source: 'none' };
 
       const documents = documentsData.items;
       const cases = casesData.items;
       const clients = clientsData.items;
       const tasks = tasksData.items;
       const hearings = hearingsData.items;
+      const clientGroups = clientGroupsData.items;
 
       // For document, case, hearing, and task search, we may need all clients and cases to resolve names
       const allClients = ((scope === 'all' || scope === 'documents' || scope === 'cases' || scope === 'hearings' || scope === 'tasks') && clients.length === 0)
@@ -612,6 +620,38 @@ class SearchService {
       // Create lookup maps - handle both old (KV) and new (Dexie) schema field names
       const clientLookup = new Map(allClients.map(c => [c.id, c.display_name || c.name || '']));
       const caseLookup = new Map(allCases.map(c => [c.id, c]));
+      
+      // Build client group lookup maps
+      const clientGroupLookup = new Map(clientGroups.map(g => [g.id, g]));
+      const groupToClientsMap = new Map<string, string[]>();
+
+      // Map each client group to its member client IDs
+      allClients.forEach(client => {
+        if (client.clientGroupId) {
+          if (!groupToClientsMap.has(client.clientGroupId)) {
+            groupToClientsMap.set(client.clientGroupId, []);
+          }
+          groupToClientsMap.get(client.clientGroupId)!.push(client.id);
+        }
+      });
+
+      // Find matching client groups by query
+      const matchingGroupIds = new Set<string>();
+      clientGroups.forEach(group => {
+        const groupName = (group.name || '').toLowerCase();
+        const groupCode = (group.code || '').toLowerCase();
+        if (groupName.includes(normalizedQuery.toLowerCase()) || 
+            groupCode.includes(normalizedQuery.toLowerCase())) {
+          matchingGroupIds.add(group.id);
+        }
+      });
+
+      // Get all client IDs belonging to matching groups
+      const clientsInMatchingGroups = new Set<string>();
+      matchingGroupIds.forEach(groupId => {
+        const clientIds = groupToClientsMap.get(groupId) || [];
+        clientIds.forEach(id => clientsInMatchingGroups.add(id));
+      });
 
       // Debug logging
       if (this.isDevModeOn()) {
@@ -686,6 +726,11 @@ class SearchService {
             if (parsedQuery.uploader) score += 10;
             if (parsedQuery.caseRef) score += 10;
             
+            // Boost if document belongs to a client in a matching group
+            if (docClientId && clientsInMatchingGroups.has(docClientId)) {
+              score += 15;
+            }
+            
             results.push({
               id: doc.id,
               title: docTitle,
@@ -727,13 +772,25 @@ class SearchService {
           };
           
           if (this.matchesParsedQuery(caseItem, parsedQuery)) {
+            let score = this.calculateDemoScore(caseTitle, clientName, parsedQuery);
+            
+            // Boost if case belongs to a client in a matching group
+            if (clientId && clientsInMatchingGroups.has(clientId)) {
+              score += 25;
+              const clientGroupId = allClients.find(c => c.id === clientId)?.clientGroupId;
+              const groupName = clientGroupId ? clientGroupLookup.get(clientGroupId)?.name : '';
+              if (groupName) {
+                caseItem.content += ` Group: ${groupName}`;
+              }
+            }
+            
             results.push({
               id: case_.id,
               title: caseTitle,
               subtitle: `Case ${caseNumber || 'N/A'} • ${clientName || 'Unknown Client'} • ${caseStatus}`,
               url: `/cases?caseId=${case_.id}`,
               type: 'case',
-              score: this.calculateDemoScore(caseTitle, clientName, parsedQuery),
+              score,
               highlights: [caseTitle],
               badges: [caseStatus]
             });
@@ -797,13 +854,24 @@ class SearchService {
           };
           
           if (this.matchesParsedQuery(taskItem, parsedQuery)) {
+            let score = this.calculateDemoScore(task.title || '', enrichedContent, parsedQuery);
+            
+            // Boost if task belongs to a case of a client in a matching group
+            if (taskCaseId) {
+              const relatedCase = caseLookup.get(taskCaseId);
+              const taskClientId = relatedCase?.client_id || relatedCase?.clientId;
+              if (taskClientId && clientsInMatchingGroups.has(taskClientId)) {
+                score += 20;
+              }
+            }
+            
             results.push({
               id: task.id,
               title: task.title || 'Untitled Task',
               subtitle: task.description || 'No description',
               url: `/tasks?highlight=${task.id}`,
               type: 'task',
-              score: this.calculateDemoScore(task.title || '', enrichedContent, parsedQuery),
+              score,
               highlights: [task.description || ''],
               badges: [task.status || 'Pending']
             });
@@ -842,15 +910,66 @@ class SearchService {
               ? format(new Date(hearingDate), 'MMM dd, yyyy')
               : 'Date TBD';
             
+            let score = this.calculateDemoScore(hearingTitle, `${relatedClientName} ${caseTitle}`, parsedQuery);
+            
+            // Boost if hearing belongs to a case of a client in a matching group
+            if (relatedCaseClientId && clientsInMatchingGroups.has(relatedCaseClientId)) {
+              score += 20;
+            }
+            
             results.push({
               id: hearing.id,
               title: hearingTitle,
               subtitle: `${caseNumber || 'N/A'} • ${caseTitle || 'Case'} • ${hearingDateStr}`,
               url: `/hearings?search=${encodeURIComponent(caseNumber || caseTitle || relatedClientName || '')}`,
               type: 'hearing',
-              score: this.calculateDemoScore(hearingTitle, `${relatedClientName} ${caseTitle}`, parsedQuery),
+              score,
               highlights: [caseTitle || hearingTitle],
               badges: ['Hearing']
+            });
+          }
+        });
+      }
+
+      // Client Group search
+      if (scope === 'all' || scope === 'clientGroups') {
+        clientGroups.forEach(group => {
+          const groupName = group.name || '';
+          const groupCode = group.code || '';
+          const groupDesc = group.description || '';
+          
+          const groupItem = {
+            title: groupName,
+            content: `${groupCode} ${groupDesc}`,
+            metadata: {
+              totalClients: group.totalClients,
+              status: group.status,
+              headClientId: group.headClientId
+            }
+          };
+          
+          if (this.matchesParsedQuery(groupItem, parsedQuery)) {
+            let score = this.calculateDemoScore(groupName, groupCode, parsedQuery);
+            
+            // Boost if name matches
+            if (groupName.toLowerCase().includes(normalizedQuery.toLowerCase())) {
+              score += 30;
+            }
+            
+            // Boost active groups
+            if (group.status === 'Active') {
+              score += 10;
+            }
+            
+            results.push({
+              type: 'clientGroup',
+              id: group.id,
+              title: groupName,
+              subtitle: `${group.totalClients || 0} client${group.totalClients !== 1 ? 's' : ''} • ${group.status || 'Active'}`,
+              url: `/client-groups?id=${group.id}`,
+              score,
+              highlights: [groupCode, groupDesc].filter(Boolean),
+              badges: [group.status || 'Active', `${group.totalClients || 0} clients`]
             });
           }
         });
@@ -951,6 +1070,31 @@ class SearchService {
             text: clientName || 'Unknown Client',
             type: 'client',
             count: 1
+          });
+        }
+      });
+      
+      // Client Groups suggestions
+      const clientGroupsData = await this.fetchEntities('clientGroups');
+      const clientGroups = clientGroupsData.items;
+      
+      clientGroups.forEach(group => {
+        if (suggestions.length >= limit) return;
+        
+        const groupName = group.name || '';
+        const groupCode = group.code || '';
+        
+        const groupItem = {
+          title: groupName,
+          content: groupCode,
+          metadata: {}
+        };
+        
+        if (this.matchesParsedQuery(groupItem, parsedQuery)) {
+          suggestions.push({
+            text: groupName || 'Unknown Group',
+            type: 'clientGroup',
+            count: group.totalClients || 0
           });
         }
       });

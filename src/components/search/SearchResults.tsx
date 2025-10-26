@@ -21,6 +21,7 @@ const scopeOptions: { value: SearchScope; label: string; icon: string; color: st
   { value: 'tasks', label: 'Tasks', icon: '✓', color: 'bg-orange-500 text-white' },
   { value: 'documents', label: 'Documents', icon: '📄', color: 'bg-purple-500 text-white' },
   { value: 'hearings', label: 'Hearings', icon: '⚖️', color: 'bg-red-500 text-white' },
+  { value: 'clientGroups', label: 'Client Groups', icon: '🏢', color: 'bg-teal-500 text-white' },
 ];
 
 const getResultIcon = (type: string): string => {
@@ -30,6 +31,7 @@ const getResultIcon = (type: string): string => {
     case 'task': return '✓';
     case 'document': return '📄';
     case 'hearing': return '⚖️';
+    case 'clientGroup': return '🏢';
     default: return '🔍';
   }
 };
@@ -41,6 +43,7 @@ const getResultTypeColor = (type: string): string => {
     case 'task': return 'bg-orange-100 text-orange-800 border-orange-200';
     case 'document': return 'bg-purple-100 text-purple-800 border-purple-200';
     case 'hearing': return 'bg-red-100 text-red-800 border-red-200';
+    case 'clientGroup': return 'bg-teal-100 text-teal-800 border-teal-200';
     default: return 'bg-gray-100 text-gray-800 border-gray-200';
   }
 };
@@ -213,7 +216,7 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
                   value={localQuery}
                   onChange={(e) => setLocalQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  placeholder="Search cases, clients, tasks, documents, hearings..."
+                  placeholder="Search cases, clients, tasks, documents, hearings, client groups..."
                   className="pl-10 pr-10"
                 />
                 {localQuery && (
@@ -444,7 +447,7 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
               <Search className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
               <h3 className="text-lg font-medium mb-2">Start your search</h3>
               <p className="text-muted-foreground">
-                Search across cases, clients, tasks, documents, and hearings to find what you need.
+                Search across cases, clients, tasks, documents, hearings, and client groups to find what you need.
               </p>
             </CardContent>
           </Card>

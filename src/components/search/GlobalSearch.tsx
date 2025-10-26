@@ -24,6 +24,7 @@ const scopeOptions: { value: SearchScope; label: string; color: string }[] = [
   { value: 'tasks', label: 'Tasks', color: 'bg-orange-500 text-white' },
   { value: 'documents', label: 'Documents', color: 'bg-purple-500 text-white' },
   { value: 'hearings', label: 'Hearings', color: 'bg-red-500 text-white' },
+  { value: 'clientGroups', label: 'Client Groups', color: 'bg-teal-500 text-white' },
 ];
 
 interface GlobalSearchProps {
