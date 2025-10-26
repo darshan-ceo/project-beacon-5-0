@@ -261,7 +261,7 @@ export const DocumentManagement: React.FC = () => {
     
     let filtered = [...convertedDocs];
 
-    // Search filter - improved to handle tag-specific searches
+    // Search filter - enhanced to search client names and case titles
     if (documentSearchTerm) {
       const searchLower = documentSearchTerm.toLowerCase();
       filtered = filtered.filter(doc => {
@@ -274,7 +274,27 @@ export const DocumentManagement: React.FC = () => {
         // Search in case ID/number if available
         const caseMatch = doc.caseId?.toLowerCase().includes(searchLower);
         
-        return nameMatch || tagMatch || caseMatch;
+        // Search in client name
+        let clientNameMatch = false;
+        if (doc.clientId) {
+          const client = state.clients.find(c => c.id === doc.clientId);
+          if (client) {
+            clientNameMatch = client.name.toLowerCase().includes(searchLower);
+          }
+        }
+        
+        // Search in case title and case number
+        let caseTitleMatch = false;
+        if (doc.caseId) {
+          const caseData = state.cases.find(c => c.id === doc.caseId);
+          if (caseData) {
+            caseTitleMatch = 
+              caseData.title?.toLowerCase().includes(searchLower) ||
+              caseData.caseNumber?.toLowerCase().includes(searchLower);
+          }
+        }
+        
+        return nameMatch || tagMatch || caseMatch || clientNameMatch || caseTitleMatch;
       });
     }
 
