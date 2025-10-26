@@ -331,27 +331,10 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
     return Object.keys(newErrors).length === 0 && newValidationErrors.length === 0;
   };
 
-  const validationErrorsRef = React.useRef<HTMLDivElement>(null);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) {
-      // Show toast to alert user
-      toast({
-        title: "Validation Failed",
-        description: "Please fix the highlighted errors before submitting.",
-        variant: "destructive",
-      });
-      
-      // Scroll validation errors into view
-      setTimeout(() => {
-        validationErrorsRef.current?.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'center' 
-        });
-      }, 100);
-      
       return;
     }
 
@@ -1154,7 +1137,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
 
               {/* Validation Errors */}
               {validationErrors.length > 0 && (
-                <Card ref={validationErrorsRef} className="border-destructive">
+                <Card className="border-destructive">
                   <CardContent className="pt-6">
                     <div className="space-y-2">
                       <h4 className="text-sm font-medium text-destructive">Please fix the following errors:</h4>
@@ -1180,16 +1163,9 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
               </Button>
             )}
             {mode !== 'view' && (
-            <Button 
-              type="button" 
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleSubmit(e);
-              }}
-            >
-              {mode === 'create' ? 'Create Client' : 'Update Client'}
-            </Button>
+              <Button type="submit" onClick={handleSubmit}>
+                {mode === 'create' ? 'Create Client' : 'Update Client'}
+              </Button>
             )}
           </DialogFooter>
         </DialogContent>

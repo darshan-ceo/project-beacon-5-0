@@ -93,7 +93,6 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ onResultsOpen }) => 
         setSuggestions(results);
       } catch (error) {
         console.error('Suggestions error:', error);
-        // Ensure we never throw to render
         setSuggestions([]);
       } finally {
         setIsLoading(false);

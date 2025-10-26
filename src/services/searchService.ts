@@ -275,7 +275,6 @@ class SearchService {
       }
     } catch (error) {
       console.error('Search suggest error:', error);
-      // Never throw to render - always return empty array
       return [];
     }
   }
