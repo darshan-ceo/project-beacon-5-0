@@ -131,17 +131,12 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
           }
         }
       } else if (mode === 'edit' && documentData) {
-        const updatedDocument: Document = {
-          ...documentData,
-          name: formData.name,
-          caseId: formData.caseId,
-          tags: formData.tags,
-          isShared: formData.sharedWithClient
-        };
-
         await dmsService.files.updateMetadata(documentData.id, {
           name: formData.name,
-          tags: formData.tags
+          tags: formData.tags,
+          clientId: formData.clientId === 'none' ? undefined : formData.clientId,
+          caseId: formData.caseId === 'none' ? undefined : formData.caseId,
+          folderId: formData.folderId === 'none' ? undefined : formData.folderId
         }, dispatch);
       }
 
@@ -467,25 +462,66 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
                   </div>
 
                   <div>
-                    <Label htmlFor="caseId">Associated Case</Label>
+                    <Label htmlFor="clientId">Associated Client</Label>
                     <Select 
-                      value={formData.caseId} 
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, caseId: value }))}
-                      disabled={mode === 'view'}
+                      value={formData.clientId || 'none'} 
+                      onValueChange={(value) => {
+                        setFormData(prev => ({ ...prev, clientId: value }));
+                        // If case is selected and doesn't match new client, clear it
+                        if (formData.caseId !== 'none') {
+                          const selectedCase = state.cases.find(c => c.id === formData.caseId);
+                          if (selectedCase && selectedCase.clientId !== value) {
+                            setFormData(prev => ({ ...prev, caseId: 'none' }));
+                          }
+                        }
+                      }}
+                      disabled={mode === 'view' || (formData.caseId !== 'none' && formData.caseId !== undefined)}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select case (optional)" />
+                        <SelectValue placeholder="Select client (optional)" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">No Case Association</SelectItem>
-                        {state.cases.map((case_) => (
-                          <SelectItem key={case_.id} value={case_.id}>
-                            {case_.caseNumber} - {case_.title}
+                        <SelectItem value="none">No Client Association</SelectItem>
+                        {state.clients.map((client) => (
+                          <SelectItem key={client.id} value={client.id}>
+                            {client.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="caseId">Associated Case</Label>
+                  <Select 
+                    value={formData.caseId || 'none'} 
+                    onValueChange={(value) => {
+                      setFormData(prev => ({ ...prev, caseId: value }));
+                      // Auto-populate client from case
+                      if (value !== 'none') {
+                        const selectedCase = state.cases.find(c => c.id === value);
+                        if (selectedCase?.clientId) {
+                          setFormData(prev => ({ ...prev, clientId: selectedCase.clientId }));
+                        }
+                      }
+                    }}
+                    disabled={mode === 'view'}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select case (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No Case Association</SelectItem>
+                      {state.cases
+                        .filter(c => formData.clientId === 'none' || c.clientId === formData.clientId)
+                        .map((case_) => (
+                          <SelectItem key={case_.id} value={case_.id}>
+                            {case_.caseNumber} - {case_.title}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div>

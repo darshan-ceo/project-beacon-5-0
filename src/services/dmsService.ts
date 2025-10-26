@@ -997,7 +997,13 @@ export const dmsService = {
 
     updateMetadata: async (
       documentId: string, 
-      updates: { name?: string; tags?: string[] },
+      updates: { 
+        name?: string; 
+        tags?: string[];
+        clientId?: string;
+        caseId?: string;
+        folderId?: string;
+      },
       dispatch: React.Dispatch<AppAction>
     ): Promise<void> => {
       await new Promise(resolve => setTimeout(resolve, 300));
