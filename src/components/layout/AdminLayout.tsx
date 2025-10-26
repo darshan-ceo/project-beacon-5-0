@@ -28,7 +28,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           {/* Sticky Header with Sidebar Trigger */}
           <header className="sticky top-0 z-40 bg-background border-b border-border">
             <div className="flex items-center p-4">
-              <SidebarTrigger className="mr-4 text-sidebar-foreground hover:bg-sidebar-accent" />
+              <SidebarTrigger className="mr-4 text-foreground hover:bg-muted border border-border" />
               <Header 
                 user={currentUser}
                 onMenuToggle={() => {}} // No longer needed, controlled by SidebarProvider
