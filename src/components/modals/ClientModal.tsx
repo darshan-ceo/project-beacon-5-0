@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -105,6 +105,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [isAddressMasterEnabled, setIsAddressMasterEnabled] = useState(false);
+  const validationErrorsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setIsAddressMasterEnabled(featureFlagService.isEnabled('address_master_v1'));
@@ -334,9 +335,23 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('🔄 handleSubmit called', { mode, formData, signatories });
+    
     if (!validateForm()) {
+      console.log('❌ Validation failed', { errors, validationErrors });
+      toast({
+        title: "Validation Failed",
+        description: "Please fix the highlighted errors before saving.",
+        variant: "destructive"
+      });
+      // Scroll to validation errors
+      setTimeout(() => {
+        validationErrorsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 100);
       return;
     }
+    
+    console.log('✅ Validation passed, proceeding with save');
 
     try {
       let addressId = formData.addressId;
@@ -1137,16 +1152,19 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
 
               {/* Validation Errors */}
               {validationErrors.length > 0 && (
-                <Card className="border-destructive">
-                  <CardContent className="pt-6">
-                    <div className="space-y-2">
-                      <h4 className="text-sm font-medium text-destructive">Please fix the following errors:</h4>
-                      <ul className="text-sm text-destructive space-y-1">
-                        {validationErrors.map((error, index) => (
-                          <li key={index}>• {error}</li>
-                        ))}
-                      </ul>
-                    </div>
+                <Card className="border-destructive" ref={validationErrorsRef}>
+                  <CardHeader>
+                    <CardTitle className="text-destructive flex items-center gap-2">
+                      <AlertCircle className="h-5 w-5" />
+                      Validation Errors
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="list-disc list-inside space-y-1">
+                      {validationErrors.map((error, index) => (
+                        <li key={index} className="text-sm text-destructive">{error}</li>
+                      ))}
+                    </ul>
                   </CardContent>
                 </Card>
               )}
