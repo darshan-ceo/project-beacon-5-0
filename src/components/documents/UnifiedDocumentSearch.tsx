@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Filter, X, Tag, User, Calendar, FileType } from 'lucide-react';
+import { Search, Filter, X, Tag, User, Calendar, FileType, Folder } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +14,10 @@ interface UnifiedDocumentSearchProps {
   searchTerm: string;
   onSearchTermChange: (term: string) => void;
   placeholder?: string;
+  clients?: any[];
+  cases?: any[];
+  folders?: any[];
+  uploaders?: string[];
 }
 
 export const UnifiedDocumentSearch: React.FC<UnifiedDocumentSearchProps> = ({
@@ -22,7 +26,11 @@ export const UnifiedDocumentSearch: React.FC<UnifiedDocumentSearchProps> = ({
   activeFilters,
   searchTerm,
   onSearchTermChange,
-  placeholder = "Search documents by title, tag, content... (Press / for global search)"
+  placeholder = "Search documents by title, tag, content, client, case... (Press Ctrl+F to focus)",
+  clients = [],
+  cases = [],
+  folders = [],
+  uploaders = []
 }) => {
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const [tags, setTags] = useState<any[]>([]);
@@ -142,16 +150,18 @@ export const UnifiedDocumentSearch: React.FC<UnifiedDocumentSearchProps> = ({
     { label: 'Image', value: 'jpg' }
   ];
 
-  const caseOptions = [
-    { label: 'GST-2024-001', value: 'gst-2024-001' },
-    { label: 'Income Tax-2024-002', value: 'it-2024-002' },
-    { label: 'Corporate-2024-003', value: 'corp-2024-003' }
-  ];
-
-  const uploaderOptions = [
-    { label: 'John Doe', value: 'john-doe' },
-    { label: 'Jane Smith', value: 'jane-smith' },
-    { label: 'Mike Johnson', value: 'mike-johnson' }
+  const clientOptions = clients?.map(c => ({ label: c.name, value: c.id })) || [];
+  const caseOptions = cases?.map(c => ({ 
+    label: `${c.caseNumber} - ${c.title}`, 
+    value: c.id 
+  })) || [];
+  const uploaderOptions = uploaders?.map(u => ({ label: u, value: u })) || [];
+  const folderOptions = folders?.map(f => ({ label: f.name, value: f.id })) || [];
+  
+  const fileSizeOptions = [
+    { label: 'Small (<1MB)', value: 'small' },
+    { label: 'Medium (1-10MB)', value: 'medium' },
+    { label: 'Large (>10MB)', value: 'large' }
   ];
 
   return (
@@ -184,10 +194,10 @@ export const UnifiedDocumentSearch: React.FC<UnifiedDocumentSearchProps> = ({
               )}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-80 p-4" align="end">
+          <PopoverContent className="w-96 p-4" align="end">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h4 className="font-medium">Advanced Filters</h4>
+                <h4 className="font-medium">Document Filters</h4>
                 {getActiveFilterCount() > 0 && (
                   <Button variant="ghost" size="sm" onClick={clearAllFilters}>
                     Clear All
@@ -196,6 +206,22 @@ export const UnifiedDocumentSearch: React.FC<UnifiedDocumentSearchProps> = ({
               </div>
               
               <div className="grid grid-cols-2 gap-2">
+                <FilterDropdown
+                  label="Client"
+                  value={activeFilters.clientId || 'all'}
+                  options={clientOptions}
+                  onChange={(value) => handleFilterChange('clientId', value)}
+                  icon={<User className="mr-2 h-4 w-4" />}
+                />
+                
+                <FilterDropdown
+                  label="Folder"
+                  value={activeFilters.folderId || 'all'}
+                  options={folderOptions}
+                  onChange={(value) => handleFilterChange('folderId', value)}
+                  icon={<Folder className="mr-2 h-4 w-4" />}
+                />
+                
                 <FilterDropdown
                   label="Type"
                   value={activeFilters.fileType || 'all'}
@@ -210,6 +236,14 @@ export const UnifiedDocumentSearch: React.FC<UnifiedDocumentSearchProps> = ({
                   options={caseOptions}
                   onChange={(value) => handleFilterChange('caseId', value)}
                   icon={<Tag className="mr-2 h-4 w-4" />}
+                />
+                
+                <FilterDropdown
+                  label="Size"
+                  value={activeFilters.fileSize || 'all'}
+                  options={fileSizeOptions}
+                  onChange={(value) => handleFilterChange('fileSize', value)}
+                  icon={<FileType className="mr-2 h-4 w-4" />}
                 />
                 
                 <FilterDropdown
@@ -279,6 +313,26 @@ export const UnifiedDocumentSearch: React.FC<UnifiedDocumentSearchProps> = ({
       {/* Active Filter Chips */}
       {getActiveFilterCount() > 0 && (
         <div className="flex flex-wrap gap-2">
+          {activeFilters.clientId && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              Client: {clients?.find(c => c.id === activeFilters.clientId)?.name || activeFilters.clientId}
+              <X 
+                className="h-3 w-3 cursor-pointer" 
+                onClick={() => removeFilter('clientId')}
+              />
+            </Badge>
+          )}
+          
+          {activeFilters.folderId && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              Folder: {folders?.find(f => f.id === activeFilters.folderId)?.name || activeFilters.folderId}
+              <X 
+                className="h-3 w-3 cursor-pointer" 
+                onClick={() => removeFilter('folderId')}
+              />
+            </Badge>
+          )}
+          
           {activeFilters.fileType && (
             <Badge variant="secondary" className="flex items-center gap-1">
               Type: {activeFilters.fileType}
@@ -291,10 +345,20 @@ export const UnifiedDocumentSearch: React.FC<UnifiedDocumentSearchProps> = ({
           
           {activeFilters.caseId && (
             <Badge variant="secondary" className="flex items-center gap-1">
-              Case: {activeFilters.caseId}
+              Case: {cases?.find(c => c.id === activeFilters.caseId)?.caseNumber || activeFilters.caseId}
               <X 
                 className="h-3 w-3 cursor-pointer" 
                 onClick={() => removeFilter('caseId')}
+              />
+            </Badge>
+          )}
+          
+          {activeFilters.fileSize && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              Size: {fileSizeOptions.find(s => s.value === activeFilters.fileSize)?.label || activeFilters.fileSize}
+              <X 
+                className="h-3 w-3 cursor-pointer" 
+                onClick={() => removeFilter('fileSize')}
               />
             </Badge>
           )}

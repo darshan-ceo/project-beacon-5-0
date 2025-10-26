@@ -279,14 +279,37 @@ export const DocumentManagement: React.FC = () => {
     }
 
     // Apply active filters
-    if (activeFilters.caseId) {
+    if (activeFilters.clientId && activeFilters.clientId !== 'all') {
+      filtered = filtered.filter(doc => doc.clientId === activeFilters.clientId);
+    }
+    if (activeFilters.folderId && activeFilters.folderId !== 'all') {
+      filtered = filtered.filter(doc => 
+        (doc as any).folderId === activeFilters.folderId || 
+        doc.path?.includes(`folder-${activeFilters.folderId}`) ||
+        doc.path?.includes(`folders/${activeFilters.folderId}`)
+      );
+    }
+    if (activeFilters.fileSize && activeFilters.fileSize !== 'all') {
+      filtered = filtered.filter(doc => {
+        const size = typeof doc.size === 'string' ? parseInt(doc.size) : doc.size;
+        if (activeFilters.fileSize === 'small') {
+          return size < 1024 * 1024; // <1MB
+        } else if (activeFilters.fileSize === 'medium') {
+          return size >= 1024 * 1024 && size <= 10 * 1024 * 1024; // 1-10MB
+        } else if (activeFilters.fileSize === 'large') {
+          return size > 10 * 1024 * 1024; // >10MB
+        }
+        return true;
+      });
+    }
+    if (activeFilters.caseId && activeFilters.caseId !== 'all') {
       filtered = filtered.filter(doc => doc.caseId === activeFilters.caseId);
     }
     if (activeFilters.fileType && activeFilters.fileType !== 'all') {
       filtered = filtered.filter(doc => String(doc.type).includes(activeFilters.fileType));
     }
-    if (activeFilters.uploadedBy) {
-      filtered = filtered.filter(doc => doc.uploadedById === activeFilters.uploadedBy);
+    if (activeFilters.uploadedBy && activeFilters.uploadedBy !== 'all') {
+      filtered = filtered.filter(doc => doc.uploadedByName === activeFilters.uploadedBy);
     }
     if (activeFilters.tags?.length > 0) {
       filtered = filtered.filter(doc => 
@@ -829,6 +852,10 @@ export const DocumentManagement: React.FC = () => {
           activeFilters={activeFilters}
           searchTerm={documentSearchTerm}
           onSearchTermChange={setDocumentSearchTerm}
+          clients={state.clients}
+          cases={state.cases}
+          folders={state.folders}
+          uploaders={Array.from(new Set(state.documents.map(d => d.uploadedByName).filter(Boolean)))}
         />
       </motion.div>
 
@@ -970,7 +997,11 @@ export const DocumentManagement: React.FC = () => {
                 activeFilters={activeFilters}
                 searchTerm={documentSearchTerm}
                 onSearchTermChange={setDocumentSearchTerm}
-                placeholder="Search folder contents by title, tag, content... (Press / for global search)"
+                placeholder="Search folder contents by title, tag, content, client, case... (Press Ctrl+F to focus)"
+                clients={state.clients}
+                cases={state.cases}
+                folders={state.folders}
+                uploaders={Array.from(new Set(state.documents.map(d => d.uploadedByName).filter(Boolean)))}
               />
               {/* Current Folder Subfolders */}
               {currentSubfolders.length > 0 && (
@@ -1093,7 +1124,11 @@ export const DocumentManagement: React.FC = () => {
               activeFilters={activeFilters}
               searchTerm={documentSearchTerm}
               onSearchTermChange={setDocumentSearchTerm}
-              placeholder="Search all documents by title, tag, content... (Press / for global search)"
+              placeholder="Search all documents by title, tag, content, client, case... (Press Ctrl+F to focus)"
+              clients={state.clients}
+              cases={state.cases}
+              folders={state.folders}
+              uploaders={Array.from(new Set(state.documents.map(d => d.uploadedByName).filter(Boolean)))}
             />
             {filteredDocuments.length > 0 ? (
               <div className="space-y-2">
