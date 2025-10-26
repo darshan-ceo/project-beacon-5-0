@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useUnifiedPersistence } from '@/hooks/useUnifiedPersistence';
 import { useProfilePersistence } from '@/hooks/useProfilePersistence';
 import { searchService } from '@/services/searchService';
+import { storageManager } from '@/data/StorageManager';
 import { generateSampleContent } from '@/utils/fileTypeUtils';
 import { loadAppState, saveAppState } from '@/data/storageShim';
 
@@ -16,6 +17,17 @@ export const AppWithPersistence: React.FC<AppWithPersistenceProps> = ({ children
   // Initialize search provider and backfill document content on app boot
   useEffect(() => {
     if (!initialized) return;
+
+    // Initialize StorageManager (Dexie) to ensure it's ready for search
+    const initStorageManager = async () => {
+      try {
+        await storageManager.initialize('indexeddb');
+        console.log('✅ StorageManager initialized for search');
+      } catch (error) {
+        console.warn('⚠️ StorageManager initialization failed:', error);
+      }
+    };
+    initStorageManager();
 
     // Initialize search provider - this is async but we don't need to wait
     searchService.initProvider?.().catch(error => {

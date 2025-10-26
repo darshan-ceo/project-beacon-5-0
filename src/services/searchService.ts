@@ -8,6 +8,8 @@ import { envConfig } from '@/utils/envConfig';
 import { featureFlagService } from './featureFlagService';
 import { idbStorage } from '@/utils/idb';
 import { storageManager } from '@/data/StorageManager';
+import { persistenceService } from '@/services/persistenceService';
+import { format } from 'date-fns';
 // Demo search data will be loaded dynamically
 
 export interface SearchResult {
@@ -521,41 +523,94 @@ class SearchService {
     return true;
   }
 
+  /**
+   * Fetch entities from both Dexie (StorageManager) and KV (persistenceService)
+   * Merge and deduplicate, preferring Dexie records when available
+   */
+  private async fetchEntities(entity: 'documents' | 'cases' | 'clients' | 'tasks' | 'hearings'): Promise<{ items: any[], source: string }> {
+    let dexieItems: any[] = [];
+    let kvItems: any[] = [];
+    
+    // Try Dexie first
+    try {
+      const storage = storageManager.getStorage();
+      if (storage) {
+        dexieItems = (await storage.getAll(entity)) as any[];
+      }
+    } catch (error) {
+      console.warn(`[Search] Dexie fetch failed for ${entity}:`, error);
+    }
+    
+    // Fallback to KV store
+    try {
+      kvItems = await persistenceService.getAll(entity);
+    } catch (error) {
+      console.warn(`[Search] KV fetch failed for ${entity}:`, error);
+    }
+    
+    // Merge and deduplicate (prefer Dexie when ID exists in both)
+    const dexieIds = new Set(dexieItems.map(item => item.id));
+    const merged = [
+      ...dexieItems,
+      ...kvItems.filter(item => !dexieIds.has(item.id))
+    ];
+    
+    const source = dexieItems.length > 0 && kvItems.length > 0 ? 'dexie+kv' 
+                 : dexieItems.length > 0 ? 'dexie' 
+                 : kvItems.length > 0 ? 'kv' 
+                 : 'none';
+    
+    if (this.isDevModeOn() && merged.length > 0) {
+      console.log(`[Search] Fetched ${entity}:`, {
+        dexie: dexieItems.length,
+        kv: kvItems.length,
+        merged: merged.length,
+        source
+      });
+    }
+    
+    return { items: merged, source };
+  }
+
   private async getDynamicResults(parsedQuery: ParsedQuery, scope: SearchScope): Promise<SearchResult[]> {
     const results: SearchResult[] = [];
     const normalizedQuery = parsedQuery.terms.join(' ');
     
     try {
-      const storage = storageManager.getStorage();
-      
-      // Fetch data from IndexedDB repositories with type casting
-      const documents = scope === 'all' || scope === 'documents' 
-        ? (await storage.getAll('documents')) as any[]
-        : [];
-      const cases = scope === 'all' || scope === 'cases' 
-        ? (await storage.getAll('cases')) as any[]
-        : [];
-      const clients = scope === 'all' || scope === 'clients' 
-        ? (await storage.getAll('clients')) as any[]
-        : [];
-      const tasks = scope === 'all' || scope === 'tasks' 
-        ? (await storage.getAll('tasks')) as any[]
-        : [];
-      const hearings = scope === 'all' || scope === 'hearings' 
-        ? (await storage.getAll('hearings')) as any[]
-        : [];
+      // Fetch data from both Dexie and KV stores
+      const documentsData = scope === 'all' || scope === 'documents' 
+        ? await this.fetchEntities('documents')
+        : { items: [], source: 'none' };
+      const casesData = scope === 'all' || scope === 'cases' 
+        ? await this.fetchEntities('cases')
+        : { items: [], source: 'none' };
+      const clientsData = scope === 'all' || scope === 'clients' 
+        ? await this.fetchEntities('clients')
+        : { items: [], source: 'none' };
+      const tasksData = scope === 'all' || scope === 'tasks' 
+        ? await this.fetchEntities('tasks')
+        : { items: [], source: 'none' };
+      const hearingsData = scope === 'all' || scope === 'hearings' 
+        ? await this.fetchEntities('hearings')
+        : { items: [], source: 'none' };
+
+      const documents = documentsData.items;
+      const cases = casesData.items;
+      const clients = clientsData.items;
+      const tasks = tasksData.items;
+      const hearings = hearingsData.items;
 
       // For case and hearing search, we need all clients and cases to resolve names
       const allClients = ((scope === 'all' || scope === 'cases' || scope === 'hearings') && clients.length === 0)
-        ? (await storage.getAll('clients')) as any[]
+        ? (await this.fetchEntities('clients')).items
         : clients;
       
       const allCases = ((scope === 'all' || scope === 'hearings') && cases.length === 0)
-        ? (await storage.getAll('cases')) as any[]
+        ? (await this.fetchEntities('cases')).items
         : cases;
       
-      // Create lookup maps using correct field names from schema
-      const clientLookup = new Map(allClients.map(c => [c.id, c.display_name || '']));
+      // Create lookup maps - handle both old (KV) and new (Dexie) schema field names
+      const clientLookup = new Map(allClients.map(c => [c.id, c.display_name || c.name || '']));
       const caseLookup = new Map(allCases.map(c => [c.id, c]));
 
       // Debug logging
@@ -588,23 +643,29 @@ class SearchService {
       // Document search with comprehensive filename matching
       if (scope === 'all' || scope === 'documents') {
         documents.forEach(doc => {
-          // Use correct schema fields: name, doc_type_code, size, uploaded_by_name, case_id, folder_id
+          // Handle both schemas: Dexie (name, doc_type_code, uploaded_by_name, case_id) and KV (file_name, type, uploadedByName, caseId)
+          const docTitle = doc.name || doc.file_name || 'Untitled Document';
+          const docType = doc.doc_type_code || doc.type || 'Document';
+          const docUploader = doc.uploaded_by_name || doc.uploadedByName;
+          const docCaseId = doc.case_id || doc.caseId;
+          const docFolderId = doc.folder_id || doc.folderId;
+          
           const docItem = {
-            title: doc.name || '',
-            content: `${doc.doc_type_code || 'Document'} ${doc.size || 0} bytes`,
+            title: docTitle,
+            content: `${docType} ${doc.size || 0} bytes`,
             metadata: {
-              uploader: doc.uploaded_by_name,
-              caseId: doc.case_id,
-              folder: doc.folder_id
+              uploader: docUploader,
+              caseId: docCaseId,
+              folder: docFolderId
             }
           };
           
           if (this.matchesParsedQuery(docItem, parsedQuery)) {
             // Enhanced filename matching logic
-            const isExactFilename = this.isExactFilenameMatch(doc.name || '', parsedQuery);
-            const isPartialFilename = this.isPartialFilenameMatch(doc.name || '', parsedQuery);
+            const isExactFilename = this.isExactFilenameMatch(docTitle, parsedQuery);
+            const isPartialFilename = this.isPartialFilenameMatch(docTitle, parsedQuery);
             
-            let score = this.calculateDemoScore(doc.name || '', doc.doc_type_code || '', parsedQuery);
+            let score = this.calculateDemoScore(docTitle, docType, parsedQuery);
             
             // Boost scores for filename matches
             if (isExactFilename) score += 100;
@@ -617,28 +678,32 @@ class SearchService {
             
             results.push({
               id: doc.id,
-              title: doc.name || 'Untitled Document',
-              subtitle: `${doc.doc_type_code || 'Document'} • ${doc.size || 0} bytes • Uploaded by ${doc.uploaded_by_name || 'Unknown'}`,
-              url: `/documents?search=${encodeURIComponent(doc.name || '')}`,
+              title: docTitle,
+              subtitle: `${docType} • ${doc.size || 0} bytes • Uploaded by ${docUploader || 'Unknown'}`,
+              url: `/documents?search=${encodeURIComponent(docTitle)}`,
               type: 'document',
               score: score,
-              highlights: [doc.name || ''],
-              badges: [doc.doc_type_code || 'Document']
+              highlights: [docTitle],
+              badges: [docType]
             });
           }
         });
       }
 
-      // Cases search with parsed query - use schema fields: title, case_number, client_id, status
+      // Cases search - handle both schemas: Dexie (title, case_number, client_id) and KV (case_title, caseNumber, clientId)
       if (scope === 'all' || scope === 'cases') {
         cases.forEach(case_ => {
           // Defensive: handle malformed data where fields might be objects instead of strings
           const caseTitle = (typeof case_.title === 'string' ? case_.title : null) 
+            || (typeof case_.case_title === 'string' ? case_.case_title : null)
             || (typeof case_.case_number === 'string' ? case_.case_number : null) 
+            || (typeof case_.caseNumber === 'string' ? case_.caseNumber : null)
             || '';
-          const caseNumber = typeof case_.case_number === 'string' ? case_.case_number : '';
-          const clientId = typeof case_.client_id === 'string' ? case_.client_id : '';
-          // Resolve client name from lookup using display_name
+          const caseNumber = (typeof case_.case_number === 'string' ? case_.case_number : '')
+            || (typeof case_.caseNumber === 'string' ? case_.caseNumber : '');
+          const clientId = (typeof case_.client_id === 'string' ? case_.client_id : '')
+            || (typeof case_.clientId === 'string' ? case_.clientId : '');
+          // Resolve client name from lookup (handles both display_name and name)
           const clientName = clientId ? (clientLookup.get(clientId) || '') : '';
           const caseStatus = case_.status || 'Active';
           
@@ -666,41 +731,50 @@ class SearchService {
         });
       }
 
-      // Clients search with parsed query - use schema fields: display_name, gstin, city, state
+      // Clients search - handle both schemas: Dexie (display_name) and KV (name)
       if (scope === 'all' || scope === 'clients') {
         clients.forEach(client => {
+          const clientName = client.display_name || client.name || 'Unknown Client';
+          const clientGstin = client.gstin || '';
+          const clientCity = client.city || '';
+          const clientState = client.state || '';
+          
           const clientItem = {
-            title: client.display_name || '',
-            content: `${client.gstin || ''} ${client.city || ''} ${client.state || ''}`,
+            title: clientName,
+            content: `${clientGstin} ${clientCity} ${clientState}`,
             metadata: {}
           };
           
           if (this.matchesParsedQuery(clientItem, parsedQuery)) {
-            const subtitleParts = [client.gstin, client.city, client.state].filter(Boolean);
+            const subtitleParts = [clientGstin, clientCity, clientState].filter(Boolean);
             results.push({
               id: client.id,
-              title: client.display_name || 'Unknown Client',
+              title: clientName,
               subtitle: subtitleParts.join(' • ') || 'Client',
-              url: `/clients?search=${encodeURIComponent(client.display_name || '')}`,
+              url: `/clients?search=${encodeURIComponent(clientName)}`,
               type: 'client',
-              score: this.calculateDemoScore(client.display_name || '', `${client.gstin || ''} ${client.city || ''}`, parsedQuery),
-              highlights: [client.display_name || ''],
+              score: this.calculateDemoScore(clientName, `${clientGstin} ${clientCity}`, parsedQuery),
+              highlights: [clientName],
               badges: ['Client']
             });
           }
         });
       }
 
-      // Tasks search with parsed query - optionally include related case info
+      // Tasks search - handle both schemas: Dexie (case_id) and KV (caseId)
       if (scope === 'all' || scope === 'tasks') {
         tasks.forEach(task => {
+          const taskCaseId = task.case_id || task.caseId;
           // If task has case_id, include case and client info in content
           let enrichedContent = task.description || '';
-          if (task.case_id) {
-            const relatedCase = caseLookup.get(task.case_id);
+          if (taskCaseId) {
+            const relatedCase = caseLookup.get(taskCaseId);
             if (relatedCase) {
-              const relatedClientName = clientLookup.get(relatedCase.client_id) || '';
-              enrichedContent += ` ${relatedCase.title || ''} ${relatedCase.case_number || ''} ${relatedClientName}`;
+              const relatedCaseClientId = relatedCase.client_id || relatedCase.clientId;
+              const relatedClientName = clientLookup.get(relatedCaseClientId) || '';
+              const relatedCaseTitle = relatedCase.title || relatedCase.case_title || '';
+              const relatedCaseNumber = relatedCase.case_number || relatedCase.caseNumber || '';
+              enrichedContent += ` ${relatedCaseTitle} ${relatedCaseNumber} ${relatedClientName}`;
             }
           }
           
@@ -725,14 +799,16 @@ class SearchService {
         });
       }
 
-      // Hearings search - use schema fields and compose searchable content from hearing + case + client
+      // Hearings search - handle both schemas: Dexie (case_id, hearing_date) and KV (caseId, date)
       if (scope === 'all' || scope === 'hearings') {
         hearings.forEach(hearing => {
+          const hearingCaseId = hearing.case_id || hearing.caseId;
           // Fetch related case and client to enable search by client name and case title
-          const relatedCase = caseLookup.get(hearing.case_id);
-          const relatedClientName = relatedCase ? clientLookup.get(relatedCase.client_id) || '' : '';
-          const caseTitle = relatedCase?.title || '';
-          const caseNumber = relatedCase?.case_number || '';
+          const relatedCase = caseLookup.get(hearingCaseId);
+          const relatedCaseClientId = relatedCase ? (relatedCase.client_id || relatedCase.clientId) : '';
+          const relatedClientName = relatedCaseClientId ? (clientLookup.get(relatedCaseClientId) || '') : '';
+          const caseTitle = relatedCase?.title || relatedCase?.case_title || '';
+          const caseNumber = relatedCase?.case_number || relatedCase?.caseNumber || '';
           
           // Compose title and content with case and client info
           const hearingTitle = caseNumber 
@@ -743,14 +819,15 @@ class SearchService {
             title: hearingTitle,
             content: `${relatedClientName} ${caseNumber} ${caseTitle} ${hearing.notes || ''} ${hearing.location || ''}`,
             metadata: {
-              caseId: hearing.case_id
+              caseId: hearingCaseId
             }
           };
           
           if (this.matchesParsedQuery(hearingItem, parsedQuery)) {
-            // Format hearing date
-            const hearingDateStr = hearing.hearing_date 
-              ? new Date(hearing.hearing_date).toLocaleDateString()
+            const hearingDate = hearing.hearing_date || hearing.date;
+            // Format hearing date - handle both schemas
+            const hearingDateStr = hearingDate 
+              ? format(new Date(hearingDate), 'MMM dd, yyyy')
               : 'Date TBD';
             
             results.push({
@@ -777,71 +854,85 @@ class SearchService {
     const suggestions: SearchSuggestion[] = [];
     
     try {
-      const storage = storageManager.getStorage();
-      const documents = (await storage.getAll('documents')) as any[];
-      const cases = (await storage.getAll('cases')) as any[];
-      const clients = (await storage.getAll('clients')) as any[];
+      // Fetch from both Dexie and KV stores
+      const documentsData = await this.fetchEntities('documents');
+      const casesData = await this.fetchEntities('cases');
+      const clientsData = await this.fetchEntities('clients');
       
-      // Document suggestions - use correct schema fields
+      const documents = documentsData.items;
+      const cases = casesData.items;
+      const clients = clientsData.items;
+      
+      // Document suggestions - handle both schemas
       documents.forEach(doc => {
         if (suggestions.length >= limit) return;
         
+        const docTitle = doc.name || doc.file_name || '';
+        const docType = doc.doc_type_code || doc.type || '';
+        const docUploader = doc.uploaded_by_name || doc.uploadedByName;
+        
         const docItem = {
-          title: doc.name || '',
-          content: doc.doc_type_code || '',
+          title: docTitle,
+          content: docType,
           metadata: {
-            uploader: doc.uploaded_by_name
+            uploader: docUploader
           }
         };
         
         if (this.matchesParsedQuery(docItem, parsedQuery)) {
           suggestions.push({
-            text: doc.name || 'Untitled',
+            text: docTitle || 'Untitled',
             type: 'document',
             count: 1
           });
         }
       });
       
-      // Case suggestions
+      // Case suggestions - handle both schemas
       cases.forEach(case_ => {
         if (suggestions.length >= limit) return;
         
+        const caseTitle = case_.title || case_.case_title || case_.case_number || case_.caseNumber || '';
+        
         const caseItem = {
-          title: case_.title || case_.case_number || '',
+          title: caseTitle,
           content: case_.description || '',
           metadata: {}
         };
         
         if (this.matchesParsedQuery(caseItem, parsedQuery)) {
           suggestions.push({
-            text: case_.title || case_.case_number || 'Untitled Case',
+            text: caseTitle || 'Untitled Case',
             type: 'case',
             count: 1
           });
         }
       });
       
-      // Client suggestions - use display_name
+      // Client suggestions - handle both schemas
       clients.forEach(client => {
         if (suggestions.length >= limit) return;
         
+        const clientName = client.display_name || client.name || '';
+        const clientGstin = client.gstin || '';
+        const clientCity = client.city || '';
+        
         const clientItem = {
-          title: client.display_name || '',
-          content: `${client.gstin || ''} ${client.city || ''}`,
+          title: clientName,
+          content: `${clientGstin} ${clientCity}`,
           metadata: {}
         };
         
         if (this.matchesParsedQuery(clientItem, parsedQuery)) {
           suggestions.push({
-            text: client.display_name || 'Unknown Client',
+            text: clientName || 'Unknown Client',
             type: 'client',
             count: 1
           });
         }
       });
     } catch (error) {
-      console.error('Failed to get IndexedDB suggestions:', error);
+      console.error('Failed to get suggestions:', error);
     }
     
     return suggestions;
