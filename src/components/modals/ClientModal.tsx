@@ -1163,9 +1163,16 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
               </Button>
             )}
             {mode !== 'view' && (
-              <Button type="submit" onClick={handleSubmit}>
-                {mode === 'create' ? 'Create Client' : 'Update Client'}
-              </Button>
+            <Button 
+              type="button" 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleSubmit(e);
+              }}
+            >
+              {mode === 'create' ? 'Create Client' : 'Update Client'}
+            </Button>
             )}
           </DialogFooter>
         </DialogContent>
