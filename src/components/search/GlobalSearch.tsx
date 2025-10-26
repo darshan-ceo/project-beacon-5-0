@@ -5,7 +5,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, X, Clock, Filter } from 'lucide-react';
+import { Search, X, Clock, Filter, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { searchService, SearchScope, SearchSuggestion } from '@/services/searchService';
 import { featureFlagService } from '@/services/featureFlagService';
@@ -13,7 +13,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { SearchSuggestions } from './SearchSuggestions';
+import { SearchTypeIndicator } from './SearchTypeIndicator';
 
 const scopeOptions: { value: SearchScope; label: string; color: string }[] = [
   { value: 'all', label: 'All', color: 'bg-primary text-primary-foreground' },
@@ -181,9 +183,19 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ onResultsOpen }) => 
 
   return (
     <div className="relative max-w-md w-full">
+      {/* Global Search Label */}
+      <div className="flex items-center gap-2 mb-1.5">
+        <SearchTypeIndicator 
+          type="global" 
+          tooltip="Search across all modules: Cases, Clients, Documents, Tasks, Hearings"
+        />
+        <span className="text-[10px] text-muted-foreground">Press / from anywhere</span>
+      </div>
+
       {/* Search Input Container */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+      <div className="relative shadow-sm">
+        <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-primary z-10" />
+        <Search className="absolute left-8 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground z-10" />
         
         <Input
           ref={inputRef}
@@ -191,8 +203,8 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ onResultsOpen }) => 
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setTimeout(() => setIsFocused(false), 200)}
-          placeholder="Search cases, clients, tasks... (Press / to focus)"
-          className="pl-10 pr-20 bg-muted/50 border-0 focus-visible:ring-1 transition-all duration-200"
+          placeholder="🔍 Search across all modules..."
+          className="h-11 pl-14 pr-20 bg-background border border-border focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary transition-all duration-200"
         />
 
         {/* Clear button */}
@@ -208,39 +220,48 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ onResultsOpen }) => 
         )}
 
         {/* Scope Filter */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 px-2 hover:bg-muted"
-            >
-              <Filter className="h-3 w-3 mr-1" />
-              <span className="text-xs">{activeScopeOption?.label}</span>
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="end" className="w-48 p-2">
-            <div className="space-y-1">
-              <div className="text-xs font-medium text-muted-foreground mb-2">Search Scope</div>
-              {scopeOptions.map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => setScope(option.value)}
-                  className={`w-full text-left px-2 py-1.5 rounded text-sm transition-colors ${
-                    scope === option.value
-                      ? 'bg-primary text-primary-foreground'
-                      : 'hover:bg-muted'
-                  }`}
-                >
-                  <Badge variant="secondary" className={`mr-2 text-xs ${option.color}`}>
-                    {option.label}
-                  </Badge>
-                  {option.value === 'all' ? 'All content' : `${option.label} only`}
-                </button>
-              ))}
-            </div>
-          </PopoverContent>
-        </Popover>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-9 px-2 hover:bg-muted/50"
+                  >
+                    <Filter className="h-3 w-3 mr-1" />
+                    <span className="text-xs">{activeScopeOption?.label}</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-48 p-2 z-[9999]">
+                  <div className="space-y-1">
+                    <div className="text-xs font-medium text-muted-foreground mb-2">Search Scope: Choose modules</div>
+                    {scopeOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={() => setScope(option.value)}
+                        className={`w-full text-left px-2 py-1.5 rounded text-sm transition-colors ${
+                          scope === option.value
+                            ? 'bg-primary text-primary-foreground'
+                            : 'hover:bg-muted'
+                        }`}
+                      >
+                        <Badge variant="secondary" className={`mr-2 text-xs ${option.color}`}>
+                          {option.label}
+                        </Badge>
+                        {option.value === 'all' ? 'All content' : `${option.label} only`}
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Filter search by module type</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       {/* Suggestions Dropdown */}

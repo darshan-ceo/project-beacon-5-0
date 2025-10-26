@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Filter, X, Tag, User, Calendar, FileType, Folder } from 'lucide-react';
+import { Search, Filter, X, Tag, User, Calendar, FileType, Folder, FileText } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { FilterDropdown } from '@/components/ui/filter-dropdown';
 import { dmsService } from '@/services/dmsService';
+import { SearchTypeIndicator } from '@/components/search/SearchTypeIndicator';
 
 interface UnifiedDocumentSearchProps {
   onSearch: (query: string) => void;
@@ -165,150 +168,186 @@ export const UnifiedDocumentSearch: React.FC<UnifiedDocumentSearchProps> = ({
   ];
 
   return (
-    <div className="space-y-4">
-      {/* Main Search Bar */}
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            ref={searchInputRef}
-            placeholder={placeholder}
-            value={searchTerm}
-            onChange={(e) => {
-              onSearchTermChange(e.target.value);
-              onSearch(e.target.value);
-            }}
-            className="pl-10"
-          />
-        </div>
-        
-        <Popover open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className="relative">
-              <Filter className="mr-2 h-4 w-4" />
-              Filters
-              {getActiveFilterCount() > 0 && (
-                <Badge variant="secondary" className="ml-2 h-5 min-w-5 text-xs">
-                  {getActiveFilterCount()}
+    <Card className="p-4 bg-muted/30 border-muted-foreground/20">
+      <div className="space-y-4">
+        {/* Module Search Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-purple-500" />
+            <h3 className="text-sm font-medium">Document Search</h3>
+            <SearchTypeIndicator 
+              type="module" 
+              moduleName="Documents"
+              icon={FileText}
+              tooltip="Search only within documents on this page"
+            />
+          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="outline" className="text-xs text-muted-foreground border-muted">
+                  Ctrl+F
                 </Badge>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-96 p-4" align="end">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h4 className="font-medium">Document Filters</h4>
-                {getActiveFilterCount() > 0 && (
-                  <Button variant="ghost" size="sm" onClick={clearAllFilters}>
-                    Clear All
-                  </Button>
-                )}
-              </div>
-              
-              <div className="grid grid-cols-2 gap-2">
-                <FilterDropdown
-                  label="Client"
-                  value={activeFilters.clientId || 'all'}
-                  options={clientOptions}
-                  onChange={(value) => handleFilterChange('clientId', value)}
-                  icon={<User className="mr-2 h-4 w-4" />}
-                />
-                
-                <FilterDropdown
-                  label="Folder"
-                  value={activeFilters.folderId || 'all'}
-                  options={folderOptions}
-                  onChange={(value) => handleFilterChange('folderId', value)}
-                  icon={<Folder className="mr-2 h-4 w-4" />}
-                />
-                
-                <FilterDropdown
-                  label="Type"
-                  value={activeFilters.fileType || 'all'}
-                  options={fileTypeOptions}
-                  onChange={(value) => handleFilterChange('fileType', value)}
-                  icon={<FileType className="mr-2 h-4 w-4" />}
-                />
-                
-                <FilterDropdown
-                  label="Case"
-                  value={activeFilters.caseId || 'all'}
-                  options={caseOptions}
-                  onChange={(value) => handleFilterChange('caseId', value)}
-                  icon={<Tag className="mr-2 h-4 w-4" />}
-                />
-                
-                <FilterDropdown
-                  label="Size"
-                  value={activeFilters.fileSize || 'all'}
-                  options={fileSizeOptions}
-                  onChange={(value) => handleFilterChange('fileSize', value)}
-                  icon={<FileType className="mr-2 h-4 w-4" />}
-                />
-                
-                <FilterDropdown
-                  label="Uploader"
-                  value={activeFilters.uploadedBy || 'all'}
-                  options={uploaderOptions}
-                  onChange={(value) => handleFilterChange('uploadedBy', value)}
-                  icon={<User className="mr-2 h-4 w-4" />}
-                />
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium mb-2 block">Tags</label>
-                <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
-                  {tags.map((tag) => (
-                    <Badge
-                      key={tag.name}
-                      variant={activeFilters.tags?.includes(tag.name) ? "default" : "outline"}
-                      className="cursor-pointer text-xs"
-                      onClick={() => handleTagFilter(tag.name)}
-                    >
-                      {tag.name}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium mb-2 block">Date Range</label>
-                <div className="flex gap-2">
-                  <input
-                    type="date"
-                    className="px-3 py-2 border rounded-md text-sm"
-                    value={dateRange.from ? dateRange.from.toISOString().split('T')[0] : ''}
-                    onChange={(e) => setDateRange(prev => ({ 
-                      ...prev, 
-                      from: e.target.value ? new Date(e.target.value) : undefined 
-                    }))}
-                    placeholder="From"
-                  />
-                  <input
-                    type="date"
-                    className="px-3 py-2 border rounded-md text-sm"
-                    value={dateRange.to ? dateRange.to.toISOString().split('T')[0] : ''}
-                    onChange={(e) => setDateRange(prev => ({ 
-                      ...prev, 
-                      to: e.target.value ? new Date(e.target.value) : undefined 
-                    }))}
-                    placeholder="To"
-                  />
-                </div>
-                {(dateRange.from || dateRange.to) && (
-                  <Button 
-                    size="sm" 
-                    className="mt-2 w-full" 
-                    onClick={handleDateRangeFilter}
-                  >
-                    Apply Date Filter
-                  </Button>
-                )}
-              </div>
-            </div>
-          </PopoverContent>
-        </Popover>
-      </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Press Ctrl+F to focus document search</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+
+        {/* Main Search Bar */}
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              ref={searchInputRef}
+              placeholder="Search within documents only..."
+              value={searchTerm}
+              onChange={(e) => {
+                onSearchTermChange(e.target.value);
+                onSearch(e.target.value);
+              }}
+              className="pl-10 bg-background focus-visible:ring-purple-500 focus-visible:border-purple-500"
+            />
+          </div>
+          
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Popover open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="relative">
+                      <Filter className="mr-2 h-4 w-4" />
+                      Document Filters
+                      {getActiveFilterCount() > 0 && (
+                        <Badge variant="secondary" className="ml-2 h-5 min-w-5 text-xs">
+                          {getActiveFilterCount()}
+                        </Badge>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-96 p-4 z-[9999]" align="end">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium">Document Filters</h4>
+                        {getActiveFilterCount() > 0 && (
+                          <Button variant="ghost" size="sm" onClick={clearAllFilters}>
+                            Clear All
+                          </Button>
+                        )}
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2">
+                        <FilterDropdown
+                          label="Client"
+                          value={activeFilters.clientId || 'all'}
+                          options={clientOptions}
+                          onChange={(value) => handleFilterChange('clientId', value)}
+                          icon={<User className="mr-2 h-4 w-4" />}
+                        />
+                        
+                        <FilterDropdown
+                          label="Folder"
+                          value={activeFilters.folderId || 'all'}
+                          options={folderOptions}
+                          onChange={(value) => handleFilterChange('folderId', value)}
+                          icon={<Folder className="mr-2 h-4 w-4" />}
+                        />
+                        
+                        <FilterDropdown
+                          label="Type"
+                          value={activeFilters.fileType || 'all'}
+                          options={fileTypeOptions}
+                          onChange={(value) => handleFilterChange('fileType', value)}
+                          icon={<FileType className="mr-2 h-4 w-4" />}
+                        />
+                        
+                        <FilterDropdown
+                          label="Case"
+                          value={activeFilters.caseId || 'all'}
+                          options={caseOptions}
+                          onChange={(value) => handleFilterChange('caseId', value)}
+                          icon={<Tag className="mr-2 h-4 w-4" />}
+                        />
+                        
+                        <FilterDropdown
+                          label="Size"
+                          value={activeFilters.fileSize || 'all'}
+                          options={fileSizeOptions}
+                          onChange={(value) => handleFilterChange('fileSize', value)}
+                          icon={<FileType className="mr-2 h-4 w-4" />}
+                        />
+                        
+                        <FilterDropdown
+                          label="Uploader"
+                          value={activeFilters.uploadedBy || 'all'}
+                          options={uploaderOptions}
+                          onChange={(value) => handleFilterChange('uploadedBy', value)}
+                          icon={<User className="mr-2 h-4 w-4" />}
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">Tags</label>
+                        <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
+                          {tags.map((tag) => (
+                            <Badge
+                              key={tag.name}
+                              variant={activeFilters.tags?.includes(tag.name) ? "default" : "outline"}
+                              className="cursor-pointer text-xs"
+                              onClick={() => handleTagFilter(tag.name)}
+                            >
+                              {tag.name}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">Date Range</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="date"
+                            className="px-3 py-2 border rounded-md text-sm"
+                            value={dateRange.from ? dateRange.from.toISOString().split('T')[0] : ''}
+                            onChange={(e) => setDateRange(prev => ({ 
+                              ...prev, 
+                              from: e.target.value ? new Date(e.target.value) : undefined 
+                            }))}
+                            placeholder="From"
+                          />
+                          <input
+                            type="date"
+                            className="px-3 py-2 border rounded-md text-sm"
+                            value={dateRange.to ? dateRange.to.toISOString().split('T')[0] : ''}
+                            onChange={(e) => setDateRange(prev => ({ 
+                              ...prev, 
+                              to: e.target.value ? new Date(e.target.value) : undefined 
+                            }))}
+                            placeholder="To"
+                          />
+                        </div>
+                        {(dateRange.from || dateRange.to) && (
+                          <Button 
+                            size="sm" 
+                            className="mt-2 w-full" 
+                            onClick={handleDateRangeFilter}
+                          >
+                            Apply Date Filter
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Filter documents by client, folder, type, case, and more</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
 
       {/* Active Filter Chips */}
       {getActiveFilterCount() > 0 && (
@@ -396,6 +435,7 @@ export const UnifiedDocumentSearch: React.FC<UnifiedDocumentSearchProps> = ({
           )}
         </div>
       )}
-    </div>
+      </div>
+    </Card>
   );
 };
