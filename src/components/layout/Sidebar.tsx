@@ -95,6 +95,12 @@ const menuGroups: MenuGroup[] = [
   }
 ];
 
+// Icons for group headers in collapsed mode
+const groupIcons: Record<string, React.ElementType> = {
+  Masters: Building2,
+  Administration: Settings,
+};
+
 export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
   // State for tracking group expansion
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
@@ -147,20 +153,34 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
   const location = useLocation();
   const { open } = useSidebar();
 
-  const getNavClasses = (isActive: boolean) =>
-    isActive ? "brand-active-sidebar" : "nav-hover hover:bg-sidebar-accent/50";
+  const isPathActive = (href: string, pathname: string) => {
+    if (href === '/') return pathname === '/';
+    return pathname === href || pathname.startsWith(href + '/');
+  };
+
+  const getNavClasses = (active: boolean) =>
+    active ? "brand-active-sidebar" : "nav-hover";
+
+  // Auto-open any group that contains the active route
+  React.useEffect(() => {
+    setOpenGroups((prev) => {
+      const next = { ...prev };
+      filteredGroups.forEach((group) => {
+        const hasActive = group.items.some((item) => isPathActive(item.href, location.pathname));
+        if (hasActive) next[group.label] = true;
+      });
+      return next;
+    });
+  }, [location.pathname, filteredGroups]);
 
   const renderMenuItem = (item: MenuItem) => {
-    const isActive = location.pathname === item.href;
+    const active = isPathActive(item.href, location.pathname);
     return (
       <SidebarMenuItem key={item.href}>
-        <SidebarMenuButton asChild>
+        <SidebarMenuButton asChild isActive={active} className={getNavClasses(active)} tooltip={item.label}>
           <NavLink 
             to={item.href}
             data-tour={item.tourId}
-            className={({ isActive: navIsActive }) => 
-              getNavClasses(navIsActive || isActive)
-            }
           >
             <item.icon className="h-5 w-5" />
             {open && (
@@ -224,8 +244,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
                     }
                   >
                     <CollapsibleTrigger className="w-full group">
-                      <div className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md cursor-pointer transition-colors">
-                        <span className="truncate">{group.label}</span>
+                      <div className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md cursor-pointer transition-colors group-data-[collapsible=icon]:justify-center">
+                        <div className="flex items-center gap-2 min-w-0">
+                          {(() => {
+                            const GroupIcon = (groupIcons as Record<string, React.ElementType>)[group.label] || Settings;
+                            return <GroupIcon className={cn("h-4 w-4 text-sidebar-foreground", open ? "" : "mx-auto")} />;
+                          })()}
+                          {open && <span className="truncate">{group.label}</span>}
+                        </div>
                         {open && (
                           <ChevronDown 
                             className={cn(

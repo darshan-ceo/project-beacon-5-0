@@ -355,6 +355,12 @@ All colors MUST be HSL. Professional legal theme with accessibility focus.
     opacity: 1;
     border-left-color: hsl(var(--sidebar-border));
   }
+  
+  /* Keep active highlight visible in collapsed (icon) mode */
+  [data-collapsible="icon"] .brand-active-sidebar {
+    border-left-width: 3px !important;
+    background: linear-gradient(to right, hsl(var(--primary) / 0.35), hsl(var(--primary) / 0)) !important;
+  }
 }
 
 @keyframes fadeIn {
