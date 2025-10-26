@@ -641,7 +641,7 @@ export const CaseManagement: React.FC = () => {
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 gap-1 p-1 h-auto">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 gap-1.5 p-1.5 h-auto">
           <TabsTrigger value="overview" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">
             Overview
           </TabsTrigger>
@@ -651,34 +651,13 @@ export const CaseManagement: React.FC = () => {
             className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
             title={getTabDisabled('lifecycle') ? "Select a case from Overview to proceed" : ""}
           >
-            <span className="flex items-center gap-1.5">
-              Lifecycle
-              {selectedCase && (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-950/30 dark:text-blue-400">
-                  Case
-                </Badge>
-              )}
-            </span>
+            Lifecycle
           </TabsTrigger>
           <TabsTrigger value="sla" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">
-            <span className="flex items-center gap-1.5">
-              Timeline Tracker
-              {selectedCase && (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-950/30 dark:text-blue-400">
-                  Case
-                </Badge>
-              )}
-            </span>
+            Timeline Tracker
           </TabsTrigger>
           <TabsTrigger value="hearings" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">
-            <span className="flex items-center gap-1.5">
-              Hearings
-              {selectedCase && (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-950/30 dark:text-blue-400">
-                  Case
-                </Badge>
-              )}
-            </span>
+            Hearings
           </TabsTrigger>
           <TabsTrigger 
             value="documents"
@@ -686,14 +665,7 @@ export const CaseManagement: React.FC = () => {
             className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
             title={getTabDisabled('documents') ? "Select a case from Overview to proceed" : ""}
           >
-            <span className="flex items-center gap-1.5">
-              Documents
-              {selectedCase && (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-950/30 dark:text-blue-400">
-                  Case
-                </Badge>
-              )}
-            </span>
+            Documents
           </TabsTrigger>
           <TabsTrigger 
             value="timeline"
@@ -701,14 +673,7 @@ export const CaseManagement: React.FC = () => {
             className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
             title={getTabDisabled('timeline') ? "Select a case from Overview to proceed" : ""}
           >
-            <span className="flex items-center gap-1.5">
-              Timeline
-              {selectedCase && (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-950/30 dark:text-blue-400">
-                  Case
-                </Badge>
-              )}
-            </span>
+            Timeline
           </TabsTrigger>
           <TabsTrigger 
             value="ai-assistant"
@@ -716,14 +681,7 @@ export const CaseManagement: React.FC = () => {
             className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
             title={getTabDisabled('ai-assistant') ? "Select a case from Overview to proceed" : ""}
           >
-            <span className="flex items-center gap-1.5">
-              AI Assistant
-              {selectedCase && (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-950/30 dark:text-blue-400">
-                  Case
-                </Badge>
-              )}
-            </span>
+            AI Assistant
           </TabsTrigger>
           <TabsTrigger 
             value="communications"
@@ -731,14 +689,7 @@ export const CaseManagement: React.FC = () => {
             className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
             title={getTabDisabled('communications') ? "Select a case from Overview to proceed" : ""}
           >
-            <span className="flex items-center gap-1.5">
-              Communications
-              {selectedCase && (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-950/30 dark:text-blue-400">
-                  Case
-                </Badge>
-              )}
-            </span>
+            Communications
           </TabsTrigger>
           <TabsTrigger 
             value="tasks"
@@ -746,14 +697,7 @@ export const CaseManagement: React.FC = () => {
             className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
             title={getTabDisabled('tasks') ? "Select a case from Overview to proceed" : ""}
           >
-            <span className="flex items-center gap-1.5">
-              Tasks
-              {selectedCase && (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-950/30 dark:text-blue-400">
-                  Case
-                </Badge>
-              )}
-            </span>
+            Tasks
           </TabsTrigger>
         </TabsList>
 
