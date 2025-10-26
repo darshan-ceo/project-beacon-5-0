@@ -411,15 +411,22 @@ class SearchService {
   private parseQuery(query: string): ParsedQuery {
     const result: ParsedQuery = { terms: [] };
     
+    if (this.isDevModeOn()) {
+      console.log('🔍 ParseQuery - Input:', query);
+    }
+    
     // Check for exact match (quotes or full filename)
-    const exactMatch = query.match(/^\"([^\"]+)\"$/) || query.match(/^([^\"\\s]+\\.(pdf|docx?|xlsx?|txt|html))$/i);
+    const exactMatch = query.match(/^"([^"]+)"$/) || query.match(/^([^"\s]+\.(pdf|docx?|xlsx?|txt|html))$/i);
     if (exactMatch) {
       result.exact = true;
       result.terms = [this.normalize(exactMatch[1])];
+      if (this.isDevModeOn()) {
+        console.log('🔍 ParseQuery - Exact match found:', result);
+      }
       return result;
     }
     
-    // Parse operators - fixed regex patterns (removed extra backslash escaping)
+    // Parse operators
     const operators = {
       filename: /filename:(\S+)/gi,
       tag: /tag:(\S+)/gi,
@@ -438,11 +445,20 @@ class SearchService {
       });
     });
     
-    // Normalize remaining terms - fixed regex pattern
+    // Normalize remaining terms
     if (remainingQuery.trim()) {
-      result.terms = this.normalize(remainingQuery)
+      const normalized = this.normalize(remainingQuery);
+      result.terms = normalized
         .split(/\s+/)
         .filter(term => term.length > 0);
+      
+      if (this.isDevModeOn()) {
+        console.log('🔍 ParseQuery - Normalized:', { 
+          original: remainingQuery, 
+          normalized, 
+          terms: result.terms 
+        });
+      }
     }
     
     return result;
@@ -529,13 +545,18 @@ class SearchService {
         ? (await storage.getAll('hearings')) as any[]
         : [];
 
-      // For case search, we need all clients to resolve client names
-      const allClients = (scope === 'all' || scope === 'cases') && clients.length === 0
+      // For case and hearing search, we need all clients and cases to resolve names
+      const allClients = ((scope === 'all' || scope === 'cases' || scope === 'hearings') && clients.length === 0)
         ? (await storage.getAll('clients')) as any[]
         : clients;
       
-      // Create client lookup map for case search
-      const clientLookup = new Map(allClients.map(c => [c.id, c.name || c.client_name || '']));
+      const allCases = ((scope === 'all' || scope === 'hearings') && cases.length === 0)
+        ? (await storage.getAll('cases')) as any[]
+        : cases;
+      
+      // Create lookup maps using correct field names from schema
+      const clientLookup = new Map(allClients.map(c => [c.id, c.display_name || '']));
+      const caseLookup = new Map(allCases.map(c => [c.id, c]));
 
       // Debug logging
       if (this.isDevModeOn()) {
@@ -548,35 +569,42 @@ class SearchService {
           sampleDoc: documents[0]?.name || 'No documents',
           sampleCase: cases[0] ? { 
             id: cases[0].id, 
-            title: cases[0].title, 
+            title: cases[0].title,
+            title_type: typeof cases[0].title,
             case_number: cases[0].case_number,
+            case_number_type: typeof cases[0].case_number,
             client_id: cases[0].client_id,
-            clientName: clientLookup.get(cases[0].client_id) || 'Unknown'
-          } : 'No cases'
+            client_id_type: typeof cases[0].client_id,
+            clientName: allClients.length > 0 ? clientLookup.get(cases[0].client_id) : 'No clients loaded'
+          } : 'No cases',
+          sampleClient: allClients[0] ? {
+            id: allClients[0].id,
+            display_name: allClients[0].display_name,
+            display_name_type: typeof allClients[0].display_name
+          } : 'No clients'
         });
       }
 
       // Document search with comprehensive filename matching
       if (scope === 'all' || scope === 'documents') {
         documents.forEach(doc => {
-          // Use parsed query for matching
+          // Use correct schema fields: name, doc_type_code, size, uploaded_by_name, case_id, folder_id
           const docItem = {
-            title: doc.name,
-            content: `${doc.type} • ${doc.size} bytes`,
+            title: doc.name || '',
+            content: `${doc.doc_type_code || 'Document'} ${doc.size || 0} bytes`,
             metadata: {
-              tags: doc.tags,
-              uploader: doc.uploadedByName,
-              caseId: doc.caseId,
-              folder: doc.folderId
+              uploader: doc.uploaded_by_name,
+              caseId: doc.case_id,
+              folder: doc.folder_id
             }
           };
           
           if (this.matchesParsedQuery(docItem, parsedQuery)) {
             // Enhanced filename matching logic
-            const isExactFilename = this.isExactFilenameMatch(doc.name, parsedQuery);
-            const isPartialFilename = this.isPartialFilenameMatch(doc.name, parsedQuery);
+            const isExactFilename = this.isExactFilenameMatch(doc.name || '', parsedQuery);
+            const isPartialFilename = this.isPartialFilenameMatch(doc.name || '', parsedQuery);
             
-            let score = this.calculateDemoScore(doc.name, '', parsedQuery);
+            let score = this.calculateDemoScore(doc.name || '', doc.doc_type_code || '', parsedQuery);
             
             // Boost scores for filename matches
             if (isExactFilename) score += 100;
@@ -584,38 +612,39 @@ class SearchService {
             
             // Boost for operator matches
             if (parsedQuery.filename) score += 15;
-            if (parsedQuery.tag) score += 10;
             if (parsedQuery.uploader) score += 10;
             if (parsedQuery.caseRef) score += 10;
             
             results.push({
               id: doc.id,
-              title: doc.name,
-              subtitle: `${doc.type} • ${doc.size} bytes • Uploaded by ${doc.uploadedByName}`,
-              url: `/documents?search=${encodeURIComponent(doc.name)}`,
+              title: doc.name || 'Untitled Document',
+              subtitle: `${doc.doc_type_code || 'Document'} • ${doc.size || 0} bytes • Uploaded by ${doc.uploaded_by_name || 'Unknown'}`,
+              url: `/documents?search=${encodeURIComponent(doc.name || '')}`,
               type: 'document',
               score: score,
-              highlights: [doc.name],
-              badges: doc.tags || []
+              highlights: [doc.name || ''],
+              badges: [doc.doc_type_code || 'Document']
             });
           }
         });
       }
 
-      // Cases search with parsed query - support both legacy and new field structures
+      // Cases search with parsed query - use schema fields: title, case_number, client_id, status
       if (scope === 'all' || scope === 'cases') {
         cases.forEach(case_ => {
-          // Support both snake_case (DB) and camelCase (legacy) field names
-          const caseTitle = case_.title || case_.case_title || case_.case_number || case_.caseNumber || '';
-          const caseNumber = case_.case_number || case_.caseNumber || '';
-          // Resolve client name from lookup
-          const clientId = case_.client_id || case_.clientId;
-          const clientName = clientLookup.get(clientId) || case_.clientName || case_.client_name || case_.client || '';
-          const caseStatus = case_.status || case_.case_status || 'Active';
+          // Defensive: handle malformed data where fields might be objects instead of strings
+          const caseTitle = (typeof case_.title === 'string' ? case_.title : null) 
+            || (typeof case_.case_number === 'string' ? case_.case_number : null) 
+            || '';
+          const caseNumber = typeof case_.case_number === 'string' ? case_.case_number : '';
+          const clientId = typeof case_.client_id === 'string' ? case_.client_id : '';
+          // Resolve client name from lookup using display_name
+          const clientName = clientId ? (clientLookup.get(clientId) || '') : '';
+          const caseStatus = case_.status || 'Active';
           
           const caseItem = {
             title: caseTitle,
-            content: `${clientName} ${caseNumber}`,
+            content: `${clientName} ${caseNumber} ${case_.description || ''}`,
             metadata: {
               caseId: case_.id,
               uploader: clientName
@@ -626,7 +655,7 @@ class SearchService {
             results.push({
               id: case_.id,
               title: caseTitle,
-              subtitle: `Case ${caseNumber} • ${clientName} • ${caseStatus}`,
+              subtitle: `Case ${caseNumber || 'N/A'} • ${clientName || 'Unknown Client'} • ${caseStatus}`,
               url: `/cases?caseId=${case_.id}`,
               type: 'case',
               score: this.calculateDemoScore(caseTitle, clientName, parsedQuery),
@@ -637,74 +666,101 @@ class SearchService {
         });
       }
 
-      // Clients search with parsed query
+      // Clients search with parsed query - use schema fields: display_name, gstin, city, state
       if (scope === 'all' || scope === 'clients') {
         clients.forEach(client => {
           const clientItem = {
-            title: client.name,
-            content: client.email,
+            title: client.display_name || '',
+            content: `${client.gstin || ''} ${client.city || ''} ${client.state || ''}`,
             metadata: {}
           };
           
           if (this.matchesParsedQuery(clientItem, parsedQuery)) {
+            const subtitleParts = [client.gstin, client.city, client.state].filter(Boolean);
             results.push({
               id: client.id,
-              title: client.name,
-              subtitle: `${client.email} • ${client.phone}`,
-              url: `/clients?search=${encodeURIComponent(client.name)}`,
+              title: client.display_name || 'Unknown Client',
+              subtitle: subtitleParts.join(' • ') || 'Client',
+              url: `/clients?search=${encodeURIComponent(client.display_name || '')}`,
               type: 'client',
-              score: this.calculateDemoScore(client.name, client.email, parsedQuery),
-              highlights: [client.name],
+              score: this.calculateDemoScore(client.display_name || '', `${client.gstin || ''} ${client.city || ''}`, parsedQuery),
+              highlights: [client.display_name || ''],
               badges: ['Client']
             });
           }
         });
       }
 
-      // Tasks search with parsed query
+      // Tasks search with parsed query - optionally include related case info
       if (scope === 'all' || scope === 'tasks') {
         tasks.forEach(task => {
+          // If task has case_id, include case and client info in content
+          let enrichedContent = task.description || '';
+          if (task.case_id) {
+            const relatedCase = caseLookup.get(task.case_id);
+            if (relatedCase) {
+              const relatedClientName = clientLookup.get(relatedCase.client_id) || '';
+              enrichedContent += ` ${relatedCase.title || ''} ${relatedCase.case_number || ''} ${relatedClientName}`;
+            }
+          }
+          
           const taskItem = {
-            title: task.title,
-            content: task.description,
+            title: task.title || '',
+            content: enrichedContent,
             metadata: {}
           };
           
           if (this.matchesParsedQuery(taskItem, parsedQuery)) {
             results.push({
               id: task.id,
-              title: task.title,
-              subtitle: task.description,
+              title: task.title || 'Untitled Task',
+              subtitle: task.description || 'No description',
               url: `/tasks?highlight=${task.id}`,
               type: 'task',
-              score: this.calculateDemoScore(task.title, task.description, parsedQuery),
-              highlights: [task.description],
-              badges: [task.status]
+              score: this.calculateDemoScore(task.title || '', enrichedContent, parsedQuery),
+              highlights: [task.description || ''],
+              badges: [task.status || 'Pending']
             });
           }
         });
       }
 
-      // Hearings search with parsed query
+      // Hearings search - use schema fields and compose searchable content from hearing + case + client
       if (scope === 'all' || scope === 'hearings') {
         hearings.forEach(hearing => {
+          // Fetch related case and client to enable search by client name and case title
+          const relatedCase = caseLookup.get(hearing.case_id);
+          const relatedClientName = relatedCase ? clientLookup.get(relatedCase.client_id) || '' : '';
+          const caseTitle = relatedCase?.title || '';
+          const caseNumber = relatedCase?.case_number || '';
+          
+          // Compose title and content with case and client info
+          const hearingTitle = caseNumber 
+            ? `${caseNumber} - ${caseTitle || 'Hearing'}`
+            : caseTitle || 'Hearing';
+          
           const hearingItem = {
-            title: hearing.purpose || hearing.title || `Hearing for ${hearing.caseNumber || 'Case'}`,
-            content: `${hearing.caseNumber || ''} ${hearing.court || ''} ${hearing.purpose || ''}`,
+            title: hearingTitle,
+            content: `${relatedClientName} ${caseNumber} ${caseTitle} ${hearing.notes || ''} ${hearing.location || ''}`,
             metadata: {
-              caseId: hearing.caseId
+              caseId: hearing.case_id
             }
           };
           
           if (this.matchesParsedQuery(hearingItem, parsedQuery)) {
+            // Format hearing date
+            const hearingDateStr = hearing.hearing_date 
+              ? new Date(hearing.hearing_date).toLocaleDateString()
+              : 'Date TBD';
+            
             results.push({
               id: hearing.id,
-              title: hearing.purpose || hearing.title || `Hearing for ${hearing.caseNumber || 'Case'}`,
-              subtitle: `${hearing.caseNumber || hearing.caseTitle || ''} • ${hearing.date || hearing.scheduledDate || ''}`,
-              url: `/hearings?search=${encodeURIComponent(hearing.caseNumber || hearing.purpose || hearing.title || '')}`,
+              title: hearingTitle,
+              subtitle: `${caseNumber || 'N/A'} • ${caseTitle || 'Case'} • ${hearingDateStr}`,
+              url: `/hearings?search=${encodeURIComponent(caseNumber || caseTitle || relatedClientName || '')}`,
               type: 'hearing',
-              score: this.calculateDemoScore(hearing.purpose || hearing.title || '', hearing.caseNumber || hearing.caseTitle || '', parsedQuery),
-              highlights: [hearing.purpose || hearing.title || ''],
+              score: this.calculateDemoScore(hearingTitle, `${relatedClientName} ${caseTitle}`, parsedQuery),
+              highlights: [caseTitle || hearingTitle],
               badges: ['Hearing']
             });
           }
@@ -723,23 +779,63 @@ class SearchService {
     try {
       const storage = storageManager.getStorage();
       const documents = (await storage.getAll('documents')) as any[];
+      const cases = (await storage.getAll('cases')) as any[];
+      const clients = (await storage.getAll('clients')) as any[];
       
+      // Document suggestions - use correct schema fields
       documents.forEach(doc => {
         if (suggestions.length >= limit) return;
         
         const docItem = {
-          title: doc.name,
-          content: '',
+          title: doc.name || '',
+          content: doc.doc_type_code || '',
           metadata: {
-            tags: doc.tags,
-            uploader: doc.uploadedByName
+            uploader: doc.uploaded_by_name
           }
         };
         
         if (this.matchesParsedQuery(docItem, parsedQuery)) {
           suggestions.push({
-            text: doc.name,
+            text: doc.name || 'Untitled',
             type: 'document',
+            count: 1
+          });
+        }
+      });
+      
+      // Case suggestions
+      cases.forEach(case_ => {
+        if (suggestions.length >= limit) return;
+        
+        const caseItem = {
+          title: case_.title || case_.case_number || '',
+          content: case_.description || '',
+          metadata: {}
+        };
+        
+        if (this.matchesParsedQuery(caseItem, parsedQuery)) {
+          suggestions.push({
+            text: case_.title || case_.case_number || 'Untitled Case',
+            type: 'case',
+            count: 1
+          });
+        }
+      });
+      
+      // Client suggestions - use display_name
+      clients.forEach(client => {
+        if (suggestions.length >= limit) return;
+        
+        const clientItem = {
+          title: client.display_name || '',
+          content: `${client.gstin || ''} ${client.city || ''}`,
+          metadata: {}
+        };
+        
+        if (this.matchesParsedQuery(clientItem, parsedQuery)) {
+          suggestions.push({
+            text: client.display_name || 'Unknown Client',
+            type: 'client',
             count: 1
           });
         }
@@ -755,8 +851,8 @@ class SearchService {
     return text.toLowerCase()
       .trim()
       .replace(/[_-]/g, ' ')  // Treat _ and - as spaces
-      .replace(/\\s+/g, ' ')    // Collapse whitespace
-      .replace(/[^\\w\\s]/g, ''); // Remove special chars except word chars and spaces
+      .replace(/\s+/g, ' ')    // Collapse whitespace
+      .replace(/[^\w\s]/g, ''); // Remove special chars except word chars and spaces
   }
 
   private isExactFilenameMatch(filename: string, parsedQuery: ParsedQuery): boolean {
@@ -770,8 +866,8 @@ class SearchService {
     if (normalizedFilename === normalizedQuery) return true;
     
     // Check filename without extension
-    const filenameWithoutExt = normalizedFilename.replace(/\\.[^.]*$/, '');
-    const queryWithoutExt = normalizedQuery.replace(/\\.[^.]*$/, '');
+    const filenameWithoutExt = normalizedFilename.replace(/\.[^.]*$/, '');
+    const queryWithoutExt = normalizedQuery.replace(/\.[^.]*$/, '');
     
     return filenameWithoutExt === queryWithoutExt;
   }
@@ -788,8 +884,8 @@ class SearchService {
     if (normalizedQuery.includes(normalizedFilename)) return true;
     
     // Check individual words in the filename
-    const filenameWords = normalizedFilename.split(/\\s+/);
-    const queryWords = normalizedQuery.split(/\\s+/);
+    const filenameWords = normalizedFilename.split(/\s+/);
+    const queryWords = normalizedQuery.split(/\s+/);
     
     return queryWords.some(queryWord => 
       filenameWords.some(fileWord => 
@@ -819,7 +915,7 @@ class SearchService {
     if (title.length < 50) score += 10;
     
     // Boost for exact word matches
-    const titleWords = normalizedTitle.split(/\\s+/);
+    const titleWords = normalizedTitle.split(/\s+/);
     const exactMatches = searchTerms.filter(term => titleWords.includes(term));
     score += exactMatches.length * 15;
     
@@ -1020,7 +1116,8 @@ class SearchService {
    */
   public refreshSearchData(): void {
     this.cache.clear();
-    console.log('🔍 Search data refreshed - cache cleared');
+    sessionStorage.removeItem('search_provider'); // Force provider re-detection on next search
+    console.log('🔍 Search data refreshed - cache and provider cleared');
   }
 }
 
