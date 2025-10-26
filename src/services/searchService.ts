@@ -600,12 +600,12 @@ class SearchService {
       const tasks = tasksData.items;
       const hearings = hearingsData.items;
 
-      // For case and hearing search, we need all clients and cases to resolve names
-      const allClients = ((scope === 'all' || scope === 'cases' || scope === 'hearings') && clients.length === 0)
+      // For case, hearing, and task search, we need all clients and cases to resolve names
+      const allClients = ((scope === 'all' || scope === 'cases' || scope === 'hearings' || scope === 'tasks') && clients.length === 0)
         ? (await this.fetchEntities('clients')).items
         : clients;
       
-      const allCases = ((scope === 'all' || scope === 'hearings') && cases.length === 0)
+      const allCases = ((scope === 'all' || scope === 'hearings' || scope === 'tasks') && cases.length === 0)
         ? (await this.fetchEntities('cases')).items
         : cases;
       
@@ -767,6 +767,8 @@ class SearchService {
           const taskCaseId = task.case_id || task.caseId;
           // If task has case_id, include case and client info in content
           let enrichedContent = task.description || '';
+          // Add assignee names to searchable content
+          enrichedContent += ` ${task.assignedToName || ''} ${task.assignedByName || ''}`;
           if (taskCaseId) {
             const relatedCase = caseLookup.get(taskCaseId);
             if (relatedCase) {
