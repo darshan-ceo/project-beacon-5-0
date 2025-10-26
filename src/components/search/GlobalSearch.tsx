@@ -204,7 +204,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ onResultsOpen }) => 
           onFocus={() => setIsFocused(true)}
           onBlur={() => setTimeout(() => setIsFocused(false), 200)}
           placeholder="🔍 Search across all modules..."
-          className="h-11 pl-14 pr-20 bg-background border border-border focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary transition-all duration-200"
+          className={`h-11 pl-14 ${query ? 'pr-32' : 'pr-20'} bg-background border border-border focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary transition-all duration-200`}
         />
 
         {/* Clear button */}
@@ -213,7 +213,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ onResultsOpen }) => 
             variant="ghost"
             size="sm"
             onClick={clearQuery}
-            className="absolute right-12 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-muted"
+            className="absolute right-20 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-muted z-20"
           >
             <X className="h-3 w-3" />
           </Button>
@@ -228,7 +228,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ onResultsOpen }) => 
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-9 px-2 hover:bg-muted/50"
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-9 px-2 hover:bg-muted/50 min-w-fit whitespace-nowrap"
                   >
                     <Filter className="h-3 w-3 mr-1" />
                     <span className="text-xs">{activeScopeOption?.label}</span>
