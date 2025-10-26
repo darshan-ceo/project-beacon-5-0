@@ -198,7 +198,6 @@ export const clientsService = {
       };
 
       dispatch({ type: 'ADD_CLIENT', payload: newClient });
-      dispatch({ type: 'SYNC_CLIENT_GROUP_COUNTS' });
       
       toast({
         title: "Client Created Successfully",
@@ -241,7 +240,6 @@ export const clientsService = {
       };
 
       dispatch({ type: 'UPDATE_CLIENT', payload: updatedClient });
-      dispatch({ type: 'SYNC_CLIENT_GROUP_COUNTS' });
       
       toast({
         title: "Client Updated Successfully",
@@ -261,7 +259,6 @@ export const clientsService = {
   delete: async (clientId: string, dispatch: React.Dispatch<AppAction>): Promise<void> => {
     try {
       dispatch({ type: 'DELETE_CLIENT', payload: clientId });
-      dispatch({ type: 'SYNC_CLIENT_GROUP_COUNTS' });
       
       toast({
         title: "Client Deleted",

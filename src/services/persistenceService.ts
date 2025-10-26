@@ -3,7 +3,7 @@ import { AppState, Case, Client, ClientGroup, Court, Judge, Employee, Hearing, T
 import { toast } from '@/hooks/use-toast';
 
 // Entity types for type-safe operations
-export type EntityType = 'cases' | 'clients' | 'clientGroups' | 'courts' | 'judges' | 'employees' | 'hearings' | 'tasks' | 'task_notes' | 'task_followups' | 'documents' | 'folders' | 'timeline_entries';
+export type EntityType = 'cases' | 'clients' | 'courts' | 'judges' | 'employees' | 'hearings' | 'tasks' | 'task_notes' | 'task_followups' | 'documents' | 'folders' | 'timeline_entries';
 
 export interface EntityOperation {
   id: string;
@@ -447,10 +447,9 @@ class PersistenceService {
   // Data export/import
   async exportAllData(): Promise<AppState> {
     try {
-      const [cases, clients, clientGroups, courts, judges, employees, hearings, tasks, taskNotes, taskFollowUps, documents, folders, timelineEntries] = await Promise.all([
+      const [cases, clients, courts, judges, employees, hearings, tasks, taskNotes, taskFollowUps, documents, folders, timelineEntries] = await Promise.all([
         this.getAll('cases'),
         this.getAll('clients'),
-        this.getAll('clientGroups'),
         this.getAll('courts'),
         this.getAll('judges'),
         this.getAll('employees'),
@@ -466,7 +465,7 @@ class PersistenceService {
       return {
         cases: cases as Case[],
         clients: clients as Client[],
-        clientGroups: clientGroups as ClientGroup[],
+        clientGroups: [], // Not persisted to IndexedDB - stays in-memory only
         courts: courts as Court[],
         judges: judges as Judge[],
         employees: employees as Employee[],

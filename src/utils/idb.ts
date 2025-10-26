@@ -45,7 +45,7 @@ class IndexedDBStorage implements IDBStorage {
         }
         
         // Entity-specific stores for better organization and performance
-        const entityStores = ['cases', 'clients', 'clientGroups', 'courts', 'judges', 'employees', 'hearings', 'tasks', 'documents', 'folders'];
+        const entityStores = ['cases', 'clients', 'courts', 'judges', 'employees', 'hearings', 'tasks', 'documents', 'folders'];
         
         entityStores.forEach(storeName => {
           if (!db.objectStoreNames.contains(storeName)) {
@@ -358,7 +358,7 @@ export const migrateFromLocalStorage = async (): Promise<void> => {
   console.log('[Migration] Starting localStorage → IndexedDB migration');
   
   const keysToMigrate = [
-    'folders', 'documents', 'help-articles', 'clients', 'clientGroups',
+    'folders', 'documents', 'help-articles', 'clients',
     'courts', 'judges', 'employees', 'cases', 'tasks', 'hearings'
   ];
   
