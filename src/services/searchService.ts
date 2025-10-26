@@ -7,6 +7,7 @@ import { apiService } from './apiService';
 import { envConfig } from '@/utils/envConfig';
 import { featureFlagService } from './featureFlagService';
 import { idbStorage } from '@/utils/idb';
+import { storageManager } from '@/data/StorageManager';
 // Demo search data will be loaded dynamically
 
 export interface SearchResult {
@@ -335,15 +336,31 @@ class SearchService {
   private async searchDemo(query: string, scope: SearchScope, limit: number, cursor?: string): Promise<SearchResponse> {
     console.log('🔍 SearchService - Using DEMO search');
     
+    // Ensure IndexedDB is initialized (this is safe to call multiple times)
+    try {
+      const storage = storageManager.getStorage();
+      if (!storage) {
+        await storageManager.initialize('indexeddb');
+      }
+    } catch (error) {
+      // Storage not initialized yet, try to initialize
+      try {
+        await storageManager.initialize('indexeddb');
+      } catch (initError) {
+        console.warn('⚠️ IndexedDB initialization failed:', initError);
+        return { results: [], total: 0, next_cursor: undefined };
+      }
+    }
+    
     await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 300));
     
     const parsedQuery = this.parseQuery(query);
     let allResults: SearchResult[] = [];
 
-    // Get dynamic results from localStorage (AppState) with parsed query
-    const dynamicResults = this.getDynamicResults(parsedQuery, scope);
+    // Get dynamic results from IndexedDB with parsed query
+    const dynamicResults = await this.getDynamicResults(parsedQuery, scope);
     
-    console.log('🔍 SearchService - Dynamic results from localStorage:', {
+    console.log('🔍 SearchService - Dynamic results from IndexedDB:', {
       count: dynamicResults.length,
       parsedQuery,
       types: dynamicResults.reduce((acc, r) => {
@@ -380,7 +397,7 @@ class SearchService {
     const suggestions: SearchSuggestion[] = [];
     
     // Get suggestions from dynamic data
-    const dynamicSuggestions = this.getDynamicSuggestions(parsedQuery, limit);
+    const dynamicSuggestions = await this.getDynamicSuggestions(parsedQuery, limit);
     suggestions.push(...dynamicSuggestions);
     
     // Skip demo data suggestions for now
@@ -488,30 +505,54 @@ class SearchService {
     return true;
   }
 
-  private getDynamicResults(parsedQuery: ParsedQuery, scope: SearchScope): SearchResult[] {
+  private async getDynamicResults(parsedQuery: ParsedQuery, scope: SearchScope): Promise<SearchResult[]> {
     const results: SearchResult[] = [];
     const normalizedQuery = parsedQuery.terms.join(' ');
     
     try {
-      const appStateStr = localStorage.getItem('lawfirm_app_data');
-      if (!appStateStr) return results;
+      const storage = storageManager.getStorage();
       
-      const appState = JSON.parse(appStateStr);
-      const documents = Array.isArray(appState.documents) ? appState.documents : [];
-      const cases = Array.isArray(appState.cases) ? appState.cases : [];
-      const clients = Array.isArray(appState.clients) ? appState.clients : [];
-      const tasks = Array.isArray(appState.tasks) ? appState.tasks : [];
-      const hearings = Array.isArray(appState.hearings) ? appState.hearings : [];
+      // Fetch data from IndexedDB repositories with type casting
+      const documents = scope === 'all' || scope === 'documents' 
+        ? (await storage.getAll('documents')) as any[]
+        : [];
+      const cases = scope === 'all' || scope === 'cases' 
+        ? (await storage.getAll('cases')) as any[]
+        : [];
+      const clients = scope === 'all' || scope === 'clients' 
+        ? (await storage.getAll('clients')) as any[]
+        : [];
+      const tasks = scope === 'all' || scope === 'tasks' 
+        ? (await storage.getAll('tasks')) as any[]
+        : [];
+      const hearings = scope === 'all' || scope === 'hearings' 
+        ? (await storage.getAll('hearings')) as any[]
+        : [];
+
+      // For case search, we need all clients to resolve client names
+      const allClients = (scope === 'all' || scope === 'cases') && clients.length === 0
+        ? (await storage.getAll('clients')) as any[]
+        : clients;
+      
+      // Create client lookup map for case search
+      const clientLookup = new Map(allClients.map(c => [c.id, c.name || c.client_name || '']));
 
       // Debug logging
       if (this.isDevModeOn()) {
-        console.log('🔍 SearchService - Dynamic data discovery:', {
+        console.log('🔍 SearchService - IndexedDB data loaded:', {
           documents: documents.length,
           cases: cases.length,
-          clients: clients.length,
+          clients: allClients.length,
           tasks: tasks.length,
           hearings: hearings.length,
-          sampleDoc: documents[0]?.name || 'No documents'
+          sampleDoc: documents[0]?.name || 'No documents',
+          sampleCase: cases[0] ? { 
+            id: cases[0].id, 
+            title: cases[0].title, 
+            case_number: cases[0].case_number,
+            client_id: cases[0].client_id,
+            clientName: clientLookup.get(cases[0].client_id) || 'Unknown'
+          } : 'No cases'
         });
       }
 
@@ -561,28 +602,36 @@ class SearchService {
         });
       }
 
-      // Cases search with parsed query
+      // Cases search with parsed query - support both legacy and new field structures
       if (scope === 'all' || scope === 'cases') {
         cases.forEach(case_ => {
+          // Support both snake_case (DB) and camelCase (legacy) field names
+          const caseTitle = case_.title || case_.case_title || case_.case_number || case_.caseNumber || '';
+          const caseNumber = case_.case_number || case_.caseNumber || '';
+          // Resolve client name from lookup
+          const clientId = case_.client_id || case_.clientId;
+          const clientName = clientLookup.get(clientId) || case_.clientName || case_.client_name || case_.client || '';
+          const caseStatus = case_.status || case_.case_status || 'Active';
+          
           const caseItem = {
-            title: case_.title || case_.caseNumber,
-            content: `${case_.clientName || case_.client || ''} ${case_.caseNumber || ''}`,
+            title: caseTitle,
+            content: `${clientName} ${caseNumber}`,
             metadata: {
               caseId: case_.id,
-              uploader: case_.clientName || case_.client || ''
+              uploader: clientName
             }
           };
           
           if (this.matchesParsedQuery(caseItem, parsedQuery)) {
             results.push({
               id: case_.id,
-              title: case_.title || case_.caseNumber,
-              subtitle: `Case ${case_.caseNumber} • ${case_.clientName || case_.client || ''} • ${case_.status || 'Active'}`,
+              title: caseTitle,
+              subtitle: `Case ${caseNumber} • ${clientName} • ${caseStatus}`,
               url: `/cases?caseId=${case_.id}`,
               type: 'case',
-              score: this.calculateDemoScore(case_.title || case_.caseNumber, case_.clientName || case_.client || '', parsedQuery),
-              highlights: [case_.title || case_.caseNumber],
-              badges: [case_.status || 'Active']
+              score: this.calculateDemoScore(caseTitle, clientName, parsedQuery),
+              highlights: [caseTitle],
+              badges: [caseStatus]
             });
           }
         });
@@ -662,21 +711,18 @@ class SearchService {
         });
       }
     } catch (error) {
-      console.warn('🔍 SearchService - Failed to get dynamic results:', error);
+      console.error('🔍 SearchService - Failed to load from IndexedDB:', error);
     }
     
     return results;
   }
 
-  private getDynamicSuggestions(parsedQuery: ParsedQuery, limit: number): SearchSuggestion[] {
+  private async getDynamicSuggestions(parsedQuery: ParsedQuery, limit: number): Promise<SearchSuggestion[]> {
     const suggestions: SearchSuggestion[] = [];
     
     try {
-      const appStateStr = localStorage.getItem('lawfirm_app_data');
-      if (!appStateStr) return suggestions;
-      
-      const appState = JSON.parse(appStateStr);
-      const documents = Array.isArray(appState.documents) ? appState.documents : [];
+      const storage = storageManager.getStorage();
+      const documents = (await storage.getAll('documents')) as any[];
       
       documents.forEach(doc => {
         if (suggestions.length >= limit) return;
@@ -699,7 +745,7 @@ class SearchService {
         }
       });
     } catch (error) {
-      console.warn('Failed to get dynamic suggestions:', error);
+      console.error('Failed to get IndexedDB suggestions:', error);
     }
     
     return suggestions;
