@@ -1163,7 +1163,13 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
               </Button>
             )}
             {mode !== 'view' && (
-              <Button type="submit" onClick={handleSubmit}>
+              <Button 
+                type="button" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleSubmit(e);
+                }}
+              >
                 {mode === 'create' ? 'Create Client' : 'Update Client'}
               </Button>
             )}
