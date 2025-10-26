@@ -17,11 +17,11 @@ import { Separator } from '@/components/ui/separator';
 const scopeOptions: { value: SearchScope; label: string; icon: string; color: string }[] = [
   { value: 'all', label: 'All', icon: '🔍', color: 'bg-primary text-primary-foreground' },
   { value: 'cases', label: 'Cases', icon: '📋', color: 'bg-blue-500 text-white' },
+  { value: 'clientGroups', label: 'Client Groups', icon: '🏢', color: 'bg-teal-500 text-white' },
   { value: 'clients', label: 'Clients', icon: '👤', color: 'bg-green-500 text-white' },
   { value: 'tasks', label: 'Tasks', icon: '✓', color: 'bg-orange-500 text-white' },
   { value: 'documents', label: 'Documents', icon: '📄', color: 'bg-purple-500 text-white' },
   { value: 'hearings', label: 'Hearings', icon: '⚖️', color: 'bg-red-500 text-white' },
-  { value: 'clientGroups', label: 'Client Groups', icon: '🏢', color: 'bg-teal-500 text-white' },
 ];
 
 const getResultIcon = (type: string): string => {

@@ -20,11 +20,11 @@ import { SearchTypeIndicator } from './SearchTypeIndicator';
 const scopeOptions: { value: SearchScope; label: string; color: string }[] = [
   { value: 'all', label: 'All', color: 'bg-primary text-primary-foreground' },
   { value: 'cases', label: 'Cases', color: 'bg-blue-500 text-white' },
+  { value: 'clientGroups', label: 'Client Groups', color: 'bg-teal-500 text-white' },
   { value: 'clients', label: 'Clients', color: 'bg-green-500 text-white' },
   { value: 'tasks', label: 'Tasks', color: 'bg-orange-500 text-white' },
   { value: 'documents', label: 'Documents', color: 'bg-purple-500 text-white' },
   { value: 'hearings', label: 'Hearings', color: 'bg-red-500 text-white' },
-  { value: 'clientGroups', label: 'Client Groups', color: 'bg-teal-500 text-white' },
 ];
 
 interface GlobalSearchProps {
