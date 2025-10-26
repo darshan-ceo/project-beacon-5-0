@@ -67,6 +67,7 @@ export interface UploadResult {
 // Enhanced upload options with existing documents for duplicate checking
 interface UploadOptions {
   folderId?: string;
+  clientId?: string;
   caseId?: string;
   stage?: string;
   tags?: string[];
@@ -768,13 +769,25 @@ export const dmsService = {
         throw new Error(`File encoding failed: ${encodingError.message}`);
       }
 
+      // Derive clientId: use direct clientId if provided, otherwise derive from case
+      let derivedClientId = options.clientId || '';
+      if (!derivedClientId && options.caseId) {
+        // Try to derive from case
+        const appState = await loadAppState();
+        const relatedCase: any = appState.cases?.find((c: any) => c.id === options.caseId);
+        if (relatedCase) {
+          // Handle both camelCase and snake_case properties for backward compatibility
+          derivedClientId = relatedCase.clientId || relatedCase.client_id || '';
+        }
+      }
+
       const newDocument: Document = {
         id: `doc-${Date.now()}`,
         name: file.name,
         type: file.type,
         size: file.size,
         caseId: options.caseId || '',
-        clientId: '', // Will be derived from case
+        clientId: derivedClientId,
         uploadedById: 'emp-1',
         uploadedByName: 'Current User',
         uploadedAt: new Date().toISOString(),

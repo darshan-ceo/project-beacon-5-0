@@ -282,8 +282,8 @@ interface Document {
   name: string;
   type: string;
   size: number;
-  caseId: string; // FK to Case.id (required)
-  clientId: string; // Derived from Case.clientId (auto-populated)
+  caseId: string; // FK to Case.id (optional - document may be client-only)
+  clientId: string; // Can be direct association or derived from Case.clientId
   uploadedById: string; // FK to Employee.id
   uploadedByName: string; // Display name derived from Employee
   uploadedAt: string;

@@ -39,6 +39,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
   const [formData, setFormData] = useState({
     name: '',
     type: 'pdf',
+    clientId: 'none',
     caseId: 'none',
     folderId: selectedFolderId || 'none',
     tags: [] as string[],
@@ -66,6 +67,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
       setFormData({
         name: documentData.name,
         type: documentData.type,
+        clientId: documentData.clientId || 'none',
         caseId: documentData.caseId || 'none',
         folderId: (documentData as any).folderId || 'none',
         tags: documentData.tags,
@@ -76,6 +78,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
       setFormData({
         name: '',
         type: 'pdf',
+        clientId: contextClientId || 'none',
         caseId: contextCaseId || 'none',
         folderId: selectedFolderId || 'none',
         tags: [],
@@ -103,12 +106,14 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
         if (onUpload) {
           await onUpload(formData.file, {
             folderId: formData.folderId === "none" ? undefined : formData.folderId,
+            clientId: formData.clientId === "none" ? undefined : formData.clientId,
             caseId: formData.caseId === "none" ? undefined : formData.caseId,
             tags: formData.tags
           });
         } else {
           const uploadOptions = {
             folderId: formData.folderId === "none" ? undefined : formData.folderId,
+            clientId: formData.clientId === "none" ? undefined : formData.clientId,
             caseId: formData.caseId === "none" ? undefined : formData.caseId,
             tags: formData.tags,
             existingDocuments: state.documents
@@ -278,6 +283,47 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
                     <Link2 className="h-4 w-4 text-primary" />
                     <h3 className="text-sm font-semibold">Associations</h3>
                   </div>
+                  
+                  {/* Client Association */}
+                  <div>
+                    <Label htmlFor="client">Associate with Client</Label>
+                    {contextClientId ? (
+                      <div className="flex items-center gap-2 p-2 bg-muted rounded">
+                        <Badge variant="outline">
+                          {state.clients.find(c => c.id === contextClientId)?.name || 'Unknown Client'}
+                        </Badge>
+                      </div>
+                    ) : (
+                      <Select
+                        value={formData.clientId || 'none'}
+                        onValueChange={(value) => {
+                          setFormData(prev => ({ ...prev, clientId: value }));
+                          // If case is selected and doesn't match new client, clear it
+                          if (formData.caseId !== 'none') {
+                            const selectedCase = state.cases.find(c => c.id === formData.caseId);
+                            if (selectedCase && selectedCase.clientId !== value) {
+                              setFormData(prev => ({ ...prev, caseId: 'none' }));
+                            }
+                          }
+                        }}
+                        disabled={formData.caseId !== 'none' && formData.caseId !== undefined}
+                      >
+                        <SelectTrigger id="client">
+                          <SelectValue placeholder="Select client (optional)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No Client Association</SelectItem>
+                          {state.clients.map((client) => (
+                            <SelectItem key={client.id} value={client.id}>
+                              {client.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+
+                  {/* Case Association */}
                   <div>
                     <Label htmlFor="case">Associate with Case</Label>
                     {contextCaseId ? (
@@ -289,18 +335,29 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
                     ) : (
                       <Select
                         value={formData.caseId || 'none'}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, caseId: value }))}
+                        onValueChange={(value) => {
+                          setFormData(prev => ({ ...prev, caseId: value }));
+                          // Auto-populate client from case
+                          if (value !== 'none') {
+                            const selectedCase = state.cases.find(c => c.id === value);
+                            if (selectedCase?.clientId) {
+                              setFormData(prev => ({ ...prev, clientId: selectedCase.clientId }));
+                            }
+                          }
+                        }}
                       >
                         <SelectTrigger id="case">
                           <SelectValue placeholder="Select case (optional)" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">No Case Association</SelectItem>
-                          {state.cases.map((c) => (
-                            <SelectItem key={c.id} value={c.id}>
-                              {c.caseNumber} - {c.title}
-                            </SelectItem>
-                          ))}
+                          {state.cases
+                            .filter(c => formData.clientId === 'none' || c.clientId === formData.clientId)
+                            .map((c) => (
+                              <SelectItem key={c.id} value={c.id}>
+                                {c.caseNumber} - {c.title}
+                              </SelectItem>
+                            ))}
                         </SelectContent>
                       </Select>
                     )}
