@@ -2514,6 +2514,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { 
         ...state, 
         ...action.payload,
+        clientGroups: action.payload.clientGroups || state.clientGroups,
         timelineEntries: action.payload.timelineEntries || []
       };
     case 'CLEAR_ALL_DATA':
@@ -2546,47 +2547,6 @@ const AppStateContext = createContext<{
 // Provider
 export const AppStateProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, initialState);
-
-  // Load clientGroups from IndexedDB on mount
-  useEffect(() => {
-    const loadClientGroups = async () => {
-      try {
-        const { persistenceService } = await import('@/services/persistenceService');
-        const groups = await persistenceService.getAll('clientGroups');
-        if (groups && groups.length > 0) {
-          console.log('📥 Loaded client groups from IndexedDB:', groups.length);
-          // Dispatch actions to populate state
-          groups.forEach((group: ClientGroup) => {
-            dispatch({ type: 'ADD_CLIENT_GROUP', payload: group });
-          });
-          // Sync counts after loading
-          dispatch({ type: 'SYNC_CLIENT_GROUP_COUNTS' });
-        }
-      } catch (error) {
-        console.error('Failed to load client groups:', error);
-      }
-    };
-    
-    loadClientGroups();
-  }, []); // Empty dependency array = run once on mount
-
-  // Auto-save clientGroups to IndexedDB
-  useEffect(() => {
-    const saveClientGroups = async () => {
-      try {
-        const { persistenceService } = await import('@/services/persistenceService');
-        const { idbStorage } = await import('@/utils/idb');
-        await idbStorage.set('clientGroups', state.clientGroups);
-        console.log('📝 Client Groups saved to IndexedDB:', state.clientGroups.length);
-      } catch (error) {
-        console.error('Failed to save client groups:', error);
-      }
-    };
-    
-    // Debounce saves to avoid excessive writes
-    const timeoutId = setTimeout(saveClientGroups, 500);
-    return () => clearTimeout(timeoutId);
-  }, [state.clientGroups]);
 
   // Initialize calendar auto-sync
   useEffect(() => {

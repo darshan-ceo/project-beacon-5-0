@@ -978,6 +978,155 @@ class SearchService {
       console.error('🔍 SearchService - Failed to load from IndexedDB:', error);
     }
     
+    // Also add related entities if we found client groups
+    const matchedGroups = results.filter(r => r.type === 'clientGroup');
+    if (matchedGroups.length > 0) {
+      for (const groupResult of matchedGroups) {
+        const relatedResults = await this.getRelatedEntitiesForGroup(
+          groupResult.id,
+          groupResult.title
+        );
+        
+        // Filter by scope if needed
+        const filteredRelated = scope === 'all' 
+          ? relatedResults 
+          : relatedResults.filter(r => {
+              if (scope === 'clients') return r.type === 'client';
+              if (scope === 'cases') return r.type === 'case';
+              if (scope === 'tasks') return r.type === 'task';
+              if (scope === 'documents') return r.type === 'document';
+              if (scope === 'hearings') return r.type === 'hearing';
+              return false;
+            });
+        
+        results.push(...filteredRelated);
+      }
+    }
+    
+    return results;
+  }
+
+  private async getRelatedEntitiesForGroup(groupId: string, groupName: string): Promise<SearchResult[]> {
+    const results: SearchResult[] = [];
+    
+    try {
+      // Fetch all entities
+      const clientsData = await this.fetchEntities('clients');
+      const casesData = await this.fetchEntities('cases');
+      const tasksData = await this.fetchEntities('tasks');
+      const documentsData = await this.fetchEntities('documents');
+      const hearingsData = await this.fetchEntities('hearings');
+      
+      const clients = clientsData.items;
+      const cases = casesData.items;
+      const tasks = tasksData.items;
+      const documents = documentsData.items;
+      const hearings = hearingsData.items;
+      
+      // Find clients in this group
+      const groupClients = clients.filter(c => 
+        c.clientGroupId === groupId || c.client_group_id === groupId
+      );
+      const clientIds = new Set(groupClients.map(c => c.id));
+      
+      // Add client results
+      groupClients.forEach(client => {
+        results.push({
+          type: 'client',
+          id: client.id,
+          title: client.display_name || client.name || '',
+          subtitle: `Client in ${groupName}`,
+          url: `/clients?id=${client.id}`,
+          score: 85,
+          highlights: [groupName],
+          badges: ['Group Member', client.status || 'Active']
+        });
+      });
+      
+      // Find cases for these clients
+      const groupCases = cases.filter(c => 
+        clientIds.has(c.client_id || c.clientId)
+      );
+      const caseIds = new Set(groupCases.map(c => c.id));
+      
+      groupCases.forEach(caseItem => {
+        const client = groupClients.find(c => c.id === (caseItem.client_id || caseItem.clientId));
+        results.push({
+          type: 'case',
+          id: caseItem.id,
+          title: caseItem.title || caseItem.case_title || '',
+          subtitle: `${client?.display_name || client?.name || 'Unknown Client'} (${groupName})`,
+          url: `/cases/${caseItem.id}`,
+          score: 80,
+          highlights: [groupName, client?.name || ''],
+          badges: [caseItem.status || 'Active', 'Group Case']
+        });
+      });
+      
+      // Find tasks for these cases
+      const groupTasks = tasks.filter(t => 
+        caseIds.has(t.case_id || t.caseId)
+      );
+      
+      groupTasks.forEach(task => {
+        results.push({
+          type: 'task',
+          id: task.id,
+          title: task.title || '',
+          subtitle: `Task related to ${groupName}`,
+          url: `/tasks?id=${task.id}`,
+          score: 75,
+          highlights: [groupName],
+          badges: [task.status || 'Pending', 'Group Task']
+        });
+      });
+      
+      // Find documents for these clients/cases
+      const groupDocs = documents.filter(d => 
+        clientIds.has(d.client_id || d.clientId) || 
+        caseIds.has(d.case_id || d.caseId)
+      );
+      
+      groupDocs.forEach(doc => {
+        results.push({
+          type: 'document',
+          id: doc.id,
+          title: doc.name || doc.file_name || '',
+          subtitle: `Document in ${groupName}`,
+          url: `/documents?id=${doc.id}`,
+          score: 70,
+          highlights: [groupName],
+          badges: [doc.doc_type_code || doc.type || 'Document', 'Group Document']
+        });
+      });
+      
+      // Find hearings for these cases
+      const groupHearings = hearings.filter(h => 
+        caseIds.has(h.case_id || h.caseId)
+      );
+      
+      groupHearings.forEach(hearing => {
+        const hearingDate = hearing.hearing_date || hearing.date;
+        const hearingDateStr = hearingDate 
+          ? format(new Date(hearingDate), 'MMM dd, yyyy')
+          : 'Date TBD';
+          
+        results.push({
+          type: 'hearing',
+          id: hearing.id,
+          title: `Hearing - ${hearing.purpose || hearing.type || 'Unknown'}`,
+          subtitle: `${hearingDateStr} (${groupName})`,
+          url: `/hearings?id=${hearing.id}`,
+          score: 65,
+          highlights: [groupName],
+          badges: [hearing.status || 'Scheduled', 'Group Hearing']
+        });
+      });
+      
+    } catch (error) {
+      console.error('Failed to get related entities for group:', error);
+    }
+    
     return results;
   }
 

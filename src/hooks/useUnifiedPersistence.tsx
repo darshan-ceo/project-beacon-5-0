@@ -157,8 +157,9 @@ export const useUnifiedPersistence = () => {
   const loadAllData = async (): Promise<void> => {
     try {
       const storage = storageManager.getStorage();
-      const [clients, cases, tasks, taskBundles, taskNotes, taskFollowUps, documents, rawHearings, judges, courts, employees, folders, timelineEntries] = await Promise.all([
+      const [clients, clientGroups, cases, tasks, taskBundles, taskNotes, taskFollowUps, documents, rawHearings, judges, courts, employees, folders, timelineEntries] = await Promise.all([
         storage.getAll<any>('clients'),
+        storage.getAll<any>('clientGroups'),
         storage.getAll<any>('cases'),
         storage.getAll<any>('tasks'),
         storage.getAll<any>('task_bundles'),
@@ -289,7 +290,8 @@ export const useUnifiedPersistence = () => {
       dispatch({ 
         type: 'RESTORE_STATE', 
         payload: { 
-          clients, 
+          clients,
+          clientGroups,
           cases: migratedCases, 
           tasks: normalizedTasks,
           taskNotes,
@@ -303,6 +305,9 @@ export const useUnifiedPersistence = () => {
           timelineEntries 
         } 
       });
+
+      // Sync client group counts after all data is loaded
+      dispatch({ type: 'SYNC_CLIENT_GROUP_COUNTS' });
 
       const counts = {
         clients: clients.length, 
