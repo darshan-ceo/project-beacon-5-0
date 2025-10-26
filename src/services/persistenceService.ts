@@ -1,9 +1,9 @@
 import { idbStorage } from '@/utils/idb';
-import { AppState, Case, Client, Court, Judge, Employee, Hearing, Task, Document, Folder } from '@/contexts/AppStateContext';
+import { AppState, Case, Client, ClientGroup, Court, Judge, Employee, Hearing, Task, Document, Folder } from '@/contexts/AppStateContext';
 import { toast } from '@/hooks/use-toast';
 
 // Entity types for type-safe operations
-export type EntityType = 'cases' | 'clients' | 'courts' | 'judges' | 'employees' | 'hearings' | 'tasks' | 'task_notes' | 'task_followups' | 'documents' | 'folders' | 'timeline_entries';
+export type EntityType = 'cases' | 'clients' | 'clientGroups' | 'courts' | 'judges' | 'employees' | 'hearings' | 'tasks' | 'task_notes' | 'task_followups' | 'documents' | 'folders' | 'timeline_entries';
 
 export interface EntityOperation {
   id: string;
@@ -447,9 +447,10 @@ class PersistenceService {
   // Data export/import
   async exportAllData(): Promise<AppState> {
     try {
-      const [cases, clients, courts, judges, employees, hearings, tasks, taskNotes, taskFollowUps, documents, folders, timelineEntries] = await Promise.all([
+      const [cases, clients, clientGroups, courts, judges, employees, hearings, tasks, taskNotes, taskFollowUps, documents, folders, timelineEntries] = await Promise.all([
         this.getAll('cases'),
         this.getAll('clients'),
+        this.getAll('clientGroups'),
         this.getAll('courts'),
         this.getAll('judges'),
         this.getAll('employees'),
@@ -465,7 +466,7 @@ class PersistenceService {
       return {
         cases: cases as Case[],
         clients: clients as Client[],
-        clientGroups: [], // Initialize with empty array for now
+        clientGroups: clientGroups as ClientGroup[],
         courts: courts as Court[],
         judges: judges as Judge[],
         employees: employees as Employee[],
