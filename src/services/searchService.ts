@@ -581,10 +581,10 @@ class SearchService {
       const documentsData = scope === 'all' || scope === 'documents' 
         ? await this.fetchEntities('documents')
         : { items: [], source: 'none' };
-      const casesData = scope === 'all' || scope === 'cases' 
+      const casesData = scope === 'all' || scope === 'cases' || scope === 'documents' 
         ? await this.fetchEntities('cases')
         : { items: [], source: 'none' };
-      const clientsData = scope === 'all' || scope === 'clients' 
+      const clientsData = scope === 'all' || scope === 'clients' || scope === 'documents'
         ? await this.fetchEntities('clients')
         : { items: [], source: 'none' };
       const tasksData = scope === 'all' || scope === 'tasks' 
@@ -600,12 +600,12 @@ class SearchService {
       const tasks = tasksData.items;
       const hearings = hearingsData.items;
 
-      // For case, hearing, and task search, we need all clients and cases to resolve names
-      const allClients = ((scope === 'all' || scope === 'cases' || scope === 'hearings' || scope === 'tasks') && clients.length === 0)
+      // For document, case, hearing, and task search, we may need all clients and cases to resolve names
+      const allClients = ((scope === 'all' || scope === 'documents' || scope === 'cases' || scope === 'hearings' || scope === 'tasks') && clients.length === 0)
         ? (await this.fetchEntities('clients')).items
         : clients;
       
-      const allCases = ((scope === 'all' || scope === 'hearings' || scope === 'tasks') && cases.length === 0)
+      const allCases = ((scope === 'all' || scope === 'documents' || scope === 'hearings' || scope === 'tasks') && cases.length === 0)
         ? (await this.fetchEntities('cases')).items
         : cases;
       
@@ -650,12 +650,22 @@ class SearchService {
           const docCaseId = doc.case_id || doc.caseId;
           const docFolderId = doc.folder_id || doc.folderId;
           
+          // Resolve client and case info for richer matching
+          const relatedCase = docCaseId ? caseLookup.get(docCaseId) : undefined;
+          const docClientId = doc.client_id || doc.clientId || (relatedCase?.client_id || relatedCase?.clientId);
+          const clientName = docClientId ? (clientLookup.get(docClientId) || '') : '';
+          const caseTitle = relatedCase?.title || relatedCase?.case_title || '';
+          const caseNumber = relatedCase?.case_number || relatedCase?.caseNumber || '';
+          const tags = Array.isArray(doc.tags) ? doc.tags : (Array.isArray(doc.tag_names) ? doc.tag_names : []);
+          
           const docItem = {
             title: docTitle,
-            content: `${docType} ${doc.size || 0} bytes`,
+            content: `${docType} ${clientName} ${caseTitle} ${caseNumber} ${(tags || []).join(' ')} ${docUploader || ''}`,
             metadata: {
               uploader: docUploader,
               caseId: docCaseId,
+              clientId: docClientId,
+              tags,
               folder: docFolderId
             }
           };
@@ -864,6 +874,9 @@ class SearchService {
       const documents = documentsData.items;
       const cases = casesData.items;
       const clients = clientsData.items;
+      // Build lookups to enrich document suggestion content
+      const clientLookup = new Map(clients.map(c => [c.id, c.display_name || c.name || '']));
+      const caseLookup = new Map(cases.map(c => [c.id, c]));
       
       // Document suggestions - handle both schemas
       documents.forEach(doc => {
@@ -872,12 +885,20 @@ class SearchService {
         const docTitle = doc.name || doc.file_name || '';
         const docType = doc.doc_type_code || doc.type || '';
         const docUploader = doc.uploaded_by_name || doc.uploadedByName;
+        const docCaseId = doc.case_id || doc.caseId;
+        const relatedCase = docCaseId ? caseLookup.get(docCaseId) : undefined;
+        const docClientId = doc.client_id || doc.clientId || (relatedCase?.client_id || relatedCase?.clientId);
+        const clientName = docClientId ? (clientLookup.get(docClientId) || '') : '';
+        const caseTitle = relatedCase?.title || relatedCase?.case_title || '';
+        const caseNumber = relatedCase?.case_number || relatedCase?.caseNumber || '';
         
         const docItem = {
           title: docTitle,
-          content: docType,
+          content: `${docType} ${clientName} ${caseTitle} ${caseNumber}`,
           metadata: {
-            uploader: docUploader
+            uploader: docUploader,
+            caseId: docCaseId,
+            clientId: docClientId
           }
         };
         
