@@ -267,10 +267,11 @@ All colors MUST be HSL. Professional legal theme with accessibility focus.
   
   /* Brand Active State Utilities */
   .brand-active-sidebar {
-    border-left: 3px solid hsl(var(--primary));
-    background-color: hsl(var(--primary) / 0.15);
-    color: hsl(var(--primary));
-    @apply font-semibold transition-all duration-200 ease-in-out;
+    border-left: 4px solid hsl(var(--primary)) !important;
+    background: linear-gradient(to right, hsl(var(--primary) / 0.25), hsl(var(--primary) / 0.15), transparent) !important;
+    color: hsl(var(--primary)) !important;
+    font-weight: 600 !important;
+    transition: all 0.2s ease-in-out;
   }
   
   .brand-active-tab {
@@ -288,7 +289,11 @@ All colors MUST be HSL. Professional legal theme with accessibility focus.
   }
   
   .nav-hover {
-    @apply transition-all duration-150 ease-in-out hover:bg-muted/50;
+    @apply transition-all duration-150 ease-in-out;
+  }
+  
+  .nav-hover:not(.brand-active-sidebar):hover {
+    @apply bg-muted/50;
   }
 }
 
