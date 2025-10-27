@@ -1,4 +1,5 @@
 import { Case, Client, Signatory } from '../contexts/AppStateContext';
+import { customTemplatesService } from './customTemplatesService';
 
 export interface FormField {
   key: string;
@@ -43,11 +44,23 @@ class FormTemplatesService {
   private templates: Map<string, FormTemplate> = new Map();
 
   async loadFormTemplate(formCode: string): Promise<FormTemplate | null> {
+    // Check cache first
     if (this.templates.has(formCode)) {
       return this.templates.get(formCode)!;
     }
 
     try {
+      // First check custom templates (IndexedDB)
+      const customTemplates = await customTemplatesService.getCustomTemplates();
+      const customTemplate = customTemplates.find(t => t.code === formCode);
+      
+      if (customTemplate) {
+        console.log(`[FormTemplates] Found custom template: ${formCode}`);
+        this.templates.set(formCode, customTemplate);
+        return customTemplate;
+      }
+
+      // Fall back to standard templates in public folder
       const response = await fetch(`/form-templates/${formCode}.json`);
       if (!response.ok) {
         console.error(`Failed to load form template: ${formCode}`);

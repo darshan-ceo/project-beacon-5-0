@@ -37,6 +37,18 @@ export const AddressView: React.FC<AddressViewProps> = ({
     );
   }
 
+  // Debug logging
+  console.log('[AddressView] Rendering address:', {
+    hasLine1: !!address?.line1,
+    hasLine2: !!address?.line2,
+    hasLocality: !!address?.locality,
+    hasDistrict: !!address?.district,
+    hasStateName: !!address?.stateName,
+    hasPincode: !!address?.pincode,
+    source: address?.source,
+    fullAddress: address
+  });
+
   const formatDisplayAddress = (address: EnhancedAddressData): string => {
     const parts = [
       address.line1,
@@ -127,24 +139,26 @@ export const AddressView: React.FC<AddressViewProps> = ({
               )}
             </div>
 
-            {/* Secondary details */}
-            <div className="grid grid-cols-1 gap-1 text-sm text-muted-foreground">
-              {address.landmark && (
-                <div>
-                  <span className="font-medium">Landmark:</span> {address.landmark}
-                </div>
-              )}
-              {address.locality && (
-                <div>
-                  <span className="font-medium">Locality:</span> {address.locality}
-                </div>
-              )}
-              {address.district && (
-                <div>
-                  <span className="font-medium">District:</span> {address.district}
-                </div>
-              )}
-            </div>
+            {/* Secondary details - show even if some fields are empty */}
+            {(address.landmark || address.locality || address.district) && (
+              <div className="grid grid-cols-1 gap-1 text-sm text-muted-foreground">
+                {address.landmark && (
+                  <div>
+                    <span className="font-medium">Landmark:</span> {address.landmark}
+                  </div>
+                )}
+                {address.locality && (
+                  <div>
+                    <span className="font-medium">Locality:</span> {address.locality}
+                  </div>
+                )}
+                {address.district && (
+                  <div>
+                    <span className="font-medium">District:</span> {address.district}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Location details */}
             <div className="flex flex-wrap items-center gap-2 text-sm">

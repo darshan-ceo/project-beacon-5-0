@@ -105,137 +105,152 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [isAddressMasterEnabled, setIsAddressMasterEnabled] = useState(false);
+  const [isLoadingAddress, setIsLoadingAddress] = useState(false);
   const validationErrorsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setIsAddressMasterEnabled(featureFlagService.isEnabled('address_master_v1'));
-    
-    if (clientData && (mode === 'edit' || mode === 'view')) {
-      // Handle address migration from string to Address/EnhancedAddressData object
-      let addressObj: EnhancedAddressData;
+    const loadClientData = async () => {
+      setIsAddressMasterEnabled(featureFlagService.isEnabled('address_master_v1'));
+      const addressMasterEnabled = featureFlagService.isEnabled('address_master_v1');
       
-      if (isAddressMasterEnabled) {
-        // Load linked address from address master
-        loadClientAddress(clientData.id);
-      }
-      
-      if (typeof clientData.address === 'string') {
-        addressObj = {
-          line1: clientData.address,
-          line2: '',
-          locality: '',
-          district: '',
-          cityId: '',
-          stateId: '',
-          pincode: '',
-          countryId: 'IN',
-          source: 'manual'
-        };
-      } else if (clientData.address && 'city' in clientData.address) {
-        // Legacy Address format
-        addressObj = {
-          line1: clientData.address.line1 || '',
-          line2: clientData.address.line2 || '',
-          locality: '',
-          district: '',
-          cityId: '',
-          stateId: '',
-          pincode: clientData.address.pincode || '',
-          countryId: 'IN',
-          source: 'manual'
-        };
-      } else {
-        // Already EnhancedAddressData format
-        addressObj = clientData.address as EnhancedAddressData || {
-          line1: '',
-          line2: '',
-          locality: '',
-          district: '',
-          cityId: '',
-          stateId: '',
-          pincode: '',
-          countryId: 'IN',
-          source: 'manual'
-        };
-      }
+      if (clientData && (mode === 'edit' || mode === 'view')) {
+        let addressObj: EnhancedAddressData;
+        
+        // Load linked address FIRST if Address Master is enabled
+        if (addressMasterEnabled) {
+          setIsLoadingAddress(true);
+          const linkedAddress = await loadClientAddress(clientData.id);
+          setIsLoadingAddress(false);
+          
+          if (linkedAddress) {
+            addressObj = linkedAddress;
+          } else {
+            // Fallback to inline address
+            addressObj = parseClientAddress(clientData.address);
+          }
+        } else {
+          addressObj = parseClientAddress(clientData.address);
+        }
 
-      setFormData({
-        name: clientData.name,
-        type: clientData.type,
-        category: clientData.category || 'Regular Dealer',
-        registrationNo: clientData.registrationNo || '',
-        gstin: clientData.gstin || '',
-        pan: clientData.pan || clientData.panNumber || '',
-        address: addressObj,
-        jurisdiction: clientData.jurisdiction || { commissionerate: '', division: '', range: '' },
-        portalAccess: clientData.portalAccess || { allowLogin: false },
-        assignedCAId: clientData.assignedCAId,
-        assignedCAName: clientData.assignedCAName,
-        clientGroupId: clientData.clientGroupId || '',
-        status: clientData.status,
-        tags: (clientData as any).tags || []
-      });
-      setSignatories(clientData.signatories || []);
-    } else if (mode === 'create') {
-      // Reset to defaults
-      setFormData({
-        name: '',
-        type: 'Individual',
-        category: 'Regular Dealer',
-        registrationNo: '',
-        gstin: '',
-        pan: '',
-        address: {
-          line1: '',
-          line2: '',
-          locality: '',
-          district: '',
-          cityId: '',
-          stateId: '',
-          pincode: '',
-          countryId: 'IN',
-          source: 'manual'
-        } as EnhancedAddressData,
-        jurisdiction: {
-          commissionerate: '',
-          division: '',
-          range: ''
-        },
-        portalAccess: {
-          allowLogin: false,
-          email: '',
-          mobile: '',
-          username: '',
-          passwordHash: ''
-        },
-        assignedCAId: '',
-        assignedCAName: '',
-        clientGroupId: '',
-        status: 'Active',
-        tags: []
-      });
-      setSignatories([]);
-      setPreloadedContacts([]);
-      setGstData(null);
-    }
-    setErrors({});
-    setValidationErrors([]);
-  }, [clientData, mode, isOpen, isAddressMasterEnabled]);
-
-  const loadClientAddress = async (clientId: string) => {
-    if (!isAddressMasterEnabled) return;
+        setFormData({
+          name: clientData.name,
+          type: clientData.type,
+          category: clientData.category || 'Regular Dealer',
+          registrationNo: clientData.registrationNo || '',
+          gstin: clientData.gstin || '',
+          pan: clientData.pan || clientData.panNumber || '',
+          address: addressObj,
+          jurisdiction: clientData.jurisdiction || { commissionerate: '', division: '', range: '' },
+          portalAccess: clientData.portalAccess || { allowLogin: false },
+          assignedCAId: clientData.assignedCAId,
+          assignedCAName: clientData.assignedCAName,
+          clientGroupId: clientData.clientGroupId || '',
+          status: clientData.status,
+          addressId: addressObj.id,
+          tags: (clientData as any).tags || []
+        });
+        setSignatories(clientData.signatories || []);
+      } else if (mode === 'create') {
+        // Reset to defaults
+        setFormData({
+          name: '',
+          type: 'Individual',
+          category: 'Regular Dealer',
+          registrationNo: '',
+          gstin: '',
+          pan: '',
+          address: {
+            line1: '',
+            line2: '',
+            locality: '',
+            district: '',
+            cityId: '',
+            stateId: '',
+            pincode: '',
+            countryId: 'IN',
+            source: 'manual'
+          } as EnhancedAddressData,
+          jurisdiction: {
+            commissionerate: '',
+            division: '',
+            range: ''
+          },
+          portalAccess: {
+            allowLogin: false,
+            email: '',
+            mobile: '',
+            username: '',
+            passwordHash: ''
+          },
+          assignedCAId: '',
+          assignedCAName: '',
+          clientGroupId: '',
+          status: 'Active',
+          tags: []
+        });
+        setSignatories([]);
+        setPreloadedContacts([]);
+        setGstData(null);
+      }
+      setErrors({});
+      setValidationErrors([]);
+    };
     
+    loadClientData();
+  }, [clientData, mode, isOpen]);
+
+  const loadClientAddress = async (clientId: string): Promise<EnhancedAddressData | null> => {
     try {
       const result = await addressMasterService.getEntityAddress('client', clientId);
       if (result.success && result.data) {
-        setFormData(prev => ({
-          ...prev,
-          address: result.data!,
-          addressId: result.data!.id
-        }));
+        return result.data;
       }
+      return null;
     } catch (error) {
       console.error('Failed to load client address:', error);
+      return null;
+    }
+  };
+
+  const parseClientAddress = (address: any): EnhancedAddressData => {
+    if (typeof address === 'string') {
+      return {
+        line1: address,
+        line2: '',
+        locality: '',
+        district: '',
+        cityId: '',
+        stateId: '',
+        pincode: '',
+        countryId: 'IN',
+        source: 'manual'
+      };
+    } else if (address && 'city' in address) {
+      // Legacy Address format
+      return {
+        line1: address.line1 || '',
+        line2: address.line2 || '',
+        locality: '',
+        district: '',
+        cityId: '',
+        stateId: '',
+        pincode: address.pincode || '',
+        countryId: 'IN',
+        source: 'manual'
+      };
+    } else {
+      // Already EnhancedAddressData format
+      return address as EnhancedAddressData || {
+        line1: '',
+        line2: '',
+        locality: '',
+        district: '',
+        cityId: '',
+        stateId: '',
+        pincode: '',
+        countryId: 'IN',
+        source: 'manual'
+      };
     }
   };
 
@@ -716,11 +731,15 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
               </CardHeader>
               <CardContent>
                 {mode === 'view' && isAddressMasterEnabled ? (
-                  <AddressView 
-                    address={formData.address as EnhancedAddressData}
-                    showSource={true}
-                    showActions={false}
-                  />
+                  isLoadingAddress ? (
+                    <div className="text-sm text-muted-foreground">Loading address...</div>
+                  ) : (
+                    <AddressView 
+                      address={formData.address as EnhancedAddressData}
+                      showSource={true}
+                      showActions={false}
+                    />
+                  )
                 ) : (
                   <AddressForm
                     value={formData.address}

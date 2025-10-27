@@ -607,7 +607,25 @@ export const ClientMasters: React.FC = () => {
       <ErrorBoundary>
         <ClientModal
           isOpen={clientModal.isOpen}
-          onClose={() => setClientModal({ isOpen: false, mode: 'create', client: null })}
+          onClose={async () => {
+            // Refresh client data after editing to show updated address
+            if (clientModal.mode === 'edit' && clientModal.client) {
+              const client = state.clients.find(c => c.id === clientModal.client!.id);
+              if (client && featureFlagService.isEnabled('address_master_v1')) {
+                const result = await addressMasterService.getEntityAddress('client', clientModal.client.id);
+                if (result.success && result.data) {
+                  dispatch({
+                    type: 'UPDATE_CLIENT',
+                    payload: {
+                      ...client,
+                      address: result.data
+                    }
+                  });
+                }
+              }
+            }
+            setClientModal({ isOpen: false, mode: 'create', client: null });
+          }}
           client={clientModal.client}
           mode={clientModal.mode}
         />
