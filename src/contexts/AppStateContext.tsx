@@ -199,17 +199,17 @@ interface Court {
   type: 'Supreme Court' | 'High Court' | 'District Court' | 'Tribunal' | 'Commission';
   authorityLevel?: 'ADJUDICATION' | 'FIRST_APPEAL' | 'REVISIONAL' | 'TRIBUNAL' | 'PRINCIPAL_BENCH' | 'HIGH_COURT' | 'SUPREME_COURT';
   jurisdiction: string;
-  address: string | any; // Support both legacy string and enhanced address
+  address: string | any;
   activeCases: number;
   avgHearingTime: string;
   digitalFiling: boolean;
   workingDays: string[];
-  addressId?: string; // For address master integration
+  addressId?: string;
   phone?: string;
   email?: string;
   benchLocation?: string;
-  city?: string; // City/District location
-  status: 'Active' | 'Inactive'; // Operational status of the authority
+  city: string; // Mandatory for data quality - Phase 2
+  status: 'Active' | 'Inactive';
 }
 
 interface Judge {
@@ -1417,11 +1417,11 @@ const initialState: AppState = {
     }
   ],
   courts: [
-    // Adjudication Level
+    // Adjudication Level - Multiple authorities
     {
       id: '1',
       name: 'Superintendent, Central GST, Ahmedabad South Division',
-      type: 'Tribunal',
+      type: 'Tribunal', // Keep for backward compatibility
       authorityLevel: 'ADJUDICATION',
       jurisdiction: 'Ahmedabad South Division',
       address: 'Central Revenue Building, Ashram Road, Ahmedabad - 380009',
@@ -1433,6 +1433,40 @@ const initialState: AppState = {
       email: 'cgstamd-south@gov.in',
       city: 'Ahmedabad',
       benchLocation: 'Ahmedabad',
+      status: 'Active'
+    },
+    {
+      id: '8',
+      name: 'Deputy Commissioner, State GST, Vadodara Division',
+      type: 'Tribunal',
+      authorityLevel: 'ADJUDICATION',
+      jurisdiction: 'Vadodara Division',
+      address: 'State Tax Office, R C Dutt Road, Vadodara - 390007',
+      activeCases: 98,
+      avgHearingTime: '0 days',
+      digitalFiling: true,
+      workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+      phone: '+91-265-2434545',
+      email: 'sgstvad@gujarat.gov.in',
+      city: 'Vadodara',
+      benchLocation: 'Vadodara',
+      status: 'Active'
+    },
+    {
+      id: '9',
+      name: 'Assistant Commissioner, Central GST, Surat Division',
+      type: 'Tribunal',
+      authorityLevel: 'ADJUDICATION',
+      jurisdiction: 'Surat Division',
+      address: 'GST Bhavan, Athwa Gate, Surat - 395001',
+      activeCases: 167,
+      avgHearingTime: '0 days',
+      digitalFiling: true,
+      workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+      phone: '+91-261-2419191',
+      email: 'cgstsurat@gov.in',
+      city: 'Surat',
+      benchLocation: 'Surat',
       status: 'Active'
     },
     // First Appeal
@@ -1451,6 +1485,24 @@ const initialState: AppState = {
       email: 'commr-appeals-ahd@gov.in',
       city: 'Vadodara',
       benchLocation: 'Vadodara',
+      status: 'Active'
+    },
+    // Revisional Authority
+    {
+      id: '10',
+      name: 'Appellate Authority for Advance Ruling (AAAR), Gujarat',
+      type: 'Tribunal',
+      authorityLevel: 'REVISIONAL',
+      jurisdiction: 'Gujarat State',
+      address: 'GST Bhavan, Sector 10-A, Gandhinagar - 382010',
+      activeCases: 23,
+      avgHearingTime: '120 days',
+      digitalFiling: true,
+      workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+      phone: '+91-79-23259111',
+      email: 'aaar-gujarat@gov.in',
+      city: 'Gandhinagar',
+      benchLocation: 'Gandhinagar',
       status: 'Active'
     },
     // Tribunal - State Bench

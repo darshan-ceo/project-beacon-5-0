@@ -7,6 +7,7 @@ export interface CreateCourtData {
   address: string;
   digitalFiling: boolean;
   workingDays: string[];
+  city: string; // Mandatory for Phase 2 data quality
   phone?: string;
   email?: string;
   benchLocation?: string;
@@ -21,6 +22,11 @@ class CourtsService {
   private courts: Court[] = [];
 
   async create(data: CreateCourtData): Promise<Court> {
+    // Validate city is provided
+    if (!data.city?.trim()) {
+      throw new Error('City is required');
+    }
+
     const newCourt: Court = {
       id: Date.now().toString(),
       name: data.name,
@@ -31,6 +37,7 @@ class CourtsService {
       avgHearingTime: '0 days',
       digitalFiling: data.digitalFiling,
       workingDays: data.workingDays,
+      city: data.city,
       phone: data.phone,
       email: data.email,
       benchLocation: data.benchLocation,

@@ -17,6 +17,7 @@ import { featureFlagService } from '@/services/featureFlagService';
 import { MapPin, Phone, Mail, Building2, Scale } from 'lucide-react';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
 import { AUTHORITY_LEVEL_OPTIONS, AUTHORITY_LEVEL_METADATA, AuthorityLevel } from '@/types/authority-level';
+import { clientsService } from '@/services/clientsService';
 
 interface CourtModalProps {
   isOpen: boolean;
@@ -70,6 +71,8 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     status: 'Active'
   });
   const [isAddressMasterEnabled, setIsAddressMasterEnabled] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setIsAddressMasterEnabled(featureFlagService.isEnabled('address_master_v1'));
@@ -118,6 +121,34 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     }
   }, [courtData, mode]);
 
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    // Validate required fields
+    if (!formData.name?.trim()) {
+      newErrors.name = 'Authority name is required';
+    }
+
+    if (!formData.jurisdiction?.trim()) {
+      newErrors.jurisdiction = 'Jurisdiction is required';
+    }
+
+    if (!formData.city?.trim()) {
+      newErrors.city = 'City is required';
+    }
+
+    // Validate pincode format if address is EnhancedAddressData
+    if (typeof formData.address === 'object' && formData.address.pincode) {
+      const pincodeValidation = clientsService.validatePincode(formData.address.pincode);
+      if (!pincodeValidation.isValid) {
+        newErrors.pincode = pincodeValidation.errors[0];
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleWorkingDayChange = (day: string, checked: boolean) => {
     setFormData(prev => ({
       ...prev,
@@ -129,6 +160,16 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate form before submission
+    if (!validateForm()) {
+      toast({
+        title: "Validation Error",
+        description: "Please fix the errors in the form",
+        variant: "destructive"
+      });
+      return;
+    }
     
     if (mode === 'create') {
       let addressId: string | undefined;
@@ -254,9 +295,17 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Example: Commissioner (Appeals), CGST Zone - Ahmedabad"
                 disabled={mode === 'view'}
                 required
+                className={errors.name ? 'border-destructive' : ''}
               />
+              {errors.name && (
+                <p className="text-xs text-destructive mt-1">{errors.name}</p>
+              )}
+              <p className="text-xs text-muted-foreground mt-1">
+                Enter the official name of the legal authority or forum
+              </p>
             </div>
 
             <div>
@@ -307,9 +356,17 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                   id="jurisdiction"
                   value={formData.jurisdiction}
                   onChange={(e) => setFormData(prev => ({ ...prev, jurisdiction: e.target.value }))}
+                  placeholder="Example: Ahmedabad South Division, Gujarat State, All India"
                   disabled={mode === 'view'}
                   required
+                  className={errors.jurisdiction ? 'border-destructive' : ''}
                 />
+                {errors.jurisdiction && (
+                  <p className="text-xs text-destructive mt-1">{errors.jurisdiction}</p>
+                )}
+                <p className="text-xs text-muted-foreground mt-1">
+                  Geographic area or taxpayer category this authority covers
+                </p>
               </div>
               <div>
                 <div className="flex items-center gap-1">
@@ -353,8 +410,11 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                     value={formData.phone}
                     onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                     disabled={mode === 'view'}
-                    placeholder="Enter phone number"
+                    placeholder="+91-79-12345678"
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Include STD code (e.g., +91-79 for Ahmedabad)
+                  </p>
                 </div>
                 <div>
                   <Label htmlFor="email">Email Address</Label>
@@ -364,34 +424,50 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                     value={formData.email}
                     onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                     disabled={mode === 'view'}
-                    placeholder="Enter email address"
+                    placeholder="authority@gov.in"
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Official email address for correspondence
+                  </p>
                 </div>
                 <div>
-                  <Label htmlFor="benchLocation">Bench Location</Label>
+                  <div className="flex items-center gap-1">
+                    <Label htmlFor="benchLocation">Bench Location</Label>
+                    <FieldTooltip formId="create-court" fieldId="benchLocation" />
+                  </div>
                   <Input
                     id="benchLocation"
                     value={formData.benchLocation}
                     onChange={(e) => setFormData(prev => ({ ...prev, benchLocation: e.target.value }))}
                     disabled={mode === 'view'}
-                    placeholder="Enter bench location"
+                    placeholder="Example: Ahmedabad, New Delhi"
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Physical location where hearings are conducted
+                  </p>
                 </div>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="city">City <span className="text-destructive">*</span></Label>
+                  <div className="flex items-center gap-1">
+                    <Label htmlFor="city">City / District <span className="text-destructive">*</span></Label>
+                    <FieldTooltip formId="create-court" fieldId="city" />
+                  </div>
                   <Input
                     id="city"
                     value={formData.city}
                     onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
                     disabled={mode === 'view'}
-                    placeholder="Enter city or district"
+                    placeholder="Example: Ahmedabad, Vadodara, Surat"
                     required
+                    className={errors.city ? 'border-destructive' : ''}
                   />
+                  {errors.city && (
+                    <p className="text-xs text-destructive mt-1">{errors.city}</p>
+                  )}
                   <p className="text-xs text-muted-foreground mt-1">
-                    City or district where authority is located
+                    Primary city where this authority is located
                   </p>
                 </div>
               </div>

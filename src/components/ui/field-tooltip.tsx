@@ -137,6 +137,18 @@ const fieldHelpRegistry: Record<string, Record<string, { title: string; content:
       title: 'Legacy Forum Type',
       content: 'Historical classification maintained for backward compatibility. Use Authority Level for GST hierarchy.',
     },
+    'city': {
+      title: 'City / District Location',
+      content: `Primary city where this authority is physically located. This field is mandatory for data quality and helps in travel planning and logistics.
+
+**Examples:**
+• Ahmedabad
+• Vadodara
+• Surat
+• New Delhi (for Supreme Court / Principal Bench)
+
+Enter the city name without PIN code or state.`,
+    },
     'jurisdiction': {
       title: 'Territorial Jurisdiction',
       content: `The geographic area or taxpayer category this authority has power over.

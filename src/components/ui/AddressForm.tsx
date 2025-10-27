@@ -452,14 +452,33 @@ export const AddressForm: React.FC<AddressFormProps> = ({
               </div>
               <Input
                 id="pincode"
+                type="text"
+                inputMode="numeric"
                 value={value.pincode || ''}
-                onChange={(e) => handleFieldChange('pincode', e.target.value)}
-                placeholder="6-digit pincode"
+                onChange={(e) => {
+                  const numericValue = e.target.value.replace(/\D/g, '');
+                  handleFieldChange('pincode', numericValue);
+                }}
+                placeholder="6-digit PIN (e.g., 380001 for Ahmedabad)"
                 pattern="[0-9]{6}"
                 maxLength={6}
                 disabled={disabled || !isFieldEditable('pincode')}
                 required={required || isFieldRequired('pincode')}
+                className={
+                  value.pincode && value.pincode.length > 0 && value.pincode.length !== 6
+                    ? 'border-destructive'
+                    : ''
+                }
               />
+              {value.pincode && value.pincode.length > 0 && value.pincode.length !== 6 && (
+                <div className="flex items-center gap-1 text-xs text-destructive">
+                  <AlertCircle className="h-3 w-3" />
+                  <span>Pincode must be exactly 6 digits</span>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Enter 6-digit Indian postal code
+              </p>
             </div>
           )}
         </div>
