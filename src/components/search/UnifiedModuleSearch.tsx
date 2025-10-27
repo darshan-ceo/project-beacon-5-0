@@ -235,7 +235,7 @@ export const UnifiedModuleSearch: React.FC<UnifiedModuleSearchProps> = ({
                       )}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-96 p-4 z-[9999]" align="end">
+                  <PopoverContent className="w-96 p-4 z-[9998]" align="end">
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <h4 className="font-medium">{moduleName} Filters</h4>

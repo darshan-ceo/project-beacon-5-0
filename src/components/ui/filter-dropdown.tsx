@@ -37,7 +37,7 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
           {label}: {value === 'all' ? 'All' : value}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent>
+      <DropdownMenuContent className="z-[10000] bg-popover shadow-xl">
         <DropdownMenuItem onClick={() => onChange('all')}>
           All {label}
         </DropdownMenuItem>
