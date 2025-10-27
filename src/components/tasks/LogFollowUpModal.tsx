@@ -81,17 +81,11 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
     showTooltipTitle?: boolean;
   }> = (props) => {
     return (
-      <div
-        onMouseEnter={() => setActiveTooltipId(props.helpId)}
-        onMouseLeave={() => setActiveTooltipId(null)}
-        onFocus={() => setActiveTooltipId(props.helpId)}
-        onBlur={() => setActiveTooltipId(null)}
-      >
-        <ThreeLayerHelp
-          {...props}
-          forceOpen={activeTooltipId === props.helpId}
-        />
-      </div>
+      <ThreeLayerHelp
+        {...props}
+        forceOpen={activeTooltipId === props.helpId}
+        onOpenChange={(open) => setActiveTooltipId(open ? props.helpId : null)}
+      />
     );
   };
 
@@ -482,6 +476,7 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
                     helpId="followup_card_options"
                     showExplanation={false}
                     showTooltipIcon={true}
+                    showTooltipTitle={false}
                   />
                 </div>
               </CardHeader>

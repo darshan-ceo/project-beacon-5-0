@@ -19,6 +19,7 @@ interface ThreeLayerHelpProps {
   className?: string;
   forceOpen?: boolean; // External control for single-tooltip policy
   showTooltipTitle?: boolean; // Control whether to show title in tooltip (default: true)
+  onOpenChange?: (open: boolean) => void; // Controlled mode callback
 }
 
 export const ThreeLayerHelp: React.FC<ThreeLayerHelpProps> = ({
@@ -28,25 +29,31 @@ export const ThreeLayerHelp: React.FC<ThreeLayerHelpProps> = ({
   showTooltipIcon = true,
   className = "",
   forceOpen,
-  showTooltipTitle = true
+  showTooltipTitle = true,
+  onOpenChange,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   
   // Use forceOpen if provided, otherwise internal state
   const effectiveIsOpen = forceOpen !== undefined ? forceOpen : isOpen;
+  const controlled = forceOpen !== undefined;
   
   // ESC key handler for accessibility
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && effectiveIsOpen) {
-        setIsOpen(false);
+        if (controlled) {
+          onOpenChange?.(false);
+        } else {
+          setIsOpen(false);
+        }
       }
     };
     
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
-  }, [effectiveIsOpen]);
-  
+  }, [effectiveIsOpen, controlled, onOpenChange]);
+
   // Check if tooltips are enabled
   if (!featureFlagService.isEnabled('tooltips_v1')) {
     return <>{children}</>;
@@ -70,7 +77,7 @@ export const ThreeLayerHelp: React.FC<ThreeLayerHelpProps> = ({
         
         {/* Layer 3: Popover icon (click to open) */}
         {showTooltipIcon && (
-          <Popover open={effectiveIsOpen} onOpenChange={setIsOpen}>
+          <Popover open={effectiveIsOpen} onOpenChange={(open) => { onOpenChange?.(open); if (!controlled) setIsOpen(open); }}>
             <PopoverTrigger asChild>
               <button
                 type="button"
@@ -88,11 +95,19 @@ export const ThreeLayerHelp: React.FC<ThreeLayerHelpProps> = ({
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  setIsOpen(!isOpen);
+                  if (controlled) {
+                    onOpenChange?.(!effectiveIsOpen);
+                  } else {
+                    setIsOpen((v) => !v);
+                  }
                 }}
                 onTouchStart={(e) => {
                   e.stopPropagation();
-                  setIsOpen(!isOpen);
+                  if (controlled) {
+                    onOpenChange?.(!effectiveIsOpen);
+                  } else {
+                    setIsOpen((v) => !v);
+                  }
                 }}
                 tabIndex={0}
               >

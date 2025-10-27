@@ -61,12 +61,12 @@ describe('ThreeLayerHelp', () => {
     expect(screen.queryByText('This is a test explanation')).not.toBeInTheDocument();
   });
 
-  it('should show tooltip on hover', async () => {
+  it('should show tooltip on click', async () => {
     const user = userEvent.setup();
     render(<ThreeLayerHelp helpId="test-button" />);
 
     const helpIcon = screen.getByRole('button', { name: /test button action/i });
-    await user.hover(helpIcon);
+    await user.click(helpIcon);
 
     await waitFor(() => {
       expect(screen.getByText('Test Tooltip Title')).toBeInTheDocument();
@@ -74,30 +74,36 @@ describe('ThreeLayerHelp', () => {
     });
   });
 
-  it('should show tooltip on keyboard focus', async () => {
+  it('should show tooltip on keyboard activation', async () => {
     const user = userEvent.setup();
     render(<ThreeLayerHelp helpId="test-button" />);
 
     const helpIcon = screen.getByRole('button', { name: /test button action/i });
-    await user.tab(); // Focus on help icon
+    helpIcon.focus();
+    await user.keyboard('{Enter}');
 
     await waitFor(() => {
       expect(screen.getByText('Test Tooltip Title')).toBeInTheDocument();
     });
   });
 
-  it('should hide tooltip on blur', async () => {
+  it('should hide tooltip on outside click', async () => {
     const user = userEvent.setup();
-    render(<ThreeLayerHelp helpId="test-button" />);
+    render(
+      <div>
+        <button>Outside</button>
+        <ThreeLayerHelp helpId="test-button" />
+      </div>
+    );
 
     const helpIcon = screen.getByRole('button', { name: /test button action/i });
-    await user.tab(); // Focus
-    
+    await user.click(helpIcon);
+
     await waitFor(() => {
       expect(screen.getByText('Test Tooltip Title')).toBeInTheDocument();
     });
 
-    await user.tab(); // Blur
+    await user.click(screen.getByText('Outside'));
 
     await waitFor(() => {
       expect(screen.queryByText('Test Tooltip Title')).not.toBeInTheDocument();
@@ -109,7 +115,7 @@ describe('ThreeLayerHelp', () => {
     render(<ThreeLayerHelp helpId="test-button" />);
 
     const helpIcon = screen.getByRole('button', { name: /test button action/i });
-    await user.hover(helpIcon);
+    await user.click(helpIcon);
 
     await waitFor(() => {
       const link = screen.getByRole('link', { name: /learn more/i });
@@ -123,7 +129,7 @@ describe('ThreeLayerHelp', () => {
     render(<ThreeLayerHelp helpId="test-button" />);
 
     const helpIcon = screen.getByRole('button', { name: /test button action/i });
-    await user.hover(helpIcon);
+    await user.click(helpIcon);
 
     await waitFor(() => {
       expect(screen.getByText(/Shortcut:/i)).toBeInTheDocument();
