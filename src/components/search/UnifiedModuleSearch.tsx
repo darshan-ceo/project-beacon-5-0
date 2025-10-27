@@ -166,6 +166,22 @@ export const UnifiedModuleSearch: React.FC<UnifiedModuleSearchProps> = ({
                 tooltip={`Search only within ${moduleName.toLowerCase()} on this page`}
               />
             )}
+            {getActiveFilterCount() > 0 && (
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  <Filter className="h-3 w-3" />
+                  {getActiveFilterCount()} {getActiveFilterCount() === 1 ? 'filter' : 'filters'} active
+                </Badge>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={clearAllFilters}
+                  className="h-6 px-2 text-xs"
+                >
+                  Clear all
+                </Button>
+              </div>
+            )}
           </div>
           <TooltipProvider>
             <Tooltip>
@@ -318,35 +334,43 @@ export const UnifiedModuleSearch: React.FC<UnifiedModuleSearchProps> = ({
 
         {/* Active Filter Chips */}
         {getActiveFilterCount() > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {Object.keys(activeFilters).map((filterKey) => {
-              const config = filterConfig.find(c => c.id === filterKey);
-              if (!config) return null;
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
+              {Object.keys(activeFilters).map((filterKey) => {
+                const config = filterConfig.find(c => c.id === filterKey);
+                if (!config) return null;
 
-              const filterValue = activeFilters[filterKey];
+                const filterValue = activeFilters[filterKey];
 
-              if (Array.isArray(filterValue)) {
-                return filterValue.map((value: string) => (
-                  <Badge key={`${filterKey}-${value}`} variant="secondary" className="flex items-center gap-1">
-                    {config.label}: {value}
+                if (Array.isArray(filterValue)) {
+                  return filterValue.map((value: string) => (
+                    <Badge key={`${filterKey}-${value}`} variant="secondary" className="flex items-center gap-1">
+                      {config.label}: {value}
+                      <X 
+                        className="h-3 w-3 cursor-pointer" 
+                        onClick={() => removeFilter(filterKey, value)}
+                      />
+                    </Badge>
+                  ));
+                }
+
+                return (
+                  <Badge key={filterKey} variant="secondary" className="flex items-center gap-1">
+                    {config.label}: {renderFilterLabel(filterKey, filterValue, config)}
                     <X 
                       className="h-3 w-3 cursor-pointer" 
-                      onClick={() => removeFilter(filterKey, value)}
+                      onClick={() => removeFilter(filterKey)}
                     />
                   </Badge>
-                ));
-              }
-
-              return (
-                <Badge key={filterKey} variant="secondary" className="flex items-center gap-1">
-                  {config.label}: {renderFilterLabel(filterKey, filterValue, config)}
-                  <X 
-                    className="h-3 w-3 cursor-pointer" 
-                    onClick={() => removeFilter(filterKey)}
-                  />
-                </Badge>
-              );
-            })}
+                );
+              })}
+            </div>
+            
+            {/* Filter Summary Message */}
+            <p className="text-xs text-muted-foreground">
+              Showing results filtered by {getActiveFilterCount()} {getActiveFilterCount() === 1 ? 'criterion' : 'criteria'}. 
+              {searchTerm && ` Search term: "${searchTerm}"`}
+            </p>
           </div>
         )}
       </div>
