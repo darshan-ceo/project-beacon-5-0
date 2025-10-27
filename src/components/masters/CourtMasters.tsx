@@ -10,7 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Building2, MapPin, Phone, Mail, Search, Filter, Plus, Edit, Eye, Users, Upload, Download, Scale, Map, Globe, Navigation } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { GlossaryTooltip } from '@/components/help/GlossaryTooltip';
+import { Building2, MapPin, Phone, Mail, Search, Filter, Plus, Edit, Eye, Users, Upload, Download, Scale, Map, Globe, Navigation, Wifi, ExternalLink } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -247,12 +249,17 @@ export const CourtMasters: React.FC = () => {
                           {court.city || 'N/A'}
                         </div>
                         {court.authorityLevel && (
-                          <Badge 
-                            variant="outline" 
-                            className={`text-xs ${AUTHORITY_LEVEL_METADATA[court.authorityLevel]?.color || 'bg-gray-100'}`}
+                          <GlossaryTooltip 
+                            term={AUTHORITY_LEVEL_METADATA[court.authorityLevel]?.label || court.authorityLevel}
+                            showIcon={false}
                           >
-                            {AUTHORITY_LEVEL_METADATA[court.authorityLevel]?.label || court.authorityLevel}
-                          </Badge>
+                            <Badge 
+                              variant="outline" 
+                              className={`text-xs cursor-help ${AUTHORITY_LEVEL_METADATA[court.authorityLevel]?.color || 'bg-gray-100'}`}
+                            >
+                              {AUTHORITY_LEVEL_METADATA[court.authorityLevel]?.label || court.authorityLevel}
+                            </Badge>
+                          </GlossaryTooltip>
                         )}
                       </div>
                     </TableCell>

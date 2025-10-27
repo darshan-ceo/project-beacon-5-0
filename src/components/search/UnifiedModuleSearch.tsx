@@ -167,18 +167,37 @@ export const UnifiedModuleSearch: React.FC<UnifiedModuleSearchProps> = ({
               />
             )}
           </div>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Badge variant="outline" className="text-xs text-muted-foreground border-muted">
-                  {keyboardShortcut}
-                </Badge>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Press {keyboardShortcut} to focus search</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <div className="flex items-center gap-2">
+            {getActiveFilterCount() > 0 && (
+              <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 rounded-full border border-primary/20">
+                <Filter className="h-3 w-3 text-primary" />
+                <span className="text-xs font-medium text-primary">
+                  {getActiveFilterCount()} filter{getActiveFilterCount() !== 1 ? 's' : ''} active
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearAllFilters}
+                  className="h-5 w-5 p-0 hover:bg-primary/20 rounded-full"
+                  title="Clear all filters"
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="outline" className="text-xs text-muted-foreground border-muted">
+                    {keyboardShortcut}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Press {keyboardShortcut} to focus search</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </div>
 
         {/* Main Search Bar */}
@@ -316,38 +335,55 @@ export const UnifiedModuleSearch: React.FC<UnifiedModuleSearchProps> = ({
           </TooltipProvider>
         </div>
 
-        {/* Active Filter Chips */}
+         {/* Active Filter Chips */}
         {getActiveFilterCount() > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {Object.keys(activeFilters).map((filterKey) => {
-              const config = filterConfig.find(c => c.id === filterKey);
-              if (!config) return null;
+          <>
+            <div className="flex flex-wrap gap-2">
+              {Object.keys(activeFilters).map((filterKey) => {
+                const config = filterConfig.find(c => c.id === filterKey);
+                if (!config) return null;
 
-              const filterValue = activeFilters[filterKey];
+                const filterValue = activeFilters[filterKey];
 
-              if (Array.isArray(filterValue)) {
-                return filterValue.map((value: string) => (
-                  <Badge key={`${filterKey}-${value}`} variant="secondary" className="flex items-center gap-1">
-                    {config.label}: {value}
+                if (Array.isArray(filterValue)) {
+                  return filterValue.map((value: string) => (
+                    <Badge key={`${filterKey}-${value}`} variant="secondary" className="flex items-center gap-1">
+                      {config.label}: {value}
+                      <X 
+                        className="h-3 w-3 cursor-pointer" 
+                        onClick={() => removeFilter(filterKey, value)}
+                      />
+                    </Badge>
+                  ));
+                }
+
+                return (
+                  <Badge key={filterKey} variant="secondary" className="flex items-center gap-1">
+                    {config.label}: {renderFilterLabel(filterKey, filterValue, config)}
                     <X 
                       className="h-3 w-3 cursor-pointer" 
-                      onClick={() => removeFilter(filterKey, value)}
+                      onClick={() => removeFilter(filterKey)}
                     />
                   </Badge>
-                ));
-              }
-
-              return (
-                <Badge key={filterKey} variant="secondary" className="flex items-center gap-1">
-                  {config.label}: {renderFilterLabel(filterKey, filterValue, config)}
-                  <X 
-                    className="h-3 w-3 cursor-pointer" 
-                    onClick={() => removeFilter(filterKey)}
-                  />
-                </Badge>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+            
+            {/* Filter Summary Message */}
+            <div className="flex items-center justify-between pt-2 border-t">
+              <p className="text-xs text-muted-foreground">
+                Showing results matching {getActiveFilterCount()} filter{getActiveFilterCount() !== 1 ? 's' : ''}
+              </p>
+              <Button
+                variant="link"
+                size="sm"
+                onClick={clearAllFilters}
+                className="h-auto p-0 text-xs"
+              >
+                Reset all filters
+              </Button>
+            </div>
+          </>
         )}
       </div>
     </Card>
