@@ -137,14 +137,6 @@ export const CourtMasters: React.FC = () => {
           </div>
       </motion.div>
 
-      {/* Legal Authorities Dashboard */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-      >
-        <LegalAuthoritiesDashboard />
-      </motion.div>
 
       {/* Visual Divider */}
       <div className="border-t border-border" />
