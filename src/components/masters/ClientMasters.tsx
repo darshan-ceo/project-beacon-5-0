@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { reportsService } from '@/services/reportsService';
+import { addressLookupService } from '@/services/addressLookupService';
+import { addressMasterService, EnhancedAddressData } from '@/services/addressMasterService';
 import { motion } from 'framer-motion';
 import { 
   Plus, 
@@ -61,6 +63,18 @@ export const ClientMasters: React.FC = () => {
   });
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
+  const [statesMap, setStatesMap] = useState<Record<string, string>>({});
+  const [entityAddresses, setEntityAddresses] = useState<Record<string, EnhancedAddressData | null>>({});
+
+  // Load state ID -> name mapping once on mount
+  useEffect(() => {
+    const loadStates = async () => {
+      const statesList = await addressLookupService.getStates('IN');
+      const map = Object.fromEntries(statesList.map(s => [s.id, s.name]));
+      setStatesMap(map);
+    };
+    loadStates();
+  }, []);
 
   const filteredClients = state.clients.filter(client => {
     const matchesSearch = 
@@ -118,6 +132,62 @@ export const ClientMasters: React.FC = () => {
       case 'Pending': return 'bg-warning text-warning-foreground';
       default: return 'bg-muted text-muted-foreground';
     }
+  };
+
+  // Preload linked addresses for visible clients
+  useEffect(() => {
+    let cancelled = false;
+    
+    const loadEntityAddresses = async () => {
+      const clientIds = filteredClients.map(c => c.id);
+      const missingIds = clientIds.filter(id => !(id in entityAddresses));
+      
+      if (missingIds.length === 0) return;
+      
+      const results = await Promise.all(
+        missingIds.map(id => addressMasterService.getEntityAddress('client', id))
+      );
+      
+      if (cancelled) return;
+      
+      const patch: Record<string, EnhancedAddressData | null> = {};
+      missingIds.forEach((id, i) => {
+        patch[id] = results[i].success ? results[i].data : null;
+      });
+      
+      setEntityAddresses(prev => ({ ...prev, ...patch }));
+    };
+    
+    loadEntityAddresses();
+    
+    return () => {
+      cancelled = true;
+    };
+  }, [filteredClients]);
+
+  // Helper to resolve state label from various address formats
+  const getStateLabel = (client: Client): string => {
+    // First, try inline address (for legacy or enhanced inline format)
+    let addr: any = (client && typeof client.address === 'object') ? client.address : null;
+    
+    // If no inline address, try cached entity address (Address Master mode)
+    if (!addr) {
+      addr = entityAddresses[client.id] || null;
+    }
+    
+    if (!addr) return 'N/A';
+    
+    // Prefer full state name
+    const byName = addr.stateName || addr.state;
+    if (byName && byName.trim()) return byName;
+    
+    // Map stateId to full name using statesMap
+    if (addr.stateId && statesMap[addr.stateId]) {
+      return statesMap[addr.stateId];
+    }
+    
+    // Last resort: show the code if no name found
+    return addr.stateId || 'N/A';
   };
 
   return (
@@ -323,12 +393,7 @@ export const ClientMasters: React.FC = () => {
                         </p>
                         <p className="text-xs text-muted-foreground flex items-center gap-1">
                           <MapPin className="h-3 w-3" />
-                          {(() => {
-                            if (typeof client.address === 'object' && client.address !== null) {
-                              return client.address.stateName || client.address.state || 'N/A';
-                            }
-                            return 'N/A';
-                          })()}
+                          {getStateLabel(client)}
                         </p>
                       </div>
                     </TableCell>
