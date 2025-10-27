@@ -203,6 +203,9 @@ interface Court {
   activeCases: number;
   avgHearingTime: string;
   digitalFiling: boolean;
+  digitalFilingPortal?: string; // Name of digital filing portal (e.g., "ACES", "GST Portal")
+  digitalFilingPortalUrl?: string; // URL to the digital filing portal
+  digitalFilingInstructions?: string; // Instructions for digital filing
   workingDays: string[];
   addressId?: string;
   phone?: string;

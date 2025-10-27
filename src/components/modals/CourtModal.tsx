@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -14,7 +15,7 @@ import { AddressForm } from '@/components/ui/AddressForm';
 import { AddressView } from '@/components/ui/AddressView';
 import { EnhancedAddressData, addressMasterService } from '@/services/addressMasterService';
 import { featureFlagService } from '@/services/featureFlagService';
-import { MapPin, Phone, Mail, Building2, Scale } from 'lucide-react';
+import { MapPin, Phone, Mail, Building2, Scale, Globe } from 'lucide-react';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
 import { AUTHORITY_LEVEL_OPTIONS, AUTHORITY_LEVEL_METADATA, AuthorityLevel } from '@/types/authority-level';
 import { clientsService } from '@/services/clientsService';
@@ -39,6 +40,9 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     jurisdiction: string;
     address: EnhancedAddressData;
     digitalFiling: boolean;
+    digitalFilingPortal?: string;
+    digitalFilingPortalUrl?: string;
+    digitalFilingInstructions?: string;
     workingDays: string[];
     phone?: string;
     email?: string;
@@ -63,6 +67,9 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
       source: 'manual'
     } as EnhancedAddressData,
     digitalFiling: false,
+    digitalFilingPortal: '',
+    digitalFilingPortalUrl: '',
+    digitalFilingInstructions: '',
     workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
     phone: '',
     email: '',
@@ -87,6 +94,9 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
           ? { line1: courtData.address, line2: '', locality: '', district: '', cityId: '', stateId: '', pincode: '', countryId: 'IN', source: 'manual' } as EnhancedAddressData
           : courtData.address as EnhancedAddressData,
         digitalFiling: courtData.digitalFiling,
+        digitalFilingPortal: courtData.digitalFilingPortal || '',
+        digitalFilingPortalUrl: courtData.digitalFilingPortalUrl || '',
+        digitalFilingInstructions: courtData.digitalFilingInstructions || '',
         workingDays: courtData.workingDays,
         phone: courtData.phone || '',
         email: courtData.email || '',
@@ -111,6 +121,9 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
           source: 'manual'
         } as EnhancedAddressData,
         digitalFiling: false,
+        digitalFilingPortal: '',
+        digitalFilingPortalUrl: '',
+        digitalFilingInstructions: '',
         workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
         phone: '',
         email: '',
@@ -197,6 +210,9 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         activeCases: 0,
         avgHearingTime: '30 mins',
         digitalFiling: formData.digitalFiling,
+        digitalFilingPortal: formData.digitalFilingPortal,
+        digitalFilingPortalUrl: formData.digitalFilingPortalUrl,
+        digitalFilingInstructions: formData.digitalFilingInstructions,
         workingDays: formData.workingDays,
         phone: formData.phone,
         email: formData.email,
@@ -234,6 +250,9 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         jurisdiction: formData.jurisdiction,
         address: formData.address,
         digitalFiling: formData.digitalFiling,
+        digitalFilingPortal: formData.digitalFilingPortal,
+        digitalFilingPortalUrl: formData.digitalFilingPortalUrl,
+        digitalFilingInstructions: formData.digitalFilingInstructions,
         workingDays: formData.workingDays,
         phone: formData.phone,
         email: formData.email,
@@ -557,6 +576,62 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                 disabled={mode === 'view'}
               />
             </div>
+
+            {/* Digital Filing Portal Details - shown only when digital filing is enabled */}
+            {formData.digitalFiling && (
+              <div className="space-y-4 p-4 border rounded-lg bg-muted/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <Globe className="h-4 w-4 text-primary" />
+                  <h4 className="text-sm font-semibold">Digital Filing Portal Details</h4>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="digitalFilingPortal">Portal Name</Label>
+                    <Input
+                      id="digitalFilingPortal"
+                      value={formData.digitalFilingPortal}
+                      onChange={(e) => setFormData(prev => ({ ...prev, digitalFilingPortal: e.target.value }))}
+                      disabled={mode === 'view'}
+                      placeholder="e.g., ACES, GST Portal, e-Filing"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Name of the digital filing system
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="digitalFilingPortalUrl">Portal URL</Label>
+                    <Input
+                      id="digitalFilingPortalUrl"
+                      type="url"
+                      value={formData.digitalFilingPortalUrl}
+                      onChange={(e) => setFormData(prev => ({ ...prev, digitalFilingPortalUrl: e.target.value }))}
+                      disabled={mode === 'view'}
+                      placeholder="https://example.gov.in/portal"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Direct link to the filing portal
+                    </p>
+                  </div>
+                </div>
+                
+                <div>
+                  <Label htmlFor="digitalFilingInstructions">Filing Instructions</Label>
+                  <Textarea
+                    id="digitalFilingInstructions"
+                    value={formData.digitalFilingInstructions}
+                    onChange={(e) => setFormData(prev => ({ ...prev, digitalFilingInstructions: e.target.value }))}
+                    disabled={mode === 'view'}
+                    placeholder="Step-by-step instructions for digital filing, required documents, login credentials, etc."
+                    rows={3}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Brief guide for filing documents electronically
+                  </p>
+                </div>
+              </div>
+            )}
 
             <div>
               <Label>Working Days</Label>
