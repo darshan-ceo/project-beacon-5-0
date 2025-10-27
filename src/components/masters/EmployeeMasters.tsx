@@ -23,6 +23,7 @@ import { ExportButton } from '@/components/ui/export-button';
 import { EmployeeModalV2 } from '@/components/modals/EmployeeModalV2';
 import { ImportWizard } from '@/components/importExport/ImportWizard';
 import { ExportWizard } from '@/components/importExport/ExportWizard';
+import { UnifiedEmployeeSearch } from '@/components/masters/UnifiedEmployeeSearch';
 import { useAppState } from '@/contexts/AppStateContext';
 import { employeesService, Employee } from '@/services/employeesService';
 import { useRBAC } from '@/hooks/useAdvancedRBAC';
@@ -315,43 +316,24 @@ export const EmployeeMasters: React.FC = () => {
       {/* Filters and Search */}
       <Card>
         <CardHeader>
-          <div className="flex flex-wrap gap-4 items-center">
-            <div className="flex-1 min-w-64">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Search employees..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            
-            <FilterDropdown
-              label="Status"
-              value={statusFilter}
-              options={[
-                { label: 'Active', value: 'Active' },
-                { label: 'Inactive', value: 'Inactive' }
-              ]}
-              onChange={setStatusFilter}
-            />
-            
-            <FilterDropdown
-              label="Role"
-              value={roleFilter}
-              options={roles.map(role => ({ label: role, value: role }))}
-              onChange={setRoleFilter}
-            />
-            
-            <FilterDropdown
-              label="Department"
-              value={departmentFilter}
-              options={departments.map(dept => ({ label: dept, value: dept }))}
-              onChange={setDepartmentFilter}
-            />
-          </div>
+          <UnifiedEmployeeSearch
+            searchTerm={searchTerm}
+            onSearchTermChange={setSearchTerm}
+            activeFilters={{
+              role: roleFilter !== 'all' ? roleFilter : undefined,
+              department: departmentFilter !== 'all' ? departmentFilter : undefined,
+              status: statusFilter !== 'all' ? statusFilter : undefined
+            }}
+            onFiltersChange={(filters) => {
+              setRoleFilter(filters.role || 'all');
+              setDepartmentFilter(filters.department || 'all');
+              setStatusFilter(filters.status || 'all');
+            }}
+            roles={roles}
+            departments={departments}
+            designations={[]}
+            skills={['GST', 'Income Tax', 'Corporate Law', 'Compliance', 'Litigation', 'Advisory']}
+          />
         </CardHeader>
         
         <CardContent>

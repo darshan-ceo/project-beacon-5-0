@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { UnifiedClientSearch } from '@/components/masters/UnifiedClientSearch';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,8 +49,7 @@ export const ClientMasters: React.FC = () => {
   const { hasPermission } = useRBAC();
   const { checkDependencies, safeDelete } = useRelationships();
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterDateFrom, setFilterDateFrom] = useState<string>('');
-  const [filterDateTo, setFilterDateTo] = useState<string>('');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'Active' | 'Inactive' | 'Pending'>('all');
   const [clientModal, setClientModal] = useState<{ isOpen: boolean; mode: 'create' | 'edit' | 'view'; client?: Client | null }>({
     isOpen: false,
     mode: 'create',
@@ -59,7 +59,6 @@ export const ClientMasters: React.FC = () => {
     isOpen: false,
     contextClientId: undefined
   });
-  const [filterStatus, setFilterStatus] = useState<'all' | 'Active' | 'Inactive' | 'Pending'>('all');
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
 
@@ -92,26 +91,7 @@ export const ClientMasters: React.FC = () => {
       
     const matchesFilter = filterStatus === 'all' || client.status === filterStatus;
     
-    // Duration filter based on registration date
-    let matchesDateRange = true;
-    if (filterDateFrom || filterDateTo) {
-      const clientDate = client.registrationDate || (client as any).createdAt;
-      if (clientDate) {
-        const date = new Date(clientDate);
-        if (filterDateFrom) {
-          const fromDate = new Date(filterDateFrom);
-          matchesDateRange = matchesDateRange && date >= fromDate;
-        }
-        if (filterDateTo) {
-          const toDate = new Date(filterDateTo + 'T23:59:59');
-          matchesDateRange = matchesDateRange && date <= toDate;
-        }
-      } else {
-        matchesDateRange = false;
-      }
-    }
-    
-    return matchesSearch && matchesFilter && matchesDateRange;
+    return matchesSearch && matchesFilter;
   });
 
   const getPrimaryContact = (client: Client) => {
@@ -260,124 +240,21 @@ export const ClientMasters: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.2 }}
-        className="flex flex-col sm:flex-row gap-4 items-center justify-between"
       >
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by ID, name, GSTIN, PAN, or contact..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        
-        <div className="flex gap-2 flex-wrap">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                <Filter className="mr-2 h-4 w-4" />
-                Filter Status
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => setFilterStatus('all')}>
-                All Status
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setFilterStatus('Active')}>
-                Active
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterStatus('Inactive')}>
-                Inactive
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterStatus('Pending')}>
-                Pending
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          
-          <div className="flex gap-2 items-center">
-            <Input
-              type="date"
-              value={filterDateFrom}
-              onChange={(e) => setFilterDateFrom(e.target.value)}
-              placeholder="From Date"
-              className="w-40"
-              title="Filter by registration date (From)"
-            />
-            <span className="text-muted-foreground text-sm">to</span>
-            <Input
-              type="date"
-              value={filterDateTo}
-              onChange={(e) => setFilterDateTo(e.target.value)}
-              placeholder="To Date"
-              className="w-40"
-              title="Filter by registration date (To)"
-            />
-            {(filterDateFrom || filterDateTo) && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setFilterDateFrom('');
-                  setFilterDateTo('');
-                }}
-                title="Clear date filter"
-              >
-                Clear
-              </Button>
-            )}
-          </div>
-          
-          <Button 
-            variant="outline"
-            onClick={async () => {
-              if (filteredClients.length === 0) {
-                toast({
-                  title: "No data to export",
-                  description: "There are no clients matching your current filters.",
-                  variant: "destructive"
-                });
-                return;
-              }
-              
-              toast({
-                title: "Exporting data...",
-                description: "Preparing your client data export"
-              });
-              
-              try {
-                const { exportRows, prepareExportContext } = await import('@/utils/exporter');
-                
-                await exportRows({
-                  moduleKey: 'clients',
-                  rows: filteredClients,
-                  context: prepareExportContext(state),
-                  options: {
-                    format: 'xlsx',
-                    dateFormat: 'dd-MM-yyyy'
-                  }
-                });
-                
-                toast({
-                  title: "Export complete!",
-                  description: `Exported ${filteredClients.length} clients successfully`
-                });
-              } catch (error) {
-                console.error('Export error:', error);
-                toast({
-                  title: "Export failed",
-                  description: "Failed to export client data",
-                  variant: "destructive"
-                });
-              }
-            }}
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Export
-          </Button>
-        </div>
+        <UnifiedClientSearch
+          searchTerm={searchTerm}
+          onSearchTermChange={setSearchTerm}
+          activeFilters={{
+            status: filterStatus !== 'all' ? filterStatus : undefined
+          }}
+          onFiltersChange={(filters) => {
+            setFilterStatus(filters.status || 'all');
+          }}
+          clientGroups={[]}
+          states={[]}
+          consultants={[]}
+          industries={['Manufacturing', 'Services', 'Trading', 'IT/Software', 'Healthcare', 'Real Estate']}
+        />
       </motion.div>
 
       {/* Clients Table */}

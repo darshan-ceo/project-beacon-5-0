@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User, Scale, Clock, Phone, Mail, Search, Filter, Plus, Edit, Eye, Calendar, Upload, Download } from 'lucide-react';
 import { JudgeModal } from '@/components/modals/JudgeModal';
+import { UnifiedJudgeSearch } from '@/components/masters/UnifiedJudgeSearch';
 import { ImportWizard } from '@/components/importExport/ImportWizard';
 import { ExportWizard } from '@/components/importExport/ExportWizard';
 import { Judge, useAppState } from '@/contexts/AppStateContext';
@@ -33,7 +34,6 @@ const JudgeMasters: React.FC = () => {
   const [filterCourt, setFilterCourt] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterDesignation, setFilterDesignation] = useState<string>('all');
-  const [filterSpecialization, setFilterSpecialization] = useState<string>('all');
   const [importWizardOpen, setImportWizardOpen] = useState(false);
   const [exportWizardOpen, setExportWizardOpen] = useState(false);
 
@@ -51,10 +51,8 @@ const JudgeMasters: React.FC = () => {
     const matchesCourt = filterCourt === 'all' || courtName === filterCourt;
     const matchesStatus = filterStatus === 'all' || judge.status === filterStatus;
     const matchesDesignation = filterDesignation === 'all' || judge.designation === filterDesignation;
-    const matchesSpecialization = filterSpecialization === 'all' || 
-      (judge.specialization && judge.specialization.includes(filterSpecialization));
     
-    return matchesSearch && matchesCourt && matchesStatus && matchesDesignation && matchesSpecialization;
+    return matchesSearch && matchesCourt && matchesStatus && matchesDesignation;
   });
 
   const calculateYearsOfService = (appointmentDate: string) => {
@@ -156,48 +154,24 @@ const JudgeMasters: React.FC = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col gap-4 mb-6">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search judges by name, designation, or court..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <div className="flex flex-col sm:flex-row flex-wrap gap-2">
-              <FilterDropdown
-                label="Legal Forum"
-                value={filterCourt}
-                onChange={setFilterCourt}
-                options={uniqueCourts.map(court => ({ value: court, label: court }))}
-              />
-              <FilterDropdown
-                label="Status"
-                value={filterStatus}
-                onChange={setFilterStatus}
-                options={[
-                  { value: 'Active', label: 'Active' },
-                  { value: 'On Leave', label: 'On Leave' },
-                  { value: 'Retired', label: 'Retired' },
-                  { value: 'Transferred', label: 'Transferred' },
-                  { value: 'Deceased', label: 'Deceased' }
-                ]}
-              />
-              <FilterDropdown
-                label="Designation"
-                value={filterDesignation}
-                onChange={setFilterDesignation}
-                options={uniqueDesignations.map(designation => ({ value: designation, label: designation }))}
-              />
-              <FilterDropdown
-                label="Specialization"
-                value={filterSpecialization}
-                onChange={setFilterSpecialization}
-                options={uniqueSpecializations.map(spec => ({ value: spec, label: spec }))}
-              />
-            </div>
+          <div className="mb-6">
+            <UnifiedJudgeSearch
+              searchTerm={searchTerm}
+              onSearchTermChange={setSearchTerm}
+              activeFilters={{
+                legalForum: filterCourt !== 'all' ? filterCourt : undefined,
+                status: filterStatus !== 'all' ? filterStatus : undefined,
+                designation: filterDesignation !== 'all' ? filterDesignation : undefined
+              }}
+              onFiltersChange={(filters) => {
+                setFilterCourt(filters.legalForum || 'all');
+                setFilterStatus(filters.status || 'all');
+                setFilterDesignation(filters.designation || 'all');
+              }}
+              legalForums={uniqueCourts}
+              designations={uniqueDesignations}
+              specializations={uniqueSpecializations}
+            />
           </div>
 
           <div className="space-y-4">
@@ -296,18 +270,18 @@ const JudgeMasters: React.FC = () => {
             </div>
           </div>
 
-          {filteredJudges.length === 0 && (
-            <div className="text-center py-8">
-              <Scale className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-muted-foreground mb-2">No judges found</h3>
-              <p className="text-sm text-muted-foreground">
-                {searchTerm || filterCourt !== 'all' || filterStatus !== 'all' || filterDesignation !== 'all' || filterSpecialization !== 'all'
-                  ? 'Try adjusting your search criteria'
-                  : 'Get started by adding your first judge'
-                }
-              </p>
-            </div>
-          )}
+              {filteredJudges.length === 0 && (
+                <div className="text-center py-8">
+                  <Scale className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-muted-foreground mb-2">No judges found</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {searchTerm || filterCourt !== 'all' || filterStatus !== 'all' || filterDesignation !== 'all'
+                      ? 'Try adjusting your search criteria'
+                      : 'Get started by adding your first judge'
+                    }
+                  </p>
+                </div>
+              )}
         </CardContent>
       </Card>
 

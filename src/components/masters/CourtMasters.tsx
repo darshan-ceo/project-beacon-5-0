@@ -29,6 +29,7 @@ import { featureFlagService } from '@/services/featureFlagService';
 import { LegalAuthoritiesDashboard } from './LegalAuthoritiesDashboard';
 import { AUTHORITY_LEVEL_OPTIONS, AUTHORITY_LEVEL_METADATA } from '@/types/authority-level';
 import { MAPPING_SERVICES } from '@/utils/mappingServices';
+import { UnifiedCourtSearch } from '@/components/masters/UnifiedCourtSearch';
 
 
 export const CourtMasters: React.FC = () => {
@@ -146,60 +147,22 @@ export const CourtMasters: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="flex flex-col sm:flex-row flex-wrap gap-4"
       >
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search legal forums by name, jurisdiction, or location..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        
-        <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-full sm:w-48">
-            <Filter className="h-4 w-4 mr-2" />
-            <SelectValue placeholder="Filter by type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="Income Tax Appellate Tribunal">ITAT</SelectItem>
-            <SelectItem value="High Court">High Court</SelectItem>
-            <SelectItem value="Commissioner Appeals">Commissioner Appeals</SelectItem>
-            <SelectItem value="Settlement Commission">Settlement Commission</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Select value={filterJurisdiction} onValueChange={setFilterJurisdiction}>
-          <SelectTrigger className="w-full sm:w-48">
-            <MapPin className="h-4 w-4 mr-2" />
-            <SelectValue placeholder="Filter by jurisdiction" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Jurisdictions</SelectItem>
-            {uniqueJurisdictions.map(jurisdiction => (
-              <SelectItem key={jurisdiction} value={jurisdiction}>
-                {jurisdiction}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={filterAuthorityLevel} onValueChange={setFilterAuthorityLevel}>
-          <SelectTrigger className="w-full sm:w-60">
-            <Scale className="h-4 w-4 mr-2" />
-            <SelectValue placeholder="Filter by authority level" />
-          </SelectTrigger>
-          <SelectContent>
-            {AUTHORITY_LEVEL_OPTIONS.map(option => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <UnifiedCourtSearch
+          searchTerm={searchTerm}
+          onSearchTermChange={setSearchTerm}
+          activeFilters={{
+            type: filterType !== 'all' ? filterType : undefined,
+            jurisdiction: filterJurisdiction !== 'all' ? filterJurisdiction : undefined
+          }}
+          onFiltersChange={(filters) => {
+            setFilterType(filters.type || 'all');
+            setFilterJurisdiction(filters.jurisdiction || 'all');
+          }}
+          jurisdictions={uniqueJurisdictions}
+          states={[]}
+          types={['Income Tax Appellate Tribunal', 'High Court', 'Supreme Court', 'Commissioner Appeals', 'Settlement Commission']}
+        />
       </motion.div>
 
       {/* Courts Table */}
