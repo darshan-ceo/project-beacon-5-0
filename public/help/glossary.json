@@ -1,102 +1,135 @@
 [
   {
-    "term": "RAG",
-    "definition": "Retrieval-Augmented Generation - AI technique that combines information retrieval with text generation to provide contextually relevant responses",
-    "technicalNote": "Used in the AI assistant to provide contextually relevant responses based on case documents and legal precedents",
-    "category": "technical",
-    "relatedTerms": ["AI Assistant", "Document Analysis", "Natural Language Processing"]
+    "term": "AAAR",
+    "definition": "Appellate Authority for Advance Ruling - Reviews advance rulings issued by GAAR under GST Act Sections 98-101",
+    "technicalNote": "Hears appeals against GAAR orders under Section 108 of GST Act. Established at state level to resolve disputes on advance rulings.",
+    "relatedTerms": ["GAAR", "Advance Ruling", "Revisional Authority"],
+    "category": "legal"
   },
   {
-    "term": "SLA",
-    "definition": "Service Level Agreement - A commitment between a service provider and a client that defines the expected level of service",
-    "technicalNote": "System tracks SLA compliance for case processing times, response deadlines, and deliverable timelines",
-    "category": "process",
-    "relatedTerms": ["Timeline", "Escalation", "Compliance", "Performance Metrics"]
+    "term": "GAAR",
+    "definition": "GST Authority for Advance Ruling - Issues advance rulings on GST matters to provide clarity before transactions",
+    "technicalNote": "Constituted under Section 96 of GST Act. Provides rulings on classification, applicability of notifications, and tax liability.",
+    "relatedTerms": ["AAAR", "Advance Ruling", "GST"],
+    "category": "legal"
   },
   {
-    "term": "DRC",
-    "definition": "Dispute Resolution Council - Administrative body established to resolve specific types of legal disputes outside traditional court systems",
-    "category": "legal",
-    "relatedTerms": ["Alternative Dispute Resolution", "Arbitration", "Mediation", "Administrative Law"]
+    "term": "GSTAT",
+    "definition": "GST Appellate Tribunal - Second appellate authority hearing appeals against Commissioner (Appeals) orders",
+    "technicalNote": "Constituted under Section 109 CGST Act. State Benches handle regional matters, Principal Bench in Delhi handles larger questions of law.",
+    "relatedTerms": ["CESTAT", "First Appeal", "Tribunal", "Commissioner Appeals"],
+    "category": "legal"
   },
   {
-    "term": "ASMT",
-    "definition": "Assessment - Process of evaluating case merits, evidence quality, and determining appropriate legal strategy",
-    "technicalNote": "System supports automated case assessment workflows with checklist templates and evaluation criteria",
-    "category": "legal",
-    "relatedTerms": ["Case Evaluation", "Legal Strategy", "Due Diligence", "Risk Assessment"]
+    "term": "CESTAT",
+    "definition": "Customs, Excise and Service Tax Appellate Tribunal - Quasi-judicial body handling indirect tax disputes (pre-GST and continuing)",
+    "technicalNote": "Established under Section 129 of Customs Act, 1962. Handles appeals for Customs, erstwhile Central Excise, and Service Tax matters. Regional benches across India.",
+    "relatedTerms": ["GSTAT", "Tribunal", "Indirect Tax"],
+    "category": "legal"
   },
   {
-    "term": "RBAC",
-    "definition": "Role-Based Access Control - Security model that restricts system access to authorized users based on their assigned roles",
-    "technicalNote": "System uses hierarchical RBAC with roles like Admin, Partner/CA, Staff, and Client, each with specific permissions",
-    "category": "technical",
-    "relatedTerms": ["Permissions", "Security", "User Management", "Access Control"]
+    "term": "Adjudication Authority",
+    "definition": "Original authority (Proper Officer or Commissionerate) that issues the first order in GST disputes",
+    "technicalNote": "Powers derived from Section 73-74 of GST Act. Issues Show Cause Notices (SCN) and adjudication orders determining tax liability.",
+    "relatedTerms": ["Proper Officer", "SCN", "First Appeal"],
+    "category": "legal"
   },
   {
-    "term": "GST",
-    "definition": "Goods and Services Tax - Comprehensive indirect tax levied on the supply of goods and services",
-    "category": "legal",
-    "relatedTerms": ["Tax Law", "Compliance", "Revenue Law", "Indirect Taxation"]
+    "term": "First Appeal",
+    "definition": "Commissioner (Appeals) or Appellate Authority - First level of review against original adjudication orders",
+    "technicalNote": "Hears appeals under Section 107 of GST Act. Must be filed within 3 months of the order date. State-level appellate authority.",
+    "relatedTerms": ["Adjudication", "Commissioner Appeals", "Appellate Authority"],
+    "category": "legal"
   },
   {
-    "term": "DMS",
-    "definition": "Document Management System - Software platform for storing, organizing, tracking, and managing electronic documents",
-    "technicalNote": "Integrated with case management for automatic document categorization, version control, and secure sharing",
-    "category": "technical",
-    "relatedTerms": ["Document Control", "Version Management", "File Organization", "Digital Archive"]
+    "term": "Commissioner Appeals",
+    "definition": "Commissioner (Appeals) - Officer designated to hear first appeals against adjudication orders",
+    "technicalNote": "Appointed under GST Act to provide first tier of appellate review. Jurisdiction based on territorial assignment.",
+    "relatedTerms": ["First Appeal", "Appellate Authority"],
+    "category": "legal"
   },
   {
-    "term": "API",
-    "definition": "Application Programming Interface - Set of protocols and tools for building software applications and enabling system integration",
-    "technicalNote": "REST APIs available for calendar integration, document sync, and external system connections",
-    "category": "technical",
-    "relatedTerms": ["Integration", "Web Services", "Data Exchange", "System Connectivity"]
+    "term": "Revisional Authority",
+    "definition": "Authority under Section 108 GST Act empowered to revise orders prejudicial to revenue",
+    "technicalNote": "Commissioner or specified officer can revise orders passed by subordinate authorities within specified time limits. Suo moto power.",
+    "relatedTerms": ["AAAR", "Commissioner", "GST Act S.108"],
+    "category": "legal"
   },
   {
-    "term": "Escalation Matrix",
-    "definition": "Structured framework defining when and how issues should be escalated to higher levels of authority or expertise",
-    "technicalNote": "Automated escalation rules based on case priority, SLA breaches, and task overdue status",
-    "category": "process",
-    "relatedTerms": ["Issue Management", "Workflow", "Authority Levels", "Process Automation"]
+    "term": "Principal Bench",
+    "definition": "Head bench of an appellate tribunal, typically located at the national capital",
+    "technicalNote": "Principal Bench of CESTAT/GSTAT in New Delhi handles matters of national importance and larger benches. Precedential value higher than regional benches.",
+    "relatedTerms": ["GSTAT", "CESTAT", "Tribunal"],
+    "category": "legal"
   },
   {
-    "term": "Compliance Dashboard",
-    "definition": "Centralized view showing adherence to legal, regulatory, and internal requirements across all cases and processes",
-    "category": "compliance",
-    "relatedTerms": ["Regulatory Compliance", "Audit Trail", "Risk Management", "Governance"]
+    "term": "SCN",
+    "definition": "Show Cause Notice - Formal document issued by tax authorities requiring the taxpayer to explain why duty/tax should not be demanded",
+    "technicalNote": "Issued under GST Act before adjudication. Taxpayer must reply within specified timeframe (typically 30 days, extendable).",
+    "relatedTerms": ["Adjudication", "Proper Officer"],
+    "category": "process"
   },
   {
-    "term": "Case Lifecycle",
-    "definition": "Complete progression of a legal case from initial intake through resolution, including all stages and milestones",
-    "technicalNote": "System tracks 8 standard lifecycle stages with customizable workflows and automatic status updates",
-    "category": "process",
-    "relatedTerms": ["Workflow Management", "Stage Progression", "Milestone Tracking", "Process Control"]
+    "term": "Proper Officer",
+    "definition": "Officer empowered under GST law to perform specific functions like assessment, adjudication, or recovery",
+    "technicalNote": "Defined under GST Act. Powers assigned based on monetary limits and territorial jurisdiction.",
+    "relatedTerms": ["Adjudication Authority", "Commissionerate"],
+    "category": "legal"
   },
   {
-    "term": "Legal Precedent",
-    "definition": "Previous court decision that serves as an authoritative rule or pattern for future similar cases",
-    "category": "legal",
-    "relatedTerms": ["Case Law", "Judicial Decision", "Legal Authority", "Stare Decisis"]
+    "term": "Digital Filing",
+    "definition": "Electronic submission of legal documents, petitions, and pleadings through online portals",
+    "technicalNote": "GST authorities use ACES (Automation of Central Excise and Service Tax), CBIC Portal, or state-specific e-filing systems.",
+    "relatedTerms": ["ACES", "E-Filing", "CBIC Portal"],
+    "category": "technical"
   },
   {
-    "term": "Billable Hours",
-    "definition": "Time spent working on client matters that can be charged to the client according to the fee agreement",
-    "technicalNote": "System tracks time automatically with task-based logging and generates billing reports",
-    "category": "process",
-    "relatedTerms": ["Time Tracking", "Billing", "Client Charges", "Fee Management"]
+    "term": "ACES",
+    "definition": "Automation of Central Excise and Service Tax - Online portal for e-filing appeals and applications with CESTAT",
+    "technicalNote": "Mandatory for most CESTAT filings. Provides case status tracking, online payment, and document submission.",
+    "relatedTerms": ["CESTAT", "Digital Filing", "E-Filing"],
+    "category": "technical"
   },
   {
-    "term": "Discovery Process",
-    "definition": "Pre-trial procedure where parties exchange information and evidence relevant to the case",
-    "category": "legal",
-    "relatedTerms": ["Evidence Collection", "Information Exchange", "Document Production", "Depositions"]
+    "term": "Jurisdiction",
+    "definition": "Geographical or subject-matter area over which a legal authority has power to adjudicate",
+    "technicalNote": "In GST, jurisdiction determined by registered office location (CGST/SGST) or transaction origin. Tribunal jurisdiction by bench location.",
+    "relatedTerms": ["Authority Level", "Bench Location"],
+    "category": "legal"
   },
   {
-    "term": "Client Portal",
-    "definition": "Secure online platform where clients can access case information, documents, and communicate with their legal team",
-    "technicalNote": "Role-based access ensures clients only see their own cases and approved documents",
-    "category": "technical",
-    "relatedTerms": ["Client Access", "Secure Communication", "Document Sharing", "Self-Service"]
+    "term": "Bench Location",
+    "definition": "Physical location where a tribunal bench or appellate authority operates",
+    "technicalNote": "CESTAT has benches in major cities (Delhi, Mumbai, Chennai, Kolkata, Ahmedabad, Bangalore, etc.). Cases assigned based on jurisdiction.",
+    "relatedTerms": ["Jurisdiction", "CESTAT", "GSTAT"],
+    "category": "process"
+  },
+  {
+    "term": "Authority Level",
+    "definition": "Hierarchical tier in the GST adjudication and appellate system",
+    "technicalNote": "Ranges from Adjudication (original orders) through First Appeal, Tribunal, to High Court and Supreme Court. Each level has specific jurisdiction and powers.",
+    "relatedTerms": ["Jurisdiction", "GST Hierarchy"],
+    "category": "legal"
+  },
+  {
+    "term": "Tribunal",
+    "definition": "Quasi-judicial body with specialized expertise in specific areas of law like taxation, customs, or service tax",
+    "technicalNote": "CESTAT and GSTAT are key tribunals for indirect tax matters. Decisions can be appealed to High Court on questions of law.",
+    "relatedTerms": ["CESTAT", "GSTAT", "High Court"],
+    "category": "legal"
+  },
+  {
+    "term": "High Court",
+    "definition": "Constitutional court at state level with original and appellate jurisdiction",
+    "technicalNote": "Hears appeals from tribunals and lower courts. Issues writ petitions for constitutional matters. Decisions binding within state.",
+    "relatedTerms": ["Supreme Court", "Tribunal", "Writ Petition"],
+    "category": "legal"
+  },
+  {
+    "term": "Supreme Court",
+    "definition": "Apex court of India with final appellate jurisdiction on all matters",
+    "technicalNote": "Hears appeals from High Courts on substantial questions of law. Decisions are binding across India as precedent.",
+    "relatedTerms": ["High Court", "Precedent"],
+    "category": "legal"
   }
 ]
