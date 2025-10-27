@@ -22,7 +22,7 @@ import {
 import { CourtModal } from '@/components/modals/CourtModal';
 import { ImportWizard } from '@/components/importExport/ImportWizard';
 import { ExportWizard } from '@/components/importExport/ExportWizard';
-import { Court, useAppState } from '@/contexts/AppStateContext';
+import { Court, useAppState, getActiveCourtCases } from '@/contexts/AppStateContext';
 import { courtsService } from '@/services/courtsService';
 import { useRBAC } from '@/hooks/useAdvancedRBAC';
 import { featureFlagService } from '@/services/featureFlagService';
@@ -200,13 +200,14 @@ export const CourtMasters: React.FC = () => {
                   <TableHead>Contact Information</TableHead>
                   <TableHead>Pincode</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Active Cases</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredCourts.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12">
+                    <TableCell colSpan={7} className="text-center py-12">
                       <div className="flex flex-col items-center gap-2">
                         <Building2 className="h-12 w-12 text-muted-foreground opacity-50" />
                         <p className="text-muted-foreground">
@@ -331,6 +332,25 @@ export const CourtMasters: React.FC = () => {
                        >
                          {court.status || 'Active'}
                        </Badge>
+                     </TableCell>
+                     <TableCell>
+                       <div className="flex items-center gap-2">
+                         <Badge variant="secondary" className="font-mono">
+                           {getActiveCourtCases(court.id, state.cases)}
+                         </Badge>
+                         {getActiveCourtCases(court.id, state.cases) > 0 && (
+                           <Button
+                             variant="ghost"
+                             size="sm"
+                             onClick={() => {
+                               window.location.href = `/cases?courtId=${court.id}`;
+                             }}
+                             className="h-6 w-6 p-0"
+                           >
+                             <Eye className="h-3 w-3" />
+                           </Button>
+                         )}
+                       </div>
                      </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">

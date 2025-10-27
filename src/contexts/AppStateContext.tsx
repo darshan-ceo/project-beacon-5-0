@@ -2736,7 +2736,55 @@ export const useAppState = () => {
   return context;
 };
 
-// Export types  
+// Helper functions for court case calculations
+export const getActiveCourtCases = (courtId: string, cases: Case[]): number => {
+  return cases.filter(c => 
+    c.status === 'Active' && 
+    c.nextHearing?.courtId === courtId
+  ).length;
+};
+
+export const getTotalActiveCases = (cases: Case[]): number => {
+  return cases.filter(c => 
+    c.status === 'Active' && 
+    c.nextHearing?.courtId
+  ).length;
+};
+
+export const getJurisdictionInsights = (
+  courts: Court[], 
+  cases: Case[], 
+  jurisdiction: string
+) => {
+  // Filter courts by jurisdiction (contains match for flexibility)
+  const jurisdictionCourts = courts.filter(c => 
+    c.jurisdiction?.toLowerCase().includes(jurisdiction.toLowerCase()) &&
+    (c.status || 'Active') === 'Active'
+  );
+
+  // Calculate cases for each authority level
+  const insights = {
+    totalCourts: jurisdictionCourts.length,
+    totalActiveCases: 0,
+    byLevel: {} as Record<string, { count: number; cases: number }>
+  };
+
+  jurisdictionCourts.forEach(court => {
+    const caseCount = getActiveCourtCases(court.id, cases);
+    insights.totalActiveCases += caseCount;
+    
+    const level = court.authorityLevel || 'ADJUDICATION';
+    if (!insights.byLevel[level]) {
+      insights.byLevel[level] = { count: 0, cases: 0 };
+    }
+    insights.byLevel[level].count += 1;
+    insights.byLevel[level].cases += caseCount;
+  });
+
+  return insights;
+};
+
+// Export types
 export type { Case, Task, Client, Court, Judge, Document, Folder, Hearing, GeneratedForm };
 
 // New interfaces for enhanced Client Master
