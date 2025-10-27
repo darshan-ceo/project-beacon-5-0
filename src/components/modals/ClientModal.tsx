@@ -392,7 +392,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
 
       const clientToSave: Partial<Client> = {
         ...formData,
-        address: isAddressMasterEnabled ? undefined : formData.address, // Don't include address if using address master
+        address: formData.address, // Keep inline address as fallback for immediate display
         signatories,
         ...(isAddressMasterEnabled && addressId ? { addressId } : {})
       };

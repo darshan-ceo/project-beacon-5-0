@@ -163,7 +163,7 @@ export const ClientMasters: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [filteredClients]);
+  }, [filteredClients, state.clients.length]);
 
   // Helper to resolve state label from various address formats
   const getStateLabel = (client: Client): string => {
