@@ -8,7 +8,6 @@ import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
 import { Court, useAppState } from '@/contexts/AppStateContext';
 import { AddressForm } from '@/components/ui/AddressForm';
@@ -40,9 +39,6 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     jurisdiction: string;
     address: EnhancedAddressData;
     digitalFiling: boolean;
-    digitalFilingPortal?: 'ACES' | 'GST Portal' | 'CBIC Portal' | 'State Portal' | 'Other';
-    digitalFilingPortalUrl?: string;
-    digitalFilingInstructions?: string;
     workingDays: string[];
     phone?: string;
     email?: string;
@@ -91,9 +87,6 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
           ? { line1: courtData.address, line2: '', locality: '', district: '', cityId: '', stateId: '', pincode: '', countryId: 'IN', source: 'manual' } as EnhancedAddressData
           : courtData.address as EnhancedAddressData,
         digitalFiling: courtData.digitalFiling,
-        digitalFilingPortal: courtData.digitalFilingPortal,
-        digitalFilingPortalUrl: courtData.digitalFilingPortalUrl,
-        digitalFilingInstructions: courtData.digitalFilingInstructions,
         workingDays: courtData.workingDays,
         phone: courtData.phone || '',
         email: courtData.email || '',
@@ -204,9 +197,6 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         activeCases: 0,
         avgHearingTime: '30 mins',
         digitalFiling: formData.digitalFiling,
-        digitalFilingPortal: formData.digitalFilingPortal,
-        digitalFilingPortalUrl: formData.digitalFilingPortalUrl,
-        digitalFilingInstructions: formData.digitalFilingInstructions,
         workingDays: formData.workingDays,
         phone: formData.phone,
         email: formData.email,
@@ -244,9 +234,6 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         jurisdiction: formData.jurisdiction,
         address: formData.address,
         digitalFiling: formData.digitalFiling,
-        digitalFilingPortal: formData.digitalFilingPortal,
-        digitalFilingPortalUrl: formData.digitalFilingPortalUrl,
-        digitalFilingInstructions: formData.digitalFilingInstructions,
         workingDays: formData.workingDays,
         phone: formData.phone,
         email: formData.email,
@@ -552,7 +539,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
               <div className="flex-1">
                 <div className="flex items-center gap-1 mb-1">
                   <Label htmlFor="digitalFiling" className="text-sm font-medium">
-                    Digital Filing / E-Filing Enabled
+                    Digital Filing
                   </Label>
                   <FieldTooltip formId="create-court" fieldId="digitalFiling" />
                 </div>
@@ -570,54 +557,6 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                 disabled={mode === 'view'}
               />
             </div>
-
-            {/* Digital Filing Details - Show only if enabled */}
-            {formData.digitalFiling && (
-              <div className="space-y-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <div className="space-y-2">
-                  <Label htmlFor="digitalFilingPortal">E-Filing Portal</Label>
-                  <Select
-                    value={formData.digitalFilingPortal || ''}
-                    onValueChange={(value: any) => setFormData(prev => ({ ...prev, digitalFilingPortal: value }))}
-                    disabled={mode === 'view'}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select portal type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ACES">ACES (CESTAT)</SelectItem>
-                      <SelectItem value="GST Portal">GST Portal</SelectItem>
-                      <SelectItem value="CBIC Portal">CBIC Portal</SelectItem>
-                      <SelectItem value="State Portal">State E-Filing Portal</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="digitalFilingPortalUrl">Portal URL</Label>
-                  <Input
-                    id="digitalFilingPortalUrl"
-                    value={formData.digitalFilingPortalUrl || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, digitalFilingPortalUrl: e.target.value }))}
-                    placeholder="https://aces.gov.in/"
-                    type="url"
-                    disabled={mode === 'view'}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="digitalFilingInstructions">Filing Instructions (Optional)</Label>
-                  <Input
-                    id="digitalFilingInstructions"
-                    value={formData.digitalFilingInstructions || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, digitalFilingInstructions: e.target.value }))}
-                    placeholder="Brief instructions for e-filing (e.g., 'Register with DSC, use Form APL-01')"
-                    disabled={mode === 'view'}
-                  />
-                </div>
-              </div>
-            )}
 
             <div>
               <Label>Working Days</Label>

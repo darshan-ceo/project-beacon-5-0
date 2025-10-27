@@ -203,9 +203,6 @@ interface Court {
   activeCases: number;
   avgHearingTime: string;
   digitalFiling: boolean;
-  digitalFilingPortal?: 'ACES' | 'GST Portal' | 'CBIC Portal' | 'State Portal' | 'Other';
-  digitalFilingPortalUrl?: string;
-  digitalFilingInstructions?: string;
   workingDays: string[];
   addressId?: string;
   phone?: string;
@@ -1483,9 +1480,6 @@ const initialState: AppState = {
       activeCases: 89,
       avgHearingTime: '60 days',
       digitalFiling: true,
-      digitalFilingPortal: 'GST Portal',
-      digitalFilingPortalUrl: 'https://services.gst.gov.in/services/login',
-      digitalFilingInstructions: 'File through GST Portal appeals section with Form APL-01',
       workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
       phone: '+91-265-2434646',
       email: 'commr-appeals-ahd@gov.in',
@@ -1522,9 +1516,6 @@ const initialState: AppState = {
       activeCases: 234,
       avgHearingTime: '180 days',
       digitalFiling: true,
-      digitalFilingPortal: 'ACES',
-      digitalFilingPortalUrl: 'https://aces.gov.in/',
-      digitalFilingInstructions: 'Register on ACES portal. Use DSC for filing appeals.',
       workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
       phone: '+91-79-27542827',
       email: 'cestat.ahd@gov.in',

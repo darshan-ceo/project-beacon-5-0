@@ -10,9 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { GlossaryTooltip } from '@/components/help/GlossaryTooltip';
-import { Building2, MapPin, Phone, Mail, Search, Filter, Plus, Edit, Eye, Users, Upload, Download, Scale, Map, Globe, Navigation, Wifi, ExternalLink } from 'lucide-react';
+import { Building2, MapPin, Phone, Mail, Search, Filter, Plus, Edit, Eye, Users, Upload, Download, Scale, Map, Globe, Navigation } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -203,14 +201,13 @@ export const CourtMasters: React.FC = () => {
                   <TableHead>Pincode</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Active Cases</TableHead>
-                  <TableHead>Digital Filing</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredCourts.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-12">
+                    <TableCell colSpan={7} className="text-center py-12">
                       <div className="flex flex-col items-center gap-2">
                         <Building2 className="h-12 w-12 text-muted-foreground opacity-50" />
                         <p className="text-muted-foreground">
@@ -249,17 +246,12 @@ export const CourtMasters: React.FC = () => {
                           {court.city || 'N/A'}
                         </div>
                         {court.authorityLevel && (
-                          <GlossaryTooltip 
-                            term={AUTHORITY_LEVEL_METADATA[court.authorityLevel]?.label || court.authorityLevel}
-                            showIcon={false}
+                          <Badge 
+                            variant="outline" 
+                            className={`text-xs ${AUTHORITY_LEVEL_METADATA[court.authorityLevel]?.color || 'bg-gray-100'}`}
                           >
-                            <Badge 
-                              variant="outline" 
-                              className={`text-xs cursor-help ${AUTHORITY_LEVEL_METADATA[court.authorityLevel]?.color || 'bg-gray-100'}`}
-                            >
-                              {AUTHORITY_LEVEL_METADATA[court.authorityLevel]?.label || court.authorityLevel}
-                            </Badge>
-                          </GlossaryTooltip>
+                            {AUTHORITY_LEVEL_METADATA[court.authorityLevel]?.label || court.authorityLevel}
+                          </Badge>
                         )}
                       </div>
                     </TableCell>
@@ -341,72 +333,25 @@ export const CourtMasters: React.FC = () => {
                          {court.status || 'Active'}
                        </Badge>
                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="secondary" className="font-mono">
-                            {getActiveCourtCases(court.id, state.cases)}
-                          </Badge>
-                          {getActiveCourtCases(court.id, state.cases) > 0 && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                window.location.href = `/cases?courtId=${court.id}`;
-                              }}
-                              className="h-6 w-6 p-0"
-                            >
-                              <Eye className="h-3 w-3" />
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {court.digitalFiling ? (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Badge 
-                                  variant="default"
-                                  className="cursor-pointer flex items-center gap-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800"
-                                  onClick={() => {
-                                    if (court.digitalFilingPortalUrl) {
-                                      window.open(court.digitalFilingPortalUrl, '_blank');
-                                    }
-                                  }}
-                                >
-                                  <Wifi className="h-3 w-3" />
-                                  E-Filing
-                                  {court.digitalFilingPortalUrl && <ExternalLink className="h-3 w-3" />}
-                                </Badge>
-                              </TooltipTrigger>
-                              <TooltipContent side="left" className="max-w-xs">
-                                <div className="space-y-2">
-                                  <p className="font-medium text-sm">Digital Filing Enabled</p>
-                                  {court.digitalFilingPortal && (
-                                    <p className="text-xs">
-                                      <strong>Portal:</strong> {court.digitalFilingPortal}
-                                    </p>
-                                  )}
-                                  {court.digitalFilingInstructions && (
-                                    <p className="text-xs text-muted-foreground">
-                                      {court.digitalFilingInstructions}
-                                    </p>
-                                  )}
-                                  {court.digitalFilingPortalUrl && (
-                                    <p className="text-xs text-primary font-medium mt-2">
-                                      Click to open portal →
-                                    </p>
-                                  )}
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        ) : (
-                          <Badge variant="secondary" className="text-xs">
-                            Physical Filing
-                          </Badge>
-                        )}
-                      </TableCell>
+                     <TableCell>
+                       <div className="flex items-center gap-2">
+                         <Badge variant="secondary" className="font-mono">
+                           {getActiveCourtCases(court.id, state.cases)}
+                         </Badge>
+                         {getActiveCourtCases(court.id, state.cases) > 0 && (
+                           <Button
+                             variant="ghost"
+                             size="sm"
+                             onClick={() => {
+                               window.location.href = `/cases?courtId=${court.id}`;
+                             }}
+                             className="h-6 w-6 p-0"
+                           >
+                             <Eye className="h-3 w-3" />
+                           </Button>
+                         )}
+                       </div>
+                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Button 
