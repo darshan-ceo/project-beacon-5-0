@@ -19,6 +19,7 @@ interface ThreeLayerHelpProps {
   showTooltipIcon?: boolean;
   className?: string;
   forceOpen?: boolean; // External control for single-tooltip policy
+  showTooltipTitle?: boolean; // Control whether to show title in tooltip (default: true)
 }
 
 export const ThreeLayerHelp: React.FC<ThreeLayerHelpProps> = ({
@@ -27,7 +28,8 @@ export const ThreeLayerHelp: React.FC<ThreeLayerHelpProps> = ({
   showExplanation = true,
   showTooltipIcon = true,
   className = "",
-  forceOpen
+  forceOpen,
+  showTooltipTitle = true
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   
@@ -122,13 +124,15 @@ export const ThreeLayerHelp: React.FC<ThreeLayerHelpProps> = ({
                         transition={{ duration: 0.15, ease: "easeOut" }}
                         className="pointer-events-auto"
                       >
-                        <div className="p-3 space-y-2">
-                          <p className="font-semibold text-sm font-inter text-slate-50">
-                            {helpData.tooltip.title}
+                        <div className={cn("p-3", showTooltipTitle ? "space-y-2" : "")}>
+                          {showTooltipTitle && (
+                            <p className="font-semibold text-sm font-inter text-slate-50">
+                              {helpData.tooltip.title}
+                            </p>
+                          )}
+                          <p className="text-[13px] leading-5 text-slate-300 break-words">
+                            {helpData.tooltip.content}
                           </p>
-              <p className="text-[13px] leading-5 text-slate-300 break-words">
-                {helpData.tooltip.content}
-              </p>
                           {helpData.accessibility.keyboardShortcut && (
                             <div className="text-xs text-slate-400 pt-1 border-t border-slate-700">
                               Shortcut: <kbd className="px-1.5 py-0.5 bg-slate-700 rounded text-xs font-mono">{helpData.accessibility.keyboardShortcut}</kbd>

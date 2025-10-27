@@ -78,6 +78,7 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
     showExplanation?: boolean;
     showTooltipIcon?: boolean;
     className?: string;
+    showTooltipTitle?: boolean;
   }> = (props) => {
     return (
       <div
@@ -503,6 +504,7 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
                     helpId="followup_support_needed"
                     showExplanation={false}
                     showTooltipIcon={true}
+                    showTooltipTitle={false}
                   />
                 </div>
 
@@ -524,6 +526,7 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
                     helpId="followup_escalation"
                     showExplanation={false}
                     showTooltipIcon={true}
+                    showTooltipTitle={false}
                   />
                 </div>
 
@@ -546,6 +549,7 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
                     helpId="followup_client_interaction"
                     showExplanation={false}
                     showTooltipIcon={true}
+                    showTooltipTitle={false}
                   />
                 </div>
 
@@ -567,6 +571,7 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
                     helpId="followup_internal_review"
                     showExplanation={false}
                     showTooltipIcon={true}
+                    showTooltipTitle={false}
                   />
                 </div>
               </CardContent>
