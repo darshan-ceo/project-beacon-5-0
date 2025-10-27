@@ -10,6 +10,7 @@ export interface CreateCourtData {
   phone?: string;
   email?: string;
   benchLocation?: string;
+  status?: 'Active' | 'Inactive';
 }
 
 export interface UpdateCourtData extends Partial<CreateCourtData> {
@@ -32,7 +33,8 @@ class CourtsService {
       workingDays: data.workingDays,
       phone: data.phone,
       email: data.email,
-      benchLocation: data.benchLocation
+      benchLocation: data.benchLocation,
+      status: data.status || 'Active'
     };
 
     this.courts.push(newCourt);

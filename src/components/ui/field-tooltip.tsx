@@ -114,13 +114,79 @@ const fieldHelpRegistry: Record<string, Record<string, { title: string; content:
       title: 'Legal Forum Name',
       content: 'Official legal forum name as recognized legally. Include full designation and location.',
     },
+    'authorityLevel': {
+      title: 'GST Authority Level',
+      content: `Select the hierarchical level of this authority in GST litigation:
+      
+**Adjudication** → Original assessment/order issuing authority (Superintendent, Asst. Commissioner, Dy. Commissioner, Joint Commissioner)
+
+**First Appeal** → Commissioner (Appeals) - First level of review
+
+**Revisional** → Revisional Authority under S.108 GST Act / AAAR
+
+**Tribunal (State)** → GSTAT State Bench - Second appellate authority
+
+**Tribunal (Principal)** → GSTAT Principal Bench - Larger bench matters
+
+**High Court** → Constitutional remedy under Article 226
+
+**Supreme Court** → Final appeal under Article 136`,
+      learnMoreUrl: 'https://www.cbic.gov.in/resources//htdocs-cbec/gst/chapter20.pdf'
+    },
     'type': {
-      title: 'Legal Forum Type',
-      content: 'Hierarchy level: Supreme Court > High Court > District Court > Tribunal > Commission.',
+      title: 'Legacy Forum Type',
+      content: 'Historical classification maintained for backward compatibility. Use Authority Level for GST hierarchy.',
     },
     'jurisdiction': {
-      title: 'Jurisdiction',
-      content: 'Geographic or subject matter jurisdiction. Defines which cases can be filed here.',
+      title: 'Territorial Jurisdiction',
+      content: `The geographic area or taxpayer category this authority has power over.
+
+**Examples:**
+• Adjudication: "Ahmedabad South Division"
+• Commissioner Appeals: "Gujarat State - Zone 1"
+• Tribunal: "Gujarat State" or "All India" (Principal Bench)
+• High Court: "Gujarat State"
+• Supreme Court: "All India"
+
+For Commissionerates, use the official jurisdictional name (e.g., "Ahmedabad North GST Commissionerate").`,
+      learnMoreUrl: 'https://cbic-gst.gov.in/jurisdiction-pdf/jurisdiction.html'
+    },
+    'benchLocation': {
+      title: 'Bench Location',
+      content: `Physical location where this bench/authority sits for hearings.
+
+**For Tribunals:**
+• State Bench → Usually at State capital (e.g., "Ahmedabad")
+• Principal Bench → Delhi
+
+**For Commissioner Appeals:**
+Specify the city where hearings are conducted (may differ from commissionerate HQ).
+
+This helps in travel planning and hearing logistics.`
+    },
+    'digitalFiling': {
+      title: 'Digital Filing Enabled',
+      content: `Whether this authority accepts electronic filing of appeals/replies.
+
+**Enabled:** Authority uses ACES (Automation of Central Excise and Service Tax) portal or GST portal for e-filing.
+
+**Not Enabled:** Physical filing required (paper submissions at counter).
+
+Note: Most authorities post-2020 have digital filing. Check the authority's official website for confirmation.`,
+      learnMoreUrl: 'https://www.aces.gov.in/'
+    },
+    'status': {
+      title: 'Authority Status',
+      content: `Operational status of this legal forum:
+
+**Active:** Authority is currently operational and accepting new cases. Shows in all active listings.
+
+**Inactive:** Authority is closed, merged, or temporarily suspended. Hidden from active listings but preserved for:
+• Historical case reference
+• Completed case records
+• Organizational restructuring history
+
+Use 'Inactive' for merged Commissioner Appeals offices or abolished authorities without losing data.`
     },
     'total-judges': {
       title: 'Total Judges',

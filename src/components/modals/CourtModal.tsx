@@ -16,7 +16,7 @@ import { EnhancedAddressData, addressMasterService } from '@/services/addressMas
 import { featureFlagService } from '@/services/featureFlagService';
 import { MapPin, Phone, Mail, Building2, Scale } from 'lucide-react';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
-import { AUTHORITY_LEVEL_OPTIONS, AuthorityLevel } from '@/types/authority-level';
+import { AUTHORITY_LEVEL_OPTIONS, AUTHORITY_LEVEL_METADATA, AuthorityLevel } from '@/types/authority-level';
 
 interface CourtModalProps {
   isOpen: boolean;
@@ -44,6 +44,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     benchLocation?: string;
     addressId?: string;
     city?: string;
+    status: 'Active' | 'Inactive';
   }>({
     name: '',
     type: 'District Court',
@@ -65,7 +66,8 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     phone: '',
     email: '',
     benchLocation: '',
-    city: ''
+    city: '',
+    status: 'Active'
   });
   const [isAddressMasterEnabled, setIsAddressMasterEnabled] = useState(false);
 
@@ -86,7 +88,8 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         phone: courtData.phone || '',
         email: courtData.email || '',
         benchLocation: courtData.benchLocation || '',
-        city: courtData.city || ''
+        city: courtData.city || '',
+        status: courtData.status || 'Active'
       });
     } else if (mode === 'create') {
       setFormData({
@@ -109,7 +112,8 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         phone: '',
         email: '',
         benchLocation: '',
-        city: ''
+        city: '',
+        status: 'Active'
       });
     }
   }, [courtData, mode]);
@@ -157,7 +161,8 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         email: formData.email,
         benchLocation: formData.benchLocation,
         addressId: addressId,
-        city: formData.city
+        city: formData.city,
+        status: formData.status
       };
 
       // Link address if saved
@@ -192,7 +197,8 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         phone: formData.phone,
         email: formData.email,
         benchLocation: formData.benchLocation,
-        city: formData.city
+        city: formData.city,
+        status: formData.status
       };
 
       dispatch({ type: 'UPDATE_COURT', payload: updatedCourt });
@@ -253,10 +259,61 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
               />
             </div>
 
+            <div>
+              <div className="flex items-center gap-1">
+                <Label htmlFor="authorityLevel">GST Authority Level <span className="text-destructive">*</span></Label>
+                <FieldTooltip formId="create-court" fieldId="authorityLevel" />
+              </div>
+              <Select
+                value={formData.authorityLevel || ''}
+                onValueChange={(value) => setFormData(prev => ({ 
+                  ...prev, 
+                  authorityLevel: value as AuthorityLevel || undefined
+                }))}
+                disabled={mode === 'view'}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select GST authority level" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[400px]">
+                  {AUTHORITY_LEVEL_OPTIONS.filter(opt => opt.value !== 'all').map(option => {
+                    const metadata = AUTHORITY_LEVEL_METADATA[option.value as any];
+                    
+                    return (
+                      <SelectItem key={option.value} value={option.value}>
+                        <div className="flex flex-col py-1">
+                          <span className="font-medium">{option.label}</span>
+                          {metadata && (
+                            <span className="text-xs text-muted-foreground">
+                              {metadata.hint}
+                            </span>
+                          )}
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <div className="flex items-center gap-1">
-                  <Label htmlFor="type">Authority / Legal Forum Type <span className="text-destructive">*</span></Label>
+                  <Label htmlFor="jurisdiction">Jurisdiction <span className="text-destructive">*</span></Label>
+                  <FieldTooltip formId="create-court" fieldId="jurisdiction" />
+                </div>
+                <Input
+                  id="jurisdiction"
+                  value={formData.jurisdiction}
+                  onChange={(e) => setFormData(prev => ({ ...prev, jurisdiction: e.target.value }))}
+                  disabled={mode === 'view'}
+                  required
+                />
+              </div>
+              <div>
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="type">Legacy Type</Label>
                   <FieldTooltip formId="create-court" fieldId="type" />
                 </div>
                 <Select 
@@ -276,48 +333,6 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <div className="flex items-center gap-1">
-                  <Label htmlFor="jurisdiction">Jurisdiction <span className="text-destructive">*</span></Label>
-                  <FieldTooltip formId="create-court" fieldId="jurisdiction" />
-                </div>
-                <Input
-                  id="jurisdiction"
-                  value={formData.jurisdiction}
-                  onChange={(e) => setFormData(prev => ({ ...prev, jurisdiction: e.target.value }))}
-                  disabled={mode === 'view'}
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center gap-1">
-                <Label htmlFor="authorityLevel">Authority Level</Label>
-                <FieldTooltip formId="create-court" fieldId="authority-level" />
-              </div>
-              <Select
-                value={formData.authorityLevel || ''}
-                onValueChange={(value) => setFormData(prev => ({ 
-                  ...prev, 
-                  authorityLevel: value as AuthorityLevel || undefined
-                }))}
-                disabled={mode === 'view'}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select authority level (optional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  {AUTHORITY_LEVEL_OPTIONS.slice(1).map(option => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground mt-1">
-                Classification in the legal authority hierarchy
-              </p>
             </div>
           </div>
 
@@ -366,13 +381,14 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="city">City</Label>
+                  <Label htmlFor="city">City <span className="text-destructive">*</span></Label>
                   <Input
                     id="city"
                     value={formData.city}
                     onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
                     disabled={mode === 'view'}
                     placeholder="Enter city or district"
+                    required
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     City or district where authority is located
@@ -416,14 +432,54 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
               <h3 className="text-sm font-semibold">Legal Forum Details</h3>
             </div>
 
-            <div className="flex items-center space-x-2">
+            {/* Status Toggle */}
+            <div className="flex items-center space-x-2 p-4 border rounded-lg">
+              <div className="flex-1">
+                <div className="flex items-center gap-1 mb-1">
+                  <Label htmlFor="status" className="text-sm font-medium">
+                    Status
+                  </Label>
+                  <FieldTooltip formId="create-court" fieldId="status" />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {formData.status === 'Active' 
+                    ? 'Authority is operational and accepting cases' 
+                    : 'Authority is closed or merged - hidden from active listings'
+                  }
+                </p>
+              </div>
+              <Switch
+                id="status"
+                checked={formData.status === 'Active'}
+                onCheckedChange={(checked) => setFormData(prev => ({ 
+                  ...prev, 
+                  status: checked ? 'Active' : 'Inactive' 
+                }))}
+                disabled={mode === 'view'}
+              />
+            </div>
+
+            <div className="flex items-center space-x-2 p-4 border rounded-lg">
+              <div className="flex-1">
+                <div className="flex items-center gap-1 mb-1">
+                  <Label htmlFor="digitalFiling" className="text-sm font-medium">
+                    Digital Filing
+                  </Label>
+                  <FieldTooltip formId="create-court" fieldId="digitalFiling" />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {formData.digitalFiling 
+                    ? 'Authority accepts electronic filing (ACES/GST Portal)' 
+                    : 'Physical filing required at counter'
+                  }
+                </p>
+              </div>
               <Switch
                 id="digitalFiling"
                 checked={formData.digitalFiling}
                 onCheckedChange={(checked) => setFormData(prev => ({ ...prev, digitalFiling: checked }))}
                 disabled={mode === 'view'}
               />
-              <Label htmlFor="digitalFiling">Digital Filing Enabled</Label>
             </div>
 
             <div>

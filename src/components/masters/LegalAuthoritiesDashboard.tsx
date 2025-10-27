@@ -10,15 +10,16 @@ import {
   Activity,
   Shield 
 } from 'lucide-react';
-import { MOCK_LEGAL_AUTH_COUNTS } from '@/mock/legal-authorities';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useAppState } from '@/contexts/AppStateContext';
+import { AuthorityLevel } from '@/types/authority-level';
 
 interface DashboardCard {
   key: string;
   label: string;
   hint: string;
   tooltip: string;
-  getValue: (data: typeof MOCK_LEGAL_AUTH_COUNTS) => number;
+  getValue: (courts: any[]) => number;
   icon: any;
   gradient: string;
 }
@@ -29,16 +30,16 @@ const DASHBOARD_CARDS: DashboardCard[] = [
     label: 'Total Legal Forums',
     hint: 'Across all entries',
     tooltip: 'Total count of forum entries configured in master database',
-    getValue: (d) => d.totalLegalForums,
+    getValue: (courts) => courts.length,
     icon: Building2,
     gradient: 'from-blue-500 to-cyan-500'
   },
   {
-    key: 'TOTAL_AUTHORITIES',
-    label: 'Total Authorities',
-    hint: 'Sum across hierarchy',
-    tooltip: 'Sum of all authorities across hierarchy levels (Adjudication → Supreme Court)',
-    getValue: (d) => Object.values(d.levels).reduce((a, b) => a + b, 0),
+    key: 'ACTIVE_AUTHORITIES',
+    label: 'Active Authorities',
+    hint: 'Operational forums',
+    tooltip: 'Count of authorities currently accepting cases (excludes inactive/merged forums)',
+    getValue: (courts) => courts.filter(c => (c.status || 'Active') === 'Active').length,
     icon: ClipboardList,
     gradient: 'from-purple-500 to-pink-500'
   },
@@ -47,7 +48,7 @@ const DASHBOARD_CARDS: DashboardCard[] = [
     label: 'Adjudication Authority',
     hint: 'Original authority',
     tooltip: 'Proper Officer / Commissionerate - Original adjudicating authority',
-    getValue: (d) => d.levels.ADJUDICATION,
+    getValue: (courts) => courts.filter(c => c.authorityLevel === 'ADJUDICATION' && (c.status || 'Active') === 'Active').length,
     icon: Gavel,
     gradient: 'from-blue-400 to-blue-600'
   },
@@ -56,7 +57,7 @@ const DASHBOARD_CARDS: DashboardCard[] = [
     label: 'First Appeal',
     hint: 'Commissioner (Appeals) / AA',
     tooltip: 'First appellate authority - Commissioner (Appeals) / Appellate Authority',
-    getValue: (d) => d.levels.FIRST_APPEAL,
+    getValue: (courts) => courts.filter(c => c.authorityLevel === 'FIRST_APPEAL' && (c.status || 'Active') === 'Active').length,
     icon: Scale,
     gradient: 'from-green-400 to-green-600'
   },
@@ -65,7 +66,7 @@ const DASHBOARD_CARDS: DashboardCard[] = [
     label: 'Revisional Authority',
     hint: 'S.108 GST / Revisional',
     tooltip: 'Revisional jurisdiction under Section 108 GST Act and similar provisions',
-    getValue: (d) => d.levels.REVISIONAL,
+    getValue: (courts) => courts.filter(c => c.authorityLevel === 'REVISIONAL' && (c.status || 'Active') === 'Active').length,
     icon: Activity,
     gradient: 'from-yellow-400 to-amber-600'
   },
@@ -74,7 +75,7 @@ const DASHBOARD_CARDS: DashboardCard[] = [
     label: 'GTAT / CESTAT / ITAT',
     hint: 'Tribunal benches',
     tooltip: 'Appellate tribunal benches - GTAT, CESTAT, ITAT, and other specialized tribunals',
-    getValue: (d) => d.levels.TRIBUNAL,
+    getValue: (courts) => courts.filter(c => c.authorityLevel === 'TRIBUNAL' && (c.status || 'Active') === 'Active').length,
     icon: Landmark,
     gradient: 'from-purple-400 to-purple-600'
   },
@@ -83,7 +84,7 @@ const DASHBOARD_CARDS: DashboardCard[] = [
     label: 'Principal Bench',
     hint: 'Head bench of tribunal',
     tooltip: 'Principal/Head bench of appellate tribunals with national jurisdiction',
-    getValue: (d) => d.levels.PRINCIPAL_BENCH,
+    getValue: (courts) => courts.filter(c => c.authorityLevel === 'PRINCIPAL_BENCH' && (c.status || 'Active') === 'Active').length,
     icon: University,
     gradient: 'from-indigo-400 to-indigo-600'
   },
@@ -92,7 +93,7 @@ const DASHBOARD_CARDS: DashboardCard[] = [
     label: 'High Court',
     hint: 'State jurisdiction',
     tooltip: 'State High Courts - Constitutional courts with appellate jurisdiction',
-    getValue: (d) => d.levels.HIGH_COURT,
+    getValue: (courts) => courts.filter(c => c.authorityLevel === 'HIGH_COURT' && (c.status || 'Active') === 'Active').length,
     icon: Shield,
     gradient: 'from-orange-400 to-orange-600'
   },
@@ -101,21 +102,22 @@ const DASHBOARD_CARDS: DashboardCard[] = [
     label: 'Supreme Court',
     hint: 'Apex court',
     tooltip: 'Supreme Court of India - Apex constitutional court with national jurisdiction',
-    getValue: (d) => d.levels.SUPREME_COURT,
+    getValue: (courts) => courts.filter(c => c.authorityLevel === 'SUPREME_COURT' && (c.status || 'Active') === 'Active').length,
     icon: University,
     gradient: 'from-red-400 to-red-600'
   }
 ];
 
 export const LegalAuthoritiesDashboard: React.FC = () => {
-  const data = MOCK_LEGAL_AUTH_COUNTS;
+  const { state } = useAppState();
+  const courts = state.courts || [];
 
   return (
     <TooltipProvider>
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
         {DASHBOARD_CARDS.map((card) => {
           const Icon = card.icon;
-          const value = card.getValue(data);
+          const value = card.getValue(courts);
 
           return (
             <Tooltip key={card.key}>

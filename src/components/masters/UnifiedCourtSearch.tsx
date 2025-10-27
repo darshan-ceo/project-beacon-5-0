@@ -1,6 +1,7 @@
 import React from 'react';
-import { Scale, MapPin, Tag, Building } from 'lucide-react';
+import { Scale, MapPin, Tag, Building, Wifi } from 'lucide-react';
 import { UnifiedModuleSearch, FilterConfig } from '@/components/search/UnifiedModuleSearch';
+import { AUTHORITY_LEVEL_OPTIONS } from '@/types/authority-level';
 
 interface UnifiedCourtSearchProps {
   searchTerm: string;
@@ -23,25 +24,21 @@ export const UnifiedCourtSearch: React.FC<UnifiedCourtSearchProps> = ({
 }) => {
   const filterConfig: FilterConfig[] = [
     {
+      id: 'authorityLevel',
+      label: 'Authority Level',
+      type: 'dropdown',
+      icon: Scale,
+      options: AUTHORITY_LEVEL_OPTIONS.map(level => ({
+        label: level.label,
+        value: level.value
+      }))
+    },
+    {
       id: 'jurisdiction',
       label: 'Jurisdiction',
       type: 'dropdown',
-      icon: Scale,
-      options: jurisdictions.map(jurisdiction => ({ label: jurisdiction, value: jurisdiction }))
-    },
-    {
-      id: 'state',
-      label: 'State',
-      type: 'dropdown',
       icon: MapPin,
-      options: states.map(state => ({ label: state, value: state }))
-    },
-    {
-      id: 'type',
-      label: 'Type',
-      type: 'dropdown',
-      icon: Building,
-      options: types.map(type => ({ label: type, value: type }))
+      options: jurisdictions.map(jurisdiction => ({ label: jurisdiction, value: jurisdiction }))
     },
     {
       id: 'status',
@@ -49,9 +46,28 @@ export const UnifiedCourtSearch: React.FC<UnifiedCourtSearchProps> = ({
       type: 'dropdown',
       icon: Tag,
       options: [
+        { label: 'All Status', value: 'all' },
         { label: 'Active', value: 'Active' },
         { label: 'Inactive', value: 'Inactive' }
       ]
+    },
+    {
+      id: 'digitalFiling',
+      label: 'Digital Filing',
+      type: 'dropdown',
+      icon: Wifi,
+      options: [
+        { label: 'All', value: 'all' },
+        { label: 'Enabled', value: 'true' },
+        { label: 'Not Enabled', value: 'false' }
+      ]
+    },
+    {
+      id: 'type',
+      label: 'Legacy Type',
+      type: 'dropdown',
+      icon: Building,
+      options: types.map(type => ({ label: type, value: type }))
     }
   ];
 

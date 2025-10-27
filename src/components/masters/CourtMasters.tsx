@@ -44,6 +44,8 @@ export const CourtMasters: React.FC = () => {
   const [filterType, setFilterType] = useState<string>('all');
   const [filterJurisdiction, setFilterJurisdiction] = useState<string>('all');
   const [filterAuthorityLevel, setFilterAuthorityLevel] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterDigitalFiling, setFilterDigitalFiling] = useState<string>('all');
   const [importWizardOpen, setImportWizardOpen] = useState(false);
   const [exportWizardOpen, setExportWizardOpen] = useState(false);
 
@@ -60,8 +62,12 @@ export const CourtMasters: React.FC = () => {
     
     const matchesType = filterType === 'all' || court.type === filterType;
     const matchesAuthorityLevel = filterAuthorityLevel === 'all' || court.authorityLevel === filterAuthorityLevel;
+    const matchesStatus = filterStatus === 'all' || (court.status || 'Active') === filterStatus;
+    const matchesDigitalFiling = filterDigitalFiling === 'all' || 
+      (filterDigitalFiling === 'true' && court.digitalFiling) ||
+      (filterDigitalFiling === 'false' && !court.digitalFiling);
     
-    return matchesSearch && matchesType && matchesAuthorityLevel;
+    return matchesSearch && matchesType && matchesAuthorityLevel && matchesStatus && matchesDigitalFiling;
   });
 
   const getTypeColor = (type: string) => {
@@ -153,11 +159,17 @@ export const CourtMasters: React.FC = () => {
           onSearchTermChange={setSearchTerm}
           activeFilters={{
             type: filterType !== 'all' ? filterType : undefined,
-            jurisdiction: filterJurisdiction !== 'all' ? filterJurisdiction : undefined
+            jurisdiction: filterJurisdiction !== 'all' ? filterJurisdiction : undefined,
+            authorityLevel: filterAuthorityLevel !== 'all' ? filterAuthorityLevel : undefined,
+            status: filterStatus !== 'all' ? filterStatus : undefined,
+            digitalFiling: filterDigitalFiling !== 'all' ? filterDigitalFiling : undefined
           }}
           onFiltersChange={(filters) => {
             setFilterType(filters.type || 'all');
             setFilterJurisdiction(filters.jurisdiction || 'all');
+            setFilterAuthorityLevel(filters.authorityLevel || 'all');
+            setFilterStatus(filters.status || 'all');
+            setFilterDigitalFiling(filters.digitalFiling || 'all');
           }}
           jurisdictions={uniqueJurisdictions}
           states={[]}
@@ -309,11 +321,17 @@ export const CourtMasters: React.FC = () => {
                          <span className="text-muted-foreground text-sm">N/A</span>
                        )}
                      </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">
-                        Active
-                      </Badge>
-                    </TableCell>
+                     <TableCell>
+                       <Badge 
+                         variant={(court.status || 'Active') === 'Active' ? 'default' : 'destructive'}
+                         className={(court.status || 'Active') === 'Active'
+                           ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' 
+                           : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+                         }
+                       >
+                         {court.status || 'Active'}
+                       </Badge>
+                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Button 

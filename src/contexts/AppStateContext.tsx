@@ -209,6 +209,7 @@ interface Court {
   email?: string;
   benchLocation?: string;
   city?: string; // City/District location
+  status: 'Active' | 'Inactive'; // Operational status of the authority
 }
 
 interface Judge {
@@ -1416,38 +1417,131 @@ const initialState: AppState = {
     }
   ],
   courts: [
+    // Adjudication Level
     {
       id: '1',
-      name: 'Income Tax Appellate Tribunal',
+      name: 'Superintendent, Central GST, Ahmedabad South Division',
       type: 'Tribunal',
-      jurisdiction: 'Mumbai',
-      address: 'Aayakar Bhavan, M.K. Road, Mumbai',
-      activeCases: 450,
-      avgHearingTime: '45 mins',
+      authorityLevel: 'ADJUDICATION',
+      jurisdiction: 'Ahmedabad South Division',
+      address: 'Central Revenue Building, Ashram Road, Ahmedabad - 380009',
+      activeCases: 145,
+      avgHearingTime: '0 days',
       digitalFiling: true,
-      workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+      workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+      phone: '+91-79-26580801',
+      email: 'cgstamd-south@gov.in',
+      city: 'Ahmedabad',
+      benchLocation: 'Ahmedabad',
+      status: 'Active'
     },
+    // First Appeal
     {
       id: '2',
-      name: 'Supreme Court of India',
-      type: 'Supreme Court',
-      jurisdiction: 'National',
-      address: 'Tilak Marg, New Delhi - 110001',
-      activeCases: 70000,
-      avgHearingTime: '90 mins',
+      name: 'Commissioner (Appeals), CGST Zone - Ahmedabad',
+      type: 'Tribunal',
+      authorityLevel: 'FIRST_APPEAL',
+      jurisdiction: 'Ahmedabad Zone (South Gujarat)',
+      address: 'GST Bhavan, Race Course Circle, Vadodara - 390007',
+      activeCases: 89,
+      avgHearingTime: '60 days',
       digitalFiling: true,
-      workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+      workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+      phone: '+91-265-2434646',
+      email: 'commr-appeals-ahd@gov.in',
+      city: 'Vadodara',
+      benchLocation: 'Vadodara',
+      status: 'Active'
     },
+    // Tribunal - State Bench
     {
       id: '3',
-      name: 'GST Commissioner Office',
-      type: 'Commission',
-      jurisdiction: 'Mumbai Zone',
-      address: 'GST Bhavan, BKC, Mumbai - 400051',
-      activeCases: 1200,
-      avgHearingTime: '30 mins',
+      name: 'Customs, Excise & Service Tax Appellate Tribunal (CESTAT) - Ahmedabad Bench',
+      type: 'Tribunal',
+      authorityLevel: 'TRIBUNAL',
+      jurisdiction: 'Gujarat State',
+      address: '2nd Floor, Customs House, Navrangpura, Ahmedabad - 380009',
+      activeCases: 234,
+      avgHearingTime: '180 days',
       digitalFiling: true,
-      workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+      workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+      phone: '+91-79-27542827',
+      email: 'cestat.ahd@gov.in',
+      city: 'Ahmedabad',
+      benchLocation: 'Ahmedabad',
+      status: 'Active'
+    },
+    // Tribunal - Principal Bench
+    {
+      id: '4',
+      name: 'CESTAT - Principal Bench, New Delhi',
+      type: 'Tribunal',
+      authorityLevel: 'PRINCIPAL_BENCH',
+      jurisdiction: 'All India',
+      address: 'West Block No.2, Wing 5, R.K. Puram, New Delhi - 110066',
+      activeCases: 1567,
+      avgHearingTime: '240 days',
+      digitalFiling: true,
+      workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+      phone: '+91-11-26178340',
+      email: 'cestat.pb@gov.in',
+      city: 'New Delhi',
+      benchLocation: 'New Delhi',
+      status: 'Active'
+    },
+    // High Court
+    {
+      id: '5',
+      name: 'High Court of Gujarat',
+      type: 'High Court',
+      authorityLevel: 'HIGH_COURT',
+      jurisdiction: 'Gujarat State',
+      address: 'High Court of Gujarat, Sola, Ahmedabad - 380060',
+      activeCases: 78,
+      avgHearingTime: '365 days',
+      digitalFiling: true,
+      workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+      phone: '+91-79-23969000',
+      email: 'hcg-registrar@gov.in',
+      city: 'Ahmedabad',
+      benchLocation: 'Ahmedabad (Sola)',
+      status: 'Active'
+    },
+    // Supreme Court
+    {
+      id: '6',
+      name: 'Supreme Court of India',
+      type: 'Supreme Court',
+      authorityLevel: 'SUPREME_COURT',
+      jurisdiction: 'All India',
+      address: 'Tilak Marg, New Delhi - 110201',
+      activeCases: 12,
+      avgHearingTime: '730 days',
+      digitalFiling: true,
+      workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+      phone: '+91-11-23388922',
+      email: 'sci-registry@gov.in',
+      city: 'New Delhi',
+      benchLocation: 'New Delhi',
+      status: 'Active'
+    },
+    // Example: Inactive Authority
+    {
+      id: '7',
+      name: 'Commissioner (Appeals) - Old Rajkot Office [Merged 2021]',
+      type: 'Tribunal',
+      authorityLevel: 'FIRST_APPEAL',
+      jurisdiction: 'Rajkot Division (Now merged with Ahmedabad Zone)',
+      address: 'Old GST Building, Rajkot - 360001',
+      activeCases: 0,
+      avgHearingTime: '0 days',
+      digitalFiling: false,
+      workingDays: [],
+      phone: '',
+      email: '',
+      city: 'Rajkot',
+      benchLocation: 'Rajkot',
+      status: 'Inactive'
     }
   ],
   judges: [
