@@ -30,6 +30,7 @@ import { LegalAuthoritiesDashboard } from './LegalAuthoritiesDashboard';
 import { AUTHORITY_LEVEL_OPTIONS, AUTHORITY_LEVEL_METADATA } from '@/types/authority-level';
 import { MAPPING_SERVICES } from '@/utils/mappingServices';
 import { UnifiedCourtSearch } from '@/components/masters/UnifiedCourtSearch';
+import { GlossaryTooltip } from '@/components/help/GlossaryTooltip';
 
 
 export const CourtMasters: React.FC = () => {
@@ -246,12 +247,16 @@ export const CourtMasters: React.FC = () => {
                           {court.city || 'N/A'}
                         </div>
                         {court.authorityLevel && (
-                          <Badge 
-                            variant="outline" 
-                            className={`text-xs ${AUTHORITY_LEVEL_METADATA[court.authorityLevel]?.color || 'bg-gray-100'}`}
+                          <GlossaryTooltip 
+                            term={AUTHORITY_LEVEL_METADATA[court.authorityLevel]?.label || court.authorityLevel}
                           >
-                            {AUTHORITY_LEVEL_METADATA[court.authorityLevel]?.label || court.authorityLevel}
-                          </Badge>
+                            <Badge 
+                              variant="outline" 
+                              className={`text-xs ${AUTHORITY_LEVEL_METADATA[court.authorityLevel]?.color || 'bg-gray-100'}`}
+                            >
+                              {AUTHORITY_LEVEL_METADATA[court.authorityLevel]?.label || court.authorityLevel}
+                            </Badge>
+                          </GlossaryTooltip>
                         )}
                       </div>
                     </TableCell>

@@ -98,5 +98,66 @@
     "technicalNote": "Role-based access ensures clients only see their own cases and approved documents",
     "category": "technical",
     "relatedTerms": ["Client Access", "Secure Communication", "Document Sharing", "Self-Service"]
+  },
+  {
+    "term": "Adjudication Authority",
+    "definition": "Original adjudicating authority that makes the initial decision in tax and regulatory matters",
+    "technicalNote": "Proper Officer / Commissionerate level - first level of decision-making",
+    "category": "legal",
+    "relatedTerms": ["First Appeal", "Proper Officer", "Commissionerate"]
+  },
+  {
+    "term": "First Appeal",
+    "definition": "First appellate authority that reviews decisions made by adjudication authorities",
+    "technicalNote": "Commissioner (Appeals) / Appellate Authority under GST Act",
+    "category": "legal",
+    "relatedTerms": ["Adjudication Authority", "Commissioner Appeals", "Appellate Authority"]
+  },
+  {
+    "term": "Revisional Authority",
+    "definition": "Authority with revisional jurisdiction to review and modify orders of lower authorities",
+    "technicalNote": "Section 108 GST Act / Revisional Board - supervisory jurisdiction",
+    "category": "legal",
+    "relatedTerms": ["First Appeal", "Tribunal", "Supervisory Jurisdiction"]
+  },
+  {
+    "term": "GTAT",
+    "definition": "Goods and Services Tax Appellate Tribunal - quasi-judicial body hearing appeals against orders of appellate authorities",
+    "technicalNote": "Tribunal bench level - established under GST Act for dispute resolution",
+    "category": "legal",
+    "relatedTerms": ["CESTAT", "ITAT", "Tribunal", "Principal Bench"]
+  },
+  {
+    "term": "CESTAT",
+    "definition": "Customs, Excise and Service Tax Appellate Tribunal - quasi-judicial body for customs and indirect tax disputes",
+    "category": "legal",
+    "relatedTerms": ["GTAT", "ITAT", "Tribunal", "Customs"]
+  },
+  {
+    "term": "ITAT",
+    "definition": "Income Tax Appellate Tribunal - quasi-judicial body hearing appeals on income tax matters",
+    "category": "legal",
+    "relatedTerms": ["GTAT", "CESTAT", "Tribunal", "Income Tax"]
+  },
+  {
+    "term": "Principal Bench",
+    "definition": "Head bench of a tribunal with administrative and jurisdictional authority over regional benches",
+    "technicalNote": "Principal/Head Bench coordinates with regional benches and handles complex matters",
+    "category": "legal",
+    "relatedTerms": ["Tribunal", "GTAT", "CESTAT", "ITAT"]
+  },
+  {
+    "term": "High Court",
+    "definition": "Constitutional court at the state level with original and appellate jurisdiction",
+    "technicalNote": "State high courts hear appeals from tribunals and exercise writ jurisdiction",
+    "category": "legal",
+    "relatedTerms": ["Supreme Court", "Tribunal", "Constitutional Court", "Writ Jurisdiction"]
+  },
+  {
+    "term": "Supreme Court",
+    "definition": "Apex court of India with final appellate jurisdiction over all courts and tribunals",
+    "technicalNote": "Constitutional court at national level - highest judicial authority in India",
+    "category": "legal",
+    "relatedTerms": ["High Court", "Constitutional Court", "Apex Court"]
   }
 ]
