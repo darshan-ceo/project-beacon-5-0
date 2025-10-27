@@ -325,7 +325,7 @@ export const ClientMasters: React.FC = () => {
                           <MapPin className="h-3 w-3" />
                           {(() => {
                             if (typeof client.address === 'object' && client.address !== null) {
-                              return client.address.state || 'N/A';
+                              return client.address.stateName || client.address.state || 'N/A';
                             }
                             return 'N/A';
                           })()}
