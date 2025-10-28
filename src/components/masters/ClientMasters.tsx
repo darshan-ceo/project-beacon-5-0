@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { reportsService } from '@/services/reportsService';
 import { addressLookupService } from '@/services/addressLookupService';
@@ -165,6 +165,22 @@ export const ClientMasters: React.FC = () => {
     };
   }, [filteredClients, state.clients.length]);
 
+  // Compute unique client groups for filters
+  const uniqueClientGroups = useMemo(() => {
+    return state.clientGroups
+      .filter(g => g.status === 'Active')
+      .map(g => g.name)
+      .sort();
+  }, [state.clientGroups]);
+
+  // Compute unique consultants from employees
+  const uniqueConsultants = useMemo(() => {
+    return state.employees
+      .filter(e => e.status === 'Active')
+      .map(e => e.full_name)
+      .sort();
+  }, [state.employees]);
+
   // Helper to resolve state label from various address formats
   const getStateLabel = (client: Client): string => {
     // First, try inline address (for legacy or enhanced inline format)
@@ -189,6 +205,20 @@ export const ClientMasters: React.FC = () => {
     // Last resort: show the code if no name found
     return addr.stateId || 'N/A';
   };
+
+  // Compute unique states from client addresses
+  const uniqueStates = useMemo(() => {
+    const stateSet = new Set<string>();
+    
+    state.clients.forEach(client => {
+      const stateLabel = getStateLabel(client);
+      if (stateLabel && stateLabel !== 'N/A') {
+        stateSet.add(stateLabel);
+      }
+    });
+    
+    return Array.from(stateSet).sort();
+  }, [state.clients, statesMap, entityAddresses]);
 
   return (
     <div className="space-y-6">
@@ -320,9 +350,9 @@ export const ClientMasters: React.FC = () => {
           onFiltersChange={(filters) => {
             setFilterStatus(filters.status || 'all');
           }}
-          clientGroups={[]}
-          states={[]}
-          consultants={[]}
+          clientGroups={uniqueClientGroups}
+          states={uniqueStates}
+          consultants={uniqueConsultants}
           industries={['Manufacturing', 'Services', 'Trading', 'IT/Software', 'Healthcare', 'Real Estate']}
         />
       </motion.div>
