@@ -42,11 +42,7 @@ export const CourtMasters: React.FC = () => {
     mode: 'create',
     court: null
   });
-  const [filterType, setFilterType] = useState<string>('all');
-  const [filterJurisdiction, setFilterJurisdiction] = useState<string>('all');
-  const [filterAuthorityLevel, setFilterAuthorityLevel] = useState<string>('all');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [filterDigitalFiling, setFilterDigitalFiling] = useState<string>('all');
+  const [activeFilters, setActiveFilters] = useState<Record<string, any>>({});
   const [importWizardOpen, setImportWizardOpen] = useState(false);
   const [exportWizardOpen, setExportWizardOpen] = useState(false);
 
@@ -61,14 +57,15 @@ export const CourtMasters: React.FC = () => {
                          court.jurisdiction.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          addressText.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesType = filterType === 'all' || court.type === filterType;
-    const matchesAuthorityLevel = filterAuthorityLevel === 'all' || court.authorityLevel === filterAuthorityLevel;
-    const matchesStatus = filterStatus === 'all' || (court.status || 'Active') === filterStatus;
-    const matchesDigitalFiling = filterDigitalFiling === 'all' || 
-      (filterDigitalFiling === 'true' && court.digitalFiling) ||
-      (filterDigitalFiling === 'false' && !court.digitalFiling);
+    const matchesType = !activeFilters.type || activeFilters.type === 'all' || court.type === activeFilters.type;
+    const matchesAuthorityLevel = !activeFilters.authorityLevel || activeFilters.authorityLevel === 'all' || court.authorityLevel === activeFilters.authorityLevel;
+    const matchesStatus = !activeFilters.status || activeFilters.status === 'all' || (court.status || 'Active') === activeFilters.status;
+    const matchesJurisdiction = !activeFilters.jurisdiction || activeFilters.jurisdiction === 'all' || court.jurisdiction === activeFilters.jurisdiction;
+    const matchesDigitalFiling = !activeFilters.digitalFiling || activeFilters.digitalFiling === 'all' || 
+      (activeFilters.digitalFiling === 'true' && court.digitalFiling) ||
+      (activeFilters.digitalFiling === 'false' && !court.digitalFiling);
     
-    return matchesSearch && matchesType && matchesAuthorityLevel && matchesStatus && matchesDigitalFiling;
+    return matchesSearch && matchesType && matchesAuthorityLevel && matchesStatus && matchesJurisdiction && matchesDigitalFiling;
   });
 
   const getTypeColor = (type: string) => {
@@ -150,20 +147,8 @@ export const CourtMasters: React.FC = () => {
         <UnifiedCourtSearch
           searchTerm={searchTerm}
           onSearchTermChange={setSearchTerm}
-          activeFilters={{
-            type: filterType !== 'all' ? filterType : undefined,
-            jurisdiction: filterJurisdiction !== 'all' ? filterJurisdiction : undefined,
-            authorityLevel: filterAuthorityLevel !== 'all' ? filterAuthorityLevel : undefined,
-            status: filterStatus !== 'all' ? filterStatus : undefined,
-            digitalFiling: filterDigitalFiling !== 'all' ? filterDigitalFiling : undefined
-          }}
-          onFiltersChange={(filters) => {
-            setFilterType(filters.type || 'all');
-            setFilterJurisdiction(filters.jurisdiction || 'all');
-            setFilterAuthorityLevel(filters.authorityLevel || 'all');
-            setFilterStatus(filters.status || 'all');
-            setFilterDigitalFiling(filters.digitalFiling || 'all');
-          }}
+          activeFilters={activeFilters}
+          onFiltersChange={setActiveFilters}
           jurisdictions={uniqueJurisdictions}
           states={[]}
           types={['Income Tax Appellate Tribunal', 'High Court', 'Supreme Court', 'Commissioner Appeals', 'Settlement Commission']}
