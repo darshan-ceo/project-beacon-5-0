@@ -193,6 +193,7 @@ export const clientsService = {
         status: clientData.status || 'Active',
         assignedCAId: clientData.assignedCAId || '',
         assignedCAName: clientData.assignedCAName || '',
+        clientGroupId: clientData.clientGroupId,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
