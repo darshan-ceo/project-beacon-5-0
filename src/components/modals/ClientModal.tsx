@@ -874,24 +874,10 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                               </div>
                             </TableCell>
                             <TableCell className="font-mono text-xs">
-                              {(() => {
-                                // Extract primary email from array or fallback to legacy field
-                                if (signatory.emails && signatory.emails.length > 0) {
-                                  const primaryEmail = signatory.emails.find(e => e.isPrimary) || signatory.emails[0];
-                                  return primaryEmail.email;
-                                }
-                                return signatory.email || '-';
-                              })()}
+                              {signatory.email}
                             </TableCell>
                             <TableCell className="font-mono text-xs">
-                              {(() => {
-                                // Extract primary phone from array or fallback to legacy fields
-                                if (signatory.phones && signatory.phones.length > 0) {
-                                  const primaryPhone = signatory.phones.find(p => p.isPrimary) || signatory.phones[0];
-                                  return `${primaryPhone.countryCode} ${primaryPhone.number}`;
-                                }
-                                return signatory.mobile || signatory.phone || '-';
-                              })()}
+                              {signatory.mobile || signatory.phone || '-'}
                             </TableCell>
                             <TableCell>
                               {signatory.dob ? (
