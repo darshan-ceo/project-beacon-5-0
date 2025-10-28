@@ -465,6 +465,24 @@ export const clientsService = {
           fullName: client.name,
           email: client.email,
           phone: client.phone,
+          emails: [{
+            id: `email_${Date.now()}`,
+            email: client.email,
+            label: 'Work' as const,
+            isPrimary: true,
+            isVerified: false,
+            status: 'Active' as const
+          }],
+          phones: [{
+            id: `phone_${Date.now()}`,
+            countryCode: '+91',
+            number: client.phone.replace(/[^0-9]/g, ''),
+            label: 'Mobile' as const,
+            isPrimary: true,
+            isWhatsApp: false,
+            isVerified: false,
+            status: 'Active' as const
+          }],
           isPrimary: true,
           scope: 'All' as const,
           status: 'Active' as const

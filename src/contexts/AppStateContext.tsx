@@ -1176,6 +1176,24 @@ const initialState: AppState = {
           designation: 'Chief Executive Officer',
           email: 'rajesh.gupta@techcorp.in',
           phone: '+91-9876543221',
+          emails: [{
+            id: 'email_sig001',
+            email: 'rajesh.gupta@techcorp.in',
+            label: 'Work' as const,
+            isPrimary: true,
+            isVerified: true,
+            status: 'Active' as const
+          }],
+          phones: [{
+            id: 'phone_sig001',
+            countryCode: '+91',
+            number: '9876543221',
+            label: 'Mobile' as const,
+            isPrimary: true,
+            isWhatsApp: true,
+            isVerified: true,
+            status: 'Active' as const
+          }],
           isPrimary: true,
           scope: 'All',
           status: 'Active'
@@ -1207,6 +1225,24 @@ const initialState: AppState = {
           designation: 'Chief Financial Officer',
           email: 'priya.sharma@manufacturingplus.com',
           phone: '+91-9876543223',
+          emails: [{
+            id: 'email_sig002',
+            email: 'priya.sharma@manufacturingplus.com',
+            label: 'Work' as const,
+            isPrimary: true,
+            isVerified: true,
+            status: 'Active' as const
+          }],
+          phones: [{
+            id: 'phone_sig002',
+            countryCode: '+91',
+            number: '9876543223',
+            label: 'Mobile' as const,
+            isPrimary: true,
+            isWhatsApp: false,
+            isVerified: true,
+            status: 'Active' as const
+          }],
           isPrimary: true,
           scope: 'All',
           status: 'Active'
@@ -1238,6 +1274,24 @@ const initialState: AppState = {
           designation: 'Managing Director',
           email: 'amit.patel@servicehub.co.in',
           phone: '+91-9876543225',
+          emails: [{
+            id: 'email_sig003',
+            email: 'amit.patel@servicehub.co.in',
+            label: 'Work' as const,
+            isPrimary: true,
+            isVerified: false,
+            status: 'Active' as const
+          }],
+          phones: [{
+            id: 'phone_sig003',
+            countryCode: '+91',
+            number: '9876543225',
+            label: 'Mobile' as const,
+            isPrimary: true,
+            isWhatsApp: true,
+            isVerified: false,
+            status: 'Active' as const
+          }],
           isPrimary: true,
           scope: 'All',
           status: 'Active'
@@ -1269,6 +1323,24 @@ const initialState: AppState = {
           designation: 'Export Manager',
           email: 'sunita.agarwal@exportking.in',
           phone: '+91-9876543227',
+          emails: [{
+            id: 'email_sig004',
+            email: 'sunita.agarwal@exportking.in',
+            label: 'Work' as const,
+            isPrimary: true,
+            isVerified: true,
+            status: 'Active' as const
+          }],
+          phones: [{
+            id: 'phone_sig004',
+            countryCode: '+91',
+            number: '9876543227',
+            label: 'Mobile' as const,
+            isPrimary: true,
+            isWhatsApp: false,
+            isVerified: true,
+            status: 'Active' as const
+          }],
           isPrimary: true,
           scope: 'All',
           status: 'Active'
@@ -1300,6 +1372,24 @@ const initialState: AppState = {
           designation: 'General Manager',
           email: 'vikram.singh@multistatelogistics.com',
           phone: '+91-9876543229',
+          emails: [{
+            id: 'email_sig005',
+            email: 'vikram.singh@multistatelogistics.com',
+            label: 'Work' as const,
+            isPrimary: true,
+            isVerified: true,
+            status: 'Active' as const
+          }],
+          phones: [{
+            id: 'phone_sig005',
+            countryCode: '+91',
+            number: '9876543229',
+            label: 'Mobile' as const,
+            isPrimary: true,
+            isWhatsApp: true,
+            isVerified: true,
+            status: 'Active' as const
+          }],
           isPrimary: true,
           scope: 'All',
           status: 'Active'
@@ -2814,13 +2904,40 @@ export interface PortalAccess {
   passwordHash?: string;
 }
 
+export interface SignatoryEmail {
+  id: string;
+  email: string;
+  label: 'Work' | 'Personal' | 'Legal' | 'Other';
+  isPrimary: boolean;
+  isVerified: boolean;
+  status: 'Active' | 'Inactive';
+}
+
+export interface SignatoryPhone {
+  id: string;
+  countryCode: string;
+  number: string;
+  label: 'Mobile' | 'WhatsApp' | 'Office' | 'Home' | 'Legal' | 'Other';
+  isPrimary: boolean;
+  isWhatsApp: boolean;
+  isVerified: boolean;
+  status: 'Active' | 'Inactive';
+}
+
 export interface Signatory {
   id: string;
   fullName: string;
   designation?: string;
-  email: string;
+  
+  // NEW: Multiple emails and phones
+  emails: SignatoryEmail[];
+  phones: SignatoryPhone[];
+  
+  // DEPRECATED: Keep for backward compatibility
+  email?: string;
   phone?: string;
   mobile?: string;
+  
   dob?: string;
   isPrimary: boolean;
   scope: 'All' | 'GST Filings' | 'Litigation' | 'Appeals';

@@ -446,10 +446,31 @@ export const ClientMasters: React.FC = () => {
                         const primaryContact = (() => {
                           if (client.signatories && client.signatories.length > 0) {
                             const primary = client.signatories.find(s => s.isPrimary) || client.signatories[0];
+                            
+                            // Get primary email (new multi-email support)
+                            const primaryEmail = (() => {
+                              if (primary.emails && primary.emails.length > 0) {
+                                const pEmail = primary.emails.find(e => e.isPrimary) || primary.emails[0];
+                                return pEmail.email;
+                              }
+                              // Fallback to legacy field
+                              return primary.email || 'N/A';
+                            })();
+                            
+                            // Get primary phone (new multi-phone support)
+                            const primaryPhone = (() => {
+                              if (primary.phones && primary.phones.length > 0) {
+                                const pPhone = primary.phones.find(p => p.isPrimary) || primary.phones[0];
+                                return `${pPhone.countryCode} ${pPhone.number}`;
+                              }
+                              // Fallback to legacy fields
+                              return primary.mobile || primary.phone || 'N/A';
+                            })();
+                            
                             return {
                               name: primary.fullName || 'N/A',
-                              email: primary.email || 'N/A',
-                              mobile: primary.mobile || primary.phone || 'N/A'
+                              email: primaryEmail,
+                              mobile: primaryPhone
                             };
                           }
                           return {

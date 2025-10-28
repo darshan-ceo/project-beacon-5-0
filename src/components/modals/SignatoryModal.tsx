@@ -5,14 +5,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import type { Signatory } from '@/contexts/AppStateContext';
+import type { Signatory, SignatoryEmail, SignatoryPhone } from '@/contexts/AppStateContext';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
+import { SignatoryEmailManager } from '@/components/contacts/SignatoryEmailManager';
+import { SignatoryPhoneManager } from '@/components/contacts/SignatoryPhoneManager';
 
 interface SignatoryModalProps {
   isOpen: boolean;
@@ -34,9 +35,8 @@ export const SignatoryModal: React.FC<SignatoryModalProps> = ({
   const [formData, setFormData] = useState<{
     fullName: string;
     designation: string;
-    email: string;
-    phone: string;
-    mobile: string;
+    emails: SignatoryEmail[];
+    phones: SignatoryPhone[];
     dob: string;
     isPrimary: boolean;
     scope: 'All' | 'GST Filings' | 'Litigation' | 'Appeals';
@@ -44,9 +44,8 @@ export const SignatoryModal: React.FC<SignatoryModalProps> = ({
   }>({
     fullName: '',
     designation: '',
-    email: '',
-    phone: '',
-    mobile: '',
+    emails: [],
+    phones: [],
     dob: '',
     isPrimary: false,
     scope: 'All',
@@ -57,12 +56,40 @@ export const SignatoryModal: React.FC<SignatoryModalProps> = ({
 
   useEffect(() => {
     if (signatory && (mode === 'edit' || mode === 'view')) {
+      // Migrate legacy data to new format
+      const emails: SignatoryEmail[] = signatory.emails && signatory.emails.length > 0 
+        ? signatory.emails 
+        : signatory.email 
+          ? [{
+              id: `email_${Date.now()}`,
+              email: signatory.email,
+              label: 'Work' as const,
+              isPrimary: true,
+              isVerified: false,
+              status: 'Active' as const
+            }]
+          : [];
+
+      const phones: SignatoryPhone[] = signatory.phones && signatory.phones.length > 0
+        ? signatory.phones
+        : signatory.mobile
+          ? [{
+              id: `phone_${Date.now()}`,
+              countryCode: '+91',
+              number: signatory.mobile.replace(/[^0-9]/g, ''),
+              label: 'Mobile' as const,
+              isPrimary: true,
+              isWhatsApp: false,
+              isVerified: false,
+              status: 'Active' as const
+            }]
+          : [];
+
       setFormData({
         fullName: signatory.fullName,
         designation: signatory.designation || '',
-        email: signatory.email,
-        phone: signatory.phone || '',
-        mobile: signatory.mobile || '',
+        emails,
+        phones,
         dob: signatory.dob || '',
         isPrimary: signatory.isPrimary,
         scope: signatory.scope,
@@ -72,9 +99,8 @@ export const SignatoryModal: React.FC<SignatoryModalProps> = ({
       setFormData({
         fullName: '',
         designation: '',
-        email: '',
-        phone: '',
-        mobile: '',
+        emails: [],
+        phones: [],
         dob: '',
         isPrimary: false,
         scope: 'All',
@@ -91,40 +117,42 @@ export const SignatoryModal: React.FC<SignatoryModalProps> = ({
       newErrors.fullName = 'Full name is required';
     }
 
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.email)) {
-        newErrors.email = 'Please enter a valid email address';
-      } else {
-        // Check for duplicate email
-        const isDuplicate = existingSignatories.some(sig => 
-          sig.email.toLowerCase() === formData.email.toLowerCase() && 
-          (!signatory || sig.id !== signatory.id)
-        );
-        if (isDuplicate) {
-          newErrors.email = 'This email is already used by another signatory';
+    // At least one email OR one phone required
+    if (formData.emails.length === 0 && formData.phones.length === 0) {
+      newErrors.emails = 'At least one email or phone is required';
+      newErrors.phones = 'At least one email or phone is required';
+    }
+
+    // Validate primary email exists if emails provided
+    if (formData.emails.length > 0) {
+      const hasPrimaryEmail = formData.emails.some(e => e.isPrimary);
+      if (!hasPrimaryEmail) {
+        newErrors.emails = 'One email must be marked as primary';
+      }
+
+      // Check for duplicate emails across other signatories
+      const emailSet = new Set(formData.emails.map(e => e.email.toLowerCase()));
+      for (const sig of existingSignatories) {
+        if (signatory && sig.id === signatory.id) continue;
+        
+        const sigEmails = sig.emails?.map(e => e.email.toLowerCase()) || 
+                         (sig.email ? [sig.email.toLowerCase()] : []);
+        
+        for (const sigEmail of sigEmails) {
+          if (emailSet.has(sigEmail)) {
+            newErrors.emails = `Email ${sigEmail} already exists for ${sig.fullName}`;
+            break;
+          }
         }
+        if (newErrors.emails) break;
       }
     }
 
-    // Mobile validation
-    if (formData.mobile.trim()) {
-      const cleanMobile = formData.mobile.replace(/\s/g, '');
-      const mobileRegex = /^[+]?[0-9]{10,15}$/;
-      
-      if (!mobileRegex.test(cleanMobile)) {
-        newErrors.mobile = 'Mobile must be 10-15 digits (with optional country code like +91)';
-      } else {
-        // Check for duplicate mobile
-        const isDuplicate = existingSignatories.some(sig => 
-          sig.mobile && sig.mobile.replace(/\s/g, '') === cleanMobile && 
-          (!signatory || sig.id !== signatory.id)
-        );
-        if (isDuplicate) {
-          newErrors.mobile = 'This mobile number is already used by another signatory';
-        }
+    // Validate primary phone exists if phones provided
+    if (formData.phones.length > 0) {
+      const hasPrimaryPhone = formData.phones.some(p => p.isPrimary);
+      if (!hasPrimaryPhone) {
+        newErrors.phones = 'One phone must be marked as primary';
       }
     }
 
@@ -144,12 +172,6 @@ export const SignatoryModal: React.FC<SignatoryModalProps> = ({
       } else if (age > 100) {
         newErrors.dob = 'Please enter a valid date of birth';
       }
-    }
-
-    // At least email OR mobile required
-    if (!formData.email.trim() && !formData.mobile.trim()) {
-      newErrors.email = 'Either email or mobile is required';
-      newErrors.mobile = 'Either email or mobile is required';
     }
 
     // Check if trying to set as primary when another primary exists
@@ -233,60 +255,31 @@ export const SignatoryModal: React.FC<SignatoryModalProps> = ({
             </div>
 
             <div>
-              <div className="flex items-center gap-1">
-                <Label htmlFor="email">Email Address *</Label>
-                <FieldTooltip formId="create-signatory" fieldId="email" />
-              </div>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => {
-                  setFormData(prev => ({ ...prev, email: e.target.value }));
-                  setErrors(prev => ({ ...prev, email: '' }));
+              <SignatoryEmailManager
+                emails={formData.emails}
+                onChange={(emails) => {
+                  setFormData({ ...formData, emails });
+                  setErrors({ ...errors, emails: '' });
                 }}
                 disabled={mode === 'view'}
-                className={errors.email ? 'border-destructive' : ''}
               />
-              {errors.email && (
-                <p className="text-sm text-destructive mt-1">{errors.email}</p>
+              {errors.emails && (
+                <p className="text-sm text-destructive mt-1">{errors.emails}</p>
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="phone">Phone Number (Legacy)</Label>
-                <Input
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                  disabled={mode === 'view'}
-                  placeholder="+91 XXXXX XXXXX"
-                />
-                <p className="text-xs text-muted-foreground mt-1">Optional - for backward compatibility</p>
-              </div>
-
-              <div>
-                <div className="flex items-center gap-1">
-                  <Label htmlFor="mobile">Mobile Number *</Label>
-                  <FieldTooltip formId="create-signatory" fieldId="mobile" />
-                </div>
-                <Input
-                  id="mobile"
-                  value={formData.mobile}
-                  onChange={(e) => {
-                    setFormData(prev => ({ ...prev, mobile: e.target.value }));
-                    setErrors(prev => ({ ...prev, mobile: '' }));
-                  }}
-                  disabled={mode === 'view'}
-                  placeholder="+91 9876543210"
-                  className={errors.mobile ? 'border-destructive' : ''}
-                />
-                {errors.mobile && (
-                  <p className="text-sm text-destructive mt-1">{errors.mobile}</p>
-                )}
-                <p className="text-xs text-muted-foreground mt-1">E.164 format with country code</p>
-              </div>
+            <div>
+              <SignatoryPhoneManager
+                phones={formData.phones}
+                onChange={(phones) => {
+                  setFormData({ ...formData, phones });
+                  setErrors({ ...errors, phones: '' });
+                }}
+                disabled={mode === 'view'}
+              />
+              {errors.phones && (
+                <p className="text-sm text-destructive mt-1">{errors.phones}</p>
+              )}
             </div>
 
             <div>
