@@ -10,9 +10,6 @@ import {
   AlertTriangle, 
   User,
   Plus,
-  Filter,
-  Search,
-  Calendar,
   Bell,
   ArrowRight,
   FileText,
@@ -26,7 +23,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { ContextualPageHelp } from '@/components/help/ContextualPageHelp';
 
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -40,7 +36,7 @@ import { TaskInsights } from './TaskInsights';
 import { AITaskAssistant } from './AITaskAssistant';
 import { TaskCollaboration } from './TaskCollaboration';
 import { TaskModal } from '@/components/modals/TaskModal';
-import { FilterDropdown } from '@/components/ui/filter-dropdown';
+import { UnifiedTaskSearch } from './UnifiedTaskSearch';
 import { Task, Client, useAppState } from '@/contexts/AppStateContext';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { storageManager } from '@/data/StorageManager';
@@ -105,8 +101,7 @@ export const TaskManagement: React.FC = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [highlightedTaskId, setHighlightedTaskId] = useState<string | null>(null);
-  const [filterStatus, setFilterStatus] = useState<'all' | Task['status'] | 'followups_due' | 'updated_today'>('all');
-  const [filterPriority, setFilterPriority] = useState<'all' | Task['priority']>('all');
+  const [activeFilters, setActiveFilters] = useState<Record<string, any>>({});
   const [activeTab, setActiveTab] = useState('board');
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
   
@@ -133,14 +128,14 @@ export const TaskManagement: React.FC = () => {
     
     // Read status from URL for drill-down filtering
     if (statusParam && ['Pending', 'In Progress', 'Overdue', 'Completed', 'Review', 'Not Started'].includes(statusParam)) {
-      setFilterStatus(statusParam as Task['status']);
+      setActiveFilters(prev => ({ ...prev, status: statusParam }));
     }
     
     // Handle filter parameter for special filters like followups_due
     if (filterParam === 'followups_due') {
-      setFilterStatus('followups_due');
+      setActiveFilters(prev => ({ ...prev, status: 'followups_due' }));
     } else if (filterParam === 'updated_today') {
-      setFilterStatus('updated_today');
+      setActiveFilters(prev => ({ ...prev, status: 'updated_today' }));
     }
     
     if (highlight) {
@@ -186,14 +181,20 @@ export const TaskManagement: React.FC = () => {
       (task.assignedToName || '').toLowerCase().includes(q) ||
       (task.assignedByName || '').toLowerCase().includes(q);
     
-    // Handle special filters
+    // Client filter
+    const matchesClient = !activeFilters.clientId || task.clientId === activeFilters.clientId;
+    
+    // Case filter (from activeFilters or URL params)
+    const caseIdFromParams = searchParams.get('caseId');
+    const filterCaseId = activeFilters.caseId || caseIdFromParams;
+    const matchesCase = !filterCaseId || task.caseId === filterCaseId;
+    
+    // Status filter with special cases
     let matchesStatus = true;
-    if (filterStatus === 'followups_due') {
-      // Show tasks with follow-up dates within next 7 days
+    if (activeFilters.status === 'followups_due') {
       matchesStatus = task.followUpDate && 
         new Date(task.followUpDate) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    } else if (filterStatus === 'updated_today') {
-      // Show tasks that have notes created today
+    } else if (activeFilters.status === 'updated_today') {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const taskNotes = state.taskNotes?.filter(note => note.taskId === task.id) || [];
@@ -203,17 +204,44 @@ export const TaskManagement: React.FC = () => {
         return noteDate.getTime() === today.getTime();
       });
     } else {
-      matchesStatus = filterStatus === 'all' || task.status === filterStatus;
+      matchesStatus = !activeFilters.status || task.status === activeFilters.status;
     }
     
-    const matchesPriority = filterPriority === 'all' || task.priority === filterPriority;
+    // Priority filter
+    const matchesPriority = !activeFilters.priority || task.priority === activeFilters.priority;
     
-    // Apply case filter if specified in URL parameters
-    const caseIdFromParams = searchParams.get('caseId');
-    const contextCaseId = caseIdFromParams;
-    const matchesCase = !contextCaseId || task.caseId === contextCaseId;
+    // Assignee filter
+    const matchesAssignee = !activeFilters.assignedToId || task.assignedToId === activeFilters.assignedToId;
     
-    return matchesSearch && matchesStatus && matchesPriority && matchesCase;
+    // Task type tags filter (Auto-generated, Manual, Escalated)
+    let matchesTaskTypes = true;
+    if (activeFilters.taskTypes && activeFilters.taskTypes.length > 0) {
+      matchesTaskTypes = activeFilters.taskTypes.some((type: string) => {
+        if (type === 'Auto-generated') return task.isAutoGenerated;
+        if (type === 'Manual') return !task.isAutoGenerated;
+        if (type === 'Escalated') return task.status === 'Overdue'; // Use overdue as escalated indicator
+        return false;
+      });
+    }
+    
+    // Due date filter
+    let matchesDueDate = true;
+    if (activeFilters.dueDate?.from || activeFilters.dueDate?.to) {
+      const taskDueDate = task.dueDate ? new Date(task.dueDate) : null;
+      if (taskDueDate) {
+        if (activeFilters.dueDate.from && taskDueDate < new Date(activeFilters.dueDate.from)) {
+          matchesDueDate = false;
+        }
+        if (activeFilters.dueDate.to && taskDueDate > new Date(activeFilters.dueDate.to)) {
+          matchesDueDate = false;
+        }
+      } else {
+        matchesDueDate = false;
+      }
+    }
+    
+    return matchesSearch && matchesClient && matchesCase && matchesStatus && 
+           matchesPriority && matchesAssignee && matchesTaskTypes && matchesDueDate;
   });
 
   // Defensive logging for filter counts (dev mode)
@@ -222,11 +250,46 @@ export const TaskManagement: React.FC = () => {
       total: state.tasks.length,
       afterFilters: filteredTasks.length,
       searchTerm,
-      filterStatus,
-      filterPriority,
+      activeFilters,
       caseIdFilter: searchParams.get('caseId')
     });
   }
+
+  // Prepare data for filter dropdowns
+  const uniqueClients = React.useMemo(() => {
+    const clientMap = new Map<string, Client>();
+    state.tasks.forEach(task => {
+      const client = state.clients.find(c => c.id === task.clientId);
+      if (client) {
+        clientMap.set(client.id, client);
+      }
+    });
+    return Array.from(clientMap.values());
+  }, [state.tasks, state.clients]);
+
+  const uniqueCases = React.useMemo(() => {
+    const caseMap = new Map();
+    state.tasks.forEach(task => {
+      const taskCase = state.cases.find(c => c.id === task.caseId);
+      if (taskCase) {
+        caseMap.set(taskCase.id, taskCase);
+      }
+    });
+    return Array.from(caseMap.values());
+  }, [state.tasks, state.cases]);
+
+  const uniqueAssignees = React.useMemo(() => {
+    const assigneeMap = new Map<string, { id: string; name: string }>();
+    state.tasks.forEach(task => {
+      if (task.assignedToId && task.assignedToName) {
+        assigneeMap.set(task.assignedToId, {
+          id: task.assignedToId,
+          name: task.assignedToName
+        });
+      }
+    });
+    return Array.from(assigneeMap.values());
+  }, [state.tasks]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -552,61 +615,21 @@ export const TaskManagement: React.FC = () => {
         </Card>
       </motion.div>
 
-      {/* Search and Filters */}
+      {/* Unified Search and Filters */}
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.2 }}
-        className="flex flex-col sm:flex-row gap-4 items-center justify-between"
       >
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by title, client, case number, or assignee..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        
-        <div className="flex gap-2">
-          <FilterDropdown
-            label="Status"
-            value={filterStatus}
-            options={[
-              { label: 'Completed', value: 'Completed' },
-              { label: 'In Progress', value: 'In Progress' },
-              { label: 'Review', value: 'Review' },
-              { label: 'Overdue', value: 'Overdue' },
-              { label: 'Not Started', value: 'Not Started' }
-            ]}
-            onChange={(value) => setFilterStatus(value as 'all' | Task['status'])}
-          />
-          <FilterDropdown
-            label="Priority"
-            value={filterPriority}
-            options={[
-              { label: 'Critical', value: 'Critical' },
-              { label: 'High', value: 'High' },
-              { label: 'Medium', value: 'Medium' },
-              { label: 'Low', value: 'Low' }
-            ]}
-            onChange={(value) => setFilterPriority(value as 'all' | Task['priority'])}
-            icon={<User className="mr-2 h-4 w-4" />}
-          />
-          <Button 
-            variant="outline"
-            onClick={() => {
-              toast({
-                title: "Due Date Filter",
-                description: "Date range picker coming soon",
-              });
-            }}
-          >
-            <Calendar className="mr-2 h-4 w-4" />
-            Due Date
-          </Button>
-        </div>
+        <UnifiedTaskSearch
+          searchTerm={searchTerm}
+          onSearchTermChange={setSearchTerm}
+          activeFilters={activeFilters}
+          onFiltersChange={setActiveFilters}
+          clients={uniqueClients}
+          cases={uniqueCases}
+          assignees={uniqueAssignees}
+        />
       </motion.div>
 
       {/* Main Content */}
@@ -659,14 +682,13 @@ export const TaskManagement: React.FC = () => {
               <div className="text-sm text-muted-foreground">
                 {filteredTasks.length} tasks • {filteredTasks.filter(t => t.isAutoGenerated).length} auto-generated
               </div>
-              {filteredTasks.length === 0 && (searchTerm !== '' || filterStatus !== 'all' || filterPriority !== 'all' || searchParams.get('caseId')) && (
+              {filteredTasks.length === 0 && (searchTerm !== '' || Object.keys(activeFilters).length > 0 || searchParams.get('caseId')) && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => {
                     setSearchTerm('');
-                    setFilterStatus('all');
-                    setFilterPriority('all');
+                    setActiveFilters({});
                     navigate('/tasks');
                   }}
                 >
