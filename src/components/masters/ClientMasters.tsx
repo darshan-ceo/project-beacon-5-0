@@ -379,7 +379,7 @@ export const ClientMasters: React.FC = () => {
                     <TableHead className="w-[200px]">Client Name</TableHead>
                     <TableHead className="w-[180px]">GSTN / PAN / State</TableHead>
                     <TableHead className="w-[140px] hidden md:table-cell">Client Group</TableHead>
-                    <TableHead className="w-[200px] hidden md:table-cell">Contact</TableHead>
+                    <TableHead className="w-[200px] hidden md:table-cell">Contact Details</TableHead>
                     <TableHead className="w-[140px] hidden lg:table-cell">Constitution</TableHead>
                     <TableHead className="w-[100px]">Status</TableHead>
                     <TableHead className="w-[80px]">Cases</TableHead>
