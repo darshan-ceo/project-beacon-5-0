@@ -26,12 +26,33 @@ export const ClientPortal: React.FC = () => {
   const [hasAccess, setHasAccess] = React.useState(false);
   const [clientCases, setClientCases] = React.useState<any[]>([]);
 
-  // PHASE 3C: CRITICAL SECURITY FIX - Get clientId from authenticated user
-  // TODO: Replace with actual auth context
+  // Get clientId from URL query parameter or fallback to first active client
+  const searchParams = new URLSearchParams(window.location.search);
+  const urlClientId = searchParams.get('clientId');
+
+  // Priority: URL param > First active client with portal access > First active client > First any client
+  const client = React.useMemo(() => {
+    if (urlClientId) {
+      // If clientId provided in URL, find that specific client
+      return state.clients.find(c => c.id === urlClientId);
+    }
+    
+    // Fallback 1: First active client with portal access enabled
+    const clientWithPortal = state.clients.find(
+      c => c.status === 'Active' && c.portalAccess?.allowLogin === true
+    );
+    if (clientWithPortal) return clientWithPortal;
+    
+    // Fallback 2: First active client (any)
+    const activeClient = state.clients.find(c => c.status === 'Active');
+    if (activeClient) return activeClient;
+    
+    // Fallback 3: Any client at all
+    return state.clients[0];
+  }, [urlClientId, state.clients]);
+
+  const clientId = client?.id || '';
   const currentUserId = currentUser?.id || '1';
-  const clientId = currentUserId; // In real app: map userId to clientId
-  
-  const client = state.clients.find(c => c.id === clientId);
 
   // PHASE 3C: Validate client access and apply scope filtering
   React.useEffect(() => {
@@ -127,12 +148,38 @@ export const ClientPortal: React.FC = () => {
   if (!client || !hasAccess) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="text-center">
+        <div className="text-center max-w-md">
           <Shield className="h-12 w-12 text-destructive mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-foreground">Access Denied</h2>
-          <p className="text-muted-foreground">
-            Client profile not found or you don't have permission to access this portal.
+          <p className="text-muted-foreground mt-2">
+            {!client 
+              ? "Client profile not found."
+              : "You don't have permission to access this portal."
+            }
           </p>
+          {urlClientId && !client && (
+            <div className="mt-4 p-4 bg-muted rounded-lg text-left">
+              <p className="text-sm text-muted-foreground">
+                <strong>Looking for client ID:</strong> <code className="bg-background px-2 py-1 rounded">{urlClientId}</code>
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                This client doesn't exist in the system. Try using a valid client ID from the Client Masters page.
+              </p>
+            </div>
+          )}
+          {!urlClientId && (
+            <div className="mt-4 p-4 bg-muted rounded-lg text-left">
+              <p className="text-sm text-muted-foreground">
+                <strong>How to access a specific client portal:</strong>
+              </p>
+              <code className="block mt-2 bg-background px-3 py-2 rounded text-xs">
+                /portal?clientId=YOUR_CLIENT_ID
+              </code>
+              <p className="text-sm text-muted-foreground mt-2">
+                Get client IDs from the Client Masters page.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -155,6 +202,11 @@ export const ClientPortal: React.FC = () => {
         <div className="flex items-center space-x-2">
           <User className="h-5 w-5 text-muted-foreground" />
           <span className="text-sm text-muted-foreground">{client.type}</span>
+          {urlClientId && (
+            <Badge variant="outline" className="ml-2">
+              Client ID: {urlClientId}
+            </Badge>
+          )}
         </div>
       </motion.div>
 
