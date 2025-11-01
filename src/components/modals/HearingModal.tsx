@@ -192,7 +192,7 @@ export const HearingModal: React.FC<HearingModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh]">
+      <DialogContent className="max-w-beacon-modal max-h-[90vh] overflow-hidden border bg-background shadow-beacon-lg rounded-beacon-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Scale className="h-5 w-5" />
@@ -219,17 +219,17 @@ export const HearingModal: React.FC<HearingModalProps> = ({
           })()}
         </DialogHeader>
 
-        <DialogBody>
+        <DialogBody className="px-6 py-4 overflow-y-auto flex-1">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Section 1: Case & Legal Forum Details */}
-            <Card>
-              <CardHeader>
+            <Card className="rounded-beacon-lg border bg-card shadow-beacon-md">
+              <CardHeader className="border-b border-border p-6 pb-4">
                 <CardTitle className="flex items-center gap-2">
                   <Scale className="h-4 w-4" />
                   Case & Legal Forum Details
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 p-6">
                 {/* Case Selector or Context Badge */}
                 <div>
                   {contextCaseId ? (
@@ -302,14 +302,14 @@ export const HearingModal: React.FC<HearingModalProps> = ({
             </Card>
 
             {/* Section 2: Schedule Information */}
-            <Card>
-              <CardHeader>
+            <Card className="rounded-beacon-lg border bg-card shadow-beacon-md">
+              <CardHeader className="border-b border-border p-6 pb-4">
                 <CardTitle className="flex items-center gap-2">
                   <CalendarCheckIcon className="h-4 w-4" />
                   Schedule Information
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4 p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Date Picker */}
                   <div className="space-y-2">
@@ -362,14 +362,14 @@ export const HearingModal: React.FC<HearingModalProps> = ({
             </Card>
 
             {/* Section 3: Hearing Details */}
-            <Card>
-              <CardHeader>
+            <Card className="rounded-beacon-lg border bg-card shadow-beacon-md">
+              <CardHeader className="border-b border-border p-6 pb-4">
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="h-4 w-4" />
                   Hearing Details
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 p-6">
                 {/* Agenda */}
                 <div className="space-y-2">
                   <div className="flex items-center gap-1">
