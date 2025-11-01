@@ -1,0 +1,42 @@
+{
+  "case": {
+    "title": "Case Selection",
+    "content": "Select the case for which this hearing is scheduled. This field is mandatory and links the hearing to the case record.",
+    "learnMoreUrl": "/help/articles/hearing-case-linkage"
+  },
+  "authority": {
+    "title": "GST Authority",
+    "content": "The GST authority issuing the notice or order (e.g., Commissioner, Joint Commissioner, Tribunal). This field is mandatory for tracking authority hierarchy.",
+    "learnMoreUrl": "/help/articles/authority-hierarchy"
+  },
+  "forum": {
+    "title": "Legal Forum",
+    "content": "The legal forum where the hearing takes place (e.g., GSTAT Mumbai, High Court Delhi). This field is mandatory for venue tracking.",
+    "learnMoreUrl": "/help/articles/legal-forums"
+  },
+  "judge": {
+    "title": "Judge Assignment",
+    "content": "Select the judge presiding over the hearing (optional). The judge must be assigned to the selected authority.",
+    "learnMoreUrl": "/help/articles/judge-assignment"
+  },
+  "date": {
+    "title": "Hearing Date",
+    "content": "The date when the hearing is scheduled. Past dates are not allowed.",
+    "learnMoreUrl": "/help/articles/hearing-scheduling"
+  },
+  "time": {
+    "title": "Hearing Time",
+    "content": "The time when the hearing starts. Use 24-hour format (HH:mm).",
+    "learnMoreUrl": "/help/articles/hearing-scheduling"
+  },
+  "agenda": {
+    "title": "Hearing Agenda",
+    "content": "Brief description of what will be discussed or presented in the hearing.",
+    "learnMoreUrl": "/help/articles/hearing-agenda"
+  },
+  "notes": {
+    "title": "Additional Notes",
+    "content": "Any additional instructions, requirements, or observations about the hearing.",
+    "learnMoreUrl": "/help/articles/hearing-notes"
+  }
+}

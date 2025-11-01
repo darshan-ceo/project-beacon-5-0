@@ -225,3 +225,66 @@ export const JudgeSelector: React.FC<{
     />
   );
 };
+
+// Authority Selector - Shows only Courts with authorityLevel
+export const AuthoritySelector: React.FC<{
+  courts: Court[];
+  value?: string;
+  onValueChange: (value: string) => void;
+  disabled?: boolean;
+  required?: boolean;
+  filterByLevel?: string;
+}> = ({ courts, filterByLevel, required = true, ...props }) => {
+  // Filter courts to only show those with authorityLevel defined and Active status
+  const authorityCourts = courts.filter(court => 
+    court.authorityLevel && 
+    (!filterByLevel || court.authorityLevel === filterByLevel)
+  );
+
+  const options = authorityCourts.map(court => ({
+    id: court.id,
+    label: court.name,
+    subtitle: `${court.authorityLevel} • ${court.city || court.jurisdiction}`
+  }));
+
+  return (
+    <RelationshipSelector
+      label="Authority"
+      options={options}
+      placeholder="Select GST Authority"
+      required={required}
+      {...props}
+    />
+  );
+};
+
+// Legal Forum Selector - Shows all Courts (Forums)
+export const LegalForumSelector: React.FC<{
+  courts: Court[];
+  value?: string;
+  onValueChange: (value: string) => void;
+  disabled?: boolean;
+  required?: boolean;
+  filterByStatus?: 'Active' | 'Inactive';
+}> = ({ courts, filterByStatus, required = true, ...props }) => {
+  // Filter courts by status if specified (default to all)
+  const forumCourts = filterByStatus 
+    ? courts.filter(court => court.status === filterByStatus)
+    : courts;
+
+  const options = forumCourts.map(court => ({
+    id: court.id,
+    label: court.name,
+    subtitle: `${court.type} • ${court.city || court.jurisdiction}`
+  }));
+
+  return (
+    <RelationshipSelector
+      label="Legal Forum"
+      options={options}
+      placeholder="Select Legal Forum"
+      required={required}
+      {...props}
+    />
+  );
+};

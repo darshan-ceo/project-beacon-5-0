@@ -10,7 +10,7 @@ import { format } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
 import { Hearing, useAppState } from '@/contexts/AppStateContext';
 import { cn } from '@/lib/utils';
-import { CaseSelector, CourtSelector, JudgeSelector } from '@/components/ui/relationship-selector';
+import { CaseSelector, CourtSelector, JudgeSelector, AuthoritySelector, LegalForumSelector } from '@/components/ui/relationship-selector';
 import { ContextBadge } from '@/components/ui/context-badge';
 import { useRelationships } from '@/hooks/useRelationships';
 import { useContextualForms } from '@/hooks/useContextualForms';
@@ -58,6 +58,8 @@ export const HearingModal: React.FC<HearingModalProps> = ({
     caseId: string;
     courtId: string;
     judgeId: string;
+    authorityId: string;  // Phase 1: Authority field
+    forumId: string;      // Phase 1: Forum field
     date: Date;
     time: string;
     type: 'Adjourned' | 'Final' | 'Argued' | 'Preliminary';
@@ -68,6 +70,8 @@ export const HearingModal: React.FC<HearingModalProps> = ({
     caseId: contextCaseId || '',
     courtId: '',
     judgeId: '',
+    authorityId: '',
+    forumId: '',
     date: new Date(),
     time: '10:00',
     type: 'Preliminary',
@@ -86,6 +90,8 @@ export const HearingModal: React.FC<HearingModalProps> = ({
         caseId: hearingData.caseId,
         courtId: hearingData.courtId,
         judgeId: hearingData.judgeId,
+        authorityId: hearingData.authority_id || hearingData.courtId, // Default to courtId for backward compatibility
+        forumId: hearingData.forum_id || hearingData.courtId, // Default to courtId for backward compatibility
         date: new Date(hearingData.date),
         time: hearingData.time,
         type: hearingData.type,
@@ -109,17 +115,55 @@ export const HearingModal: React.FC<HearingModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      // Validate relationships (only validate judge if provided)
-      if (formData.judgeId) {
-        const judgeCourtValidation = validateJudgeCourt(formData.judgeId, formData.courtId);
-        if (!judgeCourtValidation.isValid) {
-          toast({
-            title: "Validation Error",
-            description: judgeCourtValidation.errors.join(', '),
-            variant: "destructive"
-          });
-          setIsSubmitting(false);
-          return;
+      // Phase 1: Validate mandatory fields (Authority and Forum)
+      if (!formData.authorityId || !formData.forumId) {
+        toast({
+          title: "Validation Error",
+          description: "Authority and Legal Forum are mandatory fields",
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Phase 1: Validate past date
+      const selectedDate = new Date(formData.date.toISOString().split('T')[0]);
+      const today = new Date(new Date().toISOString().split('T')[0]);
+      if (selectedDate < today) {
+        toast({
+          title: "Validation Error",
+          description: "Hearing date cannot be in the past",
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Phase 1: Validate time format (24-hour)
+      if (!/^([01]\d|2[0-3]):([0-5]\d)$/.test(formData.time)) {
+        toast({
+          title: "Validation Error",
+          description: "Time must be in 24-hour format (HH:mm)",
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Validate judge-authority relationship
+      if (formData.judgeId && formData.authorityId) {
+        const judge = state.judges.find(j => j.id === formData.judgeId);
+        const authority = state.courts.find(c => c.id === formData.authorityId);
+        if (judge && authority && judge.authorityLevel && authority.authorityLevel) {
+          if (judge.authorityLevel !== authority.authorityLevel) {
+            toast({
+              title: "Validation Error",
+              description: `Judge ${judge.name} is not assigned to ${authority.name}`,
+              variant: "destructive"
+            });
+            setIsSubmitting(false);
+            return;
+          }
         }
       }
 
@@ -130,6 +174,7 @@ export const HearingModal: React.FC<HearingModalProps> = ({
           description: "Could not find case or client information.",
           variant: "destructive"
         });
+        setIsSubmitting(false);
         return;
       }
 
@@ -141,16 +186,27 @@ export const HearingModal: React.FC<HearingModalProps> = ({
         endDate.setHours(hours + 1, minutes);
         const endTime = endDate.toTimeString().slice(0, 5);
 
+        // Phase 1: Get authority and forum names for derived fields
+        const authority = state.courts.find(c => c.id === formData.authorityId);
+        const forum = state.courts.find(c => c.id === formData.forumId);
+        const judge = formData.judgeId ? state.judges.find(j => j.id === formData.judgeId) : undefined;
+
         const hearingFormData = {
           case_id: formData.caseId,
           date: formData.date.toISOString().split('T')[0],
           start_time: startTime,
           end_time: endTime,
           timezone: 'Asia/Kolkata',
-          court_id: formData.courtId,
+          court_id: formData.forumId, // Use forum as court for backward compatibility
           judge_ids: formData.judgeId ? [formData.judgeId] : [],
           purpose: 'mention' as const,
-          notes: formData.notes || formData.agenda
+          notes: formData.notes || formData.agenda,
+          authority_id: formData.authorityId,
+          forum_id: formData.forumId,
+          authority_name: authority?.name,
+          forum_name: forum?.name,
+          judge_name: judge?.name,
+          bench_details: judge?.bench
         };
 
         await hearingsService.createHearing(hearingFormData, dispatch);
@@ -162,14 +218,25 @@ export const HearingModal: React.FC<HearingModalProps> = ({
         endDate.setHours(hours + 1, minutes);
         const endTime = endDate.toTimeString().slice(0, 5);
 
+        // Phase 1: Get authority and forum names for derived fields
+        const authority = state.courts.find(c => c.id === formData.authorityId);
+        const forum = state.courts.find(c => c.id === formData.forumId);
+        const judge = formData.judgeId ? state.judges.find(j => j.id === formData.judgeId) : undefined;
+
         const updates = {
-          court_id: formData.courtId,
+          court_id: formData.forumId, // Use forum as court for backward compatibility
           judge_ids: formData.judgeId ? [formData.judgeId] : [],
           date: formData.date.toISOString().split('T')[0],
           start_time: startTime,
           end_time: endTime,
           agenda: formData.agenda,
-          notes: formData.notes
+          notes: formData.notes,
+          authority_id: formData.authorityId,
+          forum_id: formData.forumId,
+          authority_name: authority?.name,
+          forum_name: forum?.name,
+          judge_name: judge?.name,
+          bench_details: judge?.bench
         };
 
         await hearingsService.updateHearing(hearingData.id, updates, dispatch);
@@ -254,45 +321,75 @@ export const HearingModal: React.FC<HearingModalProps> = ({
                   )}
                 </div>
                 
-                {/* Court and Judge in a grid */}
+                {/* Phase 1: Authority and Forum Selectors */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <CourtSelector
-                    courts={getAvailableCourts()}
-                    value={formData.courtId}
-                    onValueChange={(value) => {
-                      setFormData(prev => ({ ...prev, courtId: value, judgeId: '' }));
-                      updateContext({ courtId: value });
-                    }}
-                    disabled={mode === 'view'}
-                  />
-                  
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1">
+                      <Label>Authority <span className="text-destructive">*</span></Label>
+                      <FieldTooltip formId="create-hearing" fieldId="authority" />
+                    </div>
+                    <AuthoritySelector
+                      courts={state.courts}
+                      value={formData.authorityId}
+                      onValueChange={(value) => {
+                        setFormData(prev => ({ ...prev, authorityId: value }));
+                      }}
+                      disabled={mode === 'view'}
+                      required={true}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1">
+                      <Label>Legal Forum <span className="text-destructive">*</span></Label>
+                      <FieldTooltip formId="create-hearing" fieldId="forum" />
+                    </div>
+                    <LegalForumSelector
+                      courts={state.courts}
+                      value={formData.forumId}
+                      onValueChange={(value) => {
+                        setFormData(prev => ({ ...prev, forumId: value, courtId: value }));
+                        updateContext({ courtId: value });
+                      }}
+                      disabled={mode === 'view'}
+                      required={true}
+                    />
+                  </div>
+                </div>
+
+                {/* Judge Selector */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1">
+                    <Label>Judge (Optional)</Label>
+                    <FieldTooltip formId="create-hearing" fieldId="judge" />
+                  </div>
                   <JudgeSelector
-                    judges={getAvailableJudges(formData.courtId)}
+                    judges={getAvailableJudges(formData.forumId)}
                     value={formData.judgeId}
                     onValueChange={(value) => {
                       setFormData(prev => ({ ...prev, judgeId: value }));
                       updateContext({ judgeId: value });
                     }}
-                    disabled={mode === 'view' || !formData.courtId}
+                    disabled={mode === 'view' || !formData.forumId}
                   />
                 </div>
                 
-                {/* Court Address Alert (if enabled) */}
-                {formData.courtId && isAddressMasterEnabled && (() => {
-                  const selectedCourt = state.courts.find(court => court.id === formData.courtId);
-                  return selectedCourt?.address ? (
+                {/* Forum Address Alert (if enabled) */}
+                {formData.forumId && isAddressMasterEnabled && (() => {
+                  const selectedForum = state.courts.find(court => court.id === formData.forumId);
+                  return selectedForum?.address ? (
                     <Alert className="mt-2">
                       <MapPin className="h-4 w-4" />
                       <AlertTitle>Legal Forum Address</AlertTitle>
                       <AlertDescription>
-                        {typeof selectedCourt.address === 'object' ? (
+                        {typeof selectedForum.address === 'object' ? (
                           <AddressView 
-                            address={selectedCourt.address}
+                            address={selectedForum.address}
                             compact={true}
                             showSource={false}
                           />
                         ) : (
-                          <div className="text-sm">{selectedCourt.address}</div>
+                          <div className="text-sm">{selectedForum.address}</div>
                         )}
                       </AlertDescription>
                     </Alert>

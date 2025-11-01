@@ -424,6 +424,15 @@ interface Hearing {
   created_by: string;
   created_at: string;
   updated_at: string;
+  
+  // Phase 1: Authority & Forum Integration
+  authority_id?: string;
+  forum_id?: string;
+  authority_name?: string;
+  forum_name?: string;
+  judge_name?: string;
+  bench_details?: string;
+  
   // Legacy compatibility
   caseId?: string;
   clientId?: string;

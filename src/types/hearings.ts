@@ -43,6 +43,14 @@ export interface Hearing {
   created_at: string;
   updated_at: string;
   
+  // Phase 1: Authority & Forum Integration (Optional for backward compatibility)
+  authority_id?: string;  // FK to Court.id where authorityLevel exists
+  forum_id?: string;      // FK to Court.id (legal forum)
+  authority_name?: string; // Derived from Court.name
+  forum_name?: string;    // Derived from Court.name
+  judge_name?: string;    // Derived from Judge.name
+  bench_details?: string; // Judge.bench
+  
   // Legacy support - maintain compatibility
   clientId?: string;
   judgeId?: string;
@@ -72,6 +80,10 @@ export interface HearingFormData {
   purpose: HearingPurpose;
   notes?: string;
   attendance?: HearingAttendance;
+  
+  // Phase 1: Authority & Forum fields
+  authority_id?: string;  // Required for new hearings
+  forum_id?: string;      // Required for new hearings
 }
 
 export interface HearingFilters {
