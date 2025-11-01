@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, MapPin } from 'lucide-react';
+import { CalendarIcon, MapPin, Scale } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
 import { Judge, useAppState } from '@/contexts/AppStateContext';
@@ -158,16 +158,17 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-beacon-modal max-h-[90vh]">
+      <DialogContent className="max-w-beacon-modal max-h-[90vh] overflow-hidden border bg-background shadow-beacon-lg rounded-beacon-xl">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Scale className="h-5 w-5" />
             {mode === 'create' && 'Add New Judge'}
             {mode === 'edit' && 'Edit Judge'}
             {mode === 'view' && 'Judge Details'}
           </DialogTitle>
         </DialogHeader>
 
-        <DialogBody>
+        <DialogBody className="px-6 py-4 overflow-y-auto flex-1">
           <JudgeForm
             initialData={judgeData}
             onSubmit={handleSubmit}

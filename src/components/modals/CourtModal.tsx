@@ -284,27 +284,25 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-beacon-modal max-h-[90vh]">
+      <DialogContent className="max-w-beacon-modal max-h-[90vh] overflow-hidden border bg-background shadow-beacon-lg rounded-beacon-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5" />
             {mode === 'create' ? 'Add New Legal Forum' : mode === 'edit' ? 'Edit Legal Forum' : 'View Legal Forum'}
           </DialogTitle>
-          <DialogDescription>
-            {mode === 'create' ? 'Create a new legal forum record with jurisdiction and contact details.' :
-             mode === 'edit' ? 'Update legal forum information and address details.' :
-             'View legal forum information and contact details.'}
-          </DialogDescription>
         </DialogHeader>
 
-        <DialogBody className="overflow-y-auto max-h-[60vh]">
+        <DialogBody className="px-6 py-4 overflow-y-auto flex-1">
           <form id="court-form" onSubmit={handleSubmit} className="space-y-6">
-          {/* Section 1: Basic Information */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 pb-2 border-b">
-              <Scale className="h-4 w-4 text-primary" />
-              <h3 className="text-sm font-semibold">Basic Information</h3>
-            </div>
+            {/* Section 1: Basic Information */}
+            <Card className="rounded-beacon-lg border bg-card shadow-beacon-md">
+              <CardHeader className="border-b border-border p-6 pb-4">
+                <CardTitle className="flex items-center gap-2">
+                  <Scale className="h-4 w-4" />
+                  Basic Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 p-6">
             <div>
               <div className="flex items-center gap-1">
                 <Label htmlFor="name">Legal Forum Name <span className="text-destructive">*</span></Label>
@@ -408,18 +406,19 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                     <SelectItem value="Commission">Commission</SelectItem>
                   </SelectContent>
                 </Select>
+                </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+            </Card>
 
-          {/* Contact Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Phone className="h-4 w-4" />
-                Contact Information
-              </CardTitle>
-            </CardHeader>
+            {/* Section 2: Contact Information */}
+            <Card className="rounded-beacon-lg border bg-card shadow-beacon-md">
+              <CardHeader className="border-b border-border p-6 pb-4">
+                <CardTitle className="flex items-center gap-2">
+                  <Phone className="h-4 w-4" />
+                  Contact Information
+                </CardTitle>
+              </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
@@ -493,15 +492,15 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
             </CardContent>
           </Card>
 
-          {/* Address Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                Address Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+            {/* Section 3: Address */}
+            <Card className="rounded-beacon-lg border bg-card shadow-beacon-md">
+              <CardHeader className="border-b border-border p-6 pb-4">
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  Address
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 p-6">
               {mode === 'view' && isAddressMasterEnabled ? (
                 <AddressView 
                   address={formData.address}
@@ -516,16 +515,19 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                   required={true}
                   module="court"
                 />
-              )}
-            </CardContent>
-          </Card>
+                )}
+              </CardContent>
+            </Card>
 
-          {/* Section 3: Court Details */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 pb-2 border-b">
-              <Building2 className="h-4 w-4 text-primary" />
-              <h3 className="text-sm font-semibold">Legal Forum Details</h3>
-            </div>
+            {/* Section 4: Court-Specific Details */}
+            <Card className="rounded-beacon-lg border bg-card shadow-beacon-md">
+              <CardHeader className="border-b border-border p-6 pb-4">
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="h-4 w-4" />
+                  Court-Specific Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 p-6">
 
             {/* Status Toggle */}
             <div className="flex items-center space-x-2 p-4 border rounded-lg">
@@ -649,7 +651,8 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                 ))}
               </div>
             </div>
-          </div>
+              </CardContent>
+            </Card>
           </form>
         </DialogBody>
 
