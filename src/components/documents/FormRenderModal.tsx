@@ -592,17 +592,45 @@ export const FormRenderModal: React.FC<FormRenderModalProps> = ({
                         </div>
                       ) : subField.type === 'array' ? (
                         <div className="space-y-2">
-                          {(subValue || []).map((item: string, index: number) => (
-                            <div key={index} className="flex gap-2">
-                              <Input
-                                value={item}
-                                onChange={(e) => {
-                                  const newArray = [...(subValue || [])];
-                                  newArray[index] = e.target.value;
-                                  handleFieldChange(subField.key, newArray, field.key, currentIssue);
-                                }}
-                                placeholder={`${subField.label} ${index + 1}`}
-                              />
+                          {(subValue || []).map((item: any, index: number) => (
+                            <div key={index} className="flex gap-2 items-start">
+                              {subField.items?.type === 'file' ? (
+                                <div className="flex-1 space-y-2">
+                                  <Input
+                                    type="file"
+                                    accept={(subField.items as any)?.accept || '*'}
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) {
+                                        const newArray = [...(subValue || [])];
+                                        newArray[index] = {
+                                          name: file.name,
+                                          size: file.size,
+                                          type: file.type,
+                                          file: file
+                                        };
+                                        handleFieldChange(subField.key, newArray, field.key, currentIssue);
+                                      }
+                                    }}
+                                    className="cursor-pointer"
+                                  />
+                                  {item?.name && (
+                                    <div className="text-xs text-muted-foreground">
+                                      {item.name} ({(item.size / 1024).toFixed(1)} KB)
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <Input
+                                  value={item}
+                                  onChange={(e) => {
+                                    const newArray = [...(subValue || [])];
+                                    newArray[index] = e.target.value;
+                                    handleFieldChange(subField.key, newArray, field.key, currentIssue);
+                                  }}
+                                  placeholder={`${subField.label} ${index + 1}`}
+                                />
+                              )}
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -619,7 +647,7 @@ export const FormRenderModal: React.FC<FormRenderModalProps> = ({
                             variant="outline"
                             size="sm"
                             onClick={() => {
-                              const newArray = [...(subValue || []), ''];
+                              const newArray = [...(subValue || []), subField.items?.type === 'file' ? null : ''];
                               handleFieldChange(subField.key, newArray, field.key, currentIssue);
                             }}
                           >
