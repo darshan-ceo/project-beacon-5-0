@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Clock, MapPin, Scale, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAppState, Hearing } from '@/contexts/AppStateContext';
 import { formatDateForDisplay, formatTimeForDisplay } from '@/utils/dateFormatters';
+import { CalendarColorLegend } from './CalendarColorLegend';
+import { HearingEventTooltip } from './HearingEventTooltip';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 const localizer = dateFnsLocalizer({
@@ -62,24 +64,40 @@ export const ProCalendarView: React.FC<ProCalendarViewProps> = ({
     });
   }, [hearings, state.cases, state.courts]);
 
-  // Event styling based on sync status
+  // Event styling based on outcome and date
   const eventStyleGetter = useCallback((event: any) => {
-    const statusColors: Record<string, string> = {
-      synced: 'hsl(var(--success))',
-      sync_failed: 'hsl(var(--destructive))',
-      not_synced: 'hsl(var(--primary))',
-      sync_pending: 'hsl(var(--warning))',
-    };
-
+    const { hearing } = event.resource;
+    const hearingDate = new Date(hearing.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    let backgroundColor = 'hsl(var(--primary))'; // Default blue
+    
+    // Priority 1: Outcome-based colors
+    if (hearing.outcome === 'Closed') {
+      backgroundColor = '#ef4444'; // 🔴 Red for closed
+    } else if (hearing.outcome === 'Adjournment') {
+      backgroundColor = '#f97316'; // 🟠 Orange for adjourned
+    } 
+    // Priority 2: Date-based colors (if no outcome)
+    else if (hearingDate.toDateString() === today.toDateString()) {
+      backgroundColor = '#3b82f6'; // 🔵 Blue for today
+    } else if (hearingDate > today) {
+      backgroundColor = '#10b981'; // 🟢 Green for future
+    } else {
+      backgroundColor = '#6b7280'; // Gray for past
+    }
+    
     return {
       style: {
-        backgroundColor: statusColors[event.status] || statusColors.not_synced,
+        backgroundColor,
         borderRadius: '4px',
         opacity: 0.9,
         color: 'white',
         border: 'none',
         display: 'block',
         fontSize: '0.875rem',
+        fontWeight: '500',
       },
     };
   }, []);
@@ -141,24 +159,20 @@ export const ProCalendarView: React.FC<ProCalendarViewProps> = ({
     );
   };
 
-  // Custom event wrapper for Month/Week/Day views
+  // Custom event wrapper for Month/Week/Day views with tooltip
   const EventComponent = ({ event }: { event: any }) => {
-    const { hearing, case: caseData, court } = event.resource;
+    const { hearing } = event.resource;
 
     return (
-      <div className="p-1">
-        <div className="font-medium text-xs truncate">{event.title}</div>
-        <div className="flex items-center gap-1 text-xs mt-0.5">
-          <Clock className="h-3 w-3" />
-          <span>{formatTimeForDisplay(hearing.start_time)}</span>
-        </div>
-        {view === Views.DAY && court && (
+      <HearingEventTooltip hearing={hearing}>
+        <div className="p-1 cursor-pointer">
+          <div className="font-medium text-xs truncate">{event.title}</div>
           <div className="flex items-center gap-1 text-xs mt-0.5">
-            <MapPin className="h-3 w-3" />
-            <span className="truncate">{court.name}</span>
+            <Clock className="h-3 w-3" />
+            <span>{formatTimeForDisplay(hearing.start_time)}</span>
           </div>
-        )}
-      </div>
+        </div>
+      </HearingEventTooltip>
     );
   };
 
@@ -214,8 +228,10 @@ export const ProCalendarView: React.FC<ProCalendarViewProps> = ({
   };
 
   return (
-    <div className="h-[calc(100vh-300px)] min-h-[600px]">
-      <Calendar
+    <div className="space-y-4">
+      <CalendarColorLegend />
+      <div className="h-[calc(100vh-350px)] min-h-[500px] md:min-h-[600px]">
+        <Calendar
         localizer={localizer}
         events={events}
         startAccessor="start"
@@ -247,8 +263,9 @@ export const ProCalendarView: React.FC<ProCalendarViewProps> = ({
           agendaDateFormat: 'dd MMM',
           agendaTimeFormat: 'HH:mm',
         }}
-        className="bg-background rounded-lg border"
-      />
+        className="bg-background rounded-lg border text-sm md:text-base"
+        />
+      </div>
     </div>
   );
 };

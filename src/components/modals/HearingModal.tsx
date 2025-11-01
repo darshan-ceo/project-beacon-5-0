@@ -24,6 +24,7 @@ import { FieldTooltip } from '@/components/ui/field-tooltip';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog';
 import { HearingOutcomeSection } from './HearingOutcomeSection';
 import { HearingDocumentUpload } from '../hearings/HearingDocumentUpload';
+import { HearingSummaryGenerator } from '../hearings/HearingSummaryGenerator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface HearingModalProps {
@@ -546,6 +547,11 @@ export const HearingModal: React.FC<HearingModalProps> = ({
                 onAutoCreateChange={(checked) => setFormData(prev => ({ ...prev, autoCreateNextHearing: checked }))}
                 disabled={mode === 'view'}
               />
+            )}
+
+            {/* Phase 4: AI Summary Generator (View Mode Only) */}
+            {mode === 'view' && hearingData && (
+              <HearingSummaryGenerator hearing={hearingData} />
             )}
 
             {/* Phase 3: Document Upload Section */}

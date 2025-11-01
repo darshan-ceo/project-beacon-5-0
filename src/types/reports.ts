@@ -74,6 +74,9 @@ export interface HearingReportData {
   judge: string;
   type: string;
   status: 'Scheduled' | 'Completed' | 'Adjourned' | 'Cancelled';
+  authority?: string;
+  advocate?: string;
+  outcome?: string;
 }
 
 export interface TimelineBreachReportData {

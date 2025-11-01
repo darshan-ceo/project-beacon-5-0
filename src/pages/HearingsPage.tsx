@@ -83,28 +83,33 @@ const HearingsList: React.FC<{
         return (
           <div 
             key={hearing.id} 
-            className={`border rounded-lg p-4 transition-all duration-300 ${
+            className={`border rounded-lg p-3 md:p-4 transition-all duration-300 ${
               isHighlighted 
                 ? 'border-primary bg-primary/5 shadow-md ring-2 ring-primary/20' 
                 : 'border-border hover:border-primary/50'
             }`}
             data-highlighted={isHighlighted}
           >
-            <div className="flex items-start gap-3">
+            <div className="flex flex-col md:flex-row items-start gap-3">
               <Checkbox
                 checked={selectedIds.has(hearing.id)}
                 onCheckedChange={() => onToggleSelection(hearing.id)}
-                className="mt-1"
+                className="mt-1 self-start"
               />
               
-              <div className="flex-1">
-                <div className="flex justify-between items-start">
+              <div className="flex-1 w-full">
+                <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-3">
                   <div className="flex-1">
-                    <h3 className="font-medium">{case_?.caseNumber} - {case_?.title}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {formatDateForDisplay(hearing.date)} at {formatTimeForDisplay(hearing.start_time)} | {court?.name}
+                    <h3 className="font-medium text-sm md:text-base">
+                      {case_?.caseNumber} - {case_?.title}
+                    </h3>
+                    <p className="text-xs md:text-sm text-muted-foreground mt-1">
+                      {formatDateForDisplay(hearing.date)} at {formatTimeForDisplay(hearing.start_time)}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs md:text-sm text-muted-foreground">
+                      {court?.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
                       Judges: {judges.length > 0 ? judges.map(j => j.name).join(', ') : 'No judges assigned'}
                     </p>
                     {calendarProvider && calendarProvider !== 'none' && (
@@ -118,9 +123,13 @@ const HearingsList: React.FC<{
                       </div>
                     )}
                   </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => onView(hearing)}>View</Button>
-                    <Button size="sm" onClick={() => onEdit(hearing)}>Edit</Button>
+                  <div className="flex gap-2 w-full md:w-auto">
+                    <Button size="sm" variant="outline" onClick={() => onView(hearing)} className="flex-1 md:flex-none">
+                      View
+                    </Button>
+                    <Button size="sm" onClick={() => onEdit(hearing)} className="flex-1 md:flex-none">
+                      Edit
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -366,12 +375,14 @@ export const HearingsPage: React.FC = () => {
   return (
     <div className="p-6 space-y-6">
       
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-4">
+      {/* Header - Mobile Optimized */}
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4">
           <div>
-            <h1 className="text-2xl font-bold">Hearings</h1>
-            <p className="text-muted-foreground">Manage court hearings and schedules</p>
+            <h1 className="text-xl md:text-2xl font-bold">Hearings</h1>
+            <p className="text-sm text-muted-foreground hidden sm:block">
+              Manage court hearings and schedules
+            </p>
           </div>
           <ContextualPageHelp 
             pageId="hearings" 
@@ -380,7 +391,8 @@ export const HearingsPage: React.FC = () => {
           />
         </div>
         
-        <Button onClick={handleCreateHearing}>
+        {/* Desktop Schedule Button */}
+        <Button onClick={handleCreateHearing} className="hidden md:flex">
           <Plus className="h-4 w-4 mr-2" />
           Schedule Hearing
         </Button>
@@ -483,6 +495,17 @@ export const HearingsPage: React.FC = () => {
         onRetryAll={handleRetryAllFailed}
         onOpenSettings={() => navigate('/rbac')}
       />
+
+      {/* Mobile: Floating Schedule Button */}
+      <div className="md:hidden fixed bottom-6 right-6 z-50">
+        <Button
+          onClick={handleCreateHearing}
+          size="lg"
+          className="shadow-2xl h-14 w-14 rounded-full p-0"
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
+      </div>
 
     </div>
   );

@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Calendar } from '@/components/ui/calendar';
 import { DateRange } from 'react-day-picker';
-import { format } from 'date-fns';
+import { format, addDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from 'date-fns';
 
 import { FilterDropdown } from '@/components/ui/filter-dropdown';
 import { useAppState } from '@/contexts/AppStateContext';
@@ -45,6 +45,7 @@ export interface HearingFiltersState {
   internalCounselIds: string[];
   dateRange?: DateRange;
   tags: string[];
+  outcomes?: string[];
 }
 
 interface SavedView {
@@ -98,6 +99,7 @@ export const HearingFilters: React.FC<HearingFiltersProps> = ({
       internalCounselIds: [],
       dateRange: undefined,
       tags: [],
+      outcomes: [],
     });
   };
 
@@ -153,6 +155,7 @@ export const HearingFilters: React.FC<HearingFiltersProps> = ({
     if (filters.internalCounselIds.length > 0) count++;
     if (filters.dateRange) count++;
     if (filters.tags.length > 0) count++;
+    if (filters.outcomes && filters.outcomes.length > 0) count++;
     return count;
   };
 
@@ -417,6 +420,78 @@ export const HearingFilters: React.FC<HearingFiltersProps> = ({
                   />
                 </div>
 
+                {/* Date Range Quick Presets */}
+                <div className="col-span-full">
+                  <Label className="text-sm font-medium mb-2 block">Quick Date Ranges</Label>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const today = new Date();
+                        updateFilters({ 
+                          dateRange: { from: today, to: today } 
+                        });
+                      }}
+                    >
+                      Today
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const today = new Date();
+                        const next7 = addDays(today, 7);
+                        updateFilters({ 
+                          dateRange: { from: today, to: next7 } 
+                        });
+                      }}
+                    >
+                      Next 7 Days
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const today = new Date();
+                        updateFilters({ 
+                          dateRange: { 
+                            from: startOfMonth(today), 
+                            to: endOfMonth(today) 
+                          } 
+                        });
+                      }}
+                    >
+                      This Month
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const today = new Date();
+                        updateFilters({ 
+                          dateRange: { 
+                            from: startOfWeek(today, { weekStartsOn: 1 }), 
+                            to: endOfWeek(today, { weekStartsOn: 1 }) 
+                          } 
+                        });
+                      }}
+                    >
+                      This Week
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        updateFilters({ dateRange: undefined });
+                      }}
+                      disabled={!filters.dateRange}
+                    >
+                      Clear Date
+                    </Button>
+                  </div>
+                </div>
+
                 {/* Date Range Filter */}
                 <div>
                   <Label className="text-sm font-medium mb-2 block">Date Range</Label>
@@ -449,6 +524,31 @@ export const HearingFilters: React.FC<HearingFiltersProps> = ({
                       />
                     </PopoverContent>
                   </Popover>
+                </div>
+
+                {/* Outcome Filter */}
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">Outcome</Label>
+                  <FilterDropdown
+                    label="Outcome"
+                    value={filters.outcomes && filters.outcomes.length > 0 ? `${filters.outcomes.length} selected` : 'all'}
+                    options={[
+                      { label: 'Adjournment', value: 'Adjournment' },
+                      { label: 'Submission Done', value: 'Submission Done' },
+                      { label: 'Order Passed', value: 'Order Passed' },
+                      { label: 'Closed', value: 'Closed' },
+                    ]}
+                    onChange={(value) => {
+                      if (value === 'all') {
+                        updateFilters({ outcomes: [] });
+                      } else {
+                        const newOutcomes = (filters.outcomes || []).includes(value)
+                          ? (filters.outcomes || []).filter(id => id !== value)
+                          : [...(filters.outcomes || []), value];
+                        updateFilters({ outcomes: newOutcomes });
+                      }
+                    }}
+                  />
                 </div>
 
               </div>
