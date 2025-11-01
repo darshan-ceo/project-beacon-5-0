@@ -5,7 +5,7 @@
 
 export type HearingStatus = 'scheduled' | 'concluded' | 'adjourned' | 'no-board' | 'withdrawn';
 export type HearingPurpose = 'PH' | 'mention' | 'final' | 'other';
-export type HearingOutcome = 'Adjourned' | 'Part-heard' | 'Allowed' | 'Dismissed' | 'Withdrawn' | 'Other';
+export type HearingOutcome = 'Adjournment' | 'Submission Done' | 'Order Passed' | 'Closed' | 'Part-heard' | 'Allowed' | 'Dismissed' | 'Withdrawn' | 'Other';
 
 export interface HearingAttendance {
   our_counsel_id?: string;

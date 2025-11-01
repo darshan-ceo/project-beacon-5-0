@@ -407,7 +407,7 @@ interface Hearing {
   judge_ids: string[];
   purpose: 'PH' | 'mention' | 'final' | 'other';
   status: 'scheduled' | 'concluded' | 'adjourned' | 'no-board' | 'withdrawn';
-  outcome?: 'Adjourned' | 'Part-heard' | 'Allowed' | 'Dismissed' | 'Withdrawn' | 'Other';
+  outcome?: 'Adjournment' | 'Submission Done' | 'Order Passed' | 'Closed' | 'Part-heard' | 'Allowed' | 'Dismissed' | 'Withdrawn' | 'Other';
   outcome_text?: string;
   next_hearing_date?: string;
   order_file_id?: string;

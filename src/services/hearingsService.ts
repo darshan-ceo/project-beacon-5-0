@@ -5,6 +5,8 @@ import { apiService } from './apiService';
 import { integrationsService } from './integrationsService';
 import { calendarService } from './calendar/calendarService';
 import { loadAppState } from '@/data/storageShim';
+import { timelineService } from './timelineService';
+import { format } from 'date-fns';
 
 const isDev = import.meta.env.DEV;
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
@@ -121,6 +123,33 @@ export const hearingsService = {
 
       dispatch({ type: 'ADD_HEARING', payload: offlineHearing });
       
+      // Phase 2: Add timeline entry for hearing scheduled
+      try {
+        const appState = await loadAppState();
+        const relatedCase = appState.cases.find(c => c.id === data.case_id);
+        if (relatedCase) {
+          await timelineService.addEntry({
+            caseId: data.case_id,
+            type: 'hearing_scheduled',
+            title: 'Hearing Scheduled',
+            description: `Hearing scheduled for ${format(new Date(data.date), 'dd MMM yyyy')} at ${data.start_time}`,
+            createdBy: 'current-user-id',
+            metadata: {
+              hearingId: offlineHearing.id,
+              hearingDate: data.date,
+              startTime: data.start_time,
+              authorityId: data.authority_id,
+              forumId: data.forum_id,
+              court: offlineHearing.forum_name || 'Forum TBD'
+            }
+          });
+          console.log('[Hearings] Timeline entry added for hearing scheduled');
+        }
+      } catch (timelineError) {
+        console.error('[Hearings] Failed to add timeline entry:', timelineError);
+        // Don't throw - hearing was created successfully
+      }
+      
       // Auto-sync to calendar if enabled
       try {
         const settings = integrationsService.loadCalendarSettings('default');
@@ -204,6 +233,30 @@ export const hearingsService = {
       // Fallback to local update when API fails
       const updatedHearing = { id, ...updateData };
       dispatch({ type: 'UPDATE_HEARING', payload: updatedHearing });
+      
+      // Phase 2: Add timeline entry for hearing updated
+      try {
+        const appState = await loadAppState();
+        const hearing = appState.hearings.find(h => h.id === id);
+        if (hearing) {
+          await timelineService.addEntry({
+            caseId: hearing.case_id,
+            type: 'hearing_scheduled',
+            title: 'Hearing Updated',
+            description: `Hearing rescheduled to ${updates.date ? format(new Date(updates.date), 'dd MMM yyyy') : 'new date'}${updates.start_time ? ` at ${updates.start_time}` : ''}`,
+            createdBy: 'current-user-id',
+            metadata: {
+              hearingId: id,
+              hearingDate: updates.date,
+              startTime: updates.start_time,
+              changes: Object.keys(updates)
+            }
+          });
+          console.log('[Hearings] Timeline entry added for hearing updated');
+        }
+      } catch (timelineError) {
+        console.error('[Hearings] Failed to add timeline entry:', timelineError);
+      }
       
       // Auto-sync calendar update if enabled
       try {
@@ -307,12 +360,16 @@ export const hearingsService = {
     }
   },
 
-  /**
-   * Record hearing outcome
-   */
-  async recordOutcome(id: string, outcome: string, outcomeText?: string, nextHearingDate?: string): Promise<void> {
+  async recordOutcome(
+    id: string, 
+    outcome: string, 
+    outcomeText?: string, 
+    nextHearingDate?: string,
+    autoCreateNext: boolean = false,
+    dispatch?: React.Dispatch<AppAction>
+  ): Promise<Hearing | null> {
     try {
-      const updates = {
+      const updates: any = {
         status: 'concluded' as const,
         outcome,
         outcome_text: outcomeText,
@@ -320,15 +377,86 @@ export const hearingsService = {
         updated_at: new Date().toISOString()
       };
 
+      // Get the full hearing object before updating
+      const appState = await loadAppState();
+      const hearing = appState.hearings.find(h => h.id === id) as any;
+      
+      if (!hearing) {
+        throw new Error('Hearing not found');
+      }
+
       const response = await apiService.put<Hearing>(`/api/hearings/${id}`, updates);
       
-      if (response.success) {
+      if (response.success || import.meta.env.DEV) {
+        // Update hearing in state
+        if (dispatch) {
+          dispatch({ type: 'UPDATE_HEARING', payload: { id, ...updates } });
+        }
+
+        // Phase 2: Add timeline entry for outcome
+        try {
+          await timelineService.addEntry({
+            caseId: hearing.case_id || hearing.caseId,
+            type: 'hearing_scheduled',
+            title: 'Hearing Outcome Recorded',
+            description: `Outcome: ${outcome}. ${outcomeText || ''}`,
+            createdBy: 'current-user-id',
+            metadata: {
+              hearingId: id,
+              outcome,
+              outcomeText,
+              nextHearingDate
+            }
+          });
+          console.log('[Hearings] Timeline entry added for outcome');
+        } catch (timelineError) {
+          console.error('[Hearings] Failed to add timeline entry:', timelineError);
+        }
+
+        // Phase 2: Auto-create next hearing if outcome is Adjournment
+        if (outcome === 'Adjournment' && autoCreateNext && nextHearingDate && dispatch) {
+          try {
+            const nextHearingData: HearingFormData = {
+              case_id: hearing.case_id || hearing.caseId,
+              date: nextHearingDate,
+              start_time: hearing.start_time || hearing.time || '10:00',
+              end_time: hearing.end_time || '11:00',
+              timezone: hearing.timezone || 'Asia/Kolkata',
+              court_id: hearing.court_id || hearing.courtId,
+              judge_ids: hearing.judge_ids || (hearing.judgeId ? [hearing.judgeId] : []),
+              purpose: hearing.purpose || 'mention',
+              notes: `Adjourned from ${format(new Date(hearing.date), 'dd MMM yyyy')}. ${outcomeText || ''}`,
+              authority_id: hearing.authority_id || hearing.authorityId,
+              forum_id: hearing.forum_id || hearing.forumId
+            };
+
+            const nextHearing = await this.createHearing(nextHearingData, dispatch);
+            
+            toast({
+              title: "Next Hearing Scheduled",
+              description: `Hearing automatically scheduled for ${format(new Date(nextHearingDate), 'dd MMM yyyy')}`,
+            });
+
+            console.log('[Hearings] Auto-created next hearing:', nextHearing.id);
+            
+            return nextHearing as any;
+          } catch (createError) {
+            console.error('[Hearings] Failed to auto-create next hearing:', createError);
+            toast({
+              title: "Warning",
+              description: "Outcome recorded but failed to auto-create next hearing. Please schedule manually.",
+              variant: "default"
+            });
+          }
+        }
+        
         toast({
           title: "Outcome Recorded",
           description: `Hearing outcome: ${outcome}`,
         });
         
         log('success', 'record outcome', { hearingId: id, outcome });
+        return hearing;
       } else {
         throw new Error('Failed to record outcome');
       }
@@ -563,7 +691,7 @@ export const hearingsService = {
         judge_ids: ['3'],
         purpose: 'mention',
         status: 'concluded',
-        outcome: 'Adjourned',
+        outcome: 'Adjournment',
         outcome_text: 'Adjourned for filing additional documents',
         created_by: 'user-001',
         created_at: '2024-02-01T10:00:00Z',

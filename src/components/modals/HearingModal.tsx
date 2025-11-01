@@ -22,6 +22,8 @@ import { featureFlagService } from '@/services/featureFlagService';
 import { hearingsService } from '@/services/hearingsService';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog';
+import { HearingOutcomeSection } from './HearingOutcomeSection';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface HearingModalProps {
   isOpen: boolean;
@@ -58,14 +60,19 @@ export const HearingModal: React.FC<HearingModalProps> = ({
     caseId: string;
     courtId: string;
     judgeId: string;
-    authorityId: string;  // Phase 1: Authority field
-    forumId: string;      // Phase 1: Forum field
+    authorityId: string;
+    forumId: string;
     date: Date;
     time: string;
     type: 'Adjourned' | 'Final' | 'Argued' | 'Preliminary';
     status: 'scheduled' | 'concluded' | 'adjourned' | 'no-board' | 'withdrawn';
     agenda: string;
     notes: string;
+    // Phase 2: Outcome fields
+    outcome?: string;
+    outcomeText?: string;
+    nextHearingDate?: Date;
+    autoCreateNextHearing?: boolean;
   }>({
     caseId: contextCaseId || '',
     courtId: '',
@@ -77,7 +84,11 @@ export const HearingModal: React.FC<HearingModalProps> = ({
     type: 'Preliminary',
     status: 'scheduled',
     agenda: '',
-    notes: ''
+    notes: '',
+    outcome: undefined,
+    outcomeText: '',
+    nextHearingDate: undefined,
+    autoCreateNextHearing: false
   });
   const [isAddressMasterEnabled, setIsAddressMasterEnabled] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -90,14 +101,18 @@ export const HearingModal: React.FC<HearingModalProps> = ({
         caseId: hearingData.caseId,
         courtId: hearingData.courtId,
         judgeId: hearingData.judgeId,
-        authorityId: hearingData.authority_id || hearingData.courtId, // Default to courtId for backward compatibility
-        forumId: hearingData.forum_id || hearingData.courtId, // Default to courtId for backward compatibility
+        authorityId: hearingData.authority_id || hearingData.courtId,
+        forumId: hearingData.forum_id || hearingData.courtId,
         date: new Date(hearingData.date),
         time: hearingData.time,
         type: hearingData.type,
         status: hearingData.status as any,
         agenda: hearingData.agenda,
-        notes: hearingData.notes || ''
+        notes: hearingData.notes || '',
+        outcome: hearingData.outcome,
+        outcomeText: hearingData.outcome_text || '',
+        nextHearingDate: hearingData.next_hearing_date ? new Date(hearingData.next_hearing_date) : undefined,
+        autoCreateNextHearing: false
       });
       updateContext({ 
         caseId: hearingData.caseId, 
@@ -240,6 +255,18 @@ export const HearingModal: React.FC<HearingModalProps> = ({
         };
 
         await hearingsService.updateHearing(hearingData.id, updates, dispatch);
+      }
+
+      // Phase 2: Record outcome if provided
+      if (formData.outcome && hearingData) {
+        await hearingsService.recordOutcome(
+          hearingData.id,
+          formData.outcome,
+          formData.outcomeText,
+          formData.nextHearingDate?.toISOString().split('T')[0],
+          formData.autoCreateNextHearing,
+          dispatch
+        );
       }
 
       onClose();
@@ -503,6 +530,21 @@ export const HearingModal: React.FC<HearingModalProps> = ({
                 </div>
               </CardContent>
             </Card>
+
+            {/* Phase 2: Outcome Section (only show for edit mode or if hearing is concluded) */}
+            {(mode === 'edit' || mode === 'view') && (
+              <HearingOutcomeSection
+                outcome={formData.outcome}
+                outcomeText={formData.outcomeText}
+                nextHearingDate={formData.nextHearingDate}
+                autoCreateNextHearing={formData.autoCreateNextHearing}
+                onOutcomeChange={(outcome) => setFormData(prev => ({ ...prev, outcome }))}
+                onOutcomeTextChange={(text) => setFormData(prev => ({ ...prev, outcomeText: text }))}
+                onNextHearingDateChange={(date) => setFormData(prev => ({ ...prev, nextHearingDate: date }))}
+                onAutoCreateChange={(checked) => setFormData(prev => ({ ...prev, autoCreateNextHearing: checked }))}
+                disabled={mode === 'view'}
+              />
+            )}
           </form>
         </DialogBody>
 

@@ -38,5 +38,21 @@
     "title": "Additional Notes",
     "content": "Any additional instructions, requirements, or observations about the hearing.",
     "learnMoreUrl": "/help/articles/hearing-notes"
+  },
+  "outcome": {
+    "title": "Hearing Outcome",
+    "content": "Select the outcome of the hearing. Choose 'Adjournment' if the hearing was postponed to a future date.",
+    "learnMoreUrl": "/help/articles/hearing-outcomes"
+  },
+  "outcomeText": {
+    "title": "Outcome Notes",
+    "content": "Provide a detailed summary of what transpired during the hearing, including key discussions, decisions made, and any instructions from the authority.",
+    "learnMoreUrl": "/help/articles/hearing-outcomes"
+  },
+  "nextHearingDate": {
+    "title": "Next Hearing Date",
+    "content": "If the hearing was adjourned, specify the date for the next hearing. This date will be used to automatically create a follow-up hearing.",
+    "learnMoreUrl": "/help/articles/adjournment-workflow"
   }
 }
+
