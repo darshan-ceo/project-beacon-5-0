@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X, FileText, Download, AlertCircle, CheckCircle, Loader2, Wand2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ModalLayout } from '@/components/ui/modal-layout';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
 import { FormTemplate, FormField, FormValidationError, formTemplatesService } from '@/services/formTemplatesService';
 import { reportsService } from '@/services/reportsService';
 import { useAppState } from '@/contexts/AppStateContext';
@@ -67,6 +70,7 @@ export const FormRenderModal: React.FC<FormRenderModalProps> = ({
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<FormValidationError[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [selectedCase, setSelectedCase] = useState<string>('');
   const [improvingField, setImprovingField] = useState<string | null>(null);
   const [currentIssue, setCurrentIssue] = useState<number>(0);
@@ -84,6 +88,7 @@ export const FormRenderModal: React.FC<FormRenderModalProps> = ({
   }, [template, isOpen]);
 
   const initializeFormData = () => {
+    setIsInitializing(true);
     const initialData: Record<string, any> = {};
     
     // Set default values from template
@@ -153,6 +158,7 @@ export const FormRenderModal: React.FC<FormRenderModalProps> = ({
 
     setFormData(initialData);
     setErrors([]);
+    setIsInitializing(false);
   };
 
   const handleFieldChange = (fieldKey: string, value: any, parentKey?: string, issueIndex?: number) => {
@@ -419,30 +425,28 @@ export const FormRenderModal: React.FC<FormRenderModalProps> = ({
       case 'textarea':
         return fieldWrapper(
           <div className="space-y-2">
-            <div className="relative">
-              <Textarea
-                id={fieldKey}
-                value={value || ''}
-                onChange={(e) => handleFieldChange(field.key, e.target.value, parentKey)}
-                className={fieldErrors.length > 0 ? 'border-destructive' : ''}
-                rows={4}
-              />
-              {canUseAI && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="absolute top-2 right-2 h-6 px-2 text-xs"
-                  onClick={() => handleImproveSectionWithAI(parentKey ? `${parentKey}.${field.key}` : field.key)}
-                  disabled={improvingField === (parentKey ? `${parentKey}.${field.key}` : field.key)}
-                >
-                  {improvingField === (parentKey ? `${parentKey}.${field.key}` : field.key) ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <Wand2 className="h-3 w-3" />
-                  )}
-                </Button>
-              )}
-            </div>
+            <Textarea
+              id={fieldKey}
+              value={value || ''}
+              onChange={(e) => handleFieldChange(field.key, e.target.value, parentKey)}
+              className={fieldErrors.length > 0 ? 'border-destructive' : ''}
+              rows={4}
+            />
+            {canUseAI && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full h-8 text-xs"
+                onClick={() => handleImproveSectionWithAI(parentKey ? `${parentKey}.${field.key}` : field.key)}
+                disabled={improvingField === (parentKey ? `${parentKey}.${field.key}` : field.key)}
+              >
+                {improvingField === (parentKey ? `${parentKey}.${field.key}` : field.key) ? (
+                  <><Loader2 className="h-3 w-3 mr-2 animate-spin" />Improving with AI...</>
+                ) : (
+                  <><Wand2 className="h-3 w-3 mr-2" />Improve with AI</>
+                )}
+              </Button>
+            )}
           </div>
         );
 
@@ -560,8 +564,8 @@ export const FormRenderModal: React.FC<FormRenderModalProps> = ({
                         {subField.required && <span className="text-destructive ml-1">*</span>}
                       </Label>
                       
-                      {subField.type === 'textarea' ? (
-                        <div className="relative">
+                       {subField.type === 'textarea' ? (
+                        <div className="space-y-2">
                           <Textarea
                             id={subFieldKey}
                             value={subValue || ''}
@@ -572,16 +576,16 @@ export const FormRenderModal: React.FC<FormRenderModalProps> = ({
                           />
                           {canUseAI && (
                             <Button
-                              variant="ghost"
+                              variant="outline"
                               size="sm"
-                              className="absolute top-2 right-2 h-6 px-2 text-xs"
+                              className="w-full h-8 text-xs"
                               onClick={() => handleImproveSectionWithAI(`${field.key}[${currentIssue}].${subField.key}`)}
                               disabled={improvingField === `${field.key}[${currentIssue}].${subField.key}`}
                             >
                               {improvingField === `${field.key}[${currentIssue}].${subField.key}` ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
+                                <><Loader2 className="h-3 w-3 mr-2 animate-spin" />Improving with AI...</>
                               ) : (
-                                <Wand2 className="h-3 w-3" />
+                                <><Wand2 className="h-3 w-3 mr-2" />Improve with AI</>
                               )}
                             </Button>
                           )}
@@ -651,64 +655,157 @@ export const FormRenderModal: React.FC<FormRenderModalProps> = ({
     }
   };
 
+  // Helper function to determine modal width based on field count
+  const getModalWidth = (fieldCount: number): string => {
+    if (fieldCount <= 8) return "max-w-2xl";
+    if (fieldCount <= 15) return "max-w-3xl";
+    return "max-w-4xl";
+  };
+
+  // Get case and client data for context badges
+  const caseId = selectedCaseId || selectedCase;
+  const caseData = caseId ? state.cases.find(c => c.id === caseId) : undefined;
+  const clientData = caseData ? state.clients.find(c => c.id === caseData.clientId) : undefined;
+
+  // Build description with context badges
+  const getDescription = () => {
+    if (!caseData && !clientData) return undefined;
+    
+    return (
+      <div className="flex items-center gap-2 flex-wrap">
+        {clientData && (
+          <Badge variant="outline" className="text-xs">
+            {clientData.name}
+          </Badge>
+        )}
+        {caseData && (
+          <Badge variant="outline" className="text-xs">
+            {caseData.caseNumber}
+          </Badge>
+        )}
+        <Badge variant="secondary" className="text-xs">
+          {template.stage}
+        </Badge>
+      </div>
+    );
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
-            Generate {template.title}
-            <Badge variant="secondary">{template.stage}</Badge>
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-6">
-          {/* AI Assistant Panel */}
-          {canUseAI && (
-            <AIAssistantPanel
-              template={template}
-              caseData={(() => {
-                const caseId = selectedCaseId || selectedCase;
-                return caseId ? state.cases.find(c => c.id === caseId) : undefined;
-              })()}
-              clientData={(() => {
-                const caseId = selectedCaseId || selectedCase;
-                const caseData = caseId ? state.cases.find(c => c.id === caseId) : undefined;
-                return caseData ? state.clients.find(c => c.id === caseData.clientId) : undefined;
-              })()}
-              formData={formData}
-              onDraftGenerated={handleDraftGenerated}
-              onFieldImproved={handleFieldImproved}
-              disabled={!canUseAI}
-            />
-          )}
-
-          {/* Case Selection */}
-          {!selectedCaseId && (
-            <div className="space-y-2">
-              <Label htmlFor="case-select">Select Case *</Label>
-              <Select value={selectedCase} onValueChange={setSelectedCase}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a case..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {state.cases.map(caseItem => (
-                    <SelectItem key={caseItem.id} value={caseItem.id}>
-                      {caseItem.caseNumber} - {caseItem.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {/* Form Fields */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Form Details</h3>
-            {template.fields.map(field => renderField(field))}
+    <ModalLayout
+      open={isOpen}
+      onOpenChange={onClose}
+      title={`Generate ${template.title}`}
+      description={getDescription() as any}
+      icon={<FileText className="h-5 w-5" />}
+      maxWidth={getModalWidth(template.fields.length)}
+      showHeaderDivider={true}
+      showFooterDivider={true}
+      footer={
+        <div className="flex items-center justify-between w-full">
+          <div className="text-xs text-muted-foreground">
+            {canUseAI && "AI-assisted draft. Please review before submission."}
           </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={validateAndGenerate} 
+              disabled={isGenerating}
+              className="min-w-[120px]"
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4 mr-2" />
+                  Generate PDF
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      }
+    >
+      {isInitializing ? (
+        <div className="space-y-4">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-32 w-full" />
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {/* Case Selection Card */}
+          {!selectedCaseId && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <FileText className="h-4 w-4" />
+                  Case Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <Label htmlFor="case-select">Select Case *</Label>
+                  <Select value={selectedCase} onValueChange={setSelectedCase}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a case..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {state.cases.map(caseItem => (
+                        <SelectItem key={caseItem.id} value={caseItem.id}>
+                          {caseItem.caseNumber} - {caseItem.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-          {/* Error Summary */}
+          {/* AI Assistant Card */}
+          {canUseAI && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Wand2 className="h-4 w-4" />
+                  AI Draft Assistant
+                  <Badge variant="secondary" className="ml-auto text-xs">Beta</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <AIAssistantPanel
+                  template={template}
+                  caseData={caseData}
+                  clientData={clientData}
+                  formData={formData}
+                  onDraftGenerated={handleDraftGenerated}
+                  onFieldImproved={handleFieldImproved}
+                  disabled={!canUseAI}
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Form Details Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <FileText className="h-4 w-4" />
+                Form Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {template.fields.map(field => renderField(field))}
+            </CardContent>
+          </Card>
+
+          {/* Error Summary Alert */}
           {errors.length > 0 && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -722,37 +819,8 @@ export const FormRenderModal: React.FC<FormRenderModalProps> = ({
               </AlertDescription>
             </Alert>
           )}
-
-          {/* Actions */}
-          <div className="flex justify-between items-center pt-4 border-t border-border">
-            <div className="text-xs text-muted-foreground">
-              {canUseAI && "AI-assisted draft. Please review before submission."}
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button 
-                onClick={validateAndGenerate} 
-                disabled={isGenerating}
-                className="min-w-[120px]"
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Download className="h-4 w-4 mr-2" />
-                    Generate PDF
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      )}
+    </ModalLayout>
   );
 };
