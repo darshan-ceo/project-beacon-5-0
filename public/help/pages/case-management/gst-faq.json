@@ -1,0 +1,56 @@
+{
+  "title": "GST Case Management FAQs",
+  "description": "Frequently asked questions for GST litigation cases in Gujarat",
+  "faqs": [
+    {
+      "question": "What is the deadline to reply to a DRC-01 notice?",
+      "answer": "The deadline is 30 days from the date of service of the notice. However, the proper officer may extend this period on a written request showing sufficient cause.",
+      "tags": ["deadline", "DRC-01", "notice", "reply"]
+    },
+    {
+      "question": "Which authority handles First Appeal in GST?",
+      "answer": "The Commissioner (Appeals) handles First Appeals under Section 107 of the GST Act. Appeals must be filed within 3 months from the date of the order, with provision for condonation of delay for a further period of 1 month.",
+      "tags": ["appeal", "authority", "commissioner", "first appeal"]
+    },
+    {
+      "question": "How do I track timeline breaches?",
+      "answer": "Timeline breaches are automatically tracked based on the last update date. Cases with no activity for 15+ days show 'Amber' status, and 30+ days are flagged as 'Red' (Timeline Breach). The system recalculates SLA daily at midnight.",
+      "tags": ["timeline", "SLA", "tracking", "breach"]
+    },
+    {
+      "question": "What documents are required for hearing preparation?",
+      "answer": "Typical documents include: (1) Copy of notice/order, (2) Reply/appeal filed, (3) Supporting evidence (invoices, returns, bank statements), (4) Legal precedents, (5) Case diary/timeline, (6) Authorization letter (vakalatnama), (7) Case list from tribunal/court website.",
+      "tags": ["hearing", "documents", "preparation", "requirements"]
+    },
+    {
+      "question": "Can I auto-generate tasks for each case stage?",
+      "answer": "Yes! When you advance a case stage (e.g., from Assessment to Adjudication), the system automatically generates stage-specific tasks like 'File Reply', 'Prepare Written Submissions', 'Collect Evidence', etc. You can customize task templates in Settings.",
+      "tags": ["tasks", "automation", "stages", "workflow"]
+    },
+    {
+      "question": "What is the difference between DRC-01, DRC-03, and DRC-07?",
+      "answer": "DRC-01 is a Show Cause Notice (SCN) for tax demand. DRC-03 is an intimation before audit/investigation. DRC-07 is the final order/assessment order issued by the proper officer after adjudication.",
+      "tags": ["forms", "DRC", "notice types"]
+    },
+    {
+      "question": "How do I add a new authority (e.g., CGST Commissioner)?",
+      "answer": "Go to Masters → Courts/Authorities → Add New. Select 'Authority Level' (e.g., Adjudication, First Appeal) and enter the authority name. The system will link this to case management automatically.",
+      "tags": ["authority", "master data", "setup"]
+    },
+    {
+      "question": "What is the AI Assistant and how does it help?",
+      "answer": "The AI Assistant provides contextual answers about your case, including next steps, document requirements, deadlines, and hearing preparation tips. It analyzes your case details (stage, form type, notice number) to give specific guidance for GST litigation in Gujarat.",
+      "tags": ["AI", "assistant", "help", "automation"]
+    },
+    {
+      "question": "How do I send WhatsApp/Email to clients directly from case?",
+      "answer": "Open the case → Go to 'Communications' tab → Choose channel (Email/WhatsApp/SMS) → Compose message → Send. The system automatically logs all communications and links them to the case timeline.",
+      "tags": ["communication", "whatsapp", "email", "client"]
+    },
+    {
+      "question": "What is 'From Notice' auto-fill feature?",
+      "answer": "When you create a case from the Notice Intake Wizard, the system automatically extracts data from the notice PDF (using OCR) and pre-fills fields like Form Type, Notice Number, Section Invoked, Financial Year, Tax Demand, and Authority. You can review and edit before saving.",
+      "tags": ["notice", "OCR", "automation", "data entry"]
+    }
+  ]
+}

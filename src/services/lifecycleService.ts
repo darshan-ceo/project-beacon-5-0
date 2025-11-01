@@ -11,6 +11,24 @@ import { CASE_STAGES, getNextStage } from '@/utils/stageUtils';
 import { toast } from '@/hooks/use-toast';
 import React from 'react';
 
+// Phase 2: GST Lifecycle Stages for Production
+const GST_LIFECYCLE_STAGES = [
+  { id: 'notice-received', name: 'Notice Received', order: 1 },
+  { id: 'reply-filed', name: 'Reply Filed', order: 2 },
+  { id: 'hearing-scheduled', name: 'Hearing Scheduled', order: 3 },
+  { id: 'submission-done', name: 'Submission Done', order: 4 },
+  { id: 'order-passed', name: 'Order Passed', order: 5 },
+  { id: 'closed', name: 'Closed', order: 6 }
+];
+
+export function initializeGSTLifecycle(caseId: string): Array<{ id: string; name: string; status: 'current' | 'pending' | 'completed' }> {
+  return GST_LIFECYCLE_STAGES.map((stage, index) => ({
+    id: `${caseId}-stage-${stage.id}`,
+    name: stage.name,
+    status: index === 0 ? 'current' : 'pending'
+  }));
+}
+
 export interface CreateTransitionRequest {
   caseId: string;
   type: TransitionType;

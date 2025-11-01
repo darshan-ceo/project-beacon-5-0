@@ -6,6 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { HelpCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Case, useAppState } from '@/contexts/AppStateContext';
 import { ClientSelector } from '@/components/ui/relationship-selector';
@@ -59,7 +61,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
     assignedToId: string;
     assignedToName: string;
     description: string;
-    // New fields
+    // GST metadata fields
     period: string;
     taxDemand: string;
     authority: string;
@@ -67,6 +69,13 @@ export const CaseModal: React.FC<CaseModalProps> = ({
     departmentLocation: string;
     matterType: string;
     tribunalBench: 'State Bench' | 'Principal Bench';
+    // Phase 1: Production-ready fields
+    notice_no: string;
+    form_type: string;
+    section_invoked: string;
+    financial_year: string;
+    authorityId: string;
+    city: string;
   }>({
     caseNumber: '',
     caseType: 'GST',
@@ -88,7 +97,14 @@ export const CaseModal: React.FC<CaseModalProps> = ({
     jurisdictionalCommissionerate: '',
     departmentLocation: '',
     matterType: 'Scrutiny',
-    tribunalBench: 'State Bench'
+    tribunalBench: 'State Bench',
+    // Phase 1 fields
+    notice_no: '',
+    form_type: '',
+    section_invoked: '',
+    financial_year: '',
+    authorityId: '',
+    city: ''
   });
 
   useEffect(() => {
@@ -114,7 +130,14 @@ export const CaseModal: React.FC<CaseModalProps> = ({
         jurisdictionalCommissionerate: caseData.jurisdictionalCommissionerate || '',
         departmentLocation: caseData.departmentLocation || '',
         matterType: caseData.matterType || 'Scrutiny',
-        tribunalBench: caseData.tribunalBench || 'State Bench'
+        tribunalBench: caseData.tribunalBench || 'State Bench',
+        // Phase 1 fields
+        notice_no: caseData.notice_no || '',
+        form_type: caseData.form_type || '',
+        section_invoked: caseData.section_invoked || '',
+        financial_year: caseData.financial_year || '',
+        authorityId: caseData.authorityId || '',
+        city: caseData.city || ''
       });
       updateContext({ clientId: caseData.clientId });
     } else if (mode === 'create') {
@@ -176,12 +199,63 @@ export const CaseModal: React.FC<CaseModalProps> = ({
       return;
     }
     
+    // Phase 1: Validate mandatory fields for production readiness
+    if (!formData.clientId) {
+      toast({
+        title: "Validation Error",
+        description: "Client is required.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!formData.city) {
+      toast({
+        title: "Validation Error",
+        description: "City is required for jurisdiction determination.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!formData.authorityId && formData.currentStage !== 'Assessment') {
+      toast({
+        title: "Validation Error",
+        description: "Authority is required for cases beyond Assessment stage.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     // Validate client relationship
     const clientValidation = validateCaseClient(formData.clientId);
     if (!clientValidation.isValid) {
       toast({
         title: "Validation Error",
         description: clientValidation.errors.join(', '),
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Validate GSTIN (15 characters)
+    const client = state.clients.find(c => c.id === formData.clientId);
+    if (client?.gstin && client.gstin.length !== 15) {
+      toast({
+        title: "Validation Error",
+        description: "GSTIN must be exactly 15 characters.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Validate pincode (6 digits)
+    const address = client?.address;
+    const pincode = typeof address === 'object' && 'pincode' in address ? (address as any).pincode : '';
+    if (pincode && !/^\d{6}$/.test(pincode)) {
+      toast({
+        title: "Validation Error",
+        description: "Pincode must be exactly 6 digits.",
         variant: "destructive"
       });
       return;
@@ -233,6 +307,13 @@ export const CaseModal: React.FC<CaseModalProps> = ({
         departmentLocation: formData.departmentLocation,
         matterType: formData.currentStage === 'Assessment' ? formData.matterType as any : undefined,
         tribunalBench: formData.currentStage === 'Tribunal' ? formData.tribunalBench : undefined,
+        // Phase 1: GST metadata fields
+        notice_no: formData.notice_no,
+        form_type: formData.form_type as any,
+        section_invoked: formData.section_invoked,
+        financial_year: formData.financial_year,
+        authorityId: formData.authorityId,
+        city: formData.city,
         createdDate: new Date().toISOString().split('T')[0],
         lastUpdated: new Date().toISOString().split('T')[0],
         documents: 0,
@@ -267,6 +348,13 @@ export const CaseModal: React.FC<CaseModalProps> = ({
         departmentLocation: formData.departmentLocation,
         matterType: formData.currentStage === 'Assessment' ? formData.matterType as any : undefined,
         tribunalBench: formData.currentStage === 'Tribunal' ? formData.tribunalBench : undefined,
+        // Phase 1: GST metadata fields
+        notice_no: formData.notice_no,
+        form_type: formData.form_type as any,
+        section_invoked: formData.section_invoked,
+        financial_year: formData.financial_year,
+        authorityId: formData.authorityId,
+        city: formData.city,
         lastUpdated: new Date().toISOString().split('T')[0]
       };
 
@@ -588,6 +676,218 @@ export const CaseModal: React.FC<CaseModalProps> = ({
                   disabled={mode === 'view'}
                   placeholder="e.g., Mumbai Central"
                 />
+              </div>
+
+              {/* Phase 1: GST Metadata Fields for Production Readiness */}
+              <div className="border-t pt-4 mt-4">
+                <h3 className="text-sm font-medium mb-4">GST Notice Details</h3>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <TooltipProvider>
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Label htmlFor="notice_no">Notice Number</Label>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent side="right" className="max-w-xs">
+                            <p className="text-sm">
+                              The unique reference number from the GST notice received from the department.
+                              <br /><br />
+                              <strong>Example:</strong> ZA270325006940Y
+                              <br /><br />
+                              This helps track correspondence and replies accurately.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Input
+                        id="notice_no"
+                        value={formData.notice_no}
+                        onChange={(e) => setFormData(prev => ({ ...prev, notice_no: e.target.value }))}
+                        disabled={mode === 'view'}
+                        placeholder="e.g., ZA270325006940Y"
+                      />
+                    </div>
+                  </TooltipProvider>
+
+                  <TooltipProvider>
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Label htmlFor="form_type">Form Type</Label>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent side="right" className="max-w-xs">
+                            <p className="text-sm">
+                              Type of GST form/notice received (e.g., DRC-01 for Show Cause Notice, ASMT-10 for assessment notice).
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Select
+                        value={formData.form_type}
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, form_type: value }))}
+                        disabled={mode === 'view'}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select form type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="DRC-01">DRC-01 (Show Cause Notice)</SelectItem>
+                          <SelectItem value="DRC-03">DRC-03 (Audit Intimation)</SelectItem>
+                          <SelectItem value="DRC-07">DRC-07 (Order)</SelectItem>
+                          <SelectItem value="ASMT-10">ASMT-10 (Notice for Clarification)</SelectItem>
+                          <SelectItem value="ASMT-11">ASMT-11 (Summary of Order)</SelectItem>
+                          <SelectItem value="ASMT-12">ASMT-12 (Final Notice)</SelectItem>
+                          <SelectItem value="SCN">SCN (Show Cause Notice)</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </TooltipProvider>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <TooltipProvider>
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Label htmlFor="section_invoked">Section Invoked</Label>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent side="right" className="max-w-xs">
+                            <p className="text-sm">
+                              GST Act section cited in the notice (e.g., Section 73 for normal assessment, Section 74 for fraud cases).
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Input
+                        id="section_invoked"
+                        value={formData.section_invoked}
+                        onChange={(e) => setFormData(prev => ({ ...prev, section_invoked: e.target.value }))}
+                        disabled={mode === 'view'}
+                        placeholder="e.g., Section 73, Section 74"
+                        maxLength={100}
+                      />
+                    </div>
+                  </TooltipProvider>
+
+                  <TooltipProvider>
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Label htmlFor="financial_year">Financial Year</Label>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent side="right" className="max-w-xs">
+                            <p className="text-sm">
+                              FY covered by the notice (e.g., FY 2024-25).
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Input
+                        id="financial_year"
+                        value={formData.financial_year}
+                        onChange={(e) => setFormData(prev => ({ ...prev, financial_year: e.target.value }))}
+                        disabled={mode === 'view'}
+                        placeholder="FY 2024-25"
+                      />
+                    </div>
+                  </TooltipProvider>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <TooltipProvider>
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Label htmlFor="authorityId">Issuing Authority *</Label>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent side="right" className="max-w-xs">
+                            <p className="text-sm">
+                              Select the authority/forum that issued the notice. This determines jurisdiction and appeal routes.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Select
+                        value={formData.authorityId}
+                        onValueChange={(value) => {
+                          const court = state.courts.find(c => c.id === value);
+                          setFormData(prev => ({ 
+                            ...prev, 
+                            authorityId: value,
+                            authority: court?.name || ''
+                          }));
+                        }}
+                        disabled={mode === 'view'}
+                      >
+                        <SelectTrigger className={!formData.authorityId && formData.currentStage !== 'Assessment' ? 'border-destructive' : ''}>
+                          <SelectValue placeholder="Select authority" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {state.courts
+                            .filter(court => court.status === 'Active')
+                            .sort((a, b) => {
+                              const levels = ['ADJUDICATION', 'FIRST_APPEAL', 'REVISIONAL', 'TRIBUNAL', 'HIGH_COURT', 'SUPREME_COURT'];
+                              const aLevel = levels.indexOf(a.authorityLevel || '');
+                              const bLevel = levels.indexOf(b.authorityLevel || '');
+                              return aLevel - bLevel;
+                            })
+                            .map(court => (
+                              <SelectItem key={court.id} value={court.id}>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs px-2 py-0.5 bg-muted rounded">{court.authorityLevel}</span>
+                                  <span>{court.name}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                      {!formData.authorityId && formData.currentStage !== 'Assessment' && (
+                        <p className="text-sm text-destructive mt-1">Authority is required</p>
+                      )}
+                    </div>
+                  </TooltipProvider>
+
+                  <TooltipProvider>
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Label htmlFor="city">City *</Label>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent side="right" className="max-w-xs">
+                            <p className="text-sm">
+                              City for jurisdiction determination (e.g., Ahmedabad, Surat, Rajkot).
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Input
+                        id="city"
+                        value={formData.city}
+                        onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                        disabled={mode === 'view'}
+                        placeholder="e.g., Ahmedabad"
+                        className={!formData.city ? 'border-destructive' : ''}
+                      />
+                      {!formData.city && (
+                        <p className="text-sm text-destructive mt-1">City is required</p>
+                      )}
+                    </div>
+                  </TooltipProvider>
+                </div>
               </div>
 
               <div>

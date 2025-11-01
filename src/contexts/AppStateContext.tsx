@@ -46,14 +46,22 @@ interface Case {
   caseYear?: string; // Year component of case number
   caseSequence?: string; // Sequence number within year
   officeFileNo?: string; // Office file reference number
-  noticeNo?: string; // Notice reference number
+  noticeNo?: string; // Notice reference number (legacy - use notice_no)
   period?: string; // Tax period (e.g., "Q1 FY2024-25")
   taxDemand?: number; // Tax amount in dispute
-  authority?: string; // Issuing authority name
+  authority?: string; // Issuing authority name (legacy - use authorityId)
   jurisdictionalCommissionerate?: string; // Jurisdictional office
   departmentLocation?: string; // Department location
   matterType?: 'Scrutiny' | 'General Inquiry' | 'Audit' | 'Investigation' | 'Refund' | 'Advance Ruling' | 'Amnesty' | 'E-waybill'; // Matter type for Assessment stage
   tribunalBench?: 'State Bench' | 'Principal Bench'; // Tribunal bench selection for routing
+  
+  // Phase 1: GST Metadata Fields for Production Readiness
+  notice_no?: string; // Notice number from GST department (e.g., "ZA270325006940Y")
+  form_type?: 'DRC-01' | 'DRC-03' | 'DRC-07' | 'ASMT-10' | 'ASMT-11' | 'ASMT-12' | 'SCN' | 'Other'; // GST form type
+  section_invoked?: string; // GST Act section (e.g., "Section 73", "Section 74")
+  financial_year?: string; // FY format "FY 2024-25"
+  authorityId?: string; // FK to Court.id (preferred over authority string)
+  city?: string; // City for jurisdiction (mandatory for cases beyond Assessment)
   
   // Backward compatibility
   slaStatus?: 'Green' | 'Amber' | 'Red'; // Deprecated: use timelineBreachStatus

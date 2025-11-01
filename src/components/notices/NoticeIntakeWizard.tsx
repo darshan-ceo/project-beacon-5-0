@@ -99,13 +99,19 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
       console.debug('[Wizard] Auto-filling case data on Step 5');
       const normalized = resolverOutput.normalized;
       const prefilled = {
-        title: `ASMT-10 - ${normalized.notice_no || normalized.din}`,
+        title: `${normalized.form_type || 'ASMT-10'} - ${normalized.notice_no || normalized.din}`,
         description: `Notice received for ${normalized.periods?.[0]?.period_label || 'assessment period'}`,
         client_id: selectedClient.id,
         case_type: 'Assessment',
         status: 'Active',
         priority: 'Medium',
         tags: ['ASMT-10', 'Notice'],
+        // Phase 1: GST metadata auto-fill
+        notice_no: normalized.notice_no || normalized.din,
+        form_type: normalized.notice_type || 'ASMT-10',
+        section_invoked: normalized.section_invoked || '',
+        financial_year: normalized.financial_year || '',
+        tax_period: normalized.periods?.[0]?.period_label || '',
         notice_details: {
           notice_type: 'ASMT-10',
           notice_no: normalized.notice_no,
