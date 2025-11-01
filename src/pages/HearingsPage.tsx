@@ -18,6 +18,7 @@ import { CalendarSyncBadge } from '@/components/hearings/CalendarSyncBadge';
 import { CalendarSyncStatsCard } from '@/components/hearings/CalendarSyncStatsCard';
 import { CalendarSyncErrorModal } from '@/components/hearings/CalendarSyncErrorModal';
 import { HearingsBulkActions } from '@/components/hearings/HearingsBulkActions';
+import { HearingMetrics } from '@/components/hearings/HearingMetrics';
 import { integrationsService } from '@/services/integrationsService';
 import { calendarService } from '@/services/calendar/calendarService';
 
@@ -409,6 +410,9 @@ export const HearingsPage: React.FC = () => {
           Schedule Hearing
         </Button>
       </div>
+
+      {/* Hearing Metrics Dashboard */}
+      <HearingMetrics hearings={state.hearings} />
 
       {/* Calendar Sync Stats */}
       {calendarSettings && calendarSettings.provider !== 'none' && (
