@@ -94,8 +94,16 @@ class FormTemplatesService {
     'Supreme Court': 'SC'
   };
 
-  getFormsByStage(stage: string): string[] {
-    return FormTemplatesService.LIFECYCLE_TO_TEMPLATE_MAPPING[stage] || [];
+  getFormsByStage(stage: string, matterType?: string): string[] {
+    // First try exact stage match
+    let templates = FormTemplatesService.LIFECYCLE_TO_TEMPLATE_MAPPING[stage];
+    
+    // If no templates found and matterType provided, try matter type
+    if ((!templates || templates.length === 0) && matterType) {
+      templates = FormTemplatesService.LIFECYCLE_TO_TEMPLATE_MAPPING[matterType];
+    }
+    
+    return templates || [];
   }
 
   getLifecycleStageFromTemplateCategory(templateCategory: string): string {
@@ -304,8 +312,8 @@ class FormTemplatesService {
     return templates;
   }
 
-  async getTemplatesByLifecycleStage(lifecycleStage: string): Promise<FormTemplate[]> {
-    const formCodes = this.getFormsByStage(lifecycleStage);
+  async getTemplatesByLifecycleStage(lifecycleStage: string, matterType?: string): Promise<FormTemplate[]> {
+    const formCodes = this.getFormsByStage(lifecycleStage, matterType);
     const templates: FormTemplate[] = [];
     
     for (const code of formCodes) {

@@ -908,7 +908,7 @@ export const CaseManagement: React.FC = () => {
                             <span className="text-sm font-medium text-muted-foreground">Quick Actions:</span>
                           </div>
                           <div className="flex flex-wrap gap-2">
-                            {formTemplatesService.getFormsByStage(caseItem.currentStage).map(formCode => (
+                            {formTemplatesService.getFormsByStage(caseItem.currentStage, caseItem.matterType).map(formCode => (
                               <Button
                                 key={formCode}
                                 variant="outline"
@@ -929,7 +929,7 @@ export const CaseManagement: React.FC = () => {
                                 Generate {formCode.replace('_', '-')}
                               </Button>
                             ))}
-                            {formTemplatesService.getFormsByStage(caseItem.currentStage).length === 0 && (
+                            {formTemplatesService.getFormsByStage(caseItem.currentStage, caseItem.matterType).length === 0 && (
                               <span className="text-xs text-muted-foreground">No forms available for {caseItem.currentStage} stage</span>
                             )}
                           </div>

@@ -387,7 +387,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
                 <div>
                   <h4 className="font-semibold mb-2">Required Forms</h4>
                   <div className="space-y-2">
-                    {formTemplatesService.getFormsByStage(selectedCase.currentStage).map((formCode) => (
+                    {formTemplatesService.getFormsByStage(selectedCase.currentStage, selectedCase.matterType).map((formCode) => (
                       <FormChip
                         key={formCode}
                         formCode={formCode}
@@ -396,7 +396,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
                         onDownload={handleFormDownload}
                       />
                     ))}
-                    {formTemplatesService.getFormsByStage(selectedCase.currentStage).length === 0 && (
+                    {formTemplatesService.getFormsByStage(selectedCase.currentStage, selectedCase.matterType).length === 0 && (
                       <p className="text-sm text-muted-foreground">No forms required for this stage</p>
                     )}
                   </div>
