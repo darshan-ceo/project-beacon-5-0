@@ -1,0 +1,74 @@
+{
+  "code": "APPEAL_SECOND",
+  "title": "Second Appeal (Tribunal)",
+  "stage": "Appeals",
+  "version": "1.0",
+  "prefill": {
+    "client_name": "case.client.name",
+    "gstin": "case.client.gstin",
+    "pan": "case.client.pan",
+    "address": "case.client.address",
+    "case_id": "case.id",
+    "case_title": "case.title",
+    "stage": "case.currentStage",
+    "authorized_signatory": "case.signatory.fullName"
+  },
+  "fields": [
+    {
+      "key": "impugned_order_no",
+      "label": "Impugned Order Number",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "date_of_order",
+      "label": "Date of Order",
+      "type": "date",
+      "required": true
+    },
+    {
+      "key": "first_appeal_outcome",
+      "label": "First Appeal Outcome",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "key": "grounds_of_appeal",
+      "label": "Grounds of Appeal",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "key": "legal_precedents",
+      "label": "Legal Precedents",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    {
+      "key": "pre_deposit_paid",
+      "label": "Pre-Deposit Paid",
+      "type": "number",
+      "required": false,
+      "minimum": 0
+    },
+    {
+      "key": "pre_deposit_challan",
+      "label": "Pre-Deposit Challan Details",
+      "type": "string",
+      "required": false
+    },
+    {
+      "key": "reliefs_sought",
+      "label": "Reliefs Sought",
+      "type": "textarea",
+      "required": true
+    }
+  ],
+  "output": {
+    "filename": "APPEAL_SECOND_${case.id}_${now:YYYYMMDD}.pdf",
+    "dms_folder_by_stage": true,
+    "timeline_event": "Second Appeal submitted"
+  }
+}

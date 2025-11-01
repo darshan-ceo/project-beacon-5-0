@@ -1,0 +1,59 @@
+{
+  "code": "GSTAT_MISC",
+  "title": "GSTAT Miscellaneous Application",
+  "stage": "Tribunal",
+  "version": "1.0",
+  "prefill": {
+    "client_name": "case.client.name",
+    "gstin": "case.client.gstin",
+    "pan": "case.client.pan",
+    "address": "case.client.address",
+    "case_id": "case.id",
+    "case_title": "case.title",
+    "stage": "case.currentStage",
+    "authorized_signatory": "case.signatory.fullName"
+  },
+  "fields": [
+    {
+      "key": "application_type",
+      "label": "Application Type",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "main_appeal_no",
+      "label": "Main Appeal Number",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "facts",
+      "label": "Facts",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "key": "grounds",
+      "label": "Grounds",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "key": "urgency_reason",
+      "label": "Urgency Reason",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "key": "relief_sought",
+      "label": "Relief Sought",
+      "type": "textarea",
+      "required": true
+    }
+  ],
+  "output": {
+    "filename": "GSTAT_MISC_${case.id}_${now:YYYYMMDD}.pdf",
+    "dms_folder_by_stage": true,
+    "timeline_event": "GSTAT Miscellaneous Application submitted"
+  }
+}

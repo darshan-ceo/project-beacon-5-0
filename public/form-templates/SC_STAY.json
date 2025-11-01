@@ -1,0 +1,67 @@
+{
+  "code": "SC_STAY",
+  "title": "Supreme Court Stay Application",
+  "stage": "Supreme Court",
+  "version": "1.0",
+  "prefill": {
+    "client_name": "case.client.name",
+    "gstin": "case.client.gstin",
+    "pan": "case.client.pan",
+    "address": "case.client.address",
+    "case_id": "case.id",
+    "case_title": "case.title",
+    "stage": "case.currentStage",
+    "authorized_signatory": "case.signatory.fullName"
+  },
+  "fields": [
+    {
+      "key": "slp_no",
+      "label": "SLP Number",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "hc_order_no",
+      "label": "High Court Order Number",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "tax_demand",
+      "label": "Tax Demand Amount",
+      "type": "number",
+      "required": true,
+      "minimum": 0
+    },
+    {
+      "key": "substantial_question",
+      "label": "Substantial Question of Law",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "key": "prima_facie_case",
+      "label": "Prima Facie Case",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "key": "deposit_made",
+      "label": "Deposit Made",
+      "type": "number",
+      "required": false,
+      "minimum": 0
+    },
+    {
+      "key": "prayer",
+      "label": "Prayer",
+      "type": "textarea",
+      "required": true
+    }
+  ],
+  "output": {
+    "filename": "SC_STAY_${case.id}_${now:YYYYMMDD}.pdf",
+    "dms_folder_by_stage": true,
+    "timeline_event": "Supreme Court Stay Application submitted"
+  }
+}

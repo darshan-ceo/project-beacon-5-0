@@ -78,13 +78,13 @@ class FormTemplatesService {
 
   // Stage to Template Mapping - Maps lifecycle stages to template codes
   private static LIFECYCLE_TO_TEMPLATE_MAPPING: Record<string, string[]> = {
-    'Scrutiny': ['ASMT10_REPLY', 'ASMT11_REPRESENTATION'],
-    'Demand': ['DRC01_REPLY', 'DRC07_OBJECTION'],
-    'Adjudication': ['DRC01_REPLY', 'DRC05_REPLY', 'DRC06_REPLY', 'DRC07_OBJECTION', 'DRC08_REPLY'],
-    'Appeals': ['APPEAL_FIRST'],
-    'GSTAT': ['GSTAT'],     // GSTAT lifecycle → GSTAT template (stored as "Tribunal" in JSON)
-    'HC': ['HC_PETITION'],  // HC lifecycle → HC template (stored as "High Court" in JSON)
-    'SC': ['SC_SLP']        // SC lifecycle → SC template (stored as "Supreme Court" in JSON)
+    'Scrutiny': ['ASMT10_REPLY', 'ASMT11_REPRESENTATION', 'ASMT13_REPLY', 'GST_REFUND_REPLY'],
+    'Demand': ['DRC01_REPLY', 'DRC02_REPLY', 'DRC03_REPLY', 'DRC04_REPLY', 'DRC07_OBJECTION'],
+    'Adjudication': ['DRC01_REPLY', 'DRC05_REPLY', 'DRC06_REPLY', 'DRC07_OBJECTION', 'DRC08_REPLY', 'DRC09_REPLY', 'DRC10_REPLY', 'ASMT12_REPLY'],
+    'Appeals': ['APPEAL_FIRST', 'APPEAL_SECOND', 'APPEAL_CROSS', 'APPEAL_RECTIFICATION'],
+    'GSTAT': ['GSTAT', 'GSTAT_STAY', 'GSTAT_MISC'],     // GSTAT lifecycle → GSTAT template (stored as "Tribunal" in JSON)
+    'HC': ['HC_PETITION', 'HC_STAY', 'HC_INTERIM'],  // HC lifecycle → HC template (stored as "High Court" in JSON)
+    'SC': ['SC_SLP', 'SC_STAY', 'SC_REVIEW']        // SC lifecycle → SC template (stored as "Supreme Court" in JSON)
   };
 
   // Template Category to Lifecycle Stage Mapping - For display purposes
@@ -276,9 +276,20 @@ class FormTemplatesService {
 
   async getAllTemplates(): Promise<FormTemplate[]> {
     const allFormCodes = [
-      'ASMT10_REPLY', 'ASMT11_REPRESENTATION', 'ASMT12_REPLY',
-      'DRC01_REPLY', 'DRC07_OBJECTION', 'APPEAL_FIRST',
-      'GSTAT', 'HC_PETITION', 'SC_SLP'
+      // Scrutiny
+      'ASMT10_REPLY', 'ASMT11_REPRESENTATION', 'ASMT12_REPLY', 'ASMT13_REPLY', 'GST_REFUND_REPLY',
+      // Demand
+      'DRC01_REPLY', 'DRC02_REPLY', 'DRC03_REPLY', 'DRC04_REPLY', 'DRC07_OBJECTION',
+      // Adjudication
+      'DRC05_REPLY', 'DRC06_REPLY', 'DRC08_REPLY', 'DRC09_REPLY', 'DRC10_REPLY',
+      // Appeals
+      'APPEAL_FIRST', 'APPEAL_SECOND', 'APPEAL_CROSS', 'APPEAL_RECTIFICATION',
+      // Tribunal
+      'GSTAT', 'GSTAT_STAY', 'GSTAT_MISC',
+      // High Court
+      'HC_PETITION', 'HC_STAY', 'HC_INTERIM',
+      // Supreme Court
+      'SC_SLP', 'SC_STAY', 'SC_REVIEW'
     ];
 
     const templates: FormTemplate[] = [];

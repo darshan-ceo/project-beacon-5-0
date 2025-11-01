@@ -1,0 +1,63 @@
+{
+  "code": "ASMT13_REPLY",
+  "title": "ASMT-13 Reply (Intimation)",
+  "stage": "Scrutiny",
+  "version": "1.0",
+  "prefill": {
+    "client_name": "case.client.name",
+    "gstin": "case.client.gstin",
+    "pan": "case.client.pan",
+    "address": "case.client.address",
+    "case_id": "case.id",
+    "case_title": "case.title",
+    "stage": "case.currentStage",
+    "notice_no": "case.notice.number",
+    "notice_date": "case.notice.date",
+    "authorized_signatory": "case.signatory.fullName"
+  },
+  "fields": [
+    {
+      "key": "reference_asmt13_no",
+      "label": "Reference ASMT-13 Number",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "period_covered",
+      "label": "Period Covered",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "discrepancy_explanation",
+      "label": "Discrepancy Explanation",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "key": "rectifications",
+      "label": "Rectifications Made",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "key": "supporting_documents",
+      "label": "Supporting Documents",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    {
+      "key": "prayer",
+      "label": "Prayer",
+      "type": "textarea",
+      "required": true
+    }
+  ],
+  "output": {
+    "filename": "ASMT13_REPLY_${case.id}_${now:YYYYMMDD}.pdf",
+    "dms_folder_by_stage": true,
+    "timeline_event": "ASMT-13 Reply submitted"
+  }
+}

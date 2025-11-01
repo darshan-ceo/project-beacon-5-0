@@ -1,0 +1,67 @@
+{
+  "code": "GSTAT_STAY",
+  "title": "GSTAT Stay Application",
+  "stage": "Tribunal",
+  "version": "1.0",
+  "prefill": {
+    "client_name": "case.client.name",
+    "gstin": "case.client.gstin",
+    "pan": "case.client.pan",
+    "address": "case.client.address",
+    "case_id": "case.id",
+    "case_title": "case.title",
+    "stage": "case.currentStage",
+    "authorized_signatory": "case.signatory.fullName"
+  },
+  "fields": [
+    {
+      "key": "appeal_no",
+      "label": "Appeal Number",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "tax_demand",
+      "label": "Tax Demand Amount",
+      "type": "number",
+      "required": true,
+      "minimum": 0
+    },
+    {
+      "key": "prima_facie_case",
+      "label": "Prima Facie Case",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "key": "balance_convenience",
+      "label": "Balance of Convenience",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "key": "irreparable_injury",
+      "label": "Irreparable Injury",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "key": "pre_deposit_made",
+      "label": "Pre-Deposit Made",
+      "type": "number",
+      "required": false,
+      "minimum": 0
+    },
+    {
+      "key": "prayer",
+      "label": "Prayer",
+      "type": "textarea",
+      "required": true
+    }
+  ],
+  "output": {
+    "filename": "GSTAT_STAY_${case.id}_${now:YYYYMMDD}.pdf",
+    "dms_folder_by_stage": true,
+    "timeline_event": "GSTAT Stay Application submitted"
+  }
+}

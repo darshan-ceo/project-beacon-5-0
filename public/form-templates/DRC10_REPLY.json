@@ -1,0 +1,63 @@
+{
+  "code": "DRC10_REPLY",
+  "title": "DRC-10 Reply (Summary Assessment)",
+  "stage": "Adjudication",
+  "version": "1.0",
+  "prefill": {
+    "client_name": "case.client.name",
+    "gstin": "case.client.gstin",
+    "pan": "case.client.pan",
+    "address": "case.client.address",
+    "case_id": "case.id",
+    "case_title": "case.title",
+    "stage": "case.currentStage",
+    "notice_no": "case.notice.number",
+    "notice_date": "case.notice.date",
+    "authorized_signatory": "case.signatory.fullName"
+  },
+  "fields": [
+    {
+      "key": "reference_drc10_no",
+      "label": "Reference DRC-10 Number",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "assessment_objections",
+      "label": "Objections to Assessment",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "key": "tax_computation_reply",
+      "label": "Tax Computation Reply",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "key": "reconciliation",
+      "label": "Reconciliation Statement",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "key": "supporting_documents",
+      "label": "Supporting Documents",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    {
+      "key": "prayer",
+      "label": "Prayer",
+      "type": "textarea",
+      "required": true
+    }
+  ],
+  "output": {
+    "filename": "DRC10_REPLY_${case.id}_${now:YYYYMMDD}.pdf",
+    "dms_folder_by_stage": true,
+    "timeline_event": "DRC-10 Reply submitted"
+  }
+}

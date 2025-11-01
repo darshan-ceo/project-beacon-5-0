@@ -1,0 +1,67 @@
+{
+  "code": "HC_STAY",
+  "title": "High Court Stay Application",
+  "stage": "High Court",
+  "version": "1.0",
+  "prefill": {
+    "client_name": "case.client.name",
+    "gstin": "case.client.gstin",
+    "pan": "case.client.pan",
+    "address": "case.client.address",
+    "case_id": "case.id",
+    "case_title": "case.title",
+    "stage": "case.currentStage",
+    "authorized_signatory": "case.signatory.fullName"
+  },
+  "fields": [
+    {
+      "key": "writ_petition_no",
+      "label": "Writ Petition Number",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "tribunal_order_no",
+      "label": "Tribunal Order Number",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "tax_demand",
+      "label": "Tax Demand Amount",
+      "type": "number",
+      "required": true,
+      "minimum": 0
+    },
+    {
+      "key": "prima_facie_case",
+      "label": "Prima Facie Case",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "key": "balance_convenience",
+      "label": "Balance of Convenience",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "key": "deposit_made",
+      "label": "Deposit Made",
+      "type": "number",
+      "required": false,
+      "minimum": 0
+    },
+    {
+      "key": "prayer",
+      "label": "Prayer",
+      "type": "textarea",
+      "required": true
+    }
+  ],
+  "output": {
+    "filename": "HC_STAY_${case.id}_${now:YYYYMMDD}.pdf",
+    "dms_folder_by_stage": true,
+    "timeline_event": "High Court Stay Application submitted"
+  }
+}

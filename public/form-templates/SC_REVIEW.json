@@ -1,0 +1,59 @@
+{
+  "code": "SC_REVIEW",
+  "title": "Supreme Court Review Petition",
+  "stage": "Supreme Court",
+  "version": "1.0",
+  "prefill": {
+    "client_name": "case.client.name",
+    "gstin": "case.client.gstin",
+    "pan": "case.client.pan",
+    "address": "case.client.address",
+    "case_id": "case.id",
+    "case_title": "case.title",
+    "stage": "case.currentStage",
+    "authorized_signatory": "case.signatory.fullName"
+  },
+  "fields": [
+    {
+      "key": "original_order_no",
+      "label": "Original Order Number",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "date_of_order",
+      "label": "Date of Order",
+      "type": "date",
+      "required": true
+    },
+    {
+      "key": "review_grounds",
+      "label": "Grounds for Review",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "key": "error_apparent",
+      "label": "Error Apparent on Record",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "key": "new_facts_discovered",
+      "label": "New Facts Discovered",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "key": "prayer",
+      "label": "Prayer",
+      "type": "textarea",
+      "required": true
+    }
+  ],
+  "output": {
+    "filename": "SC_REVIEW_${case.id}_${now:YYYYMMDD}.pdf",
+    "dms_folder_by_stage": true,
+    "timeline_event": "Supreme Court Review Petition submitted"
+  }
+}

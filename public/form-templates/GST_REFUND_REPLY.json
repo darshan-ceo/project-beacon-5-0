@@ -1,0 +1,62 @@
+{
+  "code": "GST_REFUND_REPLY",
+  "title": "GST Refund Application Reply",
+  "stage": "Scrutiny",
+  "version": "1.0",
+  "prefill": {
+    "client_name": "case.client.name",
+    "gstin": "case.client.gstin",
+    "pan": "case.client.pan",
+    "address": "case.client.address",
+    "case_id": "case.id",
+    "case_title": "case.title",
+    "stage": "case.currentStage",
+    "authorized_signatory": "case.signatory.fullName"
+  },
+  "fields": [
+    {
+      "key": "refund_application_no",
+      "label": "Refund Application Number",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "refund_amount",
+      "label": "Refund Amount",
+      "type": "number",
+      "required": true,
+      "minimum": 0
+    },
+    {
+      "key": "tax_period",
+      "label": "Tax Period",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "grounds_reply",
+      "label": "Grounds for Refund Reply",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "key": "documents_submitted",
+      "label": "Documents Submitted",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    {
+      "key": "prayer",
+      "label": "Prayer",
+      "type": "textarea",
+      "required": true
+    }
+  ],
+  "output": {
+    "filename": "GST_REFUND_REPLY_${case.id}_${now:YYYYMMDD}.pdf",
+    "dms_folder_by_stage": true,
+    "timeline_event": "GST Refund Reply submitted"
+  }
+}

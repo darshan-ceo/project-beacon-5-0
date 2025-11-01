@@ -1,0 +1,68 @@
+{
+  "code": "DRC09_REPLY",
+  "title": "DRC-09 Reply (Bank Attachment)",
+  "stage": "Adjudication",
+  "version": "1.0",
+  "prefill": {
+    "client_name": "case.client.name",
+    "gstin": "case.client.gstin",
+    "pan": "case.client.pan",
+    "address": "case.client.address",
+    "case_id": "case.id",
+    "case_title": "case.title",
+    "stage": "case.currentStage",
+    "notice_no": "case.notice.number",
+    "notice_date": "case.notice.date",
+    "authorized_signatory": "case.signatory.fullName"
+  },
+  "fields": [
+    {
+      "key": "reference_drc09_no",
+      "label": "Reference DRC-09 Number",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "bank_details",
+      "label": "Bank Details",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "key": "attachment_date",
+      "label": "Attachment Date",
+      "type": "date",
+      "required": true
+    },
+    {
+      "key": "disputed_amount",
+      "label": "Disputed Amount",
+      "type": "number",
+      "required": true,
+      "minimum": 0
+    },
+    {
+      "key": "grounds_release",
+      "label": "Grounds for Release",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "key": "undertaking",
+      "label": "Undertaking",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "key": "prayer",
+      "label": "Prayer",
+      "type": "textarea",
+      "required": true
+    }
+  ],
+  "output": {
+    "filename": "DRC09_REPLY_${case.id}_${now:YYYYMMDD}.pdf",
+    "dms_folder_by_stage": true,
+    "timeline_event": "DRC-09 Reply submitted"
+  }
+}
