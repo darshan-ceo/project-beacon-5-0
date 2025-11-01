@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { AppSidebar } from './Sidebar';
 import { Header } from './Header';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -27,12 +28,17 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         <div className="flex-1 flex flex-col min-w-0">
           {/* Sticky Header with Sidebar Trigger */}
           <header className="sticky top-0 z-40 bg-background border-b border-border">
-            <div className="flex items-center p-4">
-              <SidebarTrigger className="mr-4 text-foreground bg-background hover:bg-muted border border-border shadow-beacon-sm" />
-              <Header 
-                user={currentUser}
-                onMenuToggle={() => {}} // No longer needed, controlled by SidebarProvider
-              />
+            <div className="flex items-center justify-between p-4">
+              <div className="flex items-center">
+                <SidebarTrigger className="mr-4 text-foreground bg-background hover:bg-muted border border-border shadow-beacon-sm" />
+                <Header 
+                  user={currentUser}
+                  onMenuToggle={() => {}} // No longer needed, controlled by SidebarProvider
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <NotificationBell userId={currentUser.name} />
+              </div>
             </div>
           </header>
           

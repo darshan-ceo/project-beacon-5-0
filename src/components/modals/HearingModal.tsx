@@ -23,6 +23,7 @@ import { hearingsService } from '@/services/hearingsService';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog';
 import { HearingOutcomeSection } from './HearingOutcomeSection';
+import { HearingDocumentUpload } from '../hearings/HearingDocumentUpload';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface HearingModalProps {
@@ -92,6 +93,7 @@ export const HearingModal: React.FC<HearingModalProps> = ({
   });
   const [isAddressMasterEnabled, setIsAddressMasterEnabled] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [attachments, setAttachments] = useState<File[]>([]);
 
   useEffect(() => {
     setIsAddressMasterEnabled(featureFlagService.isEnabled('address_master_v1'));
@@ -545,6 +547,18 @@ export const HearingModal: React.FC<HearingModalProps> = ({
                 disabled={mode === 'view'}
               />
             )}
+
+            {/* Phase 3: Document Upload Section */}
+            <HearingDocumentUpload
+              hearingId={hearingData?.id}
+              caseId={formData.caseId}
+              onFilesSelected={(files) => setAttachments(prev => [...prev, ...files])}
+              existingFiles={attachments}
+              onRemoveFile={(index) => {
+                setAttachments(prev => prev.filter((_, i) => i !== index));
+              }}
+              disabled={mode === 'view'}
+            />
           </form>
         </DialogBody>
 

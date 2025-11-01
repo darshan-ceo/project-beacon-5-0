@@ -1,0 +1,12 @@
+{
+  "hearing-documents": {
+    "title": "Hearing Documents",
+    "content": "Upload documents related to this hearing such as order copies, replies, adjournment notes, or any other relevant files. Uploaded documents will be automatically linked to this hearing and stored in the Document Management System.",
+    "learnMoreUrl": "/help/documents"
+  },
+  "document-upload": {
+    "title": "Document Upload",
+    "content": "Drag and drop files or click to browse. Supported formats: PDF, DOC, DOCX, JPG, PNG. Maximum file size: 10MB per file.",
+    "learnMoreUrl": "/help/documents"
+  }
+}
