@@ -216,7 +216,7 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
     content: templateData.richContent,
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none focus:outline-none min-h-[400px] p-4 border rounded-md',
+        class: 'prose prose-sm max-w-none focus:outline-none min-h-[450px] p-6 bg-background',
       },
     },
     onUpdate: ({ editor }) => {
@@ -766,13 +766,15 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
               </div>
 
               {/* Editor Content */}
-              <ScrollArea className="flex-1 border border-t-0 rounded-b-lg">
+              <ScrollArea className="flex-1 border border-t-0 rounded-b-lg min-h-[500px]">
                 {previewMode ? (
-                  <div className="bg-muted/20 p-8">
+                  <div className="bg-background p-8">
                     {renderPreview()}
                   </div>
                 ) : (
-                  <EditorContent editor={editor} />
+                  <div className="min-h-[500px]">
+                    <EditorContent editor={editor} className="h-full" />
+                  </div>
                 )}
               </ScrollArea>
 

@@ -19,6 +19,7 @@ import { UnifiedTemplateBuilder, UnifiedTemplate } from './UnifiedTemplateBuilde
 import { UnifiedTemplateGenerateModal } from './UnifiedTemplateGenerateModal';
 import { DocxTemplatePreview } from './DocxTemplatePreview';
 import { DocxGenerationModal } from './DocxGenerationModal';
+import { TemplatePreviewModal } from './TemplatePreviewModal';
 import { useAppState } from '@/contexts/AppStateContext';
 import { useRBAC } from '@/hooks/useAdvancedRBAC';
 import { HelpButton } from '@/components/ui/help-button';
@@ -811,6 +812,17 @@ export const TemplatesManagement: React.FC = () => {
       </Tabs>
 
       {/* Modals */}
+      {previewOpen && selectedTemplate && (
+        <TemplatePreviewModal
+          isOpen={previewOpen}
+          onClose={() => {
+            setPreviewOpen(false);
+            setSelectedTemplate(null);
+          }}
+          template={selectedTemplate}
+        />
+      )}
+
       {generateModalOpen && selectedTemplate && (
         <FormRenderModal
           isOpen={generateModalOpen}
