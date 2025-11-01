@@ -380,7 +380,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                 />
               </TableHead>
 
-              <TableHead className="w-16">Status</TableHead>
+              <TableHead className="w-16">Lock</TableHead>
               
               <TableHead className="cursor-pointer min-w-[200px]" onClick={() => handleSort('title')}>
                 <div className="flex items-center gap-2">
