@@ -208,6 +208,18 @@ export const HearingsPage: React.FC = () => {
       return false;
     }
     
+    // Outcome filter
+    if (filters.outcomes && filters.outcomes.length > 0) {
+      // Only filter if hearing has an outcome (skip scheduled hearings without outcome)
+      if (hearing.outcome && !filters.outcomes.includes(hearing.outcome)) {
+        return false;
+      }
+      // If filter is active but hearing has no outcome, hide it
+      if (!hearing.outcome) {
+        return false;
+      }
+    }
+    
     return true;
   });
 
@@ -452,6 +464,18 @@ export const HearingsPage: React.FC = () => {
           />
         </TabsContent>
       </Tabs>
+
+      {/* Mobile: Floating Schedule Button */}
+      <div className="md:hidden fixed bottom-6 right-6 z-50">
+        <Button
+          onClick={handleCreateHearing}
+          size="lg"
+          className="shadow-2xl h-14 w-14 rounded-full p-0"
+          title="Schedule Hearing"
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
+      </div>
 
       {/* Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
