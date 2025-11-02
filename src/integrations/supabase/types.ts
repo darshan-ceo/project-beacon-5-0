@@ -14,6 +14,197 @@ export type Database = {
   }
   public: {
     Tables: {
+      cases: {
+        Row: {
+          assigned_to: string | null
+          case_number: string
+          client_id: string
+          created_at: string | null
+          description: string | null
+          id: string
+          notice_date: string | null
+          notice_no: string | null
+          notice_type: string | null
+          owner_id: string | null
+          priority: string | null
+          stage_code: string | null
+          status: string | null
+          tax_demand: number | null
+          tenant_id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          case_number: string
+          client_id: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          notice_date?: string | null
+          notice_no?: string | null
+          notice_type?: string | null
+          owner_id?: string | null
+          priority?: string | null
+          stage_code?: string | null
+          status?: string | null
+          tax_demand?: number | null
+          tenant_id: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          case_number?: string
+          client_id?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          notice_date?: string | null
+          notice_no?: string | null
+          notice_type?: string | null
+          owner_id?: string | null
+          priority?: string | null
+          stage_code?: string | null
+          status?: string | null
+          tax_demand?: number | null
+          tenant_id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cases_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cases_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          city: string | null
+          created_at: string | null
+          display_name: string
+          email: string | null
+          gstin: string | null
+          id: string
+          owner_id: string | null
+          pan: string | null
+          phone: string | null
+          state: string | null
+          status: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string | null
+          display_name: string
+          email?: string | null
+          gstin?: string | null
+          id?: string
+          owner_id?: string | null
+          pan?: string | null
+          phone?: string | null
+          state?: string | null
+          status?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          city?: string | null
+          created_at?: string | null
+          display_name?: string
+          email?: string | null
+          gstin?: string | null
+          id?: string
+          owner_id?: string | null
+          pan?: string | null
+          phone?: string | null
+          state?: string | null
+          status?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hearings: {
+        Row: {
+          case_id: string
+          court_name: string | null
+          created_at: string | null
+          hearing_date: string
+          id: string
+          judge_name: string | null
+          next_hearing_date: string | null
+          notes: string | null
+          outcome: string | null
+          status: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          case_id: string
+          court_name?: string | null
+          created_at?: string | null
+          hearing_date: string
+          id?: string
+          judge_name?: string | null
+          next_hearing_date?: string | null
+          notes?: string | null
+          outcome?: string | null
+          status?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          case_id?: string
+          court_name?: string | null
+          created_at?: string | null
+          hearing_date?: string
+          id?: string
+          judge_name?: string | null
+          next_hearing_date?: string | null
+          notes?: string | null
+          outcome?: string | null
+          status?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hearings_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hearings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -48,6 +239,76 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          assigned_to: string | null
+          case_id: string | null
+          completed_date: string | null
+          created_at: string | null
+          description: string | null
+          due_date: string | null
+          hearing_id: string | null
+          id: string
+          priority: string | null
+          status: string | null
+          tenant_id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          case_id?: string | null
+          completed_date?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          hearing_id?: string | null
+          id?: string
+          priority?: string | null
+          status?: string | null
+          tenant_id: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          case_id?: string | null
+          completed_date?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          hearing_id?: string | null
+          id?: string
+          priority?: string | null
+          status?: string | null
+          tenant_id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_hearing_id_fkey"
+            columns: ["hearing_id"]
+            isOneToOne: false
+            referencedRelation: "hearings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
