@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      analytics_snapshots: {
+        Row: {
+          created_at: string | null
+          id: string
+          metric_type: string
+          metric_value: Json
+          snapshot_date: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          metric_type: string
+          metric_value: Json
+          snapshot_date: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          metric_type?: string
+          metric_value?: Json
+          snapshot_date?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_snapshots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "analytics_snapshots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action_type: string
@@ -734,8 +776,22 @@ export type Database = {
             foreignKeyName: "employees_manager_id_fkey"
             columns: ["manager_id"]
             isOneToOne: false
+            referencedRelation: "employee_productivity_metrics"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_reporting_to_fkey"
+            columns: ["reporting_to"]
+            isOneToOne: false
+            referencedRelation: "employee_productivity_metrics"
+            referencedColumns: ["employee_id"]
           },
           {
             foreignKeyName: "employees_reporting_to_fkey"
@@ -834,6 +890,67 @@ export type Database = {
           },
         ]
       }
+      performance_baselines: {
+        Row: {
+          baseline_value: number | null
+          created_at: string | null
+          created_by: string | null
+          effective_from: string
+          id: string
+          metric_name: string
+          period: string | null
+          target_value: number | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          baseline_value?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          effective_from: string
+          id?: string
+          metric_name: string
+          period?: string | null
+          target_value?: number | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          baseline_value?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          effective_from?: string
+          id?: string
+          metric_name?: string
+          period?: string | null
+          target_value?: number | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_baselines_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_baselines_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "performance_baselines_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -875,6 +992,143 @@ export type Database = {
           },
           {
             foreignKeyName: "profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_execution_log: {
+        Row: {
+          error_message: string | null
+          executed_at: string | null
+          execution_time_ms: number | null
+          file_size_bytes: number | null
+          id: string
+          row_count: number | null
+          scheduled_report_id: string | null
+          status: string | null
+          tenant_id: string
+        }
+        Insert: {
+          error_message?: string | null
+          executed_at?: string | null
+          execution_time_ms?: number | null
+          file_size_bytes?: number | null
+          id?: string
+          row_count?: number | null
+          scheduled_report_id?: string | null
+          status?: string | null
+          tenant_id: string
+        }
+        Update: {
+          error_message?: string | null
+          executed_at?: string | null
+          execution_time_ms?: number | null
+          file_size_bytes?: number | null
+          id?: string
+          row_count?: number | null
+          scheduled_report_id?: string | null
+          status?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_execution_log_scheduled_report_id_fkey"
+            columns: ["scheduled_report_id"]
+            isOneToOne: false
+            referencedRelation: "scheduled_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_execution_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "report_execution_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scheduled_reports: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          enabled: boolean | null
+          filters: Json | null
+          format: string | null
+          id: string
+          include_charts: boolean | null
+          last_error: string | null
+          last_run: string | null
+          next_run: string | null
+          recipients: string[]
+          report_name: string
+          report_type: string
+          schedule_cron: string
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          enabled?: boolean | null
+          filters?: Json | null
+          format?: string | null
+          id?: string
+          include_charts?: boolean | null
+          last_error?: string | null
+          last_run?: string | null
+          next_run?: string | null
+          recipients: string[]
+          report_name: string
+          report_type: string
+          schedule_cron: string
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          enabled?: boolean | null
+          filters?: Json | null
+          format?: string | null
+          id?: string
+          include_charts?: boolean | null
+          last_error?: string | null
+          last_run?: string | null
+          next_run?: string | null
+          recipients?: string[]
+          report_name?: string
+          report_type?: string
+          schedule_cron?: string
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_reports_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_reports_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "scheduled_reports_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1068,6 +1322,34 @@ export type Database = {
           },
         ]
       }
+      case_analytics_summary: {
+        Row: {
+          active_cases: number | null
+          avg_age_days: number | null
+          breached_cases: number | null
+          completed_cases: number | null
+          critical_cases: number | null
+          stage_code: string | null
+          tenant_id: string | null
+          total_cases: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cases_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "cases_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents_by_category: {
         Row: {
           avg_file_size_bytes: number | null
@@ -1122,6 +1404,65 @@ export type Database = {
           },
         ]
       }
+      employee_productivity_metrics: {
+        Row: {
+          assigned_cases: number | null
+          assigned_tasks: number | null
+          avg_task_completion_days: number | null
+          completed_tasks: number | null
+          employee_code: string | null
+          employee_id: string | null
+          tenant_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employees_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hearing_outcome_trends: {
+        Row: {
+          completion_rate: number | null
+          count: number | null
+          period: string | null
+          status: string | null
+          tenant_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hearings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "hearings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pending_review_documents: {
         Row: {
           case_number: string | null
@@ -1164,6 +1505,33 @@ export type Database = {
           total_documents: number | null
         }
         Relationships: []
+      }
+      timeline_compliance_trends: {
+        Row: {
+          at_risk_cases: number | null
+          breached_cases: number | null
+          compliance_percentage: number | null
+          on_time_cases: number | null
+          tenant_id: string | null
+          total_cases: number | null
+          week: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cases_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "cases_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {

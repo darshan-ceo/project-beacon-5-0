@@ -28,6 +28,7 @@ import { GlobalParameters } from "@/components/admin/GlobalParameters";
 import { UserProfile } from "@/components/admin/UserProfile";
 import { ProfileErrorBoundary } from "@/components/admin/ProfileErrorBoundary";
 import { ReportsModule } from "@/components/reports/ReportsModule";
+import { AnalyticsDashboard } from "@/pages/AnalyticsDashboard";
 import { GSTDebugPage } from "@/components/debug/GSTDebugPage";
 import { QADashboard } from "@/pages/QADashboard";
 import { HearingsPage } from "@/pages/HearingsPage";
@@ -212,6 +213,13 @@ const AppContent = () => {
                 <ProtectedRoute>
                   <AdminLayout currentUser={currentUser}>
                     <ReportsModule userRole={currentUser.role} />
+                  </AdminLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/analytics" element={
+                <ProtectedRoute>
+                  <AdminLayout currentUser={currentUser}>
+                    <AnalyticsDashboard />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
