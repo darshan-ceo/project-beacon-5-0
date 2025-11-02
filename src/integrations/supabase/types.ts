@@ -980,6 +980,7 @@ export type Database = {
         | "staff"
         | "clerk"
         | "client"
+        | "user"
       license_tier: "trial" | "basic" | "professional" | "enterprise"
     }
     CompositeTypes: {
@@ -1117,6 +1118,7 @@ export const Constants = {
         "staff",
         "clerk",
         "client",
+        "user",
       ],
       license_tier: ["trial", "basic", "professional", "enterprise"],
     },
