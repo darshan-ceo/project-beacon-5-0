@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { auditService } from '@/services/auditService';
 
 interface SignUpMetadata {
   fullName: string;
@@ -13,6 +14,8 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  tenantId: string | null;
+  userProfile: { full_name: string; phone: string } | null;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signUp: (email: string, password: string, metadata: SignUpMetadata) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
@@ -33,7 +36,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [tenantId, setTenantId] = useState<string | null>(null);
+  const [userProfile, setUserProfile] = useState<{ full_name: string; phone: string } | null>(null);
   const { toast } = useToast();
+
+  // Fetch user profile and tenant info
+  const fetchUserProfile = async (userId: string) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('tenant_id, full_name, phone')
+      .eq('id', userId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching user profile:', error);
+      return;
+    }
+
+    if (data) {
+      setTenantId(data.tenant_id);
+      setUserProfile({ full_name: data.full_name, phone: data.phone });
+    }
+  };
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -41,6 +65,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        
+        // Fetch profile data when user logs in
+        if (session?.user) {
+          fetchUserProfile(session.user.id);
+        } else {
+          setTenantId(null);
+          setUserProfile(null);
+        }
+        
         setLoading(false);
       }
     );
@@ -49,6 +82,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        fetchUserProfile(session.user.id);
+      }
+      
       setLoading(false);
     });
 
@@ -57,7 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -67,6 +105,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           title: "Login Failed",
           description: error.message,
           variant: "destructive",
+        });
+      } else if (data.user && tenantId) {
+        // Log successful login
+        await auditService.log('login', tenantId, {
+          userId: data.user.id,
+          details: { email }
         });
       }
       
@@ -114,6 +158,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
+      // Log logout before signing out
+      if (user && tenantId) {
+        await auditService.log('logout', tenantId, {
+          userId: user.id
+        });
+      }
+      
       const { error } = await supabase.auth.signOut();
       if (error) {
         toast({
@@ -131,6 +182,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     session,
     loading,
+    tenantId,
+    userProfile,
     signIn,
     signUp,
     signOut,

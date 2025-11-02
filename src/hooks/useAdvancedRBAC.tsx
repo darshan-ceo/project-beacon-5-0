@@ -8,6 +8,7 @@ import { permissionsResolver, type EffectivePermissions } from '@/services/permi
 import { advancedRbacService } from '@/services/advancedRbacService';
 import { type RoleEntity } from '@/persistence/unifiedStore';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Legacy compatibility types
 export type UserRole = 'Partner' | 'Admin' | 'Manager' | 'Associate' | 'Clerk' | 'Client';
@@ -85,6 +86,7 @@ export const AdvancedRBACProvider: React.FC<AdvancedRBACProviderProps> = ({
   initialUserId = 'demo-user',
   enableEnforcement = false
 }) => {
+  const { user, tenantId } = useAuth();
   const [currentUserId, setCurrentUserId] = useState(initialUserId);
   const [effectivePermissions, setEffectivePermissions] = useState<EffectivePermissions | null>(null);
   const [userRoles, setUserRoles] = useState<RoleEntity[]>([]);
@@ -92,10 +94,23 @@ export const AdvancedRBACProvider: React.FC<AdvancedRBACProviderProps> = ({
   const [enforcementEnabled, setEnforcementEnabled] = useState(enableEnforcement);
   const [currentUser, setCurrentUser] = useState<User>(defaultUser);
 
+  // Update currentUserId when authenticated user changes
+  useEffect(() => {
+    if (user?.id) {
+      setCurrentUserId(user.id);
+    }
+  }, [user]);
+
   // Load user permissions and roles
   useEffect(() => {
-    loadUserPermissions();
-  }, [currentUserId, enforcementEnabled]);
+    if (currentUserId && tenantId && enforcementEnabled) {
+      loadUserPermissions();
+    } else {
+      setEffectivePermissions(null);
+      setUserRoles([]);
+      setIsLoading(false);
+    }
+  }, [currentUserId, tenantId, enforcementEnabled]);
 
   const loadUserPermissions = async () => {
     try {

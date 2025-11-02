@@ -6,6 +6,70 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+/**
+ * Validate user has required role
+ */
+async function validateUserRole(
+  supabaseClient: any,
+  userId: string,
+  requiredRoles: string[]
+): Promise<{ valid: boolean; error?: string }> {
+  const { data: userRoles, error } = await supabaseClient
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', userId)
+    .eq('is_active', true);
+
+  if (error) {
+    console.error('Error fetching user roles:', error);
+    return { valid: false, error: 'Failed to validate user permissions' };
+  }
+
+  const roles = userRoles?.map((r: any) => r.role) || [];
+  const hasRequiredRole = requiredRoles.some(role => roles.includes(role));
+
+  if (!hasRequiredRole) {
+    return { 
+      valid: false, 
+      error: `Unauthorized: requires one of [${requiredRoles.join(', ')}] roles` 
+    };
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Validate user has required role
+ */
+async function validateUserRole(
+  supabaseClient: any,
+  userId: string,
+  requiredRoles: string[]
+): Promise<{ valid: boolean; error?: string }> {
+  const { data: userRoles, error } = await supabaseClient
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', userId)
+    .eq('is_active', true);
+
+  if (error) {
+    console.error('Error fetching user roles:', error);
+    return { valid: false, error: 'Failed to validate user permissions' };
+  }
+
+  const roles = userRoles?.map((r: any) => r.role) || [];
+  const hasRequiredRole = requiredRoles.some(role => roles.includes(role));
+
+  if (!hasRequiredRole) {
+    return { 
+      valid: false, 
+      error: `Unauthorized: requires one of [${requiredRoles.join(', ')}] roles` 
+    };
+  }
+
+  return { valid: true };
+}
+
 // RBAC role mapping
 const EMPLOYEE_TO_RBAC_MAPPING: Record<string, string[]> = {
   'Partner': ['admin'],
@@ -70,6 +134,23 @@ serve(async (req) => {
     }
 
     console.log('[invite-employee] User authenticated:', user.id);
+
+    // Validate user has required role (admin, partner, or manager)
+    const roleValidation = await validateUserRole(
+      supabaseClient,
+      user.id,
+      ['admin', 'partner', 'manager']
+    );
+
+    if (!roleValidation.valid) {
+      return new Response(
+        JSON.stringify({ error: roleValidation.error }),
+        { 
+          status: 403, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
 
     // Get tenant_id from profiles
     const { data: profile, error: profileError } = await supabaseClient
@@ -228,6 +309,25 @@ serve(async (req) => {
     }
 
     console.log('[invite-employee] RBAC roles assigned');
+
+    // Log audit event
+    await supabaseAdmin
+      .from('audit_log')
+      .insert({
+        action_type: 'create_employee',
+        entity_type: 'employee',
+        entity_id: employee.id,
+        user_id: user.id,
+        tenant_id: tenantId,
+        details: {
+          employee_email: email,
+          employee_name: fullName,
+          employee_role: role,
+          employee_code: employee.employee_code,
+        },
+      });
+
+    console.log('[invite-employee] Audit log created');
 
     // TODO: Send welcome email if sendWelcomeEmail is true
     // This would require email service integration (Resend, SendGrid, etc.)
