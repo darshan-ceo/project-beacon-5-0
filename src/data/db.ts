@@ -365,6 +365,10 @@ export class HofficeDB extends Dexie {
   sync_queue!: Table<SyncQueueItem>;
   migration_meta!: Table<MigrationMeta>;
   timeline_entries!: Table<any>; // Timeline entries for case history
+  
+  // Automation Tables
+  automation_rules!: Table<any>;
+  automation_logs!: Table<any>;
 
   constructor() {
     super('hoffice_dev_local');
@@ -468,7 +472,10 @@ export class HofficeDB extends Dexie {
       user_roles: 'id, userId, roleId, isActive, assignedAt',
       policy_audit: 'id, actorId, action, entityType, entityId, timestamp',
       // Timeline Table (NEW in v4)
-      timeline_entries: 'id, caseId, type, createdAt, createdBy'
+      timeline_entries: 'id, caseId, type, createdAt, createdBy',
+      // Automation Tables (NEW in v4)
+      automation_rules: 'id, isActive, trigger.event, createdAt',
+      automation_logs: 'id, ruleId, timestamp, status'
     }).upgrade(async tx => {
       // Populate timeline entries from existing documents
       console.log('[Migration v4] Populating timeline entries from existing documents...');

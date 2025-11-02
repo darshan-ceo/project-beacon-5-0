@@ -47,6 +47,7 @@ import { DebugSearchInspector } from "./pages/DebugSearchInspector";
 import { MigrationHealth } from "@/components/qa/MigrationHealth";
 import { TooltipDiagnostics } from "@/pages/TooltipDiagnostics";
 import { OAuthCallback } from "@/pages/OAuthCallback";
+import { useAutomation } from "@/hooks/useAutomation";
 
 const queryClient = new QueryClient();
 
@@ -61,6 +62,9 @@ const currentUser = {
 // Inner component to access AppState context
 const AppContent = () => {
   const { state } = useAppState();
+
+  // Initialize automation system
+  useAutomation();
 
   // Initialize UI Help Service on app startup
   useEffect(() => {

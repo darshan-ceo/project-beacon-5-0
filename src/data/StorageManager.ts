@@ -23,6 +23,8 @@ export class StorageManager {
   private taskBundleRepository: TaskBundleRepository | null = null;
   private enhancedTaskBundleRepository: EnhancedTaskBundleRepository | null = null;
   private documentRepository: DocumentRepository | null = null;
+  private automationRuleRepository: any | null = null;
+  private automationLogRepository: any | null = null;
 
   private constructor() {}
 
@@ -74,6 +76,11 @@ export class StorageManager {
       this.taskBundleRepository = new TaskBundleRepository(this.storage, this.auditService);
       this.enhancedTaskBundleRepository = new EnhancedTaskBundleRepository(this.storage, this.auditService);
       this.documentRepository = new DocumentRepository(this.storage, this.auditService);
+      
+      // Import and initialize automation repositories
+      const { AutomationRuleRepository, AutomationLogRepository } = await import('./repositories/AutomationRuleRepository');
+      this.automationRuleRepository = new AutomationRuleRepository(this.storage, this.auditService);
+      this.automationLogRepository = new AutomationLogRepository(this.storage, this.auditService);
 
       console.log('✅ Storage system initialized successfully');
     } catch (error) {
@@ -117,6 +124,20 @@ export class StorageManager {
     return this.documentRepository;
   }
 
+  getAutomationRuleRepository(): any {
+    if (!this.automationRuleRepository) {
+      throw new Error('StorageManager not initialized - call initialize() first');
+    }
+    return this.automationRuleRepository;
+  }
+
+  getAutomationLogRepository(): any {
+    if (!this.automationLogRepository) {
+      throw new Error('StorageManager not initialized - call initialize() first');
+    }
+    return this.automationLogRepository;
+  }
+
   async healthCheck(): Promise<{ healthy: boolean; errors: string[]; info: any }> {
     if (!this.storage) {
       return {
@@ -139,7 +160,9 @@ export class StorageManager {
               taskBundle: !!this.taskBundleRepository,
               enhancedTaskBundle: !!this.enhancedTaskBundleRepository,
               document: !!this.documentRepository,
-              audit: !!this.auditService
+              audit: !!this.auditService,
+              automationRule: !!this.automationRuleRepository,
+              automationLog: !!this.automationLogRepository
             }
           }
       };
@@ -160,6 +183,8 @@ export class StorageManager {
       this.taskBundleRepository = null;
       this.enhancedTaskBundleRepository = null;
       this.documentRepository = null;
+      this.automationRuleRepository = null;
+      this.automationLogRepository = null;
     }
   }
 

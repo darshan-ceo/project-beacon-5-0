@@ -62,4 +62,5 @@ export type EntityType =
   | 'clients' | 'cases' | 'notices' | 'replies' | 'hearings' 
   | 'tasks' | 'task_notes' | 'task_followups' | 'task_bundles' | 'task_bundle_items' | 'documents' | 'attachments'
   | 'tags' | 'entity_tags' | 'courts' | 'judges' | 'employees'
-  | 'audit_logs' | 'settings' | 'sync_queue' | 'migration_meta' | 'folders';
+  | 'audit_logs' | 'settings' | 'sync_queue' | 'migration_meta' | 'folders'
+  | 'automation_rules' | 'automation_logs';
