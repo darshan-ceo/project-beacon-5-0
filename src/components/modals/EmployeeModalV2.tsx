@@ -28,6 +28,8 @@ import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { EmployeeDocumentUpload } from '@/components/employees/EmployeeDocumentUpload';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   User,
   Phone,
@@ -39,6 +41,7 @@ import {
   History,
   Save,
   Info,
+  Mail,
 } from 'lucide-react';
 
 interface EmployeeModalV2Props {
@@ -120,10 +123,14 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
   mode,
 }) => {
   const { state, dispatch } = useAppState();
+  const queryClient = useQueryClient();
   const isMobile = useMediaQuery('(max-width: 768px)');
   const [activeTab, setActiveTab] = useState('personal');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState<Partial<Employee>>({
+  const [formData, setFormData] = useState<Partial<Employee & { 
+    passwordOption?: 'email' | 'manual';
+    tempPassword?: string;
+  }>>({
     status: 'Active',
     billable: true,
     workloadCapacity: 40,
@@ -133,6 +140,7 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
     weeklyOff: 'Sunday',
     workShift: 'Regular',
     employmentType: 'Permanent',
+    passwordOption: 'email',
   });
 
   const isReadOnly = mode === 'view';
@@ -148,7 +156,7 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
     }
   }, [employee, mode, state.employees.length]);
 
-  const handleInputChange = (field: keyof Employee, value: any) => {
+  const handleInputChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -169,6 +177,28 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
         toast({
           title: 'Validation Error',
           description: 'Full name is required',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const loginEmail = formData.email || formData.officialEmail;
+      
+      if (!loginEmail?.trim()) {
+        toast({
+          title: 'Validation Error',
+          description: 'Login email is required',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Email format validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(loginEmail)) {
+        toast({
+          title: 'Validation Error',
+          description: 'Invalid email format',
           variant: 'destructive',
         });
         return;
@@ -201,15 +231,6 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
         return;
       }
 
-      if (!formData.officialEmail && !formData.email) {
-        toast({
-          title: 'Validation Error',
-          description: 'Official email is required',
-          variant: 'destructive',
-        });
-        return;
-      }
-
       if (!formData.mobile) {
         toast({
           title: 'Validation Error',
@@ -219,14 +240,169 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
         return;
       }
 
-      if (mode === 'create') {
-        await employeesService.create(formData, dispatch, state.employees);
-      } else if (mode === 'edit' && employee) {
-        await employeesService.update(employee.id, formData, dispatch, state.employees);
+      if (mode === 'create' && formData.passwordOption === 'manual' && !formData.tempPassword) {
+        toast({
+          title: 'Validation Error',
+          description: 'Please provide a temporary password',
+          variant: 'destructive',
+        });
+        return;
       }
 
-      onClose();
+      if (mode === 'create') {
+        // Call edge function to create employee with auth account
+        const { data, error } = await supabase.functions.invoke('invite-employee', {
+          body: {
+            email: loginEmail,
+            password: formData.passwordOption === 'manual' ? formData.tempPassword : undefined,
+            sendWelcomeEmail: formData.passwordOption !== 'manual',
+            fullName: formData.full_name,
+            mobile: formData.mobile,
+            role: formData.role,
+            department: formData.department,
+            designation: formData.designation,
+            dateOfJoining: formData.date_of_joining,
+            gender: formData.gender,
+            dob: formData.dob,
+            pan: formData.pan,
+            aadhaar: formData.aadhaar,
+            bloodGroup: formData.bloodGroup,
+            officialEmail: formData.officialEmail,
+            personalEmail: formData.personalEmail,
+            alternateContact: formData.alternateContact,
+            currentAddress: formData.currentAddress,
+            permanentAddress: formData.permanentAddress,
+            city: formData.city,
+            state: formData.state,
+            pincode: formData.pincode,
+            branch: formData.branch,
+            employmentType: formData.employmentType,
+            confirmationDate: formData.confirmationDate,
+            reportingTo: formData.reportingTo,
+            managerId: formData.managerId,
+            weeklyOff: formData.weeklyOff,
+            workShift: formData.workShift,
+            workloadCapacity: formData.workloadCapacity,
+            profilePhoto: formData.profilePhoto,
+            barCouncilNo: formData.barCouncilNo,
+            icaiNo: formData.icaiNo,
+            gstPractitionerId: formData.gstPractitionerId,
+            qualification: formData.qualification,
+            experienceYears: formData.experienceYears,
+            areasOfPractice: formData.areasOfPractice,
+            university: formData.university,
+            graduationYear: formData.graduationYear,
+            specialization: formData.specialization,
+            billingRate: formData.billingRate,
+            billable: formData.billable,
+            defaultTaskCategory: formData.defaultTaskCategory,
+            incentiveEligible: formData.incentiveEligible,
+            moduleAccess: formData.moduleAccess,
+            dataScope: formData.dataScope,
+            aiAccess: formData.aiAccess,
+            whatsappAccess: formData.whatsappAccess,
+            documents: formData.documents,
+            notes: formData.notes,
+          }
+        });
+
+        if (error) throw error;
+
+        if (data?.success) {
+          toast({
+            title: "Employee created",
+            description: `${data.employee.fullName} (${data.employee.employeeCode}) has been created. ${
+              formData.passwordOption === 'manual' 
+                ? 'Password set successfully.' 
+                : 'Welcome email sent with login credentials.'
+            }`,
+          });
+          
+          // Refresh employee list from database
+          await queryClient.invalidateQueries({ queryKey: ['employees'] });
+          onClose();
+        } else {
+          throw new Error(data?.error || 'Failed to create employee');
+        }
+
+      } else if (mode === 'edit' && employee) {
+        // For updates, directly update the employees table
+        const { error: updateError } = await supabase
+          .from('employees')
+          .update({
+            mobile: formData.mobile,
+            role: formData.role,
+            department: formData.department,
+            designation: formData.designation,
+            date_of_joining: formData.date_of_joining,
+            gender: formData.gender,
+            dob: formData.dob,
+            pan: formData.pan,
+            aadhaar: formData.aadhaar,
+            blood_group: formData.bloodGroup,
+            official_email: formData.officialEmail,
+            personal_email: formData.personalEmail,
+            alternate_contact: formData.alternateContact,
+            current_address: formData.currentAddress,
+            permanent_address: formData.permanentAddress,
+            city: formData.city,
+            state: formData.state,
+            pincode: formData.pincode,
+            branch: formData.branch,
+            employment_type: formData.employmentType,
+            confirmation_date: formData.confirmationDate,
+            reporting_to: formData.reportingTo,
+            manager_id: formData.managerId,
+            weekly_off: formData.weeklyOff,
+            work_shift: formData.workShift,
+            workload_capacity: formData.workloadCapacity,
+            profile_photo: formData.profilePhoto,
+            bar_council_no: formData.barCouncilNo,
+            icai_no: formData.icaiNo,
+            gst_practitioner_id: formData.gstPractitionerId,
+            qualification: formData.qualification,
+            experience_years: formData.experienceYears,
+            areas_of_practice: formData.areasOfPractice,
+            university: formData.university,
+            graduation_year: formData.graduationYear,
+            specialization: formData.specialization,
+            billing_rate: formData.billingRate,
+            billable: formData.billable,
+            default_task_category: formData.defaultTaskCategory,
+            incentive_eligible: formData.incentiveEligible,
+            module_access: formData.moduleAccess,
+            data_scope: formData.dataScope,
+            ai_access: formData.aiAccess,
+            whatsapp_access: formData.whatsappAccess,
+            documents: formData.documents,
+            notes: formData.notes,
+            status: formData.status,
+          })
+          .eq('id', employee.id);
+
+        if (updateError) throw updateError;
+
+        // If role changed, sync RBAC roles
+        if (formData.role !== employee.role) {
+          const { error: syncError } = await supabase.functions.invoke('sync-employee-roles', {
+            body: { employeeId: employee.id, newRole: formData.role }
+          });
+          
+          if (syncError) {
+            console.error('Role sync error:', syncError);
+          }
+        }
+
+        toast({
+          title: "Employee updated",
+          description: "Employee details have been updated successfully.",
+        });
+
+        await queryClient.invalidateQueries({ queryKey: ['employees'] });
+        onClose();
+      }
     } catch (error) {
+      console.error('Employee save error:', error);
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to save employee',
@@ -959,8 +1135,99 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
   );
 
   const renderAccessTab = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div className="space-y-2 md:col-span-2">
+    <div className="space-y-6">
+      {/* Authentication Section */}
+      <div className="border-b pb-6">
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <KeyRound className="h-5 w-5" />
+          Login Credentials
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="loginEmail">
+              Login Email {!isReadOnly && <span className="text-destructive">*</span>}
+            </Label>
+            <Input
+              id="loginEmail"
+              type="email"
+              value={formData.email || formData.officialEmail || ''}
+              onChange={(e) => handleInputChange('email', e.target.value)}
+              placeholder="employee@company.com"
+              disabled={isReadOnly || mode === 'edit'}
+            />
+            <p className="text-xs text-muted-foreground">
+              {mode === 'edit' ? 'Email cannot be changed after creation' : 'This email will be used for system login'}
+            </p>
+          </div>
+
+          {mode === 'create' && (
+            <div className="space-y-2">
+              <Label htmlFor="passwordOption">Password Delivery</Label>
+              <Select
+                value={formData.passwordOption || 'email'}
+                onValueChange={(value) => handleInputChange('passwordOption', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="email">Generate & email to employee</SelectItem>
+                  <SelectItem value="manual">Set password manually</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {mode === 'create' && formData.passwordOption === 'manual' && (
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="tempPassword">Temporary Password</Label>
+              <Input
+                id="tempPassword"
+                type="password"
+                value={formData.tempPassword || ''}
+                onChange={(e) => handleInputChange('tempPassword', e.target.value)}
+                placeholder="Enter temporary password (min 8 characters)"
+                minLength={8}
+              />
+              <p className="text-xs text-muted-foreground">
+                Employee will be able to use this password immediately
+              </p>
+            </div>
+          )}
+        </div>
+
+        {mode === 'create' && (
+          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md">
+            <p className="text-sm text-blue-800 dark:text-blue-200 flex items-center gap-2">
+              <Mail className="h-4 w-4" />
+              After saving, the employee will {formData.passwordOption === 'manual' ? 'be able to log in with the provided password' : 'receive login credentials via email'} and can immediately access the system with assigned permissions.
+            </p>
+          </div>
+        )}
+
+        {/* RBAC Role Preview */}
+        <div className="mt-4 space-y-2">
+          <Label>Assigned System Roles (Auto-assigned based on employee role)</Label>
+          <div className="flex gap-2 flex-wrap">
+            {rbacRoles.length > 0 ? (
+              rbacRoles.map(role => (
+                <Badge key={role} variant="secondary">
+                  {role}
+                </Badge>
+              ))
+            ) : (
+              <Badge variant="outline">No roles assigned yet</Badge>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Based on employee role: {formData.role || 'Not selected'}
+          </p>
+        </div>
+      </div>
+
+      {/* Module Access Section */}
+      <div className="space-y-2">
         <Label>Module Access</Label>
         <TooltipProvider>
           <Tooltip>
@@ -985,7 +1252,8 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
         </TooltipProvider>
       </div>
 
-      <div className="space-y-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
         <Label htmlFor="dataScope">Data Visibility Scope</Label>
         <Select
           value={formData.dataScope || ''}
@@ -1033,6 +1301,7 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
             {formData.whatsappAccess ? 'Enabled' : 'Disabled'}
           </span>
         </div>
+      </div>
       </div>
     </div>
   );

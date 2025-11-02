@@ -2,3 +2,9 @@ project_id = "myncxddatwvtyiioqekh"
 
 [functions.create-tenant-and-user]
 verify_jwt = false
+
+[functions.invite-employee]
+verify_jwt = true
+
+[functions.sync-employee-roles]
+verify_jwt = true

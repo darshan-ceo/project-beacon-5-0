@@ -550,6 +550,216 @@ export type Database = {
           },
         ]
       }
+      employees: {
+        Row: {
+          aadhaar: string | null
+          ai_access: boolean | null
+          alternate_contact: string | null
+          areas_of_practice: string[] | null
+          bar_council_no: string | null
+          billable: boolean | null
+          billing_rate: number | null
+          blood_group: string | null
+          branch: string | null
+          city: string | null
+          confirmation_date: string | null
+          created_at: string | null
+          created_by: string | null
+          current_address: string | null
+          data_scope: string | null
+          date_of_joining: string | null
+          default_task_category: string | null
+          department: string
+          designation: string | null
+          dob: string | null
+          documents: Json | null
+          email: string
+          employee_code: string
+          employment_type: string | null
+          experience_years: number | null
+          gender: string | null
+          graduation_year: number | null
+          gst_practitioner_id: string | null
+          icai_no: string | null
+          id: string
+          incentive_eligible: boolean | null
+          manager_id: string | null
+          mobile: string | null
+          module_access: string[] | null
+          notes: string | null
+          official_email: string | null
+          pan: string | null
+          permanent_address: string | null
+          personal_email: string | null
+          pincode: string | null
+          profile_photo: string | null
+          qualification: string | null
+          reporting_to: string | null
+          role: string
+          specialization: string[] | null
+          state: string | null
+          status: string | null
+          tenant_id: string
+          university: string | null
+          updated_at: string | null
+          updated_by: string | null
+          weekly_off: string | null
+          whatsapp_access: boolean | null
+          work_shift: string | null
+          workload_capacity: number | null
+        }
+        Insert: {
+          aadhaar?: string | null
+          ai_access?: boolean | null
+          alternate_contact?: string | null
+          areas_of_practice?: string[] | null
+          bar_council_no?: string | null
+          billable?: boolean | null
+          billing_rate?: number | null
+          blood_group?: string | null
+          branch?: string | null
+          city?: string | null
+          confirmation_date?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          current_address?: string | null
+          data_scope?: string | null
+          date_of_joining?: string | null
+          default_task_category?: string | null
+          department: string
+          designation?: string | null
+          dob?: string | null
+          documents?: Json | null
+          email: string
+          employee_code: string
+          employment_type?: string | null
+          experience_years?: number | null
+          gender?: string | null
+          graduation_year?: number | null
+          gst_practitioner_id?: string | null
+          icai_no?: string | null
+          id: string
+          incentive_eligible?: boolean | null
+          manager_id?: string | null
+          mobile?: string | null
+          module_access?: string[] | null
+          notes?: string | null
+          official_email?: string | null
+          pan?: string | null
+          permanent_address?: string | null
+          personal_email?: string | null
+          pincode?: string | null
+          profile_photo?: string | null
+          qualification?: string | null
+          reporting_to?: string | null
+          role: string
+          specialization?: string[] | null
+          state?: string | null
+          status?: string | null
+          tenant_id: string
+          university?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          weekly_off?: string | null
+          whatsapp_access?: boolean | null
+          work_shift?: string | null
+          workload_capacity?: number | null
+        }
+        Update: {
+          aadhaar?: string | null
+          ai_access?: boolean | null
+          alternate_contact?: string | null
+          areas_of_practice?: string[] | null
+          bar_council_no?: string | null
+          billable?: boolean | null
+          billing_rate?: number | null
+          blood_group?: string | null
+          branch?: string | null
+          city?: string | null
+          confirmation_date?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          current_address?: string | null
+          data_scope?: string | null
+          date_of_joining?: string | null
+          default_task_category?: string | null
+          department?: string
+          designation?: string | null
+          dob?: string | null
+          documents?: Json | null
+          email?: string
+          employee_code?: string
+          employment_type?: string | null
+          experience_years?: number | null
+          gender?: string | null
+          graduation_year?: number | null
+          gst_practitioner_id?: string | null
+          icai_no?: string | null
+          id?: string
+          incentive_eligible?: boolean | null
+          manager_id?: string | null
+          mobile?: string | null
+          module_access?: string[] | null
+          notes?: string | null
+          official_email?: string | null
+          pan?: string | null
+          permanent_address?: string | null
+          personal_email?: string | null
+          pincode?: string | null
+          profile_photo?: string | null
+          qualification?: string | null
+          reporting_to?: string | null
+          role?: string
+          specialization?: string[] | null
+          state?: string | null
+          status?: string | null
+          tenant_id?: string
+          university?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          weekly_off?: string | null
+          whatsapp_access?: boolean | null
+          work_shift?: string | null
+          workload_capacity?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_reporting_to_fkey"
+            columns: ["reporting_to"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employees_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hearings: {
         Row: {
           case_id: string

@@ -30,6 +30,8 @@ import { useRBAC } from '@/hooks/useAdvancedRBAC';
 import { featureFlagService } from '@/services/featureFlagService';
 import { roleMapperService } from '@/services/roleMapperService';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Plus, 
   Search, 
@@ -51,6 +53,7 @@ import { toast } from '@/hooks/use-toast';
 export const EmployeeMasters: React.FC = () => {
   const { state, dispatch } = useAppState();
   const { hasPermission } = useRBAC();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
@@ -61,9 +64,85 @@ export const EmployeeMasters: React.FC = () => {
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
 
+  // Fetch employees from database
+  const { data: employees = [], isLoading } = useQuery({
+    queryKey: ['employees'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('employees')
+        .select(`
+          *,
+          profiles!inner(full_name, phone)
+        `)
+        .order('employee_code', { ascending: true });
+      
+      if (error) throw error;
+      
+      // Transform to match Employee interface
+      return (data || []).map((emp: any) => ({
+        id: emp.id,
+        employeeCode: emp.employee_code,
+        full_name: emp.profiles.full_name,
+        email: emp.email,
+        mobile: emp.mobile || emp.profiles.phone,
+        role: emp.role,
+        status: emp.status,
+        department: emp.department,
+        designation: emp.designation,
+        date_of_joining: emp.date_of_joining,
+        officialEmail: emp.official_email,
+        personalEmail: emp.personal_email,
+        alternateContact: emp.alternate_contact,
+        currentAddress: emp.current_address,
+        permanentAddress: emp.permanent_address,
+        city: emp.city,
+        state: emp.state,
+        pincode: emp.pincode,
+        branch: emp.branch,
+        employmentType: emp.employment_type,
+        confirmationDate: emp.confirmation_date,
+        reportingTo: emp.reporting_to,
+        managerId: emp.manager_id,
+        weeklyOff: emp.weekly_off,
+        workShift: emp.work_shift,
+        workloadCapacity: emp.workload_capacity,
+        profilePhoto: emp.profile_photo,
+        gender: emp.gender,
+        dob: emp.dob,
+        pan: emp.pan,
+        aadhaar: emp.aadhaar,
+        bloodGroup: emp.blood_group,
+        barCouncilNo: emp.bar_council_no,
+        icaiNo: emp.icai_no,
+        gstPractitionerId: emp.gst_practitioner_id,
+        qualification: emp.qualification,
+        experienceYears: emp.experience_years,
+        areasOfPractice: emp.areas_of_practice,
+        university: emp.university,
+        graduationYear: emp.graduation_year,
+        specialization: emp.specialization,
+        billingRate: emp.billing_rate,
+        billable: emp.billable,
+        defaultTaskCategory: emp.default_task_category,
+        incentiveEligible: emp.incentive_eligible,
+        moduleAccess: emp.module_access,
+        dataScope: emp.data_scope,
+        aiAccess: emp.ai_access,
+        whatsappAccess: emp.whatsapp_access,
+        documents: emp.documents,
+        notes: emp.notes,
+        tenantId: emp.tenant_id,
+        createdBy: emp.created_by,
+        createdAt: emp.created_at,
+        updatedBy: emp.updated_by,
+        updatedAt: emp.updated_at,
+      }));
+    },
+  });
+
   // Filter employees
   const filteredEmployees = useMemo(() => {
-    return state.employees.filter(employee => {
+    return employees.filter(employee => {
       const matchesSearch = employee.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            employee.role.toLowerCase().includes(searchTerm.toLowerCase());
@@ -74,22 +153,120 @@ export const EmployeeMasters: React.FC = () => {
       
       return matchesSearch && matchesStatus && matchesRole && matchesDepartment;
     });
-  }, [state.employees, searchTerm, statusFilter, roleFilter, departmentFilter]);
+  }, [employees, searchTerm, statusFilter, roleFilter, departmentFilter]);
 
   // Get unique values for filters
-  const roles = [...new Set(state.employees.map(emp => emp.role))];
-  const departments = [...new Set(state.employees.map(emp => emp.department))];
+  const roles = [...new Set(employees.map(emp => emp.role))];
+  const departments = [...new Set(employees.map(emp => emp.department))];
 
   // Get statistics
   const stats = useMemo(() => {
-    const total = state.employees.length;
-    const active = state.employees.filter(emp => emp.status === 'Active').length;
+    const total = employees.length;
+    const active = employees.filter(emp => emp.status === 'Active').length;
     const inactive = total - active;
-    const partners = state.employees.filter(emp => emp.role === 'Partner').length;
-    const cas = state.employees.filter(emp => emp.role === 'CA').length;
+    const partners = employees.filter(emp => emp.role === 'Partner').length;
+    const cas = employees.filter(emp => emp.role === 'CA').length;
     
     return { total, active, inactive, partners, cas };
-  }, [state.employees]);
+  }, [employees]);
+
+  // Deactivate employee mutation
+  const deactivateMutation = useMutation({
+    mutationFn: async (employeeId: string) => {
+      const { error } = await supabase
+        .from('employees')
+        .update({ status: 'Inactive' })
+        .eq('id', employeeId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      toast({
+        title: "Employee deactivated",
+        description: "Employee has been deactivated successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to deactivate employee",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Activate employee mutation
+  const activateMutation = useMutation({
+    mutationFn: async (employeeId: string) => {
+      const { error } = await supabase
+        .from('employees')
+        .update({ status: 'Active' })
+        .eq('id', employeeId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      toast({
+        title: "Employee activated",
+        description: "Employee has been activated successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to activate employee",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete employee mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (employeeId: string) => {
+      // Check dependencies
+      const { data: cases } = await supabase
+        .from('cases')
+        .select('id')
+        .eq('assigned_to', employeeId);
+      
+      if (cases && cases.length > 0) {
+        throw new Error(`Cannot delete: Employee has ${cases.length} assigned cases`);
+      }
+
+      const { data: tasks } = await supabase
+        .from('tasks')
+        .select('id')
+        .eq('assigned_to', employeeId);
+      
+      if (tasks && tasks.length > 0) {
+        throw new Error(`Cannot delete: Employee has ${tasks.length} assigned tasks`);
+      }
+
+      // Delete employee (cascades to profile and auth user)
+      const { error } = await supabase
+        .from('employees')
+        .delete()
+        .eq('id', employeeId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      toast({
+        title: "Employee deleted",
+        description: "Employee has been deleted successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete employee",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleCreateEmployee = () => {
     setSelectedEmployee(null);
@@ -113,7 +290,7 @@ export const EmployeeMasters: React.FC = () => {
     try {
       if (employee.status === 'Active') {
         // Check if this is the last active partner/CA
-        const activeInRole = state.employees.filter(emp => 
+        const activeInRole = employees.filter(emp => 
           emp.role === employee.role && emp.status === 'Active' && emp.id !== employee.id
         );
         
@@ -126,44 +303,20 @@ export const EmployeeMasters: React.FC = () => {
           return;
         }
         
-        await employeesService.deactivate(employee.id, dispatch);
+        await deactivateMutation.mutateAsync(employee.id);
       } else {
-        await employeesService.activate(employee.id, dispatch);
+        await activateMutation.mutateAsync(employee.id);
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update employee status",
-        variant: "destructive",
-      });
+      // Error already handled in mutation
     }
   };
 
   const handleDeleteEmployee = async (employee: Employee) => {
     try {
-      const dependencies = employeesService.checkDependencies(
-        employee.id, 
-        state.cases, 
-        state.tasks, 
-        state.hearings
-      );
-
-      if (dependencies.length > 0) {
-        toast({
-          title: "Cannot delete employee",
-          description: `Employee has active dependencies: ${dependencies.join(', ')}`,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      await employeesService.delete(employee.id, dispatch, dependencies);
+      await deleteMutation.mutateAsync(employee.id);
     } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to delete employee",
-        variant: "destructive",
-      });
+      // Error already handled in mutation
     }
   };
 
