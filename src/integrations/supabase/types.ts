@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          action_type: string
+          details: Json | null
+          document_id: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          ip_address: unknown
+          tenant_id: string
+          timestamp: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action_type: string
+          details?: Json | null
+          document_id?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: unknown
+          tenant_id: string
+          timestamp?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          details?: Json | null
+          document_id?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: unknown
+          tenant_id?: string
+          timestamp?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cases: {
         Row: {
           assigned_to: string | null
@@ -138,6 +195,277 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "clients_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_folders: {
+        Row: {
+          case_id: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          parent_id: string | null
+          path: string
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          case_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          parent_id?: string | null
+          path: string
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          case_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          parent_id?: string | null
+          path?: string
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_folders_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "document_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_folders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_tags: {
+        Row: {
+          created_at: string | null
+          document_id: string
+          id: string
+          tag: string
+        }
+        Insert: {
+          created_at?: string | null
+          document_id: string
+          id?: string
+          tag: string
+        }
+        Update: {
+          created_at?: string | null
+          document_id?: string
+          id?: string
+          tag?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_tags_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_versions: {
+        Row: {
+          change_notes: string | null
+          document_id: string
+          file_path: string
+          file_size: number
+          id: string
+          upload_timestamp: string | null
+          uploaded_by: string
+          version_no: number
+        }
+        Insert: {
+          change_notes?: string | null
+          document_id: string
+          file_path: string
+          file_size: number
+          id?: string
+          upload_timestamp?: string | null
+          uploaded_by: string
+          version_no: number
+        }
+        Update: {
+          change_notes?: string | null
+          document_id?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          upload_timestamp?: string | null
+          uploaded_by?: string
+          version_no?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_versions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents: {
+        Row: {
+          case_id: string | null
+          category: string | null
+          client_id: string | null
+          created_at: string | null
+          document_status: string | null
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string
+          folder_id: string | null
+          hearing_id: string | null
+          id: string
+          is_latest_version: boolean | null
+          mime_type: string | null
+          parent_document_id: string | null
+          remarks: string | null
+          review_date: string | null
+          review_remarks: string | null
+          reviewer_id: string | null
+          role: string | null
+          storage_url: string | null
+          task_id: string | null
+          tenant_id: string
+          updated_at: string | null
+          upload_timestamp: string | null
+          uploaded_by: string
+          version: number | null
+        }
+        Insert: {
+          case_id?: string | null
+          category?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          document_status?: string | null
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string
+          folder_id?: string | null
+          hearing_id?: string | null
+          id?: string
+          is_latest_version?: boolean | null
+          mime_type?: string | null
+          parent_document_id?: string | null
+          remarks?: string | null
+          review_date?: string | null
+          review_remarks?: string | null
+          reviewer_id?: string | null
+          role?: string | null
+          storage_url?: string | null
+          task_id?: string | null
+          tenant_id: string
+          updated_at?: string | null
+          upload_timestamp?: string | null
+          uploaded_by: string
+          version?: number | null
+        }
+        Update: {
+          case_id?: string | null
+          category?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          document_status?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          file_type?: string
+          folder_id?: string | null
+          hearing_id?: string | null
+          id?: string
+          is_latest_version?: boolean | null
+          mime_type?: string | null
+          parent_document_id?: string | null
+          remarks?: string | null
+          review_date?: string | null
+          review_remarks?: string | null
+          reviewer_id?: string | null
+          role?: string | null
+          storage_url?: string | null
+          task_id?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+          upload_timestamp?: string | null
+          uploaded_by?: string
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "document_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_hearing_id_fkey"
+            columns: ["hearing_id"]
+            isOneToOne: false
+            referencedRelation: "hearings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_parent_document_id_fkey"
+            columns: ["parent_document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
