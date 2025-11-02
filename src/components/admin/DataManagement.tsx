@@ -15,6 +15,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +27,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { TaskDataMigration } from './TaskDataMigration';
 
 export const DataManagement: React.FC = () => {
   const { exportData, importData, clearAllData, saveToStorage } = useDataPersistence();
@@ -128,6 +130,14 @@ export const DataManagement: React.FC = () => {
           Backup, restore, and manage your application data
         </p>
       </motion.div>
+
+      <Tabs defaultValue="backup" className="w-full">
+        <TabsList>
+          <TabsTrigger value="backup">Backup & Restore</TabsTrigger>
+          <TabsTrigger value="task-audit">Task Data Audit</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="backup" className="space-y-6 mt-6">
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Backup & Export */}
@@ -293,6 +303,12 @@ export const DataManagement: React.FC = () => {
           </CardContent>
         </Card>
       </motion.div>
+        </TabsContent>
+
+        <TabsContent value="task-audit" className="mt-6">
+          <TaskDataMigration />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
