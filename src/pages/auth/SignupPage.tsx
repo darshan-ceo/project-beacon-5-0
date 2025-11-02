@@ -57,41 +57,53 @@ export const SignupPage: React.FC = () => {
       
       setIsLoading(true);
 
-      // Create tenant first
-      const { data: tenantData, error: tenantError } = await supabase
-        .from('tenants')
-        .insert([{
-          name: formData.organizationName,
-          license_tier: 'trial',
-          license_key: `trial-${Date.now()}`,
-        }])
-        .select()
-        .single();
+      // Call edge function to create tenant and user
+      const { data, error } = await supabase.functions.invoke('create-tenant-and-user', {
+        body: {
+          email: formData.email,
+          password: formData.password,
+          fullName: formData.fullName,
+          phone: formData.phone,
+          organizationName: formData.organizationName,
+        }
+      });
 
-      if (tenantError) {
+      if (error) {
         toast({
           title: "Signup Failed",
-          description: "Could not create organization. Please try again.",
+          description: error.message || "An unexpected error occurred. Please try again.",
           variant: "destructive",
         });
         return;
       }
 
-      // Sign up user with tenant_id in metadata
-      const { error } = await signUp(formData.email, formData.password, {
-        fullName: formData.fullName,
-        phone: formData.phone,
-        tenantId: tenantData.id,
+      if (!data.success) {
+        toast({
+          title: "Signup Failed",
+          description: data.error || "Could not create account. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Success - show message and redirect to login
+      toast({
+        title: "Success!",
+        description: "Account created successfully. Please log in.",
       });
       
-      if (!error) {
-        navigate('/auth/login');
-      }
+      navigate('/auth/login');
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast({
           title: "Validation Error",
           description: error.errors[0].message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Signup Failed",
+          description: "An unexpected error occurred. Please try again.",
           variant: "destructive",
         });
       }
