@@ -56,6 +56,8 @@ import { useUnifiedPersistence } from '@/hooks/useUnifiedPersistence';
 import { taskTemplatesService } from '@/services/taskTemplatesService';
 import { enhancedTaskCreationService } from '@/services/enhancedTaskCreationService';
 import { TaskBundleImporter } from '@/components/tasks/TaskBundleImporter';
+import { AutomationRules } from '@/components/tasks/AutomationRules';
+import { AutomationLogs } from '@/components/tasks/AutomationLogs';
 import type { TaskTemplate } from '@/types/taskTemplate';
 import type { TaskBundle, TaskBundleItem } from '@/data/db';
 import type { EnhancedTaskBundleWithItems } from '@/types/enhancedTaskBundle';
@@ -553,8 +555,10 @@ export const TaskAutomation: React.FC = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="bundles" className="w-full">
-            <TabsList>
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="bundles">Task Bundles</TabsTrigger>
+              <TabsTrigger value="rules">Automation Rules</TabsTrigger>
+              <TabsTrigger value="logs">Execution Logs</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
             </TabsList>
             
@@ -643,6 +647,14 @@ export const TaskAutomation: React.FC = () => {
                   ))}
                 </div>
               )}
+            </TabsContent>
+
+            <TabsContent value="rules" className="space-y-4">
+              <AutomationRules />
+            </TabsContent>
+
+            <TabsContent value="logs" className="space-y-4">
+              <AutomationLogs />
             </TabsContent>
             
             <TabsContent value="analytics">

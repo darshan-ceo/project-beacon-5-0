@@ -1,4 +1,5 @@
 import { Task } from '@/contexts/AppStateContext';
+import { notificationService } from './notificationService';
 
 export interface EscalationRule {
   id: string;
@@ -144,6 +145,8 @@ class EscalationService {
   }
 
   async createEvent(ruleId: string, taskId: string): Promise<EscalationEvent> {
+    const rule = await this.getRule(ruleId);
+    
     const newEvent: EscalationEvent = {
       id: `event-${Date.now()}`,
       ruleId,
@@ -153,7 +156,38 @@ class EscalationService {
     };
 
     this.events.push(newEvent);
+
+    // Send notifications using the notification service
+    if (rule) {
+      try {
+        await notificationService.send({
+          type: 'escalation',
+          recipients: rule.actions.notifyUsers,
+          channels: ['in_app', 'email'],
+          template: 'escalation_alert',
+          context: {
+            taskId,
+            ruleName: rule.name,
+            taskTitle: 'Task',
+            caseNumber: 'Case'
+          }
+        });
+        console.log('[EscalationService] Notifications sent for escalation event:', newEvent.id);
+      } catch (error) {
+        console.error('[EscalationService] Failed to send notifications:', error);
+      }
+    }
+
     return newEvent;
+  }
+
+  async triggerAutomatedEscalation(
+    taskId: string,
+    ruleId: string,
+    reason: string
+  ): Promise<EscalationEvent> {
+    console.log(`[EscalationService] Triggering automated escalation for task ${taskId}`);
+    return await this.createEvent(ruleId, taskId);
   }
 }
 
