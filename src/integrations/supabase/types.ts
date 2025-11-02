@@ -63,6 +63,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "audit_log_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "pending_review_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
             foreignKeyName: "audit_log_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -141,6 +155,13 @@ export type Database = {
             foreignKeyName: "cases_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "cases_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
@@ -197,6 +218,13 @@ export type Database = {
             foreignKeyName: "clients_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "clients_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
@@ -244,6 +272,13 @@ export type Database = {
             foreignKeyName: "document_folders_case_id_fkey"
             columns: ["case_id"]
             isOneToOne: false
+            referencedRelation: "case_activity_summary"
+            referencedColumns: ["case_id"]
+          },
+          {
+            foreignKeyName: "document_folders_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
             referencedRelation: "cases"
             referencedColumns: ["id"]
           },
@@ -253,6 +288,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "document_folders"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_folders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "document_folders_tenant_id_fkey"
@@ -288,6 +330,13 @@ export type Database = {
             columns: ["document_id"]
             isOneToOne: false
             referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_tags_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "pending_review_documents"
             referencedColumns: ["id"]
           },
         ]
@@ -329,6 +378,13 @@ export type Database = {
             columns: ["document_id"]
             isOneToOne: false
             referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_versions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "pending_review_documents"
             referencedColumns: ["id"]
           },
         ]
@@ -426,6 +482,13 @@ export type Database = {
             foreignKeyName: "documents_case_id_fkey"
             columns: ["case_id"]
             isOneToOne: false
+            referencedRelation: "case_activity_summary"
+            referencedColumns: ["case_id"]
+          },
+          {
+            foreignKeyName: "documents_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
             referencedRelation: "cases"
             referencedColumns: ["id"]
           },
@@ -458,11 +521,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "documents_parent_document_id_fkey"
+            columns: ["parent_document_id"]
+            isOneToOne: false
+            referencedRelation: "pending_review_documents"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "documents_task_id_fkey"
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "tasks"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "documents_tenant_id_fkey"
@@ -521,8 +598,22 @@ export type Database = {
             foreignKeyName: "hearings_case_id_fkey"
             columns: ["case_id"]
             isOneToOne: false
+            referencedRelation: "case_activity_summary"
+            referencedColumns: ["case_id"]
+          },
+          {
+            foreignKeyName: "hearings_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
             referencedRelation: "cases"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hearings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "hearings_tenant_id_fkey"
@@ -565,6 +656,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
           {
             foreignKeyName: "profiles_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -625,6 +723,13 @@ export type Database = {
             foreignKeyName: "tasks_case_id_fkey"
             columns: ["case_id"]
             isOneToOne: false
+            referencedRelation: "case_activity_summary"
+            referencedColumns: ["case_id"]
+          },
+          {
+            foreignKeyName: "tasks_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
             referencedRelation: "cases"
             referencedColumns: ["id"]
           },
@@ -634,6 +739,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "hearings"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "tasks_tenant_id_fkey"
@@ -715,9 +827,141 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      case_activity_summary: {
+        Row: {
+          case_id: string | null
+          case_number: string | null
+          document_count: number | null
+          hearing_count: number | null
+          last_document_date: string | null
+          last_hearing_date: string | null
+          last_task_update: string | null
+          status: string | null
+          task_count: number | null
+          tenant_id: string | null
+          title: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cases_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "cases_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents_by_category: {
+        Row: {
+          avg_file_size_bytes: number | null
+          category: string | null
+          document_count: number | null
+          tenant_id: string | null
+          total_size_bytes: number | null
+          unique_cases: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents_by_user: {
+        Row: {
+          approved_count: number | null
+          pending_count: number | null
+          rejected_count: number | null
+          tenant_id: string | null
+          total_documents: number | null
+          total_storage_bytes: number | null
+          uploaded_by: string | null
+          uploader_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pending_review_documents: {
+        Row: {
+          case_number: string | null
+          case_title: string | null
+          category: string | null
+          days_pending: number | null
+          file_name: string | null
+          id: string | null
+          tenant_id: string | null
+          upload_timestamp: string | null
+          uploaded_by: string | null
+          uploader_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      storage_usage_by_tenant: {
+        Row: {
+          license_tier: Database["public"]["Enums"]["license_tier"] | null
+          max_storage_gb: number | null
+          storage_remaining_bytes: number | null
+          storage_used_bytes: number | null
+          storage_used_percentage: number | null
+          tenant_id: string | null
+          tenant_name: string | null
+          total_documents: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      check_tenant_limits: {
+        Args: { _limit_type: string; _tenant_id: string }
+        Returns: boolean
+      }
+      get_user_tenant_id: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
