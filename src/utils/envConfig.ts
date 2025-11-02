@@ -52,10 +52,35 @@ export const envConfig = {
   STORAGE_BACKEND,
   IS_DEMO_MODE: isDemoMode,
   
+  // Supabase Configuration
+  SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
+  SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+  SUPABASE_PROJECT_ID: import.meta.env.VITE_SUPABASE_PROJECT_ID,
+  
   // Validation functions
   isDemoMode: () => APP_MODE === 'demo',
   isIndexedDBMode: () => STORAGE_BACKEND === 'indexeddb',
+  isSupabaseMode: () => STORAGE_BACKEND === 'supabase',
   enforceDemo: () => isDemoMode && STORAGE_BACKEND === 'indexeddb',
+  
+  // Supabase validation
+  assertSupabaseConfigured: () => {
+    if (!import.meta.env.VITE_SUPABASE_URL) {
+      throw new Error('VITE_SUPABASE_URL not configured');
+    }
+    if (!import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY) {
+      throw new Error('VITE_SUPABASE_PUBLISHABLE_KEY not configured');
+    }
+  },
+  
+  // Get active storage mode with URL override support
+  getStorageMode: (): 'indexeddb' | 'supabase' | 'api' | 'hybrid' | 'memory' => {
+    if (typeof window !== 'undefined') {
+      const urlStorage = new URLSearchParams(window.location.search).get('storage');
+      if (urlStorage) return urlStorage as any;
+    }
+    return STORAGE_BACKEND as any;
+  },
   
   // Status badges for QA dashboard
   getStatusBadges: () => ({

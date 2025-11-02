@@ -8,13 +8,14 @@ import { IndexedDBAdapter } from './adapters/IndexedDBAdapter';
 import { InMemoryAdapter } from './adapters/InMemoryAdapter';
 import { ApiAdapter } from './adapters/ApiAdapter';
 import { HybridAdapter } from './adapters/HybridAdapter';
+import { SupabaseAdapter } from './adapters/SupabaseAdapter';
 import { SimulatedApiAdapter } from './adapters/SimulatedApiAdapter';
 import { TaskBundleRepository } from './repositories/TaskBundleRepository';
 import { EnhancedTaskBundleRepository } from './repositories/EnhancedTaskBundleRepository';
 import { DocumentRepository } from './repositories/DocumentRepository';
 import { AuditService } from './services/AuditService';
 
-export type StorageMode = 'indexeddb' | 'memory' | 'api' | 'hybrid';
+export type StorageMode = 'indexeddb' | 'memory' | 'api' | 'hybrid' | 'supabase';
 
 export class StorageManager {
   private static instance: StorageManager;
@@ -35,12 +36,16 @@ export class StorageManager {
     return StorageManager.instance;
   }
 
-  async initialize(mode: StorageMode = 'indexeddb'): Promise<void> {
+  async initialize(mode: StorageMode = 'supabase'): Promise<void> {
     console.log(`🚀 Initializing storage in ${mode} mode`);
     
     try {
       // Initialize storage adapter
       switch (mode) {
+        case 'supabase':
+          console.log('🗄️ Using Supabase PostgreSQL backend');
+          this.storage = new SupabaseAdapter();
+          break;
         case 'indexeddb':
           this.storage = new IndexedDBAdapter();
           break;
