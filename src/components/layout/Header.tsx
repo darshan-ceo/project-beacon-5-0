@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Bell, 
@@ -13,6 +14,7 @@ import {
   TestTube
 } from 'lucide-react';
 import { envConfig } from '@/utils/envConfig';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -40,6 +42,8 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ user }) => {
   const [searchProvider, setSearchProvider] = useState<SearchProvider | null>(null);
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Subscribe to search provider changes
@@ -62,6 +66,11 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
       case 'Client': return 'bg-muted text-muted-foreground';
       default: return 'bg-muted text-muted-foreground';
     }
+  };
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/auth/login');
   };
 
   return (
@@ -143,12 +152,12 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
               <Settings className="mr-2 h-4 w-4" />
               Settings
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/rbac')}>
               <Shield className="mr-2 h-4 w-4" />
               RBAC
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">
+            <DropdownMenuItem onClick={handleLogout} className="text-destructive">
               <LogOut className="mr-2 h-4 w-4" />
               Logout
             </DropdownMenuItem>
