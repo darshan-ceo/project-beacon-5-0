@@ -436,6 +436,7 @@ export type Database = {
           created_by: string | null
           description: string | null
           id: string
+          is_default: boolean | null
           name: string
           parent_id: string | null
           path: string
@@ -448,6 +449,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           id?: string
+          is_default?: boolean | null
           name: string
           parent_id?: string | null
           path: string
@@ -460,6 +462,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           id?: string
+          is_default?: boolean | null
           name?: string
           parent_id?: string | null
           path?: string
