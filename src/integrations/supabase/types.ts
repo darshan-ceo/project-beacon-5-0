@@ -1883,6 +1883,60 @@ export type Database = {
         }
         Relationships: []
       }
+      timeline_entries: {
+        Row: {
+          case_id: string
+          created_at: string | null
+          created_by: string
+          created_by_name: string | null
+          description: string
+          id: string
+          metadata: Json | null
+          tenant_id: string
+          title: string
+          type: string
+        }
+        Insert: {
+          case_id: string
+          created_at?: string | null
+          created_by: string
+          created_by_name?: string | null
+          description: string
+          id: string
+          metadata?: Json | null
+          tenant_id: string
+          title: string
+          type: string
+        }
+        Update: {
+          case_id?: string
+          created_at?: string | null
+          created_by?: string
+          created_by_name?: string | null
+          description?: string
+          id?: string
+          metadata?: Json | null
+          tenant_id?: string
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timeline_entries_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "case_activity_summary"
+            referencedColumns: ["case_id"]
+          },
+          {
+            foreignKeyName: "timeline_entries_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           granted_at: string | null

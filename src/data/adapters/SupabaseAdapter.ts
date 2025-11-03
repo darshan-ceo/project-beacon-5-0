@@ -445,7 +445,7 @@ export class SupabaseAdapter implements StoragePort {
 
     const tables: EntityType[] = [
       'clients', 'cases', 'tasks', 'hearings', 'documents',
-      'employees', 'courts', 'judges', 'folders'
+      'employees', 'courts', 'judges', 'document_folders'
     ];
 
     const exportData: Record<string, any[]> = {};

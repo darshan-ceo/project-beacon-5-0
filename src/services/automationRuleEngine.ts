@@ -22,14 +22,22 @@ class AutomationRuleEngine {
   async initialize(): Promise<void> {
     if (this.initialized) return;
 
-    const storage = storageManager.getStorage();
-    const auditService = storageManager.getAuditService();
-    
-    this.ruleRepository = new AutomationRuleRepository(storage, auditService);
-    this.logRepository = new AutomationLogRepository(storage, auditService);
-    
-    this.initialized = true;
-    console.log('[AutomationRuleEngine] Initialized');
+    try {
+      const storage = storageManager.getStorage();
+      const auditService = storageManager.getAuditService();
+      
+      this.ruleRepository = new AutomationRuleRepository(storage, auditService);
+      this.logRepository = new AutomationLogRepository(storage, auditService);
+      
+      // Test connectivity
+      await this.ruleRepository.getAll();
+      
+      this.initialized = true;
+      console.log('[AutomationRuleEngine] ✅ Initialized successfully');
+    } catch (error) {
+      console.error('[AutomationRuleEngine] ❌ Initialization failed:', error);
+      throw new Error(`AutomationRuleEngine initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   private ensureInitialized(): void {

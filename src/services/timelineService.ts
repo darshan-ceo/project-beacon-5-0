@@ -37,11 +37,16 @@ class TimelineService {
    */
   private async loadTimeline(): Promise<TimelineEntry[]> {
     try {
-      console.log('[Timeline] Loading entries from IndexedDB...');
+      console.log('[Timeline] Loading entries from storage...');
       const stored = await this.storage.getAll(this.STORAGE_KEY);
       console.log(`[Timeline] ✅ Loaded ${stored.length} entries from storage`);
       return (stored as TimelineEntry[]) || [];
     } catch (error) {
+      // Gracefully handle missing table during migration
+      if (error instanceof Error && error.message.includes('timeline_entries')) {
+        console.warn('[Timeline] ⚠️ Timeline table not yet created in Supabase, returning empty array');
+        return [];
+      }
       console.error('[Timeline] ❌ Failed to load from storage:', error);
       return [];
     }

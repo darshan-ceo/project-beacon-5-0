@@ -59,8 +59,9 @@ export interface StorageConfig {
 }
 
 export type EntityType = 
-  | 'clients' | 'cases' | 'notices' | 'replies' | 'hearings' 
-  | 'tasks' | 'task_notes' | 'task_followups' | 'task_bundles' | 'task_bundle_items' | 'documents' | 'attachments'
-  | 'tags' | 'entity_tags' | 'courts' | 'judges' | 'employees'
-  | 'audit_logs' | 'settings' | 'sync_queue' | 'migration_meta' | 'folders'
-  | 'automation_rules' | 'automation_logs';
+  | 'clients' | 'cases' | 'hearings' 
+  | 'tasks' | 'task_notes' | 'task_followups' | 'task_bundles' | 'task_bundle_items' 
+  | 'documents' | 'document_folders' | 'document_tags' | 'document_versions'
+  | 'courts' | 'judges' | 'employees'
+  | 'audit_log' | 'automation_rules' | 'automation_logs'
+  | 'timeline_entries' | 'profiles';
