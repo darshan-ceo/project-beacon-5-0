@@ -71,8 +71,8 @@ class PolicyEngine {
       };
     }
     
-    // Special handling for demo/test users (DEMO mode)
-    if (userId.startsWith('demo-') || userId === 'demo-user') {
+    // Special handling for demo/test users (DEMO mode ONLY in development)
+    if (import.meta.env.MODE === 'development' && (userId.startsWith('demo-') || userId === 'demo-user')) {
       console.log('[RBAC] Demo user detected - granting full access:', userId);
       return {
         userId,
@@ -238,8 +238,8 @@ class PolicyEngine {
       };
     }
     
-    // Special handling for demo users - grant all permissions in DEMO mode
-    if (userId.startsWith('demo-') || userId === 'demo-user') {
+    // Special handling for demo users - grant all permissions in DEMO mode (development only)
+    if (import.meta.env.MODE === 'development' && (userId.startsWith('demo-') || userId === 'demo-user')) {
       console.log('[RBAC] Demo user permission granted:', { userId, resource, action });
       return {
         allowed: true,

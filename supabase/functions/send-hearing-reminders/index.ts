@@ -50,7 +50,24 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  // Verify API key for scheduled execution (secret-based authentication)
+  const authHeader = req.headers.get('Authorization');
+  const apiKey = Deno.env.get('LOVABLE_API_KEY');
+  
+  if (!authHeader || !apiKey || authHeader !== `Bearer ${apiKey}`) {
+    console.error('[Hearing Reminders] Unauthorized access attempt');
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized - Invalid API key' }),
+      { 
+        status: 401, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+
   try {
+    console.log('[Hearing Reminders] Function triggered at:', new Date().toISOString());
+    
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
