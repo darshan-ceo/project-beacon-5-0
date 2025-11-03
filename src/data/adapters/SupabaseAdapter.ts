@@ -15,6 +15,24 @@ export class SupabaseAdapter implements StoragePort {
   // Cache for tenant isolation
   private queryCache = new Map<string, { data: any; timestamp: number }>();
   private readonly CACHE_TTL = 60000; // 1 minute
+  
+  // Table name mapping: EntityType -> Actual Supabase table name
+  private readonly tableNameMapping: Record<string, string> = {
+    'folders': 'document_folders',
+    'audit_logs': 'audit_log',
+  };
+
+  /**
+   * Get actual table name from entity type
+   * Maps logical entity names to physical table names in Supabase
+   */
+  private getActualTableName(entityType: string): string {
+    const mapped = this.tableNameMapping[entityType];
+    if (mapped) {
+      console.log(`📝 Mapping ${entityType} → ${mapped}`);
+    }
+    return mapped || entityType;
+  }
 
   /**
    * Initialize adapter - fetch and cache tenant ID and user ID
@@ -89,6 +107,9 @@ export class SupabaseAdapter implements StoragePort {
     console.error(`Supabase ${operation} error:`, error);
 
     // Map PostgreSQL error codes to user-friendly messages
+    if (error.code === '42P01') {
+      throw new Error(`Table not found. This feature may not be fully implemented yet. (Error: ${error.message})`);
+    }
     if (error.code === '23505') {
       throw new Error('Record with this ID already exists');
     }
@@ -162,7 +183,7 @@ export class SupabaseAdapter implements StoragePort {
       };
 
       const { data: result, error } = await (supabase as any)
-        .from(table)
+        .from(this.getActualTableName(table))
         .insert(dataWithTenant)
         .select()
         .single();
@@ -189,7 +210,7 @@ export class SupabaseAdapter implements StoragePort {
       const { tenant_id, ...safeUpdates } = updates as any;
 
       const { data: result, error } = await (supabase as any)
-        .from(table)
+        .from(this.getActualTableName(table))
         .update(safeUpdates)
         .eq('id', id)
         .eq('tenant_id', this.tenantId) // Ensure tenant isolation
@@ -212,7 +233,7 @@ export class SupabaseAdapter implements StoragePort {
 
     try {
       const { error } = await (supabase as any)
-        .from(table)
+        .from(this.getActualTableName(table))
         .delete()
         .eq('id', id)
         .eq('tenant_id', this.tenantId); // Ensure tenant isolation
@@ -231,7 +252,7 @@ export class SupabaseAdapter implements StoragePort {
 
     try {
       const { data, error } = await (supabase as any)
-        .from(table)
+        .from(this.getActualTableName(table))
         .select('*')
         .eq('id', id)
         .eq('tenant_id', this.tenantId) // Ensure tenant isolation
@@ -256,7 +277,7 @@ export class SupabaseAdapter implements StoragePort {
       if (cached) return cached;
 
       const { data, error } = await (supabase as any)
-        .from(table)
+        .from(this.getActualTableName(table))
         .select('*')
         .eq('tenant_id', this.tenantId); // Ensure tenant isolation
 
@@ -284,7 +305,7 @@ export class SupabaseAdapter implements StoragePort {
       }));
 
       const { data, error } = await (supabase as any)
-        .from(table)
+        .from(this.getActualTableName(table))
         .insert(itemsWithTenant)
         .select();
 
@@ -326,7 +347,7 @@ export class SupabaseAdapter implements StoragePort {
 
     try {
       const { error } = await (supabase as any)
-        .from(table)
+        .from(this.getActualTableName(table))
         .delete()
         .in('id', ids)
         .eq('tenant_id', this.tenantId); // Ensure tenant isolation
@@ -356,7 +377,7 @@ export class SupabaseAdapter implements StoragePort {
 
     try {
       const { data, error } = await (supabase as any)
-        .from(table)
+        .from(this.getActualTableName(table))
         .select('*')
         .eq('tenant_id', this.tenantId) // Ensure tenant isolation
         .eq(field, value);
@@ -398,7 +419,7 @@ export class SupabaseAdapter implements StoragePort {
     try {
       // Delete all records for this tenant
       const { error } = await (supabase as any)
-        .from(table)
+        .from(this.getActualTableName(table))
         .delete()
         .eq('tenant_id', this.tenantId);
 
