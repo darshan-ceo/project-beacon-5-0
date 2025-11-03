@@ -448,7 +448,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           description?: string | null
-          id?: string
+          id: string
           is_default?: boolean | null
           name: string
           parent_id?: string | null
