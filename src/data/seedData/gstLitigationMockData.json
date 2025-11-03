@@ -1,0 +1,89 @@
+{
+  "project": "Beacon – GST Litigation CRM",
+  "context": "Mock dataset for QA, UI, and Supabase seeding. Domain: GST litigation only.",
+  "modules": {
+    "users_roles": [
+      { "id": 1, "name": "Admin", "email": "admin@gstbeacon.in", "role": "Admin", "mobile": "9876000001" },
+      { "id": 2, "name": "CA Ritesh Shah", "email": "ritesh@gstfirm.in", "role": "Partner", "mobile": "9876000002" },
+      { "id": 3, "name": "Adv. Yash Doshi", "email": "yash@gstfirm.in", "role": "Litigation Head", "mobile": "9876000003" },
+      { "id": 4, "name": "Staff Neha Patel", "email": "neha@gstfirm.in", "role": "Paralegal", "mobile": "9876000004" },
+      { "id": 5, "name": "Client User", "email": "client@demo.in", "role": "Client", "mobile": "9876000005" }
+    ],
+    "clients": [
+      { "id": 101, "name": "Sparsh Polymers Pvt Ltd", "gstin": "24AACCS9999M1ZP", "city": "Ahmedabad", "contact_person": "Mr. Rajesh Patel", "email": "rajesh@sparshpoly.com", "mobile": "9825000011", "status": "Active" },
+      { "id": 102, "name": "Meera Textiles LLP", "gstin": "24AABCM4444K1ZR", "city": "Surat", "contact_person": "Ms. Disha Mehta", "email": "disha@meeratex.com", "mobile": "9825000012", "status": "Active" },
+      { "id": 103, "name": "Vikas Engineering Works", "gstin": "24ABCPV3333N1ZS", "city": "Vadodara", "contact_person": "Mr. Ankit Desai", "email": "ankit@vikaseng.com", "mobile": "9825000013", "status": "Inactive" }
+    ],
+    "forums": [
+      { "id": 201, "name": "Assistant Commissioner (Adjudication)", "city": "Ahmedabad", "level": "Adjudication", "jurisdiction": "State GST", "pin": "380015" },
+      { "id": 202, "name": "Joint Commissioner (Appeals)", "city": "Surat", "level": "Appeal Level 1", "jurisdiction": "CGST", "pin": "395007" },
+      { "id": 203, "name": "GSTAT State Bench", "city": "Ahmedabad", "level": "Tribunal", "jurisdiction": "State GST", "pin": "380009" },
+      { "id": 204, "name": "High Court of Gujarat", "city": "Ahmedabad", "level": "High Court", "jurisdiction": "Judicial", "pin": "380060" }
+    ],
+    "authorities": [
+      { "id": 301, "designation": "State Tax Officer", "office": "Division-A SGST Ahmedabad" },
+      { "id": 302, "designation": "Superintendent (Preventive)", "office": "CGST Surat" },
+      { "id": 303, "designation": "Assistant Commissioner", "office": "Division-B SGST Ahmedabad" },
+      { "id": 304, "designation": "Joint Commissioner (Appeals)", "office": "Surat Zone" },
+      { "id": 305, "designation": "Member – GSTAT State Bench", "office": "Ahmedabad" }
+    ],
+    "cases": [
+      {
+        "id": 401,
+        "client_id": 101,
+        "forum_id": 201,
+        "authority_id": 303,
+        "case_title": "ITC Disallowance u/s 16 (2)",
+        "issue_type": "Input Tax Credit",
+        "case_ref_no": "GST/AHD/ITC/2024-25/001",
+        "status": "Active",
+        "date_filed": "2024-06-15",
+        "digital_filing": true
+      },
+      {
+        "id": 402,
+        "client_id": 102,
+        "forum_id": 202,
+        "authority_id": 304,
+        "case_title": "Late Filing of GSTR-3B – Penalty Appeal",
+        "issue_type": "Return Delay Penalty",
+        "case_ref_no": "GST/SRT/APL/2024-25/007",
+        "status": "Pending Appeal",
+        "date_filed": "2024-08-10",
+        "digital_filing": false
+      },
+      {
+        "id": 403,
+        "client_id": 103,
+        "forum_id": 203,
+        "authority_id": 305,
+        "case_title": "Refund Rejection under Rule 89",
+        "issue_type": "Refund Claim",
+        "case_ref_no": "GST/VAD/TRIB/2024-25/003",
+        "status": "Closed",
+        "date_filed": "2024-03-01",
+        "digital_filing": true
+      }
+    ],
+    "hearings": [
+      { "id": 501, "case_id": 401, "hearing_date": "2025-01-10", "status": "Adjourned", "remarks": "Adjourned due to non-submission of reconciliation statement.", "next_date": "2025-01-24" },
+      { "id": 502, "case_id": 402, "hearing_date": "2025-02-05", "status": "Scheduled", "remarks": "Awaiting department reply on delay condonation.", "next_date": "2025-02-19" },
+      { "id": 503, "case_id": 403, "hearing_date": "2024-09-12", "status": "Order Passed", "remarks": "Refund allowed partially.", "next_date": null }
+    ],
+    "tasks": [
+      { "id": 601, "case_id": 401, "assigned_to": 4, "task_title": "Prepare reconciliation statement for ITC", "due_date": "2025-01-15", "status": "Pending" },
+      { "id": 602, "case_id": 402, "assigned_to": 4, "task_title": "Compile return filing delay justification", "due_date": "2025-02-10", "status": "In-Progress" },
+      { "id": 603, "case_id": 403, "assigned_to": 3, "task_title": "Draft reply for refund appeal closure", "due_date": "2024-09-05", "status": "Completed" }
+    ],
+    "documents": [
+      { "id": 701, "linked_table": "cases", "linked_id": 401, "doc_name": "ITC_Summary.pdf", "doc_type": "Evidence", "uploaded_by": 4, "uploaded_on": "2025-01-05", "file_url": "supabase://mock/cases/401/ITC_Summary.pdf" },
+      { "id": 702, "linked_table": "hearings", "linked_id": 502, "doc_name": "Delay_Condonation.pdf", "doc_type": "Supporting", "uploaded_by": 4, "uploaded_on": "2025-02-03", "file_url": "supabase://mock/hearings/502/Delay_Condonation.pdf" },
+      { "id": 703, "linked_table": "cases", "linked_id": 403, "doc_name": "Refund_Order.pdf", "doc_type": "Final Order", "uploaded_by": 3, "uploaded_on": "2024-09-20", "file_url": "supabase://mock/cases/403/Refund_Order.pdf" }
+    ]
+  },
+  "notes": {
+    "jurisdiction_scope": "GST Litigation Only – State GST, CGST, and GSTAT forums.",
+    "excluded": ["Income-Tax Appellate Tribunal", "Customs Excise Appeals"],
+    "ideal_use": "Seed this JSON in Supabase or Lovable to populate mock dashboards, search filters, and reports."
+  }
+}
