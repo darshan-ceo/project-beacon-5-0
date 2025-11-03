@@ -66,24 +66,53 @@ serve(async (req) => {
 
     console.log('Checking for hearings on:', todayStr, 'and', tomorrowStr);
 
-    // Fetch hearings for today and tomorrow
-    // Note: In production, this would query from actual Supabase tables
-    // For now, we'll simulate the response structure
-    
-    const hearings: HearingReminder[] = [
-      // This would be replaced with actual Supabase query:
-      // const { data: hearings } = await supabase
-      //   .from('hearings')
-      //   .select(`
-      //     *,
-      //     case:cases(id, case_number, title, client_id),
-      //     authority:courts!authority_id(name),
-      //     forum:courts!forum_id(name, city),
-      //     judge:judges(name)
-      //   `)
-      //   .in('date', [todayStr, tomorrowStr])
-      //   .eq('status', 'scheduled');
-    ];
+    // Fetch hearings for today and tomorrow from Supabase
+    const { data: hearingsData, error: hearingError } = await supabase
+      .from('hearings')
+      .select(`
+        id,
+        case_id,
+        hearing_date,
+        court_name,
+        judge_name,
+        status,
+        cases!inner (
+          id,
+          case_number,
+          title,
+          clients!inner (
+            display_name,
+            email,
+            phone
+          )
+        )
+      `)
+      .in('hearing_date', [todayStr, tomorrowStr])
+      .eq('status', 'Scheduled');
+
+    if (hearingError) {
+      console.error('[Hearing Reminders] Error fetching hearings:', hearingError);
+      throw new Error(`Failed to fetch hearings: ${hearingError.message}`);
+    }
+
+    console.log(`[Hearing Reminders] Found ${hearingsData?.length || 0} scheduled hearings`);
+
+    // Transform to HearingReminder format
+    const hearings: HearingReminder[] = (hearingsData || []).map(h => ({
+      id: h.id,
+      case_id: h.case_id,
+      date: h.hearing_date,
+      start_time: '10:00 AM', // Default time since not in schema
+      court_id: '',
+      judge_ids: [],
+      case_number: h.cases.case_number,
+      case_title: h.cases.title,
+      client_email: h.cases.clients.email,
+      client_phone: h.cases.clients.phone,
+      client_name: h.cases.clients.display_name,
+      judge_name: h.judge_name,
+      forum_name: h.court_name,
+    }));
 
     const notifications = {
       sent: 0,
@@ -122,8 +151,21 @@ serve(async (req) => {
           notifications.failed++;
         }
 
-        // In production, save to notification_log table:
-        // await supabase.from('notification_log').insert(log);
+        // Save notification to audit_log table
+        await supabase.from('audit_log').insert({
+          entity_type: 'hearing',
+          entity_id: hearing.id,
+          action_type: 'notification_sent',
+          details: {
+            reminder_type: reminderType,
+            channels: ['email', 'whatsapp'],
+            recipients: [hearing.client_email, hearing.client_phone].filter(Boolean),
+            success: log.success,
+            error_message: log.error_message || null,
+          },
+          user_id: null, // System-generated notification
+          tenant_id: null, // Will be set by RLS if needed
+        });
 
         console.log(`Reminder sent for hearing ${hearing.id}:`, log);
       } catch (error) {
