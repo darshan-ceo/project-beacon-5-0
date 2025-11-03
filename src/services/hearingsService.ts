@@ -79,51 +79,54 @@ export const hearingsService = {
    */
   async createHearing(data: HearingFormData, dispatch: React.Dispatch<AppAction>): Promise<Hearing> {
     try {
+      // Import storage manager
+      const { storageManager } = await import('@/data/StorageManager');
+      const storage = storageManager.getStorage();
+
       const hearingData = {
-        ...data,
-        id: `hearing-${Date.now()}`,
-        status: 'scheduled' as const,
+        case_id: data.case_id,
+        hearing_date: new Date(`${data.date}T${data.start_time || '10:00'}:00`).toISOString(),
+        next_hearing_date: null,
+        court_name: data.court_id || null,
+        judge_name: data.judge_ids?.join(', ') || null,
+        status: 'Scheduled',
+        notes: data.notes || null,
+        outcome: null
+      };
+
+      // Persist to Supabase first
+      const savedHearing = await storage.create<any>('hearings', hearingData);
+
+      // Convert to app format with backward compatibility
+      const newHearing: Hearing = {
+        id: savedHearing.id,
+        case_id: savedHearing.case_id,
+        date: data.date,
+        start_time: data.start_time || '10:00',
+        time: data.start_time || '10:00', // Legacy field
+        end_time: data.end_time || '11:00',
+        timezone: data.timezone || 'Asia/Kolkata',
+        court_id: data.court_id,
+        judge_ids: data.judge_ids || [],
+        purpose: data.purpose || 'mention',
+        status: 'scheduled',
+        notes: savedHearing.notes,
+        forum_id: data.forum_id,
+        authority_id: data.authority_id,
         created_by: 'current-user-id',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        timezone: data.timezone || 'Asia/Kolkata'
-      };
-
-      // Try API call first
-      try {
-        const response = await apiService.post<Hearing>('/api/hearings', hearingData);
-        
-        if (response.success && response.data) {
-          const newHearing = response.data;
-          dispatch({ type: 'ADD_HEARING', payload: newHearing });
-          
-          toast({
-            title: "Hearing Scheduled",
-            description: `Hearing scheduled for ${data.date} at ${data.start_time}.`,
-          });
-          
-          log('success', 'create hearing', { hearingId: newHearing.id });
-          return newHearing;
-        }
-      } catch (apiError) {
-        log('error', 'API call failed, using offline mode', apiError);
-      }
-
-      // Fallback to local storage when API fails (development mode)
-      const offlineHearing: Hearing = {
-        ...hearingData,
-        judge_ids: hearingData.judge_ids || [], // Ensure judge_ids is always an array
-        // Add legacy compatibility fields
-        clientId: data.case_id.split('-')[0], // Extract from case_id
-        judgeId: (hearingData.judge_ids || [])[0] || '',
-        time: data.start_time,
+        created_at: savedHearing.created_at || new Date().toISOString(),
+        updated_at: savedHearing.updated_at || new Date().toISOString(),
+        // Legacy compatibility
+        clientId: data.case_id.split('-')[0],
+        judgeId: (data.judge_ids || [])[0] || '',
         type: 'Preliminary' as const,
-        agenda: data.notes || 'New hearing',
+        agenda: data.notes || 'New hearing'
       };
 
-      dispatch({ type: 'ADD_HEARING', payload: offlineHearing });
+      // Update React context after successful persistence
+      dispatch({ type: 'ADD_HEARING', payload: newHearing });
       
-      // Phase 2: Add timeline entry for hearing scheduled
+      // Add timeline entry
       try {
         const appState = await loadAppState();
         const relatedCase = appState.cases.find(c => c.id === data.case_id);
@@ -135,19 +138,17 @@ export const hearingsService = {
             description: `Hearing scheduled for ${format(new Date(data.date), 'dd MMM yyyy')} at ${data.start_time}`,
             createdBy: 'current-user-id',
             metadata: {
-              hearingId: offlineHearing.id,
+              hearingId: newHearing.id,
               hearingDate: data.date,
               startTime: data.start_time,
               authorityId: data.authority_id,
               forumId: data.forum_id,
-              court: offlineHearing.forum_name || 'Forum TBD'
+              court: data.court_id || 'Forum TBD'
             }
           });
-          console.log('[Hearings] Timeline entry added for hearing scheduled');
         }
       } catch (timelineError) {
         console.error('[Hearings] Failed to add timeline entry:', timelineError);
-        // Don't throw - hearing was created successfully
       }
       
       // Auto-sync to calendar if enabled
@@ -157,17 +158,16 @@ export const hearingsService = {
           const connectionStatus = integrationsService.getConnectionStatus('default', settings.provider);
           
           if (connectionStatus.connected) {
-            const eventId = await calendarService.createEvent(offlineHearing, settings);
+            const eventId = await calendarService.createEvent(newHearing, settings);
             
             if (eventId) {
-              offlineHearing.externalEventId = eventId;
-              offlineHearing.syncStatus = 'synced';
+              newHearing.externalEventId = eventId;
+              newHearing.syncStatus = 'synced';
               
-              // Update the hearing with sync info
               dispatch({ 
                 type: 'UPDATE_HEARING', 
                 payload: { 
-                  id: offlineHearing.id, 
+                  id: newHearing.id, 
                   externalEventId: eventId, 
                   syncStatus: 'synced' 
                 } 
@@ -177,23 +177,22 @@ export const hearingsService = {
         }
       } catch (syncError) {
         console.error('Failed to auto-sync hearing to calendar:', syncError);
-        // Don't throw - hearing was created successfully, just sync failed
-        offlineHearing.syncStatus = 'sync_failed';
+        newHearing.syncStatus = 'sync_failed';
       }
       
       toast({
-        title: "Hearing Scheduled (Offline)",
-        description: `Hearing scheduled for ${data.date} at ${data.start_time}. Will sync when online.`,
+        title: "Hearing Scheduled",
+        description: `Hearing scheduled for ${data.date} at ${data.start_time}.`,
       });
       
-      log('success', 'create hearing (offline)', { hearingId: offlineHearing.id });
-      return offlineHearing;
+      log('success', 'create hearing', { hearingId: newHearing.id });
+      return newHearing;
       
     } catch (error) {
-      log('error', 'create hearing failed completely', error);
+      log('error', 'create hearing failed', error);
       toast({
         title: "Error",
-        description: "Failed to schedule hearing. Please check your connection and try again.",
+        description: "Failed to schedule hearing. Please try again.",
         variant: "destructive",
       });
       throw error;

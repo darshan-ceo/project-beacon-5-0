@@ -170,18 +170,40 @@ export const clientsService = {
         throw new Error(validationErrors.join(', '));
       }
 
+      // Import storage manager
+      const { storageManager } = await import('@/data/StorageManager');
+      const storage = storageManager.getStorage();
+
+      // Prepare client data for Supabase
+      const supabaseClient = {
+        display_name: clientData.name!.trim(),
+        gstin: clientData.gstin?.toUpperCase(),
+        pan: clientData.pan!.toUpperCase(),
+        email: clientData.email || null,
+        phone: clientData.phone || null,
+        city: clientData.address?.city || null,
+        state: clientData.address?.state || 'Gujarat',
+        status: (clientData.status || 'Active').toLowerCase(),
+      };
+
+      // Persist to Supabase first
+      const savedClient = await storage.create<any>('clients', supabaseClient);
+
+      // Convert Supabase format to app format
       const newClient: Client = {
-        id: Date.now().toString(),
-        name: clientData.name!.trim(),
+        id: savedClient.id,
+        name: savedClient.display_name || clientData.name!.trim(),
         type: clientData.type || 'Individual',
         category: clientData.category || 'Regular Dealer',
         registrationNo: clientData.registrationNo,
-        gstin: clientData.gstin?.toUpperCase(),
-        pan: clientData.pan!.toUpperCase(),
+        gstin: savedClient.gstin || clientData.gstin?.toUpperCase(),
+        pan: savedClient.pan || clientData.pan!.toUpperCase(),
+        email: savedClient.email || clientData.email,
+        phone: savedClient.phone || clientData.phone,
         address: clientData.address || {
           line1: '',
-          city: '',
-          state: '',
+          city: savedClient.city || clientData.address?.city || '',
+          state: savedClient.state || clientData.address?.state || '',
           pincode: '',
           country: 'India'
         },
@@ -190,14 +212,15 @@ export const clientsService = {
           allowLogin: false
         },
         signatories: clientData.signatories || [],
-        status: clientData.status || 'Active',
+        status: savedClient.status === 'active' ? 'Active' : 'Inactive',
         assignedCAId: clientData.assignedCAId || '',
         assignedCAName: clientData.assignedCAName || '',
         clientGroupId: clientData.clientGroupId,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        createdAt: savedClient.created_at || new Date().toISOString(),
+        updatedAt: savedClient.updated_at || new Date().toISOString()
       };
 
+      // Update React context after successful persistence
       dispatch({ type: 'ADD_CLIENT', payload: newClient });
       
       toast({
@@ -234,17 +257,36 @@ export const clientsService = {
         }
       }
 
+      // Import storage manager
+      const { storageManager } = await import('@/data/StorageManager');
+      const storage = storageManager.getStorage();
+
+      // Prepare updates for Supabase
+      const supabaseUpdates: any = {};
+      if (updates.name) supabaseUpdates.display_name = updates.name.trim();
+      if (updates.gstin) supabaseUpdates.gstin = updates.gstin.toUpperCase();
+      if (updates.pan) supabaseUpdates.pan = updates.pan.toUpperCase();
+      if (updates.email !== undefined) supabaseUpdates.email = updates.email;
+      if (updates.phone !== undefined) supabaseUpdates.phone = updates.phone;
+      if (updates.address?.city) supabaseUpdates.city = updates.address.city;
+      if (updates.address?.state) supabaseUpdates.state = updates.address.state;
+      if (updates.status) supabaseUpdates.status = updates.status.toLowerCase();
+
+      // Persist to Supabase first
+      await storage.update('clients', clientId, supabaseUpdates);
+
       const updatedClient: Client = {
         ...updates as Client,
         id: clientId,
         updatedAt: new Date().toISOString()
       };
 
+      // Update React context after successful persistence
       dispatch({ type: 'UPDATE_CLIENT', payload: updatedClient });
       
       toast({
         title: "Client Updated Successfully",
-        description: `${updatedClient.name} has been updated.`,
+        description: `${updatedClient.name || 'Client'} has been updated.`,
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update client';
@@ -259,6 +301,14 @@ export const clientsService = {
 
   delete: async (clientId: string, dispatch: React.Dispatch<AppAction>): Promise<void> => {
     try {
+      // Import storage manager
+      const { storageManager } = await import('@/data/StorageManager');
+      const storage = storageManager.getStorage();
+
+      // Delete from Supabase first
+      await storage.delete('clients', clientId);
+
+      // Update React context after successful deletion
       dispatch({ type: 'DELETE_CLIENT', payload: clientId });
       
       toast({
