@@ -60,6 +60,89 @@ function generatePassword(length = 12): string {
   return password;
 }
 
+// Map camelCase request keys to snake_case database columns
+function sanitizeEmployeePayload(body: any): Record<string, any> {
+  const fieldMap: Record<string, string> = {
+    // Contact
+    officialEmail: 'official_email',
+    personalEmail: 'personal_email',
+    alternateContact: 'alternate_contact',
+    
+    // Address
+    currentAddress: 'current_address',
+    permanentAddress: 'permanent_address',
+    city: 'city',
+    state: 'state',
+    pincode: 'pincode',
+    
+    // Employment
+    employmentType: 'employment_type',
+    weeklyOff: 'weekly_off',
+    workShift: 'work_shift',
+    branch: 'branch',
+    
+    // Personal
+    profilePhoto: 'profile_photo',
+    gender: 'gender',
+    dob: 'dob',
+    bloodGroup: 'blood_group',
+    
+    // Credentials
+    pan: 'pan',
+    aadhaar: 'aadhaar',
+    barCouncilNo: 'bar_council_no',
+    icaiNo: 'icai_no',
+    gstPractitionerId: 'gst_practitioner_id',
+    
+    // Professional
+    qualification: 'qualification',
+    university: 'university',
+    graduationYear: 'graduation_year',
+    specialization: 'specialization',
+    areasOfPractice: 'areas_of_practice',
+    experienceYears: 'experience_years',
+    
+    // Billing
+    billingRate: 'billing_rate',
+    billable: 'billable',
+    incentiveEligible: 'incentive_eligible',
+    
+    // Work
+    reportingTo: 'reporting_to',
+    managerId: 'manager_id',
+    workloadCapacity: 'workload_capacity',
+    defaultTaskCategory: 'default_task_category',
+    
+    // Access
+    moduleAccess: 'module_access',
+    dataScope: 'data_scope',
+    aiAccess: 'ai_access',
+    whatsappAccess: 'whatsapp_access',
+    
+    // Other
+    confirmationDate: 'confirmation_date',
+    documents: 'documents',
+    notes: 'notes',
+  };
+
+  const sanitized: Record<string, any> = {};
+  const ignoredKeys: string[] = [];
+
+  Object.keys(body).forEach(key => {
+    if (fieldMap[key]) {
+      sanitized[fieldMap[key]] = body[key];
+    } else if (!['email', 'password', 'sendWelcomeEmail', 'fullName', 'mobile', 'role', 'department', 'designation', 'dateOfJoining'].includes(key)) {
+      ignoredKeys.push(key);
+    }
+  });
+
+  if (ignoredKeys.length > 0) {
+    console.log('[invite-employee] Ignored unknown keys:', ignoredKeys);
+  }
+
+  return sanitized;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -146,8 +229,10 @@ serve(async (req) => {
       department,
       designation,
       dateOfJoining,
-      ...optionalFields
     } = body;
+
+    // Sanitize optional fields (convert camelCase to snake_case)
+    const optionalFields = sanitizeEmployeePayload(body);
 
     // Validation
     if (!email || !fullName || !role || !department || !dateOfJoining) {
@@ -243,10 +328,15 @@ serve(async (req) => {
       .single();
 
     if (employeeError) {
-      console.error('[invite-employee] Employee creation error:', employeeError);
+      console.error('[invite-employee] Employee creation error:', {
+        code: employeeError.code,
+        message: employeeError.message,
+        details: employeeError.details,
+        hint: employeeError.hint
+      });
       // Rollback auth user
       await supabaseAdmin.auth.admin.deleteUser(authUser.user.id);
-      throw new Error(`Failed to create employee: ${employeeError.message}`);
+      throw new Error('Failed to create employee record. Please check all required fields are provided.');
     }
 
     console.log('[invite-employee] Employee record created');
