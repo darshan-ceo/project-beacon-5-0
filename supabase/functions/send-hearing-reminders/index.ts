@@ -168,7 +168,20 @@ serve(async (req) => {
           notifications.failed++;
         }
 
-        // Save notification to audit_log table
+        // Fetch tenant_id from case to ensure proper multi-tenant isolation
+        const { data: caseData, error: caseError } = await supabase
+          .from('cases')
+          .select('tenant_id')
+          .eq('id', hearing.case_id)
+          .single();
+
+        if (caseError) {
+          console.error('[Hearing Reminders] Failed to fetch case tenant:', caseError);
+          notifications.failed++;
+          continue; // Skip saving to audit_log but continue with other hearings
+        }
+
+        // Save notification to audit_log with proper tenant_id
         await supabase.from('audit_log').insert({
           entity_type: 'hearing',
           entity_id: hearing.id,
@@ -181,7 +194,7 @@ serve(async (req) => {
             error_message: log.error_message || null,
           },
           user_id: null, // System-generated notification
-          tenant_id: null, // Will be set by RLS if needed
+          tenant_id: caseData.tenant_id, // ✅ Proper tenant isolation
         });
 
         console.log(`Reminder sent for hearing ${hearing.id}:`, log);

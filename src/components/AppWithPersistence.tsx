@@ -28,6 +28,19 @@ export const AppWithPersistence: React.FC<AppWithPersistenceProps> = ({ children
         
         console.log(`🚀 Initializing storage in ${mode} mode`);
         
+        // CRITICAL: Force Supabase storage in production
+        if (import.meta.env.MODE === 'production' && mode !== 'supabase') {
+          const errorMsg = '❌ Production mode requires Supabase storage backend. Set VITE_STORAGE_BACKEND=supabase in environment variables.';
+          console.error(errorMsg);
+          toast({
+            title: "Configuration Error",
+            description: errorMsg,
+            variant: "destructive"
+          });
+          setError(errorMsg);
+          return;
+        }
+        
         // Validate Supabase config if using Supabase mode
         if (mode === 'supabase') {
           try {

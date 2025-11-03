@@ -52,6 +52,8 @@ import { TooltipDiagnostics } from "@/pages/TooltipDiagnostics";
 import { OAuthCallback } from "@/pages/OAuthCallback";
 import { LoginPage } from "@/pages/auth/LoginPage";
 import { SignupPage } from "@/pages/auth/SignupPage";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 import { useAutomation } from "@/hooks/useAutomation";
 
 const queryClient = new QueryClient();
@@ -104,6 +106,8 @@ const AppContent = () => {
               {/* Public Routes */}
               <Route path="/auth/login" element={<LoginPage />} />
               <Route path="/auth/signup" element={<SignupPage />} />
+              <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+              <Route path="/auth/reset-password" element={<ResetPassword />} />
               <Route path="/oauth/callback" element={<OAuthCallback />} />
               
               {/* Protected Routes */}
