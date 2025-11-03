@@ -117,6 +117,30 @@ class TasksService {
       ...data
     };
 
+    // Persist to storage
+    const { storageManager } = await import('@/data/StorageManager');
+    const { changeTracker } = await import('./changeTracker');
+    const { ENTITY_TYPES } = await import('@/constants/StorageKeys');
+    
+    try {
+      const storage = storageManager.getStorage();
+      await storage.update('tasks', data.id, {
+        ...data,
+        case_id: data.caseId,
+        assigned_to: data.assignedToId,
+        due_date: data.dueDate ? new Date(data.dueDate) : undefined,
+        status: data.status,
+        priority: data.priority,
+        title: data.title,
+        description: data.description,
+        updated_at: new Date(),
+      });
+      changeTracker.markDirty(ENTITY_TYPES.TASK, data.id, 'update');
+      changeTracker.logChange(ENTITY_TYPES.TASK, data.id, 'update');
+    } catch (storageError) {
+      console.error('Failed to update task in storage:', storageError);
+    }
+
     this.tasks[index] = updatedTask;
     return updatedTask;
   }
@@ -130,6 +154,21 @@ class TasksService {
   }
 
   async delete(id: string): Promise<void> {
+    // Persist to storage
+    const { storageManager } = await import('@/data/StorageManager');
+    const { changeTracker } = await import('./changeTracker');
+    const { ENTITY_TYPES } = await import('@/constants/StorageKeys');
+    
+    try {
+      const storage = storageManager.getStorage();
+      await storage.delete('tasks', id);
+      changeTracker.markDirty(ENTITY_TYPES.TASK, id, 'delete');
+      changeTracker.logChange(ENTITY_TYPES.TASK, id, 'delete');
+    } catch (storageError) {
+      console.error('Failed to delete task from storage:', storageError);
+      throw storageError;
+    }
+
     const index = this.tasks.findIndex(t => t.id === id);
     if (index !== -1) {
       this.tasks.splice(index, 1);

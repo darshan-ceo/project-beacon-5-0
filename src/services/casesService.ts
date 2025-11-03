@@ -138,6 +138,21 @@ export const casesService = {
 
   delete: async (caseId: string, dispatch: React.Dispatch<AppAction>): Promise<void> => {
     try {
+      // Persist to storage
+      const { storageManager } = await import('@/data/StorageManager');
+      const { changeTracker } = await import('./changeTracker');
+      const { ENTITY_TYPES } = await import('@/constants/StorageKeys');
+      
+      try {
+        const storage = storageManager.getStorage();
+        await storage.delete('cases', caseId);
+        changeTracker.markDirty(ENTITY_TYPES.CASE, caseId, 'delete');
+        changeTracker.logChange(ENTITY_TYPES.CASE, caseId, 'delete');
+      } catch (storageError) {
+        console.error('Failed to delete case from storage:', storageError);
+        throw storageError;
+      }
+
       dispatch({ type: 'DELETE_CASE', payload: caseId });
       log('success', 'Overview', 'delete', { caseId });
       
@@ -180,6 +195,24 @@ export const casesService = {
         lastUpdated: new Date().toISOString(),
         ...(assignedTo && { assignedToName: assignedTo }),
       };
+
+      // Persist to storage
+      const { storageManager } = await import('@/data/StorageManager');
+      const { changeTracker } = await import('./changeTracker');
+      const { ENTITY_TYPES } = await import('@/constants/StorageKeys');
+      
+      try {
+        const storage = storageManager.getStorage();
+        await storage.update('cases', caseId, {
+          stage_code: updates.currentStage,
+          status: updates.slaStatus,
+          updated_at: new Date(),
+        } as any);
+        changeTracker.markDirty(ENTITY_TYPES.CASE, caseId, 'update');
+        changeTracker.logChange(ENTITY_TYPES.CASE, caseId, 'update');
+      } catch (storageError) {
+        console.error('Failed to persist stage advancement to storage:', storageError);
+      }
 
       dispatch({ type: 'UPDATE_CASE', payload: { id: caseId, ...updates } });
       

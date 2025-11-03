@@ -199,6 +199,30 @@ export const employeesService = {
       billable: employeeData.billable !== undefined ? employeeData.billable : true,
     };
 
+    // Persist to storage
+    try {
+      const { storageManager } = await import('@/data/StorageManager');
+      const storage = storageManager.getStorage();
+      await storage.create('employees', {
+        id: newEmployee.id,
+        employee_code: newEmployee.employeeCode,
+        email: newEmployee.email,
+        role: newEmployee.role,
+        full_name: newEmployee.full_name,
+        mobile: newEmployee.mobile,
+        status: newEmployee.status,
+        date_of_joining: newEmployee.date_of_joining ? new Date(newEmployee.date_of_joining) : undefined,
+        department: newEmployee.department,
+        workload_capacity: newEmployee.workloadCapacity,
+        billing_rate: newEmployee.billingRate || 0,
+        billable: newEmployee.billable,
+        created_at: new Date(),
+        updated_at: new Date(),
+      });
+    } catch (storageError) {
+      console.error('Failed to persist employee to storage:', storageError);
+    }
+
     dispatch({ type: 'ADD_EMPLOYEE', payload: newEmployee });
     
     // Sync RBAC roles (non-blocking)
@@ -235,6 +259,20 @@ export const employeesService = {
       updatedBy: 'system',
     };
 
+    // Persist to storage
+    try {
+      const { storageManager } = await import('@/data/StorageManager');
+      const storage = storageManager.getStorage();
+      await storage.update('employees', employeeId, {
+        ...updates,
+        email: updates.email || updates.officialEmail,
+        status: updates.status,
+        updated_at: new Date(),
+      });
+    } catch (storageError) {
+      console.error('Failed to update employee in storage:', storageError);
+    }
+
     dispatch({ type: 'UPDATE_EMPLOYEE', payload: { id: employeeId, updates: updatedData } });
     
     // If role changed, sync RBAC roles (non-blocking)
@@ -253,6 +291,18 @@ export const employeesService = {
 
   // Soft delete (deactivate) employee
   deactivate: async (employeeId: string, dispatch: React.Dispatch<AppAction>): Promise<void> => {
+    // Persist to storage
+    try {
+      const { storageManager } = await import('@/data/StorageManager');
+      const storage = storageManager.getStorage();
+      await storage.update('employees', employeeId, {
+        status: 'Inactive',
+        updated_at: new Date(),
+      } as any);
+    } catch (storageError) {
+      console.error('Failed to deactivate employee in storage:', storageError);
+    }
+
     dispatch({ type: 'UPDATE_EMPLOYEE', payload: { id: employeeId, updates: { status: 'Inactive' } } });
     
     toast({
@@ -263,6 +313,18 @@ export const employeesService = {
 
   // Reactivate employee
   activate: async (employeeId: string, dispatch: React.Dispatch<AppAction>): Promise<void> => {
+    // Persist to storage
+    try {
+      const { storageManager } = await import('@/data/StorageManager');
+      const storage = storageManager.getStorage();
+      await storage.update('employees', employeeId, {
+        status: 'Active',
+        updated_at: new Date(),
+      } as any);
+    } catch (storageError) {
+      console.error('Failed to activate employee in storage:', storageError);
+    }
+
     dispatch({ type: 'UPDATE_EMPLOYEE', payload: { id: employeeId, updates: { status: 'Active' } } });
     
     toast({
@@ -275,6 +337,16 @@ export const employeesService = {
   delete: async (employeeId: string, dispatch: React.Dispatch<AppAction>, dependencies: string[]): Promise<void> => {
     if (dependencies.length > 0) {
       throw new Error(`Cannot delete employee. Found ${dependencies.length} dependencies: ${dependencies.join(', ')}`);
+    }
+
+    // Persist to storage
+    try {
+      const { storageManager } = await import('@/data/StorageManager');
+      const storage = storageManager.getStorage();
+      await storage.delete('employees', employeeId);
+    } catch (storageError) {
+      console.error('Failed to delete employee from storage:', storageError);
+      throw storageError;
     }
 
     dispatch({ type: 'DELETE_EMPLOYEE', payload: employeeId });
