@@ -1427,6 +1427,142 @@ export type Database = {
           },
         ]
       }
+      task_followups: {
+        Row: {
+          client_interaction: boolean | null
+          created_at: string
+          created_by: string
+          created_by_name: string
+          id: string
+          internal_review: boolean | null
+          outcome: string | null
+          status: string | null
+          task_id: string
+          tenant_id: string
+          work_date: string
+        }
+        Insert: {
+          client_interaction?: boolean | null
+          created_at?: string
+          created_by: string
+          created_by_name: string
+          id?: string
+          internal_review?: boolean | null
+          outcome?: string | null
+          status?: string | null
+          task_id: string
+          tenant_id: string
+          work_date: string
+        }
+        Update: {
+          client_interaction?: boolean | null
+          created_at?: string
+          created_by?: string
+          created_by_name?: string
+          id?: string
+          internal_review?: boolean | null
+          outcome?: string | null
+          status?: string | null
+          task_id?: string
+          tenant_id?: string
+          work_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_followups_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_followups_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_followups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "task_followups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_notes: {
+        Row: {
+          created_at: string
+          created_by: string
+          created_by_name: string
+          id: string
+          metadata: Json | null
+          note: string
+          task_id: string
+          tenant_id: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          created_by_name: string
+          id?: string
+          metadata?: Json | null
+          note: string
+          task_id: string
+          tenant_id: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          created_by_name?: string
+          id?: string
+          metadata?: Json | null
+          note?: string
+          task_id?: string
+          tenant_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_notes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_notes_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_notes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "task_notes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           assigned_to: string | null
