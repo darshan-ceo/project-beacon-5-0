@@ -38,38 +38,6 @@ async function validateUserRole(
   return { valid: true };
 }
 
-/**
- * Validate user has required role
- */
-async function validateUserRole(
-  supabaseClient: any,
-  userId: string,
-  requiredRoles: string[]
-): Promise<{ valid: boolean; error?: string }> {
-  const { data: userRoles, error } = await supabaseClient
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', userId)
-    .eq('is_active', true);
-
-  if (error) {
-    console.error('Error fetching user roles:', error);
-    return { valid: false, error: 'Failed to validate user permissions' };
-  }
-
-  const roles = userRoles?.map((r: any) => r.role) || [];
-  const hasRequiredRole = requiredRoles.some(role => roles.includes(role));
-
-  if (!hasRequiredRole) {
-    return { 
-      valid: false, 
-      error: `Unauthorized: requires one of [${requiredRoles.join(', ')}] roles` 
-    };
-  }
-
-  return { valid: true };
-}
-
 // RBAC role mapping
 const EMPLOYEE_TO_RBAC_MAPPING: Record<string, string[]> = {
   'Partner': ['admin'],
