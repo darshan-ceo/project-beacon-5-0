@@ -55,6 +55,7 @@ import { SignupPage } from "@/pages/auth/SignupPage";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import { useAutomation } from "@/hooks/useAutomation";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 
 const queryClient = new QueryClient();
 
@@ -72,6 +73,9 @@ const AppContent = () => {
 
   // Initialize automation system
   useAutomation();
+
+  // Initialize realtime sync
+  useRealtimeSync();
 
   // Initialize UI Help Service on app startup
   useEffect(() => {

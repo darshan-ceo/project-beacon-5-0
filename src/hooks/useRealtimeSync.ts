@@ -1,0 +1,264 @@
+import { useEffect, useRef, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAppState } from '@/contexts/AppStateContext';
+import { RealtimeChannel } from '@supabase/supabase-js';
+
+/**
+ * Hook for real-time data synchronization across clients
+ * Subscribes to postgres_changes for core tables and updates React context
+ */
+export const useRealtimeSync = () => {
+  const { dispatch } = useAppState();
+  const channelRef = useRef<RealtimeChannel | null>(null);
+  const [tenantId, setTenantId] = useState<string | null>(null);
+
+  // Get tenant ID from auth session
+  useEffect(() => {
+    const getTenantId = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        // Get tenant_id from user profile
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('tenant_id')
+          .eq('id', session.user.id)
+          .single();
+        
+        if (profile?.tenant_id) {
+          setTenantId(profile.tenant_id);
+        }
+      }
+    };
+
+    getTenantId();
+  }, []);
+
+  useEffect(() => {
+    if (!tenantId) {
+      console.log('[Realtime] No tenant ID, skipping sync');
+      return;
+    }
+
+    console.log('[Realtime] Initializing real-time sync for tenant:', tenantId);
+
+    // Create a single channel for all table subscriptions
+    const channel = supabase
+      .channel('data_sync')
+      // Cases
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'cases',
+          filter: `tenant_id=eq.${tenantId}`
+        },
+        (payload) => {
+          console.log('[Realtime] Cases change:', payload.eventType, payload);
+          if (payload.eventType === 'INSERT' && payload.new) {
+            dispatch({ type: 'ADD_CASE', payload: payload.new as any });
+          } else if (payload.eventType === 'UPDATE' && payload.new) {
+            dispatch({ type: 'UPDATE_CASE', payload: payload.new as any });
+          } else if (payload.eventType === 'DELETE' && payload.old) {
+            dispatch({ type: 'DELETE_CASE', payload: (payload.old as any).id });
+          }
+        }
+      )
+      // Clients
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'clients',
+          filter: `tenant_id=eq.${tenantId}`
+        },
+        (payload) => {
+          console.log('[Realtime] Clients change:', payload.eventType, payload);
+          if (payload.eventType === 'INSERT' && payload.new) {
+            // Convert Supabase format to app format
+            const client = {
+              id: payload.new.id,
+              name: payload.new.display_name,
+              gstin: payload.new.gstin,
+              pan: payload.new.pan,
+              email: payload.new.email,
+              phone: payload.new.phone,
+              status: payload.new.status === 'active' ? 'Active' : 'Inactive',
+              address: {
+                city: payload.new.city,
+                state: payload.new.state
+              },
+              createdAt: payload.new.created_at,
+              updatedAt: payload.new.updated_at
+            };
+            dispatch({ type: 'ADD_CLIENT', payload: client as any });
+          } else if (payload.eventType === 'UPDATE' && payload.new) {
+            const client = {
+              id: payload.new.id,
+              name: payload.new.display_name,
+              gstin: payload.new.gstin,
+              pan: payload.new.pan,
+              email: payload.new.email,
+              phone: payload.new.phone,
+              status: payload.new.status === 'active' ? 'Active' : 'Inactive',
+              address: {
+                city: payload.new.city,
+                state: payload.new.state
+              },
+              updatedAt: payload.new.updated_at
+            };
+            dispatch({ type: 'UPDATE_CLIENT', payload: client as any });
+          } else if (payload.eventType === 'DELETE' && payload.old) {
+            dispatch({ type: 'DELETE_CLIENT', payload: payload.old.id });
+          }
+        }
+      )
+      // Hearings
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'hearings',
+          filter: `tenant_id=eq.${tenantId}`
+        },
+        (payload) => {
+          console.log('[Realtime] Hearings change:', payload.eventType, payload);
+          if (payload.eventType === 'INSERT' && payload.new) {
+            const hearing = {
+              ...payload.new,
+              date: payload.new.hearing_date?.split('T')[0],
+              start_time: new Date(payload.new.hearing_date).toLocaleTimeString('en-US', { 
+                hour12: false, 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              }),
+              time: new Date(payload.new.hearing_date).toLocaleTimeString('en-US', { 
+                hour12: false, 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              })
+            };
+            dispatch({ type: 'ADD_HEARING', payload: hearing as any });
+          } else if (payload.eventType === 'UPDATE' && payload.new) {
+            dispatch({ type: 'UPDATE_HEARING', payload: { id: payload.new.id, ...payload.new } });
+          } else if (payload.eventType === 'DELETE' && payload.old) {
+            dispatch({ type: 'DELETE_HEARING', payload: payload.old.id });
+          }
+        }
+      )
+      // Tasks
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tasks',
+          filter: `tenant_id=eq.${tenantId}`
+        },
+        (payload) => {
+          console.log('[Realtime] Tasks change:', payload.eventType, payload);
+          if (payload.eventType === 'INSERT' && payload.new) {
+            dispatch({ type: 'ADD_TASK', payload: payload.new as any });
+          } else if (payload.eventType === 'UPDATE' && payload.new) {
+            dispatch({ type: 'UPDATE_TASK', payload: payload.new as any });
+          } else if (payload.eventType === 'DELETE' && payload.old) {
+            dispatch({ type: 'DELETE_TASK', payload: (payload.old as any).id });
+          }
+        }
+      )
+      // Documents
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'documents',
+          filter: `tenant_id=eq.${tenantId}`
+        },
+        (payload) => {
+          console.log('[Realtime] Documents change:', payload.eventType, payload);
+          if (payload.eventType === 'INSERT' && payload.new) {
+            dispatch({ type: 'ADD_DOCUMENT', payload: payload.new as any });
+          } else if (payload.eventType === 'UPDATE' && payload.new) {
+            dispatch({ type: 'UPDATE_DOCUMENT', payload: payload.new as any });
+          } else if (payload.eventType === 'DELETE' && payload.old) {
+            dispatch({ type: 'DELETE_DOCUMENT', payload: (payload.old as any).id });
+          }
+        }
+      )
+      // Employees
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'employees',
+          filter: `tenant_id=eq.${tenantId}`
+        },
+        (payload) => {
+          console.log('[Realtime] Employees change:', payload.eventType, payload);
+          if (payload.eventType === 'INSERT' && payload.new) {
+            dispatch({ type: 'ADD_EMPLOYEE', payload: payload.new as any });
+          } else if (payload.eventType === 'UPDATE' && payload.new) {
+            dispatch({ type: 'UPDATE_EMPLOYEE', payload: { id: (payload.new as any).id, updates: payload.new } as any });
+          } else if (payload.eventType === 'DELETE' && payload.old) {
+            dispatch({ type: 'DELETE_EMPLOYEE', payload: (payload.old as any).id });
+          }
+        }
+      )
+      // Courts
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'courts',
+          filter: `tenant_id=eq.${tenantId}`
+        },
+        (payload) => {
+          console.log('[Realtime] Courts change:', payload.eventType, payload);
+          if (payload.eventType === 'INSERT' && payload.new) {
+            dispatch({ type: 'ADD_COURT', payload: payload.new as any });
+          } else if (payload.eventType === 'UPDATE' && payload.new) {
+            dispatch({ type: 'UPDATE_COURT', payload: payload.new as any });
+          } else if (payload.eventType === 'DELETE' && payload.old) {
+            dispatch({ type: 'DELETE_COURT', payload: (payload.old as any).id });
+          }
+        }
+      )
+      // Judges
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'judges',
+          filter: `tenant_id=eq.${tenantId}`
+        },
+        (payload) => {
+          console.log('[Realtime] Judges change:', payload.eventType, payload);
+          if (payload.eventType === 'INSERT' && payload.new) {
+            dispatch({ type: 'ADD_JUDGE', payload: payload.new as any });
+          } else if (payload.eventType === 'UPDATE' && payload.new) {
+            dispatch({ type: 'UPDATE_JUDGE', payload: payload.new as any });
+          } else if (payload.eventType === 'DELETE' && payload.old) {
+            dispatch({ type: 'DELETE_JUDGE', payload: (payload.old as any).id });
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('[Realtime] Subscription status:', status);
+      });
+
+    channelRef.current = channel;
+
+    return () => {
+      console.log('[Realtime] Unsubscribing from real-time sync');
+      channel.unsubscribe();
+    };
+  }, [tenantId, dispatch]);
+
+  return null;
+};
