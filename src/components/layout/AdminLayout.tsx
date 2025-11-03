@@ -4,6 +4,7 @@ import { AppSidebar } from './Sidebar';
 import { Header } from './Header';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { StorageStatusIndicator } from '@/components/admin/StorageStatusIndicator';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -37,6 +38,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
                 />
               </div>
               <div className="flex items-center gap-2">
+                <StorageStatusIndicator />
                 <NotificationBell userId={currentUser.name} />
               </div>
             </div>
