@@ -287,11 +287,14 @@ export type Database = {
       cases: {
         Row: {
           assigned_to: string | null
+          authority_id: string | null
           case_number: string
           client_id: string
           created_at: string | null
           description: string | null
+          forum_id: string | null
           id: string
+          next_hearing_date: string | null
           notice_date: string | null
           notice_no: string | null
           notice_type: string | null
@@ -306,11 +309,14 @@ export type Database = {
         }
         Insert: {
           assigned_to?: string | null
+          authority_id?: string | null
           case_number: string
           client_id: string
           created_at?: string | null
           description?: string | null
+          forum_id?: string | null
           id?: string
+          next_hearing_date?: string | null
           notice_date?: string | null
           notice_no?: string | null
           notice_type?: string | null
@@ -325,11 +331,14 @@ export type Database = {
         }
         Update: {
           assigned_to?: string | null
+          authority_id?: string | null
           case_number?: string
           client_id?: string
           created_at?: string | null
           description?: string | null
+          forum_id?: string | null
           id?: string
+          next_hearing_date?: string | null
           notice_date?: string | null
           notice_no?: string | null
           notice_type?: string | null
@@ -344,10 +353,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "cases_authority_id_fkey"
+            columns: ["authority_id"]
+            isOneToOne: false
+            referencedRelation: "courts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "cases_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cases_forum_id_fkey"
+            columns: ["forum_id"]
+            isOneToOne: false
+            referencedRelation: "courts"
             referencedColumns: ["id"]
           },
           {
@@ -1051,9 +1074,12 @@ export type Database = {
       }
       hearings: {
         Row: {
+          authority_id: string | null
           case_id: string
+          court_id: string | null
           court_name: string | null
           created_at: string | null
+          forum_id: string | null
           hearing_date: string
           id: string
           judge_name: string | null
@@ -1065,9 +1091,12 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          authority_id?: string | null
           case_id: string
+          court_id?: string | null
           court_name?: string | null
           created_at?: string | null
+          forum_id?: string | null
           hearing_date: string
           id?: string
           judge_name?: string | null
@@ -1079,9 +1108,12 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          authority_id?: string | null
           case_id?: string
+          court_id?: string | null
           court_name?: string | null
           created_at?: string | null
+          forum_id?: string | null
           hearing_date?: string
           id?: string
           judge_name?: string | null
@@ -1094,6 +1126,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "hearings_authority_id_fkey"
+            columns: ["authority_id"]
+            isOneToOne: false
+            referencedRelation: "courts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "hearings_case_id_fkey"
             columns: ["case_id"]
             isOneToOne: false
@@ -1105,6 +1144,20 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hearings_court_id_fkey"
+            columns: ["court_id"]
+            isOneToOne: false
+            referencedRelation: "courts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hearings_forum_id_fkey"
+            columns: ["forum_id"]
+            isOneToOne: false
+            referencedRelation: "courts"
             referencedColumns: ["id"]
           },
           {
