@@ -65,6 +65,9 @@ export const casesService = {
           title: newCase.title,
           assigned_to_id: newCase.assignedToId,
           priority: newCase.priority,
+          forum_id: newCase.forumId,
+          authority_level: newCase.authorityLevel,
+          specific_officer: newCase.specificOfficer,
         });
 
         changeTracker.markDirty(ENTITY_TYPES.CASE, newCase.id, 'create');
@@ -110,6 +113,9 @@ export const casesService = {
           client_id: updates.clientId,
           stage_code: updates.currentStage,
           status: updates.slaStatus,
+          forum_id: updates.forumId,
+          authority_level: updates.authorityLevel,
+          specific_officer: updates.specificOfficer,
         });
 
         changeTracker.markDirty(ENTITY_TYPES.CASE, caseId, 'update');

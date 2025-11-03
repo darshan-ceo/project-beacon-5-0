@@ -63,6 +63,11 @@ interface Case {
   authorityId?: string; // FK to Court.id (preferred over authority string)
   city?: string; // City for jurisdiction (mandatory for cases beyond Assessment)
   
+  // Phase 2: Legal Forum Integration
+  forumId?: string; // FK to Court.id - Legal forum/authority handling the case
+  authorityLevel?: string; // Auto-filled authority level from selected forum (e.g., "ADJUDICATION", "FIRST_APPEAL")
+  specificOfficer?: string; // Name of specific officer at the forum (e.g., "Shri Rajesh Kumar, Deputy Commissioner")
+  
   // Backward compatibility
   slaStatus?: 'Green' | 'Amber' | 'Red'; // Deprecated: use timelineBreachStatus
 }

@@ -10,7 +10,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { HelpCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Case, useAppState } from '@/contexts/AppStateContext';
-import { ClientSelector } from '@/components/ui/relationship-selector';
+import { ClientSelector, LegalForumSelector } from '@/components/ui/relationship-selector';
 import { EmployeeSelector } from '@/components/ui/employee-selector';
 import { ContextBadge } from '@/components/ui/context-badge';
 import { ClientModal } from '@/components/modals/ClientModal';
@@ -64,7 +64,9 @@ export const CaseModal: React.FC<CaseModalProps> = ({
     // GST metadata fields
     period: string;
     taxDemand: string;
-    authority: string;
+    forumId: string;
+    authorityLevel: string;
+    specificOfficer: string;
     jurisdictionalCommissionerate: string;
     departmentLocation: string;
     matterType: string;
@@ -93,7 +95,9 @@ export const CaseModal: React.FC<CaseModalProps> = ({
     description: '',
     period: '',
     taxDemand: '',
-    authority: '',
+    forumId: '',
+    authorityLevel: '',
+    specificOfficer: '',
     jurisdictionalCommissionerate: '',
     departmentLocation: '',
     matterType: 'Scrutiny',
@@ -126,7 +130,9 @@ export const CaseModal: React.FC<CaseModalProps> = ({
         description: caseData.description || '',
         period: caseData.period || '',
         taxDemand: caseData.taxDemand?.toString() || '',
-        authority: caseData.authority || '',
+        forumId: caseData.forumId || '',
+        authorityLevel: caseData.authorityLevel || '',
+        specificOfficer: caseData.specificOfficer || '',
         jurisdictionalCommissionerate: caseData.jurisdictionalCommissionerate || '',
         departmentLocation: caseData.departmentLocation || '',
         matterType: caseData.matterType || 'Scrutiny',
@@ -302,7 +308,9 @@ export const CaseModal: React.FC<CaseModalProps> = ({
         description: formData.description,
         period: formData.period,
         taxDemand: formData.taxDemand ? parseFloat(formData.taxDemand) : undefined,
-        authority: formData.authority,
+        forumId: formData.forumId,
+        authorityLevel: formData.authorityLevel,
+        specificOfficer: formData.specificOfficer,
         jurisdictionalCommissionerate: formData.jurisdictionalCommissionerate,
         departmentLocation: formData.departmentLocation,
         matterType: formData.currentStage === 'Assessment' ? formData.matterType as any : undefined,
@@ -343,7 +351,9 @@ export const CaseModal: React.FC<CaseModalProps> = ({
         description: formData.description,
         period: formData.period,
         taxDemand: formData.taxDemand ? parseFloat(formData.taxDemand) : undefined,
-        authority: formData.authority,
+        forumId: formData.forumId,
+        authorityLevel: formData.authorityLevel,
+        specificOfficer: formData.specificOfficer,
         jurisdictionalCommissionerate: formData.jurisdictionalCommissionerate,
         departmentLocation: formData.departmentLocation,
         matterType: formData.currentStage === 'Assessment' ? formData.matterType as any : undefined,
@@ -646,13 +656,43 @@ export const CaseModal: React.FC<CaseModalProps> = ({
               </div>
 
               <div>
-                <Label htmlFor="authority">Authority</Label>
-                <Input
-                  id="authority"
-                  value={formData.authority}
-                  onChange={(e) => setFormData(prev => ({ ...prev, authority: e.target.value }))}
+                <Label htmlFor="forumId">Legal Forum / Authority</Label>
+                <LegalForumSelector
+                  courts={state.courts}
+                  value={formData.forumId}
+                  onValueChange={(value) => {
+                    const selectedForum = state.courts.find(c => c.id === value);
+                    setFormData(prev => ({
+                      ...prev,
+                      forumId: value,
+                      authorityLevel: selectedForum?.authorityLevel || selectedForum?.type || ''
+                    }));
+                  }}
                   disabled={mode === 'view'}
-                  placeholder="e.g., Deputy Commissioner (GST)"
+                  required={false}
+                  filterByStatus="Active"
+                />
+              </div>
+
+              {formData.authorityLevel && (
+                <div>
+                  <Label>Authority Level</Label>
+                  <Input
+                    value={formData.authorityLevel}
+                    disabled={true}
+                    className="bg-muted"
+                  />
+                </div>
+              )}
+
+              <div>
+                <Label htmlFor="specificOfficer">Specific Officer Name (Optional)</Label>
+                <Input
+                  id="specificOfficer"
+                  value={formData.specificOfficer}
+                  onChange={(e) => setFormData(prev => ({ ...prev, specificOfficer: e.target.value }))}
+                  disabled={mode === 'view'}
+                  placeholder="e.g., Shri Rajesh Kumar, Deputy Commissioner"
                 />
               </div>
 
