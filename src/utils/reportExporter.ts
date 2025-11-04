@@ -6,6 +6,7 @@
 import * as XLSX from 'xlsx';
 import html2pdf from 'html2pdf.js';
 import { format, parseISO, isValid } from 'date-fns';
+import DOMPurify from 'dompurify';
 import { ReportColumn } from '@/config/reportColumns';
 import {
   CASE_REPORT_COLUMNS,
@@ -249,7 +250,7 @@ export async function exportReportToPDF(
     // Generate HTML fragment
     const htmlContent = generatePDFHTML(data, columns, title);
 
-    // Create off-screen container with fixed width
+    // Create off-screen container with fixed width and sanitized content
     container = document.createElement('div');
     container.style.position = 'fixed';
     container.style.left = '0';
@@ -258,7 +259,10 @@ export async function exportReportToPDF(
     container.style.zIndex = '-1';
     container.style.opacity = '0';
     container.style.pointerEvents = 'none';
-    container.innerHTML = htmlContent;
+    container.innerHTML = DOMPurify.sanitize(htmlContent, {
+      ALLOWED_TAGS: ['div', 'table', 'tr', 'td', 'th', 'thead', 'tbody', 'h1', 'h2', 'span', 'p', 'b', 'strong', 'style'],
+      ALLOWED_ATTR: ['style', 'class', 'colspan', 'rowspan']
+    });
     document.body.appendChild(container);
 
     // Get the actual content element to pass to html2pdf

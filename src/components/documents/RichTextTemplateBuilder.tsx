@@ -7,6 +7,7 @@ import Table from '@tiptap/extension-table';
 import TableRow from '@tiptap/extension-table-row';
 import TableHeader from '@tiptap/extension-table-header';
 import TableCell from '@tiptap/extension-table-cell';
+import DOMPurify from 'dompurify';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -605,7 +606,12 @@ export const RichTextTemplateBuilder: React.FC<RichTextTemplateBuilderProps> = (
                 <ScrollArea className="h-full border rounded-lg">
                   <div 
                     className="prose prose-sm max-w-none p-4"
-                    dangerouslySetInnerHTML={{ __html: renderPreview() }}
+                    dangerouslySetInnerHTML={{ 
+                      __html: DOMPurify.sanitize(renderPreview(), {
+                        ALLOWED_TAGS: ['p', 'div', 'span', 'b', 'i', 'u', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'table', 'tr', 'td', 'th', 'thead', 'tbody', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'],
+                        ALLOWED_ATTR: ['style', 'class', 'colspan', 'rowspan']
+                      })
+                    }}
                   />
                 </ScrollArea>
               </TabsContent>

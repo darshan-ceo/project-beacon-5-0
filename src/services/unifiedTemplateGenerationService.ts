@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import html2pdf from 'html2pdf.js';
 import Docxtemplater from 'docxtemplater';
 import PizZip from 'pizzip';
+import DOMPurify from 'dompurify';
 
 /**
  * Unified Template Generation Service
@@ -331,9 +332,12 @@ export class UnifiedTemplateGenerationService {
     
     const styledContent = this.applyBranding(processedContent, template);
     
-    // Create temporary container
+    // Create temporary container with sanitized content
     const container = document.createElement('div');
-    container.innerHTML = styledContent;
+    container.innerHTML = DOMPurify.sanitize(styledContent, {
+      ALLOWED_TAGS: ['p', 'div', 'span', 'b', 'i', 'u', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'table', 'tr', 'td', 'th', 'thead', 'tbody', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'img', 'style'],
+      ALLOWED_ATTR: ['style', 'class', 'colspan', 'rowspan', 'src', 'alt', 'width', 'height']
+    });
     container.style.position = 'absolute';
     container.style.left = '-9999px';
     document.body.appendChild(container);
@@ -401,7 +405,10 @@ export class UnifiedTemplateGenerationService {
       // Convert HTML to plain text for DOCX (simple approach)
       // For production, use a proper HTML to DOCX converter like mammoth or html-docx-js
       const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = processedContent;
+      tempDiv.innerHTML = DOMPurify.sanitize(processedContent, {
+        ALLOWED_TAGS: ['p', 'div', 'span', 'b', 'i', 'u', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'table', 'tr', 'td', 'th', 'h1', 'h2', 'h3'],
+        ALLOWED_ATTR: ['style', 'class']
+      });
       const textContent = tempDiv.textContent || tempDiv.innerText || '';
 
       // Create a minimal DOCX structure
