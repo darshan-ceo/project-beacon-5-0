@@ -875,6 +875,7 @@ export type Database = {
           employee_code: string
           employment_type: string | null
           experience_years: number | null
+          full_name: string
           gender: string | null
           graduation_year: number | null
           gst_practitioner_id: string | null
@@ -932,6 +933,7 @@ export type Database = {
           employee_code: string
           employment_type?: string | null
           experience_years?: number | null
+          full_name: string
           gender?: string | null
           graduation_year?: number | null
           gst_practitioner_id?: string | null
@@ -989,6 +991,7 @@ export type Database = {
           employee_code?: string
           employment_type?: string | null
           experience_years?: number | null
+          full_name?: string
           gender?: string | null
           graduation_year?: number | null
           gst_practitioner_id?: string | null
