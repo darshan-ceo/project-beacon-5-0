@@ -23,8 +23,11 @@ export const DataSeedingPanel = () => {
   const [isSeedingComprehensive, setIsSeedingComprehensive] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [comprehensiveResult, setComprehensiveResult] = useState<any>(null);
+  const [workflowResult, setWorkflowResult] = useState<any>(null);
   const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
+  const [showWorkflowDuplicateWarning, setShowWorkflowDuplicateWarning] = useState(false);
   const [existingData, setExistingData] = useState<any>(null);
+  const [existingWorkflowData, setExistingWorkflowData] = useState<any>(null);
   const { toast } = useToast();
 
   const handleSeedComprehensiveData = async (skipDuplicateCheck = false) => {
