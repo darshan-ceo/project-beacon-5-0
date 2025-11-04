@@ -217,10 +217,24 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       
       // STEP 5: Get case and client info for auto-derivation
       const caseWithClient = getCaseWithClient(validated.caseId);
-      if (!caseWithClient?.case || !caseWithClient?.client) {
+      // Ensure the case exists; allow proceeding even if client entity isn't loaded in state
+      if (!caseWithClient?.case) {
+        toast({
+          title: "Invalid Case Reference",
+          description: "Selected case was not found.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Derive client id from loaded client or fall back to case.clientId
+      const derivedClientId = caseWithClient.client?.id || caseWithClient.case.clientId;
+      
+      // If no client can be derived at all (shouldn't happen because case.clientId is required), block as a hard error
+      if (!derivedClientId) {
         toast({
           title: "Data Integrity Error",
-          description: "Case or client data not found. Cannot proceed.",
+          description: "Client reference missing for the selected case.",
           variant: "destructive"
         });
         return;
@@ -233,7 +247,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
           title: validated.title,
           description: validated.description || '',
           caseId: validated.caseId,
-          clientId: caseWithClient.client.id,
+          clientId: derivedClientId,
           caseNumber: caseWithClient.case.caseNumber,
           stage: validated.stage,
           priority: validated.priority,
