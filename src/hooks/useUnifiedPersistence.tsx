@@ -62,7 +62,7 @@ export const useUnifiedPersistence = () => {
               // Export all data from IndexedDB
               const localData = await localAdapter.exportAll();
               
-              // Import to Supabase
+              // Import to Supabase (adapter will normalize the data)
               const supabaseAdapter = storageManager.getStorage();
               await supabaseAdapter.importAll(localData);
               
@@ -71,7 +71,8 @@ export const useUnifiedPersistence = () => {
               
               console.log('✅ Migration completed successfully');
               toast.success('Migration completed!', {
-                description: 'Your data has been moved to cloud storage.'
+                description: 'Your data has been moved to cloud storage.',
+                duration: 5000
               });
             } else {
               console.log('✅ No IndexedDB data found, skipping migration');
@@ -83,7 +84,8 @@ export const useUnifiedPersistence = () => {
           } catch (migrationError) {
             console.error('❌ Migration failed:', migrationError);
             toast.error('Migration failed', {
-              description: 'Data remains in local storage. Please contact support.'
+              description: migrationError?.message || 'Data remains in local storage.',
+              duration: 10000
             });
             // Don't throw - continue with Supabase as primary storage
           }

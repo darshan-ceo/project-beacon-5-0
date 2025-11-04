@@ -37,46 +37,53 @@ export class TaskBundleRepository extends BaseRepository<TaskBundle> {
 
   async createWithItems(data: CreateTaskBundleData): Promise<TaskBundleWithItems> {
     return await this.storage.transaction(['task_bundles', 'task_bundle_items', 'audit_logs'], async () => {
-      // Create the bundle
-      const bundle: TaskBundle = {
+      const now = new Date();
+      
+      // Build backend-safe payload
+      const dbBundle: any = {
         id: crypto.randomUUID(),
         name: data.name,
-        stage_code: data.stage_code,
-        trigger: data.trigger,
+        trigger_event: data.trigger,
+        stage_codes: (data as any).stages ?? (data.stage_code ? [data.stage_code] : null),
         is_active: data.is_active ?? true,
         description: data.description,
         is_default: false,
-        created_at: new Date(),
-        updated_at: new Date()
+        created_at: now,
+        updated_at: now
       };
 
-      const createdBundle = await this.create(bundle);
+      const createdBundle = await this.storage.create('task_bundles', dbBundle);
 
-      // Create the items
+      // Create the items with backend-safe fields only
       const items: TaskBundleItem[] = [];
       if (data.items && data.items.length > 0) {
         for (let i = 0; i < data.items.length; i++) {
           const itemData = data.items[i];
-          const item: TaskBundleItem = {
+          const dbItem: any = {
             id: crypto.randomUUID(),
             bundle_id: createdBundle.id,
             title: itemData.title,
             description: itemData.description,
             priority: itemData.priority,
-            estimated_hours: itemData.estimated_hours,
-            dependencies: itemData.dependencies,
             order_index: itemData.order_index ?? i,
-            created_at: new Date()
+            due_days: itemData.estimated_hours ? Math.max(1, Math.ceil(itemData.estimated_hours / 8)) : 7,
+            created_at: now
           };
 
-          const createdItem = await this.storage.create('task_bundle_items', item);
+          const createdItem = await this.storage.create('task_bundle_items', dbItem);
           items.push(createdItem);
         }
       }
 
+      // Normalize for return (add legacy field support)
       return {
         ...createdBundle,
-        items
+        trigger: (createdBundle as any).trigger_event,
+        stage_code: (createdBundle as any).stage_codes?.[0] || null,
+        items: items.map(item => ({
+          ...item,
+          estimated_hours: (item as any).due_days * 8
+        }))
       };
     });
   }
@@ -122,15 +129,20 @@ export class TaskBundleRepository extends BaseRepository<TaskBundle> {
 
   async updateWithItems(id: string, updates: Partial<CreateTaskBundleData>): Promise<TaskBundleWithItems> {
     return await this.storage.transaction(['task_bundles', 'task_bundle_items', 'audit_logs'], async () => {
-      // Update the bundle
-      const bundleUpdates: Partial<TaskBundle> = {
-        name: updates.name,
-        stage_code: updates.stage_code,
-        trigger: updates.trigger,
-        is_active: updates.is_active,
-        description: updates.description,
-        updated_at: new Date()
+      const now = new Date();
+      
+      // Build backend-safe updates
+      const bundleUpdates: any = {
+        updated_at: now
       };
+      
+      if (updates.name !== undefined) bundleUpdates.name = updates.name;
+      if (updates.trigger !== undefined) bundleUpdates.trigger_event = updates.trigger;
+      if ((updates as any).stages !== undefined || updates.stage_code !== undefined) {
+        bundleUpdates.stage_codes = (updates as any).stages ?? (updates.stage_code ? [updates.stage_code] : null);
+      }
+      if (updates.is_active !== undefined) bundleUpdates.is_active = updates.is_active;
+      if (updates.description !== undefined) bundleUpdates.description = updates.description;
 
       const updatedBundle = await this.update(id, bundleUpdates);
 
@@ -142,29 +154,33 @@ export class TaskBundleRepository extends BaseRepository<TaskBundle> {
           await this.storage.delete('task_bundle_items', item.id);
         }
 
-        // Create new items
+        // Create new items with backend-safe fields
         const newItems: TaskBundleItem[] = [];
         for (let i = 0; i < updates.items.length; i++) {
           const itemData = updates.items[i];
-          const item: TaskBundleItem = {
+          const dbItem: any = {
             id: crypto.randomUUID(),
             bundle_id: id,
             title: itemData.title,
             description: itemData.description,
             priority: itemData.priority,
-            estimated_hours: itemData.estimated_hours,
-            dependencies: itemData.dependencies,
             order_index: itemData.order_index ?? i,
-            created_at: new Date()
+            due_days: itemData.estimated_hours ? Math.max(1, Math.ceil(itemData.estimated_hours / 8)) : 7,
+            created_at: now
           };
 
-          const createdItem = await this.storage.create('task_bundle_items', item);
+          const createdItem = await this.storage.create('task_bundle_items', dbItem);
           newItems.push(createdItem);
         }
 
         return {
           ...updatedBundle,
-          items: newItems
+          trigger: (updatedBundle as any).trigger_event,
+          stage_code: (updatedBundle as any).stage_codes?.[0] || null,
+          items: newItems.map(item => ({
+            ...item,
+            estimated_hours: (item as any).due_days * 8
+          }))
         };
       } else {
         // Just return with existing items
@@ -173,7 +189,12 @@ export class TaskBundleRepository extends BaseRepository<TaskBundle> {
 
         return {
           ...updatedBundle,
-          items
+          trigger: (updatedBundle as any).trigger_event,
+          stage_code: (updatedBundle as any).stage_codes?.[0] || null,
+          items: items.map(item => ({
+            ...item,
+            estimated_hours: (item as any).due_days * 8
+          }))
         };
       }
     });
@@ -201,7 +222,9 @@ export class TaskBundleRepository extends BaseRepository<TaskBundle> {
     const normalizedStageCode = normalizeStage(stageCode);
     
     const bundles = await this.query(bundle => {
-      if (!bundle.is_active || bundle.trigger !== trigger) {
+      // Normalize trigger reading (support both legacy and backend)
+      const bundleTrigger = (bundle as any).trigger ?? (bundle as any).trigger_event;
+      if (!bundle.is_active || bundleTrigger !== trigger) {
         return false;
       }
       
@@ -210,14 +233,19 @@ export class TaskBundleRepository extends BaseRepository<TaskBundle> {
         return true;
       }
       
-      // If bundle has no stage_code or is "Any Stage", include it
-      if (!bundle.stage_code || bundle.stage_code === 'Any Stage') {
+      // Read stages from either stage_codes (array) or stage_code (string)
+      const stages = (bundle as any).stage_codes ?? [bundle.stage_code];
+      
+      // If bundle has no stages or includes "Any Stage", include it
+      if (!stages || stages.length === 0 || stages.includes('Any Stage') || stages.includes(null)) {
         return true;
       }
       
-      // Check both exact match and normalized match for flexibility
-      const normalizedBundleStage = normalizeStage(bundle.stage_code);
-      return bundle.stage_code === stageCode || normalizedBundleStage === normalizedStageCode;
+      // Check if any stage matches
+      return stages.some((stage: string) => {
+        const normalizedBundleStage = normalizeStage(stage);
+        return stage === stageCode || normalizedBundleStage === normalizedStageCode;
+      });
     });
 
     // Get items for each bundle
@@ -226,9 +254,15 @@ export class TaskBundleRepository extends BaseRepository<TaskBundle> {
       const items = await this.storage.queryByField<TaskBundleItem>('task_bundle_items', 'bundle_id', bundle.id);
       items.sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
       
+      // Normalize bundle for return
       bundlesWithItems.push({
         ...bundle,
-        items
+        trigger: (bundle as any).trigger_event ?? (bundle as any).trigger,
+        stage_code: (bundle as any).stage_codes?.[0] ?? bundle.stage_code,
+        items: items.map(item => ({
+          ...item,
+          estimated_hours: (item as any).due_days ? (item as any).due_days * 8 : item.estimated_hours
+        }))
       });
     }
 

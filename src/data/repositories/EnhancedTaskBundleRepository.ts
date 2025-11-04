@@ -17,10 +17,11 @@ export class EnhancedTaskBundleRepository extends TaskBundleRepository {
    * Create enhanced bundle with full feature support
    */
   async createEnhanced(data: CreateEnhancedTaskBundleData): Promise<EnhancedTaskBundleWithItems> {
-    // Convert to base format for storage
-    const baseData: CreateTaskBundleData = {
+    // Convert to base format for storage (backend-safe)
+    const baseData: CreateTaskBundleData & { stages?: string[] } = {
       name: data.name,
       stage_code: data.stage_code,
+      stages: data.stages,
       trigger: data.trigger,
       is_active: data.is_active ?? true,
       description: data.description,
@@ -36,40 +37,24 @@ export class EnhancedTaskBundleRepository extends TaskBundleRepository {
 
     const result = await this.createWithItems(baseData);
     
-    // Update with enhanced fields
-    const enhancedBundle = await this.storage.update(this.tableName, result.id, {
-      stages: data.stages,
-      execution_mode: data.execution_mode || 'Sequential',
-      version: 1,
+    // Only update with fields that exist in backend schema
+    // Keep enhanced fields local-only for now
+    const backendUpdates: any = {
       usage_count: 0,
-      automation_flags: data.automation_flags,
-      conditions: data.conditions,
-      bundle_code: data.bundle_code,
-      linked_module: data.linked_module,
-      status: data.status || 'Draft',
-      default_priority: data.default_priority || 'Medium',
       updated_at: new Date()
-    } as any);
+    };
 
-    // Update items with enhanced fields
+    await this.storage.update(this.tableName, result.id, backendUpdates);
+
+    // Update items with valid backend fields only
     if (data.items) {
       for (let i = 0; i < data.items.length; i++) {
         const item = data.items[i];
         const resultItem = result.items[i];
         
-        if (resultItem) {
+        if (resultItem && item.assigned_role) {
           await this.storage.update('task_bundle_items', resultItem.id, {
-            assigned_role: item.assigned_role,
-            category: item.category,
-            due_offset: item.due_offset,
-            automation_flags: item.automation_flags,
-            conditions: item.conditions,
-            template_id: item.template_id,
-            stage: item.stage,
-            assigned_user: item.assigned_user,
-            trigger_type: item.trigger_type || 'Manual',
-            trigger_event: item.trigger_event,
-            checklist: item.checklist
+            assigned_role: item.assigned_role
           } as any);
         }
       }
@@ -100,10 +85,11 @@ export class EnhancedTaskBundleRepository extends TaskBundleRepository {
    * Update enhanced bundle
    */
   async updateEnhanced(id: string, updates: Partial<CreateEnhancedTaskBundleData>): Promise<EnhancedTaskBundleWithItems> {
-    // Convert to base format for storage
-    const baseUpdates: Partial<CreateTaskBundleData> = {
+    // Convert to base format for storage (backend-safe)
+    const baseUpdates: Partial<CreateTaskBundleData> & { stages?: string[] } = {
       name: updates.name,
       stage_code: updates.stage_code,
+      stages: updates.stages,
       trigger: updates.trigger,
       is_active: updates.is_active,
       description: updates.description,
@@ -119,29 +105,20 @@ export class EnhancedTaskBundleRepository extends TaskBundleRepository {
 
     const result = await this.updateWithItems(id, baseUpdates);
     
-    // Update enhanced fields
+    // Only update backend-valid fields
     await this.storage.update(this.tableName, id, {
-      stages: updates.stages,
-      execution_mode: updates.execution_mode,
-      automation_flags: updates.automation_flags,
-      conditions: updates.conditions,
       updated_at: new Date()
     } as any);
 
-    // Update items with enhanced fields if provided
+    // Update items with valid backend fields only
     if (updates.items) {
       for (let i = 0; i < updates.items.length; i++) {
         const item = updates.items[i];
         const resultItem = result.items[i];
         
-        if (resultItem) {
+        if (resultItem && item.assigned_role) {
           await this.storage.update('task_bundle_items', resultItem.id, {
-            assigned_role: item.assigned_role,
-            category: item.category,
-            due_offset: item.due_offset,
-            automation_flags: item.automation_flags,
-            conditions: item.conditions,
-            template_id: item.template_id
+            assigned_role: item.assigned_role
           } as any);
         }
       }
@@ -158,10 +135,12 @@ export class EnhancedTaskBundleRepository extends TaskBundleRepository {
     stages?: string[]
   ): Promise<EnhancedTaskBundleWithItems[]> {
     const bundles = await this.query(bundle => {
-      if (!bundle.is_active || bundle.trigger !== trigger) return false;
+      // Normalize trigger reading
+      const bundleTrigger = (bundle as any).trigger ?? (bundle as any).trigger_event;
+      if (!bundle.is_active || bundleTrigger !== trigger) return false;
       
       if (stages && stages.length > 0) {
-        const bundleStages = (bundle as any).stages || [bundle.stage_code];
+        const bundleStages = (bundle as any).stages || (bundle as any).stage_codes || [bundle.stage_code];
         if (!bundleStages.includes('Any Stage')) {
           return stages.some(stage => bundleStages.includes(stage));
         }
@@ -241,7 +220,9 @@ export class EnhancedTaskBundleRepository extends TaskBundleRepository {
     
     return {
       ...enhanced,
-      stages: enhanced.stages || [bundle.stage_code || 'Any Stage'],
+      trigger: enhanced.trigger ?? enhanced.trigger_event,
+      stage_code: enhanced.stage_code ?? enhanced.stage_codes?.[0],
+      stages: enhanced.stages || enhanced.stage_codes || [bundle.stage_code || 'Any Stage'],
       execution_mode: enhanced.execution_mode || 'Sequential',
       version: enhanced.version || 1,
       usage_count: enhanced.usage_count || 0,
@@ -254,6 +235,7 @@ export class EnhancedTaskBundleRepository extends TaskBundleRepository {
       items: bundle.items.map(item => ({
         ...item,
         priority: item.priority as 'Critical' | 'High' | 'Medium' | 'Low',
+        estimated_hours: (item as any).due_days ? (item as any).due_days * 8 : item.estimated_hours,
         assigned_role: (item as any).assigned_role || 'Associate',
         category: (item as any).category || 'General',
         due_offset: (item as any).due_offset,
