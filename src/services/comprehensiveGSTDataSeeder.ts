@@ -11,6 +11,13 @@ interface SeedResult {
     employees: number;
   };
   errors: string[];
+  duplicatesFound?: boolean;
+  existingData?: {
+    courts: number;
+    judges: number;
+    clients: number;
+    employees: number;
+  };
 }
 
 export class ComprehensiveGSTDataSeeder {
@@ -232,9 +239,44 @@ export class ComprehensiveGSTDataSeeder {
   }
 
   /**
+   * Check if master data already exists
+   */
+  async checkExistingData(): Promise<{
+    courts: number;
+    judges: number;
+    clients: number;
+    employees: number;
+    hasData: boolean;
+  }> {
+    if (!this.tenantId) {
+      await this.initialize();
+    }
+
+    const [courtsCount, judgesCount, clientsCount, employeesCount] = await Promise.all([
+      supabase.from("courts").select("id", { count: "exact", head: true }).eq("tenant_id", this.tenantId!),
+      supabase.from("judges").select("id", { count: "exact", head: true }).eq("tenant_id", this.tenantId!),
+      supabase.from("clients").select("id", { count: "exact", head: true }).eq("tenant_id", this.tenantId!),
+      supabase.from("employees").select("id", { count: "exact", head: true }).eq("tenant_id", this.tenantId!),
+    ]);
+
+    const courts = courtsCount.count || 0;
+    const judges = judgesCount.count || 0;
+    const clients = clientsCount.count || 0;
+    const employees = employeesCount.count || 0;
+
+    return {
+      courts,
+      judges,
+      clients,
+      employees,
+      hasData: courts > 0 || judges > 0 || clients > 0 || employees > 0,
+    };
+  }
+
+  /**
    * Main seeding orchestration
    */
-  async seedAll(): Promise<SeedResult> {
+  async seedAll(skipDuplicateCheck = false): Promise<SeedResult> {
     const result: SeedResult = {
       success: false,
       totalRecords: 0,
@@ -249,6 +291,22 @@ export class ComprehensiveGSTDataSeeder {
 
     try {
       await this.initialize();
+
+      // Check for existing data unless explicitly skipped
+      if (!skipDuplicateCheck) {
+        const existingData = await this.checkExistingData();
+        if (existingData.hasData) {
+          result.duplicatesFound = true;
+          result.existingData = {
+            courts: existingData.courts,
+            judges: existingData.judges,
+            clients: existingData.clients,
+            employees: existingData.employees,
+          };
+          console.log("⚠️ Existing master data found:", existingData);
+          return result;
+        }
+      }
 
       console.log("🌱 Starting comprehensive data seeding...");
 
