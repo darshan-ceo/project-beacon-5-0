@@ -308,12 +308,14 @@ serve(async (req) => {
     const employeeData = {
       id: authUser.user.id,
       employee_code: employeeCode,
+      full_name: fullName,
       email,
       mobile,
       role,
       department,
       designation,
       date_of_joining: dateOfJoining,
+      status: 'Active',
       tenant_id: tenantId,
       created_by: user.id,
       ...optionalFields
