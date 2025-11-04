@@ -676,7 +676,7 @@ export const TaskAutomation: React.FC = () => {
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-primary">
-                        {bundles.filter(b => b.active).length}
+                        {bundles.filter(b => b.is_active).length}
                       </div>
                       <div className="text-sm text-muted-foreground">Active Bundles</div>
                     </div>

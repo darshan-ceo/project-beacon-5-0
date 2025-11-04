@@ -73,7 +73,7 @@ class TaskBundleTriggerService {
           name: b.name,
           trigger: b.trigger,
           stage_code: b.stage_code,
-          active: b.active,
+          is_active: b.is_active,
           itemCount: b.items?.length || 0
         }))
       });

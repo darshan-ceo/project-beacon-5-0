@@ -105,7 +105,7 @@ export interface TaskBundle {
   stage_code?: string;
   stages?: string[];             // NEW - multi-stage support
   trigger: string;
-  active: boolean;
+  is_active: boolean;
   created_at: Date;
   updated_at?: Date;
   description?: string;
@@ -380,7 +380,7 @@ export class HofficeDB extends Dexie {
       replies: 'id, notice_id, reply_date, status',
       hearings: 'id, case_id, hearing_date, judge_id, outcome_code, next_hearing_date, status',
       tasks: 'id, case_id, assigned_to, due_date, status, priority, [related_entity_type+related_entity_id], bundle_id',
-      task_bundles: 'id, stage_code, trigger, active, name',
+      task_bundles: 'id, stage_code, trigger, is_active, name',
       task_bundle_items: 'id, bundle_id, order_index',
       documents: 'id, case_id, doc_type_code, version, status, added_on, folder_id',
       attachments: 'id, owner_type, owner_id, filename, mime, size, hash, created_at',
@@ -400,7 +400,7 @@ export class HofficeDB extends Dexie {
     this.version(2).stores({
       // Add any new indexes or schema changes here
       tasks: 'id, case_id, assigned_to, due_date, status, priority, [related_entity_type+related_entity_id], bundle_id, is_auto_generated',
-      task_bundles: 'id, stage_code, trigger, active, name, stages, execution_mode, version, usage_count',
+      task_bundles: 'id, stage_code, trigger, is_active, name, stages, execution_mode, version, usage_count',
       task_bundle_items: 'id, bundle_id, order_index, assigned_role, category, due_offset'
     }).upgrade(tx => {
       // Handle data migration if needed
@@ -421,7 +421,7 @@ export class HofficeDB extends Dexie {
       hearings: 'id, case_id, hearing_date, judge_id, outcome_code, next_hearing_date, status',
       tasks: 'id, case_id, assigned_to, due_date, status, priority, [related_entity_type+related_entity_id], bundle_id, is_auto_generated',
       task_notes: 'id, task_id, type, created_by, created_at',
-      task_bundles: 'id, stage_code, trigger, active, name, stages, execution_mode, version, usage_count',
+      task_bundles: 'id, stage_code, trigger, is_active, name, stages, execution_mode, version, usage_count',
       task_bundle_items: 'id, bundle_id, order_index, assigned_role, category, due_offset',
       documents: 'id, case_id, doc_type_code, version, status, added_on, folder_id',
       attachments: 'id, owner_type, owner_id, filename, mime, size, hash, created_at',
@@ -452,7 +452,7 @@ export class HofficeDB extends Dexie {
       tasks: 'id, case_id, assigned_to, due_date, status, priority, [related_entity_type+related_entity_id], bundle_id, is_auto_generated',
       task_notes: 'id, task_id, type, created_by, created_at',
       task_followups: 'id, task_id, created_by, created_at, work_date, status, outcome',
-      task_bundles: 'id, stage_code, trigger, active, name, stages, execution_mode, version, usage_count',
+      task_bundles: 'id, stage_code, trigger, is_active, name, stages, execution_mode, version, usage_count',
       task_bundle_items: 'id, bundle_id, order_index, assigned_role, category, due_offset',
       documents: 'id, case_id, doc_type_code, version, status, added_on, folder_id',
       attachments: 'id, owner_type, owner_id, filename, mime, size, hash, created_at',

@@ -68,7 +68,7 @@ export const UnifiedStoragePanel: React.FC = () => {
         name: `Test Bundle ${Date.now()}`,
         trigger: 'OnStageEnter',
         stage_code: 'Any Stage',
-        active: true,
+        is_active: true,
         description: 'Test bundle created from unified storage panel',
         items: [
           {
@@ -261,8 +261,8 @@ export const UnifiedStoragePanel: React.FC = () => {
                       {bundle.items?.length || 0} tasks • {bundle.trigger} • {bundle.stage_code}
                     </div>
                   </div>
-                  <Badge variant={bundle.active ? 'default' : 'secondary'}>
-                    {bundle.active ? 'Active' : 'Inactive'}
+                  <Badge variant={bundle.is_active ? 'default' : 'secondary'}>
+                    {bundle.is_active ? 'Active' : 'Inactive'}
                   </Badge>
                 </div>
               ))

@@ -22,7 +22,7 @@ export class EnhancedTaskBundleRepository extends TaskBundleRepository {
       name: data.name,
       stage_code: data.stage_code,
       trigger: data.trigger,
-      active: data.active ?? true,
+      is_active: data.is_active ?? true,
       description: data.description,
       items: data.items?.map(item => ({
         title: item.title,
@@ -105,7 +105,7 @@ export class EnhancedTaskBundleRepository extends TaskBundleRepository {
       name: updates.name,
       stage_code: updates.stage_code,
       trigger: updates.trigger,
-      active: updates.active,
+      is_active: updates.is_active,
       description: updates.description,
       items: updates.items?.map(item => ({
         title: item.title,
@@ -158,7 +158,7 @@ export class EnhancedTaskBundleRepository extends TaskBundleRepository {
     stages?: string[]
   ): Promise<EnhancedTaskBundleWithItems[]> {
     const bundles = await this.query(bundle => {
-      if (!bundle.active || bundle.trigger !== trigger) return false;
+      if (!bundle.is_active || bundle.trigger !== trigger) return false;
       
       if (stages && stages.length > 0) {
         const bundleStages = (bundle as any).stages || [bundle.stage_code];
@@ -205,7 +205,7 @@ export class EnhancedTaskBundleRepository extends TaskBundleRepository {
     byStage: Record<string, number>;
   }> {
     const bundles = await this.getAll();
-    const activeBundles = bundles.filter(b => b.active);
+    const activeBundles = bundles.filter(b => b.is_active);
     
     const totalUsage = bundles.reduce((sum, b) => sum + ((b as any).usage_count || 0), 0);
     const averageUsage = bundles.length > 0 ? totalUsage / bundles.length : 0;

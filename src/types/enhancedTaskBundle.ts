@@ -52,7 +52,7 @@ export interface EnhancedTaskBundle {
   stage_code?: string;
   stages?: string[];
   trigger: string;
-  active: boolean;
+  is_active: boolean;
   created_at: Date;
   updated_at?: Date;
   description?: string;
@@ -79,7 +79,7 @@ export interface CreateEnhancedTaskBundleData {
   stage_code?: string;
   stages?: string[];
   trigger: string;
-  active?: boolean;
+  is_active?: boolean;
   description?: string;
   execution_mode?: 'Sequential' | 'Parallel';
   conditions?: TaskConditions;
@@ -190,7 +190,7 @@ export const createDefaultTaskBundle = (overrides: Partial<EnhancedTaskBundle> =
   name: '',
   stages: ['Any Stage'],
   trigger: 'OnStageEnter',
-  active: true,
+  is_active: true,
   description: '',
   is_default: false,
   execution_mode: 'Sequential',

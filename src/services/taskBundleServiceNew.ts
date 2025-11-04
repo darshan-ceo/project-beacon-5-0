@@ -48,7 +48,7 @@ class TaskBundleServiceNew {
       name: 'Notice Entry Tasks',
       trigger: 'OnStageEnter',
       stage_code: 'notice_received',
-      active: true,
+      is_active: true,
       description: 'Default tasks for notice entry stage',
       items: [
         {

@@ -12,7 +12,7 @@ export interface CreateTaskBundleData {
   name: string;
   stage_code?: string;
   trigger: string;
-  active?: boolean;
+  is_active?: boolean;
   description?: string;
   items?: CreateTaskBundleItemData[];
 }
@@ -43,7 +43,7 @@ export class TaskBundleRepository extends BaseRepository<TaskBundle> {
         name: data.name,
         stage_code: data.stage_code,
         trigger: data.trigger,
-        active: data.active ?? true,
+        is_active: data.is_active ?? true,
         description: data.description,
         is_default: false,
         created_at: new Date(),
@@ -127,7 +127,7 @@ export class TaskBundleRepository extends BaseRepository<TaskBundle> {
         name: updates.name,
         stage_code: updates.stage_code,
         trigger: updates.trigger,
-        active: updates.active,
+        is_active: updates.is_active,
         description: updates.description,
         updated_at: new Date()
       };
@@ -201,7 +201,7 @@ export class TaskBundleRepository extends BaseRepository<TaskBundle> {
     const normalizedStageCode = normalizeStage(stageCode);
     
     const bundles = await this.query(bundle => {
-      if (!bundle.active || bundle.trigger !== trigger) {
+      if (!bundle.is_active || bundle.trigger !== trigger) {
         return false;
       }
       
