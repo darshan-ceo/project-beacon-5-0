@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Sprout, CheckCircle, XCircle, AlertCircle, Sparkles } from 'lucide-react';
 import { GSTLitigationDataSeeder } from '@/services/gstLitigationDataSeeder';
 import { comprehensiveGSTDataSeeder } from '@/services/comprehensiveGSTDataSeeder';
+import { workflowDataSeeder } from '@/services/workflowDataSeeder';
 import mockDataset from '@/data/seedData/gstLitigationMockData.json';
 
 export const DataSeedingPanel = () => {
@@ -84,6 +85,61 @@ export const DataSeedingPanel = () => {
   const handleProceedWithSeeding = () => {
     setShowDuplicateWarning(false);
     handleSeedComprehensiveData(true);
+  };
+
+  const handleSeedWorkflowData = async () => {
+    setIsSeeding(true);
+    setWorkflowResult(null);
+
+    try {
+      toast({
+        title: "🔄 Starting Workflow Data Seeding",
+        description: "This will populate cases, hearings, tasks, and lifecycle tracking data.",
+      });
+
+      const seedResult = await workflowDataSeeder.seedAll(false);
+
+      // Check if duplicates were found
+      if (seedResult.duplicatesFound && seedResult.existingData) {
+        setExistingWorkflowData(seedResult.existingData);
+        setShowWorkflowDuplicateWarning(true);
+        setIsSeeding(false);
+        return;
+      }
+
+      setWorkflowResult(seedResult);
+
+      if (seedResult.success) {
+        toast({
+          title: "✅ Workflow Data Seeding Completed",
+          description: `Successfully seeded ${seedResult.breakdown.cases} cases, ${seedResult.breakdown.hearings} hearings, and ${seedResult.breakdown.tasks} tasks.`,
+        });
+      } else {
+        toast({
+          title: "⚠️ Workflow Data Seeding Failed",
+          description: seedResult.errors.join(', '),
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "❌ Workflow Seeding Error",
+        description: error.message,
+        variant: "destructive",
+      });
+      setWorkflowResult({
+        success: false,
+        breakdown: { cases: 0, hearings: 0, tasks: 0, documents: 0 },
+        errors: [error.message]
+      });
+    } finally {
+      setIsSeeding(false);
+    }
+  };
+
+  const handleProceedWithWorkflowSeeding = () => {
+    setShowWorkflowDuplicateWarning(false);
+    handleSeedWorkflowData();
   };
 
   const handleSeedData = async () => {
@@ -355,6 +411,148 @@ export const DataSeedingPanel = () => {
           )}
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            GST Litigation Workflow Data
+          </CardTitle>
+          <CardDescription>
+            Seed comprehensive workflow data including 30 cases across all lifecycle stages (Assessment → Supreme Court),
+            45 hearings, 120 tasks with automation tracking, and complete stage transitions.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Prerequisites:</strong> Master data (courts, judges, clients, employees) must be seeded first.
+            </AlertDescription>
+          </Alert>
+
+          <Button 
+            onClick={handleSeedWorkflowData} 
+            disabled={isSeeding || isSeedingComprehensive}
+            className="w-full"
+          >
+            {isSeeding ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Seeding Workflow Data...
+              </>
+            ) : (
+              <>
+                <Sparkles className="mr-2 h-4 w-4" />
+                Seed Workflow Data (30 Cases + Dependencies)
+              </>
+            )}
+          </Button>
+
+          {workflowResult && (
+            <div className="space-y-3 pt-4 border-t">
+              <div className="flex items-center gap-2">
+                {workflowResult.success ? (
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                ) : (
+                  <XCircle className="h-5 w-5 text-destructive" />
+                )}
+                <span className="font-medium">
+                  Workflow Seeding {workflowResult.success ? 'Successful' : 'Failed'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="flex justify-between p-2 bg-muted/50 rounded">
+                  <span>Cases:</span>
+                  <span className="font-mono">{workflowResult.breakdown.cases || 0}</span>
+                </div>
+                <div className="flex justify-between p-2 bg-muted/50 rounded">
+                  <span>Hearings:</span>
+                  <span className="font-mono">{workflowResult.breakdown.hearings || 0}</span>
+                </div>
+                <div className="flex justify-between p-2 bg-muted/50 rounded">
+                  <span>Tasks:</span>
+                  <span className="font-mono">{workflowResult.breakdown.tasks || 0}</span>
+                </div>
+                <div className="flex justify-between p-2 bg-muted/50 rounded">
+                  <span>Documents:</span>
+                  <span className="font-mono">{workflowResult.breakdown.documents || 0}</span>
+                </div>
+              </div>
+
+              <div className="p-3 bg-primary/5 rounded border border-primary/20">
+                <div className="font-medium">
+                  Total Workflow Records: {
+                    (workflowResult.breakdown.cases || 0) + 
+                    (workflowResult.breakdown.hearings || 0) + 
+                    (workflowResult.breakdown.tasks || 0) + 
+                    (workflowResult.breakdown.documents || 0)
+                  }
+                </div>
+              </div>
+
+              {workflowResult.errors && workflowResult.errors.length > 0 && (
+                <Alert variant="destructive">
+                  <AlertDescription>
+                    <div className="font-medium mb-1">Errors ({workflowResult.errors.length}):</div>
+                    <ul className="list-disc pl-4 space-y-1 text-xs">
+                      {workflowResult.errors.slice(0, 5).map((error: string, idx: number) => (
+                        <li key={idx}>{error}</li>
+                      ))}
+                      {workflowResult.errors.length > 5 && (
+                        <li className="text-muted-foreground">...and {workflowResult.errors.length - 5} more</li>
+                      )}
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <AlertDialog open={showWorkflowDuplicateWarning} onOpenChange={setShowWorkflowDuplicateWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Existing Workflow Data Found</AlertDialogTitle>
+            <AlertDialogDescription>
+              The following workflow data already exists in your database:
+              {existingWorkflowData && (
+                <div className="mt-4 space-y-2 text-sm">
+                  {existingWorkflowData.cases > 0 && (
+                    <div className="flex justify-between">
+                      <span>Cases:</span>
+                      <span className="font-semibold">{existingWorkflowData.cases} records</span>
+                    </div>
+                  )}
+                  {existingWorkflowData.hearings > 0 && (
+                    <div className="flex justify-between">
+                      <span>Hearings:</span>
+                      <span className="font-semibold">{existingWorkflowData.hearings} records</span>
+                    </div>
+                  )}
+                  {existingWorkflowData.tasks > 0 && (
+                    <div className="flex justify-between">
+                      <span>Tasks:</span>
+                      <span className="font-semibold">{existingWorkflowData.tasks} records</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              <p className="mt-4 text-amber-600 dark:text-amber-500 font-medium">
+                ⚠️ Proceeding will add additional workflow data. This may create duplicate entries if the same data is seeded again.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleProceedWithWorkflowSeeding} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Proceed Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
