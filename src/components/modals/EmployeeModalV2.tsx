@@ -250,65 +250,132 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
       }
 
       if (mode === 'create') {
-        // Call edge function to create employee with auth account
+        console.log('🔵 [EmployeeModal] Starting employee creation process...');
+        
+        // Step 1: Verify authentication session
+        console.log('🔐 [EmployeeModal] Verifying authentication session...');
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('❌ [EmployeeModal] Session error:', sessionError);
+          throw new Error(`Authentication error: ${sessionError.message}`);
+        }
+        
+        if (!session) {
+          console.error('❌ [EmployeeModal] No active session found');
+          throw new Error('You must be logged in to create employees');
+        }
+        
+        console.log('✅ [EmployeeModal] Session verified. User ID:', session.user.id);
+        console.log('🔑 [EmployeeModal] Access token present:', !!session.access_token);
+        
+        // Step 2: Prepare request payload
+        const requestPayload = {
+          email: loginEmail,
+          password: formData.passwordOption === 'manual' ? formData.tempPassword : undefined,
+          sendWelcomeEmail: formData.passwordOption !== 'manual',
+          fullName: formData.full_name,
+          mobile: formData.mobile,
+          role: formData.role,
+          department: formData.department,
+          designation: formData.designation,
+          dateOfJoining: formData.date_of_joining,
+          gender: formData.gender,
+          dob: formData.dob,
+          pan: formData.pan,
+          aadhaar: formData.aadhaar,
+          bloodGroup: formData.bloodGroup,
+          officialEmail: formData.officialEmail,
+          personalEmail: formData.personalEmail,
+          alternateContact: formData.alternateContact,
+          currentAddress: formData.currentAddress,
+          permanentAddress: formData.permanentAddress,
+          city: formData.city,
+          state: formData.state,
+          pincode: formData.pincode,
+          branch: formData.branch,
+          employmentType: formData.employmentType,
+          confirmationDate: formData.confirmationDate,
+          reportingTo: formData.reportingTo,
+          managerId: formData.managerId,
+          weeklyOff: formData.weeklyOff,
+          workShift: formData.workShift,
+          workloadCapacity: formData.workloadCapacity,
+          profilePhoto: formData.profilePhoto,
+          barCouncilNo: formData.barCouncilNo,
+          icaiNo: formData.icaiNo,
+          gstPractitionerId: formData.gstPractitionerId,
+          qualification: formData.qualification,
+          experienceYears: formData.experienceYears,
+          areasOfPractice: formData.areasOfPractice,
+          university: formData.university,
+          graduationYear: formData.graduationYear,
+          specialization: formData.specialization,
+          billingRate: formData.billingRate,
+          billable: formData.billable,
+          defaultTaskCategory: formData.defaultTaskCategory,
+          incentiveEligible: formData.incentiveEligible,
+          moduleAccess: formData.moduleAccess,
+          dataScope: formData.dataScope,
+          aiAccess: formData.aiAccess,
+          whatsappAccess: formData.whatsappAccess,
+          documents: formData.documents,
+          notes: formData.notes,
+        };
+        
+        console.log('📦 [EmployeeModal] Request payload prepared:', {
+          email: requestPayload.email,
+          fullName: requestPayload.fullName,
+          role: requestPayload.role,
+          department: requestPayload.department,
+          passwordOption: formData.passwordOption,
+          hasPassword: !!requestPayload.password,
+          sendWelcomeEmail: requestPayload.sendWelcomeEmail,
+          payloadKeys: Object.keys(requestPayload),
+          payloadSize: JSON.stringify(requestPayload).length + ' bytes'
+        });
+        
+        // Step 3: Call edge function
+        console.log('🚀 [EmployeeModal] Invoking invite-employee edge function...');
+        const startTime = Date.now();
+        
         const { data, error } = await supabase.functions.invoke('invite-employee', {
-          body: {
-            email: loginEmail,
-            password: formData.passwordOption === 'manual' ? formData.tempPassword : undefined,
-            sendWelcomeEmail: formData.passwordOption !== 'manual',
-            fullName: formData.full_name,
-            mobile: formData.mobile,
-            role: formData.role,
-            department: formData.department,
-            designation: formData.designation,
-            dateOfJoining: formData.date_of_joining,
-            gender: formData.gender,
-            dob: formData.dob,
-            pan: formData.pan,
-            aadhaar: formData.aadhaar,
-            bloodGroup: formData.bloodGroup,
-            officialEmail: formData.officialEmail,
-            personalEmail: formData.personalEmail,
-            alternateContact: formData.alternateContact,
-            currentAddress: formData.currentAddress,
-            permanentAddress: formData.permanentAddress,
-            city: formData.city,
-            state: formData.state,
-            pincode: formData.pincode,
-            branch: formData.branch,
-            employmentType: formData.employmentType,
-            confirmationDate: formData.confirmationDate,
-            reportingTo: formData.reportingTo,
-            managerId: formData.managerId,
-            weeklyOff: formData.weeklyOff,
-            workShift: formData.workShift,
-            workloadCapacity: formData.workloadCapacity,
-            profilePhoto: formData.profilePhoto,
-            barCouncilNo: formData.barCouncilNo,
-            icaiNo: formData.icaiNo,
-            gstPractitionerId: formData.gstPractitionerId,
-            qualification: formData.qualification,
-            experienceYears: formData.experienceYears,
-            areasOfPractice: formData.areasOfPractice,
-            university: formData.university,
-            graduationYear: formData.graduationYear,
-            specialization: formData.specialization,
-            billingRate: formData.billingRate,
-            billable: formData.billable,
-            defaultTaskCategory: formData.defaultTaskCategory,
-            incentiveEligible: formData.incentiveEligible,
-            moduleAccess: formData.moduleAccess,
-            dataScope: formData.dataScope,
-            aiAccess: formData.aiAccess,
-            whatsappAccess: formData.whatsappAccess,
-            documents: formData.documents,
-            notes: formData.notes,
+          body: requestPayload,
+          headers: {
+            Authorization: `Bearer ${session.access_token}`
           }
         });
+        
+        const duration = Date.now() - startTime;
+        console.log(`⏱️ [EmployeeModal] Edge function completed in ${duration}ms`);
 
-        if (error) throw error;
+        if (error) {
+          console.error('❌ [EmployeeModal] Edge function error:', {
+            message: error.message,
+            name: error.name,
+            stack: error.stack,
+            error: error,
+            fullError: JSON.stringify(error, null, 2)
+          });
+          throw new Error(`Failed to create employee: ${error.message || 'Unknown error'}`);
+        }
+        
+        console.log('📥 [EmployeeModal] Edge function response:', {
+          success: data?.success,
+          hasEmployee: !!data?.employee,
+          employeeCode: data?.employee?.employeeCode,
+          employeeName: data?.employee?.fullName,
+          error: data?.error,
+          fullResponse: data
+        });
 
         if (data?.success) {
+          console.log('✅ [EmployeeModal] Employee created successfully:', {
+            employeeCode: data.employee.employeeCode,
+            fullName: data.employee.fullName,
+            email: data.employee.email
+          });
+          
           toast({
             title: "Employee created",
             description: `${data.employee.fullName} (${data.employee.employeeCode}) has been created. ${
@@ -319,10 +386,17 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
           });
           
           // Refresh employee list from database
+          console.log('🔄 [EmployeeModal] Invalidating employee queries...');
           await queryClient.invalidateQueries({ queryKey: ['employees'] });
+          console.log('✅ [EmployeeModal] Employee creation complete. Closing modal.');
           onClose();
         } else {
-          throw new Error(data?.error || 'Failed to create employee');
+          const errorMsg = data?.error || 'Failed to create employee';
+          console.error('❌ [EmployeeModal] Edge function returned error:', {
+            error: errorMsg,
+            fullData: data
+          });
+          throw new Error(errorMsg);
         }
 
       } else if (mode === 'edit' && employee) {
