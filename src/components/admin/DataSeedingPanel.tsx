@@ -17,14 +17,17 @@ import { Loader2, Sprout, CheckCircle, XCircle, AlertCircle, Sparkles } from 'lu
 import { GSTLitigationDataSeeder } from '@/services/gstLitigationDataSeeder';
 import { comprehensiveGSTDataSeeder } from '@/services/comprehensiveGSTDataSeeder';
 import { workflowDataSeeder } from '@/services/workflowDataSeeder';
+import { documentDataSeeder } from '@/services/documentDataSeeder';
 import mockDataset from '@/data/seedData/gstLitigationMockData.json';
 
 export const DataSeedingPanel = () => {
   const [isSeeding, setIsSeeding] = useState(false);
   const [isSeedingComprehensive, setIsSeedingComprehensive] = useState(false);
+  const [isDocumentSeeding, setIsDocumentSeeding] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [comprehensiveResult, setComprehensiveResult] = useState<any>(null);
   const [workflowResult, setWorkflowResult] = useState<any>(null);
+  const [documentResult, setDocumentResult] = useState<any>(null);
   const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
   const [showWorkflowDuplicateWarning, setShowWorkflowDuplicateWarning] = useState(false);
   const [existingData, setExistingData] = useState<any>(null);
@@ -179,6 +182,48 @@ export const DataSeedingPanel = () => {
       });
     } finally {
       setIsSeeding(false);
+    }
+  };
+
+  const handleSeedDocuments = async () => {
+    setIsDocumentSeeding(true);
+    setDocumentResult(null);
+
+    try {
+      toast({
+        title: "📄 Starting Document Seeding",
+        description: "Generating and uploading sample documents to storage...",
+      });
+
+      const seedResult = await documentDataSeeder.seedSampleDocuments();
+      
+      setDocumentResult(seedResult);
+      
+      if (seedResult.success) {
+        toast({
+          title: "✅ Documents Seeded Successfully",
+          description: `${seedResult.documentsCreated} sample documents uploaded to storage.`,
+        });
+      } else {
+        toast({
+          title: "⚠️ Document Seeding Completed with Errors",
+          description: seedResult.errors.join(', '),
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "❌ Document Seeding Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      setDocumentResult({
+        success: false,
+        documentsCreated: 0,
+        errors: [error.message]
+      });
+    } finally {
+      setIsDocumentSeeding(false);
     }
   };
 
@@ -503,6 +548,76 @@ export const DataSeedingPanel = () => {
                       {workflowResult.errors.length > 5 && (
                         <li className="text-muted-foreground">...and {workflowResult.errors.length - 5} more</li>
                       )}
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            Sample Documents Seeder
+          </CardTitle>
+          <CardDescription>
+            Generate and upload 5 sample PDF/DOCX documents to the documents storage bucket with metadata linked to existing cases.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Prerequisites:</strong> At least 1 case must exist in the database for document linking.
+            </AlertDescription>
+          </Alert>
+
+          <Button 
+            onClick={handleSeedDocuments} 
+            disabled={isDocumentSeeding || isSeeding || isSeedingComprehensive}
+            className="w-full"
+          >
+            {isDocumentSeeding ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Seeding Documents...
+              </>
+            ) : (
+              <>
+                <Sparkles className="mr-2 h-4 w-4" />
+                Seed Sample Documents (5 Files)
+              </>
+            )}
+          </Button>
+
+          {documentResult && (
+            <div className="space-y-3 pt-4 border-t">
+              <div className="flex items-center gap-2">
+                {documentResult.success ? (
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                ) : (
+                  <XCircle className="h-5 w-5 text-destructive" />
+                )}
+                <span className="font-medium">
+                  Document Seeding {documentResult.success ? 'Successful' : 'Failed'}
+                </span>
+              </div>
+
+              <div className="p-3 bg-primary/5 rounded border border-primary/20">
+                <div className="font-medium">Documents Created: {documentResult.documentsCreated}/5</div>
+              </div>
+
+              {documentResult.errors && documentResult.errors.length > 0 && (
+                <Alert variant="destructive">
+                  <AlertDescription>
+                    <div className="font-medium mb-1">Errors ({documentResult.errors.length}):</div>
+                    <ul className="list-disc pl-4 space-y-1 text-xs">
+                      {documentResult.errors.slice(0, 5).map((error: string, idx: number) => (
+                        <li key={idx}>{error}</li>
+                      ))}
                     </ul>
                   </AlertDescription>
                 </Alert>
