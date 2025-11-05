@@ -1,0 +1,42 @@
+{
+  "background-jobs-overview": {
+    "title": "Background Jobs System",
+    "content": "Automated server-side jobs that run 24/7 to monitor SLAs, send reminders, and maintain system health.",
+    "learnMoreUrl": "/help/background-jobs-guide"
+  },
+  "job-sla-check": {
+    "title": "SLA & Overdue Check",
+    "content": "Runs every 15 minutes to detect overdue tasks and SLA violations, automatically triggering escalation rules.",
+    "learnMoreUrl": "/help/sla-monitoring"
+  },
+  "job-hearing-reminders": {
+    "title": "Hearing Reminders",
+    "content": "Daily job at 8:00 AM that sends email reminders for today's and tomorrow's scheduled hearings.",
+    "learnMoreUrl": "/help/hearing-notifications"
+  },
+  "job-analytics-snapshot": {
+    "title": "Analytics Snapshot",
+    "content": "Captures daily metrics at 11:59 PM for historical trend analysis and reporting dashboards.",
+    "learnMoreUrl": "/help/analytics-system"
+  },
+  "job-deadline-alerts": {
+    "title": "Deadline Alerts",
+    "content": "Morning alert at 9:00 AM for tasks and hearings due within 24 hours, helping teams prioritize work.",
+    "learnMoreUrl": "/help/deadline-management"
+  },
+  "job-health-check": {
+    "title": "Automation Health Check",
+    "content": "Daily monitoring at 7:00 AM of automation rule execution stats, alerting admins to system issues.",
+    "learnMoreUrl": "/help/system-health-monitoring"
+  },
+  "manual-job-trigger": {
+    "title": "Manual Job Execution",
+    "content": "Use 'Run Now' to manually trigger any background job for immediate execution, useful for testing or urgent updates.",
+    "learnMoreUrl": "/help/background-jobs-guide"
+  },
+  "job-execution-logs": {
+    "title": "Job Execution Logs",
+    "content": "View detailed logs showing execution timestamps, status, duration, and error messages for troubleshooting.",
+    "learnMoreUrl": "/help/monitoring-background-jobs"
+  }
+}
