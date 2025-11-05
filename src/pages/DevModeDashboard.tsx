@@ -21,12 +21,14 @@ import {
   Activity,
   Wrench,
   BookOpen,
-  Target
+  Target,
+  Clock
 } from 'lucide-react';
 import { envConfig } from '@/utils/envConfig';
 import { toast } from '@/hooks/use-toast';
 import { EnvironmentStatus } from '@/components/qa/EnvironmentStatus';
 import { DevTools } from '@/pages/settings/DevTools';
+import { BackgroundJobsMonitor } from '@/components/admin/BackgroundJobsMonitor';
 
 interface PresetConfig {
   name: string;
@@ -202,7 +204,7 @@ export const DevModeDashboard: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1 p-1 h-auto">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 gap-1 p-1 h-auto">
           <TabsTrigger value="overview" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap flex items-center gap-2">
             <Settings className="h-4 w-4" />
             Overview
@@ -218,6 +220,10 @@ export const DevModeDashboard: React.FC = () => {
           <TabsTrigger value="devtools" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap flex items-center gap-2">
             <Wrench className="h-4 w-4" />
             Advanced Tools
+          </TabsTrigger>
+          <TabsTrigger value="background-jobs" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            Background Jobs
           </TabsTrigger>
         </TabsList>
 
@@ -452,6 +458,11 @@ export const DevModeDashboard: React.FC = () => {
           </div>
 
           <DevTools />
+        </TabsContent>
+
+        {/* Background Jobs Tab */}
+        <TabsContent value="background-jobs" className="space-y-6">
+          <BackgroundJobsMonitor />
         </TabsContent>
       </Tabs>
     </div>
