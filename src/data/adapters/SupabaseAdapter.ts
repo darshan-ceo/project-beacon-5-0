@@ -285,7 +285,15 @@ export class SupabaseAdapter implements StoragePort {
 
       if (error) this.handleError(error, 'getAll');
 
-      const result = data as T[] || [];
+      let result = data as T[] || [];
+      
+      // Transform field names for specific tables to match frontend expectations
+      if (table === 'cases') {
+        result = result.map(item => this.transformCaseFields(item)) as T[];
+      } else if (table === 'tasks') {
+        result = result.map(item => this.transformTaskFields(item)) as T[];
+      }
+      
       this.setCache(cacheKey, result);
       return result;
     } catch (error) {
@@ -683,6 +691,45 @@ export class SupabaseAdapter implements StoragePort {
       
       return normalized;
     });
+  }
+
+  /**
+   * Transform case fields from snake_case to camelCase
+   */
+  private transformCaseFields(raw: any): any {
+    return {
+      ...raw,
+      createdDate: raw.created_at || raw.createdDate,
+      lastUpdated: raw.updated_at || raw.lastUpdated,
+      caseNumber: raw.case_number || raw.caseNumber,
+      clientId: raw.client_id || raw.clientId,
+      assignedTo: raw.assigned_to || raw.assignedTo,
+      ownerId: raw.owner_id || raw.ownerId,
+      forumId: raw.forum_id || raw.forumId,
+      authorityId: raw.authority_id || raw.authorityId,
+      stageCode: raw.stage_code || raw.stageCode,
+      taxDemand: raw.tax_demand || raw.taxDemand,
+      noticeDate: raw.notice_date || raw.noticeDate,
+      noticeType: raw.notice_type || raw.noticeType,
+      noticeNo: raw.notice_no || raw.noticeNo,
+      nextHearingDate: raw.next_hearing_date || raw.nextHearingDate,
+    };
+  }
+
+  /**
+   * Transform task fields from snake_case to camelCase
+   */
+  private transformTaskFields(raw: any): any {
+    return {
+      ...raw,
+      createdDate: raw.created_at || raw.createdDate,
+      lastUpdated: raw.updated_at || raw.lastUpdated,
+      dueDate: raw.due_date || raw.dueDate,
+      completedDate: raw.completed_date || raw.completedDate,
+      assignedTo: raw.assigned_to || raw.assignedTo,
+      caseId: raw.case_id || raw.caseId,
+      hearingId: raw.hearing_id || raw.hearingId,
+    };
   }
 
   // ============= LIFECYCLE =============

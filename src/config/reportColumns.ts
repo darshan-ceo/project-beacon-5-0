@@ -21,8 +21,24 @@ export const CASE_REPORT_COLUMNS: ReportColumn[] = [
   { key: 'owner', header: 'Owner', type: 'string', get: (row) => row.owner || row.caseOwner || '' },
   { key: 'timelineBreachStatus', header: 'Timeline Status', type: 'string', get: (row) => row.timelineBreachStatus || row.timeline_breach_status || row.ragStatus || '' },
   { key: 'priority', header: 'Priority', type: 'string', get: (row) => row.priority || '' },
-  { key: 'agingDays', header: 'Aging (Days)', type: 'number', get: (row) => row.agingDays || row.aging_days || 0 },
-  { key: 'createdDate', header: 'Created Date', type: 'date', format: 'dd-MM-yyyy', get: (row) => row.createdDate || row.created_date || row.createdAt || new Date() },
+  { 
+    key: 'agingDays', 
+    header: 'Aging (Days)', 
+    type: 'number', 
+    get: (row) => {
+      if (row.agingDays) return row.agingDays;
+      if (row.aging_days) return row.aging_days;
+      
+      // Calculate from created_at or createdDate
+      const createdDate = row.createdDate || row.created_at || row.createdAt;
+      if (!createdDate) return 0;
+      
+      return Math.floor(
+        (new Date().getTime() - new Date(createdDate).getTime()) / (1000 * 60 * 60 * 24)
+      );
+    }
+  },
+  { key: 'createdDate', header: 'Created Date', type: 'date', format: 'dd-MM-yyyy', get: (row) => row.createdDate || row.created_at || row.createdAt || new Date() },
 ];
 
 export const HEARING_REPORT_COLUMNS: ReportColumn[] = [
@@ -44,7 +60,23 @@ export const TASK_REPORT_COLUMNS: ReportColumn[] = [
   { key: 'dueDate', header: 'Due Date', type: 'date', format: 'dd-MM-yyyy', get: (row) => row.dueDate || row.due_date || new Date() },
   { key: 'status', header: 'Status', type: 'string', get: (row) => row.status || row.taskStatus || '' },
   { key: 'priority', header: 'Priority', type: 'string', get: (row) => row.priority || '' },
-  { key: 'agingDays', header: 'Aging (Days)', type: 'number', get: (row) => row.agingDays || row.aging_days || 0 },
+  { 
+    key: 'agingDays', 
+    header: 'Aging (Days)', 
+    type: 'number', 
+    get: (row) => {
+      if (row.agingDays) return row.agingDays;
+      if (row.aging_days) return row.aging_days;
+      
+      // Calculate from created_at or createdDate
+      const createdDate = row.createdDate || row.created_at || row.createdAt;
+      if (!createdDate) return 0;
+      
+      return Math.floor(
+        (new Date().getTime() - new Date(createdDate).getTime()) / (1000 * 60 * 60 * 24)
+      );
+    }
+  },
   { key: 'escalated', header: 'Escalated', type: 'boolean', get: (row) => row.escalated || row.is_escalated || false },
 ];
 
@@ -54,7 +86,23 @@ export const TIMELINE_BREACH_COLUMNS: ReportColumn[] = [
   { key: 'client', header: 'Client', type: 'string', get: (row) => row.client || row.clientName || '' },
   { key: 'stage', header: 'Stage', type: 'string', get: (row) => row.stage || row.currentStage || '' },
   { key: 'timelineDue', header: 'Timeline Due', type: 'date', format: 'dd-MM-yyyy', get: (row) => row.timelineDue || row.timeline_due || row.dueDate || new Date() },
-  { key: 'agingDays', header: 'Aging (Days)', type: 'number', get: (row) => row.agingDays || row.aging_days || 0 },
+  { 
+    key: 'agingDays', 
+    header: 'Aging (Days)', 
+    type: 'number', 
+    get: (row) => {
+      if (row.agingDays) return row.agingDays;
+      if (row.aging_days) return row.aging_days;
+      
+      // Calculate from created_at or createdDate  
+      const createdDate = row.createdDate || row.created_at || row.createdAt;
+      if (!createdDate) return 0;
+      
+      return Math.floor(
+        (new Date().getTime() - new Date(createdDate).getTime()) / (1000 * 60 * 60 * 24)
+      );
+    }
+  },
   { key: 'ragStatus', header: 'RAG Status', type: 'string', get: (row) => row.ragStatus || row.rag_status || row.timelineBreachStatus || '' },
   { key: 'owner', header: 'Owner', type: 'string', get: (row) => row.owner || row.caseOwner || '' },
   { key: 'breached', header: 'Breached', type: 'boolean', get: (row) => row.breached || row.is_breached || false },

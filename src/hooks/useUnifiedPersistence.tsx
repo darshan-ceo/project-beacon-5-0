@@ -218,7 +218,7 @@ export const useUnifiedPersistence = () => {
   const loadAllData = async (): Promise<void> => {
     try {
       const storage = storageManager.getStorage();
-      const [clients, cases, tasks, taskBundles, taskNotes, taskFollowUps, documents, rawHearings, judges, courts, employees, folders, timelineEntries] = await Promise.all([
+      let [clients, cases, tasks, taskBundles, taskNotes, taskFollowUps, documents, rawHearings, judges, courts, employees, folders, timelineEntries] = await Promise.all([
         storage.getAll<any>('clients'),
         storage.getAll<any>('cases'),
         storage.getAll<any>('tasks'),
@@ -233,6 +233,26 @@ export const useUnifiedPersistence = () => {
         storage.getAll<any>('folders'),
         storage.getAll<any>('timeline_entries')
       ]);
+
+      // Compute currentFollowUpDate for tasks from latest follow-up
+      tasks = tasks.map((task: any) => {
+        const taskFollowUpsForTask = taskFollowUps
+          .filter((f: any) => (f.task_id || f.taskId) === task.id)
+          .sort((a: any, b: any) => 
+            new Date(b.created_at || b.createdAt).getTime() - 
+            new Date(a.created_at || a.createdAt).getTime()
+          );
+        
+        const latestFollowUp = taskFollowUpsForTask[0];
+        
+        return {
+          ...task,
+          currentFollowUpDate: latestFollowUp?.next_follow_up_date || 
+                               latestFollowUp?.nextFollowUpDate ||
+                               task.followUpDate ||
+                               task.currentFollowUpDate
+        };
+      });
 
       // Migrate cases: ensure timelineBreachStatus exists + migrate stage names + add new fields
       const migratedCases = cases.map((caseItem: any) => {
