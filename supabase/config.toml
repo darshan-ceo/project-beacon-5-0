@@ -12,5 +12,17 @@ verify_jwt = true
 [functions.send-hearing-reminders]
 verify_jwt = false
 
+[functions.analytics-snapshot]
+verify_jwt = false
+
+[functions.check-sla-and-overdue]
+verify_jwt = false
+
+[functions.check-upcoming-deadlines]
+verify_jwt = false
+
+[functions.automation-health-check]
+verify_jwt = false
+
 [functions.case-ai-assistant]
 verify_jwt = true

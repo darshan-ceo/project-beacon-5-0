@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { automationRuleEngine } from '@/services/automationRuleEngine';
 import { automationEventEmitter } from '@/services/automationEventEmitter';
-import { automationScheduler } from '@/services/automationScheduler';
 
 export function useAutomation() {
   useEffect(() => {
@@ -37,11 +36,8 @@ export function useAutomation() {
           await automationRuleEngine.processEvent(event);
         });
         
-        // Start background scheduler
-        automationScheduler.start();
-        
         initialized = true;
-        console.log('[useAutomation] Automation system initialized');
+        console.log('[useAutomation] Automation system initialized (server-side scheduling active)');
       } catch (error) {
         console.error('[useAutomation] Failed to initialize:', error);
       }
@@ -51,7 +47,6 @@ export function useAutomation() {
 
     return () => {
       // Cleanup on unmount
-      automationScheduler.stop();
       automationEventEmitter.clearAllListeners();
     };
   }, []);
