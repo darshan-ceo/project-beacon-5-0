@@ -389,9 +389,46 @@ export type Database = {
           },
         ]
       }
+      client_groups: {
+        Row: {
+          code: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          tenant_id: string
+          total_clients: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          tenant_id: string
+          total_clients?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          tenant_id?: string
+          total_clients?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           city: string | null
+          client_group_id: string | null
           created_at: string | null
           display_name: string
           email: string | null
@@ -407,6 +444,7 @@ export type Database = {
         }
         Insert: {
           city?: string | null
+          client_group_id?: string | null
           created_at?: string | null
           display_name: string
           email?: string | null
@@ -422,6 +460,7 @@ export type Database = {
         }
         Update: {
           city?: string | null
+          client_group_id?: string | null
           created_at?: string | null
           display_name?: string
           email?: string | null
@@ -436,6 +475,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "clients_client_group_id_fkey"
+            columns: ["client_group_id"]
+            isOneToOne: false
+            referencedRelation: "client_groups"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "clients_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -1493,6 +1539,45 @@ export type Database = {
           },
         ]
       }
+      system_settings: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          is_encrypted: boolean | null
+          setting_key: string
+          setting_value: Json
+          tenant_id: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_encrypted?: boolean | null
+          setting_key: string
+          setting_value: Json
+          tenant_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_encrypted?: boolean | null
+          setting_key?: string
+          setting_value?: Json
+          tenant_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       task_bundle_items: {
         Row: {
           assigned_role: string | null
@@ -2186,24 +2271,23 @@ export type Database = {
       }
       timeline_compliance_trends: {
         Row: {
-          at_risk_cases: number | null
-          breached_cases: number | null
-          compliance_percentage: number | null
-          on_time_cases: number | null
+          adjourned_hearings: number | null
+          completed_hearings: number | null
+          compliance_rate: number | null
+          period: string | null
           tenant_id: string | null
-          total_cases: number | null
-          week: string | null
+          total_hearings: number | null
         }
         Relationships: [
           {
-            foreignKeyName: "cases_tenant_id_fkey"
+            foreignKeyName: "hearings_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "storage_usage_by_tenant"
             referencedColumns: ["tenant_id"]
           },
           {
-            foreignKeyName: "cases_tenant_id_fkey"
+            foreignKeyName: "hearings_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
