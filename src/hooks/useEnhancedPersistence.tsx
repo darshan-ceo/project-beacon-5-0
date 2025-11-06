@@ -1,10 +1,25 @@
+/**
+ * Enhanced Persistence Hook - Supabase-Only Implementation
+ * Phase 2: All IndexedDB/Dexie calls removed, using SupabaseAdapter exclusively
+ */
+
 import { useEffect, useCallback, useState, useRef } from 'react';
-import { AppState, useAppState, AppAction } from '@/contexts/AppStateContext';
-import { persistenceService, StorageHealth } from '@/services/persistenceService';
-import { idbStorage } from '@/utils/idb';
+import { AppState, useAppState } from '@/contexts/AppStateContext';
+import { StorageManager } from '@/data/StorageManager';
 import { toast } from '@/hooks/use-toast';
 
-const AUTO_SAVE_INTERVAL = 3000; // 3 seconds for better persistence
+const AUTO_SAVE_INTERVAL = 30000; // 30 seconds - less frequent for cloud saves
+
+export interface StorageHealth {
+  healthy: boolean;
+  errors: string[];
+  info: any;
+  // Legacy compatibility fields
+  isHealthy: boolean;
+  used: number;
+  available: number;
+  quotaWarning: boolean;
+}
 
 export const useEnhancedPersistence = () => {
   const { state, dispatch } = useAppState();
@@ -12,234 +27,222 @@ export const useEnhancedPersistence = () => {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
   const [initialized, setInitialized] = useState(false);
-  const lastNonZeroEntityCount = useRef(0);
+  const [entityCounts, setEntityCounts] = useState({
+    clients: 0,
+    cases: 0,
+    tasks: 0,
+    documents: 0,
+    hearings: 0,
+    employees: 0,
+    courts: 0,
+    judges: 0,
+  });
 
-  // Enhanced storage health checking with recovery options
+  // Check Supabase storage health
   const checkHealth = useCallback(async () => {
     try {
-      const health = await persistenceService.checkStorageHealth();
-      setStorageHealth(health);
+      const health = await StorageManager.getInstance().healthCheck();
       
-      if (!health.isHealthy) {
-        console.error('[Enhanced Persistence] Storage health issues:', health.errors);
-        
-        // Provide specific error messages and recovery options
-        const errorDetails = health.errors.join('\n');
-        toast({
-          title: 'Storage Issue Detected',
-          description: `${errorDetails}\n\nTry refreshing the page or clearing browser cache.`,
-          variant: 'destructive',
-          duration: 10000, // Longer duration for important errors
-        });
-        
-        // Attempt automatic recovery for common issues
-        if (health.errors.some(err => err.includes('Read/write test failed'))) {
-          console.log('[Enhanced Persistence] Attempting automatic storage recovery...');
-          await attemptStorageRecovery();
-        }
-      }
+      // Add legacy compatibility fields
+      const compatHealth: StorageHealth = {
+        ...health,
+        isHealthy: health.healthy,
+        used: 0,
+        available: 0,
+        quotaWarning: false
+      };
       
-      if (health.quotaWarning) {
+      setStorageHealth(compatHealth);
+      
+      if (!health.healthy) {
+        console.error('[Supabase Persistence] Storage health issues:', health.errors);
+        
         toast({
-          title: 'Storage Space Warning',
-          description: `Storage space is running low (${Math.round(health.available / 1024 / 1024)}MB remaining). Consider clearing old data.`,
+          title: 'Backend Connection Issue',
+          description: 'Unable to connect to cloud storage. Please check your connection.',
           variant: 'destructive',
           duration: 8000,
         });
       }
       
-      return health;
+      return compatHealth;
     } catch (error) {
-      console.error('[Enhanced Persistence] Health check failed:', error);
-      const fallbackHealth = {
+      console.error('[Supabase Persistence] Health check failed:', error);
+      const fallbackHealth: StorageHealth = {
+        healthy: false,
         isHealthy: false,
+        errors: [`Health check failed: ${error instanceof Error ? error.message : 'Unknown error'}`],
+        info: {},
         used: 0,
         available: 0,
-        errors: [`Health check failed: ${error instanceof Error ? error.message : 'Unknown error'}`],
-        quotaWarning: true
+        quotaWarning: false
       };
       setStorageHealth(fallbackHealth);
       return fallbackHealth;
     }
   }, []);
 
-  // Automatic storage recovery
-  const attemptStorageRecovery = useCallback(async () => {
-    try {
-      console.log('[Enhanced Persistence] Starting storage recovery...');
-      
-      // Step 1: Try to clear old test data
-      const testKeys = ['health-check-test', 'health-check-recovery'];
-      for (const key of testKeys) {
-        try {
-          await idbStorage.delete(key);
-        } catch (error) {
-          console.warn(`[Recovery] Failed to clear test key ${key}:`, error);
-        }
-      }
-      
-      // Step 2: Verify storage is working with a simple test
-      const recoveryTest = { recoveryAttempt: Date.now() };
-      await idbStorage.set('health-check-recovery', recoveryTest);
-      const retrieved = await idbStorage.get('health-check-recovery');
-      await idbStorage.delete('health-check-recovery');
-      
-      if (retrieved && retrieved.recoveryAttempt === recoveryTest.recoveryAttempt) {
-        console.log('[Enhanced Persistence] Storage recovery successful');
-        toast({
-          title: 'Storage Recovered',
-          description: 'Storage issues have been automatically resolved.',
-        });
-        
-        // Re-check health
-        setTimeout(() => checkHealth(), 1000);
-      } else {
-        throw new Error('Recovery test failed');
-      }
-      
-    } catch (error) {
-      console.error('[Enhanced Persistence] Storage recovery failed:', error);
-      toast({
-        title: 'Recovery Failed',
-        description: 'Automatic storage recovery failed. Please refresh the page or contact support.',
-        variant: 'destructive',
-      });
-    }
-  }, [checkHealth]);
-
-  // Mirror current state to storageShim for modules that rely on it
-  const mirrorLocalCache = useCallback(async (stateToMirror: AppState) => {
-    try {
-      const { setItem } = await import('@/data/storageShim');
-      await setItem('lawfirm_app_data', stateToMirror);
-      await setItem('dms_folders', stateToMirror.folders || []);
-      console.log('🪞 Cache mirrored from IndexedDB', {
-        cases: stateToMirror.cases.length,
-        documents: stateToMirror.documents.length,
-        folders: stateToMirror.folders.length,
-      });
-    } catch (error) {
-      console.warn('Failed to mirror cache:', error);
-    }
-  }, []);
-
-  // Save all state to IndexedDB
+  // Save all state to Supabase
   const saveAllToStorage = useCallback(async (stateToSave: AppState) => {
     try {
       setIsAutoSaving(true);
+      const storage = StorageManager.getInstance().getStorage();
 
-      // Mass-drop guard: prevent overwriting IDB with empty state after boot glitches
-      const totalEntities =
-        (stateToSave.cases?.length || 0) +
-        (stateToSave.clients?.length || 0) +
-        (stateToSave.courts?.length || 0) +
-        (stateToSave.judges?.length || 0) +
-        (stateToSave.employees?.length || 0) +
-        (stateToSave.hearings?.length || 0) +
-        (stateToSave.tasks?.length || 0) +
-        (stateToSave.documents?.length || 0) +
-        (stateToSave.folders?.length || 0);
+      // Calculate entity counts
+      const counts = {
+        cases: stateToSave.cases?.length || 0,
+        clients: stateToSave.clients?.length || 0,
+        courts: stateToSave.courts?.length || 0,
+        judges: stateToSave.judges?.length || 0,
+        employees: stateToSave.employees?.length || 0,
+        hearings: stateToSave.hearings?.length || 0,
+        tasks: stateToSave.tasks?.length || 0,
+        documents: stateToSave.documents?.length || 0,
+      };
 
-      if (totalEntities === 0 && lastNonZeroEntityCount.current > 0) {
+      const totalEntities = Object.values(counts).reduce((a, b) => a + b, 0);
+
+      // Mass-drop guard: prevent saving empty state
+      if (totalEntities === 0 && entityCounts.cases + entityCounts.clients > 0) {
         console.warn('🛑 Mass-drop guard: skipping autosave of empty state');
         return;
       }
       
-      // Save each entity type separately for better performance
-      const savePromises = [
-        idbStorage.set('cases', stateToSave.cases),
-        idbStorage.set('clients', stateToSave.clients),
-        idbStorage.set('courts', stateToSave.courts),
-        idbStorage.set('judges', stateToSave.judges),
-        idbStorage.set('employees', stateToSave.employees),
-        idbStorage.set('hearings', stateToSave.hearings),
-        idbStorage.set('tasks', stateToSave.tasks),
-        idbStorage.set('documents', stateToSave.documents),
-        idbStorage.set('folders', stateToSave.folders),
-        idbStorage.set('userProfile', stateToSave.userProfile),
-      ];
+      // Save each entity type to Supabase in parallel using bulk operations
+      const savePromises: Promise<any>[] = [];
+      
+      if (stateToSave.cases?.length > 0) {
+        savePromises.push(
+          storage.bulkUpdate('cases', stateToSave.cases.map(c => ({ id: c.id, data: c })))
+            .catch(err => {
+              console.warn('Cases bulk update failed, trying bulk create:', err);
+              return storage.bulkCreate('cases', stateToSave.cases);
+            })
+        );
+      }
+      
+      if (stateToSave.clients?.length > 0) {
+        savePromises.push(
+          storage.bulkUpdate('clients', stateToSave.clients.map(c => ({ id: c.id, data: c })))
+            .catch(err => {
+              console.warn('Clients bulk update failed, trying bulk create:', err);
+              return storage.bulkCreate('clients', stateToSave.clients);
+            })
+        );
+      }
+      
+      if (stateToSave.tasks?.length > 0) {
+        savePromises.push(
+          storage.bulkUpdate('tasks', stateToSave.tasks.map(t => ({ id: t.id, data: t })))
+            .catch(err => {
+              console.warn('Tasks bulk update failed, trying bulk create:', err);
+              return storage.bulkCreate('tasks', stateToSave.tasks);
+            })
+        );
+      }
+      
+      if (stateToSave.documents?.length > 0) {
+        savePromises.push(
+          storage.bulkUpdate('documents', stateToSave.documents.map(d => ({ id: d.id, data: d })))
+            .catch(err => {
+              console.warn('Documents bulk update failed, trying bulk create:', err);
+              return storage.bulkCreate('documents', stateToSave.documents);
+            })
+        );
+      }
+      
+      if (stateToSave.hearings?.length > 0) {
+        savePromises.push(
+          storage.bulkUpdate('hearings', stateToSave.hearings.map(h => ({ id: h.id, data: h })))
+            .catch(err => {
+              console.warn('Hearings bulk update failed, trying bulk create:', err);
+              return storage.bulkCreate('hearings', stateToSave.hearings);
+            })
+        );
+      }
+      
+      if (stateToSave.employees?.length > 0) {
+        savePromises.push(
+          storage.bulkUpdate('employees', stateToSave.employees.map(e => ({ id: e.id, data: e })))
+            .catch(err => {
+              console.warn('Employees bulk update failed, trying bulk create:', err);
+              return storage.bulkCreate('employees', stateToSave.employees);
+            })
+        );
+      }
+      
+      if (stateToSave.courts?.length > 0) {
+        savePromises.push(
+          storage.bulkUpdate('courts', stateToSave.courts.map(c => ({ id: c.id, data: c })))
+            .catch(err => {
+              console.warn('Courts bulk update failed, trying bulk create:', err);
+              return storage.bulkCreate('courts', stateToSave.courts);
+            })
+        );
+      }
+      
+      if (stateToSave.judges?.length > 0) {
+        savePromises.push(
+          storage.bulkUpdate('judges', stateToSave.judges.map(j => ({ id: j.id, data: j })))
+            .catch(err => {
+              console.warn('Judges bulk update failed, trying bulk create:', err);
+              return storage.bulkCreate('judges', stateToSave.judges);
+            })
+        );
+      }
       
       await Promise.all(savePromises);
       
-      // Save metadata
-      await idbStorage.set('metadata', {
-        lastSaved: new Date().toISOString(),
-        version: '1.0.0',
-        entityCounts: {
-          cases: stateToSave.cases.length,
-          clients: stateToSave.clients.length,
-          courts: stateToSave.courts.length,
-          judges: stateToSave.judges.length,
-          employees: stateToSave.employees.length,
-          hearings: stateToSave.hearings.length,
-          tasks: stateToSave.tasks.length,
-          documents: stateToSave.documents.length,
-          folders: stateToSave.folders.length,
-        }
-      });
-
-      // Mirror to storageShim for modules depending on it
-      await mirrorLocalCache(stateToSave);
-
-      if (totalEntities > 0) {
-        lastNonZeroEntityCount.current = totalEntities;
-      }
-      
+      setEntityCounts(counts);
       setLastSaved(new Date());
-      console.log('📦 All data saved to IndexedDB');
+      console.log('☁️ All data saved to Supabase:', counts);
       
     } catch (error) {
-      console.error('💥 Save to IndexedDB failed:', error);
+      console.error('💥 Save to Supabase failed:', error);
       toast({
         title: 'Auto-save Failed',
-        description: error instanceof Error ? error.message : 'Unknown error',
+        description: error instanceof Error ? error.message : 'Cloud save failed',
         variant: 'destructive'
       });
     } finally {
       setIsAutoSaving(false);
     }
-  }, [mirrorLocalCache]);
+  }, [entityCounts]);
 
-  // Load all state from IndexedDB
+  // Load all state from Supabase
   const loadFromStorage = useCallback(async (): Promise<Partial<AppState> | null> => {
     try {
-      const [cases, clients, courts, judges, employees, hearings, tasks, documents, folders, userProfile, metadata] = await Promise.all([
-        idbStorage.get('cases'),
-        idbStorage.get('clients'),
-        idbStorage.get('courts'),
-        idbStorage.get('judges'),
-        idbStorage.get('employees'),
-        idbStorage.get('hearings'),
-        idbStorage.get('tasks'),
-        idbStorage.get('documents'),
-        idbStorage.get('folders'),
-        idbStorage.get('userProfile'),
-        idbStorage.get('metadata')
+      const storage = StorageManager.getInstance().getStorage();
+      
+      const [cases, clients, courts, judges, employees, hearings, tasks, documents] = await Promise.all([
+        storage.getAll('cases'),
+        storage.getAll('clients'),
+        storage.getAll('courts'),
+        storage.getAll('judges'),
+        storage.getAll('employees'),
+        storage.getAll('hearings'),
+        storage.getAll('tasks'),
+        storage.getAll('documents')
       ]);
 
-      // Only return data if we have meaningful content
-      if (!cases && !clients && !courts && !judges && !metadata) {
+      // Check if we have meaningful content
+      if (!cases && !clients && !courts && !judges) {
         return null;
       }
 
       const loadedState: Partial<AppState> = {
-        cases: Array.isArray(cases) ? cases : [],
-        clients: Array.isArray(clients) ? clients : [],
-        courts: Array.isArray(courts) ? courts : [],
-        judges: Array.isArray(judges) ? judges : [],
-        employees: Array.isArray(employees) ? employees : [],
-        hearings: Array.isArray(hearings) ? hearings : [],
-        tasks: Array.isArray(tasks) ? tasks : [],
-        documents: Array.isArray(documents) ? documents : [],
-        folders: Array.isArray(folders) ? folders : [],
-        userProfile: userProfile || undefined
+        cases: (Array.isArray(cases) ? cases : []) as any,
+        clients: (Array.isArray(clients) ? clients : []) as any,
+        courts: (Array.isArray(courts) ? courts : []) as any,
+        judges: (Array.isArray(judges) ? judges : []) as any,
+        employees: (Array.isArray(employees) ? employees : []) as any,
+        hearings: (Array.isArray(hearings) ? hearings : []) as any,
+        tasks: (Array.isArray(tasks) ? tasks : []) as any,
+        documents: (Array.isArray(documents) ? documents : []) as any,
+        folders: [], // Folders will be handled separately if needed
       };
 
-      if (metadata?.lastSaved) {
-        setLastSaved(new Date(metadata.lastSaved));
-      }
-
-      console.log('📦 Data loaded from IndexedDB:', {
+      console.log('☁️ Data loaded from Supabase:', {
         cases: loadedState.cases?.length || 0,
         clients: loadedState.clients?.length || 0,
         courts: loadedState.courts?.length || 0,
@@ -248,12 +251,16 @@ export const useEnhancedPersistence = () => {
         hearings: loadedState.hearings?.length || 0,
         tasks: loadedState.tasks?.length || 0,
         documents: loadedState.documents?.length || 0,
-        folders: loadedState.folders?.length || 0,
       });
 
       return loadedState;
     } catch (error) {
-      console.error('💥 Load from IndexedDB failed:', error);
+      console.error('💥 Load from Supabase failed:', error);
+      toast({
+        title: 'Data Load Failed',
+        description: 'Failed to load data from cloud storage',
+        variant: 'destructive'
+      });
       return null;
     }
   }, []);
@@ -261,7 +268,8 @@ export const useEnhancedPersistence = () => {
   // Export data for backup
   const exportData = useCallback(async () => {
     try {
-      const exportData = await persistenceService.exportAllData();
+      const storage = StorageManager.getInstance().getStorage();
+      const exportData = await storage.exportAll();
       
       const blob = new Blob([JSON.stringify(exportData, null, 2)], {
         type: 'application/json',
@@ -270,7 +278,7 @@ export const useEnhancedPersistence = () => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `beacon_backup_${new Date().toISOString().split('T')[0]}.json`;
+      link.download = `hoffice_backup_${new Date().toISOString().split('T')[0]}.json`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -298,9 +306,8 @@ export const useEnhancedPersistence = () => {
         try {
           const importedData = JSON.parse(e.target?.result as string);
           
-          // Enhanced validation
+          // Validate imported data
           if (typeof importedData === 'object' && importedData !== null) {
-            // Check if the imported data has meaningful content
             const hasValidEntities = (importedData.documents && Array.isArray(importedData.documents)) ||
                                    (importedData.cases && Array.isArray(importedData.cases)) ||
                                    (importedData.clients && Array.isArray(importedData.clients));
@@ -315,7 +322,8 @@ export const useEnhancedPersistence = () => {
               return;
             }
             
-            await persistenceService.importAllData(importedData);
+            const storage = StorageManager.getInstance().getStorage();
+            await storage.importAll(importedData);
             
             // Reload the data into app state
             const loadedData = await loadFromStorage();
@@ -324,7 +332,7 @@ export const useEnhancedPersistence = () => {
               
               toast({
                 title: 'Import Successful',
-                description: `Restored ${Object.values(importedData.metadata?.entityCounts || {}).reduce((a: number, b: number) => a + b, 0)} records`,
+                description: `Data imported successfully`,
               });
             }
             
@@ -351,19 +359,20 @@ export const useEnhancedPersistence = () => {
     });
   }, [dispatch, loadFromStorage]);
 
-  // Restore from backup (manual recovery option)
+  // Restore from emergency backup (localStorage fallback)
   const restoreFromBackup = useCallback(async (): Promise<boolean> => {
     try {
-      const { getItem } = await import('@/data/storageShim');
-      const parsedBackup = await getItem<any>('lawfirm_app_data_backup');
-      if (!parsedBackup) {
+      const backupData = localStorage.getItem('hoffice_emergency_backup');
+      if (!backupData) {
         toast({
           title: 'No Backup Found',
-          description: 'No backup available to restore',
+          description: 'No emergency backup available to restore',
           variant: 'destructive'
         });
         return false;
       }
+      
+      const parsedBackup = JSON.parse(backupData);
       const entityCount = Object.values(parsedBackup.metadata?.entityCounts || {}).reduce((a: number, b: number) => a + b, 0);
       
       if (entityCount === 0) {
@@ -375,16 +384,13 @@ export const useEnhancedPersistence = () => {
         return false;
       }
 
-      await persistenceService.importAllData(parsedBackup);
+      const storage = StorageManager.getInstance().getStorage();
+      await storage.importAll(parsedBackup);
+      
       const loadedData = await loadFromStorage();
       
       if (loadedData) {
         dispatch({ type: 'RESTORE_STATE', payload: loadedData });
-        await mirrorLocalCache({
-          ...state,
-          ...loadedData,
-          userProfile: loadedData.userProfile || state.userProfile,
-        } as AppState);
         setInitialized(true);
         
         toast({
@@ -410,9 +416,25 @@ export const useEnhancedPersistence = () => {
   // Clear all data
   const clearAllData = useCallback(async () => {
     try {
-      await persistenceService.clearAllData();
+      const storage = StorageManager.getInstance().getStorage();
+      await storage.clearAll();
       dispatch({ type: 'CLEAR_ALL_DATA' });
       setLastSaved(null);
+      setEntityCounts({
+        clients: 0,
+        cases: 0,
+        tasks: 0,
+        documents: 0,
+        hearings: 0,
+        employees: 0,
+        courts: 0,
+        judges: 0,
+      });
+      
+      toast({
+        title: 'Data Cleared',
+        description: 'All data has been cleared from cloud storage',
+      });
     } catch (error) {
       console.error('Clear failed:', error);
       toast({
@@ -426,158 +448,43 @@ export const useEnhancedPersistence = () => {
   // Initialize on mount
   useEffect(() => {
     const initializePersistence = async () => {
-      // Check health first
-      await checkHealth();
-      
-      // Load existing data from IndexedDB first
-      const savedData = await loadFromStorage();
-      
-      // Enhanced smart migration with better validation
       try {
-        const { getItem: getStorageItem } = await import('@/data/storageShim');
-        const legacyData = await getStorageItem<any>('lawfirm_app_data');
-        const backupData = await getStorageItem<any>('lawfirm_app_data_backup');
+        // Initialize StorageManager with Supabase mode
+        await StorageManager.getInstance().initialize('supabase');
         
-        if (legacyData || backupData) {
-          // Choose the most recent and complete data source
-          let selectedData = null;
-          let selectedSource = '';
-          
-          if (legacyData) {
-            selectedData = legacyData;
-            selectedSource = 'storage';
-          }
-          
-          if (backupData) {
-            const parsedBackup = backupData;
-            // Use backup if it's newer or has more complete data
-            if (!selectedData || 
-                (parsedBackup.metadata?.timestamp > (selectedData.metadata?.timestamp || selectedData.metadata?.lastSaved)) ||
-                (parsedBackup.metadata?.entityCounts && 
-                 Object.values(parsedBackup.metadata.entityCounts).reduce((a: number, b: number) => a + b, 0) > 
-                 Object.values(selectedData.metadata?.entityCounts || {}).reduce((a: number, b: number) => a + b, 0))) {
-              selectedData = parsedBackup;
-              selectedSource = 'localStorage backup';
-            }
-          }
-          
-          if (selectedData) {
-            // Validate backup data structure
-            const isValidBackup = selectedData && 
-              typeof selectedData === 'object' &&
-              selectedData.metadata &&
-              selectedData.metadata.entityCounts;
-            
-            if (!isValidBackup) {
-              console.warn('📦 Invalid backup structure, skipping migration');
-              return;
-            }
-            
-            // Get IndexedDB metadata and count existing entities
-            const indexedDBMetadata = await idbStorage.get('metadata');
-            const indexedDBDocuments = await idbStorage.get('documents');
-            const indexedDBCases = await idbStorage.get('cases');
-            
-            const indexedDBEntityCount = (Array.isArray(indexedDBDocuments) ? indexedDBDocuments.length : 0) +
-                                        (Array.isArray(indexedDBCases) ? indexedDBCases.length : 0);
-            
-            const backupEntityCount: number = Object.values(selectedData.metadata.entityCounts as Record<string, number>).reduce((a: number, b: number) => a + b, 0);
-            
-            const localStorageTimestamp = selectedData.metadata?.timestamp || selectedData.metadata?.lastSaved || '0';
-            const indexedDBTimestamp = indexedDBMetadata?.lastSaved || '0';
-            const localStorageTime = new Date(localStorageTimestamp).getTime();
-            const indexedDBTime = new Date(indexedDBTimestamp).getTime();
-            
-            // Enhanced migration logic: Only migrate if backup has meaningful data and either:
-            // 1. IndexedDB is empty/corrupted, OR
-            // 2. Backup is significantly newer AND has more entities
-            const shouldMigrate = backupEntityCount > 0 && (
-              indexedDBEntityCount === 0 ||
-              (!savedData && backupEntityCount > 0) ||
-              (localStorageTime > indexedDBTime && backupEntityCount >= indexedDBEntityCount)
-            );
-            
-            if (shouldMigrate) {
-              console.log(`📦 Migrating data from ${selectedSource} to IndexedDB`);
-              console.log(`   Backup timestamp: ${new Date(localStorageTimestamp).toLocaleString()}`);
-              console.log(`   IndexedDB timestamp: ${new Date(indexedDBTimestamp).toLocaleString()}`);
-              console.log(`   Backup entities: ${backupEntityCount}, IndexedDB entities: ${indexedDBEntityCount}`);
-              console.log('   Entity counts:', selectedData.metadata.entityCounts);
-              
-              await persistenceService.importAllData(selectedData);
-              
-              // Clean up after successful migration
-              localStorage.removeItem('lawfirm_app_data');
-              localStorage.removeItem('lawfirm_app_data_backup');
-              
-              // Reload data after migration
-              const migratedData = await loadFromStorage();
-              if (migratedData) {
-                // Validate migrated data before restoring
-                const hasValidData = (migratedData.documents && migratedData.documents.length > 0) ||
-                                   (migratedData.cases && migratedData.cases.length > 0) ||
-                                   (migratedData.clients && migratedData.clients.length > 0);
-                
-                if (hasValidData) {
-                  dispatch({ type: 'RESTORE_STATE', payload: migratedData });
-                  mirrorLocalCache({
-                    ...state,
-                    ...migratedData,
-                    userProfile: migratedData.userProfile || state.userProfile,
-                  } as AppState);
-                  setInitialized(true);
-                  console.log(`✅ Successfully migrated and restored data:`, {
-                    cases: migratedData.cases?.length || 0,
-                    documents: migratedData.documents?.length || 0,
-                    clients: migratedData.clients?.length || 0
-                  });
-                } else {
-                  console.warn('📦 Migrated data appears empty, skipping restore');
-                  setInitialized(true);
-                }
-              }
-              return;
-            } else {
-              console.log('📦 Keeping existing IndexedDB data (backup not suitable for migration)');
-              console.log(`   Backup timestamp: ${new Date(localStorageTimestamp).toLocaleString()}`);
-              console.log(`   IndexedDB timestamp: ${new Date(indexedDBTimestamp).toLocaleString()}`);
-              console.log(`   Backup entities: ${backupEntityCount}, IndexedDB entities: ${indexedDBEntityCount}`);
-              
-              // Clean up old localStorage data to prevent future confusion
-              if (indexedDBEntityCount > (backupEntityCount as number)) {
-                localStorage.removeItem('lawfirm_app_data');
-                localStorage.removeItem('lawfirm_app_data_backup');
-                console.log('📦 Cleaned up inferior localStorage backup');
-              }
-            }
-          }
+        // Check health
+        await checkHealth();
+        
+        // Load existing data from Supabase
+        const savedData = await loadFromStorage();
+        
+        if (savedData) {
+          dispatch({ type: 'RESTORE_STATE', payload: savedData });
+          setInitialized(true);
+          console.log(`☁️ Loaded data from Supabase`);
+        } else {
+          // No data yet, but mark as initialized
+          setInitialized(true);
+          console.log('☁️ No existing data in Supabase, starting fresh');
         }
       } catch (error) {
-        console.warn('Smart migration from localStorage failed:', error);
-      }
-      
-      // Use existing IndexedDB data if no migration occurred
-      if (savedData) {
-        dispatch({ type: 'RESTORE_STATE', payload: savedData });
-        mirrorLocalCache({
-          ...state,
-          ...savedData,
-          userProfile: savedData.userProfile || state.userProfile,
-        } as AppState);
-        setInitialized(true);
-        console.log(`📚 Loaded ${savedData.cases?.length || 0} cases from IndexedDB`);
-      } else {
-        // Nothing to load, but mark initialized to allow normal operation
-        setInitialized(true);
+        console.error('Initialization failed:', error);
+        toast({
+          title: 'Initialization Failed',
+          description: 'Failed to connect to cloud storage',
+          variant: 'destructive'
+        });
+        setInitialized(true); // Still mark as initialized to allow app to function
       }
     };
 
     initializePersistence();
-  }, [loadFromStorage, dispatch, checkHealth]);
+  }, [dispatch, checkHealth, loadFromStorage]);
 
   // Auto-save mechanism (gated until initialized)
   useEffect(() => {
     if (!initialized) return;
+    
     const interval = setInterval(async () => {
       if (!isAutoSaving) {
         await saveAllToStorage(state);
@@ -587,12 +494,11 @@ export const useEnhancedPersistence = () => {
     return () => clearInterval(interval);
   }, [state, saveAllToStorage, isAutoSaving, initialized]);
 
-  // Enhanced save on page unload with complete backup
+  // Emergency backup on page unload (localStorage fallback)
   useEffect(() => {
     const handleBeforeUnload = () => {
-      // Use synchronous localStorage as fallback for ALL critical data
       try {
-        const completeBackup = {
+        const emergencyBackup = {
           cases: state.cases,
           clients: state.clients,
           courts: state.courts,
@@ -602,11 +508,9 @@ export const useEnhancedPersistence = () => {
           tasks: state.tasks,
           documents: state.documents,
           folders: state.folders,
-          userProfile: state.userProfile,
           metadata: {
-            backupType: 'beforeunload',
+            backupType: 'emergency',
             timestamp: new Date().toISOString(),
-            version: '1.0.0',
             entityCounts: {
               cases: state.cases.length,
               clients: state.clients.length,
@@ -621,10 +525,10 @@ export const useEnhancedPersistence = () => {
           }
         };
         
-        localStorage.setItem('lawfirm_app_data_backup', JSON.stringify(completeBackup));
-        console.log('💾 Complete backup created on unload:', completeBackup.metadata.entityCounts);
+        localStorage.setItem('hoffice_emergency_backup', JSON.stringify(emergencyBackup));
+        console.log('💾 Emergency backup created on unload');
       } catch (error) {
-        console.warn('Failed to create complete backup on unload:', error);
+        console.warn('Failed to create emergency backup:', error);
       }
     };
 
@@ -642,6 +546,8 @@ export const useEnhancedPersistence = () => {
     storageHealth,
     lastSaved,
     isAutoSaving,
+    initialized,
+    entityCounts,
     exportData,
     importData,
     clearAllData,

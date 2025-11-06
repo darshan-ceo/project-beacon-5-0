@@ -13,8 +13,7 @@ import {
   Wrench,
   Info
 } from 'lucide-react';
-import { useEnhancedPersistence } from '@/hooks/useEnhancedPersistence';
-import { StorageHealth } from '@/services/persistenceService';
+import { useEnhancedPersistence, StorageHealth } from '@/hooks/useEnhancedPersistence';
 
 export const StorageHealthMonitor: React.FC = () => {
   const { storageHealth, checkHealth, isAutoSaving } = useEnhancedPersistence();

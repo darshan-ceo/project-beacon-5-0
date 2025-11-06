@@ -19,9 +19,9 @@ import {
   HardDrive,
   Activity
 } from 'lucide-react';
-import { useEnhancedPersistence } from '@/hooks/useEnhancedPersistence';
+import { useEnhancedPersistence, StorageHealth } from '@/hooks/useEnhancedPersistence';
 import { seedDataService } from '@/services/seedDataService';
-import { persistenceService, StorageHealth } from '@/services/persistenceService';
+import { StorageManager } from '@/data/StorageManager';
 import { StorageHealthMonitor } from './StorageHealthMonitor';
 import { toast } from '@/hooks/use-toast';
 import { useAppState } from '@/contexts/AppStateContext';
@@ -53,16 +53,17 @@ export const StorageManagerPanel: React.FC = () => {
   // Refresh entity counts
   const refreshCounts = async () => {
     try {
+      const storage = StorageManager.getInstance().getStorage();
       const counts = {
-        cases: (await persistenceService.getAll('cases')).length,
-        clients: (await persistenceService.getAll('clients')).length,
-        courts: (await persistenceService.getAll('courts')).length,
-        judges: (await persistenceService.getAll('judges')).length,
-        employees: (await persistenceService.getAll('employees')).length,
-        hearings: (await persistenceService.getAll('hearings')).length,
-        tasks: (await persistenceService.getAll('tasks')).length,
-        documents: (await persistenceService.getAll('documents')).length,
-        folders: (await persistenceService.getAll('folders')).length,
+        cases: (await storage.getAll('cases')).length,
+        clients: (await storage.getAll('clients')).length,
+        courts: (await storage.getAll('courts')).length,
+        judges: (await storage.getAll('judges')).length,
+        employees: (await storage.getAll('employees')).length,
+        hearings: (await storage.getAll('hearings')).length,
+        tasks: (await storage.getAll('tasks')).length,
+        documents: (await storage.getAll('documents')).length,
+        folders: 0, // Folders not in Supabase yet
       };
       setEntityCounts(counts);
     } catch (error) {
@@ -73,8 +74,8 @@ export const StorageManagerPanel: React.FC = () => {
   // Load operation history
   const refreshOperationHistory = async () => {
     try {
-      const history = await persistenceService.getOperationHistory();
-      setOperationHistory(history.slice(-10)); // Show last 10 operations
+      // Operation history not implemented in Supabase yet
+      setOperationHistory([]);
     } catch (error) {
       console.error('Failed to load operation history:', error);
     }
@@ -189,15 +190,13 @@ export const StorageManagerPanel: React.FC = () => {
   const handleRebuildLocalCache = async () => {
     setIsRebuilding(true);
     try {
-      const { setItem } = await import('@/data/storageShim');
-      const data = await persistenceService.exportAllData();
-      await setItem('lawfirm_app_data', data);
-      await setItem('dms_folders', data.folders || []);
+      const storage = StorageManager.getInstance().getStorage();
+      const data = await storage.exportAll();
       dispatch({ type: 'RESTORE_STATE', payload: data });
       await refreshCounts();
       toast({
-        title: 'Local Cache Rebuilt',
-        description: 'Cache repopulated from IndexedDB successfully.'
+        title: 'Data Refreshed',
+        description: 'Data reloaded from cloud storage successfully.'
       });
     } catch (error) {
       console.error('Rebuild cache failed:', error);
