@@ -27,9 +27,13 @@ export function convertIdsToUUIDs(data: Record<string, any[]>): {
 
   console.log('🔄 Starting UUID conversion...');
 
+  // Tables whose primary key is NOT UUID - skip ID conversion
+  const nonUUIDTables = new Set(['document_folders']);
+
   // First pass: collect all IDs and create mapping
   for (const [table, records] of Object.entries(data)) {
     if (!records || records.length === 0) continue;
+    if (nonUUIDTables.has(table)) continue; // Skip non-UUID tables
 
     for (const record of records) {
       if (record.id && !isValidUUID(String(record.id))) {
@@ -52,8 +56,8 @@ export function convertIdsToUUIDs(data: Record<string, any[]>): {
     convertedData[table] = records.map(record => {
       const converted = { ...record };
       
-      // Replace primary ID if it needs conversion
-      if (converted.id && idMapping[String(converted.id)]) {
+      // Replace primary ID if it needs conversion (skip for non-UUID tables)
+      if (!nonUUIDTables.has(table) && converted.id && idMapping[String(converted.id)]) {
         converted.id = idMapping[String(converted.id)];
       }
 

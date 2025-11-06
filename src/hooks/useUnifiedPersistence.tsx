@@ -36,9 +36,11 @@ export const useUnifiedPersistence = () => {
         
         // Phase 4: One-time migration from IndexedDB to Supabase
         const migrationComplete = localStorage.getItem('SUPABASE_MIGRATION_COMPLETE');
+        const sessionTriedMigration = sessionStorage.getItem('MIGRATION_TRIED_THIS_SESSION');
         
-        if (!migrationComplete) {
+        if (!migrationComplete && !sessionTriedMigration) {
           console.log('🔄 Checking for IndexedDB data to migrate...');
+          sessionStorage.setItem('MIGRATION_TRIED_THIS_SESSION', 'true'); // Prevent retry spam
           
           try {
             // Temporarily initialize IndexedDB to check for existing data
@@ -66,7 +68,7 @@ export const useUnifiedPersistence = () => {
               const supabaseAdapter = storageManager.getStorage();
               await supabaseAdapter.importAll(localData);
               
-              // Mark migration as complete
+              // Mark migration as complete ONLY on success
               localStorage.setItem('SUPABASE_MIGRATION_COMPLETE', 'true');
               
               console.log('✅ Migration completed successfully');
@@ -84,11 +86,14 @@ export const useUnifiedPersistence = () => {
           } catch (migrationError) {
             console.error('❌ Migration failed:', migrationError);
             toast.error('Migration failed', {
-              description: migrationError?.message || 'Data remains in local storage.',
+              description: migrationError?.message || 'Please check console for details.',
               duration: 10000
             });
+            // Don't mark as complete so user can retry after reload
             // Don't throw - continue with Supabase as primary storage
           }
+        } else if (!migrationComplete && sessionTriedMigration) {
+          console.log('⏭️ Migration already attempted this session, skipping retry');
         } else {
           console.log('✅ Migration already completed, using Supabase');
         }

@@ -483,35 +483,164 @@ export class SupabaseAdapter implements StoragePort {
   async importAll(data: Record<string, any[]>): Promise<void> {
     this.ensureInitialized();
 
-    console.log('📦 Starting data import with UUID conversion...');
+    console.log('📦 Starting data import with UUID conversion and FK resolution...');
     
     // Import migration helpers dynamically
-    const { convertIdsToUUIDs, applyForeignKeyMapping, getTableProcessingOrder } = await import('@/utils/migrationHelpers');
+    const { convertIdsToUUIDs, applyForeignKeyMapping, getTableProcessingOrder, isValidUUID } = await import('@/utils/migrationHelpers');
     
     // Step 1: Convert all numeric IDs to UUIDs and build mapping
     const { convertedData, idMapping } = convertIdsToUUIDs(data);
     
-    // Step 2: Process tables in dependency order
+    // Step 2: Build lookup maps for FK resolution
+    const employeesNameLookup = new Map<string, string>();
+    const employeesEmailLookup = new Map<string, string>();
+    const caseNumberLookup = new Map<string, string>();
+    const caseTitleLookup = new Map<string, string>();
+    const clientNameLookup = new Map<string, string>();
+    
+    if (convertedData.employees) {
+      convertedData.employees.forEach((emp: any) => {
+        const empId = emp.id;
+        if (emp.full_name || emp.fullName || emp.name) {
+          employeesNameLookup.set(emp.full_name || emp.fullName || emp.name, empId);
+        }
+        if (emp.email) {
+          employeesEmailLookup.set(emp.email, empId);
+        }
+      });
+    }
+    
+    if (convertedData.cases) {
+      convertedData.cases.forEach((c: any) => {
+        if (c.case_number || c.caseNumber) {
+          caseNumberLookup.set(c.case_number || c.caseNumber, c.id);
+        }
+        if (c.title) {
+          caseTitleLookup.set(c.title, c.id);
+        }
+      });
+    }
+    
+    if (convertedData.clients) {
+      convertedData.clients.forEach((client: any) => {
+        if (client.display_name || client.name) {
+          clientNameLookup.set(client.display_name || client.name, client.id);
+        }
+      });
+    }
+    
+    // Step 3: Process tables in dependency order
     const tableOrder = getTableProcessingOrder();
     const errors: string[] = [];
+    const droppedCounts: Record<string, number> = {};
     
     for (const table of tableOrder) {
-      const records = convertedData[table];
+      let records = convertedData[table];
       if (!records || records.length === 0) continue;
 
       try {
         // Apply foreign key mapping for this table
-        const recordsWithFixedFKs = applyForeignKeyMapping(table, records, idMapping);
+        records = applyForeignKeyMapping(table, records, idMapping);
         
-        // Import records
-        await this.bulkCreate(table, recordsWithFixedFKs);
-        console.log(`✅ Imported ${records.length} records to ${table}`);
+        // Resolve non-UUID FKs using lookup maps
+        const validRecords: any[] = [];
+        
+        for (const record of records) {
+          let shouldInclude = true;
+          
+          // Tasks: resolve assigned_to if not UUID
+          if (table === 'tasks' && record.assigned_to && !isValidUUID(String(record.assigned_to))) {
+            const resolved = employeesNameLookup.get(record.assigned_to) || employeesEmailLookup.get(record.assigned_to);
+            if (resolved) {
+              record.assigned_to = resolved;
+            } else {
+              delete record.assigned_to; // Nullable, delete if unresolvable
+            }
+          }
+          
+          // Hearings: resolve case_id if not UUID (required field)
+          if (table === 'hearings') {
+            if (record.case_id && !isValidUUID(String(record.case_id))) {
+              const resolved = caseNumberLookup.get(record.case_id) || caseTitleLookup.get(record.case_id);
+              if (resolved) {
+                record.case_id = resolved;
+              } else {
+                shouldInclude = false; // Drop hearing if case_id unresolvable
+              }
+            }
+            if (!record.case_id || !isValidUUID(String(record.case_id))) {
+              shouldInclude = false;
+            }
+          }
+          
+          // Cases: resolve client_id if not UUID (required)
+          if (table === 'cases') {
+            if (record.client_id && !isValidUUID(String(record.client_id))) {
+              const resolved = clientNameLookup.get(record.client_id);
+              if (resolved) {
+                record.client_id = resolved;
+              } else {
+                shouldInclude = false;
+              }
+            }
+            if (!record.client_id || !record.case_number || !record.title) {
+              shouldInclude = false;
+            }
+          }
+          
+          // Documents: resolve FKs and set uploaded_by fallback
+          if (table === 'documents') {
+            // Resolve case_id/client_id
+            if (record.case_id && !isValidUUID(String(record.case_id))) {
+              const resolved = caseNumberLookup.get(record.case_id) || caseTitleLookup.get(record.case_id);
+              if (resolved) record.case_id = resolved;
+              else delete record.case_id; // Nullable
+            }
+            if (record.client_id && !isValidUUID(String(record.client_id))) {
+              const resolved = clientNameLookup.get(record.client_id);
+              if (resolved) record.client_id = resolved;
+              else delete record.client_id; // Nullable
+            }
+            // Delete unresolvable nullable FKs
+            if (record.task_id && !isValidUUID(String(record.task_id))) delete record.task_id;
+            if (record.hearing_id && !isValidUUID(String(record.hearing_id))) delete record.hearing_id;
+            
+            // Set uploaded_by to current user if missing
+            if (!record.uploaded_by || !isValidUUID(String(record.uploaded_by))) {
+              record.uploaded_by = this.userId;
+            }
+            
+            // Validate required fields
+            if (!record.file_name || !record.file_path || !record.file_type || !record.uploaded_by) {
+              shouldInclude = false;
+            }
+          }
+          
+          if (shouldInclude) {
+            validRecords.push(record);
+          }
+        }
+        
+        const droppedCount = records.length - validRecords.length;
+        if (droppedCount > 0) {
+          droppedCounts[table] = droppedCount;
+          console.warn(`⚠️ Dropped ${droppedCount} invalid records from ${table}`);
+        }
+        
+        if (validRecords.length > 0) {
+          await this.bulkCreate(table, validRecords);
+          console.log(`✅ Imported ${validRecords.length} records to ${table}`);
+        }
       } catch (error) {
         const errorMsg = `Import failed for ${table}: ${error}`;
         console.error(`❌ ${errorMsg}`);
         errors.push(errorMsg);
         // Continue with other tables
       }
+    }
+    
+    if (Object.keys(droppedCounts).length > 0) {
+      console.log('📊 Dropped records summary:', droppedCounts);
     }
     
     if (errors.length > 0) {
@@ -917,6 +1046,11 @@ export class SupabaseAdapter implements StoragePort {
           if (normalized.createdAt && !normalized.created_at) normalized.created_at = normalized.createdAt;
           if (normalized.updatedAt && !normalized.updated_at) normalized.updated_at = normalized.updatedAt;
           
+          // Set uploaded_by fallback if missing/invalid
+          if (!normalized.uploaded_by) {
+            normalized.uploaded_by = this.userId;
+          }
+          
           // Delete camelCase versions
           delete normalized.caseId;
           delete normalized.clientId;
@@ -939,9 +1073,24 @@ export class SupabaseAdapter implements StoragePort {
           delete normalized.isLatestVersion;
           delete normalized.createdAt;
           delete normalized.updatedAt;
+          
+          // Delete UI-only fields
+          delete normalized.content;
+          delete normalized.name;
+          delete normalized.doc_type_code;
+          delete normalized.createdByName;
+          
+          // Whitelist only valid columns
+          const validDocFields = ['id', 'tenant_id', 'file_name', 'file_path', 'file_type', 'file_size', 'mime_type', 'category', 'role', 'uploaded_by', 'upload_timestamp', 'is_latest_version', 'version', 'reviewer_id', 'review_date', 'review_remarks', 'remarks', 'case_id', 'client_id', 'task_id', 'hearing_id', 'parent_document_id', 'folder_id', 'storage_url', 'created_at', 'updated_at', 'document_status'];
+          Object.keys(normalized).forEach(key => {
+            if (!validDocFields.includes(key)) delete normalized[key];
+          });
           break;
           
         case 'employees':
+          // Legacy name mapping
+          if (normalized.name && !normalized.full_name) normalized.full_name = normalized.name;
+          
           // Map camelCase to snake_case
           if (normalized.employeeCode && !normalized.employee_code) normalized.employee_code = normalized.employeeCode;
           if (normalized.fullName && !normalized.full_name) normalized.full_name = normalized.fullName;
@@ -978,7 +1127,25 @@ export class SupabaseAdapter implements StoragePort {
           if (normalized.createdBy && !normalized.created_by) normalized.created_by = normalized.createdBy;
           if (normalized.updatedBy && !normalized.updated_by) normalized.updated_by = normalized.updatedBy;
           
+          // Provide safe defaults for required fields if missing
+          if (!normalized.employee_code) {
+            normalized.employee_code = `EMP-${normalized.id?.substring(0, 8) || Math.random().toString(36).substring(2, 10)}`;
+          }
+          if (!normalized.full_name) {
+            normalized.full_name = 'Unknown Employee';
+          }
+          if (!normalized.department) {
+            normalized.department = 'General';
+          }
+          if (!normalized.role) {
+            normalized.role = 'Staff';
+          }
+          if (!normalized.email) {
+            normalized.email = `user+${normalized.id || Math.random().toString(36).substring(2, 10)}@local.invalid`;
+          }
+          
           // Delete camelCase versions
+          delete normalized.name;
           delete normalized.employeeCode;
           delete normalized.fullName;
           delete normalized.officialEmail;
@@ -1013,6 +1180,48 @@ export class SupabaseAdapter implements StoragePort {
           delete normalized.updatedAt;
           delete normalized.createdBy;
           delete normalized.updatedBy;
+          break;
+          
+        case 'courts':
+          // Map fields
+          if (normalized.establishedYear && !normalized.established_year) normalized.established_year = normalized.establishedYear;
+          if (normalized.createdAt && !normalized.created_at) normalized.created_at = normalized.createdAt;
+          if (normalized.updatedAt && !normalized.updated_at) normalized.updated_at = normalized.updatedAt;
+          if (normalized.createdBy && !normalized.created_by) normalized.created_by = normalized.createdBy;
+          
+          // Delete UI-only fields
+          delete normalized.activeCases;
+          delete normalized.establishedYear;
+          delete normalized.createdAt;
+          delete normalized.updatedAt;
+          delete normalized.createdBy;
+          
+          // Whitelist only valid columns
+          const validCourtFields = ['id', 'tenant_id', 'name', 'code', 'type', 'level', 'city', 'state', 'jurisdiction', 'address', 'created_by', 'created_at', 'updated_at', 'established_year'];
+          Object.keys(normalized).forEach(key => {
+            if (!validCourtFields.includes(key)) delete normalized[key];
+          });
+          break;
+          
+        case 'judges':
+          // Map fields
+          if (normalized.courtId && !normalized.court_id) normalized.court_id = normalized.courtId;
+          if (normalized.createdAt && !normalized.created_at) normalized.created_at = normalized.createdAt;
+          if (normalized.updatedAt && !normalized.updated_at) normalized.updated_at = normalized.updatedAt;
+          if (normalized.createdBy && !normalized.created_by) normalized.created_by = normalized.createdBy;
+          
+          // Delete UI-only fields
+          delete normalized.appointmentDate;
+          delete normalized.courtId;
+          delete normalized.createdAt;
+          delete normalized.updatedAt;
+          delete normalized.createdBy;
+          
+          // Whitelist only valid columns
+          const validJudgeFields = ['id', 'tenant_id', 'name', 'court_id', 'designation', 'phone', 'email', 'created_by', 'created_at', 'updated_at'];
+          Object.keys(normalized).forEach(key => {
+            if (!validJudgeFields.includes(key)) delete normalized[key];
+          });
           break;
           
         case 'task_bundles':
