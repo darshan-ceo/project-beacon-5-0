@@ -1,11 +1,12 @@
 /**
- * Storage Shim - Unified API for persistence
- * Routes calls to HofficeDB while maintaining backward compatibility
+ * Storage Shim - Supabase-Only Data Persistence
+ * 
+ * Phase 1 Complete: All localStorage and IndexedDB dual-writes removed.
+ * All data operations now go directly to Supabase via StorageManager.
  */
 
-import { db, generateId } from '@/data/db';
-import type { Client, Case, Task, Document, Hearing, Notice, Reply, Employee, Court, Judge } from '@/data/db';
-import { storageMigrator } from '@/utils/storageConsolidation';
+import { StorageManager } from './StorageManager';
+import type { Client, Case, Task, Document, Hearing, Notice, Reply, Employee, Court, Judge } from './db';
 
 export interface AppState {
   clients: Client[];
@@ -24,300 +25,256 @@ export interface AppState {
 }
 
 /**
- * Get current migration mode
+ * Get current migration mode - always 'modern' (Supabase-only)
  */
-export async function getMigrationMode() {
-  return storageMigrator.getMigrationMode();
+export async function getMigrationMode(): Promise<'modern'> {
+  return 'modern';
 }
 
 /**
- * Save entire app state (legacy compatibility)
+ * Save entire application state to Supabase
  */
 export async function saveAppState(state: Partial<AppState>): Promise<void> {
-  const mode = await getMigrationMode();
-
-  // Always write to HofficeDB in modern/transitioning mode
-  if (mode === 'modern' || mode === 'transitioning') {
-    if (state.clients) await db.clients.bulkPut(state.clients);
-    if (state.cases) await db.cases.bulkPut(state.cases);
-    if (state.tasks) await db.tasks.bulkPut(state.tasks);
-    if (state.documents) await db.documents.bulkPut(state.documents);
-    if (state.hearings) await db.hearings.bulkPut(state.hearings);
-    if (state.notices) await db.notices.bulkPut(state.notices);
-    if (state.replies) await db.replies.bulkPut(state.replies);
-    if (state.employees) await db.employees.bulkPut(state.employees);
-    if (state.courts) await db.courts.bulkPut(state.courts);
-    if (state.judges) await db.judges.bulkPut(state.judges);
+  const storage = StorageManager.getInstance().getStorage();
+  
+  // Save each entity type to Supabase in parallel
+  const savePromises: Promise<any>[] = [];
+  
+  if (state.clients?.length) {
+    savePromises.push(storage.bulkCreate('clients', state.clients));
   }
-
-  // During transition, also write to localStorage for safety
-  if (mode === 'transitioning' || mode === 'legacy') {
-    const existing = loadAppStateFromLocalStorage();
-    const merged = { ...existing, ...state };
-    localStorage.setItem('lawfirm_app_data', JSON.stringify(merged));
+  if (state.cases?.length) {
+    savePromises.push(storage.bulkCreate('cases', state.cases));
   }
+  if (state.tasks?.length) {
+    savePromises.push(storage.bulkCreate('tasks', state.tasks));
+  }
+  if (state.documents?.length) {
+    savePromises.push(storage.bulkCreate('documents', state.documents));
+  }
+  if (state.hearings?.length) {
+    savePromises.push(storage.bulkCreate('hearings', state.hearings));
+  }
+  if (state.employees?.length) {
+    savePromises.push(storage.bulkCreate('employees', state.employees));
+  }
+  if (state.courts?.length) {
+    savePromises.push(storage.bulkCreate('courts', state.courts));
+  }
+  if (state.judges?.length) {
+    savePromises.push(storage.bulkCreate('judges', state.judges));
+  }
+  
+  await Promise.all(savePromises);
 }
 
 /**
- * Load entire app state
+ * Load entire application state from Supabase
  */
 export async function loadAppState(): Promise<AppState> {
-  const mode = await getMigrationMode();
-
-  // Read from HofficeDB in modern/transitioning mode
-  if (mode === 'modern' || mode === 'transitioning') {
-    const [clients, cases, tasks, documents, hearings, notices, replies, employees, courts, judges] = await Promise.all([
-      db.clients.toArray(),
-      db.cases.toArray(),
-      db.tasks.toArray(),
-      db.documents.toArray(),
-      db.hearings.toArray(),
-      db.notices.toArray(),
-      db.replies.toArray(),
-      db.employees.toArray(),
-      db.courts.toArray(),
-      db.judges.toArray(),
-    ]);
-
-    return {
-      clients,
-      cases,
-      tasks,
-      documents,
-      hearings,
-      notices,
-      replies,
-      employees,
-      courts,
-      judges,
-    };
-  }
-
-  // Fallback to localStorage in legacy mode
-  return loadAppStateFromLocalStorage();
+  const storage = StorageManager.getInstance().getStorage();
+  
+  const [
+    clients,
+    cases,
+    tasks,
+    documents,
+    hearings,
+    employees,
+    courts,
+    judges
+  ] = await Promise.all([
+    storage.getAll<Client>('clients'),
+    storage.getAll<Case>('cases'),
+    storage.getAll<Task>('tasks'),
+    storage.getAll<Document>('documents'),
+    storage.getAll<Hearing>('hearings'),
+    storage.getAll<Employee>('employees'),
+    storage.getAll<Court>('courts'),
+    storage.getAll<Judge>('judges')
+  ]);
+  
+  return {
+    clients: (clients || []) as Client[],
+    cases: (cases || []) as Case[],
+    tasks: (tasks || []) as Task[],
+    documents: (documents || []) as Document[],
+    hearings: (hearings || []) as Hearing[],
+    notices: [],
+    replies: [],
+    employees: (employees || []) as Employee[],
+    courts: (courts || []) as Court[],
+    judges: (judges || []) as Judge[]
+  };
 }
 
 /**
- * Legacy localStorage loader
- */
-function loadAppStateFromLocalStorage(): AppState {
-  const data = localStorage.getItem('lawfirm_app_data');
-  if (!data) {
-    return {
-      clients: [],
-      cases: [],
-      tasks: [],
-      documents: [],
-      hearings: [],
-      notices: [],
-      replies: [],
-      employees: [],
-      courts: [],
-      judges: [],
-    };
-  }
-
-  try {
-    return JSON.parse(data);
-  } catch {
-    return {
-      clients: [],
-      cases: [],
-      tasks: [],
-      documents: [],
-      hearings: [],
-      notices: [],
-      replies: [],
-      employees: [],
-      courts: [],
-      judges: [],
-    };
-  }
-}
-
-/**
- * Entity-specific save helpers
+ * Save individual client to Supabase
  */
 export async function saveClient(client: Client): Promise<Client> {
-  const mode = await getMigrationMode();
-  const clientWithId = { ...client, id: client.id || generateId() };
-
-  if (mode === 'modern' || mode === 'transitioning') {
-    await db.clients.put(clientWithId);
+  const storage = StorageManager.getInstance().getStorage();
+  
+  if (!client.id) {
+    throw new Error('Client must have an id');
   }
-
-  if (mode === 'transitioning' || mode === 'legacy') {
-    const state = loadAppStateFromLocalStorage();
-    const index = state.clients.findIndex(c => c.id === clientWithId.id);
-    if (index >= 0) {
-      state.clients[index] = clientWithId;
+  
+  try {
+    const existing = await storage.getById('clients', client.id);
+    if (existing) {
+      await storage.update('clients', client.id, client);
     } else {
-      state.clients.push(clientWithId);
+      await storage.create('clients', client);
     }
-    localStorage.setItem('lawfirm_app_data', JSON.stringify(state));
+  } catch {
+    await storage.create('clients', client);
   }
-
-  return clientWithId;
-}
-
-export async function saveCase(case_: Case): Promise<Case> {
-  const mode = await getMigrationMode();
-  const caseWithId = { ...case_, id: case_.id || generateId() };
-
-  if (mode === 'modern' || mode === 'transitioning') {
-    await db.cases.put(caseWithId);
-  }
-
-  if (mode === 'transitioning' || mode === 'legacy') {
-    const state = loadAppStateFromLocalStorage();
-    const index = state.cases.findIndex(c => c.id === caseWithId.id);
-    if (index >= 0) {
-      state.cases[index] = caseWithId;
-    } else {
-      state.cases.push(caseWithId);
-    }
-    localStorage.setItem('lawfirm_app_data', JSON.stringify(state));
-  }
-
-  return caseWithId;
-}
-
-export async function saveTask(task: Task): Promise<Task> {
-  const mode = await getMigrationMode();
-  const taskWithId = { ...task, id: task.id || generateId() };
-
-  if (mode === 'modern' || mode === 'transitioning') {
-    await db.tasks.put(taskWithId);
-  }
-
-  if (mode === 'transitioning' || mode === 'legacy') {
-    const state = loadAppStateFromLocalStorage();
-    const index = state.tasks.findIndex(t => t.id === taskWithId.id);
-    if (index >= 0) {
-      state.tasks[index] = taskWithId;
-    } else {
-      state.tasks.push(taskWithId);
-    }
-    localStorage.setItem('lawfirm_app_data', JSON.stringify(state));
-  }
-
-  return taskWithId;
-}
-
-export async function saveDocument(document: Document): Promise<Document> {
-  const mode = await getMigrationMode();
-  const docWithId = { ...document, id: document.id || generateId() };
-
-  if (mode === 'modern' || mode === 'transitioning') {
-    await db.documents.put(docWithId);
-  }
-
-  if (mode === 'transitioning' || mode === 'legacy') {
-    const state = loadAppStateFromLocalStorage();
-    const index = state.documents.findIndex(d => d.id === docWithId.id);
-    if (index >= 0) {
-      state.documents[index] = docWithId;
-    } else {
-      state.documents.push(docWithId);
-    }
-    localStorage.setItem('lawfirm_app_data', JSON.stringify(state));
-  }
-
-  return docWithId;
+  
+  return client;
 }
 
 /**
- * Generic item getters
+ * Save individual case to Supabase
+ */
+export async function saveCase(caseData: Case): Promise<Case> {
+  const storage = StorageManager.getInstance().getStorage();
+  
+  if (!caseData.id) {
+    throw new Error('Case must have an id');
+  }
+  
+  try {
+    const existing = await storage.getById('cases', caseData.id);
+    if (existing) {
+      await storage.update('cases', caseData.id, caseData);
+    } else {
+      await storage.create('cases', caseData);
+    }
+  } catch {
+    await storage.create('cases', caseData);
+  }
+  
+  return caseData;
+}
+
+/**
+ * Save individual task to Supabase
+ */
+export async function saveTask(task: Task): Promise<Task> {
+  const storage = StorageManager.getInstance().getStorage();
+  
+  if (!task.id) {
+    throw new Error('Task must have an id');
+  }
+  
+  try {
+    const existing = await storage.getById('tasks', task.id);
+    if (existing) {
+      await storage.update('tasks', task.id, task);
+    } else {
+      await storage.create('tasks', task);
+    }
+  } catch {
+    await storage.create('tasks', task);
+  }
+  
+  return task;
+}
+
+/**
+ * Save individual document to Supabase
+ */
+export async function saveDocument(document: Document): Promise<Document> {
+  const storage = StorageManager.getInstance().getStorage();
+  
+  if (!document.id) {
+    throw new Error('Document must have an id');
+  }
+  
+  try {
+    const existing = await storage.getById('documents', document.id);
+    if (existing) {
+      await storage.update('documents', document.id, document);
+    } else {
+      await storage.create('documents', document);
+    }
+  } catch {
+    await storage.create('documents', document);
+  }
+  
+  return document;
+}
+
+/**
+ * Get generic item from Supabase settings table
  */
 export async function getItem<T>(key: string): Promise<T | null> {
-  const mode = await getMigrationMode();
-
-  // Try HofficeDB first
-  if (mode === 'modern' || mode === 'transitioning') {
-    try {
-      // Query by indexed 'key' field, not primary key
-      const record = await db.settings.where('key').equals(key).first();
-      if (record?.value) {
-        return record.value as T;
-      }
-      
-      // If not in DB but exists in localStorage, backfill to DB
-      const localItem = localStorage.getItem(key);
-      if (localItem) {
-        const parsed = JSON.parse(localItem) as T;
-        await setItem(key, parsed); // Backfill to DB
-        return parsed;
-      }
-    } catch (error) {
-      console.error('Error reading from HofficeDB:', error);
-      // Fall through to localStorage
+  const storage = StorageManager.getInstance().getStorage();
+  
+  try {
+    // Query settings table for this key
+    const allSettings = await storage.getAll<any>('system_settings');
+    const setting = allSettings.find((s: any) => s.setting_key === key);
+    
+    if (setting?.setting_value) {
+      return setting.setting_value as T;
     }
+    
+    return null;
+  } catch (error) {
+    console.error(`Error getting item ${key}:`, error);
+    return null;
   }
-
-  // Fallback to localStorage
-  const value = localStorage.getItem(key);
-  return value ? JSON.parse(value) : null;
 }
 
+/**
+ * Set generic item in Supabase settings table
+ */
 export async function setItem<T>(key: string, value: T): Promise<void> {
-  const mode = await getMigrationMode();
-
-  if (mode === 'modern' || mode === 'transitioning') {
-    // Find existing record by key to implement UPSERT
-    const existing = await db.settings.where('key').equals(key).first();
+  const storage = StorageManager.getInstance().getStorage();
+  
+  try {
+    // Try to find existing setting
+    const allSettings = await storage.getAll<any>('system_settings');
+    const existing = allSettings.find((s: any) => s.setting_key === key);
     
     if (existing) {
-      // Update existing record, preserving ID and creation time
-      await db.settings.put({ 
-        id: existing.id,
-        key, 
-        value: value as any,
-        created_at: existing.created_at,
-        updated_at: new Date()
-      });
+      // Update existing - use any type to bypass strict typing
+      await storage.update('system_settings', existing.id, {
+        ...existing,
+        setting_value: value,
+        updated_at: new Date().toISOString()
+      } as any);
     } else {
-      // Create new record
-      await db.settings.put({ 
-        id: generateId(),
-        key, 
-        value: value as any,
-        created_at: new Date(),
-        updated_at: new Date()
+      // Create new - need to generate ID
+      const newId = crypto.randomUUID();
+      await storage.create('system_settings', {
+        id: newId,
+        setting_key: key,
+        setting_value: value,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       });
     }
-    
-    // Cleanup: Remove duplicate records for this key (safety measure)
-    const allRecords = await db.settings.where('key').equals(key).toArray();
-    if (allRecords.length > 1) {
-      const sorted = allRecords.sort((a, b) => 
-        (b.updated_at?.getTime() || 0) - (a.updated_at?.getTime() || 0)
-      );
-      const toDelete = sorted.slice(1).map(r => r.id);
-      await db.settings.bulkDelete(toDelete);
-    }
-  }
-
-  if (mode === 'transitioning' || mode === 'legacy') {
-    localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.error(`Error setting item ${key}:`, error);
+    throw error;
   }
 }
 
+/**
+ * Remove item from Supabase settings table
+ */
 export async function removeItem(key: string): Promise<void> {
-  const mode = await getMigrationMode();
-
-  if (mode === 'modern' || mode === 'transitioning') {
-    try {
-      // Find record by indexed key field
-      const record = await db.settings.where('key').equals(key).first();
-      if (record) {
-        await db.settings.delete(record.id); // Delete by primary key (id)
-      }
-    } catch (error) {
-      console.error('Error removing from HofficeDB:', error);
+  const storage = StorageManager.getInstance().getStorage();
+  
+  try {
+    const allSettings = await storage.getAll<any>('system_settings');
+    const setting = allSettings.find((s: any) => s.setting_key === key);
+    
+    if (setting) {
+      await storage.delete('system_settings', setting.id);
     }
-  }
-
-  if (mode === 'transitioning' || mode === 'legacy') {
-    localStorage.removeItem(key);
+  } catch (error) {
+    console.error(`Error removing item ${key}:`, error);
   }
 }

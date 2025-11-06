@@ -3,40 +3,29 @@
  * Provides information about the current storage configuration
  */
 
-export const getStorageMode = (): 'supabase' | 'indexeddb' | 'hybrid' => {
-  // Check if migration is complete - if so, we're using Supabase
-  const migrationComplete = localStorage.getItem('SUPABASE_MIGRATION_COMPLETE');
-  
-  if (migrationComplete === 'true') {
-    return 'supabase';
-  }
-  
-  // Default to supabase as per Phase 4
+export const getStorageMode = (): 'supabase' => {
+  // Always use Supabase - migration complete
   return 'supabase';
 };
 
 export const isMigrationComplete = (): boolean => {
-  return localStorage.getItem('SUPABASE_MIGRATION_COMPLETE') === 'true';
+  // Migration always complete - using Supabase
+  return true;
 };
 
 export const getStorageInfo = () => {
-  const mode = getStorageMode();
-  const migrated = isMigrationComplete();
-  
   return {
-    mode,
-    migrated,
-    displayName: mode === 'supabase' ? 'Cloud Storage (Supabase)' : 'Local Storage',
-    description: mode === 'supabase' 
-      ? 'Your data is securely stored in the cloud with real-time sync'
-      : 'Your data is stored locally on this device',
+    mode: 'supabase' as const,
+    migrated: true,
+    displayName: 'Cloud Storage (Lovable Cloud)',
+    description: 'Your data is securely stored in the cloud with real-time sync',
     isPersistent: true,
-    supportsRealtime: mode === 'supabase',
-    supportsMultiDevice: mode === 'supabase'
+    supportsRealtime: true,
+    supportsMultiDevice: true
   };
 };
 
 export const resetMigrationFlag = () => {
-  localStorage.removeItem('SUPABASE_MIGRATION_COMPLETE');
-  console.warn('⚠️ Migration flag reset. App will re-check for data to migrate on next load.');
+  // No-op: Migration permanently complete, using Supabase only
+  console.info('ℹ️ Storage mode is locked to Supabase.');
 };

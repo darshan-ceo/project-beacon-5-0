@@ -13,7 +13,7 @@ let API = (import.meta.env.VITE_API_BASE_URL || '').trim();
 
 // DEMO Mode Configuration
 let APP_MODE = (import.meta.env.VITE_APP_MODE || 'demo').trim().toLowerCase();
-let STORAGE_BACKEND = (import.meta.env.VITE_STORAGE_BACKEND || 'indexeddb').trim().toLowerCase();
+let STORAGE_BACKEND = (import.meta.env.VITE_STORAGE_BACKEND || 'supabase').trim().toLowerCase();
 
 // URL parameter overrides
 if (typeof window !== 'undefined') {

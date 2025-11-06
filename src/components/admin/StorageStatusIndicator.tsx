@@ -11,18 +11,13 @@ export const StorageStatusIndicator = () => {
   const storageInfo = getStorageInfo();
   
   const getIcon = () => {
-    switch (storageInfo.mode) {
-      case 'supabase':
-        return <Cloud className="h-3 w-3" />;
-      case 'indexeddb':
-        return <Database className="h-3 w-3" />;
-      default:
-        return <RefreshCw className="h-3 w-3" />;
-    }
+    // Always Supabase mode now
+    return <Cloud className="h-3 w-3" />;
   };
   
   const getVariant = () => {
-    return storageInfo.mode === 'supabase' ? 'default' : 'secondary';
+    // Always default variant for Supabase
+    return 'default' as const;
   };
   
   return (
