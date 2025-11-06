@@ -483,26 +483,43 @@ export class SupabaseAdapter implements StoragePort {
   async importAll(data: Record<string, any[]>): Promise<void> {
     this.ensureInitialized();
 
+    console.log('📦 Starting data import with UUID conversion...');
+    
+    // Import migration helpers dynamically
+    const { convertIdsToUUIDs, applyForeignKeyMapping, getTableProcessingOrder } = await import('@/utils/migrationHelpers');
+    
+    // Step 1: Convert all numeric IDs to UUIDs and build mapping
+    const { convertedData, idMapping } = convertIdsToUUIDs(data);
+    
+    // Step 2: Process tables in dependency order
+    const tableOrder = getTableProcessingOrder();
     const errors: string[] = [];
     
-    for (const [table, records] of Object.entries(data)) {
-      if (records.length === 0) continue;
+    for (const table of tableOrder) {
+      const records = convertedData[table];
+      if (!records || records.length === 0) continue;
 
       try {
-        await this.bulkCreate(table, records);
+        // Apply foreign key mapping for this table
+        const recordsWithFixedFKs = applyForeignKeyMapping(table, records, idMapping);
+        
+        // Import records
+        await this.bulkCreate(table, recordsWithFixedFKs);
         console.log(`✅ Imported ${records.length} records to ${table}`);
       } catch (error) {
         const errorMsg = `Import failed for ${table}: ${error}`;
         console.error(`❌ ${errorMsg}`);
         errors.push(errorMsg);
-        // Continue with other tables instead of throwing immediately
+        // Continue with other tables
       }
     }
     
     if (errors.length > 0) {
-      console.error('❌ Import completed with errors:', errors);
+      console.error('⚠️ Import completed with errors:', errors);
       throw new Error(`Import failed for ${errors.length} table(s): ${errors.join('; ')}`);
     }
+    
+    console.log('✅ Data import completed successfully');
   }
 
   // ============= HEALTH & DIAGNOSTICS =============
@@ -815,20 +832,187 @@ export class SupabaseAdapter implements StoragePort {
           break;
           
         case 'hearings':
-          // Map time/start_time -> hearing_date
+          // Map camelCase to snake_case
+          if (normalized.caseId && !normalized.case_id) {
+            normalized.case_id = normalized.caseId;
+          }
+          if (normalized.courtId && !normalized.court_id) {
+            normalized.court_id = normalized.courtId;
+          }
+          if (normalized.courtName && !normalized.court_name) {
+            normalized.court_name = normalized.courtName;
+          }
+          if (normalized.judgeName && !normalized.judge_name) {
+            normalized.judge_name = normalized.judgeName;
+          }
+          if (normalized.forumId && !normalized.forum_id) {
+            normalized.forum_id = normalized.forumId;
+          }
+          if (normalized.authorityId && !normalized.authority_id) {
+            normalized.authority_id = normalized.authorityId;
+          }
+          if (normalized.hearingDate && !normalized.hearing_date) {
+            normalized.hearing_date = normalized.hearingDate;
+          }
+          if (normalized.nextHearingDate && !normalized.next_hearing_date) {
+            normalized.next_hearing_date = normalized.nextHearingDate;
+          }
+          if (normalized.createdAt && !normalized.created_at) {
+            normalized.created_at = normalized.createdAt;
+          }
+          if (normalized.updatedAt && !normalized.updated_at) {
+            normalized.updated_at = normalized.updatedAt;
+          }
+          
+          // Map time/start_time -> hearing_date if needed
           if ((normalized.time || normalized.start_time) && !normalized.hearing_date) {
             const timeStr = normalized.time || normalized.start_time || '10:00';
             const dateStr = normalized.date || new Date().toISOString().split('T')[0];
             normalized.hearing_date = `${dateStr}T${timeStr}:00`;
           }
+          
+          // Delete camelCase versions
+          delete normalized.caseId;
+          delete normalized.courtId;
+          delete normalized.courtName;
+          delete normalized.judgeName;
+          delete normalized.forumId;
+          delete normalized.authorityId;
+          delete normalized.hearingDate;
+          delete normalized.nextHearingDate;
+          delete normalized.createdAt;
+          delete normalized.updatedAt;
           delete normalized.time;
           delete normalized.start_time;
           delete normalized.date;
+          
           // Keep only valid columns
           const validHearingFields = ['id', 'case_id', 'hearing_date', 'next_hearing_date', 'status', 'notes', 'outcome', 'forum_id', 'authority_id', 'court_id', 'court_name', 'judge_name', 'created_at', 'updated_at', 'tenant_id'];
           Object.keys(normalized).forEach(key => {
             if (!validHearingFields.includes(key)) delete normalized[key];
           });
+          break;
+          
+        case 'documents':
+          // Map camelCase to snake_case
+          if (normalized.caseId && !normalized.case_id) normalized.case_id = normalized.caseId;
+          if (normalized.clientId && !normalized.client_id) normalized.client_id = normalized.clientId;
+          if (normalized.taskId && !normalized.task_id) normalized.task_id = normalized.taskId;
+          if (normalized.hearingId && !normalized.hearing_id) normalized.hearing_id = normalized.hearingId;
+          if (normalized.uploadedBy && !normalized.uploaded_by) normalized.uploaded_by = normalized.uploadedBy;
+          if (normalized.fileName && !normalized.file_name) normalized.file_name = normalized.fileName;
+          if (normalized.filePath && !normalized.file_path) normalized.file_path = normalized.filePath;
+          if (normalized.fileType && !normalized.file_type) normalized.file_type = normalized.fileType;
+          if (normalized.fileSize && !normalized.file_size) normalized.file_size = normalized.fileSize;
+          if (normalized.mimeType && !normalized.mime_type) normalized.mime_type = normalized.mimeType;
+          if (normalized.folderId && !normalized.folder_id) normalized.folder_id = normalized.folderId;
+          if (normalized.storageUrl && !normalized.storage_url) normalized.storage_url = normalized.storageUrl;
+          if (normalized.uploadTimestamp && !normalized.upload_timestamp) normalized.upload_timestamp = normalized.uploadTimestamp;
+          if (normalized.documentStatus && !normalized.document_status) normalized.document_status = normalized.documentStatus;
+          if (normalized.reviewerId && !normalized.reviewer_id) normalized.reviewer_id = normalized.reviewerId;
+          if (normalized.reviewDate && !normalized.review_date) normalized.review_date = normalized.reviewDate;
+          if (normalized.reviewRemarks && !normalized.review_remarks) normalized.review_remarks = normalized.reviewRemarks;
+          if (normalized.parentDocumentId && !normalized.parent_document_id) normalized.parent_document_id = normalized.parentDocumentId;
+          if (normalized.isLatestVersion !== undefined && normalized.is_latest_version === undefined) normalized.is_latest_version = normalized.isLatestVersion;
+          if (normalized.createdAt && !normalized.created_at) normalized.created_at = normalized.createdAt;
+          if (normalized.updatedAt && !normalized.updated_at) normalized.updated_at = normalized.updatedAt;
+          
+          // Delete camelCase versions
+          delete normalized.caseId;
+          delete normalized.clientId;
+          delete normalized.taskId;
+          delete normalized.hearingId;
+          delete normalized.uploadedBy;
+          delete normalized.fileName;
+          delete normalized.filePath;
+          delete normalized.fileType;
+          delete normalized.fileSize;
+          delete normalized.mimeType;
+          delete normalized.folderId;
+          delete normalized.storageUrl;
+          delete normalized.uploadTimestamp;
+          delete normalized.documentStatus;
+          delete normalized.reviewerId;
+          delete normalized.reviewDate;
+          delete normalized.reviewRemarks;
+          delete normalized.parentDocumentId;
+          delete normalized.isLatestVersion;
+          delete normalized.createdAt;
+          delete normalized.updatedAt;
+          break;
+          
+        case 'employees':
+          // Map camelCase to snake_case
+          if (normalized.employeeCode && !normalized.employee_code) normalized.employee_code = normalized.employeeCode;
+          if (normalized.fullName && !normalized.full_name) normalized.full_name = normalized.fullName;
+          if (normalized.officialEmail && !normalized.official_email) normalized.official_email = normalized.officialEmail;
+          if (normalized.personalEmail && !normalized.personal_email) normalized.personal_email = normalized.personalEmail;
+          if (normalized.alternateContact && !normalized.alternate_contact) normalized.alternate_contact = normalized.alternateContact;
+          if (normalized.currentAddress && !normalized.current_address) normalized.current_address = normalized.currentAddress;
+          if (normalized.permanentAddress && !normalized.permanent_address) normalized.permanent_address = normalized.permanentAddress;
+          if (normalized.dateOfJoining && !normalized.date_of_joining) normalized.date_of_joining = normalized.dateOfJoining;
+          if (normalized.dateOfBirth && !normalized.dob) normalized.dob = normalized.dateOfBirth;
+          if (normalized.managerId && !normalized.manager_id) normalized.manager_id = normalized.managerId;
+          if (normalized.reportingTo && !normalized.reporting_to) normalized.reporting_to = normalized.reportingTo;
+          if (normalized.employmentType && !normalized.employment_type) normalized.employment_type = normalized.employmentType;
+          if (normalized.graduationYear && !normalized.graduation_year) normalized.graduation_year = normalized.graduationYear;
+          if (normalized.billingRate && !normalized.billing_rate) normalized.billing_rate = normalized.billingRate;
+          if (normalized.incentiveEligible !== undefined && normalized.incentive_eligible === undefined) normalized.incentive_eligible = normalized.incentiveEligible;
+          if (normalized.aiAccess !== undefined && normalized.ai_access === undefined) normalized.ai_access = normalized.aiAccess;
+          if (normalized.whatsappAccess !== undefined && normalized.whatsapp_access === undefined) normalized.whatsapp_access = normalized.whatsappAccess;
+          if (normalized.dataScope && !normalized.data_scope) normalized.data_scope = normalized.dataScope;
+          if (normalized.moduleAccess && !normalized.module_access) normalized.module_access = normalized.moduleAccess;
+          if (normalized.defaultTaskCategory && !normalized.default_task_category) normalized.default_task_category = normalized.defaultTaskCategory;
+          if (normalized.workloadCapacity && !normalized.workload_capacity) normalized.workload_capacity = normalized.workloadCapacity;
+          if (normalized.experienceYears && !normalized.experience_years) normalized.experience_years = normalized.experienceYears;
+          if (normalized.gstPractitionerId && !normalized.gst_practitioner_id) normalized.gst_practitioner_id = normalized.gstPractitionerId;
+          if (normalized.icaiNo && !normalized.icai_no) normalized.icai_no = normalized.icaiNo;
+          if (normalized.barCouncilNo && !normalized.bar_council_no) normalized.bar_council_no = normalized.barCouncilNo;
+          if (normalized.bloodGroup && !normalized.blood_group) normalized.blood_group = normalized.bloodGroup;
+          if (normalized.profilePhoto && !normalized.profile_photo) normalized.profile_photo = normalized.profilePhoto;
+          if (normalized.workShift && !normalized.work_shift) normalized.work_shift = normalized.workShift;
+          if (normalized.weeklyOff && !normalized.weekly_off) normalized.weekly_off = normalized.weeklyOff;
+          if (normalized.confirmationDate && !normalized.confirmation_date) normalized.confirmation_date = normalized.confirmationDate;
+          if (normalized.createdAt && !normalized.created_at) normalized.created_at = normalized.createdAt;
+          if (normalized.updatedAt && !normalized.updated_at) normalized.updated_at = normalized.updatedAt;
+          if (normalized.createdBy && !normalized.created_by) normalized.created_by = normalized.createdBy;
+          if (normalized.updatedBy && !normalized.updated_by) normalized.updated_by = normalized.updatedBy;
+          
+          // Delete camelCase versions
+          delete normalized.employeeCode;
+          delete normalized.fullName;
+          delete normalized.officialEmail;
+          delete normalized.personalEmail;
+          delete normalized.alternateContact;
+          delete normalized.currentAddress;
+          delete normalized.permanentAddress;
+          delete normalized.dateOfJoining;
+          delete normalized.dateOfBirth;
+          delete normalized.managerId;
+          delete normalized.reportingTo;
+          delete normalized.employmentType;
+          delete normalized.graduationYear;
+          delete normalized.billingRate;
+          delete normalized.incentiveEligible;
+          delete normalized.aiAccess;
+          delete normalized.whatsappAccess;
+          delete normalized.dataScope;
+          delete normalized.moduleAccess;
+          delete normalized.defaultTaskCategory;
+          delete normalized.workloadCapacity;
+          delete normalized.experienceYears;
+          delete normalized.gstPractitionerId;
+          delete normalized.icaiNo;
+          delete normalized.barCouncilNo;
+          delete normalized.bloodGroup;
+          delete normalized.profilePhoto;
+          delete normalized.workShift;
+          delete normalized.weeklyOff;
+          delete normalized.confirmationDate;
+          delete normalized.createdAt;
+          delete normalized.updatedAt;
+          delete normalized.createdBy;
+          delete normalized.updatedBy;
           break;
           
         case 'task_bundles':
