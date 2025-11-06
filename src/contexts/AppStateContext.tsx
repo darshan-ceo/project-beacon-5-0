@@ -31,6 +31,7 @@ interface Case {
     type: 'Adjourned' | 'Final' | 'Argued';
   };
   assignedToId: string; // FK to Employee.id
+  assignedTo?: string; // Database field mapping (same as assignedToId)
   assignedToName: string; // Display name derived from Employee
   createdDate: string;
   lastUpdated: string;

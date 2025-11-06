@@ -56,18 +56,15 @@ export const casesService = {
         const storage = storageManager.getStorage();
         await storage.create('cases', {
           id: newCase.id,
-          client_id: newCase.clientId,
-          stage_code: newCase.currentStage,
-          status: newCase.slaStatus,
-          opened_on: new Date(),
-          updated_at: new Date(),
-          case_number: newCase.caseNumber,
+          clientId: newCase.clientId,
+          stageCode: newCase.currentStage,
+          status: newCase.status,
+          caseNumber: newCase.caseNumber,
           title: newCase.title,
-          assigned_to_id: newCase.assignedToId,
+          assignedTo: newCase.assignedToId,
           priority: newCase.priority,
-          forum_id: newCase.forumId,
-          authority_level: newCase.authorityLevel,
-          specific_officer: newCase.specificOfficer,
+          forumId: newCase.forumId,
+          description: newCase.description,
         });
 
         changeTracker.markDirty(ENTITY_TYPES.CASE, newCase.id, 'create');
@@ -109,13 +106,12 @@ export const casesService = {
         const storage = storageManager.getStorage();
         await storage.update('cases', caseId, {
           ...updates,
-          updated_at: new Date(),
-          client_id: updates.clientId,
-          stage_code: updates.currentStage,
-          status: updates.slaStatus,
-          forum_id: updates.forumId,
-          authority_level: updates.authorityLevel,
-          specific_officer: updates.specificOfficer,
+          clientId: updates.clientId,
+          stageCode: updates.currentStage,
+          status: updates.status,
+          forumId: updates.forumId,
+          assignedTo: updates.assignedToId,
+          priority: updates.priority,
         });
 
         changeTracker.markDirty(ENTITY_TYPES.CASE, caseId, 'update');
@@ -210,9 +206,8 @@ export const casesService = {
       try {
         const storage = storageManager.getStorage();
         await storage.update('cases', caseId, {
-          stage_code: updates.currentStage,
+          stageCode: updates.currentStage,
           status: updates.slaStatus,
-          updated_at: new Date(),
         } as any);
         changeTracker.markDirty(ENTITY_TYPES.CASE, caseId, 'update');
         changeTracker.logChange(ENTITY_TYPES.CASE, caseId, 'update');
