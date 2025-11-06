@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { db } from '@/data/db';
+import { StorageManager } from '@/data/StorageManager';
 import { removeItem } from '@/data/storageShim';
 
 export const EmergencyReset: React.FC = () => {
@@ -14,12 +14,13 @@ export const EmergencyReset: React.FC = () => {
       await removeItem('lawfirm_app_data');
       await removeItem('user_profile');
       
-      // Clear HofficeDB
-      await db.delete();
+      // Clear all storage
+      const storage = StorageManager.getInstance().getStorage();
+      await storage.clearAll();
       
       toast({
         title: "Emergency Reset Complete",
-        description: "All local data has been cleared. The page will reload.",
+        description: "All data has been cleared. The page will reload.",
       });
 
       // Reload the page after a short delay
@@ -29,7 +30,7 @@ export const EmergencyReset: React.FC = () => {
     } catch (error) {
       toast({
         title: "Reset Failed",
-        description: "Could not clear local data. Please try again.",
+        description: "Could not clear data. Please try again.",
         variant: "destructive",
       });
     }

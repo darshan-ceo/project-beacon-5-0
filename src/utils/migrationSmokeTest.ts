@@ -3,7 +3,8 @@
  * Validates basic CRUD operations after migration
  */
 
-import { db, generateId } from '@/data/db';
+import { generateId } from '@/data/db';
+import { StorageManager } from '@/data/StorageManager';
 import { saveClient, saveCase, loadAppState } from '@/data/storageShim';
 import type { Client, Case } from '@/data/db';
 
@@ -38,7 +39,8 @@ export async function runMigrationSmokeTest(): Promise<SmokeTestResult> {
     };
 
     await saveClient(testClient);
-    const retrieved = await db.clients.get(testClient.id);
+    const storage = StorageManager.getInstance().getStorage();
+    const retrieved = await storage.getById<Client>('clients', testClient.id);
 
     tests.push({
       name: 'Create and Read Client',
@@ -47,7 +49,7 @@ export async function runMigrationSmokeTest(): Promise<SmokeTestResult> {
     });
 
     // Cleanup
-    await db.clients.delete(testClient.id);
+    await storage.delete('clients', testClient.id);
   } catch (error) {
     tests.push({
       name: 'Create and Read Client',
@@ -83,8 +85,9 @@ export async function runMigrationSmokeTest(): Promise<SmokeTestResult> {
     };
 
     await saveCase(testCase);
-    const retrievedCase = await db.cases.get(testCase.id);
-    const retrievedClient = await db.clients.get(testClient.id);
+    const storage = StorageManager.getInstance().getStorage();
+    const retrievedCase = await storage.getById<Case>('cases', testCase.id);
+    const retrievedClient = await storage.getById<Client>('clients', testClient.id);
 
     tests.push({
       name: 'Create Case with Client Relationship',
@@ -93,8 +96,8 @@ export async function runMigrationSmokeTest(): Promise<SmokeTestResult> {
     });
 
     // Cleanup
-    await db.cases.delete(testCase.id);
-    await db.clients.delete(testClient.id);
+    await storage.delete('cases', testCase.id);
+    await storage.delete('clients', testClient.id);
   } catch (error) {
     tests.push({
       name: 'Create Case with Client Relationship',
@@ -125,11 +128,19 @@ export async function runMigrationSmokeTest(): Promise<SmokeTestResult> {
   // Test 4: Count records
   const test4Start = Date.now();
   try {
+    const storage = StorageManager.getInstance().getStorage();
+    const [clients, cases, tasks, documents] = await Promise.all([
+      storage.getAll('clients'),
+      storage.getAll('cases'),
+      storage.getAll('tasks'),
+      storage.getAll('documents')
+    ]);
+    
     const counts = {
-      clients: await db.clients.count(),
-      cases: await db.cases.count(),
-      tasks: await db.tasks.count(),
-      documents: await db.documents.count(),
+      clients: clients.length,
+      cases: cases.length,
+      tasks: tasks.length,
+      documents: documents.length,
     };
 
     tests.push({
@@ -149,7 +160,8 @@ export async function runMigrationSmokeTest(): Promise<SmokeTestResult> {
   // Test 5: Query by field
   const test5Start = Date.now();
   try {
-    const activeCases = await db.cases.where('status').equals('active').toArray();
+    const storage = StorageManager.getInstance().getStorage();
+    const activeCases = await storage.queryByField('cases', 'status', 'active');
     tests.push({
       name: 'Query Cases by Status',
       passed: Array.isArray(activeCases),
@@ -167,8 +179,9 @@ export async function runMigrationSmokeTest(): Promise<SmokeTestResult> {
   // Test 6: Follow-up specific tests
   const test6Start = Date.now();
   try {
-    const followUps = await db.task_followups.toArray();
-    const tasks = await db.tasks.toArray();
+    const storage = StorageManager.getInstance().getStorage();
+    const followUps = await storage.getAll('task_followups');
+    const tasks = await storage.getAll('tasks');
     
     // Check: Tasks with follow-ups should be locked
     const tasksWithFollowUps = tasks.filter((t: any) => 
@@ -195,12 +208,13 @@ export async function runMigrationSmokeTest(): Promise<SmokeTestResult> {
   // Test 7: Follow-up migration integrity
   const test7Start = Date.now();
   try {
-    const followUps = await db.task_followups.toArray();
-    const tasks = await db.tasks.toArray();
+    const storage = StorageManager.getInstance().getStorage();
+    const followUps = await storage.getAll('task_followups');
+    const tasks = await storage.getAll('tasks');
     
     // Check for orphaned follow-ups
-    const orphanedFollowUps = followUps.filter(f => 
-      !tasks.some(t => t.id === f.taskId)
+    const orphanedFollowUps = followUps.filter((f: any) => 
+      !tasks.some((t: any) => t.id === f.taskId)
     );
     
     tests.push({
@@ -239,6 +253,8 @@ export async function quickCanary(): Promise<{
   error?: string;
 }> {
   try {
+    const storage = StorageManager.getInstance().getStorage();
+    
     // Create test client
     const clientId = generateId();
     const testClient: Client = {
@@ -250,7 +266,7 @@ export async function quickCanary(): Promise<{
       updated_at: new Date(),
     };
 
-    await db.clients.put(testClient);
+    await storage.create('clients', testClient);
 
     // Create test case
     const caseId = generateId();
@@ -265,15 +281,15 @@ export async function quickCanary(): Promise<{
       updated_at: new Date(),
     };
 
-    await db.cases.put(testCase);
+    await storage.create('cases', testCase);
 
     // Verify reads
-    const client = await db.clients.get(clientId);
-    const case_ = await db.cases.get(caseId);
+    const client = await storage.getById<Client>('clients', clientId);
+    const case_ = await storage.getById<Case>('cases', caseId);
 
     // Cleanup
-    await db.clients.delete(clientId);
-    await db.cases.delete(caseId);
+    await storage.delete('clients', clientId);
+    await storage.delete('cases', caseId);
 
     return {
       success: !!client && !!case_,

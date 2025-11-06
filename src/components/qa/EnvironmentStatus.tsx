@@ -14,7 +14,7 @@ import {
 import { envConfig } from '@/utils/envConfig';
 import { toast } from '@/hooks/use-toast';
 import { removeItem } from '@/data/storageShim';
-import { db } from '@/data/db';
+import { StorageManager } from '@/data/StorageManager';
 
 export const EnvironmentStatus: React.FC = () => {
   const statusBadges = envConfig.getStatusBadges();
@@ -136,8 +136,9 @@ export const EnvironmentStatus: React.FC = () => {
               await removeItem('lawfirm_app_data');
               await removeItem('user_profile');
               
-              // Clear HofficeDB
-              await db.delete();
+              // Clear all storage
+              const storage = StorageManager.getInstance().getStorage();
+              await storage.clearAll();
               
               // Clear session storage
               sessionStorage.clear();

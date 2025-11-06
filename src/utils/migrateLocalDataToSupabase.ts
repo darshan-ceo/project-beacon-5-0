@@ -49,9 +49,10 @@ export async function migrateLocalDataToSupabase(tenantId: string): Promise<Migr
     // Example migration flow (commented out - needs actual implementation):
     /*
     // 1. Export from IndexedDB
-    const db = await import('@/data/db').then(m => m.db);
-    const localClients = await db.clients.toArray();
-    const localCases = await db.cases.toArray();
+    const { StorageManager } = await import('@/data/StorageManager');
+    const storage = StorageManager.getInstance().getStorage();
+    const localClients = await storage.getAll('clients');
+    const localCases = await storage.getAll('cases');
     
     // 2. Migrate clients first (no dependencies)
     if (localClients.length > 0) {
@@ -81,9 +82,9 @@ export async function migrateLocalDataToSupabase(tenantId: string): Promise<Migr
     
     // 4. Migrate hearings, tasks, documents...
     
-    // 5. Clear IndexedDB only if migration succeeded
+    // 5. Clear storage only if migration succeeded
     if (stats.errors.length === 0) {
-      await db.delete();
+      await storage.destroy?.();
       localStorage.setItem('MIGRATION_COMPLETE', new Date().toISOString());
     }
     */

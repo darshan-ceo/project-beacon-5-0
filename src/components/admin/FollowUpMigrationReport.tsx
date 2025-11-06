@@ -15,7 +15,7 @@ import {
   FileText
 } from 'lucide-react';
 import { useAppState, Task } from '@/contexts/AppStateContext';
-import { db } from '@/data/db';
+import { StorageManager } from '@/data/StorageManager';
 import { useToast } from '@/hooks/use-toast';
 
 interface MigrationStats {
@@ -43,11 +43,12 @@ export const FollowUpMigrationReport: React.FC = () => {
   const calculateStats = async () => {
     setLoading(true);
     try {
-      // Get fresh data from db
+      // Get fresh data from storage
+      const storage = StorageManager.getInstance().getStorage();
       const [tasks, taskFollowUps, taskNotes] = await Promise.all([
-        db.tasks.toArray(),
-        db.task_followups.toArray(),
-        db.task_notes.toArray()
+        storage.getAll('tasks'),
+        storage.getAll('task_followups'),
+        storage.getAll('task_notes')
       ]);
 
       const lockedTasks = tasks.filter((t: any) => t.isLocked);

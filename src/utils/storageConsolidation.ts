@@ -1,9 +1,10 @@
 /**
  * Storage Consolidation Utilities
- * Migrates data from localStorage and legacy IndexedDB to HofficeDB
+ * Migrates data from localStorage to Supabase
  */
 
-import { db, generateId } from '@/data/db';
+import { generateId } from '@/data/db';
+import { StorageManager } from '@/data/StorageManager';
 import { toast } from '@/hooks/use-toast';
 
 export type MigrationMode = 'legacy' | 'transitioning' | 'modern';
@@ -43,18 +44,31 @@ export class StorageMigrator {
     hofficeDBRecords: Record<string, number>;
   }> {
     const localStorageItems = Object.keys(localStorage);
+    const storage = StorageManager.getInstance().getStorage();
     
-    // Count records in HofficeDB
+    // Count records in storage
+    const [clients, cases, notices, tasks, documents, hearings, employees, courts, judges] = await Promise.all([
+      storage.getAll('clients'),
+      storage.getAll('cases'),
+      storage.getAll('notices'),
+      storage.getAll('tasks'),
+      storage.getAll('documents'),
+      storage.getAll('hearings'),
+      storage.getAll('employees'),
+      storage.getAll('courts'),
+      storage.getAll('judges')
+    ]);
+    
     const hofficeDBRecords: Record<string, number> = {
-      clients: await db.clients.count(),
-      cases: await db.cases.count(),
-      notices: await db.notices.count(),
-      tasks: await db.tasks.count(),
-      documents: await db.documents.count(),
-      hearings: await db.hearings.count(),
-      employees: await db.employees.count(),
-      courts: await db.courts.count(),
-      judges: await db.judges.count(),
+      clients: clients.length,
+      cases: cases.length,
+      notices: notices.length,
+      tasks: tasks.length,
+      documents: documents.length,
+      hearings: hearings.length,
+      employees: employees.length,
+      courts: courts.length,
+      judges: judges.length,
     };
 
     // Get list of IndexedDB databases
@@ -68,7 +82,7 @@ export class StorageMigrator {
   }
 
   /**
-   * Migrate all data from localStorage to HofficeDB
+   * Migrate all data from localStorage to Supabase
    */
   async migrateFromLocalStorage(): Promise<MigrationResult> {
     const startTime = Date.now();
@@ -90,22 +104,23 @@ export class StorageMigrator {
       }
 
       const appState = JSON.parse(legacyData);
+      const storage = StorageManager.getInstance().getStorage();
 
       // Migrate in dependency order
       const migrationOrder = [
-        { key: 'employees', table: db.employees },
-        { key: 'courts', table: db.courts },
-        { key: 'judges', table: db.judges },
-        { key: 'clients', table: db.clients },
-        { key: 'cases', table: db.cases },
-        { key: 'notices', table: db.notices },
-        { key: 'replies', table: db.replies },
-        { key: 'hearings', table: db.hearings },
-        { key: 'tasks', table: db.tasks },
-        { key: 'documents', table: db.documents },
+        'employees',
+        'courts',
+        'judges',
+        'clients',
+        'cases',
+        'notices',
+        'replies',
+        'hearings',
+        'tasks',
+        'documents',
       ];
 
-      for (const { key, table } of migrationOrder) {
+      for (const key of migrationOrder) {
         if (appState[key] && Array.isArray(appState[key])) {
           try {
             const items = appState[key];
@@ -119,8 +134,8 @@ export class StorageMigrator {
               updated_at: item.updated_at || item.updatedAt || new Date(),
             }));
 
-            // Bulk insert into HofficeDB
-            await (table as any).bulkPut(transformedItems);
+            // Bulk insert into storage
+            await storage.bulkCreate(key, transformedItems);
             entitiesMigrated += items.length;
             this.status.entitiesMigrated = entitiesMigrated;
           } catch (error) {
@@ -134,13 +149,6 @@ export class StorageMigrator {
       this.status.completed = true;
       this.status.mode = 'modern';
       this.status.completedAt = new Date();
-
-      // Store migration status
-      await db.migration_meta.put({
-        schema_version: 1,
-        applied_at: new Date(),
-        description: 'Migrated from localStorage to HofficeDB',
-      });
 
       return {
         success: this.status.errors.length === 0,
@@ -192,14 +200,10 @@ export class StorageMigrator {
       const backup = JSON.parse(backupData);
       localStorage.setItem('lawfirm_app_data', backup.data);
 
-      // Clear HofficeDB
-      await db.clients.clear();
-      await db.cases.clear();
-      await db.notices.clear();
-      await db.replies.clear();
-      await db.hearings.clear();
-      await db.tasks.clear();
-      await db.documents.clear();
+      // Clear storage
+      const storage = StorageManager.getInstance().getStorage();
+      const entities = ['clients', 'cases', 'notices', 'replies', 'hearings', 'tasks', 'documents'];
+      await Promise.all(entities.map(entity => storage.clear(entity)));
 
       this.status.mode = 'legacy';
       this.status.completed = false;
@@ -218,26 +222,24 @@ export class StorageMigrator {
     const issues: string[] = [];
 
     try {
+      const storage = StorageManager.getInstance().getStorage();
+      
       // Check for orphaned references
-      const cases = await db.cases.toArray();
-      const clients = await db.clients.toArray();
-      const clientIds = new Set(clients.map(c => c.id));
+      const cases = await storage.getAll('cases');
+      const clients = await storage.getAll('clients');
+      const clientIds = new Set(clients.map((c: any) => c.id));
 
       for (const case_ of cases) {
-        if (case_.client_id && !clientIds.has(case_.client_id)) {
-          issues.push(`Case ${case_.id} references non-existent client ${case_.client_id}`);
+        if ((case_ as any).client_id && !clientIds.has((case_ as any).client_id)) {
+          issues.push(`Case ${(case_ as any).id} references non-existent client ${(case_ as any).client_id}`);
         }
       }
 
       // Check for duplicate IDs
-      const allTables = [
-        { name: 'clients', table: db.clients },
-        { name: 'cases', table: db.cases },
-        { name: 'tasks', table: db.tasks },
-      ];
+      const allTables = ['clients', 'cases', 'tasks'];
 
-      for (const { name, table } of allTables) {
-        const items = await table.toArray();
+      for (const name of allTables) {
+        const items = await storage.getAll(name);
         const ids = items.map((item: any) => item.id);
         const uniqueIds = new Set(ids);
         if (ids.length !== uniqueIds.size) {
@@ -257,20 +259,19 @@ export class StorageMigrator {
   }
 
   async getMigrationMode(): Promise<MigrationMode> {
-    // Check if migration has been completed
-    const migrationRecords = await db.migration_meta.toArray();
-    const migrationRecord = migrationRecords.find(r => r.description?.includes('localStorage'));
-    if (migrationRecord) {
-      return 'modern';
-    }
+    try {
+      const storage = StorageManager.getInstance().getStorage();
+      
+      // Check if we have data in storage
+      const clients = await storage.getAll('clients');
+      if (clients.length > 0) {
+        return 'modern';
+      }
 
-    // Check if we have data in HofficeDB
-    const clientCount = await db.clients.count();
-    if (clientCount > 0) {
-      return 'transitioning';
+      return 'legacy';
+    } catch {
+      return 'legacy';
     }
-
-    return 'legacy';
   }
 }
 
