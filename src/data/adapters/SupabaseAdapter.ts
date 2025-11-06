@@ -116,7 +116,7 @@ export class SupabaseAdapter implements StoragePort {
       throw new Error('Record with this ID already exists');
     }
     if (error.code === '23503') {
-      throw new Error('Cannot delete - record is referenced by other data');
+      throw new Error('Foreign key constraint violation');
     }
     if (error.code === '42501') {
       throw new Error('Permission denied - insufficient privileges');
@@ -491,7 +491,65 @@ export class SupabaseAdapter implements StoragePort {
     // Step 1: Convert all numeric IDs to UUIDs and build mapping
     const { convertedData, idMapping } = convertIdsToUUIDs(data);
     
-    // Step 2: Build lookup maps for FK resolution
+    // Step 2: Helpers + Build lookup maps for FK resolution
+    const norm = (v: any) => (v === undefined || v === null) ? '' : String(v).toLowerCase().trim();
+
+    const normalizeKeysForImport = (tbl: string, rec: any) => {
+      const r: any = { ...rec };
+      switch (tbl) {
+        case 'tasks':
+          if (r.assignedTo && !r.assigned_to) r.assigned_to = r.assignedTo;
+          if (r.caseId && !r.case_id) r.case_id = r.caseId;
+          if (r.hearingId && !r.hearing_id) r.hearing_id = r.hearingId;
+          if (r.createdBy && !r.created_by) r.created_by = r.createdBy;
+          if (r.completedBy && !r.completed_by) r.completed_by = r.completedBy;
+          break;
+        case 'cases':
+          if (r.clientId && !r.client_id) r.client_id = r.clientId;
+          if (r.assignedTo && !r.assigned_to) r.assigned_to = r.assignedTo;
+          if (r.ownerId && !r.owner_id) r.owner_id = r.ownerId;
+          if (r.forumId && !r.forum_id) r.forum_id = r.forumId;
+          if (r.authorityId && !r.authority_id) r.authority_id = r.authorityId;
+          break;
+        case 'clients':
+          if (r.clientGroupId && !r.client_group_id) r.client_group_id = r.clientGroupId;
+          if (r.assignedCAId && !r.owner_id) r.owner_id = r.assignedCAId;
+          if (r.ownerId && !r.owner_id) r.owner_id = r.ownerId;
+          break;
+        case 'hearings':
+          if (r.caseId && !r.case_id) r.case_id = r.caseId;
+          if (r.courtId && !r.court_id) r.court_id = r.courtId;
+          if (r.forumId && !r.forum_id) r.forum_id = r.forumId;
+          if (r.authorityId && !r.authority_id) r.authority_id = r.authorityId;
+          break;
+        case 'documents':
+          if (r.caseId && !r.case_id) r.case_id = r.caseId;
+          if (r.clientId && !r.client_id) r.client_id = r.clientId;
+          if (r.taskId && !r.task_id) r.task_id = r.taskId;
+          if (r.hearingId && !r.hearing_id) r.hearing_id = r.hearingId;
+          if (r.uploadedBy && !r.uploaded_by) r.uploaded_by = r.uploadedBy;
+          if (r.folderId && !r.folder_id) r.folder_id = r.folderId;
+          break;
+        case 'employees':
+          if (r.managerId && !r.manager_id) r.manager_id = r.managerId;
+          if (r.reportingTo && !r.reporting_to) r.reporting_to = r.reportingTo;
+          if (r.createdBy && !r.created_by) r.created_by = r.createdBy;
+          if (r.updatedBy && !r.updated_by) r.updated_by = r.updatedBy;
+          break;
+        case 'judges':
+          if (r.courtId && !r.court_id) r.court_id = r.courtId;
+          if (r.createdBy && !r.created_by) r.created_by = r.createdBy;
+          break;
+        case 'document_folders':
+          if (r.caseId && !r.case_id) r.case_id = r.caseId;
+          if (r.parentId && !r.parent_id) r.parent_id = r.parentId;
+          if (r.createdBy && !r.created_by) r.created_by = r.createdBy;
+          break;
+      }
+      return r;
+    };
+
+    // Build lookup maps
     const employeesNameLookup = new Map<string, string>();
     const employeesEmailLookup = new Map<string, string>();
     const caseNumberLookup = new Map<string, string>();
@@ -501,35 +559,35 @@ export class SupabaseAdapter implements StoragePort {
     if (convertedData.employees) {
       convertedData.employees.forEach((emp: any) => {
         const empId = emp.id;
-        if (emp.full_name || emp.fullName || emp.name) {
-          employeesNameLookup.set(emp.full_name || emp.fullName || emp.name, empId);
-        }
-        if (emp.email) {
-          employeesEmailLookup.set(emp.email, empId);
-        }
+        const name = emp.full_name || emp.fullName || emp.name;
+        if (name) employeesNameLookup.set(norm(name), empId);
+        const emails = [emp.email, emp.official_email, emp.personal_email].filter(Boolean);
+        emails.forEach((e: string) => employeesEmailLookup.set(norm(e), empId));
       });
     }
     
     if (convertedData.cases) {
       convertedData.cases.forEach((c: any) => {
-        if (c.case_number || c.caseNumber) {
-          caseNumberLookup.set(c.case_number || c.caseNumber, c.id);
-        }
-        if (c.title) {
-          caseTitleLookup.set(c.title, c.id);
-        }
+        const num = c.case_number || c.caseNumber;
+        if (num) caseNumberLookup.set(norm(num), c.id);
+        if (c.title) caseTitleLookup.set(norm(c.title), c.id);
       });
     }
     
     if (convertedData.clients) {
       convertedData.clients.forEach((client: any) => {
-        if (client.display_name || client.name) {
-          clientNameLookup.set(client.display_name || client.name, client.id);
-        }
+        const n = client.display_name || client.name;
+        if (n) clientNameLookup.set(norm(n), client.id);
       });
     }
-    
-    // Step 3: Process tables in dependency order
+
+    // Dependency tracking
+    const failedTables = new Set<string>();
+    const dependencyMap: Record<string, string[]> = {
+      clients: ['cases', 'documents'],
+      cases: ['hearings', 'documents', 'task_followups', 'task_notes'],
+      courts: ['judges'],
+    };
     const tableOrder = getTableProcessingOrder();
     const errors: string[] = [];
     const droppedCounts: Record<string, number> = {};
@@ -547,10 +605,38 @@ export class SupabaseAdapter implements StoragePort {
         
         for (const record of records) {
           let shouldInclude = true;
+
+          // created_by fallback for specific tables
+          const createdByTables = new Set(['employees', 'judges', 'courts', 'automation_rules', 'task_followups', 'task_bundles']);
+          if (createdByTables.has(table)) {
+            if (!record.created_by || !isValidUUID(String(record.created_by))) {
+              record.created_by = this.userId;
+            }
+          }
+          
+          // Employees: sanitize nullable FKs
+          if (table === 'employees') {
+            if (record.manager_id && !isValidUUID(String(record.manager_id))) delete record.manager_id;
+            if (record.reporting_to && !isValidUUID(String(record.reporting_to))) delete record.reporting_to;
+          }
+
+          // Clients: sanitize nullable FKs
+          if (table === 'clients') {
+            if (record.owner_id && !isValidUUID(String(record.owner_id))) delete record.owner_id;
+            if (record.client_group_id && !isValidUUID(String(record.client_group_id))) delete record.client_group_id;
+          }
+
+          // Judges: require valid court_id
+          if (table === 'judges') {
+            if (!record.court_id || !isValidUUID(String(record.court_id))) {
+              shouldInclude = false;
+            }
+          }
           
           // Tasks: resolve assigned_to if not UUID
           if (table === 'tasks' && record.assigned_to && !isValidUUID(String(record.assigned_to))) {
-            const resolved = employeesNameLookup.get(record.assigned_to) || employeesEmailLookup.get(record.assigned_to);
+            const key = norm(record.assigned_to);
+            const resolved = employeesNameLookup.get(key) || employeesEmailLookup.get(key);
             if (resolved) {
               record.assigned_to = resolved;
             } else {
@@ -558,10 +644,11 @@ export class SupabaseAdapter implements StoragePort {
             }
           }
           
-          // Hearings: resolve case_id if not UUID (required field)
+          // Hearings: resolve case_id if not UUID (required)
           if (table === 'hearings') {
             if (record.case_id && !isValidUUID(String(record.case_id))) {
-              const resolved = caseNumberLookup.get(record.case_id) || caseTitleLookup.get(record.case_id);
+              const key = norm(record.case_id);
+              const resolved = caseNumberLookup.get(key) || caseTitleLookup.get(key);
               if (resolved) {
                 record.case_id = resolved;
               } else {
@@ -576,7 +663,8 @@ export class SupabaseAdapter implements StoragePort {
           // Cases: resolve client_id if not UUID (required)
           if (table === 'cases') {
             if (record.client_id && !isValidUUID(String(record.client_id))) {
-              const resolved = clientNameLookup.get(record.client_id);
+              const key = norm(record.client_id);
+              const resolved = clientNameLookup.get(key);
               if (resolved) {
                 record.client_id = resolved;
               } else {
@@ -592,20 +680,20 @@ export class SupabaseAdapter implements StoragePort {
           if (table === 'documents') {
             // Resolve case_id/client_id
             if (record.case_id && !isValidUUID(String(record.case_id))) {
-              const resolved = caseNumberLookup.get(record.case_id) || caseTitleLookup.get(record.case_id);
-              if (resolved) record.case_id = resolved;
-              else delete record.case_id; // Nullable
+              const key = norm(record.case_id);
+              const resolved = caseNumberLookup.get(key) || caseTitleLookup.get(key);
+              if (resolved) record.case_id = resolved; else delete record.case_id; // Nullable
             }
             if (record.client_id && !isValidUUID(String(record.client_id))) {
-              const resolved = clientNameLookup.get(record.client_id);
-              if (resolved) record.client_id = resolved;
-              else delete record.client_id; // Nullable
+              const key = norm(record.client_id);
+              const resolved = clientNameLookup.get(key);
+              if (resolved) record.client_id = resolved; else delete record.client_id; // Nullable
             }
             // Delete unresolvable nullable FKs
             if (record.task_id && !isValidUUID(String(record.task_id))) delete record.task_id;
             if (record.hearing_id && !isValidUUID(String(record.hearing_id))) delete record.hearing_id;
             
-            // Set uploaded_by to current user if missing
+            // Set uploaded_by to current user if missing/invalid
             if (!record.uploaded_by || !isValidUUID(String(record.uploaded_by))) {
               record.uploaded_by = this.userId;
             }
@@ -635,6 +723,7 @@ export class SupabaseAdapter implements StoragePort {
         const errorMsg = `Import failed for ${table}: ${error}`;
         console.error(`❌ ${errorMsg}`);
         errors.push(errorMsg);
+        failedTables.add(table);
         // Continue with other tables
       }
     }
@@ -877,7 +966,16 @@ export class SupabaseAdapter implements StoragePort {
           if (normalized.assignedTo && !normalized.assigned_to) {
             normalized.assigned_to = normalized.assignedTo;
           }
+          // Map completedAt/completed_at -> completed_date
+          if (normalized.completedAt && !normalized.completed_date) {
+            normalized.completed_date = normalized.completedAt;
+          }
+          if (normalized.completed_at && !normalized.completed_date) {
+            normalized.completed_date = normalized.completed_at;
+          }
           delete normalized.assignedTo;
+          delete normalized.completedAt;
+          delete normalized.completed_at;
           delete normalized.isAutoGenerated;
           delete normalized.currentFollowUpDate;
           // Keep only valid columns
