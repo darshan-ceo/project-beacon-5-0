@@ -15,7 +15,11 @@ export class AutomationRuleRepository extends BaseRepository<AutomationRule> {
 
   async getRulesByEvent(event: string): Promise<AutomationRule[]> {
     const active = await this.getActiveRules();
-    return active.filter(rule => rule.trigger.event === event);
+    return active.filter(rule => {
+      // Support both nested trigger.event and flat trigger_type
+      const triggerEvent = rule.trigger?.event || (rule as any).trigger_type;
+      return triggerEvent === event;
+    });
   }
 
   async incrementExecutionCount(id: string, success: boolean): Promise<void> {

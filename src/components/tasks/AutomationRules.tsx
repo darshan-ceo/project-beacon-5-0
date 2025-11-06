@@ -32,13 +32,23 @@ export const AutomationRules: React.FC = () => {
     try {
       await automationRuleEngine.initialize();
       const loadedRules = await automationRuleEngine.getAllRules();
-      setRules(loadedRules);
+      
+      // Filter out malformed rules
+      const validRules = loadedRules.filter(rule => {
+        const hasValidTrigger = rule.trigger?.event || (rule as any).trigger_type;
+        if (!hasValidTrigger) {
+          console.warn('⚠️ Skipping malformed rule:', rule.id, rule.name);
+        }
+        return hasValidTrigger;
+      });
+      
+      setRules(validRules);
       
       // Seed default rules if none exist
-      if (loadedRules.length === 0) {
+      if (validRules.length === 0) {
         await seedDefaultAutomationRules((rule) => automationRuleEngine.createRule(rule));
         const reloadedRules = await automationRuleEngine.getAllRules();
-        setRules(reloadedRules);
+        setRules(reloadedRules.filter(rule => rule.trigger?.event || (rule as any).trigger_type));
         toast({
           title: "Default Rules Created",
           description: "7 default GST automation rules have been created"
@@ -214,7 +224,7 @@ export const AutomationRules: React.FC = () => {
                   <div className="flex items-center gap-2 mb-1">
                     <CardTitle className="text-lg">{rule.name}</CardTitle>
                     <Badge variant="default" className="text-xs">
-                      {rule.trigger.event.replace(/_/g, ' ')}
+                      {(rule.trigger?.event || (rule as any).trigger_type || 'manual').replace(/_/g, ' ')}
                     </Badge>
                   </div>
                   <CardDescription>{rule.description}</CardDescription>
@@ -231,12 +241,12 @@ export const AutomationRules: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-muted-foreground">Trigger: </span>
-                    <span className="font-medium">{rule.trigger.event}</span>
+                    <span className="font-medium">{rule.trigger?.event || (rule as any).trigger_type || 'manual'}</span>
                   </div>
-                  {rule.trigger.conditions?.stageTo && (
+                  {(rule.trigger?.conditions?.stageTo || (rule as any).trigger_config?.stageTo) && (
                     <div>
                       <span className="text-muted-foreground">Stage: </span>
-                      <span className="font-medium">{rule.trigger.conditions.stageTo}</span>
+                      <span className="font-medium">{rule.trigger?.conditions?.stageTo || (rule as any).trigger_config?.stageTo}</span>
                     </div>
                   )}
                 </div>
@@ -311,7 +321,7 @@ export const AutomationRules: React.FC = () => {
                       <div className="flex items-center gap-2 mb-1">
                         <CardTitle className="text-lg">{rule.name}</CardTitle>
                         <Badge variant="secondary" className="text-xs">
-                          {rule.trigger.event.replace(/_/g, ' ')}
+                          {(rule.trigger?.event || (rule as any).trigger_type || 'manual').replace(/_/g, ' ')}
                         </Badge>
                       </div>
                       <CardDescription>{rule.description}</CardDescription>

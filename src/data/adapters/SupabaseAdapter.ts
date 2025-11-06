@@ -292,6 +292,10 @@ export class SupabaseAdapter implements StoragePort {
         result = result.map(item => this.transformCaseFields(item)) as T[];
       } else if (table === 'tasks') {
         result = result.map(item => this.transformTaskFields(item)) as T[];
+      } else if (table === 'clients') {
+        result = result.map(item => this.transformClientFields(item)) as T[];
+      } else if (table === 'automation_rules') {
+        result = result.map(item => this.transformAutomationRuleFields(item)) as T[];
       }
       
       this.setCache(cacheKey, result);
@@ -479,6 +483,8 @@ export class SupabaseAdapter implements StoragePort {
   async importAll(data: Record<string, any[]>): Promise<void> {
     this.ensureInitialized();
 
+    const errors: string[] = [];
+    
     for (const [table, records] of Object.entries(data)) {
       if (records.length === 0) continue;
 
@@ -486,9 +492,16 @@ export class SupabaseAdapter implements StoragePort {
         await this.bulkCreate(table, records);
         console.log(`✅ Imported ${records.length} records to ${table}`);
       } catch (error) {
-        console.error(`❌ Import failed for ${table}:`, error);
-        throw error;
+        const errorMsg = `Import failed for ${table}: ${error}`;
+        console.error(`❌ ${errorMsg}`);
+        errors.push(errorMsg);
+        // Continue with other tables instead of throwing immediately
       }
+    }
+    
+    if (errors.length > 0) {
+      console.error('❌ Import completed with errors:', errors);
+      throw new Error(`Import failed for ${errors.length} table(s): ${errors.join('; ')}`);
     }
   }
 
@@ -607,6 +620,112 @@ export class SupabaseAdapter implements StoragePort {
       const normalized: any = { ...item };
       
       switch (actualTable) {
+        case 'clients':
+          // Map UI fields to DB columns
+          if (normalized.name && !normalized.display_name) {
+            normalized.display_name = normalized.name;
+          }
+          if (normalized.clientGroupId && !normalized.client_group_id) {
+            normalized.client_group_id = normalized.clientGroupId;
+          }
+          if (normalized.assignedCAId && !normalized.owner_id) {
+            normalized.owner_id = normalized.assignedCAId;
+          }
+          if (normalized.createdAt && !normalized.created_at) {
+            normalized.created_at = normalized.createdAt;
+          }
+          if (normalized.updatedAt && !normalized.updated_at) {
+            normalized.updated_at = normalized.updatedAt;
+          }
+          // Normalize status to lowercase
+          if (normalized.status === 'Active') normalized.status = 'active';
+          if (normalized.status === 'Inactive') normalized.status = 'inactive';
+          
+          // Delete camelCase versions
+          delete normalized.name;
+          delete normalized.clientGroupId;
+          delete normalized.assignedCAId;
+          delete normalized.createdAt;
+          delete normalized.updatedAt;
+          
+          // Delete UI-only/computed fields
+          delete normalized.activeCases;
+          delete normalized.totalCases;
+          delete normalized.totalInvoiced;
+          delete normalized.address;
+          delete normalized.portalAccess;
+          delete normalized.signatories;
+          delete normalized.category;
+          delete normalized.type;
+          delete normalized.registrationNo;
+          delete normalized.registrationNumber;
+          delete normalized.panNumber;
+          delete normalized.gstNumber;
+          delete normalized.registrationDate;
+          delete normalized.assignedCAName;
+          delete normalized.jurisdiction;
+          delete normalized.needsAddressReview;
+          delete normalized.needsSignatoryReview;
+          
+          // Keep only valid DB columns
+          const validClientFields = ['id', 'tenant_id', 'display_name', 'email', 'phone', 'pan', 'gstin', 'state', 'city', 'status', 'client_group_id', 'owner_id', 'created_at', 'updated_at'];
+          Object.keys(normalized).forEach(key => {
+            if (!validClientFields.includes(key)) delete normalized[key];
+          });
+          break;
+          
+        case 'automation_rules':
+          // Map nested trigger to flat columns
+          if (normalized.trigger?.event && !normalized.trigger_type) {
+            normalized.trigger_type = normalized.trigger.event;
+          }
+          if (normalized.trigger?.conditions && !normalized.trigger_config) {
+            normalized.trigger_config = normalized.trigger.conditions;
+          }
+          // Map booleans and counters
+          if (normalized.isActive !== undefined && normalized.is_active === undefined) {
+            normalized.is_active = normalized.isActive;
+          }
+          if (normalized.executionCount !== undefined && normalized.execution_count === undefined) {
+            normalized.execution_count = normalized.executionCount;
+          }
+          if (normalized.successCount !== undefined && normalized.success_count === undefined) {
+            normalized.success_count = normalized.successCount;
+          }
+          if (normalized.failureCount !== undefined && normalized.failure_count === undefined) {
+            normalized.failure_count = normalized.failureCount;
+          }
+          if (normalized.createdAt && !normalized.created_at) {
+            normalized.created_at = normalized.createdAt;
+          }
+          if (normalized.updatedAt && !normalized.updated_at) {
+            normalized.updated_at = normalized.updatedAt;
+          }
+          if (normalized.lastTriggered && !normalized.last_triggered) {
+            normalized.last_triggered = normalized.lastTriggered;
+          }
+          if (normalized.createdBy && !normalized.created_by) {
+            normalized.created_by = normalized.createdBy;
+          }
+          
+          // Delete camelCase/UI versions
+          delete normalized.trigger;
+          delete normalized.isActive;
+          delete normalized.executionCount;
+          delete normalized.successCount;
+          delete normalized.failureCount;
+          delete normalized.createdAt;
+          delete normalized.updatedAt;
+          delete normalized.lastTriggered;
+          delete normalized.createdBy;
+          
+          // Keep only valid DB columns
+          const validAutomationFields = ['id', 'tenant_id', 'name', 'description', 'is_active', 'trigger_type', 'trigger_config', 'actions', 'execution_count', 'success_count', 'failure_count', 'last_triggered', 'created_at', 'updated_at', 'created_by'];
+          Object.keys(normalized).forEach(key => {
+            if (!validAutomationFields.includes(key)) delete normalized[key];
+          });
+          break;
+        
         case 'tasks':
           // Map assignedTo -> assigned_to
           if (normalized.assignedTo && !normalized.assigned_to) {
@@ -793,6 +912,41 @@ export class SupabaseAdapter implements StoragePort {
       assignedTo: raw.assigned_to || raw.assignedTo,
       caseId: raw.case_id || raw.caseId,
       hearingId: raw.hearing_id || raw.hearingId,
+    };
+  }
+  
+  /**
+   * Transform client fields from snake_case to camelCase
+   */
+  private transformClientFields(raw: any): any {
+    return {
+      ...raw,
+      name: raw.display_name || raw.name,
+      clientGroupId: raw.client_group_id || raw.clientGroupId,
+      assignedCAId: raw.owner_id || raw.assignedCAId,
+      createdAt: raw.created_at || raw.createdAt,
+      updatedAt: raw.updated_at || raw.updatedAt,
+    };
+  }
+  
+  /**
+   * Transform automation_rules from flat to nested structure
+   */
+  private transformAutomationRuleFields(raw: any): any {
+    return {
+      ...raw,
+      isActive: raw.is_active !== undefined ? raw.is_active : raw.isActive,
+      trigger: {
+        event: raw.trigger_type || raw.trigger?.event || 'manual',
+        conditions: raw.trigger_config || raw.trigger?.conditions || undefined,
+      },
+      executionCount: raw.execution_count !== undefined ? raw.execution_count : raw.executionCount || 0,
+      successCount: raw.success_count !== undefined ? raw.success_count : raw.successCount || 0,
+      failureCount: raw.failure_count !== undefined ? raw.failure_count : raw.failureCount || 0,
+      createdAt: raw.created_at || raw.createdAt,
+      updatedAt: raw.updated_at || raw.updatedAt,
+      lastTriggered: raw.last_triggered || raw.lastTriggered,
+      createdBy: raw.created_by || raw.createdBy,
     };
   }
 
