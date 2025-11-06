@@ -623,12 +623,76 @@ export class SupabaseAdapter implements StoragePort {
           break;
           
         case 'cases':
+          // Map camelCase fields to snake_case for database
+          if (normalized.caseNumber && !normalized.case_number) {
+            normalized.case_number = normalized.caseNumber;
+          }
+          if (normalized.clientId && !normalized.client_id) {
+            normalized.client_id = normalized.clientId;
+          }
+          if (normalized.assignedTo && !normalized.assigned_to) {
+            normalized.assigned_to = normalized.assignedTo;
+          }
+          if (normalized.ownerId && !normalized.owner_id) {
+            normalized.owner_id = normalized.ownerId;
+          }
+          if (normalized.forumId && !normalized.forum_id) {
+            normalized.forum_id = normalized.forumId;
+          }
+          if (normalized.authorityId && !normalized.authority_id) {
+            normalized.authority_id = normalized.authorityId;
+          }
+          if (normalized.stageCode && !normalized.stage_code) {
+            normalized.stage_code = normalized.stageCode;
+          }
+          if (normalized.taxDemand && !normalized.tax_demand) {
+            normalized.tax_demand = normalized.taxDemand;
+          }
+          if (normalized.noticeDate && !normalized.notice_date) {
+            normalized.notice_date = normalized.noticeDate;
+          }
+          if (normalized.noticeType && !normalized.notice_type) {
+            normalized.notice_type = normalized.noticeType;
+          }
+          if (normalized.noticeNo && !normalized.notice_no) {
+            normalized.notice_no = normalized.noticeNo;
+          }
+          if (normalized.nextHearingDate && !normalized.next_hearing_date) {
+            normalized.next_hearing_date = normalized.nextHearingDate;
+          }
+          
+          // Delete camelCase versions after mapping
+          delete normalized.caseNumber;
+          delete normalized.clientId;
+          delete normalized.assignedTo;
+          delete normalized.ownerId;
+          delete normalized.forumId;
+          delete normalized.authorityId;
+          delete normalized.stageCode;
+          delete normalized.taxDemand;
+          delete normalized.noticeDate;
+          delete normalized.noticeType;
+          delete normalized.noticeNo;
+          delete normalized.nextHearingDate;
+          
+          // Delete frontend-only fields
           delete normalized.caseType;
           delete normalized.issueType;
           delete normalized.matterType;
           delete normalized.tribunalBench;
           delete normalized.slaStatus;
           delete normalized.currentStage;
+          
+          // Keep only valid columns
+          const validCaseFields = [
+            'id', 'tenant_id', 'case_number', 'title', 'description', 
+            'client_id', 'stage_code', 'status', 'priority', 'assigned_to', 
+            'owner_id', 'notice_type', 'notice_no', 'notice_date', 'tax_demand',
+            'created_at', 'updated_at', 'forum_id', 'authority_id', 'next_hearing_date'
+          ];
+          Object.keys(normalized).forEach(key => {
+            if (!validCaseFields.includes(key)) delete normalized[key];
+          });
           break;
           
         case 'hearings':
