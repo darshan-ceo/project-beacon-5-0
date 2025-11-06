@@ -150,9 +150,8 @@ class UnifiedStore {
   private initPromise: Promise<void> | null = null;
 
   constructor() {
-    // Enforce DEMO mode
-    envConfig.assertDemoMode();
-    envConfig.assertIndexedDB();
+    // Note: UnifiedStore uses StorageManager which supports multiple backends
+    // No need to enforce IndexedDB specifically
   }
 
   async initialize(): Promise<void> {
