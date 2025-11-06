@@ -3,10 +3,35 @@
  * Validates basic CRUD operations after migration
  */
 
-import { generateId } from '@/data/db';
+import { v4 as uuid } from 'uuid';
 import { StorageManager } from '@/data/StorageManager';
-import { saveClient, saveCase, loadAppState } from '@/data/storageShim';
-import type { Client, Case } from '@/data/db';
+import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
+
+type ClientRow = Database['public']['Tables']['clients']['Row'];
+type CaseRow = Database['public']['Tables']['cases']['Row'];
+
+/**
+ * Get current user's tenant_id from profiles table
+ */
+async function getTenantId(): Promise<string> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user?.id) {
+    throw new Error('No authenticated user found');
+  }
+  
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('tenant_id')
+    .eq('id', session.user.id)
+    .single();
+    
+  if (!profile?.tenant_id) {
+    throw new Error('No tenant_id found for user');
+  }
+  
+  return profile.tenant_id;
+}
 
 export interface SmokeTestResult {
   passed: boolean;
@@ -29,18 +54,19 @@ export async function runMigrationSmokeTest(): Promise<SmokeTestResult> {
   // Test 1: Create and read client
   const test1Start = Date.now();
   try {
-    const testClient: Client = {
-      id: generateId(),
+    const storage = StorageManager.getInstance().getStorage();
+    const tenantId = await getTenantId();
+    
+    const clientId = uuid();
+    const testClient = {
+      id: clientId,
       display_name: 'Test Client ' + Date.now(),
-      gstin: '',
+      tenant_id: tenantId,
       status: 'active',
-      created_at: new Date(),
-      updated_at: new Date(),
     };
 
-    await saveClient(testClient);
-    const storage = StorageManager.getInstance().getStorage();
-    const retrieved = await storage.getById<Client>('clients', testClient.id);
+    await storage.create('clients', testClient);
+    const retrieved = await storage.getById<ClientRow>('clients', clientId);
 
     tests.push({
       name: 'Create and Read Client',
@@ -49,7 +75,7 @@ export async function runMigrationSmokeTest(): Promise<SmokeTestResult> {
     });
 
     // Cleanup
-    await storage.delete('clients', testClient.id);
+    await storage.delete('clients', clientId);
   } catch (error) {
     tests.push({
       name: 'Create and Read Client',
@@ -62,42 +88,43 @@ export async function runMigrationSmokeTest(): Promise<SmokeTestResult> {
   // Test 2: Create case with client relationship
   const test2Start = Date.now();
   try {
-    const testClient: Client = {
-      id: generateId(),
+    const storage = StorageManager.getInstance().getStorage();
+    const tenantId = await getTenantId();
+    
+    const clientId = uuid();
+    const testClient = {
+      id: clientId,
       display_name: 'Test Client for Case',
-      gstin: '',
+      tenant_id: tenantId,
       status: 'active',
-      created_at: new Date(),
-      updated_at: new Date(),
     };
 
-    await saveClient(testClient);
+    await storage.create('clients', testClient);
 
-    const testCase: Case = {
-      id: generateId(),
-      client_id: testClient.id,
+    const caseId = uuid();
+    const testCase = {
+      id: caseId,
+      tenant_id: tenantId,
+      client_id: clientId,
       case_number: 'TEST-' + Date.now(),
       title: 'Test Case',
-      status: 'active',
-      priority: 'medium',
-      opened_on: new Date(),
-      updated_at: new Date(),
+      status: 'open',
+      priority: 'Medium',
     };
 
-    await saveCase(testCase);
-    const storage = StorageManager.getInstance().getStorage();
-    const retrievedCase = await storage.getById<Case>('cases', testCase.id);
-    const retrievedClient = await storage.getById<Client>('clients', testClient.id);
+    await storage.create('cases', testCase);
+    const retrievedCase = await storage.getById<CaseRow>('cases', caseId);
+    const retrievedClient = await storage.getById<ClientRow>('clients', clientId);
 
     tests.push({
       name: 'Create Case with Client Relationship',
-      passed: !!retrievedCase && retrievedCase.client_id === testClient.id && !!retrievedClient,
+      passed: !!retrievedCase && retrievedCase.client_id === clientId && !!retrievedClient,
       duration: Date.now() - test2Start,
     });
 
     // Cleanup
-    await storage.delete('cases', testCase.id);
-    await storage.delete('clients', testClient.id);
+    await storage.delete('cases', caseId);
+    await storage.delete('clients', clientId);
   } catch (error) {
     tests.push({
       name: 'Create Case with Client Relationship',
@@ -110,10 +137,19 @@ export async function runMigrationSmokeTest(): Promise<SmokeTestResult> {
   // Test 3: Bulk load state
   const test3Start = Date.now();
   try {
-    const state = await loadAppState();
+    const storage = StorageManager.getInstance().getStorage();
+    
+    const [clients, cases, tasks, documents] = await Promise.all([
+      storage.getAll('clients'),
+      storage.getAll('cases'),
+      storage.getAll('tasks'),
+      storage.getAll('documents')
+    ]);
+    
     tests.push({
       name: 'Load Full App State',
-      passed: Array.isArray(state.clients) && Array.isArray(state.cases),
+      passed: Array.isArray(clients) && Array.isArray(cases) && 
+              Array.isArray(tasks) && Array.isArray(documents),
       duration: Date.now() - test3Start,
     });
   } catch (error) {
@@ -254,42 +290,40 @@ export async function quickCanary(): Promise<{
 }> {
   try {
     const storage = StorageManager.getInstance().getStorage();
+    const tenantId = await getTenantId();
     
     // Create test client
-    const clientId = generateId();
-    const testClient: Client = {
+    const clientId = uuid();
+    const testClient = {
       id: clientId,
       display_name: 'Canary Client',
-      gstin: '',
+      tenant_id: tenantId,
       status: 'active',
-      created_at: new Date(),
-      updated_at: new Date(),
     };
 
     await storage.create('clients', testClient);
 
     // Create test case
-    const caseId = generateId();
-    const testCase: Case = {
+    const caseId = uuid();
+    const testCase = {
       id: caseId,
+      tenant_id: tenantId,
       client_id: clientId,
       case_number: 'CANARY-001',
       title: 'Canary Case',
-      status: 'active',
-      priority: 'medium',
-      opened_on: new Date(),
-      updated_at: new Date(),
+      status: 'open',
+      priority: 'Medium',
     };
 
     await storage.create('cases', testCase);
 
     // Verify reads
-    const client = await storage.getById<Client>('clients', clientId);
-    const case_ = await storage.getById<Case>('cases', caseId);
+    const client = await storage.getById<ClientRow>('clients', clientId);
+    const case_ = await storage.getById<CaseRow>('cases', caseId);
 
     // Cleanup
-    await storage.delete('clients', clientId);
     await storage.delete('cases', caseId);
+    await storage.delete('clients', clientId);
 
     return {
       success: !!client && !!case_,
