@@ -367,6 +367,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "cases_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients_directory"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "cases_forum_id_fkey"
             columns: ["forum_id"]
             isOneToOne: false
@@ -841,6 +848,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients_directory"
             referencedColumns: ["id"]
           },
           {
@@ -2106,6 +2120,67 @@ export type Database = {
           },
           {
             foreignKeyName: "cases_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients_directory: {
+        Row: {
+          city: string | null
+          client_group_id: string | null
+          created_at: string | null
+          display_name: string | null
+          id: string | null
+          owner_id: string | null
+          state: string | null
+          status: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          city?: string | null
+          client_group_id?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          id?: string | null
+          owner_id?: string | null
+          state?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          city?: string | null
+          client_group_id?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          id?: string | null
+          owner_id?: string | null
+          state?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_client_group_id_fkey"
+            columns: ["client_group_id"]
+            isOneToOne: false
+            referencedRelation: "client_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clients_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "clients_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
