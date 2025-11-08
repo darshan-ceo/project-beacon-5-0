@@ -2068,6 +2068,53 @@ export type Database = {
       }
     }
     Views: {
+      audit_log_with_user_details: {
+        Row: {
+          action_type: string | null
+          details: Json | null
+          document_id: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string | null
+          ip_address: unknown
+          tenant_id: string | null
+          timestamp: string | null
+          user_agent: string | null
+          user_designation: string | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_log_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "pending_review_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "audit_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       case_activity_summary: {
         Row: {
           case_id: string | null
