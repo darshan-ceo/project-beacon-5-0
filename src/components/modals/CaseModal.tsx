@@ -404,10 +404,9 @@ export const CaseModal: React.FC<CaseModalProps> = ({
 
         <DialogBody>
           <Tabs defaultValue="basic" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="basic">Basic Info</TabsTrigger>
               <TabsTrigger value="details">Case Details</TabsTrigger>
-              <TabsTrigger value="advanced">Advanced</TabsTrigger>
             </TabsList>
 
             <TabsContent value="basic" className="space-y-4 mt-4">
@@ -561,6 +560,29 @@ export const CaseModal: React.FC<CaseModalProps> = ({
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <div data-tour="case-team-assignment">
+                <div className="flex items-center gap-1 mb-2">
+                  <span className="text-sm font-medium">Case Owner *</span>
+                  <FieldTooltip formId="create-case" fieldId="assignee" />
+                </div>
+                <EmployeeSelector
+                  label=""
+                  value={formData.assignedToId}
+                  onValueChange={(value) => {
+                    const employee = state.employees.find(e => e.id === value);
+                    setFormData(prev => ({ 
+                      ...prev, 
+                      assignedToId: value,
+                      assignedToName: employee?.full_name || ''
+                    }));
+                  }}
+                  disabled={mode === 'view'}
+                  required
+                  roleFilter={['Partner', 'CA', 'Advocate']}
+                  showWorkload
+                />
               </div>
             </TabsContent>
 
@@ -945,30 +967,6 @@ export const CaseModal: React.FC<CaseModalProps> = ({
               </div>
             </TabsContent>
 
-            <TabsContent value="advanced" className="space-y-4 mt-4">
-              <div data-tour="case-team-assignment">
-                <div className="flex items-center gap-1 mb-2">
-                  <span className="text-sm font-medium">Case Owner</span>
-                  <FieldTooltip formId="create-case" fieldId="assignee" />
-                </div>
-                <EmployeeSelector
-                  label=""
-                  value={formData.assignedToId}
-                  onValueChange={(value) => {
-                    const employee = state.employees.find(e => e.id === value);
-                    setFormData(prev => ({ 
-                      ...prev, 
-                      assignedToId: value,
-                      assignedToName: employee?.full_name || ''
-                    }));
-                  }}
-                  disabled={mode === 'view'}
-                  required
-                  roleFilter={['Partner', 'CA', 'Advocate']}
-                  showWorkload
-                />
-              </div>
-            </TabsContent>
           </Tabs>
         </DialogBody>
 
