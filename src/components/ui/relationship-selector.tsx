@@ -55,10 +55,10 @@ export const RelationshipSelector: React.FC<RelationshipSelectorProps> = ({
         {required && <span className="text-destructive ml-1">*</span>}
       </Label>
       <Select value={value} onValueChange={onValueChange} disabled={disabled}>
-        <SelectTrigger>
+        <SelectTrigger className="bg-background">
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
-        <SelectContent className="z-[200]">
+        <SelectContent className="z-[200] bg-popover" position="popper" sideOffset={5}>
           {options.map((option) => (
             <SelectItem key={option.id} value={option.id}>
               <div className="flex flex-col">
