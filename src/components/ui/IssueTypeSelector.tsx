@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogPortal, DialogOverlay } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -129,7 +129,7 @@ export const IssueTypeSelector: React.FC<IssueTypeSelectorProps> = ({
             <SelectValue placeholder="Select or search issue type..." />
           </SelectTrigger>
           <SelectContent className="z-[200] bg-popover" position="popper" sideOffset={5}>
-            <div className="p-2 sticky top-0 bg-popover border-b">
+            <div className="p-2 sticky top-0 bg-popover border-b z-10">
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -158,7 +158,7 @@ export const IssueTypeSelector: React.FC<IssueTypeSelectorProps> = ({
                 </div>
               )}
             </div>
-            <div className="border-t mt-2 pt-2 sticky bottom-0 bg-popover">
+            <div className="border-t mt-2 pt-2 sticky bottom-0 bg-popover z-10">
               <Button
                 variant="ghost"
                 size="sm"
@@ -178,7 +178,9 @@ export const IssueTypeSelector: React.FC<IssueTypeSelectorProps> = ({
       
       {/* Add New Issue Type Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent>
+        <DialogPortal>
+          <DialogOverlay className="z-[290]" />
+          <DialogContent className="z-[300]">
           <DialogHeader>
             <DialogTitle>Add Custom Issue Type</DialogTitle>
           </DialogHeader>
@@ -223,7 +225,8 @@ export const IssueTypeSelector: React.FC<IssueTypeSelectorProps> = ({
               {addToMaster ? 'Save & Add to Master' : 'Use Once'}
             </Button>
           </DialogFooter>
-        </DialogContent>
+          </DialogContent>
+        </DialogPortal>
       </Dialog>
     </>
   );
