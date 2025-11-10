@@ -294,17 +294,21 @@ export type Database = {
           description: string | null
           forum_id: string | null
           id: string
+          interest_amount: number | null
           next_hearing_date: string | null
           notice_date: string | null
           notice_no: string | null
           notice_type: string | null
           owner_id: string | null
+          penalty_amount: number | null
           priority: string | null
+          reply_due_date: string | null
           stage_code: string | null
           status: string | null
           tax_demand: number | null
           tenant_id: string
           title: string
+          total_demand: number | null
           updated_at: string | null
         }
         Insert: {
@@ -316,17 +320,21 @@ export type Database = {
           description?: string | null
           forum_id?: string | null
           id?: string
+          interest_amount?: number | null
           next_hearing_date?: string | null
           notice_date?: string | null
           notice_no?: string | null
           notice_type?: string | null
           owner_id?: string | null
+          penalty_amount?: number | null
           priority?: string | null
+          reply_due_date?: string | null
           stage_code?: string | null
           status?: string | null
           tax_demand?: number | null
           tenant_id: string
           title: string
+          total_demand?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -338,17 +346,21 @@ export type Database = {
           description?: string | null
           forum_id?: string | null
           id?: string
+          interest_amount?: number | null
           next_hearing_date?: string | null
           notice_date?: string | null
           notice_no?: string | null
           notice_type?: string | null
           owner_id?: string | null
+          penalty_amount?: number | null
           priority?: string | null
+          reply_due_date?: string | null
           stage_code?: string | null
           status?: string | null
           tax_demand?: number | null
           tenant_id?: string
           title?: string
+          total_demand?: number | null
           updated_at?: string | null
         }
         Relationships: [
@@ -1238,6 +1250,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      issue_types: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          created_by: string | null
+          frequency_count: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          frequency_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          frequency_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       judges: {
         Row: {

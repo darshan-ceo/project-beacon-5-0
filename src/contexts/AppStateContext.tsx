@@ -69,6 +69,13 @@ interface Case {
   authorityLevel?: string; // Auto-filled authority level from selected forum (e.g., "ADJUDICATION", "FIRST_APPEAL")
   specificOfficer?: string; // Name of specific officer at the forum (e.g., "Shri Rajesh Kumar, Deputy Commissioner")
   
+  // Phase 3: Compliance & Financial Tracking (Comprehensive Plan Implementation)
+  notice_date?: string; // YYYY-MM-DD - Date when notice was issued by the department
+  reply_due_date?: string; // YYYY-MM-DD - Deadline to respond to notice
+  interest_amount?: number; // Interest demanded by the department
+  penalty_amount?: number; // Penalty amount proposed/imposed
+  total_demand?: number; // Computed: tax + interest + penalty
+  
   // Backward compatibility
   slaStatus?: 'Green' | 'Amber' | 'Red'; // Deprecated: use timelineBreachStatus
 }

@@ -1,0 +1,112 @@
+{
+  "office_file_no": {
+    "title": "Office File No",
+    "content": "Your internal file reference number for tracking this case.",
+    "learnMoreUrl": "/help/case-creation-tutorial"
+  },
+  "notice_no": {
+    "title": "Notice No",
+    "content": "Notice/Form number from the department (e.g., ASMT-10/2025).",
+    "learnMoreUrl": "/help/case-creation-tutorial"
+  },
+  "notice_date": {
+    "title": "Notice Date",
+    "content": "Date when the notice was issued by the department. System auto-suggests reply due date as 15 days later.",
+    "learnMoreUrl": "/help/case-creation-tutorial"
+  },
+  "reply_due_date": {
+    "title": "Reply Due Date",
+    "content": "Deadline to submit response. System warns if approaching or overdue (amber for <7 days, red for <3 days).",
+    "learnMoreUrl": "/help/case-creation-tutorial"
+  },
+  "issue_type": {
+    "title": "Issue Type",
+    "content": "Select common issue or add custom. Check 'Add to Master' to save for future cases. Standardizes case categorization.",
+    "learnMoreUrl": "/help/case-creation-tutorial"
+  },
+  "case_owner": {
+    "title": "Case Owner",
+    "content": "Assign to Partner, CA, or Advocate. Only active team members with relevant roles shown. Contact admin to add new team members.",
+    "learnMoreUrl": "/help/case-creation-tutorial"
+  },
+  "priority": {
+    "title": "Priority",
+    "content": "Set urgency level (High/Medium/Low) to help with workload prioritization.",
+    "learnMoreUrl": "/help/case-creation-tutorial"
+  },
+  "current_stage": {
+    "title": "Current Stage",
+    "content": "Litigation stage - determines appeal routes and timeline tracking.",
+    "learnMoreUrl": "/help/manage-stage-checklist"
+  },
+  "matter_type": {
+    "title": "Matter Type",
+    "content": "Type of assessment proceeding (only for Assessment stage).",
+    "learnMoreUrl": "/help/case-creation-tutorial"
+  },
+  "period": {
+    "title": "Period",
+    "content": "Tax period under dispute (e.g., Q1 FY2024-25, Apr-Jun 2024).",
+    "learnMoreUrl": "/help/case-creation-tutorial"
+  },
+  "tax_demand": {
+    "title": "Tax Demand",
+    "content": "Tax amount disputed in the notice.",
+    "learnMoreUrl": "/help/case-creation-tutorial"
+  },
+  "interest_amount": {
+    "title": "Interest Amount",
+    "content": "Interest demanded by the department (optional).",
+    "learnMoreUrl": "/help/case-creation-tutorial"
+  },
+  "penalty_amount": {
+    "title": "Penalty Amount",
+    "content": "Penalty amount proposed/imposed (optional).",
+    "learnMoreUrl": "/help/case-creation-tutorial"
+  },
+  "notice_number": {
+    "title": "Notice Number",
+    "content": "The unique reference number from the GST notice (e.g., ZA270325006940Y).",
+    "learnMoreUrl": "/help/case-creation-tutorial"
+  },
+  "form_type": {
+    "title": "Form Type",
+    "content": "Type of GST form/notice received (e.g., DRC-01 for Show Cause Notice, ASMT-10 for assessment notice).",
+    "learnMoreUrl": "/help/case-creation-tutorial"
+  },
+  "section_invoked": {
+    "title": "Section Invoked",
+    "content": "GST Act section cited in the notice (e.g., Section 73 for normal assessment, Section 74 for fraud cases).",
+    "learnMoreUrl": "/help/case-creation-tutorial"
+  },
+  "financial_year": {
+    "title": "Financial Year",
+    "content": "FY covered by the notice (e.g., FY 2024-25).",
+    "learnMoreUrl": "/help/case-creation-tutorial"
+  },
+  "authority": {
+    "title": "Legal Forum / Issuing Authority",
+    "content": "The authority/court issuing the notice and handling this case. Determines jurisdiction and appeal routes.",
+    "learnMoreUrl": "/help/case-creation-tutorial"
+  },
+  "city": {
+    "title": "City",
+    "content": "City for jurisdiction determination (mandatory for legal proceedings).",
+    "learnMoreUrl": "/help/case-creation-tutorial"
+  },
+  "specific_officer": {
+    "title": "Specific Officer Name",
+    "content": "Name and designation of officer handling your case (optional).",
+    "learnMoreUrl": "/help/case-creation-tutorial"
+  },
+  "jurisdictional_commissionerate": {
+    "title": "GST Commissionerate",
+    "content": "The GST commissionerate with jurisdiction over this case.",
+    "learnMoreUrl": "/help/case-creation-tutorial"
+  },
+  "department_location": {
+    "title": "Office Location",
+    "content": "Physical location of the department office handling this case.",
+    "learnMoreUrl": "/help/case-creation-tutorial"
+  }
+}
