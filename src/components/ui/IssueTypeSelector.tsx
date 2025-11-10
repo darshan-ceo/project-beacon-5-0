@@ -105,6 +105,22 @@ export const IssueTypeSelector: React.FC<IssueTypeSelectorProps> = ({
           title: "Success",
           description: "Issue type added to master database",
         });
+      } else {
+        // Add temporarily to local state for "Use Once"
+        const tempIssueType: IssueType = {
+          id: `temp-${Date.now()}`,
+          name: newIssueType.trim(),
+          category: null,
+          frequency_count: 0
+        };
+        
+        // Add to local state so it appears in dropdown
+        setIssueTypes(prev => [tempIssueType, ...prev]);
+        
+        toast({
+          title: "Success",
+          description: "Custom issue type added for this case",
+        });
       }
       
       onValueChange(newIssueType.trim());
