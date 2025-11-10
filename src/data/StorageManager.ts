@@ -6,7 +6,7 @@
 import { StoragePort, StorageConfig } from './ports/StoragePort';
 import { IndexedDBAdapter } from './adapters/IndexedDBAdapter';
 import { InMemoryAdapter } from './adapters/InMemoryAdapter';
-import { ApiAdapter } from './adapters/ApiAdapter';
+// ApiAdapter removed - deprecated after Supabase migration
 import { HybridAdapter } from './adapters/HybridAdapter';
 import { SupabaseAdapter } from './adapters/SupabaseAdapter';
 import { SimulatedApiAdapter } from './adapters/SimulatedApiAdapter';
@@ -53,8 +53,8 @@ export class StorageManager {
           this.storage = new InMemoryAdapter();
           break;
         case 'api':
-          this.storage = new ApiAdapter();
-          break;
+          // ApiAdapter deprecated - use Supabase instead
+          throw new Error('API mode is deprecated. Use "supabase" mode instead.');
         case 'hybrid':
           const localAdapter = new IndexedDBAdapter();
           const cloudAdapter = new SimulatedApiAdapter('cloud_api', {

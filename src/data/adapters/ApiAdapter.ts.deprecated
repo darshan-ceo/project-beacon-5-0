@@ -1,6 +1,10 @@
 /**
- * API Storage Adapter - Stub for future Postgres API
- * This will handle remote persistence when ready
+ * API Storage Adapter - DEPRECATED
+ * This file is no longer used after migration to Supabase.
+ * Kept for reference only.
+ * 
+ * Migration Date: 2025-11-10
+ * Reason: Moved to Supabase as primary backend
  */
 
 import { StoragePort } from '../ports/StoragePort';

@@ -7,9 +7,9 @@ import { calendarService } from './calendar/calendarService';
 import { loadAppState } from '@/data/storageShim';
 import { timelineService } from './timelineService';
 import { format } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
 
 const isDev = import.meta.env.DEV;
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
 const log = (level: 'success' | 'error', action: string, details?: any) => {
   if (!isDev) return;
@@ -471,32 +471,51 @@ export const hearingsService = {
   },
 
   /**
-   * Upload order file
+   * Upload order file to Supabase Storage
    */
   async uploadOrder(hearingId: string, file: File): Promise<string> {
     try {
-      // Upload file first
-      const formData = new FormData();
-      formData.append('file', file);
+      // Generate file path
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${hearingId}_order_${Date.now()}.${fileExt}`;
+      const filePath = `hearings/${hearingId}/${fileName}`;
       
-      const uploadResponse = await fetch(`${API_BASE_URL}/api/files`, {
-        method: 'POST',
-        body: formData
-      });
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, file);
       
-      const uploadResult = await uploadResponse.json();
-      const fileId = uploadResult.file_id;
+      if (uploadError) {
+        console.error('[Hearings] Upload failed:', uploadError);
+        throw uploadError;
+      }
       
-      // Update hearing with file ID
-      await this.updateHearing(hearingId, { order_file_id: fileId }, {} as React.Dispatch<AppAction>);
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('documents')
+        .getPublicUrl(filePath);
+      
+      // Update hearing with file path and URL
+      const { error: updateError } = await supabase
+        .from('hearings')
+        .update({ 
+          order_file_path: filePath,
+          order_file_url: publicUrl
+        })
+        .eq('id', hearingId);
+      
+      if (updateError) {
+        console.error('[Hearings] Update hearing failed:', updateError);
+        throw updateError;
+      }
       
       toast({
         title: "Order Uploaded",
         description: "Order document has been uploaded successfully.",
       });
       
-      log('success', 'upload order', { hearingId, fileId });
-      return fileId;
+      log('success', 'upload order', { hearingId, filePath, publicUrl });
+      return publicUrl;
     } catch (error) {
       log('error', 'upload order', error);
       toast({

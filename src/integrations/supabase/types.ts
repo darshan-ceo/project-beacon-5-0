@@ -1160,6 +1160,8 @@ export type Database = {
           judge_name: string | null
           next_hearing_date: string | null
           notes: string | null
+          order_file_path: string | null
+          order_file_url: string | null
           outcome: string | null
           status: string | null
           tenant_id: string
@@ -1177,6 +1179,8 @@ export type Database = {
           judge_name?: string | null
           next_hearing_date?: string | null
           notes?: string | null
+          order_file_path?: string | null
+          order_file_url?: string | null
           outcome?: string | null
           status?: string | null
           tenant_id: string
@@ -1194,6 +1198,8 @@ export type Database = {
           judge_name?: string | null
           next_hearing_date?: string | null
           notes?: string | null
+          order_file_path?: string | null
+          order_file_url?: string | null
           outcome?: string | null
           status?: string | null
           tenant_id?: string
