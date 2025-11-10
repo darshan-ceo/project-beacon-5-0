@@ -772,9 +772,6 @@ export const CaseModal: React.FC<CaseModalProps> = ({
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <Label className="mb-2">
-                      Client <span className="text-destructive">*</span>
-                    </Label>
                     {contextClientId ? (
                       <div className="space-y-2">
                         <ContextBadge
@@ -787,21 +784,26 @@ export const CaseModal: React.FC<CaseModalProps> = ({
                         />
                       </div>
                     ) : (
-                      <ClientSelector
-                        clients={getAvailableClients()}
-                        value={formData.clientId}
-                        onValueChange={(value) => {
-                          setFormData(prev => ({ ...prev, clientId: value }));
-                          updateContext({ clientId: value });
-                        }}
-                        disabled={mode === 'view'}
-                        showAddNew={mode !== 'view'}
-                        onAddNew={() => {
-                          setClientCountBeforeAdd(state.clients.length);
-                          setIsClientModalOpen(true);
-                        }}
-                        data-tour="client-selector"
-                      />
+                      <>
+                        <Label className="mb-2">
+                          Client <span className="text-destructive">*</span>
+                        </Label>
+                        <ClientSelector
+                          clients={getAvailableClients()}
+                          value={formData.clientId}
+                          onValueChange={(value) => {
+                            setFormData(prev => ({ ...prev, clientId: value }));
+                            updateContext({ clientId: value });
+                          }}
+                          disabled={mode === 'view'}
+                          showAddNew={mode !== 'view'}
+                          onAddNew={() => {
+                            setClientCountBeforeAdd(state.clients.length);
+                            setIsClientModalOpen(true);
+                          }}
+                          data-tour="client-selector"
+                        />
+                      </>
                     )}
                   </div>
 
