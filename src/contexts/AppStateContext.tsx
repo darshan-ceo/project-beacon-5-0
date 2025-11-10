@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
 import { calendarSyncService } from '@/services/calendar/calendarSyncService';
+import { useSyncPersistentDispatch } from '@/hooks/usePersistentDispatch';
 
 // Types
 interface GeneratedForm {
@@ -2900,7 +2901,10 @@ const AppStateContext = createContext<{
 
 // Provider
 export const AppStateProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [state, dispatch] = useReducer(appReducer, initialState);
+  const [state, originalDispatch] = useReducer(appReducer, initialState);
+  
+  // Wrap dispatch with persistence middleware
+  const dispatch = useSyncPersistentDispatch(originalDispatch);
 
   // Initialize calendar auto-sync
   useEffect(() => {
