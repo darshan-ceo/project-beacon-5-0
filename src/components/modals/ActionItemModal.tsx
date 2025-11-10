@@ -11,7 +11,6 @@ import { useAppState } from '@/contexts/AppStateContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { CheckSquare, FileText, User, Plus } from 'lucide-react';
-import { v4 as uuidv4 } from 'uuid';
 
 interface ActionItemModalProps {
   isOpen: boolean;
@@ -74,7 +73,7 @@ export const ActionItemModal: React.FC<ActionItemModalProps> = ({
     dispatch({
       type: 'ADD_TASK',
       payload: {
-        id: uuidv4(),
+        id: '', // Let database generate UUID
         title: formData.title,
         description: formData.description,
         priority: formData.priority as 'High' | 'Medium' | 'Low',

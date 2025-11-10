@@ -243,7 +243,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       // STEP 6: Build task object
       if (mode === 'create') {
         const newTask: Task = {
-          id: Date.now().toString(),
+          id: '', // Let database generate UUID
           title: validated.title,
           description: validated.description || '',
           caseId: validated.caseId,
@@ -254,8 +254,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({
           status: validated.status,
           assignedToId: validated.assignedToId,
           assignedToName: validated.assignedToName,
-          assignedById: '3',
-          assignedByName: 'Mike Wilson',
+          assignedById: '', // Will be set by backend/auth
+          assignedByName: '',
           createdDate: new Date().toISOString().split('T')[0],
           dueDate: formatDateForStorage(validated.dueDate), // Convert DD-MM-YYYY → YYYY-MM-DD
           estimatedHours: validated.estimatedHours,

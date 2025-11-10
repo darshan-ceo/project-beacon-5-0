@@ -178,9 +178,45 @@ export class SupabaseAdapter implements StoragePort {
     this.ensureInitialized();
 
     try {
+      // UUID validation helper
+      const isUUID = (v: any) => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+      const asUUIDOrNull = (v: any) => (isUUID(v) ? v : null);
+
+      let processedData = { ...data };
+
+      // Defensive UUID sanitization for tasks table
+      if (table === 'tasks') {
+        const taskData = data as any;
+        
+        // If id is empty or invalid, remove it so DB generates UUID
+        if (!taskData.id || !isUUID(taskData.id)) {
+          const { id, ...dataWithoutId } = taskData;
+          processedData = dataWithoutId as any;
+        }
+        
+        // Sanitize all UUID foreign keys
+        processedData = {
+          ...processedData,
+          case_id: asUUIDOrNull((taskData as any).case_id),
+          client_id: asUUIDOrNull((taskData as any).client_id),
+          assigned_to: asUUIDOrNull((taskData as any).assigned_to),
+          assigned_by: asUUIDOrNull((taskData as any).assigned_by),
+          hearing_id: asUUIDOrNull((taskData as any).hearing_id),
+        };
+
+        console.log('[Tasks:create] Sanitized payload:', {
+          title: (taskData as any).title,
+          case_id: (processedData as any).case_id,
+          case_number: (taskData as any).case_number,
+          client_id: (processedData as any).client_id,
+          assigned_to: (processedData as any).assigned_to,
+          assigned_by: (processedData as any).assigned_by,
+        });
+      }
+
       // Add tenant_id if not present
       const dataWithTenant = {
-        ...data,
+        ...processedData,
         tenant_id: this.tenantId,
       };
 
