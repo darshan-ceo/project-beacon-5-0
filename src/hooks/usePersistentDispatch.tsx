@@ -58,10 +58,15 @@ export const usePersistentDispatch = (
         // Tasks - Transform camelCase to snake_case for database
         case 'ADD_TASK': {
           const task = action.payload as any; // Type cast for flexibility
+          const isValidUUID = (val: any) => typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+          
+          const assignedTo = task.assignedToId || task.assigned_to;
+          const assignedBy = task.assignedById || task.assigned_by;
+          
           const taskPayload = {
             ...task,
-            assigned_to: task.assignedToId || task.assigned_to,
-            assigned_by: task.assignedById || task.assigned_by,
+            assigned_to: (assignedTo && isValidUUID(assignedTo)) ? assignedTo : null,
+            assigned_by: (assignedBy && isValidUUID(assignedBy)) ? assignedBy : null,
             case_id: task.caseId || task.case_id,
             client_id: task.clientId || task.client_id,
             case_number: task.caseNumber || task.case_number,
@@ -98,10 +103,15 @@ export const usePersistentDispatch = (
         }
         case 'UPDATE_TASK': {
           const task = action.payload as any; // Type cast for flexibility
+          const isValidUUID = (val: any) => typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+          
+          const assignedTo = task.assignedToId || task.assigned_to;
+          const assignedBy = task.assignedById || task.assigned_by;
+          
           const updatePayload = {
             ...task,
-            assigned_to: task.assignedToId || task.assigned_to,
-            assigned_by: task.assignedById || task.assigned_by,
+            assigned_to: (assignedTo && isValidUUID(assignedTo)) ? assignedTo : null,
+            assigned_by: (assignedBy && isValidUUID(assignedBy)) ? assignedBy : null,
             case_id: task.caseId || task.case_id,
             client_id: task.clientId || task.client_id,
             case_number: task.caseNumber || task.case_number,
