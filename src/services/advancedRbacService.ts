@@ -32,16 +32,39 @@ export interface AssignRoleData {
 
 class AdvancedRBACService {
   private currentActorId = 'demo-user'; // In real app, get from auth context
+  private initialized = false;
+  private initPromise: Promise<void> | null = null;
 
   constructor() {
-    this.initializeService();
+    // Lazy initialization - do not initialize in constructor to avoid race conditions
   }
 
-  private async initializeService(): Promise<void> {
-    await unifiedStore.waitUntilReady();
-    await this.seedDefaultData();
-    // Ensure critical baseline exists even if store was previously seeded
-    await this.ensureBaseline();
+  async ensureInitialized(): Promise<void> {
+    if (this.initialized) return;
+    
+    // Prevent multiple concurrent initializations
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+
+    this.initPromise = this._initialize();
+    await this.initPromise;
+  }
+
+  private async _initialize(): Promise<void> {
+    try {
+      console.log('🔐 Initializing AdvancedRBACService...');
+      await unifiedStore.waitUntilReady();
+      await this.seedDefaultData();
+      // Ensure critical baseline exists even if store was previously seeded
+      await this.ensureBaseline();
+      this.initialized = true;
+      console.log('✅ AdvancedRBACService initialized successfully');
+    } catch (error) {
+      console.error('❌ AdvancedRBACService initialization failed:', error);
+      this.initPromise = null; // Reset to allow retry
+      throw error;
+    }
   }
 
   private async auditLog(
@@ -69,6 +92,7 @@ class AdvancedRBACService {
 
   // Role Management
   async createRole(data: CreateRoleData): Promise<RoleEntity> {
+    await this.ensureInitialized();
     const existing = await unifiedStore.roles.getByName(data.name);
     if (existing.length > 0) {
       throw new Error(`Role "${data.name}" already exists`);
@@ -93,6 +117,7 @@ class AdvancedRBACService {
   }
 
   async updateRole(id: string, updates: Partial<CreateRoleData>): Promise<RoleEntity> {
+    await this.ensureInitialized();
     const existing = await unifiedStore.roles.getById(id);
     if (!existing) {
       throw new Error('Role not found');
@@ -119,6 +144,7 @@ class AdvancedRBACService {
   }
 
   async deleteRole(id: string): Promise<void> {
+    await this.ensureInitialized();
     const existing = await unifiedStore.roles.getById(id);
     if (!existing) {
       throw new Error('Role not found');
@@ -139,15 +165,18 @@ class AdvancedRBACService {
   }
 
   async getAllRoles(): Promise<RoleEntity[]> {
+    await this.ensureInitialized();
     return unifiedStore.roles.getAll();
   }
 
   async getRoleById(id: string): Promise<RoleEntity | null> {
+    await this.ensureInitialized();
     return unifiedStore.roles.getById(id);
   }
 
   // Permission Management
   async createPermission(data: CreatePermissionData): Promise<PermissionEntity> {
+    await this.ensureInitialized();
     const permission: PermissionEntity = {
       id: `perm_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       name: data.name,
@@ -170,15 +199,18 @@ class AdvancedRBACService {
   }
 
   async getAllPermissions(): Promise<PermissionEntity[]> {
+    await this.ensureInitialized();
     return unifiedStore.permissions.getAll();
   }
 
   async getPermissionsByCategory(category: string): Promise<PermissionEntity[]> {
+    await this.ensureInitialized();
     return unifiedStore.permissions.getByCategory(category);
   }
 
   // User Role Assignment
   async assignRole(data: AssignRoleData): Promise<UserRoleAssignment> {
+    await this.ensureInitialized();
     // Check if user already has this role
     const existing = await unifiedStore.userRoles.query(
       (ur) => ur.userId === data.userId && ur.roleId === data.roleId && ur.isActive
@@ -205,6 +237,7 @@ class AdvancedRBACService {
   }
 
   async revokeRole(userId: string, roleId: string): Promise<void> {
+    await this.ensureInitialized();
     const assignments = await unifiedStore.userRoles.query(
       (ur) => ur.userId === userId && ur.roleId === roleId && ur.isActive
     );
@@ -216,6 +249,7 @@ class AdvancedRBACService {
   }
 
   async getUserRoles(userId: string): Promise<RoleEntity[]> {
+    await this.ensureInitialized();
     const assignments = await unifiedStore.userRoles.getByUserId(userId);
     const roles: RoleEntity[] = [];
 
@@ -230,11 +264,13 @@ class AdvancedRBACService {
   }
 
   async getRoleUsers(roleId: string): Promise<UserRoleAssignment[]> {
+    await this.ensureInitialized();
     return unifiedStore.userRoles.getByRoleId(roleId);
   }
 
   // Audit and Analytics
   async getAuditLog(limit = 100): Promise<PolicyAuditEntry[]> {
+    await this.ensureInitialized();
     const logs = await unifiedStore.policyAudit.getAll();
     return logs
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
@@ -242,6 +278,7 @@ class AdvancedRBACService {
   }
 
   async getAuditByActor(actorId: string): Promise<PolicyAuditEntry[]> {
+    await this.ensureInitialized();
     return unifiedStore.policyAudit.getByActor(actorId);
   }
 
@@ -252,6 +289,7 @@ class AdvancedRBACService {
     totalAssignments: number;
     mostAssignedRole: { role: RoleEntity; count: number } | null;
   }> {
+    await this.ensureInitialized();
     const roles = await unifiedStore.roles.getAll();
     const assignments = await unifiedStore.userRoles.getAll();
 

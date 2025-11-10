@@ -110,6 +110,16 @@ export const useUnifiedPersistence = () => {
           });
         }
         
+        // Initialize RBAC service after storage is ready
+        try {
+          const { advancedRbacService } = await import('@/services/advancedRbacService');
+          await advancedRbacService.ensureInitialized();
+          console.log('✅ RBAC service initialized');
+        } catch (rbacError) {
+          console.error('⚠️ RBAC initialization failed (non-critical):', rbacError);
+          // Non-blocking - app can continue without RBAC
+        }
+        
         setInitialized(true);
         console.log('✅ Unified storage initialized successfully');
         

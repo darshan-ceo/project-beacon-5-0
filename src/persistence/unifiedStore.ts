@@ -167,8 +167,8 @@ class UnifiedStore {
     try {
       console.log('🚀 Initializing UnifiedStore in DEMO mode');
       
-      // Initialize storage manager with IndexedDB
-      await storageManager.initialize('indexeddb');
+      // Initialize storage manager with Supabase (migrated from IndexedDB)
+      await storageManager.initialize('supabase');
       
       // Perform one-time migration from legacy stores
       await this.migrateLegacyData();
