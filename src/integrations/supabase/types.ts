@@ -1912,51 +1912,91 @@ export type Database = {
       }
       tasks: {
         Row: {
+          actual_hours: number | null
+          assigned_by: string | null
           assigned_to: string | null
           case_id: string | null
+          case_number: string | null
+          client_id: string | null
           completed_date: string | null
           created_at: string | null
           description: string | null
           due_date: string | null
+          due_date_validated: boolean | null
+          escalation_level: number | null
+          estimated_hours: number | null
           hearing_id: string | null
           id: string
+          is_auto_generated: boolean | null
           priority: string | null
+          stage: string | null
           status: string | null
+          tags: string[] | null
           tenant_id: string
+          timezone: string | null
           title: string
           updated_at: string | null
         }
         Insert: {
+          actual_hours?: number | null
+          assigned_by?: string | null
           assigned_to?: string | null
           case_id?: string | null
+          case_number?: string | null
+          client_id?: string | null
           completed_date?: string | null
           created_at?: string | null
           description?: string | null
           due_date?: string | null
+          due_date_validated?: boolean | null
+          escalation_level?: number | null
+          estimated_hours?: number | null
           hearing_id?: string | null
           id?: string
+          is_auto_generated?: boolean | null
           priority?: string | null
+          stage?: string | null
           status?: string | null
+          tags?: string[] | null
           tenant_id: string
+          timezone?: string | null
           title: string
           updated_at?: string | null
         }
         Update: {
+          actual_hours?: number | null
+          assigned_by?: string | null
           assigned_to?: string | null
           case_id?: string | null
+          case_number?: string | null
+          client_id?: string | null
           completed_date?: string | null
           created_at?: string | null
           description?: string | null
           due_date?: string | null
+          due_date_validated?: boolean | null
+          escalation_level?: number | null
+          estimated_hours?: number | null
           hearing_id?: string | null
           id?: string
+          is_auto_generated?: boolean | null
           priority?: string | null
+          stage?: string | null
           status?: string | null
+          tags?: string[] | null
           tenant_id?: string
+          timezone?: string | null
           title?: string
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tasks_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tasks_case_id_fkey"
             columns: ["case_id"]
@@ -1969,6 +2009,20 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients_directory"
             referencedColumns: ["id"]
           },
           {
