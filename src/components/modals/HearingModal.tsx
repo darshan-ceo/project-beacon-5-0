@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, MapPin, Scale, Calendar as CalendarCheckIcon, FileText, Loader2 } from 'lucide-react';
+import { CalendarIcon, MapPin, Scale, Calendar as CalendarCheckIcon, FileText, Loader2, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
 import { Hearing, useAppState } from '@/contexts/AppStateContext';
@@ -26,6 +26,7 @@ import { HearingOutcomeSection } from './HearingOutcomeSection';
 import { HearingDocumentUpload } from '../hearings/HearingDocumentUpload';
 import { HearingSummaryGenerator } from '../hearings/HearingSummaryGenerator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { detectHearingConflicts } from '@/utils/hearingConflicts';
 
 interface HearingModalProps {
   isOpen: boolean;
@@ -95,6 +96,17 @@ export const HearingModal: React.FC<HearingModalProps> = ({
   const [isAddressMasterEnabled, setIsAddressMasterEnabled] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
+  const [conflicts, setConflicts] = useState<{
+    hasConflicts: boolean;
+    conflicts: Array<{
+      conflictingHearingTitle: string;
+      conflictingCaseNumber: string;
+      conflictingTime: string;
+      conflictingCourt: string;
+      overlapMinutes: number;
+      severity: 'critical' | 'warning';
+    }>;
+  }>({ hasConflicts: false, conflicts: [] });
 
   useEffect(() => {
     setIsAddressMasterEnabled(featureFlagService.isEnabled('address_master_v1'));
@@ -125,6 +137,29 @@ export const HearingModal: React.FC<HearingModalProps> = ({
       });
     }
   }, [hearingData, mode, updateContext]);
+
+  // Check for conflicts when date, time, or court changes
+  useEffect(() => {
+    if (!formData.date || !formData.time || !formData.forumId) {
+      setConflicts({ hasConflicts: false, conflicts: [] });
+      return;
+    }
+
+    const dateStr = formData.date.toISOString().split('T')[0];
+    const result = detectHearingConflicts(
+      {
+        id: hearingData?.id,
+        date: dateStr,
+        start_time: formData.time,
+        court_id: formData.forumId
+      },
+      state.hearings,
+      state.cases,
+      state.courts
+    );
+
+    setConflicts(result);
+  }, [formData.date, formData.time, formData.forumId, state.hearings, state.cases, state.courts, hearingData?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -503,6 +538,49 @@ export const HearingModal: React.FC<HearingModalProps> = ({
                 </div>
               </CardContent>
             </Card>
+
+            {/* Conflict Warning Section */}
+            {conflicts.hasConflicts && (
+              <Alert variant={conflicts.conflicts.some(c => c.severity === 'critical') ? 'destructive' : 'default'} 
+                className="border-2">
+                <AlertCircle className="h-5 w-5" />
+                <AlertTitle className="text-base font-semibold">
+                  {conflicts.conflicts.some(c => c.severity === 'critical') 
+                    ? 'Critical Scheduling Conflict Detected' 
+                    : 'Scheduling Conflict Warning'}
+                </AlertTitle>
+                <AlertDescription className="space-y-3 mt-2">
+                  <p className="text-sm">
+                    {conflicts.conflicts.length === 1 
+                      ? 'This hearing overlaps with another scheduled hearing:'
+                      : `This hearing overlaps with ${conflicts.conflicts.length} other scheduled hearings:`}
+                  </p>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {conflicts.conflicts.map((conflict, idx) => (
+                      <div key={idx} className="bg-background/50 rounded-md p-3 text-sm space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">{conflict.conflictingCaseNumber}</span>
+                          <Badge variant={conflict.severity === 'critical' ? 'destructive' : 'secondary'}>
+                            {conflict.severity === 'critical' ? 'Same Court' : 'Different Court'}
+                          </Badge>
+                        </div>
+                        <p className="text-muted-foreground">{conflict.conflictingHearingTitle}</p>
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          <span>🕐 {conflict.conflictingTime}</span>
+                          <span>🏛️ {conflict.conflictingCourt}</span>
+                          <span>⏱️ {conflict.overlapMinutes} min overlap</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-sm font-medium mt-2">
+                    {conflicts.conflicts.some(c => c.severity === 'critical')
+                      ? '⚠️ You may not be able to attend both hearings. Please reschedule or assign different counsel.'
+                      : 'ℹ️ Consider travel time between courts when confirming this schedule.'}
+                  </p>
+                </AlertDescription>
+              </Alert>
+            )}
 
             {/* Section 3: Hearing Details */}
             <Card className="rounded-beacon-lg border bg-card shadow-beacon-md">

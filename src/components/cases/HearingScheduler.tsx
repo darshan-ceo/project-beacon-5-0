@@ -27,6 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import { NotificationConfigModal } from '@/components/modals/NotificationConfigModal';
 import { HearingModal } from '@/components/modals/HearingModal';
 import { useAppState, Case as AppStateCase } from '@/contexts/AppStateContext';
+import { getAllHearingConflicts } from '@/utils/hearingConflicts';
 
 interface Case {
   id: string;
@@ -114,6 +115,11 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases, selec
   const hearings = viewMode === 'case' && selectedCase 
     ? allHearings.filter(h => h.caseId === selectedCase.id)
     : allHearings;
+
+  // Detect conflicts across all hearings
+  const conflictsMap = React.useMemo(() => {
+    return getAllHearingConflicts(state.hearings, state.cases, state.courts);
+  }, [state.hearings, state.cases, state.courts]);
 
   const today = new Date().toISOString().split('T')[0];
   const upcomingHearings = hearings.filter(h => h.status === 'Scheduled' && h.date);
@@ -224,14 +230,20 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases, selec
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className={conflictsMap.size > 0 ? 'border-destructive/50 bg-destructive/5' : ''}>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Completed</p>
-                <p className="text-2xl font-bold text-foreground">{completedHearings.length}</p>
+                <p className="text-sm font-medium text-muted-foreground">Conflicts</p>
+                <p className={`text-2xl font-bold ${conflictsMap.size > 0 ? 'text-destructive' : 'text-foreground'}`}>
+                  {conflictsMap.size}
+                </p>
               </div>
-              <CheckCircle className="h-8 w-8 text-success" />
+              {conflictsMap.size > 0 ? (
+                <AlertCircle className="h-8 w-8 text-destructive animate-pulse" />
+              ) : (
+                <CheckCircle className="h-8 w-8 text-success" />
+              )}
             </div>
           </CardContent>
         </Card>
@@ -268,6 +280,12 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases, selec
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-foreground truncate">{hearing.title}</h4>
                         <p className="text-sm text-muted-foreground truncate">{hearing.caseNumber}</p>
+                        {conflictsMap.has(hearing.id) && (
+                          <Badge variant="destructive" className="text-xs mt-1 w-fit">
+                            <AlertCircle className="h-3 w-3 mr-1" />
+                            {conflictsMap.get(hearing.id)!.conflicts.length} conflict(s)
+                          </Badge>
+                        )}
                         <div className="flex items-center flex-wrap gap-x-4 gap-y-1 mt-2 text-sm">
                           <div className="flex items-center shrink-0">
                             <Clock className="mr-1 h-3 w-3" />
@@ -479,10 +497,16 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases, selec
                         {new Date(hearing.date).toLocaleDateString('en-US', { month: 'short' })}
                       </p>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-foreground truncate">{hearing.title}</h4>
-                      <p className="text-sm text-muted-foreground truncate">{hearing.caseNumber}</p>
-                      <div className="flex items-center flex-wrap gap-x-4 gap-y-1 mt-1 text-sm text-muted-foreground">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-foreground truncate">{hearing.title}</h4>
+                        <p className="text-sm text-muted-foreground truncate">{hearing.caseNumber}</p>
+                        {conflictsMap.has(hearing.id) && (
+                          <Badge variant="destructive" className="text-xs mt-1 w-fit">
+                            <AlertCircle className="h-3 w-3 mr-1" />
+                            {conflictsMap.get(hearing.id)!.conflicts.length} conflict(s)
+                          </Badge>
+                        )}
+                        <div className="flex items-center flex-wrap gap-x-4 gap-y-1 mt-1 text-sm text-muted-foreground">
                         <span className="shrink-0">{hearing.time}</span>
                         <span className="shrink-0">•</span>
                         <span className="truncate min-w-0">{hearing.court}</span>
