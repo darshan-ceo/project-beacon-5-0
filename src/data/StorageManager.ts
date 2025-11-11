@@ -3,19 +3,15 @@
  * Provides unified interface for data persistence
  */
 
-import { StoragePort, StorageConfig } from './ports/StoragePort';
-import { IndexedDBAdapter } from './adapters/IndexedDBAdapter';
-import { InMemoryAdapter } from './adapters/InMemoryAdapter';
-// ApiAdapter removed - deprecated after Supabase migration
-import { HybridAdapter } from './adapters/HybridAdapter';
+import { StoragePort } from './ports/StoragePort';
 import { SupabaseAdapter } from './adapters/SupabaseAdapter';
-import { SimulatedApiAdapter } from './adapters/SimulatedApiAdapter';
 import { TaskBundleRepository } from './repositories/TaskBundleRepository';
 import { EnhancedTaskBundleRepository } from './repositories/EnhancedTaskBundleRepository';
 import { DocumentRepository } from './repositories/DocumentRepository';
 import { AuditService } from './services/AuditService';
 
-export type StorageMode = 'indexeddb' | 'memory' | 'api' | 'hybrid' | 'supabase';
+// ONLY Supabase mode supported - all local storage adapters removed
+export type StorageMode = 'supabase';
 
 export class StorageManager {
   private static instance: StorageManager;
@@ -37,42 +33,27 @@ export class StorageManager {
   }
 
   async initialize(mode: StorageMode = 'supabase'): Promise<void> {
-    console.log(`🚀 Initializing storage in ${mode} mode`);
+    // FORCE SUPABASE ONLY - No fallback to local storage
+    if (mode !== 'supabase') {
+      throw new Error(
+        `❌ FATAL: Only Supabase storage mode is supported. Received: ${mode}. ` +
+        `Remove VITE_STORAGE_BACKEND from environment or set it to 'supabase'.`
+      );
+    }
+    
+    console.log('🚀 Initializing storage in Supabase-only mode');
     
     try {
-      // Initialize storage adapter
-      switch (mode) {
-        case 'supabase':
-          console.log('🗄️ Using Supabase PostgreSQL backend');
-          this.storage = new SupabaseAdapter();
-          break;
-        case 'indexeddb':
-          this.storage = new IndexedDBAdapter();
-          break;
-        case 'memory':
-          this.storage = new InMemoryAdapter();
-          break;
-        case 'api':
-          // ApiAdapter deprecated - use Supabase instead
-          throw new Error('API mode is deprecated. Use "supabase" mode instead.');
-        case 'hybrid':
-          const localAdapter = new IndexedDBAdapter();
-          const cloudAdapter = new SimulatedApiAdapter('cloud_api', {
-            baseDelay: 300,
-            failureRate: 0.02,
-            enabled: true,
-          });
-          this.storage = new HybridAdapter({
-            localAdapter,
-            cloudAdapter,
-            syncMode: 'batched',
-            batchInterval: 5000,
-            enableRealtime: true,
-          });
-          break;
-        default:
-          throw new Error(`Unknown storage mode: ${mode}`);
+      // Validate Supabase environment variables
+      if (!import.meta.env.VITE_SUPABASE_URL) {
+        throw new Error('❌ VITE_SUPABASE_URL is not configured');
       }
+      if (!import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY) {
+        throw new Error('❌ VITE_SUPABASE_PUBLISHABLE_KEY is not configured');
+      }
+      
+      console.log('🗄️ Using Supabase PostgreSQL backend');
+      this.storage = new SupabaseAdapter();
 
       await this.storage.initialize();
 

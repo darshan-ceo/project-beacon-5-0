@@ -338,18 +338,18 @@ class SearchService {
   private async searchDemo(query: string, scope: SearchScope, limit: number, cursor?: string): Promise<SearchResponse> {
     console.log('🔍 SearchService - Using DEMO search');
     
-    // Ensure IndexedDB is initialized (this is safe to call multiple times)
+    // Ensure Supabase is initialized
     try {
       const storage = storageManager.getStorage();
       if (!storage) {
-        await storageManager.initialize('indexeddb');
+        await storageManager.initialize('supabase');
       }
     } catch (error) {
       // Storage not initialized yet, try to initialize
       try {
-        await storageManager.initialize('indexeddb');
+        await storageManager.initialize('supabase');
       } catch (initError) {
-        console.warn('⚠️ IndexedDB initialization failed:', initError);
+        console.warn('⚠️ Supabase initialization failed:', initError);
         return { results: [], total: 0, next_cursor: undefined };
       }
     }

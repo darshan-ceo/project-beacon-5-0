@@ -1,6 +1,11 @@
 /**
- * Dexie Database Schema and Configuration
- * Single database with all entities and proper versioning
+ * ⚠️ DEPRECATED: Dexie IndexedDB Schema
+ * 
+ * This file is NO LONGER USED in production.
+ * All data persistence now uses Supabase via SupabaseAdapter.
+ * 
+ * DO NOT import or use this file for new features.
+ * Kept for reference only during migration cleanup.
  */
 
 import Dexie, { Table } from 'dexie';

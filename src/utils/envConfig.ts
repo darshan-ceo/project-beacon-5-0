@@ -11,11 +11,11 @@ let MOCK_ON = ['on', 'true', '1'].includes(s('VITE_GST_MOCK'));
 let QA_ON = ['on', 'true', '1'].includes(s('VITE_QA_MODE'));
 let API = (import.meta.env.VITE_API_BASE_URL || '').trim();
 
-// DEMO Mode Configuration
-let APP_MODE = (import.meta.env.VITE_APP_MODE || 'demo').trim().toLowerCase();
-let STORAGE_BACKEND = (import.meta.env.VITE_STORAGE_BACKEND || 'supabase').trim().toLowerCase();
+// FORCE PRODUCTION MODE - No demo/dev overrides
+const APP_MODE = 'production';
+const STORAGE_BACKEND = 'supabase'; // LOCKED - Cannot be overridden
 
-// URL parameter overrides
+// URL parameter overrides (LIMITED - No storage mode override)
 if (typeof window !== 'undefined') {
   const q = new URLSearchParams(window.location.search);
   
@@ -24,20 +24,17 @@ if (typeof window !== 'undefined') {
   if (q.get('qa')) QA_ON = ['on', 'true', '1'].includes(q.get('qa')?.toLowerCase() || '');
   if (q.get('api')) API = q.get('api') || '';
   
-  // DEMO mode overrides
-  if (q.get('mode')) APP_MODE = q.get('mode')?.toLowerCase() || 'demo';
-  if (q.get('storage')) STORAGE_BACKEND = q.get('storage')?.toLowerCase() || 'indexeddb';
+  // CRITICAL: Reject any attempt to override storage mode
+  if (q.get('storage') && q.get('storage') !== 'supabase') {
+    console.error('❌ REJECTED: Storage mode override detected. Only Supabase is supported.');
+  }
+  if (q.get('mode') && q.get('mode') !== 'production') {
+    console.warn('⚠️ App mode override ignored. Running in production mode.');
+  }
 }
 
 // If no API → force mock
 if (!API) MOCK_ON = true;
-
-// DEMO mode enforcements
-const isDemoMode = APP_MODE === 'demo';
-if (isDemoMode) {
-  MOCK_ON = true; // Force mock mode in demo
-  API = ''; // No API calls in demo mode
-}
 
 export const envConfig = {
   GST_ON,
@@ -47,21 +44,21 @@ export const envConfig = {
   API_SET: Boolean(API),
   GST_ENABLED: GST_ON || MOCK_ON,
   
-  // DEMO Mode Configuration
-  APP_MODE,
-  STORAGE_BACKEND,
-  IS_DEMO_MODE: isDemoMode,
+  // Production Mode Configuration (LOCKED)
+  APP_MODE: 'production' as const,
+  STORAGE_BACKEND: 'supabase' as const,
+  IS_DEMO_MODE: false,
   
   // Supabase Configuration
   SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
   SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
   SUPABASE_PROJECT_ID: import.meta.env.VITE_SUPABASE_PROJECT_ID,
   
-  // Validation functions
-  isDemoMode: () => APP_MODE === 'demo',
-  isIndexedDBMode: () => STORAGE_BACKEND === 'indexeddb',
-  isSupabaseMode: () => STORAGE_BACKEND === 'supabase',
-  enforceDemo: () => isDemoMode && STORAGE_BACKEND === 'indexeddb',
+  // Validation functions (PRODUCTION LOCKED)
+  isDemoMode: () => false,
+  isIndexedDBMode: () => false,
+  isSupabaseMode: () => true,
+  enforceDemo: () => false,
   
   // Supabase validation
   assertSupabaseConfigured: () => {
@@ -73,13 +70,9 @@ export const envConfig = {
     }
   },
   
-  // Get active storage mode with URL override support
-  getStorageMode: (): 'indexeddb' | 'supabase' | 'api' | 'hybrid' | 'memory' => {
-    if (typeof window !== 'undefined') {
-      const urlStorage = new URLSearchParams(window.location.search).get('storage');
-      if (urlStorage) return urlStorage as any;
-    }
-    return STORAGE_BACKEND as any;
+  // Get active storage mode (ALWAYS SUPABASE - No overrides)
+  getStorageMode: (): 'supabase' => {
+    return 'supabase';
   },
   
   // Status badges for QA dashboard
@@ -118,16 +111,12 @@ export const envConfig = {
     return overrides;
   },
   
-  // DEMO mode guards
+  // DEMO mode guards (DEPRECATED)
   assertDemoMode: () => {
-    if (!isDemoMode) {
-      throw new Error('Operation only allowed in DEMO mode');
-    }
+    throw new Error('Demo mode is deprecated - application uses production Supabase');
   },
   
   assertIndexedDB: () => {
-    if (STORAGE_BACKEND !== 'indexeddb') {
-      throw new Error('Operation requires IndexedDB storage backend');
-    }
+    throw new Error('IndexedDB is no longer supported - use Supabase');
   }
 };

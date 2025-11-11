@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -367,8 +368,9 @@ export const CaseModal: React.FC<CaseModalProps> = ({
     }
     
     if (mode === 'create') {
+      // Generate temporary UUID - will be replaced by Supabase
       const newCase: Case = {
-        id: Date.now().toString(),
+        id: uuidv4(),
         caseNumber: formData.caseNumber,
         caseType: formData.caseType,
         caseYear: formData.caseYear,

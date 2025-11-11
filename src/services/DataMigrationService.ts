@@ -81,8 +81,8 @@ export class DataMigrationService {
     let totalRecords = 0;
 
     try {
-      // Initialize IndexedDB storage temporarily
-      await StorageManager.getInstance().initialize('indexeddb');
+      // Initialize Supabase storage
+      await StorageManager.getInstance().initialize('supabase');
       const storage = StorageManager.getInstance().getStorage();
 
       const entities = [
@@ -409,8 +409,8 @@ export class DataMigrationService {
 
       const backup = JSON.parse(backupJson);
       
-      // Restore to IndexedDB
-      await StorageManager.getInstance().initialize('indexeddb');
+      // Restore to Supabase
+      await StorageManager.getInstance().initialize('supabase');
       const storage = StorageManager.getInstance().getStorage();
 
       for (const [entity, records] of Object.entries(backup.entities)) {
@@ -435,11 +435,8 @@ export class DataMigrationService {
    */
   async cleanupAfterMigration(): Promise<void> {
     try {
-      // Clear IndexedDB
-      await StorageManager.getInstance().initialize('indexeddb');
-      const storage = StorageManager.getInstance().getStorage();
-      await storage.clearAll();
-
+      console.log('⚠️ cleanupAfterMigration is deprecated - Supabase is the only storage mode');
+      
       // Mark migration as complete
       localStorage.setItem('MIGRATION_COMPLETE', new Date().toISOString());
       localStorage.setItem('STORAGE_MODE', 'supabase');

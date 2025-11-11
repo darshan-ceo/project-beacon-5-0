@@ -1,271 +1,55 @@
 /**
- * Storage Mode Selector
- * Allows switching between different storage backends
+ * Storage Mode Selector - DEPRECATED
+ * 
+ * ⚠️ This component is no longer functional.
+ * The application now exclusively uses Supabase storage.
+ * 
+ * Kept for reference only - will be removed in future cleanup.
  */
 
-import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Database, 
-  Cloud, 
-  HardDrive, 
-  Wifi, 
-  WifiOff, 
-  RefreshCw,
-  AlertTriangle,
-  CheckCircle2
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { storageManager } from '@/data/StorageManager';
-import type { StorageMode } from '@/data/StorageManager';
-
-const STORAGE_MODES = [
-  {
-    id: 'indexeddb' as StorageMode,
-    name: 'Local Only',
-    description: 'Store all data locally in your browser. No cloud sync.',
-    icon: HardDrive,
-    features: ['Instant performance', 'Works offline', 'No sync'],
-    badge: 'Default',
-  },
-  {
-    id: 'hybrid' as StorageMode,
-    name: 'Hybrid (Recommended)',
-    description: 'Local-first with automatic cloud synchronization.',
-    icon: Cloud,
-    features: ['Instant local', 'Auto cloud sync', 'Offline capable', 'Multi-device'],
-    badge: 'Best',
-  },
-  {
-    id: 'memory' as StorageMode,
-    name: 'In-Memory',
-    description: 'Temporary storage for testing. Data lost on refresh.',
-    icon: RefreshCw,
-    features: ['Ultra fast', 'No persistence', 'Testing only'],
-    badge: 'Dev Only',
-  },
-] as const;
-
-interface StorageModeInfo {
-  mode: StorageMode;
-  online: boolean;
-  syncQueueSize: number;
-  lastSync?: Date;
-}
+import { Database, CheckCircle2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 export function StorageModeSelector() {
-  const [currentMode, setCurrentMode] = useState<StorageMode>('indexeddb');
-  const [selectedMode, setSelectedMode] = useState<StorageMode>('indexeddb');
-  const [isLoading, setIsLoading] = useState(false);
-  const [storageInfo, setStorageInfo] = useState<StorageModeInfo>({
-    mode: 'indexeddb',
-    online: navigator.onLine,
-    syncQueueSize: 0,
-  });
-
-  const handleModeChange = async () => {
-    if (selectedMode === currentMode) {
-      toast.info('Already using this storage mode');
-      return;
-    }
-
-    setIsLoading(true);
-    
-    try {
-      // Warn about data migration
-      const confirmed = window.confirm(
-        `Switch to ${selectedMode} mode?\n\nThis will reload the application. Make sure all changes are saved.`
-      );
-      
-      if (!confirmed) {
-        setIsLoading(false);
-        return;
-      }
-
-      // Store mode preference
-      localStorage.setItem('storage_mode', selectedMode);
-      
-      // Reinitialize storage manager
-      await storageManager.destroy();
-      await storageManager.initialize(selectedMode);
-      
-      setCurrentMode(selectedMode);
-      
-      toast.success(`Switched to ${selectedMode} mode`, {
-        description: 'Storage backend updated successfully',
-      });
-      
-      // Reload after a short delay
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-      
-    } catch (error) {
-      console.error('Failed to switch storage mode:', error);
-      toast.error('Failed to switch storage mode', {
-        description: error instanceof Error ? error.message : 'Unknown error',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSyncNow = async () => {
-    if (currentMode !== 'hybrid') {
-      toast.error('Sync only available in hybrid mode');
-      return;
-    }
-
-    try {
-      toast.info('Starting manual sync...');
-      // This would trigger sync if we had access to HybridAdapter
-      toast.success('Sync completed');
-    } catch (error) {
-      toast.error('Sync failed');
-    }
-  };
-
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Storage Backend</CardTitle>
-            <CardDescription>
-              Choose how your data is stored and synchronized
-            </CardDescription>
-          </div>
-          <div className="flex items-center gap-2">
-            {storageInfo.online ? (
-              <Badge variant="outline" className="gap-1">
-                <Wifi className="h-3 w-3" />
-                Online
-              </Badge>
-            ) : (
-              <Badge variant="outline" className="gap-1">
-                <WifiOff className="h-3 w-3" />
-                Offline
-              </Badge>
-            )}
-            {currentMode === 'hybrid' && storageInfo.syncQueueSize > 0 && (
-              <Badge variant="secondary">
-                {storageInfo.syncQueueSize} pending
-              </Badge>
-            )}
-          </div>
-        </div>
+        <CardTitle className="flex items-center gap-2">
+          <Database className="h-5 w-5" />
+          Storage Configuration
+        </CardTitle>
+        <CardDescription>
+          Application storage backend is configured
+        </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Current Status */}
+      <CardContent className="space-y-4">
         <Alert>
           <CheckCircle2 className="h-4 w-4" />
           <AlertDescription>
-            Currently using <strong>{currentMode}</strong> mode
-            {currentMode === 'hybrid' && storageInfo.lastSync && (
-              <span className="text-muted-foreground">
-                {' '}· Last synced {storageInfo.lastSync.toLocaleTimeString()}
-              </span>
-            )}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Active Storage Mode:</span>
+                <Badge variant="default" className="ml-2">Supabase</Badge>
+              </div>
+              <p className="text-sm text-muted-foreground mt-2">
+                This application exclusively uses Supabase for data storage. 
+                All data is securely stored in the cloud with real-time synchronization.
+              </p>
+              <ul className="text-sm text-muted-foreground mt-2 space-y-1 list-disc list-inside">
+                <li>Automatic cloud backup</li>
+                <li>Multi-device sync</li>
+                <li>Row-Level Security (RLS)</li>
+                <li>Real-time updates</li>
+              </ul>
+            </div>
           </AlertDescription>
         </Alert>
 
-        {/* Mode Selection */}
-        <RadioGroup value={selectedMode} onValueChange={(value) => setSelectedMode(value as StorageMode)}>
-          <div className="grid gap-4">
-            {STORAGE_MODES.map((mode) => {
-              const Icon = mode.icon;
-              const isSelected = selectedMode === mode.id;
-              const isCurrent = currentMode === mode.id;
-              
-              return (
-                <div
-                  key={mode.id}
-                  className={`relative rounded-lg border p-4 cursor-pointer transition-all ${
-                    isSelected ? 'border-primary bg-accent' : 'hover:border-primary/50'
-                  }`}
-                  onClick={() => setSelectedMode(mode.id)}
-                >
-                  <div className="flex items-start gap-4">
-                    <RadioGroupItem value={mode.id} id={mode.id} />
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Icon className="h-5 w-5 text-muted-foreground" />
-                        <Label htmlFor={mode.id} className="text-base font-semibold cursor-pointer">
-                          {mode.name}
-                        </Label>
-                        {mode.badge && (
-                          <Badge variant={mode.badge === 'Best' ? 'default' : 'secondary'} className="text-xs">
-                            {mode.badge}
-                          </Badge>
-                        )}
-                        {isCurrent && (
-                          <Badge variant="outline" className="text-xs">
-                            Active
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {mode.description}
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {mode.features.map((feature) => (
-                          <Badge key={feature} variant="outline" className="text-xs">
-                            {feature}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </RadioGroup>
-
-        {/* Actions */}
-        <div className="flex items-center justify-between pt-4 border-t">
-          <div className="text-sm text-muted-foreground">
-            {selectedMode === 'hybrid' && (
-              <span className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4" />
-                Requires network connection for cloud sync
-              </span>
-            )}
-          </div>
-          <div className="flex gap-2">
-            {currentMode === 'hybrid' && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSyncNow}
-                disabled={!storageInfo.online}
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Sync Now
-              </Button>
-            )}
-            <Button
-              onClick={handleModeChange}
-              disabled={isLoading || selectedMode === currentMode}
-            >
-              {isLoading ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Switching...
-                </>
-              ) : (
-                <>
-                  <Database className="h-4 w-4 mr-2" />
-                  Switch Mode
-                </>
-              )}
-            </Button>
-          </div>
+        <div className="text-xs text-muted-foreground bg-muted p-3 rounded-md">
+          <strong>Note:</strong> Local storage modes (IndexedDB, In-Memory) have been removed. 
+          The application is now production-ready with Supabase as the exclusive backend.
         </div>
       </CardContent>
     </Card>
