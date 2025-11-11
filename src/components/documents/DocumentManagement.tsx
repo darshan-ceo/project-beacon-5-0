@@ -10,6 +10,8 @@ import { OrganizationGuide } from './OrganizationGuide';
 import { RecentDocuments } from './RecentDocuments';
 import { motion } from 'framer-motion';
 import { dmsService } from '@/services/dmsService';
+import { supabaseDocumentService } from '@/services/supabaseDocumentService';
+import { supabase } from '@/integrations/supabase/client';
 import { storageManager } from '@/data/StorageManager';
 import { useAppState } from '@/contexts/AppStateContext';
 import { navigationContextService } from '@/services/navigationContextService';
@@ -527,27 +529,61 @@ export const DocumentManagement: React.FC = () => {
 
   const handleDocumentUpload = async (file: File, options: any = {}) => {
     try {
-      // Prepare options with existing documents for duplicate checking
-      const uploadOptions = {
-        ...options,
-        existingDocuments: state.documents
-      };
-
-      const result = await dmsService.files.upload(currentUserId, file, uploadOptions, dispatch);
-      
-      if (result.success && result.document) {
-        // Successful upload
-        await loadFolderContents(selectedFolder);
-        await loadFolders();
-      } else if (result.duplicate) {
-        // Handle duplicate
-        setDuplicateModal({
-          isOpen: true,
-          file,
-          existingDoc: result.duplicate.existingDoc,
-          options: uploadOptions
-        });
+      // Get current user and tenant_id
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User must be authenticated to upload documents');
       }
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('tenant_id, full_name')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || !profile?.tenant_id) {
+        throw new Error('Unable to determine tenant context');
+      }
+
+      // Upload using Supabase Document Service
+      const uploadResult = await supabaseDocumentService.uploadDocument(
+        file,
+        {
+          tenant_id: profile.tenant_id,
+          case_id: options.caseId,
+          client_id: options.clientId,
+          folder_id: options.folderId,
+          category: 'general'
+        }
+      );
+
+      // Dispatch to update UI state
+      dispatch({
+        type: 'ADD_DOCUMENT',
+        payload: {
+          id: uploadResult.id,
+          name: uploadResult.file_name,
+          type: uploadResult.file_type,
+          size: uploadResult.file_size,
+          clientId: options.clientId,
+          caseId: options.caseId,
+          uploadedAt: new Date().toISOString(),
+          uploadedById: user.id,
+          uploadedByName: profile.full_name || 'Unknown',
+          tags: options.tags || [],
+          isShared: false,
+          path: uploadResult.file_path
+        }
+      });
+
+      toast({
+        title: "Upload Successful",
+        description: `${uploadResult.file_name} has been uploaded successfully.`,
+      });
+
+      // Refresh folder contents
+      await loadFolderContents(selectedFolder);
+      await loadFolders();
     } catch (error: any) {
       toast({
         title: "Upload Failed",

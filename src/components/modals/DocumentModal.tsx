@@ -10,6 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
 import { Document, useAppState } from '@/contexts/AppStateContext';
 import { dmsService } from '@/services/dmsService';
+import { supabaseDocumentService } from '@/services/supabaseDocumentService';
+import { supabase } from '@/integrations/supabase/client';
 import { Upload, FileText, Link2, Tag } from 'lucide-react';
 import { TagInput } from '@/components/ui/TagInput';
 import { useRBAC } from '@/hooks/useAdvancedRBAC';
@@ -112,24 +114,57 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
             tags: formData.tags
           });
         } else {
-          const uploadOptions = {
-            folderId: formData.folderId === "none" ? undefined : formData.folderId,
-            clientId: formData.clientId === "none" ? undefined : formData.clientId,
-            caseId: formData.caseId === "none" ? undefined : formData.caseId,
-            tags: formData.tags,
-            existingDocuments: state.documents
-          };
-
-          const result = await dmsService.files.upload(currentUserId, formData.file, uploadOptions, dispatch);
-          
-          if (!result.success && result.duplicate) {
-            toast({
-              title: "Duplicate File",
-              description: "A file with this name already exists.",
-              variant: "destructive"
-            });
-            return;
+          // Get current user and tenant_id
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) {
+            throw new Error('User must be authenticated to upload documents');
           }
+
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('tenant_id, full_name')
+            .eq('id', user.id)
+            .single();
+
+          if (profileError || !profile?.tenant_id) {
+            throw new Error('Unable to determine tenant context');
+          }
+
+          // Upload using Supabase Document Service
+          const uploadResult = await supabaseDocumentService.uploadDocument(
+            formData.file,
+            {
+              tenant_id: profile.tenant_id,
+              case_id: formData.caseId === 'none' ? undefined : formData.caseId,
+              client_id: formData.clientId === 'none' ? undefined : formData.clientId,
+              folder_id: formData.folderId === 'none' ? undefined : formData.folderId,
+              category: 'general'
+            }
+          );
+
+          // Dispatch to update UI state
+          dispatch({
+            type: 'ADD_DOCUMENT',
+            payload: {
+              id: uploadResult.id,
+              name: uploadResult.file_name,
+              type: uploadResult.file_type,
+              size: uploadResult.file_size,
+              clientId: formData.clientId === 'none' ? undefined : formData.clientId,
+              caseId: formData.caseId === 'none' ? undefined : formData.caseId,
+              uploadedAt: new Date().toISOString(),
+              uploadedById: user.id,
+              uploadedByName: profile.full_name || 'Unknown',
+              tags: formData.tags || [],
+              isShared: formData.sharedWithClient,
+              path: uploadResult.file_path
+            }
+          });
+
+          toast({
+            title: "Upload Successful",
+            description: `${uploadResult.file_name} has been uploaded successfully.`,
+          });
         }
       } else if (mode === 'edit' && documentData) {
         await dmsService.files.updateMetadata(documentData.id, {
