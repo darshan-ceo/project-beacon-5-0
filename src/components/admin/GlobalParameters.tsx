@@ -13,7 +13,8 @@ import {
   Save,
   RefreshCw,
   AlertTriangle,
-  MapPin
+  MapPin,
+  ListChecks
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,7 @@ import { toast } from '@/hooks/use-toast';
 import { CalendarIntegrationPanel } from './CalendarIntegrationPanel';
 import { AddressSettings } from './AddressSettings';
 import { EmailConfiguration } from './EmailConfiguration';
+import { OutcomeTemplateManager } from './OutcomeTemplateManager';
 import { featureFlagService } from '@/services/featureFlagService';
 
 interface SystemParameter {
@@ -208,11 +210,12 @@ export const GlobalParameters: React.FC = () => {
                 <TabsTrigger value="integrations" className="min-w-[120px] whitespace-nowrap">Integrations</TabsTrigger>
                 <TabsTrigger value="ai-communications" className="min-w-[140px] whitespace-nowrap">AI & Communications</TabsTrigger>
                 <TabsTrigger value="address-config" className="min-w-[120px] whitespace-nowrap">Address Config</TabsTrigger>
+                <TabsTrigger value="outcome-templates" className="min-w-[140px] whitespace-nowrap">Outcome Templates</TabsTrigger>
               </TabsList>
             </div>
           </div>
         ) : (
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-1 p-1 h-auto">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-1 p-1 h-auto">
             <TabsTrigger value="system" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">System</TabsTrigger>
             <TabsTrigger value="security" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Security</TabsTrigger>
             <TabsTrigger value="notifications" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Notifications</TabsTrigger>
@@ -220,6 +223,7 @@ export const GlobalParameters: React.FC = () => {
             <TabsTrigger value="integrations" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Integrations</TabsTrigger>
             <TabsTrigger value="ai-communications" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">AI & Communications</TabsTrigger>
             <TabsTrigger value="address-config" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Address Configuration</TabsTrigger>
+            <TabsTrigger value="outcome-templates" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Outcome Templates</TabsTrigger>
           </TabsList>
         )}
 
@@ -584,6 +588,10 @@ export const GlobalParameters: React.FC = () => {
               <AddressSettings />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="outcome-templates" className="space-y-6">
+          <OutcomeTemplateManager />
         </TabsContent>
       </Tabs>
     </div>

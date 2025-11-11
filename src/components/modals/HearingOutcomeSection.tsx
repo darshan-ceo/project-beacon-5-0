@@ -12,7 +12,7 @@ import { CalendarIcon, CheckCircle2, Sparkles, ListTodo } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
-import { previewOutcomeTasks } from '@/services/hearingOutcomeTemplates';
+import { getAllOutcomeTypes, previewOutcomeTasks } from '@/services/hearingOutcomeTemplates';
 
 interface HearingOutcomeSectionProps {
   outcome?: string;
@@ -45,6 +45,11 @@ export const HearingOutcomeSection: React.FC<HearingOutcomeSectionProps> = ({
     return previewOutcomeTasks(outcome);
   }, [outcome]);
 
+  // Get all available outcome types (default + custom)
+  const availableOutcomeTypes = useMemo(() => {
+    return getAllOutcomeTypes();
+  }, []);
+
   return (
     <Card className="rounded-beacon-lg border bg-card shadow-beacon-md">
       <CardHeader className="border-b border-border p-6 pb-4">
@@ -69,10 +74,11 @@ export const HearingOutcomeSection: React.FC<HearingOutcomeSectionProps> = ({
               <SelectValue placeholder="Select outcome" />
             </SelectTrigger>
             <SelectContent className="z-[200]">
-              <SelectItem value="Adjournment">Adjournment</SelectItem>
-              <SelectItem value="Submission Done">Submission Done</SelectItem>
-              <SelectItem value="Order Passed">Order Passed</SelectItem>
-              <SelectItem value="Closed">Closed</SelectItem>
+              {availableOutcomeTypes.map((outcomeType) => (
+                <SelectItem key={outcomeType} value={outcomeType}>
+                  {outcomeType}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

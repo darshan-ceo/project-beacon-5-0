@@ -185,7 +185,14 @@ export const OUTCOME_TEMPLATES: HearingOutcomeTemplate[] = [
  * Get outcome template by outcome type
  */
 export function getOutcomeTemplate(outcomeType: string): HearingOutcomeTemplate | null {
-  return OUTCOME_TEMPLATES.find(t => t.outcomeType === outcomeType) || null;
+  // Check custom templates first via manager
+  try {
+    const { outcomeTemplateManager } = require('./outcomeTemplateManager');
+    return outcomeTemplateManager.getTemplate(outcomeType);
+  } catch {
+    // Fallback to defaults if manager not available
+    return OUTCOME_TEMPLATES.find(t => t.outcomeType === outcomeType) || null;
+  }
 }
 
 /**
@@ -278,4 +285,16 @@ export async function generateOutcomeTasks(
 export function previewOutcomeTasks(outcomeType: string): OutcomeTaskTemplate[] {
   const template = getOutcomeTemplate(outcomeType);
   return template ? template.tasks : [];
+}
+
+/**
+ * Get all available outcome types (default + custom)
+ */
+export function getAllOutcomeTypes(): string[] {
+  try {
+    const { outcomeTemplateManager } = require('./outcomeTemplateManager');
+    return outcomeTemplateManager.getAllTemplates().map((t: HearingOutcomeTemplate) => t.outcomeType);
+  } catch {
+    return OUTCOME_TEMPLATES.map(t => t.outcomeType);
+  }
 }
