@@ -43,6 +43,19 @@ export const uploadDocument = async (
       throw new Error('Valid tenant_id is required for document upload');
     }
 
+    // Validate at least one entity link is provided
+    const hasLink = !!(
+      metadata.case_id || 
+      metadata.client_id || 
+      metadata.hearing_id || 
+      metadata.task_id || 
+      metadata.folder_id
+    );
+
+    if (!hasLink) {
+      throw new Error('Please link this document to a Case, Client, or Folder before uploading.');
+    }
+
     // Get current user
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -136,6 +149,12 @@ export const uploadDocument = async (
       // Rollback: delete uploaded file
       console.error('❌ Database insert failed, rolling back file upload:', dbError);
       await supabase.storage.from('documents').remove([filePath]);
+      
+      // Provide user-friendly error for constraint violation
+      if (dbError.message?.includes('at_least_one_link') || dbError.code === '23514') {
+        throw new Error('Please link this document to a Case, Client, or Folder before uploading.');
+      }
+      
       throw new Error(`Failed to create document record: ${dbError.message}`);
     }
 

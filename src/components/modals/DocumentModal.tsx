@@ -106,6 +106,22 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
           return;
         }
 
+        // Validate at least one entity link
+        const hasLink = !!(
+          (formData.caseId && formData.caseId !== 'none') ||
+          (formData.clientId && formData.clientId !== 'none') ||
+          (formData.folderId && formData.folderId !== 'none')
+        );
+
+        if (!hasLink) {
+          toast({
+            title: "Missing Link",
+            description: "Please link this document to a Case, Client, or Folder before uploading.",
+            variant: "destructive"
+          });
+          return;
+        }
+
         if (onUpload) {
           await onUpload(formData.file, {
             folderId: formData.folderId === "none" ? undefined : formData.folderId,
