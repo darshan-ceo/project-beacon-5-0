@@ -57,6 +57,7 @@ import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import { useAutomation } from "@/hooks/useAutomation";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
+import { DataInitializer } from "@/components/data/DataInitializer";
 
 const queryClient = new QueryClient();
 
@@ -391,9 +392,11 @@ const App = () => {
       <AuthProvider>
         <AdvancedRBACProvider>
           <AppStateProvider>
-            <AppWithPersistence>
-              <AppContent />
-            </AppWithPersistence>
+            <DataInitializer>
+              <AppWithPersistence>
+                <AppContent />
+              </AppWithPersistence>
+            </DataInitializer>
           </AppStateProvider>
         </AdvancedRBACProvider>
       </AuthProvider>

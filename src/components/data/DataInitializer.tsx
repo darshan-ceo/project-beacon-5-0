@@ -1,0 +1,270 @@
+import { useEffect, useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useAppState } from '@/contexts/AppStateContext';
+import { supabase } from '@/integrations/supabase/client';
+import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+
+/**
+ * DataInitializer Component
+ * 
+ * Loads all entity data from Supabase into AppStateContext on app startup.
+ * Waits for authentication to complete before loading tenant-specific data.
+ */
+export const DataInitializer = ({ children }: { children: React.ReactNode }) => {
+  const { user, tenantId } = useAuth();
+  const { dispatch } = useAppState();
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadData = async () => {
+      if (!user || !tenantId) {
+        console.log('[DataInitializer] Waiting for authentication...', { user: !!user, tenantId });
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('[DataInitializer] Loading data for tenant:', tenantId);
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        // Load all entities in parallel
+        const [
+          clientsData,
+          clientGroupsData,
+          casesData,
+          tasksData,
+          hearingsData,
+          documentsData,
+          employeesData,
+          courtsData,
+          judgesData,
+        ] = await Promise.all([
+          supabase.from('clients').select('*').eq('tenant_id', tenantId),
+          supabase.from('client_groups').select('*').eq('tenant_id', tenantId),
+          supabase.from('cases').select('*').eq('tenant_id', tenantId),
+          supabase.from('tasks').select('*').eq('tenant_id', tenantId),
+          supabase.from('hearings').select('*').eq('tenant_id', tenantId),
+          supabase.from('documents').select('*').eq('tenant_id', tenantId),
+          supabase.from('employees').select('*').eq('tenant_id', tenantId),
+          supabase.from('courts').select('*').eq('tenant_id', tenantId),
+          supabase.from('judges').select('*').eq('tenant_id', tenantId),
+        ]);
+
+        // Check for errors
+        const errors = [
+          clientsData.error,
+          clientGroupsData.error,
+          casesData.error,
+          tasksData.error,
+          hearingsData.error,
+          documentsData.error,
+          employeesData.error,
+          courtsData.error,
+          judgesData.error,
+        ].filter(Boolean);
+
+        if (errors.length > 0) {
+          throw new Error(`Failed to load data: ${errors.map(e => e?.message).join(', ')}`);
+        }
+
+        // Transform data to match AppState interface
+        const clients = (clientsData.data || []).map((c: any) => ({
+          ...c,
+          assignedCAId: c.assigned_ca_id || c.assignedCAId,
+          assignedCAName: c.assigned_ca_name || c.assignedCAName,
+          clientGroupId: c.client_group_id || c.clientGroupId,
+          createdAt: c.created_at || c.createdAt,
+          updatedAt: c.updated_at || c.updatedAt,
+        }));
+
+        const clientGroups = (clientGroupsData.data || []).map((cg: any) => ({
+          ...cg,
+          headClientId: cg.head_client_id || cg.headClientId,
+          totalClients: cg.total_clients || cg.totalClients,
+          createdAt: cg.created_at || cg.createdAt,
+          updatedAt: cg.updated_at || cg.updatedAt,
+          createdBy: cg.created_by || cg.createdBy,
+          updatedBy: cg.updated_by || cg.updatedBy,
+        }));
+
+        const cases = (casesData.data || []).map((c: any) => ({
+          ...c,
+          caseNumber: c.case_number || c.caseNumber,
+          clientId: c.client_id || c.clientId,
+          currentStage: c.current_stage || c.currentStage,
+          timelineBreachStatus: c.timeline_breach_status || c.timelineBreachStatus,
+          assignedToId: c.assigned_to || c.assigned_to_id || c.assignedToId,
+          assignedToName: c.assigned_to_name || c.assignedToName,
+          createdDate: c.created_date || c.created_at || c.createdDate,
+          lastUpdated: c.last_updated || c.updated_at || c.lastUpdated,
+          generatedForms: c.generated_forms || c.generatedForms || [],
+          amountInDispute: c.amount_in_dispute || c.amountInDispute,
+        }));
+
+        const tasks = (tasksData.data || []).map((t: any) => ({
+          ...t,
+          caseId: t.case_id || t.caseId,
+          clientId: t.client_id || t.clientId,
+          caseNumber: t.case_number || t.caseNumber,
+          assignedToId: t.assigned_to || t.assigned_to_id || t.assignedToId,
+          assignedToName: t.assigned_to_name || t.assignedToName,
+          assignedById: t.assigned_by || t.assigned_by_id || t.assignedById,
+          assignedByName: t.assigned_by_name || t.assignedByName,
+          createdDate: t.created_date || t.created_at || t.createdDate,
+          dueDate: t.due_date || t.dueDate,
+          completedDate: t.completed_date || t.completedDate,
+          estimatedHours: t.estimated_hours || t.estimatedHours || 0,
+          actualHours: t.actual_hours || t.actualHours,
+          isAutoGenerated: t.is_auto_generated || t.isAutoGenerated || false,
+          bundleId: t.bundle_id || t.bundleId,
+          escalationLevel: t.escalation_level || t.escalationLevel || 0,
+          timezone: t.timezone || 'Asia/Kolkata',
+          dueDateValidated: t.due_date_validated || t.dueDateValidated || true,
+          audit_trail: t.audit_trail || { created_by: user.id, created_at: new Date().toISOString(), updated_by: user.id, updated_at: new Date().toISOString(), change_log: [] },
+        }));
+
+
+        const hearings = (hearingsData.data || []).map((h: any) => ({
+          ...h,
+          case_id: h.case_id || h.caseId,
+          court_id: h.court_id || h.courtId,
+          judge_ids: h.judge_ids || (h.judgeId ? [h.judgeId] : []),
+          start_time: h.start_time || h.time || '10:00',
+          end_time: h.end_time || '11:00',
+          timezone: h.timezone || 'Asia/Kolkata',
+          created_by: h.created_by || user.id,
+          created_at: h.created_at || h.createdDate,
+          updated_at: h.updated_at || h.lastUpdated,
+        }));
+
+        const documents = (documentsData.data || []).map((d: any) => ({
+          ...d,
+          caseId: d.case_id || d.caseId,
+          clientId: d.client_id || d.clientId,
+          uploadedById: d.uploaded_by || d.uploaded_by_id || d.uploadedById,
+          uploadedByName: d.uploaded_by_name || d.uploadedByName,
+          uploadedAt: d.uploaded_at || d.uploadedAt,
+          createdAt: d.created_at || d.createdAt,
+          isShared: d.is_shared || d.isShared || false,
+          folderId: d.folder_id || d.folderId,
+        }));
+
+        const employees = (employeesData.data || []).map((e: any) => ({
+          ...e,
+          full_name: e.full_name || e.name,
+          date_of_joining: e.date_of_joining || e.dateOfJoining,
+          workloadCapacity: e.workload_capacity || e.workloadCapacity || 40,
+          managerId: e.manager_id || e.managerId,
+          tenantId: e.tenant_id || e.tenantId,
+          addressId: e.address_id || e.addressId,
+        }));
+
+        const courts = (courtsData.data || []).map((c: any) => ({
+          ...c,
+          activeCases: c.active_cases || c.activeCases || 0,
+          avgHearingTime: c.avg_hearing_time || c.avgHearingTime || 'N/A',
+          digitalFiling: c.digital_filing || c.digitalFiling || false,
+          digitalFilingPortal: c.digital_filing_portal || c.digitalFilingPortal,
+          digitalFilingPortalUrl: c.digital_filing_portal_url || c.digitalFilingPortalUrl,
+          digitalFilingInstructions: c.digital_filing_instructions || c.digitalFilingInstructions,
+          workingDays: c.working_days || c.workingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+          addressId: c.address_id || c.addressId,
+          benchLocation: c.bench_location || c.benchLocation,
+          authorityLevel: c.authority_level || c.authorityLevel,
+        }));
+
+        const judges = (judgesData.data || []).map((j: any) => ({
+          ...j,
+          courtId: j.court_id || j.courtId,
+          appointmentDate: j.appointment_date || j.appointmentDate,
+          retirementDate: j.retirement_date || j.retirementDate,
+          yearsOfService: j.years_of_service || j.yearsOfService,
+          specialization: j.specialization || [],
+          photoUrl: j.photo_url || j.photoUrl,
+          addressId: j.address_id || j.addressId,
+          memberType: j.member_type || j.memberType,
+          authorityLevel: j.authority_level || j.authorityLevel,
+          createdAt: j.created_at || j.createdAt,
+          updatedAt: j.updated_at || j.updatedAt,
+          createdBy: j.created_by || j.createdBy,
+          updatedBy: j.updated_by || j.updatedBy,
+        }));
+
+        // Dispatch RESTORE_STATE action
+        dispatch({
+          type: 'RESTORE_STATE',
+          payload: {
+            clients,
+            clientGroups,
+            cases,
+            tasks,
+            taskNotes: [],
+            taskFollowUps: [],
+            hearings,
+            documents,
+            employees,
+            courts,
+            judges,
+          },
+        });
+
+        console.log('[DataInitializer] ✅ Data loaded successfully:', {
+          clients: clients.length,
+          clientGroups: clientGroups.length,
+          cases: cases.length,
+          tasks: tasks.length,
+          hearings: hearings.length,
+          documents: documents.length,
+          employees: employees.length,
+          courts: courts.length,
+          judges: judges.length,
+        });
+
+        toast.success('Data loaded successfully');
+      } catch (err: any) {
+        console.error('[DataInitializer] ❌ Error loading data:', err);
+        setError(err.message);
+        toast.error('Failed to load data', {
+          description: err.message,
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, [user, tenantId, dispatch]);
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Loading your data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <p className="text-sm text-destructive">Failed to load data</p>
+          <p className="text-xs text-muted-foreground">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="text-sm text-primary underline"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+};
