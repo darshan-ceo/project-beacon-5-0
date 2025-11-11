@@ -92,9 +92,10 @@ export function showSupabaseError(
 ): void {
   const message = handleSupabaseError(error, operation, entityName);
   
+  const devSuffix = (import.meta as any).env?.DEV ? ` [${(error as any).code || 'no-code'}] ${(error as any).message || ''}` : '';
   toast({
     title: OPERATION_MESSAGES[operation]?.error || `Operation Failed`,
-    description: message,
+    description: `${message}${devSuffix ? ` ${devSuffix}` : ''}`,
     variant: 'destructive',
   });
 }

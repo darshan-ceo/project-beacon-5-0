@@ -6,6 +6,7 @@
 
 import { StoragePort, VersionedEntity, EntityType } from '../ports/StoragePort';
 import { supabase } from '@/integrations/supabase/client';
+import { isValidUUID } from '@/utils/uuidValidator';
 
 export class SupabaseAdapter implements StoragePort {
   private tenantId: string | null = null;
@@ -1035,7 +1036,7 @@ export class SupabaseAdapter implements StoragePort {
    */
   private normalizeForBackend<T>(table: string, items: T[]): T[] {
     const actualTable = this.getActualTableName(table);
-    const { isValidUUID } = require('@/utils/uuidValidator');
+    
     
     return items.map(item => {
       const normalized: any = { ...item };
