@@ -114,9 +114,14 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
         );
 
         if (!hasLink) {
+          const missing = [];
+          if (!formData.caseId || formData.caseId === 'none') missing.push('Case');
+          if (!formData.clientId || formData.clientId === 'none') missing.push('Client');
+          if (!formData.folderId || formData.folderId === 'none') missing.push('Folder');
+          
           toast({
-            title: "Missing Link",
-            description: "Please link this document to a Case, Client, or Folder before uploading.",
+            title: "Missing Required Link",
+            description: `Please select at least one: ${missing.join(', ')}`,
             variant: "destructive"
           });
           return;
@@ -145,6 +150,20 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
           if (profileError || !profile?.tenant_id) {
             throw new Error('Unable to determine tenant context');
           }
+
+          // Debug logging
+          console.log('📤 [DocumentModal] Preparing upload:', {
+            formData: {
+              caseId: formData.caseId,
+              clientId: formData.clientId,
+              folderId: formData.folderId,
+            },
+            metadata: {
+              case_id: formData.caseId === 'none' ? undefined : formData.caseId,
+              client_id: formData.clientId === 'none' ? undefined : formData.clientId,
+              folder_id: formData.folderId === 'none' ? undefined : formData.folderId,
+            }
+          });
 
           // Upload using Supabase Document Service
           const uploadResult = await supabaseDocumentService.uploadDocument(
@@ -307,11 +326,14 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
                         required
                       />
                     </div>
-                    <div>
+                     <div>
                       <Label htmlFor="folder">Folder</Label>
                       <Select
                         value={formData.folderId}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, folderId: value }))}
+                        onValueChange={(value) => {
+                          console.log('📁 [DocumentModal] Folder selected:', value);
+                          setFormData(prev => ({ ...prev, folderId: value }));
+                        }}
                       >
                         <SelectTrigger id="folder">
                           <SelectValue placeholder="Select folder" />
@@ -337,9 +359,21 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
                       <Link2 className="h-4 w-4" />
                       Associations
                     </CardTitle>
-                  </CardHeader>
+                   </CardHeader>
                   <CardContent className="space-y-4 p-6">
                   
+                  {/* Informational Banner */}
+                  <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
+                      <strong>Note:</strong> Every document must be linked to at least one: Case, Client, or Folder.
+                      {formData.caseId === 'none' && formData.clientId === 'none' && formData.folderId === 'none' && (
+                        <span className="block mt-1 text-red-600 dark:text-red-400 font-medium">
+                          ⚠️ Please select at least one association below to enable upload.
+                        </span>
+                      )}
+                    </p>
+                  </div>
+
                   {/* Client Association */}
                   <div>
                     <Label htmlFor="client">Associate with Client</Label>

@@ -44,6 +44,21 @@ export const uploadDocument = async (
     }
 
     // Validate at least one entity link is provided
+    console.log('🔍 [SupabaseDocumentService] Validating metadata:', {
+      case_id: metadata.case_id,
+      client_id: metadata.client_id,
+      hearing_id: metadata.hearing_id,
+      task_id: metadata.task_id,
+      folder_id: metadata.folder_id,
+      hasLink: !!(
+        metadata.case_id || 
+        metadata.client_id || 
+        metadata.hearing_id || 
+        metadata.task_id || 
+        metadata.folder_id
+      )
+    });
+
     const hasLink = !!(
       metadata.case_id || 
       metadata.client_id || 
@@ -53,6 +68,7 @@ export const uploadDocument = async (
     );
 
     if (!hasLink) {
+      console.error('❌ [SupabaseDocumentService] No entity link provided');
       throw new Error('Please link this document to a Case, Client, or Folder before uploading.');
     }
 

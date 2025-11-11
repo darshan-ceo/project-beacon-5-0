@@ -73,6 +73,8 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
         // Transform data to match AppState interface
         const clients = (clientsData.data || []).map((c: any) => ({
           ...c,
+          name: c.display_name, // Map display_name to name for UI compatibility
+          display_name: c.display_name,
           assignedCAId: c.assigned_ca_id || c.assignedCAId,
           assignedCAName: c.assigned_ca_name || c.assignedCAName,
           clientGroupId: c.client_group_id || c.clientGroupId,
