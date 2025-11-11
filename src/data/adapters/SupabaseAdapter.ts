@@ -352,11 +352,24 @@ export class SupabaseAdapter implements StoragePort {
         tenant_id: this.tenantId,
       };
 
-      const { data: result, error } = await (supabase as any)
-        .from(this.getActualTableName(table))
-        .insert(dataWithTenant)
-        .select()
-        .single();
+      // Insert normally when no id is provided; if id exists, upsert defensively to avoid duplicate key errors
+      let result: any;
+      let error: any;
+      if ((dataWithTenant as any).id) {
+        const { data, error: upsertError } = await (supabase as any)
+          .from(this.getActualTableName(table))
+          .upsert(dataWithTenant, { onConflict: 'id', ignoreDuplicates: false })
+          .select()
+          .single();
+        result = data; error = upsertError;
+      } else {
+        const { data, error: insertError } = await (supabase as any)
+          .from(this.getActualTableName(table))
+          .insert(dataWithTenant)
+          .select()
+          .single();
+        result = data; error = insertError;
+      }
 
       if (error) this.handleError(error, 'create');
 
@@ -1206,6 +1219,13 @@ export class SupabaseAdapter implements StoragePort {
           if (normalized.clientId && !normalized.client_id) {
             normalized.client_id = normalized.clientId;
           }
+          // Accept client field as object or string
+          if (!normalized.client_id && normalized.client && typeof normalized.client === 'object' && normalized.client.id) {
+            normalized.client_id = normalized.client.id;
+          }
+          if (!normalized.client_id && typeof normalized.client === 'string') {
+            normalized.client_id = normalized.client;
+          }
           if (normalized.assignedTo && !normalized.assigned_to) {
             normalized.assigned_to = normalized.assignedTo;
           }
@@ -1326,11 +1346,39 @@ export class SupabaseAdapter implements StoragePort {
             normalized.updated_at = normalized.updatedAt;
           }
           
-          // Map time/start_time -> hearing_date if needed
-          if ((normalized.time || normalized.start_time) && !normalized.hearing_date) {
-            const timeStr = normalized.time || normalized.start_time || '10:00';
-            const dateStr = normalized.date || new Date().toISOString().split('T')[0];
-            normalized.hearing_date = `${dateStr}T${timeStr}:00`;
+          // Build hearing_date from provided date/time accepting dd/MM/yyyy or yyyy-MM-dd and 12h/24h time
+          if (!normalized.hearing_date && (normalized.date || normalized.time || normalized.start_time)) {
+            const rawDate = normalized.date || '';
+            const rawTime = normalized.time || normalized.start_time || '10:00';
+
+            let year: number, month: number, day: number;
+            if (/^\d{2}\/\d{2}\/\d{4}$/.test(rawDate)) {
+              const [d, m, y] = rawDate.split('/');
+              day = parseInt(d, 10); month = parseInt(m, 10) - 1; year = parseInt(y, 10);
+            } else if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
+              const [y, m, d] = rawDate.split('-');
+              year = parseInt(y, 10); month = parseInt(m, 10) - 1; day = parseInt(d, 10);
+            } else {
+              const now = new Date();
+              year = now.getFullYear(); month = now.getMonth(); day = now.getDate();
+            }
+
+            let hours = 10; let minutes = 0;
+            const t = String(rawTime).trim().toLowerCase();
+            const m12 = t.match(/^(\d{1,2}):(\d{2})\s*(am|pm)$/);
+            const m24 = t.match(/^([01]?\d|2[0-3]):([0-5]\d)$/);
+            if (m12) {
+              hours = parseInt(m12[1], 10) % 12;
+              if (m12[3] === 'pm') hours += 12;
+              minutes = parseInt(m12[2], 10);
+            } else if (m24) {
+              hours = parseInt(m24[1], 10);
+              minutes = parseInt(m24[2], 10);
+            }
+
+            // Use UTC ISO to avoid timezone ambiguity
+            const dt = new Date(Date.UTC(year, month, day, hours, minutes, 0));
+            normalized.hearing_date = dt.toISOString();
           }
           
           // Delete camelCase versions
