@@ -528,7 +528,26 @@ export const DocumentManagement: React.FC = () => {
   }, []);
 
   const handleDocumentUpload = async (file: File, options: any = {}) => {
+    console.log('📥 [DocumentManagement] Received upload request:', {
+      fileName: file.name,
+      options: {
+        caseId: options.caseId,
+        clientId: options.clientId,
+        folderId: options.folderId
+      }
+    });
+
     try {
+      // Early validation: at least one link must be provided
+      if (!options.caseId && !options.clientId && !options.folderId) {
+        const missing = [];
+        if (!options.caseId) missing.push('Case');
+        if (!options.clientId) missing.push('Client');
+        if (!options.folderId) missing.push('Folder');
+        
+        throw new Error(`Missing required association. Please select at least one: ${missing.join(', ')}`);
+      }
+
       // Get current user and tenant_id
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -545,17 +564,18 @@ export const DocumentManagement: React.FC = () => {
         throw new Error('Unable to determine tenant context');
       }
 
+      const metadata = {
+        tenant_id: profile.tenant_id,
+        case_id: options.caseId,
+        client_id: options.clientId,
+        folder_id: options.folderId,
+        category: 'general'
+      };
+
+      console.log('🚀 [DocumentManagement] Calling supabaseDocumentService.uploadDocument with metadata:', metadata);
+
       // Upload using Supabase Document Service
-      const uploadResult = await supabaseDocumentService.uploadDocument(
-        file,
-        {
-          tenant_id: profile.tenant_id,
-          case_id: options.caseId,
-          client_id: options.clientId,
-          folder_id: options.folderId,
-          category: 'general'
-        }
-      );
+      const uploadResult = await supabaseDocumentService.uploadDocument(file, metadata);
 
       // Dispatch to update UI state
       dispatch({

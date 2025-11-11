@@ -43,8 +43,7 @@ export const uploadDocument = async (
       throw new Error('Valid tenant_id is required for document upload');
     }
 
-    // Validate at least one entity link is provided
-    console.log('🔍 [SupabaseDocumentService] Validating metadata:', {
+    console.log('🔍 [SupabaseDocumentService] Received metadata:', {
       case_id: metadata.case_id,
       client_id: metadata.client_id,
       hearing_id: metadata.hearing_id,
@@ -59,6 +58,7 @@ export const uploadDocument = async (
       )
     });
 
+    // Validate at least one entity link is provided
     const hasLink = !!(
       metadata.case_id || 
       metadata.client_id || 
@@ -68,9 +68,13 @@ export const uploadDocument = async (
     );
 
     if (!hasLink) {
-      console.error('❌ [SupabaseDocumentService] No entity link provided');
+      console.error('❌ [SupabaseDocumentService] Validation failed: No entity link provided', {
+        metadata
+      });
       throw new Error('Please link this document to a Case, Client, or Folder before uploading.');
     }
+
+    console.log('✅ [SupabaseDocumentService] Validation passed, proceeding with upload');
 
     // Get current user
     const { data: { user } } = await supabase.auth.getUser();
@@ -162,16 +166,38 @@ export const uploadDocument = async (
       .single();
 
     if (dbError) {
-      // Rollback: delete uploaded file
-      console.error('❌ Database insert failed, rolling back file upload:', dbError);
-      await supabase.storage.from('documents').remove([filePath]);
+      console.error('❌ [SupabaseDocumentService] Database insert error:', dbError);
       
-      // Provide user-friendly error for constraint violation
-      if (dbError.message?.includes('at_least_one_link') || dbError.code === '23514') {
+      // Rollback: Delete the uploaded file from storage
+      await supabase.storage
+        .from('documents')
+        .remove([filePath]);
+      
+      // Check for specific constraint violations
+      if (dbError.message?.includes('at_least_one_link') || 
+          dbError.code === '23514') {
         throw new Error('Please link this document to a Case, Client, or Folder before uploading.');
       }
       
-      throw new Error(`Failed to create document record: ${dbError.message}`);
+      // Check for folder foreign key violation
+      if (dbError.message?.includes('documents_folder_id_fkey') || 
+          (dbError.code === '23503' && dbError.message?.includes('folder_id'))) {
+        throw new Error('Selected folder does not exist. Please re-select a folder from the list.');
+      }
+      
+      // Check for case foreign key violation
+      if (dbError.message?.includes('documents_case_id_fkey') || 
+          (dbError.code === '23503' && dbError.message?.includes('case_id'))) {
+        throw new Error('Selected case does not exist. Please re-select a case from the list.');
+      }
+      
+      // Check for client foreign key violation
+      if (dbError.message?.includes('documents_client_id_fkey') || 
+          (dbError.code === '23503' && dbError.message?.includes('client_id'))) {
+        throw new Error('Selected client does not exist. Please re-select a client from the list.');
+      }
+      
+      throw new Error(`Failed to save document metadata: ${dbError.message}`);
     }
 
     console.log('✅ Document uploaded successfully:', docData.id);

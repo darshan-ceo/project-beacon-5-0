@@ -51,19 +51,17 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
   });
   const [newTag, setNewTag] = useState('');
   const [loading, setLoading] = useState(false);
+  const [localClients, setLocalClients] = useState<any[]>([]);
 
   useEffect(() => {
-    const loadFolders = async () => {
-      try {
-        const folderList = await dmsService.folders.listAll();
-        dispatch({ type: 'SET_FOLDERS', payload: folderList });
-      } catch (error) {
-        console.error('Failed to load folders:', error);
-      }
-    };
-    
     if (isOpen) {
-      loadFolders();
+      // Load clients if state is empty
+      if (state.clients.length === 0) {
+        console.log('⚠️ [DocumentModal] No clients in state, fetching from backend...');
+        fetchClientsFromBackend();
+      } else {
+        setLocalClients(state.clients);
+      }
     }
 
     if (documentData && (mode === 'edit' || mode === 'view')) {
@@ -89,7 +87,42 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
         file: null
       });
     }
-  }, [documentData, mode, isOpen, selectedFolderId]);
+  }, [documentData, mode, isOpen, selectedFolderId, state.clients]);
+
+  const fetchClientsFromBackend = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.tenant_id) return;
+
+      const { data: clients, error } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('tenant_id', profile.tenant_id);
+
+      if (error) {
+        console.error('❌ [DocumentModal] Failed to fetch clients:', error);
+        return;
+      }
+
+      const mappedClients = (clients || []).map((c: any) => ({
+        ...c,
+        name: c.display_name
+      }));
+
+      setLocalClients(mappedClients);
+      console.log('✅ [DocumentModal] Fetched clients from backend:', mappedClients.length);
+    } catch (error) {
+      console.error('❌ [DocumentModal] Error fetching clients:', error);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,11 +160,23 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
           return;
         }
 
+        const finalCaseId = formData.caseId === 'none' ? undefined : formData.caseId;
+        const finalClientId = formData.clientId === 'none' ? undefined : formData.clientId;
+        const finalFolderId = formData.folderId === 'none' ? undefined : formData.folderId;
+
+        console.log('📤 [DocumentModal] Submitting upload:', {
+          fileName: formData.file.name,
+          caseId: finalCaseId,
+          clientId: finalClientId,
+          folderId: finalFolderId,
+          hasLink: !!(finalCaseId || finalClientId || finalFolderId)
+        });
+
         if (onUpload) {
           await onUpload(formData.file, {
-            folderId: formData.folderId === "none" ? undefined : formData.folderId,
-            clientId: formData.clientId === "none" ? undefined : formData.clientId,
-            caseId: formData.caseId === "none" ? undefined : formData.caseId,
+            folderId: finalFolderId,
+            clientId: finalClientId,
+            caseId: finalCaseId,
             tags: formData.tags
           });
         } else {
@@ -151,28 +196,14 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
             throw new Error('Unable to determine tenant context');
           }
 
-          // Debug logging
-          console.log('📤 [DocumentModal] Preparing upload:', {
-            formData: {
-              caseId: formData.caseId,
-              clientId: formData.clientId,
-              folderId: formData.folderId,
-            },
-            metadata: {
-              case_id: formData.caseId === 'none' ? undefined : formData.caseId,
-              client_id: formData.clientId === 'none' ? undefined : formData.clientId,
-              folder_id: formData.folderId === 'none' ? undefined : formData.folderId,
-            }
-          });
-
           // Upload using Supabase Document Service
           const uploadResult = await supabaseDocumentService.uploadDocument(
             formData.file,
             {
               tenant_id: profile.tenant_id,
-              case_id: formData.caseId === 'none' ? undefined : formData.caseId,
-              client_id: formData.clientId === 'none' ? undefined : formData.clientId,
-              folder_id: formData.folderId === 'none' ? undefined : formData.folderId,
+              case_id: finalCaseId,
+              client_id: finalClientId,
+              folder_id: finalFolderId,
               category: 'general'
             }
           );
@@ -185,8 +216,8 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
               name: uploadResult.file_name,
               type: uploadResult.file_type,
               size: uploadResult.file_size,
-              clientId: formData.clientId === 'none' ? undefined : formData.clientId,
-              caseId: formData.caseId === 'none' ? undefined : formData.caseId,
+              clientId: finalClientId,
+              caseId: finalCaseId,
               uploadedAt: new Date().toISOString(),
               uploadedById: user.id,
               uploadedByName: profile.full_name || 'Unknown',
@@ -340,11 +371,17 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">No folder</SelectItem>
-                          {state.folders.map((folder) => (
-                            <SelectItem key={folder.id} value={folder.id}>
-                              {folder.name}
-                            </SelectItem>
-                          ))}
+                          {state.folders && state.folders.length > 0 ? (
+                            state.folders.map((folder) => (
+                              <SelectItem key={folder.id} value={folder.id}>
+                                {folder.name}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <div className="px-2 py-1 text-sm text-muted-foreground">
+                              No folders available
+                            </div>
+                          )}
                         </SelectContent>
                         </Select>
                       </div>
@@ -362,16 +399,30 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
                    </CardHeader>
                   <CardContent className="space-y-4 p-6">
                   
-                  {/* Informational Banner */}
-                  <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                    <p className="text-sm text-blue-800 dark:text-blue-200">
-                      <strong>Note:</strong> Every document must be linked to at least one: Case, Client, or Folder.
-                      {formData.caseId === 'none' && formData.clientId === 'none' && formData.folderId === 'none' && (
-                        <span className="block mt-1 text-red-600 dark:text-red-400 font-medium">
-                          ⚠️ Please select at least one association below to enable upload.
-                        </span>
-                      )}
-                    </p>
+                  {/* Association notice with dynamic warning */}
+                  <div className={`rounded-lg border p-4 ${
+                    formData.caseId === 'none' && formData.clientId === 'none' && formData.folderId === 'none'
+                      ? 'border-destructive bg-destructive/10'
+                      : 'border-border bg-muted/50'
+                  }`}>
+                    <div className="flex gap-2">
+                      <FileText className={`h-5 w-5 flex-shrink-0 mt-0.5 ${
+                        formData.caseId === 'none' && formData.clientId === 'none' && formData.folderId === 'none'
+                          ? 'text-destructive'
+                          : 'text-muted-foreground'
+                      }`} />
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">Document Association</p>
+                        <p className="text-xs text-muted-foreground">
+                          Documents must be linked to at least one: Case, Client, or Folder.
+                        </p>
+                        {formData.caseId === 'none' && formData.clientId === 'none' && formData.folderId === 'none' && (
+                          <p className="text-xs text-destructive font-medium mt-1">
+                            ⚠️ Please select at least one association to enable upload.
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   {/* Client Association */}
@@ -403,7 +454,12 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">No Client Association</SelectItem>
-                          {state.clients.map((client) => (
+                          {localClients.length === 0 && (
+                            <div className="px-2 py-1 text-sm text-muted-foreground">
+                              Loading clients...
+                            </div>
+                          )}
+                          {localClients.map((client) => (
                             <SelectItem key={client.id} value={client.id}>
                               {client.name}
                             </SelectItem>

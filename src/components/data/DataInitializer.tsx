@@ -41,6 +41,7 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           employeesData,
           courtsData,
           judgesData,
+          foldersData
         ] = await Promise.all([
           supabase.from('clients').select('*').eq('tenant_id', tenantId),
           supabase.from('client_groups').select('*').eq('tenant_id', tenantId),
@@ -51,6 +52,7 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           supabase.from('employees').select('*').eq('tenant_id', tenantId),
           supabase.from('courts').select('*').eq('tenant_id', tenantId),
           supabase.from('judges').select('*').eq('tenant_id', tenantId),
+          supabase.from('document_folders').select('*').eq('tenant_id', tenantId)
         ]);
 
         // Check for errors
@@ -64,6 +66,7 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           employeesData.error,
           courtsData.error,
           judgesData.error,
+          foldersData.error
         ].filter(Boolean);
 
         if (errors.length > 0) {
@@ -195,6 +198,22 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           updatedBy: j.updated_by || j.updatedBy,
         }));
 
+        // Transform folders data
+        const folders = (foldersData.data || []).map((f: any) => ({
+          id: f.id,
+          name: f.name,
+          description: f.description || '',
+          path: f.path,
+          parentId: f.parent_id,
+          isDefault: f.is_default,
+          caseId: f.case_id,
+          createdAt: f.created_at,
+          updatedAt: f.updated_at,
+          lastAccess: f.updated_at || f.created_at, // Use updated_at as lastAccess
+          documentCount: 0, // Will be computed client-side from documents
+          size: 0 // Will be computed client-side from documents
+        }));
+
         // Dispatch RESTORE_STATE action
         dispatch({
           type: 'RESTORE_STATE',
@@ -210,6 +229,7 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
             employees,
             courts,
             judges,
+            folders
           },
         });
 
@@ -223,6 +243,7 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           employees: employees.length,
           courts: courts.length,
           judges: judges.length,
+          folders: folders.length
         });
 
         toast.success('Data loaded successfully');
