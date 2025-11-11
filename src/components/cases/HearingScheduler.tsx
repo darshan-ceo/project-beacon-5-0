@@ -28,6 +28,7 @@ import { NotificationConfigModal } from '@/components/modals/NotificationConfigM
 import { HearingModal } from '@/components/modals/HearingModal';
 import { useAppState, Case as AppStateCase } from '@/contexts/AppStateContext';
 import { getAllHearingConflicts } from '@/utils/hearingConflicts';
+import { QuickEditHearing } from '@/components/hearings/QuickEditHearing';
 
 interface Case {
   id: string;
@@ -308,10 +309,20 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases, selec
                         </div>
                       </div>
                       <div className="flex flex-col space-y-1 shrink-0">
-                        <Button size="sm" variant="outline">
+                        <QuickEditHearing
+                          hearingId={hearing.id}
+                          currentDate={hearing.date}
+                          currentTime={hearing.time}
+                          trigger={
+                            <Button size="sm" variant="outline" title="Quick edit time/date">
+                              <Clock className="h-3 w-3" />
+                            </Button>
+                          }
+                        />
+                        <Button size="sm" variant="outline" title="Notifications">
                           <Bell className="h-3 w-3" />
                         </Button>
-                        <Button size="sm" variant="outline">
+                        <Button size="sm" variant="outline" title="Video conference">
                           <Video className="h-3 w-3" />
                         </Button>
                       </div>
@@ -523,7 +534,17 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases, selec
                     <Badge variant="secondary" className={getStatusColor(hearing.status)}>
                       {hearing.status}
                     </Badge>
-                    <Button variant="ghost" size="sm">
+                    <QuickEditHearing
+                      hearingId={hearing.id}
+                      currentDate={hearing.date}
+                      currentTime={hearing.time}
+                      trigger={
+                        <Button variant="ghost" size="sm" title="Quick edit">
+                          <Clock className="h-4 w-4" />
+                        </Button>
+                      }
+                    />
+                    <Button variant="ghost" size="sm" title="View details">
                       <Edit className="h-4 w-4" />
                     </Button>
                   </div>
