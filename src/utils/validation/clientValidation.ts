@@ -35,6 +35,18 @@ export const clientSchema = z.object({
     .optional()
     .or(z.literal('')),
   
+  client_group_id: z
+    .string()
+    .uuid('Invalid client group ID')
+    .optional()
+    .or(z.literal('')),
+  
+  assigned_ca_id: z
+    .string()
+    .uuid('Invalid assigned CA ID')
+    .optional()
+    .or(z.literal('')),
+  
   pan: z
     .string()
     .trim()

@@ -64,6 +64,34 @@ export const caseSchema = z.object({
     .max(200, 'Opposing party must be less than 200 characters')
     .optional()
     .or(z.literal('')),
+  
+  client_id: z
+    .string()
+    .uuid('Invalid client ID - please select a valid client'),
+  
+  assigned_to: z
+    .string()
+    .uuid('Invalid assigned user ID')
+    .optional()
+    .or(z.literal('')),
+  
+  owner_id: z
+    .string()
+    .uuid('Invalid owner ID')
+    .optional()
+    .or(z.literal('')),
+  
+  authority_id: z
+    .string()
+    .uuid('Invalid authority ID')
+    .optional()
+    .or(z.literal('')),
+  
+  forum_id: z
+    .string()
+    .uuid('Invalid forum ID')
+    .optional()
+    .or(z.literal('')),
 });
 
 export type CaseFormData = z.infer<typeof caseSchema>;
