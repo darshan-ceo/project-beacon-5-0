@@ -235,7 +235,7 @@ export const DocumentManagement: React.FC = () => {
 
   // Load data on component mount
   useEffect(() => {
-    loadFolders();
+    // Folders now loaded by DataInitializer from backend
     loadTags();
     // Convert state documents to local format
     const convertedDocs = state.documents.map(doc => ({
@@ -365,16 +365,7 @@ export const DocumentManagement: React.FC = () => {
     applyFilters();
   }, [applyFilters]);
 
-  const loadFolders = async () => {
-    try {
-      // Always refresh folders to ensure we have the latest data, including defaults
-      const folderList = await dmsService.folders.listAll();
-      dispatch({ type: 'SET_FOLDERS', payload: folderList });
-      console.log('Folders loaded and synchronized:', folderList.map(f => f.name));
-    } catch (error) {
-      console.error('Failed to load folders:', error);
-    }
-  };
+  // Removed loadFolders - now using state.folders loaded by DataInitializer from backend
 
   const loadTags = async () => {
     try {
@@ -391,8 +382,8 @@ export const DocumentManagement: React.FC = () => {
     setLoading(true);
     console.log(`Loading folder contents for: ${folderId || 'root'}`);
     try {
-      // Load subfolders
-      const subfolders = await dmsService.folders.list(folderId || undefined);
+      // Load subfolders from backend state
+      const subfolders = state.folders.filter(f => f.parentId === folderId);
       console.log(`Found ${subfolders.length} subfolders:`, subfolders.map(f => f.name));
       setCurrentSubfolders(subfolders);
       
@@ -430,7 +421,7 @@ export const DocumentManagement: React.FC = () => {
 
   const handleFolderClick = async (folderId: string) => {
     try {
-      const folder = await dmsService.folders.get(folderId);
+      const folder = state.folders.find(f => f.id === folderId);
       if (folder) {
         setSelectedFolder(folderId);
         setCurrentPath([...currentPath, folder.name]);
@@ -462,9 +453,8 @@ export const DocumentManagement: React.FC = () => {
 
   const handleFolderCreated = async (newFolder: any) => {
     console.log('Folder created:', newFolder);
-    // Refresh folders from service to ensure UI is up to date
-    await loadFolders();
-    // Always refresh current folder contents to update the view
+    // Folder already added to state by NewFolderModal dispatch
+    // Just refresh current folder contents to update the view
     await loadFolderContents(selectedFolder);
     console.log('Folder contents refreshed after creation');
   };
@@ -601,9 +591,8 @@ export const DocumentManagement: React.FC = () => {
         description: `${uploadResult.file_name} has been uploaded successfully.`,
       });
 
-      // Refresh folder contents
+      // Refresh folder contents to show new document
       await loadFolderContents(selectedFolder);
-      await loadFolders();
     } catch (error: any) {
       toast({
         title: "Upload Failed",

@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
-import { dmsService } from '@/services/dmsService';
+import { supabase } from '@/integrations/supabase/client';
 import { useAppState } from '@/contexts/AppStateContext';
 
 interface NewFolderModalProps {
@@ -44,11 +44,70 @@ export const NewFolderModal: React.FC<NewFolderModalProps> = ({
 
     setIsCreating(true);
     try {
-      const newFolder = await dmsService.folders.create(formData.name.trim(), parentId, caseId, dispatch);
+      // Get current user and tenant
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User must be authenticated');
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.tenant_id) throw new Error('Unable to determine tenant');
+
+      // Generate folder ID and path
+      const folderId = crypto.randomUUID();
+      const folderPath = parentId 
+        ? `${parentId}/${formData.name.trim()}`
+        : formData.name.trim();
+
+      // Insert into document_folders table
+      const { data: newFolder, error: insertError } = await supabase
+        .from('document_folders')
+        .insert({
+          id: folderId,
+          name: formData.name.trim(),
+          description: formData.description.trim() || null,
+          path: folderPath,
+          parent_id: parentId || null,
+          case_id: caseId || null,
+          tenant_id: profile.tenant_id,
+          created_by: user.id,
+          is_default: false
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      // Dispatch to update state
+      dispatch({
+        type: 'ADD_FOLDER',
+        payload: {
+          id: newFolder.id,
+          name: newFolder.name,
+          description: newFolder.description || '',
+          path: newFolder.path,
+          parentId: newFolder.parent_id || undefined,
+          caseId: newFolder.case_id || undefined,
+          createdAt: newFolder.created_at,
+          lastAccess: newFolder.updated_at,
+          documentCount: 0,
+          size: 0
+        }
+      });
+
+      toast({
+        title: "Success",
+        description: `Folder "${newFolder.name}" created successfully.`,
+      });
+
       onFolderCreated?.(newFolder);
       setFormData({ name: '', description: '' });
       onClose();
     } catch (error) {
+      console.error('Folder creation error:', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to create folder. Please try again.",

@@ -53,6 +53,13 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [localClients, setLocalClients] = useState<any[]>([]);
 
+  // Compute whether document has at least one required link
+  const hasLink = !!(
+    (formData.caseId && formData.caseId !== 'none') ||
+    (formData.clientId && formData.clientId !== 'none') ||
+    (formData.folderId && formData.folderId !== 'none')
+  );
+
   useEffect(() => {
     if (isOpen) {
       // Load clients if state is empty
@@ -723,7 +730,11 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
             </Button>
           )}
           {mode !== 'view' && (
-            <Button type="submit" onClick={handleSubmit} disabled={loading}>
+            <Button 
+              type="submit" 
+              onClick={handleSubmit} 
+              disabled={loading || (mode === 'upload' && !hasLink)}
+            >
               {loading ? "Processing..." : (mode === 'upload' ? 'Upload Document' : 'Update Document')}
             </Button>
           )}
