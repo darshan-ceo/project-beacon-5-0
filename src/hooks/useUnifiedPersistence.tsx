@@ -34,69 +34,8 @@ export const useUnifiedPersistence = () => {
         // Phase 4: Initialize with Supabase as default (already configured in StorageManager)
         await storageManager.initialize(); // Defaults to 'supabase'
         
-        // Phase 4: One-time migration from IndexedDB to Supabase
-        const migrationComplete = localStorage.getItem('SUPABASE_MIGRATION_COMPLETE');
-        const sessionTriedMigration = sessionStorage.getItem('MIGRATION_TRIED_THIS_SESSION');
-        
-        if (!migrationComplete && !sessionTriedMigration) {
-          console.log('🔄 Checking for IndexedDB data to migrate...');
-          sessionStorage.setItem('MIGRATION_TRIED_THIS_SESSION', 'true'); // Prevent retry spam
-          
-          try {
-            // Temporarily initialize IndexedDB to check for existing data
-            const { IndexedDBAdapter } = await import('@/data/adapters/IndexedDBAdapter');
-            const localAdapter = new IndexedDBAdapter();
-            await localAdapter.initialize();
-            
-            // Check if there's any data in IndexedDB
-            const localClients = await localAdapter.getAll('clients');
-            const localCases = await localAdapter.getAll('cases');
-            const localTasks = await localAdapter.getAll('tasks');
-            
-            const hasLocalData = localClients.length > 0 || localCases.length > 0 || localTasks.length > 0;
-            
-            if (hasLocalData) {
-              console.log('📦 Found IndexedDB data, starting migration...');
-              toast.info('Migrating your data to cloud storage...', {
-                duration: 5000
-              });
-              
-              // Export all data from IndexedDB
-              const localData = await localAdapter.exportAll();
-              
-              // Import to Supabase (adapter will normalize the data)
-              const supabaseAdapter = storageManager.getStorage();
-              await supabaseAdapter.importAll(localData);
-              
-              // Mark migration as complete ONLY on success
-              localStorage.setItem('SUPABASE_MIGRATION_COMPLETE', 'true');
-              
-              console.log('✅ Migration completed successfully');
-              toast.success('Migration completed!', {
-                description: 'Your data has been moved to cloud storage.',
-                duration: 5000
-              });
-            } else {
-              console.log('✅ No IndexedDB data found, skipping migration');
-              localStorage.setItem('SUPABASE_MIGRATION_COMPLETE', 'true');
-            }
-            
-            // Clean up local adapter
-            await localAdapter.destroy();
-          } catch (migrationError) {
-            console.error('❌ Migration failed:', migrationError);
-            toast.error('Migration failed', {
-              description: migrationError?.message || 'Please check console for details.',
-              duration: 10000
-            });
-            // Don't mark as complete so user can retry after reload
-            // Don't throw - continue with Supabase as primary storage
-          }
-        } else if (!migrationComplete && sessionTriedMigration) {
-          console.log('⏭️ Migration already attempted this session, skipping retry');
-        } else {
-          console.log('✅ Migration already completed, using Supabase');
-        }
+        // Supabase-only mode - no legacy migration needed
+        console.log('✅ Using Supabase cloud storage exclusively');
         
         await validateDefaultFolders();
         await loadAllData();
