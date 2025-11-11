@@ -21,7 +21,9 @@ import {
   Info,
   Check,
   HelpCircle,
-  Download
+  Download,
+  Bell,
+  AlertCircle
 } from 'lucide-react';
 import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 import { casesService } from '@/services/casesService';
@@ -375,21 +377,40 @@ export const CaseManagement: React.FC = () => {
         const firstJudgeId = nextHearing.judge_ids && nextHearing.judge_ids.length > 0 
           ? nextHearing.judge_ids[0] 
           : '';
+        
+        // Calculate urgency (hours until hearing)
+        const hearingDateStr = nextHearing.date || (nextHearing as any).hearing_date?.split('T')[0];
+        const hearingTimeStr = nextHearing.start_time || '10:00';
+        const [hours, minutes] = hearingTimeStr.split(':').map(Number);
+        const hearingDateTime = new Date(hearingDateStr + 'T00:00:00');
+        hearingDateTime.setHours(hours, minutes, 0, 0);
+        const now = new Date();
+        const hoursUntil = (hearingDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+        
         return {
           ...caseItem,
           nextHearing: {
             id: nextHearing.id,
-            date: nextHearing.date || (nextHearing as any).hearing_date?.split('T')[0],
+            date: hearingDateStr,
             courtId: nextHearing.court_id,
             judgeId: firstJudgeId,
             type: (nextHearing.type === 'Preliminary' ? 'Final' : nextHearing.type) as 'Adjourned' | 'Argued' | 'Final',
-            time: nextHearing.start_time
-          }
+            time: nextHearing.start_time,
+            hoursUntil
+          } as any
         };
       }
       return caseItem;
     });
   }, [filteredCases, state.hearings]);
+
+  // Helper to get hearing urgency level
+  const getHearingUrgency = (hoursUntil?: number) => {
+    if (!hoursUntil) return null;
+    if (hoursUntil <= 24) return 'critical';
+    if (hoursUntil <= 48) return 'warning';
+    return null;
+  };
 
   return (
     <div className="space-y-6">
@@ -881,31 +902,61 @@ export const CaseManagement: React.FC = () => {
                              </div>
                            </div>
                            
-                             <div>
-                               <p className="text-xs text-muted-foreground">Next Hearing</p>
-                               {caseItem.nextHearing ? (
-                                 <div className="cursor-pointer hover:text-primary" onClick={() => {
-                                   window.location.href = `/hearings?caseId=${caseItem.id}&hearingDate=${caseItem.nextHearing?.date}&courtId=${caseItem.nextHearing?.courtId}`;
-                                 }}>
-                                   <p className="text-sm font-medium">{caseItem.nextHearing.date}</p>
-                                   <p className="text-xs text-muted-foreground">{state.courts.find(c => c.id === caseItem.nextHearing?.courtId)?.name || 'Unknown Legal Forum'}</p>
-                                 </div>
-                               ) : (
-                                 <Button
-                                   variant="outline"
-                                   size="sm"
-                                   onClick={(e) => {
-                                     e.stopPropagation();
-                                     setSelectedCase(caseItem);
-                                     setActiveTab('hearings');
-                                   }}
-                                   className="text-xs h-7 mt-1"
-                                 >
-                                   <Calendar className="h-3 w-3 mr-1" />
-                                   Schedule
-                                 </Button>
-                               )}
-                             </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-1">Next Hearing</p>
+                                {caseItem.nextHearing ? (
+                                  <div className="space-y-2">
+                                    <div className="cursor-pointer hover:text-primary" onClick={() => {
+                                      window.location.href = `/hearings?caseId=${caseItem.id}&hearingDate=${caseItem.nextHearing?.date}&courtId=${caseItem.nextHearing?.courtId}`;
+                                    }}>
+                                      <div className="flex items-center gap-2">
+                                        <p className="text-sm font-medium">{caseItem.nextHearing.date}</p>
+                                        {(() => {
+                                          const urgency = getHearingUrgency(caseItem.nextHearing.hoursUntil);
+                                          if (urgency === 'critical') {
+                                            return (
+                                              <Badge variant="destructive" className="text-xs px-1.5 py-0 h-5 animate-pulse">
+                                                <Bell className="h-3 w-3 mr-1" />
+                                                {'<24h'}
+                                              </Badge>
+                                            );
+                                          }
+                                          if (urgency === 'warning') {
+                                            return (
+                                              <Badge className="text-xs px-1.5 py-0 h-5 bg-warning text-warning-foreground">
+                                                <AlertCircle className="h-3 w-3 mr-1" />
+                                                {'<48h'}
+                                              </Badge>
+                                            );
+                                          }
+                                          return null;
+                                        })()}
+                                      </div>
+                                      <p className="text-xs text-muted-foreground">{state.courts.find(c => c.id === caseItem.nextHearing?.courtId)?.name || 'Unknown Legal Forum'}</p>
+                                      {caseItem.nextHearing.time && (
+                                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                          <Clock className="h-3 w-3" />
+                                          {caseItem.nextHearing.time}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedCase(caseItem);
+                                      setActiveTab('hearings');
+                                    }}
+                                    className="text-xs h-7 mt-1"
+                                  >
+                                    <Calendar className="h-3 w-3 mr-1" />
+                                    Schedule
+                                  </Button>
+                                )}
+                              </div>
                          </div>
 
                         {/* Additional Case Details */}
