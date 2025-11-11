@@ -11,6 +11,8 @@ export class SupabaseAdapter implements StoragePort {
   private tenantId: string | null = null;
   private userId: string | null = null;
   private initialized = false;
+  private authSubscription: any = null;
+  private initializationPromise: Promise<void> | null = null;
   
   // Cache for tenant isolation
   private queryCache = new Map<string, { data: any; timestamp: number }>();
@@ -37,22 +39,61 @@ export class SupabaseAdapter implements StoragePort {
   }
 
   /**
-   * Initialize adapter - fetch and cache tenant ID and user ID
+   * Initialize adapter - fetch tenant ID from authenticated user's profile
+   * Now with retry logic and auth state listening
    */
   async initialize(): Promise<void> {
+    // If already initializing, return the existing promise
+    if (this.initializationPromise) {
+      console.log('⏳ Initialization already in progress, waiting...');
+      return this.initializationPromise;
+    }
+
+    // If already initialized, just return
+    if (this.initialized && this.tenantId && this.userId) {
+      console.log('✅ SupabaseAdapter already initialized');
+      return;
+    }
+
+    // Create initialization promise
+    this.initializationPromise = this.performInitialization();
+    
     try {
+      await this.initializationPromise;
+    } finally {
+      this.initializationPromise = null;
+    }
+  }
+
+  /**
+   * Perform the actual initialization with retry logic
+   */
+  private async performInitialization(retryCount = 0): Promise<void> {
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY = 1000; // 1 second
+
+    try {
+      console.log(`🔄 Initializing SupabaseAdapter (attempt ${retryCount + 1}/${MAX_RETRIES + 1})...`);
+
       // Get current session
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
+
       if (sessionError) {
-        console.error('❌ Supabase session error:', sessionError);
-        throw new Error('Failed to get session');
+        console.error('❌ Session error:', sessionError);
+        throw new Error(`Failed to get session: ${sessionError.message}`);
       }
 
       if (!session?.user?.id) {
-        console.warn('⚠️ No active session - user must login first');
-        this.initialized = true; // Allow initialization but operations will require auth
-        return;
+        // No session yet - set up auth state listener and wait
+        if (retryCount < MAX_RETRIES) {
+          console.warn(`⚠️ No active session yet, retrying in ${RETRY_DELAY}ms... (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+          return this.performInitialization(retryCount + 1);
+        } else {
+          console.warn('⚠️ No active session after retries - user must login');
+          this.setupAuthListener(); // Set up listener for future auth
+          throw new Error('User not authenticated. Please login.');
+        }
       }
 
       this.userId = session.user.id;
@@ -66,29 +107,116 @@ export class SupabaseAdapter implements StoragePort {
 
       if (profileError || !profile?.tenant_id) {
         console.error('❌ Failed to fetch tenant_id:', profileError);
+        
+        // Retry on profile fetch failure
+        if (retryCount < MAX_RETRIES) {
+          console.warn(`⚠️ Profile fetch failed, retrying in ${RETRY_DELAY}ms...`);
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+          return this.performInitialization(retryCount + 1);
+        }
+        
         throw new Error('User profile not found or tenant_id missing');
       }
 
       this.tenantId = profile.tenant_id;
       this.initialized = true;
 
-      console.log('✅ SupabaseAdapter initialized', {
+      console.log('✅ SupabaseAdapter initialized successfully', {
         userId: this.userId,
         tenantId: this.tenantId
       });
+
+      // Set up auth state listener for session changes
+      this.setupAuthListener();
+
     } catch (error) {
-      console.error('❌ SupabaseAdapter initialization failed:', error);
+      console.error(`❌ SupabaseAdapter initialization failed (attempt ${retryCount + 1}):`, error);
+      
+      // If we haven't exhausted retries, try again
+      if (retryCount < MAX_RETRIES) {
+        console.log(`🔄 Retrying initialization in ${RETRY_DELAY}ms...`);
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+        return this.performInitialization(retryCount + 1);
+      }
+      
+      // Set up listener even on failure so we can reinitialize on auth
+      this.setupAuthListener();
       throw error;
     }
   }
 
   /**
-   * Ensure user is authenticated and tenant is set
+   * Set up auth state listener to handle session changes
    */
-  private ensureInitialized(): void {
-    if (!this.initialized) {
-      throw new Error('SupabaseAdapter not initialized. Call initialize() first.');
+  private setupAuthListener(): void {
+    // Only set up once
+    if (this.authSubscription) {
+      return;
     }
+
+    console.log('👂 Setting up auth state listener...');
+
+    this.authSubscription = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log(`🔐 Auth state changed: ${event}`, {
+        hasSession: !!session,
+        userId: session?.user?.id
+      });
+
+      if (event === 'SIGNED_IN' && session?.user?.id) {
+        // User just signed in - reinitialize
+        console.log('✅ User signed in, reinitializing adapter...');
+        this.initialized = false;
+        this.userId = null;
+        this.tenantId = null;
+        
+        // Use setTimeout to avoid blocking the auth callback
+        setTimeout(async () => {
+          try {
+            await this.initialize();
+          } catch (error) {
+            console.error('❌ Failed to reinitialize after sign in:', error);
+          }
+        }, 0);
+      } else if (event === 'SIGNED_OUT') {
+        // User signed out - clear state
+        console.log('🚪 User signed out, clearing adapter state');
+        this.initialized = false;
+        this.userId = null;
+        this.tenantId = null;
+        this.invalidateAllCache();
+      } else if (event === 'TOKEN_REFRESHED' && session?.user?.id) {
+        // Token refreshed - ensure we're still initialized
+        if (!this.initialized || !this.tenantId) {
+          console.log('🔄 Token refreshed but not initialized, reinitializing...');
+          setTimeout(async () => {
+            try {
+              await this.initialize();
+            } catch (error) {
+              console.error('❌ Failed to reinitialize after token refresh:', error);
+            }
+          }, 0);
+        }
+      }
+    });
+
+    console.log('✅ Auth state listener set up');
+  }
+
+  /**
+   * Ensure user is authenticated and tenant is set
+   * Now with auto-retry on initialization failure
+   */
+  private async ensureInitialized(): Promise<void> {
+    if (!this.initialized || !this.tenantId || !this.userId) {
+      console.warn('⚠️ Adapter not initialized, attempting initialization...');
+      
+      try {
+        await this.initialize();
+      } catch (error) {
+        throw new Error('User not authenticated. Please login.');
+      }
+    }
+    
     if (!this.tenantId || !this.userId) {
       throw new Error('User not authenticated. Please login.');
     }
@@ -97,8 +225,8 @@ export class SupabaseAdapter implements StoragePort {
   /**
    * Apply tenant filter to query
    */
-  private applyTenantFilter(query: any): any {
-    this.ensureInitialized();
+  private async applyTenantFilter(query: any): Promise<any> {
+    await this.ensureInitialized();
     return query.eq('tenant_id', this.tenantId);
   }
 
@@ -175,7 +303,7 @@ export class SupabaseAdapter implements StoragePort {
   // ============= CRUD OPERATIONS =============
 
   async create<T extends { id: string }>(table: string, data: T): Promise<T> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
 
     try {
       // UUID validation helper
@@ -241,7 +369,7 @@ export class SupabaseAdapter implements StoragePort {
     id: string,
     updates: Partial<T>
   ): Promise<T> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
 
     try {
       // Remove tenant_id from updates to prevent tampering
@@ -267,7 +395,7 @@ export class SupabaseAdapter implements StoragePort {
   }
 
   async delete(table: string, id: string): Promise<void> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
 
     try {
       const { error } = await (supabase as any)
@@ -286,7 +414,7 @@ export class SupabaseAdapter implements StoragePort {
   }
 
   async getById<T>(table: string, id: string): Promise<T | null> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
 
     try {
       const { data, error } = await (supabase as any)
@@ -306,7 +434,7 @@ export class SupabaseAdapter implements StoragePort {
   }
 
   async getAll<T>(table: string): Promise<T[]> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
 
     try {
       // Check cache first
@@ -345,7 +473,7 @@ export class SupabaseAdapter implements StoragePort {
   // ============= BULK OPERATIONS =============
 
   async bulkCreate<T extends { id: string }>(table: string, items: T[]): Promise<T[]> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
 
     try {
       // Normalize payload before insert
@@ -377,7 +505,7 @@ export class SupabaseAdapter implements StoragePort {
     table: string,
     updates: Array<{ id: string; data: Partial<T> }>
   ): Promise<T[]> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
 
     try {
       // Perform updates sequentially (Supabase doesn't support bulk update natively)
@@ -397,7 +525,7 @@ export class SupabaseAdapter implements StoragePort {
   }
 
   async bulkDelete(table: string, ids: string[]): Promise<void> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
 
     try {
       const { error } = await (supabase as any)
@@ -427,7 +555,7 @@ export class SupabaseAdapter implements StoragePort {
   }
 
   async queryByField<T>(table: string, field: string, value: any): Promise<T[]> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
 
     try {
       const { data, error } = await (supabase as any)
@@ -468,7 +596,7 @@ export class SupabaseAdapter implements StoragePort {
   // ============= STORAGE MANAGEMENT =============
 
   async clear(table: string): Promise<void> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
 
     try {
       // Delete all records for this tenant
@@ -493,7 +621,7 @@ export class SupabaseAdapter implements StoragePort {
   }
 
   async exportAll(): Promise<Record<string, any[]>> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
 
     const tables: EntityType[] = [
       'clients', 'cases', 'tasks', 'hearings', 'documents',
@@ -517,7 +645,7 @@ export class SupabaseAdapter implements StoragePort {
   }
 
   async importAll(data: Record<string, any[]>): Promise<void> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
 
     console.log('📦 Starting data import with UUID conversion and FK resolution...');
     
@@ -838,7 +966,7 @@ export class SupabaseAdapter implements StoragePort {
   }
 
   async getStorageInfo(): Promise<{ used: number; available: number; quota: number }> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
 
     try {
       // Query tenant storage limits
@@ -1512,10 +1640,26 @@ export class SupabaseAdapter implements StoragePort {
   // ============= LIFECYCLE =============
 
   async destroy(): Promise<void> {
+    // Unsubscribe from auth listener
+    if (this.authSubscription) {
+      this.authSubscription.subscription?.unsubscribe();
+      this.authSubscription = null;
+      console.log('🔌 Auth listener unsubscribed');
+    }
+    
     this.queryCache.clear();
     this.tenantId = null;
     this.userId = null;
     this.initialized = false;
+    this.initializationPromise = null;
     console.log('🔌 SupabaseAdapter destroyed');
+  }
+  
+  /**
+   * Helper to invalidate all cache entries
+   */
+  private invalidateAllCache(): void {
+    this.queryCache.clear();
+    console.log('🗑️ Cache cleared');
   }
 }

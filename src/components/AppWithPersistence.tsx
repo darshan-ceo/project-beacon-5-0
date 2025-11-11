@@ -62,8 +62,24 @@ export const AppWithPersistence: React.FC<AppWithPersistenceProps> = ({ children
           }
         }
 
-        // Initialize storage manager
-        await storageManager.initialize(mode);
+        // Initialize storage manager with improved error handling
+        try {
+          await storageManager.initialize(mode);
+          console.log('✅ Storage manager initialized');
+        } catch (initError: any) {
+          // If initialization fails due to auth, show a friendly message
+          if (initError.message?.includes('not authenticated') || initError.message?.includes('Please login')) {
+            console.warn('⚠️ Storage initialization delayed - waiting for authentication');
+            toast({
+              title: "Initializing Storage",
+              description: "Please wait while we connect to the database...",
+              duration: 3000
+            });
+            // Continue anyway - the auth listener will reinitialize when user logs in
+          } else {
+            throw initError;
+          }
+        }
         
         // Perform health check
         const health = await storageManager.healthCheck();
@@ -125,20 +141,39 @@ export const AppWithPersistence: React.FC<AppWithPersistenceProps> = ({ children
 
   // Show error state
   if (error) {
+    const isAuthError = error.includes('not authenticated') || error.includes('Please login');
+    
     return (
       <div className="flex items-center justify-center h-screen bg-background">
         <div className="text-center space-y-4 max-w-md p-6">
-          <div className="text-destructive text-5xl">⚠️</div>
-          <div className="space-y-2">
-            <h2 className="text-xl font-semibold text-destructive">Initialization Error</h2>
-            <p className="text-sm text-muted-foreground">{error}</p>
+          <div className="text-destructive text-5xl">
+            {isAuthError ? '🔐' : '⚠️'}
           </div>
-          <button 
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-          >
-            Retry
-          </button>
+          <div className="space-y-2">
+            <h2 className="text-xl font-semibold text-destructive">
+              {isAuthError ? 'Authentication Required' : 'Initialization Error'}
+            </h2>
+            <p className="text-sm text-muted-foreground">{error}</p>
+            {isAuthError && (
+              <p className="text-sm text-primary font-medium mt-4">
+                The storage system will automatically initialize once you log in.
+              </p>
+            )}
+          </div>
+          <div className="flex gap-2 justify-center">
+            <button 
+              onClick={() => window.location.href = '/auth'}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+            >
+              {isAuthError ? 'Go to Login' : 'Login to Continue'}
+            </button>
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/90"
+            >
+              Retry
+            </button>
+          </div>
         </div>
       </div>
     );
