@@ -6,6 +6,7 @@ import { integrationsService } from './integrationsService';
 import { calendarService } from './calendar/calendarService';
 import { loadAppState } from '@/data/storageShim';
 import { timelineService } from './timelineService';
+import { generateOutcomeTasks } from './hearingOutcomeTemplates';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -446,6 +447,47 @@ export const hearingsService = {
               description: "Outcome recorded but failed to auto-create next hearing. Please schedule manually.",
               variant: "default"
             });
+          }
+        }
+
+        // Phase 3: Auto-generate outcome-based tasks
+        if (dispatch) {
+          try {
+            const appState = await loadAppState();
+            const relatedCase = appState.cases.find(c => c.id === (hearing.case_id || hearing.caseId)) as any;
+            
+            if (relatedCase) {
+              // Get current user info
+              const { data: { user } } = await supabase.auth.getUser();
+              const currentUserId = user?.id || 'system';
+              
+              // Find current user in employees
+              const currentEmployee = appState.employees.find(e => e.id === currentUserId) as any;
+              const currentUserName = currentEmployee?.full_name || 'System';
+              
+              // Find assigned employee  
+              const assignedEmployee = appState.employees.find(e => e.id === (relatedCase.assigned_to_id || relatedCase.assignedToId)) as any;
+              const assignedToName = assignedEmployee?.full_name || 'Unassigned';
+
+              await generateOutcomeTasks(
+                outcome,
+                id,
+                relatedCase.id,
+                relatedCase.client_id || relatedCase.clientId,
+                relatedCase.case_number || relatedCase.caseNumber,
+                hearing.hearing_date || hearing.date,
+                relatedCase.assigned_to_id || relatedCase.assignedToId || '',
+                assignedToName,
+                currentUserId,
+                currentUserName,
+                dispatch
+              );
+              
+              console.log('[Hearings] Auto-generated outcome tasks for outcome:', outcome);
+            }
+          } catch (taskError) {
+            console.error('[Hearings] Failed to generate outcome tasks:', taskError);
+            // Don't show error to user as this is non-critical
           }
         }
         

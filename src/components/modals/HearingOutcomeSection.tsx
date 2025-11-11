@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -7,10 +7,12 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { CalendarIcon, CheckCircle2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { CalendarIcon, CheckCircle2, Sparkles, ListTodo } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
+import { previewOutcomeTasks } from '@/services/hearingOutcomeTemplates';
 
 interface HearingOutcomeSectionProps {
   outcome?: string;
@@ -36,6 +38,12 @@ export const HearingOutcomeSection: React.FC<HearingOutcomeSectionProps> = ({
   disabled = false
 }) => {
   const showNextHearingFields = outcome === 'Adjournment';
+
+  // Preview tasks that will be generated for selected outcome
+  const taskPreview = useMemo(() => {
+    if (!outcome) return [];
+    return previewOutcomeTasks(outcome);
+  }, [outcome]);
 
   return (
     <Card className="rounded-beacon-lg border bg-card shadow-beacon-md">
@@ -68,6 +76,38 @@ export const HearingOutcomeSection: React.FC<HearingOutcomeSectionProps> = ({
             </SelectContent>
           </Select>
         </div>
+
+        {/* Task Preview - Show what tasks will be auto-generated */}
+        {taskPreview.length > 0 && (
+          <div className="rounded-lg bg-primary/5 border border-primary/20 p-4 space-y-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-primary">
+              <Sparkles className="h-4 w-4" />
+              <span>Auto-Generated Action Items</span>
+              <Badge variant="secondary" className="ml-auto">
+                {taskPreview.length} task{taskPreview.length !== 1 ? 's' : ''}
+              </Badge>
+            </div>
+            <div className="space-y-2">
+              {taskPreview.map((task, index) => (
+                <div key={index} className="flex items-start gap-2 text-xs">
+                  <ListTodo className="h-3.5 w-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 space-y-0.5">
+                    <div className="font-medium text-foreground">{task.title}</div>
+                    <div className="text-muted-foreground">{task.description}</div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                        Due: {task.dueInDays} day{task.dueInDays !== 1 ? 's' : ''}
+                      </Badge>
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                        {task.priority}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Outcome Notes */}
         <div className="space-y-2">
