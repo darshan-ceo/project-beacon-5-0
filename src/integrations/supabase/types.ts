@@ -1419,6 +1419,27 @@ export type Database = {
           },
         ]
       }
+      permissions: {
+        Row: {
+          action: string
+          description: string | null
+          key: string
+          module: string
+        }
+        Insert: {
+          action: string
+          description?: string | null
+          key: string
+          module: string
+        }
+        Update: {
+          action?: string
+          description?: string | null
+          key?: string
+          module?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1522,6 +1543,32 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      role_permissions: {
+        Row: {
+          created_at: string | null
+          permission_key: string
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Insert: {
+          created_at?: string | null
+          permission_key: string
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Update: {
+          created_at?: string | null
+          permission_key?: string
+          role?: Database["public"]["Enums"]["app_role"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_permission_key_fkey"
+            columns: ["permission_key"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["key"]
           },
         ]
       }
@@ -2527,6 +2574,13 @@ export type Database = {
       check_tenant_limits: {
         Args: { _limit_type: string; _tenant_id: string }
         Returns: boolean
+      }
+      ensure_user_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: undefined
       }
       get_user_tenant_id: { Args: never; Returns: string }
       has_role: {

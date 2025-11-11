@@ -49,6 +49,24 @@ export const uploadDocument = async (
       throw new Error('User must be authenticated to upload documents');
     }
 
+    // Preflight: check user has a role to pass RLS on documents table
+    const { data: userRoles, error: roleError } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('is_active', true);
+
+    if (roleError || !userRoles || userRoles.length === 0) {
+      throw new Error('Your account lacks a role. Please ask an admin to grant you a role before uploading documents.');
+    }
+
+    const allowedRoles = ['admin', 'partner', 'manager', 'ca', 'advocate', 'staff', 'user', 'clerk'];
+    const hasAllowedRole = userRoles.some(r => allowedRoles.includes(r.role));
+    
+    if (!hasAllowedRole) {
+      throw new Error(`You need one of the following roles to upload documents: ${allowedRoles.join(', ')}`);
+    }
+
     // Generate unique file path
     const fileExt = file.name.split('.').pop()?.toLowerCase() || 'bin';
     const fileName = file.name;

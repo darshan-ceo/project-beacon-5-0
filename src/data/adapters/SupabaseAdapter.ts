@@ -342,9 +342,12 @@ export class SupabaseAdapter implements StoragePort {
         });
       }
 
+      // Normalize: strip UI-only fields and convert camelCase to snake_case
+      const normalized = this.normalizeForBackend(table, [processedData])[0];
+
       // Add tenant_id if not present
       const dataWithTenant = {
-        ...processedData,
+        ...normalized,
         tenant_id: this.tenantId,
       };
 
@@ -372,8 +375,11 @@ export class SupabaseAdapter implements StoragePort {
     await this.ensureInitialized();
 
     try {
+      // Normalize: strip UI-only fields and convert camelCase to snake_case
+      const normalized = this.normalizeForBackend(table, [updates as any])[0];
+      
       // Remove tenant_id from updates to prevent tampering
-      const { tenant_id, ...safeUpdates } = updates as any;
+      const { tenant_id, ...safeUpdates } = normalized as any;
 
       const { data: result, error } = await (supabase as any)
         .from(this.getActualTableName(table))

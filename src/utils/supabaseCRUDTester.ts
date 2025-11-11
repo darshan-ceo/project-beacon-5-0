@@ -138,6 +138,80 @@ export class SupabaseCRUDTester {
   }
 
   /**
+   * Test document upload
+   */
+  private async testDocumentUpload(): Promise<void> {
+    console.log(`\n🧪 Testing Document Upload...`);
+    const testStart = Date.now();
+
+    try {
+      const storage = storageManager.getStorage();
+      
+      // Create a test blob
+      const testContent = `Test Document Content - ${Date.now()}`;
+      const blob = new Blob([testContent], { type: 'text/plain' });
+      const testFile = new File([blob], `test_doc_${Date.now()}.txt`, { type: 'text/plain' });
+
+      // Get current user's tenant_id
+      const allClients = await storage.getAll('clients');
+      const tenantId = allClients.length > 0 ? (allClients[0] as any).tenant_id : null;
+
+      if (!tenantId) {
+        throw new Error('No tenant_id found - create a client first');
+      }
+
+      // Upload using supabaseDocumentService
+      const { supabaseDocumentService } = await import('@/services/supabaseDocumentService');
+      const result = await supabaseDocumentService.uploadDocument(testFile, {
+        tenant_id: tenantId,
+        category: 'Test',
+        role: 'Testing'
+      });
+
+      this.results.push({
+        entity: 'Document',
+        operation: 'UPLOAD',
+        success: true,
+        duration: Date.now() - testStart,
+        recordId: result.id
+      });
+      console.log(`  ✅ UPLOAD successful (${Date.now() - testStart}ms) - ID: ${result.id}`);
+
+      // Test download URL
+      const downloadStart = Date.now();
+      const downloadUrl = await supabaseDocumentService.getDownloadUrl(result.file_path);
+      this.results.push({
+        entity: 'Document',
+        operation: 'GET_URL',
+        success: true,
+        duration: Date.now() - downloadStart
+      });
+      console.log(`  ✅ GET_URL successful (${Date.now() - downloadStart}ms)`);
+
+      // Clean up: delete the test document
+      const deleteStart = Date.now();
+      await supabaseDocumentService.deleteDocument(result.id);
+      this.results.push({
+        entity: 'Document',
+        operation: 'DELETE',
+        success: true,
+        duration: Date.now() - deleteStart
+      });
+      console.log(`  ✅ DELETE successful (${Date.now() - deleteStart}ms)`);
+
+    } catch (error: any) {
+      this.results.push({
+        entity: 'Document',
+        operation: 'UPLOAD',
+        success: false,
+        duration: Date.now() - testStart,
+        error: error.message
+      });
+      console.error(`  ❌ Document upload failed:`, error.message);
+    }
+  }
+
+  /**
    * Run all CRUD tests
    */
   async runAllTests(): Promise<void> {
@@ -169,8 +243,7 @@ export class SupabaseCRUDTester {
       title: 'Test Task',
       description: 'Test task description',
       status: 'Pending',
-      priority: 'Medium',
-      assigned_to_name: 'Test User'
+      priority: 'Medium'
     });
 
     // Test Hearing
@@ -180,6 +253,9 @@ export class SupabaseCRUDTester {
       hearing_date: testDate,
       status: 'Scheduled'
     });
+
+    // Test Document Upload
+    await this.testDocumentUpload();
 
     this.printSummary();
   }
