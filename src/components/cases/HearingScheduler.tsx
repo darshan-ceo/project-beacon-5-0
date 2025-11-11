@@ -58,12 +58,10 @@ interface HearingSchedulerProps {
 
 export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases, selectedCase }) => {
   const navigate = useNavigate();
-  const { dispatch } = useAppState();
+  const { state, dispatch } = useAppState();
   const [selectedDate, setSelectedDate] = useState('');
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
-  const [globalHearings, setGlobalHearings] = useState<GlobalHearing[]>([]);
-  const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'global' | 'case'>('global');
   const [calendarStatus, setCalendarStatus] = useState<{
     google: CalendarConnectionStatus;
@@ -78,20 +76,6 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases, selec
   }, [selectedCase]);
 
   useEffect(() => {
-    const fetchHearings = async () => {
-      try {
-        const fetchedHearings = await hearingsService.getHearings();
-        setGlobalHearings(fetchedHearings);
-      } catch (error) {
-        console.error('Error fetching hearings:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchHearings();
-  }, []);
-
-  useEffect(() => {
     const loadCalendarStatus = () => {
       try {
         const googleStatus = integrationsService.getConnectionStatus('default', 'google');
@@ -104,24 +88,27 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases, selec
     loadCalendarStatus();
   }, []);
 
-  // Transform global hearings to local format for compatibility
-  const allHearings: Hearing[] = globalHearings.map(h => ({
-    id: h.id,
-    // Always use case_id for filtering; legacy clientId was incorrect here
-    caseId: (h as any).caseId || h.case_id,
-    caseNumber: `CASE-${h.case_id}`,
-    title: h.agenda || `Hearing for Case ${h.case_id}`,
-    // Ensure date/time exist; fall back to hearing_date when necessary
-    date: h.date || (h as any).hearing_date?.split('T')[0],
-    time: h.time || h.start_time || '10:00',
-    court: (h as any).court || 'Court',
-    judge: (h as any).judge || 'Judge',
-    type: (h.type === 'Preliminary' ? 'Final' : h.type) as 'Adjourned' | 'Final' | 'Argued' || 'Final',
-    status: h.status === 'scheduled' ? 'Scheduled' : h.status === 'concluded' ? 'Completed' : 'Postponed',
-    reminder: ((h as any).reminder || '1 day') as '1 day' | '3 days' | '7 days',
-    location: (h as any).location || h.courtroom,
-    notes: h.notes
-  }));
+  // Transform state hearings to local format for compatibility
+  const allHearings: Hearing[] = state.hearings.map(h => {
+    const hearingDateStr = h.date || (h as any).hearing_date;
+    const dateStr = typeof hearingDateStr === 'string' ? hearingDateStr.split('T')[0] : '';
+    
+    return {
+      id: h.id,
+      caseId: h.case_id,
+      caseNumber: `CASE-${h.case_id}`,
+      title: h.agenda || `Hearing for Case ${h.case_id}`,
+      date: dateStr,
+      time: h.time || h.start_time || '10:00',
+      court: (state.courts.find(c => c.id === h.court_id)?.name) || 'Court',
+      judge: (state.judges.find(j => h.judge_ids?.includes(j.id))?.name) || 'Judge',
+      type: (h.type === 'Preliminary' ? 'Final' : h.type) as 'Adjourned' | 'Final' | 'Argued' || 'Final',
+      status: h.status === 'scheduled' ? 'Scheduled' : h.status === 'concluded' ? 'Completed' : 'Postponed',
+      reminder: '1 day' as '1 day' | '3 days' | '7 days',
+      location: h.courtroom || '',
+      notes: h.notes || ''
+    };
+  });
 
   // Filter hearings based on view mode
   const hearings = viewMode === 'case' && selectedCase 
@@ -129,15 +116,17 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases, selec
     : allHearings;
 
   const today = new Date().toISOString().split('T')[0];
-  const upcomingHearings = hearings.filter(h => h.status === 'Scheduled');
+  const upcomingHearings = hearings.filter(h => h.status === 'Scheduled' && h.date);
   const todayHearings = upcomingHearings.filter(h => h.date === today);
   const thisWeekHearings = upcomingHearings.filter(h => {
+    if (!h.date) return false;
     const hearingDate = new Date(h.date);
     const todayDate = new Date();
     const weekFromNow = new Date();
     weekFromNow.setDate(todayDate.getDate() + 7);
     return hearingDate >= todayDate && hearingDate <= weekFromNow;
   });
+  const completedHearings = hearings.filter(h => h.status === 'Completed');
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -185,11 +174,7 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases, selec
         
         <HearingModal
           isOpen={isScheduleDialogOpen}
-          onClose={() => {
-            setIsScheduleDialogOpen(false);
-            // Refresh hearings list
-            hearingsService.getHearings().then(setGlobalHearings);
-          }}
+          onClose={() => setIsScheduleDialogOpen(false)}
           mode="create"
           contextCaseId={selectedCase?.id}
           contextClientId={selectedCase?.clientId}
@@ -244,7 +229,7 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases, selec
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Completed</p>
-                <p className="text-2xl font-bold text-foreground">45</p>
+                <p className="text-2xl font-bold text-foreground">{completedHearings.length}</p>
               </div>
               <CheckCircle className="h-8 w-8 text-success" />
             </div>
@@ -279,30 +264,32 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases, selec
                     transition={{ duration: 0.3, delay: index * 0.1 }}
                     className="p-4 bg-primary/5 rounded-lg border border-primary/20"
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h4 className="font-medium text-foreground">{hearing.title}</h4>
-                        <p className="text-sm text-muted-foreground">{hearing.caseNumber}</p>
-                        <div className="flex items-center space-x-4 mt-2 text-sm">
-                          <div className="flex items-center">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-foreground truncate">{hearing.title}</h4>
+                        <p className="text-sm text-muted-foreground truncate">{hearing.caseNumber}</p>
+                        <div className="flex items-center flex-wrap gap-x-4 gap-y-1 mt-2 text-sm">
+                          <div className="flex items-center shrink-0">
                             <Clock className="mr-1 h-3 w-3" />
-                            {hearing.time}
+                            <span className="truncate">{hearing.time}</span>
                           </div>
-                          <div className="flex items-center">
-                            <MapPin className="mr-1 h-3 w-3" />
-                            {hearing.location}
-                          </div>
+                          {hearing.location && (
+                            <div className="flex items-center min-w-0">
+                              <MapPin className="mr-1 h-3 w-3 shrink-0" />
+                              <span className="truncate">{hearing.location}</span>
+                            </div>
+                          )}
                         </div>
-                        <div className="flex items-center space-x-2 mt-2">
+                        <div className="flex items-center flex-wrap gap-2 mt-2">
                           <Badge variant="secondary" className={getTypeColor(hearing.type)}>
                             {hearing.type}
                           </Badge>
-                          <Badge variant="outline">
+                          <Badge variant="outline" className="truncate max-w-[200px]">
                             {hearing.judge}
                           </Badge>
                         </div>
                       </div>
-                      <div className="flex flex-col space-y-1">
+                      <div className="flex flex-col space-y-1 shrink-0">
                         <Button size="sm" variant="outline">
                           <Bell className="h-3 w-3" />
                         </Button>
@@ -483,31 +470,29 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases, selec
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: index * 0.05 }}
-                  className="flex items-center justify-between p-4 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
+                  className="flex items-center justify-between p-4 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors gap-4"
                 >
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-4">
-                      <div className="text-center">
-                        <p className="text-lg font-bold text-primary">{new Date(hearing.date).getDate()}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(hearing.date).toLocaleDateString('en-US', { month: 'short' })}
-                        </p>
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-medium text-foreground">{hearing.title}</h4>
-                        <p className="text-sm text-muted-foreground">{hearing.caseNumber}</p>
-                        <div className="flex items-center space-x-4 mt-1 text-sm text-muted-foreground">
-                          <span>{hearing.time}</span>
-                          <span>•</span>
-                          <span>{hearing.court}</span>
-                          <span>•</span>
-                          <span>{hearing.judge}</span>
-                        </div>
+                  <div className="flex-1 min-w-0 flex items-center gap-4">
+                    <div className="text-center shrink-0">
+                      <p className="text-lg font-bold text-primary">{new Date(hearing.date).getDate()}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(hearing.date).toLocaleDateString('en-US', { month: 'short' })}
+                      </p>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-foreground truncate">{hearing.title}</h4>
+                      <p className="text-sm text-muted-foreground truncate">{hearing.caseNumber}</p>
+                      <div className="flex items-center flex-wrap gap-x-4 gap-y-1 mt-1 text-sm text-muted-foreground">
+                        <span className="shrink-0">{hearing.time}</span>
+                        <span className="shrink-0">•</span>
+                        <span className="truncate min-w-0">{hearing.court}</span>
+                        <span className="shrink-0">•</span>
+                        <span className="truncate min-w-0">{hearing.judge}</span>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center gap-2 shrink-0">
                     <Badge variant="secondary" className={getTypeColor(hearing.type)}>
                       {hearing.type}
                     </Badge>

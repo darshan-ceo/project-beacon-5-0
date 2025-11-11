@@ -160,16 +160,16 @@ export const HearingCalendar: React.FC<HearingCalendarProps> = ({ isOpen, onClos
                 defaultView="month"
                 step={60}
                 showMultiDayTimes
-                components={{
-                  event: ({ event }) => (
-                    <div className="text-xs">
-                      <div className="font-medium">{event.title}</div>
-                      <div className="flex items-center mt-1">
-                        <Clock className="h-3 w-3 mr-1" />
-                        <span>{format(event.start, 'HH:mm')}</span>
+                  components={{
+                    event: ({ event }) => (
+                      <div className="text-xs overflow-hidden">
+                        <div className="font-medium truncate">{event.title}</div>
+                        <div className="flex items-center mt-1">
+                          <Clock className="h-3 w-3 mr-1 shrink-0" />
+                          <span className="truncate">{format(event.start, 'HH:mm')}</span>
+                        </div>
                       </div>
-                    </div>
-                  ),
+                    ),
                   agenda: {
                     event: ({ event }) => {
                       const hearing = event.resource;

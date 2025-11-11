@@ -144,10 +144,10 @@ export const HearingModal: React.FC<HearingModalProps> = ({
         return;
       }
 
-      // Phase 1: Validate past date
-      const selectedDate = new Date(formData.date.toISOString().split('T')[0]);
-      const today = new Date(new Date().toISOString().split('T')[0]);
-      if (selectedDate < today) {
+      // Phase 1: Validate past date using local midnight
+      const selectedLocalDate = new Date(formData.date.getFullYear(), formData.date.getMonth(), formData.date.getDate());
+      const todayLocalDate = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+      if (selectedLocalDate < todayLocalDate) {
         toast({
           title: "Validation Error",
           description: "Hearing date cannot be in the past",
@@ -157,15 +157,31 @@ export const HearingModal: React.FC<HearingModalProps> = ({
         return;
       }
 
-      // Phase 1: Validate time format (24-hour)
-      if (!/^([01]\d|2[0-3]):([0-5]\d)$/.test(formData.time)) {
+      // Phase 1: Normalize and validate time format (accept both 12h and 24h)
+      let normalizedTime = formData.time.trim();
+      // Check for 12-hour format (e.g., "10:00 AM" or "2:30 PM")
+      const time12hMatch = normalizedTime.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+      if (time12hMatch) {
+        let hours = parseInt(time12hMatch[1]);
+        const minutes = time12hMatch[2];
+        const meridiem = time12hMatch[3].toUpperCase();
+        if (meridiem === 'PM' && hours !== 12) hours += 12;
+        if (meridiem === 'AM' && hours === 12) hours = 0;
+        normalizedTime = `${hours.toString().padStart(2, '0')}:${minutes}`;
+      }
+      // Validate 24-hour format
+      if (!/^([01]\d|2[0-3]):([0-5]\d)$/.test(normalizedTime)) {
         toast({
           title: "Validation Error",
-          description: "Time must be in 24-hour format (HH:mm)",
+          description: "Time must be in valid format (HH:mm or HH:mm AM/PM)",
           variant: "destructive"
         });
         setIsSubmitting(false);
         return;
+      }
+      // Update formData with normalized time
+      if (normalizedTime !== formData.time) {
+        setFormData(prev => ({ ...prev, time: normalizedTime }));
       }
 
       // Validate judge-authority relationship

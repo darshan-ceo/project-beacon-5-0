@@ -354,6 +354,43 @@ export const CaseManagement: React.FC = () => {
     });
   }, [state.cases, state.clients, searchTerm, filterStage, filterTimelineBreach, filterCaseStatus]);
 
+  // Compute next hearing for each case from state.hearings
+  const casesWithNextHearing = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return filteredCases.map(caseItem => {
+      const caseHearings = state.hearings
+        .filter(h => h.case_id === caseItem.id && h.status === 'scheduled')
+        .filter(h => {
+          const hearingDate = h.date || (h as any).hearing_date?.split('T')[0];
+          return hearingDate && hearingDate >= today;
+        })
+        .sort((a, b) => {
+          const dateA = a.date || (a as any).hearing_date?.split('T')[0] || '';
+          const dateB = b.date || (b as any).hearing_date?.split('T')[0] || '';
+          return dateA.localeCompare(dateB);
+        });
+
+      const nextHearing = caseHearings[0];
+      if (nextHearing) {
+        const firstJudgeId = nextHearing.judge_ids && nextHearing.judge_ids.length > 0 
+          ? nextHearing.judge_ids[0] 
+          : '';
+        return {
+          ...caseItem,
+          nextHearing: {
+            id: nextHearing.id,
+            date: nextHearing.date || (nextHearing as any).hearing_date?.split('T')[0],
+            courtId: nextHearing.court_id,
+            judgeId: firstJudgeId,
+            type: (nextHearing.type === 'Preliminary' ? 'Final' : nextHearing.type) as 'Adjourned' | 'Argued' | 'Final',
+            time: nextHearing.start_time
+          }
+        };
+      }
+      return caseItem;
+    });
+  }, [filteredCases, state.hearings]);
+
   return (
     <div className="space-y-6">
       {/* Return Navigation Breadcrumb */}
@@ -461,7 +498,7 @@ export const CaseManagement: React.FC = () => {
                     
                     toast({
                       title: "Export complete!",
-                      description: `Exported ${filteredCases.length} cases successfully`
+                      description: `Exported ${casesWithNextHearing.length} cases successfully`
                     });
                   } catch (error) {
                     console.error('Export error:', error);
@@ -586,7 +623,7 @@ export const CaseManagement: React.FC = () => {
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="secondary" className="text-xs">
-              {filteredCases.length} {filteredCases.length === 1 ? 'case' : 'cases'}
+              {casesWithNextHearing.length} {casesWithNextHearing.length === 1 ? 'case' : 'cases'}
             </Badge>
             {(searchTerm || filterStage !== 'all' || filterTimelineBreach !== 'all') && (
               <Button 
@@ -743,7 +780,7 @@ export const CaseManagement: React.FC = () => {
             )}
             
             <div data-tour="case-list">
-            {filteredCases.length === 0 && (
+            {casesWithNextHearing.length === 0 && (
               <Card>
                 <CardContent className="p-12 text-center">
                   <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -764,7 +801,7 @@ export const CaseManagement: React.FC = () => {
                 </CardContent>
               </Card>
             )}
-            {filteredCases.map((caseItem, index) => {
+            {casesWithNextHearing.map((caseItem, index) => {
               const isSelected = selectedCase?.id === caseItem.id;
               return (
                 <motion.div
