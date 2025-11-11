@@ -107,11 +107,13 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases, selec
   // Transform global hearings to local format for compatibility
   const allHearings: Hearing[] = globalHearings.map(h => ({
     id: h.id,
-    caseId: h.clientId || h.case_id,
+    // Always use case_id for filtering; legacy clientId was incorrect here
+    caseId: (h as any).caseId || h.case_id,
     caseNumber: `CASE-${h.case_id}`,
     title: h.agenda || `Hearing for Case ${h.case_id}`,
-    date: h.date,
-    time: h.time || h.start_time,
+    // Ensure date/time exist; fall back to hearing_date when necessary
+    date: h.date || (h as any).hearing_date?.split('T')[0],
+    time: h.time || h.start_time || '10:00',
     court: (h as any).court || 'Court',
     judge: (h as any).judge || 'Judge',
     type: (h.type === 'Preliminary' ? 'Final' : h.type) as 'Adjourned' | 'Final' | 'Argued' || 'Final',
