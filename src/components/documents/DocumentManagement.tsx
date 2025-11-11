@@ -527,6 +527,17 @@ export const DocumentManagement: React.FC = () => {
       }
     });
 
+    console.log('📥 [DocumentManagement] handleDocumentUpload called with:', {
+      fileName: file.name,
+      optionsCaseId: options.caseId,
+      optionsClientId: options.clientId,
+      optionsFolderId: options.folderId,
+      optionsTags: options.tags,
+      hasCase: !!options.caseId,
+      hasClient: !!options.clientId,
+      hasFolder: !!options.folderId
+    });
+
     try {
       // Early validation: at least one link must be provided
       if (!options.caseId && !options.clientId && !options.folderId) {
@@ -535,6 +546,7 @@ export const DocumentManagement: React.FC = () => {
         if (!options.clientId) missing.push('Client');
         if (!options.folderId) missing.push('Folder');
         
+        console.error('❌ [DocumentManagement] Validation failed - no associations:', { options, missing });
         throw new Error(`Missing required association. Please select at least one: ${missing.join(', ')}`);
       }
 

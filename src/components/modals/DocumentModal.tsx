@@ -167,15 +167,24 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
           return;
         }
 
+        console.log('📋 [DocumentModal] Form data before conversion:', {
+          caseId: formData.caseId,
+          clientId: formData.clientId,
+          folderId: formData.folderId,
+          availableCases: state.cases.length,
+          availableClients: localClients.length,
+          availableFolders: state.folders.length
+        });
+
         const finalCaseId = formData.caseId === 'none' ? undefined : formData.caseId;
         const finalClientId = formData.clientId === 'none' ? undefined : formData.clientId;
         const finalFolderId = formData.folderId === 'none' ? undefined : formData.folderId;
 
-        console.log('📤 [DocumentModal] Submitting upload:', {
+        console.log('📤 [DocumentModal] Submitting upload with converted values:', {
           fileName: formData.file.name,
-          caseId: finalCaseId,
-          clientId: finalClientId,
-          folderId: finalFolderId,
+          finalCaseId,
+          finalClientId,
+          finalFolderId,
           hasLink: !!(finalCaseId || finalClientId || finalFolderId)
         });
 
