@@ -5,12 +5,12 @@ import { formatDateForDisplay, formatTimeForDisplay } from '@/utils/dateFormatte
 
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody } from '@/components/ui/dialog';
+import { Dialog } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 
 import { useAppState, Hearing } from '@/contexts/AppStateContext';
 import { toast } from '@/hooks/use-toast';
-import { HearingForm } from '@/components/hearings/HearingForm';
+import { HearingModal } from '@/components/modals/HearingModal';
 import { HearingFilters, HearingFiltersState } from '@/components/hearings/HearingFilters';
 import { hearingsService } from '@/services/hearingsService';
 import { ContextualPageHelp } from '@/components/help/ContextualPageHelp';
@@ -22,18 +22,6 @@ import { HearingMetrics } from '@/components/hearings/HearingMetrics';
 import { integrationsService } from '@/services/integrationsService';
 import { calendarService } from '@/services/calendar/calendarService';
 
-interface HearingFormData {
-  case_id: string;
-  date: string;
-  start_time: string;
-  end_time?: string;
-  timezone: string;
-  court_id: string;
-  courtroom?: string;
-  judge_ids: string[];
-  purpose: string;
-  notes?: string;
-}
 
 // Simplified Lists Component
 const HearingsList: React.FC<{ 
@@ -344,46 +332,6 @@ export const HearingsPage: React.FC = () => {
     });
   };
 
-  const handleFormSubmit = async (data: any) => {
-    try {
-      if (formMode === 'create') {
-        const hearingFormData = {
-          case_id: data.case_id,
-          date: data.date.toISOString().split('T')[0],
-          start_time: data.start_time,
-          end_time: data.start_time, // Simple fallback
-          timezone: 'Asia/Kolkata',
-          court_id: data.court_id,
-          courtroom: data.courtroom,
-          judge_ids: data.judge_ids,
-          purpose: data.purpose,
-          notes: data.notes,
-        };
-
-        await hearingsService.createHearing(hearingFormData as any, dispatch);
-        
-      } else if (formMode === 'edit' && selectedHearing) {
-        const updates = {
-          court_id: data.court_id,
-          courtroom: data.courtroom,
-          judge_ids: data.judge_ids,
-          date: data.date.toISOString().split('T')[0],
-          start_time: data.start_time,
-          end_time: data.end_time,
-          purpose: data.purpose,
-          notes: data.notes,
-        };
-
-        await hearingsService.updateHearing(selectedHearing.id, updates, dispatch);
-      }
-
-      setIsFormOpen(false);
-      setSelectedHearing(null);
-      
-    } catch (error) {
-      console.error('Error saving hearing:', error);
-    }
-  };
 
   return (
     <div className="p-6 space-y-6">
@@ -481,27 +429,16 @@ export const HearingsPage: React.FC = () => {
         </Button>
       </div>
 
-      {/* Form Dialog */}
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>
-              {formMode === 'create' && 'Schedule New Hearing'}
-              {formMode === 'edit' && 'Edit Hearing'}
-              {formMode === 'view' && 'Hearing Details'}
-            </DialogTitle>
-          </DialogHeader>
-          
-          <DialogBody>
-            <HearingForm
-              hearing={selectedHearing || undefined}
-              mode={formMode}
-              onSubmit={handleFormSubmit}
-              onCancel={() => setIsFormOpen(false)}
-            />
-          </DialogBody>
-        </DialogContent>
-      </Dialog>
+      {/* Hearing Modal */}
+      <HearingModal
+        isOpen={isFormOpen}
+        onClose={() => {
+          setIsFormOpen(false);
+          setSelectedHearing(null);
+        }}
+        hearing={selectedHearing}
+        mode={formMode}
+      />
 
       {/* Bulk Actions */}
       {calendarSettings && calendarSettings.provider !== 'none' && (
