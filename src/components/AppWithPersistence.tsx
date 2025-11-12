@@ -12,6 +12,9 @@ import { searchService } from '@/services/searchService';
 import { generateSampleContent } from '@/utils/fileTypeUtils';
 import { loadAppState, saveAppState } from '@/data/storageShim';
 
+// Global flag to track if storage has been initialized (persists across component remounts)
+let globalStorageInitialized = false;
+
 interface AppWithPersistenceProps {
   children: React.ReactNode;
 }
@@ -22,6 +25,13 @@ export const AppWithPersistence: React.FC<AppWithPersistenceProps> = ({ children
 
   useEffect(() => {
     const initStorage = async () => {
+      // Quick path: if already initialized globally, just update local state
+      if (globalStorageInitialized) {
+        console.log('✅ Storage already initialized globally, skipping re-init');
+        setInitialized(true);
+        return;
+      }
+
       try {
         const storageManager = StorageManager.getInstance();
         const mode = envConfig.getStorageMode();
@@ -105,6 +115,8 @@ export const AppWithPersistence: React.FC<AppWithPersistenceProps> = ({ children
         // IndexedDB backfill removed - Supabase only
         console.log('✅ Supabase storage initialized - no backfill needed');
 
+        // Set global flag to prevent re-initialization on component remount
+        globalStorageInitialized = true;
         setInitialized(true);
         
       } catch (error: any) {
