@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { ContextBadge } from './context-badge';
+import { SearchableClientSelector } from './searchable-client-selector';
 import { Client, Case, Court, Judge } from '@/contexts/AppStateContext';
 
 interface RelationshipSelectorProps {
@@ -96,41 +97,14 @@ export const ClientSelector: React.FC<{
 
   if (showAddNew) {
     return (
-      <div className="space-y-2">
-        <Label>
-          Client
-          <span className="text-destructive ml-1">*</span>
-        </Label>
-        <div className="flex gap-2">
-          <div className="flex-1">
-            <Select value={props.value} onValueChange={props.onValueChange} disabled={props.disabled}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select client" />
-              </SelectTrigger>
-              <SelectContent className="z-[200] bg-popover" position="popper" sideOffset={5}>
-                {options.map((option) => (
-                  <SelectItem key={option.id} value={option.id}>
-                    <div className="flex flex-col">
-                      <span>{option.label}</span>
-                      <span className="text-xs text-muted-foreground">{option.subtitle}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            onClick={onAddNew}
-            disabled={props.disabled}
-            className="shrink-0"
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+      <SearchableClientSelector
+        clients={clients}
+        value={props.value}
+        onValueChange={props.onValueChange}
+        disabled={props.disabled}
+        showAddNew={showAddNew}
+        onAddNew={onAddNew}
+      />
     );
   }
 
