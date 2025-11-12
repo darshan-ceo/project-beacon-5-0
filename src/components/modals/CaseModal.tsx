@@ -787,9 +787,6 @@ export const CaseModal: React.FC<CaseModalProps> = ({
                       </div>
                     ) : (
                       <>
-                        <Label className="mb-2">
-                          Client <span className="text-destructive">*</span>
-                        </Label>
                         <ClientSelector
                           clients={getAvailableClients()}
                           value={formData.clientId}

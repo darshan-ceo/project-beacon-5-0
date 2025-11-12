@@ -91,7 +91,7 @@ export const ClientSelector: React.FC<{
   const options = clients.map(client => ({
     id: client.id,
     label: client.name,
-    subtitle: `${client.type} • ${client.email}`
+    subtitle: [client.email, client.phone].filter(Boolean).join(' • ') || client.gstin || 'No contact info'
   }));
 
   if (showAddNew) {
