@@ -1510,6 +1510,59 @@ export class SupabaseAdapter implements StoragePort {
           });
           break;
           
+        case 'timeline_entries':
+          // Map camelCase to snake_case
+          if (normalized.caseId && !normalized.case_id) {
+            normalized.case_id = normalized.caseId;
+          }
+          if (normalized.tenantId && !normalized.tenant_id) {
+            normalized.tenant_id = normalized.tenantId;
+          }
+          if (normalized.createdById && !normalized.created_by) {
+            normalized.created_by = normalized.createdById;
+          }
+          if (normalized.createdByName && !normalized.created_by_name) {
+            normalized.created_by_name = normalized.createdByName;
+          }
+          if (normalized.createdAt && !normalized.created_at) {
+            normalized.created_at = normalized.createdAt;
+          }
+          
+          // Delete camelCase versions
+          delete normalized.caseId;
+          delete normalized.tenantId;
+          delete normalized.createdById;
+          delete normalized.createdByName;
+          delete normalized.createdAt;
+          
+          // Delete deprecated/UI-only field
+          delete normalized.createdBy; // Old string field, replaced by createdById/createdByName
+          
+          // Validate required case_id
+          if (!normalized.case_id || !isValidUUID(normalized.case_id)) {
+            throw new Error('Invalid case ID for timeline entry');
+          }
+          
+          // Validate required created_by
+          if (!normalized.created_by || !isValidUUID(normalized.created_by)) {
+            throw new Error('Invalid creator UUID for timeline entry');
+          }
+          
+          // Ensure tenant_id is present (fallback to adapter's tenant)
+          if (!normalized.tenant_id) {
+            normalized.tenant_id = this.tenantId;
+          }
+          
+          // Keep only valid columns
+          const validTimelineFields = [
+            'id', 'case_id', 'tenant_id', 'type', 'title', 'description',
+            'created_by', 'created_by_name', 'created_at', 'metadata'
+          ];
+          Object.keys(normalized).forEach(key => {
+            if (!validTimelineFields.includes(key)) delete normalized[key];
+          });
+          break;
+          
         case 'employees':
           // Legacy name mapping
           if (normalized.name && !normalized.full_name) normalized.full_name = normalized.name;
