@@ -480,6 +480,8 @@ export class SupabaseAdapter implements StoragePort {
         result = result.map(item => this.transformClientFields(item)) as T[];
       } else if (table === 'automation_rules') {
         result = result.map(item => this.transformAutomationRuleFields(item)) as T[];
+      } else if (table === 'timeline_entries') {
+        result = result.map(item => this.transformTimelineFields(item)) as T[];
       }
       
       this.setCache(cacheKey, result);
@@ -1839,6 +1841,21 @@ export class SupabaseAdapter implements StoragePort {
       updatedAt: raw.updated_at || raw.updatedAt,
       lastTriggered: raw.last_triggered || raw.lastTriggered,
       createdBy: raw.created_by || raw.createdBy,
+    };
+  }
+
+  /**
+   * Transform timeline_entries from snake_case to camelCase
+   */
+  private transformTimelineFields(raw: any): any {
+    return {
+      ...raw,
+      caseId: raw.case_id || raw.caseId,
+      tenantId: raw.tenant_id || raw.tenantId,
+      createdBy: raw.created_by_name || raw.createdBy || 'Unknown',
+      createdById: raw.created_by || raw.createdById,
+      createdByName: raw.created_by_name || raw.createdByName,
+      createdAt: raw.created_at || raw.createdAt,
     };
   }
 

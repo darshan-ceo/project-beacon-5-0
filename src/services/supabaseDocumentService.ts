@@ -211,6 +211,32 @@ export const uploadDocument = async (
 
     console.log('✅ Document uploaded successfully:', docData.id);
 
+    // Create timeline entry for document upload
+    try {
+      const { timelineService } = await import('./timelineService');
+      
+      if (metadata.case_id) {
+        await timelineService.addEntry({
+          caseId: metadata.case_id,
+          type: 'doc_saved',
+          title: 'Document Uploaded',
+          description: `${fileName} uploaded${metadata.category ? ` (${metadata.category})` : ''}`,
+          createdBy: 'System', // Will be converted to actual user UUID in timelineService
+          metadata: {
+            fileName: fileName,
+            fileSize: file.size,
+            fileType: fileExt,
+            folderId: metadata.folder_id,
+            category: metadata.category
+          }
+        });
+        console.log('✅ Timeline entry created for document upload');
+      }
+    } catch (timelineError) {
+      console.error('⚠️ Failed to create timeline entry (non-critical):', timelineError);
+      // Don't fail the upload if timeline creation fails
+    }
+
     return {
       id: docData.id,
       file_name: docData.file_name,
