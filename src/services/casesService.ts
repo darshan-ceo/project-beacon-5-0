@@ -217,14 +217,23 @@ export const casesService = {
 
       dispatch({ type: 'UPDATE_CASE', payload: { id: caseId, ...updates } });
       
-      // Add timeline entry
-      await timelineService.addEntry({
-        caseId,
-        type: 'case_created',
-        title: `Stage Advanced: ${currentStage} → ${nextStage}`,
-        description: notes || `Case automatically advanced from ${currentStage} to ${nextStage}`,
-        createdBy: assignedTo || 'System'
-      });
+      // Add timeline entry with proper stage_change type
+      try {
+        await timelineService.addEntry({
+          caseId,
+          type: 'stage_change',
+          title: `Stage Advanced: ${currentStage} → ${nextStage}`,
+          description: notes || `Case automatically advanced from ${currentStage} to ${nextStage}`,
+          createdBy: assignedTo || 'System',
+          metadata: {
+            stage: nextStage,
+            previousStage: currentStage
+          }
+        });
+      } catch (timelineError) {
+        console.error('Failed to create timeline entry:', timelineError);
+        // Don't block stage advancement if timeline fails
+      }
       
       // Generate task bundle for new stage
       if (nextStage === 'Assessment') {
