@@ -166,9 +166,27 @@ export const usePersistentDispatch = (
           break;
           
         // Courts
-        case 'ADD_COURT':
-          await storage.create('courts', action.payload);
-          break;
+        case 'ADD_COURT': {
+          const isValidUUID = (v: any) => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+          const payload = { ...action.payload } as any;
+          
+          // Remove client-generated id if it's not a valid UUID
+          if (!isValidUUID(payload.id)) {
+            delete payload.id;
+          }
+          
+          // Persist to backend and get the UUID back
+          const saved = await storage.create('courts', payload);
+          
+          // Dispatch with the database-generated UUID to keep UI state consistent
+          originalDispatch({ type: 'ADD_COURT', payload: { ...action.payload, id: (saved as any).id } as any });
+          
+          // Call success callback if provided
+          if (onPersistSuccess) {
+            await onPersistSuccess();
+          }
+          return; // Prevent the generic dispatch below from firing
+        }
         case 'UPDATE_COURT':
           await storage.update('courts', action.payload.id, action.payload);
           break;

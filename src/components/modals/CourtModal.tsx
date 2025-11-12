@@ -201,7 +201,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
       }
 
       const newCourt: Court = {
-        id: Date.now().toString(),
+        id: '', // Will be replaced by server-generated UUID
         name: formData.name,
         type: formData.type,
         authorityLevel: formData.authorityLevel,
