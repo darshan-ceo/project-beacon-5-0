@@ -87,6 +87,10 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           clientGroupId: c.client_group_id || c.clientGroupId,
           createdAt: c.created_at || c.createdAt,
           updatedAt: c.updated_at || c.updatedAt,
+          // Parse signatories from JSON string
+          signatories: c.signatories ? (typeof c.signatories === 'string' ? JSON.parse(c.signatories) : c.signatories) : [],
+          // Parse address from JSON string
+          address: c.address ? (typeof c.address === 'string' ? JSON.parse(c.address) : c.address) : undefined,
         }));
 
         const clientGroups = (clientGroupsData.data || []).map((cg: any) => ({

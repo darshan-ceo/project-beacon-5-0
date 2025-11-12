@@ -327,6 +327,15 @@ class EntityTemplatesService {
           validationRules: [{ type: 'phone', message: 'Invalid mobile number format' }],
           helpText: 'Mobile number of primary contact',
           examples: ['+91 9876543210', '9876543210']
+        },
+        {
+          key: 'client_group',
+          label: 'Client Group',
+          isRequired: false,
+          dataType: 'text',
+          validationRules: [],
+          helpText: 'Name or code of existing client group (optional)',
+          examples: ['Corporate Clients', 'Manufacturing', 'CG-010']
         }
       ],
       upsertKeys: ['gstin', 'legal_name', 'city'],

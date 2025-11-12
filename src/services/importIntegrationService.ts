@@ -28,6 +28,52 @@ class ImportIntegrationService {
     if (!user) throw new Error('User not authenticated');
     return user.id;
   }
+
+  /**
+   * Map constitution string to Client type enum
+   */
+  private mapConstitutionType(constitution: string): string {
+    const constitutionMap: Record<string, string> = {
+      'public limited company': 'Company',
+      'private limited company': 'Company',
+      'public sector undertaking': 'Company',
+      'partnership': 'Partnership',
+      'llp': 'Partnership',
+      'limited liability partnership': 'Partnership',
+      'proprietorship': 'Individual',
+      'individual': 'Individual',
+      'sole proprietor': 'Individual',
+      'trust': 'Trust',
+      'society': 'Trust',
+      'huf': 'Other',
+      'hindu undivided family': 'Other',
+      'association': 'Other',
+      'government': 'Other'
+    };
+    
+    const normalized = (constitution || '').toLowerCase().trim();
+    return constitutionMap[normalized] || 'Company';
+  }
+
+  /**
+   * Lookup client group by name or code
+   */
+  private async lookupClientGroup(
+    tenantId: string, 
+    groupNameOrCode: string
+  ): Promise<string | null> {
+    if (!groupNameOrCode || groupNameOrCode.trim() === '') return null;
+    
+    const { data: groups } = await supabase
+      .from('client_groups')
+      .select('id, name, code')
+      .eq('tenant_id', tenantId)
+      .or(`name.ilike.%${groupNameOrCode}%,code.ilike.%${groupNameOrCode}%`)
+      .limit(1);
+    
+    return groups && groups.length > 0 ? groups[0].id : null;
+  }
+
   /**
    * Insert imported records into the database
    */
@@ -124,6 +170,58 @@ class ImportIntegrationService {
       const tenantId = await this.getTenantId();
       const userId = await this.getUserId();
       
+      // Lookup client group if provided
+      let clientGroupId = null;
+      if (record.client_group || record.group_name || record.group) {
+        clientGroupId = await this.lookupClientGroup(
+          tenantId, 
+          record.client_group || record.group_name || record.group
+        );
+      }
+
+      // Create primary signatory from import data
+      const signatories = [];
+      if (record.primary_contact_name || record.primary_contact_email || record.primary_contact_mobile) {
+        const primarySignatory = {
+          id: crypto.randomUUID(),
+          fullName: record.primary_contact_name || record.contact_name || 'Primary Contact',
+          designation: record.designation || undefined,
+          isPrimary: true,
+          emails: record.primary_contact_email ? [{
+            id: crypto.randomUUID(),
+            email: record.primary_contact_email,
+            label: 'Work' as const,
+            isPrimary: true,
+            isVerified: false,
+            status: 'Active' as const
+          }] : [],
+          phones: record.primary_contact_mobile ? [{
+            id: crypto.randomUUID(),
+            countryCode: '+91',
+            number: record.primary_contact_mobile,
+            label: 'Mobile' as const,
+            isPrimary: true,
+            isWhatsApp: false,
+            isVerified: false,
+            status: 'Active' as const
+          }] : [],
+          email: record.primary_contact_email || undefined,
+          mobile: record.primary_contact_mobile || undefined,
+          phone: record.primary_contact_mobile || undefined
+        };
+        signatories.push(primarySignatory);
+      }
+
+      // Build structured address object
+      const addressData = {
+        line1: record.address_line1 || record.address || '',
+        line2: record.address_line2 || '',
+        city: record.city || '',
+        state: record.state_name || record.state || 'Gujarat',
+        pincode: record.pincode || '',
+        country: record.country || 'India'
+      };
+      
       const clientPayload = {
         tenant_id: tenantId,
         display_name: record.legal_name || record.name || record.display_name,
@@ -132,9 +230,13 @@ class ImportIntegrationService {
         email: record.primary_contact_email || record.email || null,
         phone: record.primary_contact_mobile || record.phone || record.mobile || null,
         city: record.city || null,
-        state: record.state_code || record.state || 'Gujarat',
+        state: addressData.state,
         status: record.status || 'active',
         owner_id: userId,
+        client_group_id: clientGroupId,
+        type: record.constitution ? this.mapConstitutionType(record.constitution) : 'Company',
+        signatories: signatories.length > 0 ? JSON.stringify(signatories) : null,
+        address: JSON.stringify(addressData),
         // Don't include id - let Supabase generate UUID
       };
 
