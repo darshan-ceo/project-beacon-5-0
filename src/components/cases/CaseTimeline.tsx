@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { timelineService, TimelineEntry } from '@/services/timelineService';
+import { supabase } from '@/integrations/supabase/client';
 import { motion } from 'framer-motion';
 import { 
   Clock, 
@@ -108,6 +109,67 @@ export const CaseTimeline: React.FC<CaseTimelineProps> = ({ selectedCase }) => {
     };
 
     loadTimeline();
+  }, [selectedCase]);
+
+  // Set up real-time subscription for timeline updates
+  useEffect(() => {
+    if (!selectedCase) return;
+
+    console.log(`[Timeline] Setting up real-time subscription for case ${selectedCase.id}`);
+
+    const channel = supabase
+      .channel(`timeline-${selectedCase.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'timeline_entries',
+          filter: `case_id=eq.${selectedCase.id}`
+        },
+        (payload) => {
+          console.log('[Timeline] Real-time INSERT received:', payload);
+          
+          const newEntry = payload.new as TimelineEntry;
+          
+          // Map the new entry to UI format
+          const newEvent: TimelineEvent = {
+            id: newEntry.id,
+            type: mapServiceTypeToUIType(newEntry.type),
+            title: newEntry.title,
+            description: newEntry.description,
+            timestamp: newEntry.createdAt,
+            user: {
+              name: newEntry.createdByName || newEntry.createdBy,
+              role: newEntry.createdBy === 'System' ? 'Automated' : 'User',
+              avatar: undefined
+            },
+            metadata: {
+              stage: newEntry.metadata?.stage,
+              documentName: newEntry.metadata?.fileName,
+              hearingDate: newEntry.metadata?.hearingDate,
+              court: newEntry.metadata?.court,
+              deadline: newEntry.metadata?.deadline,
+              status: newEntry.metadata?.status
+            }
+          };
+
+          // Add new event to the beginning of the timeline
+          setTimelineEvents(prev => [newEvent, ...prev]);
+          
+          toast({
+            title: "Timeline Updated",
+            description: `New event: ${newEntry.title}`,
+          });
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on unmount or when case changes
+    return () => {
+      console.log(`[Timeline] Cleaning up real-time subscription for case ${selectedCase.id}`);
+      supabase.removeChannel(channel);
+    };
   }, [selectedCase]);
 
   // Map timeline service types to UI types
