@@ -8,6 +8,7 @@ import { useCallback } from 'react';
 import { AppAction } from '@/contexts/AppStateContext';
 import { storageManager } from '@/data/StorageManager';
 import { toast } from '@/hooks/use-toast';
+import { timelineService } from '@/services/timelineService';
 
 type PersistCallback = () => Promise<void>;
 
@@ -34,12 +35,55 @@ export const usePersistentDispatch = (
       // Persist to Supabase BEFORE updating local state
       switch (action.type) {
         // Cases
-        case 'ADD_CASE':
-          await storage.create('cases', action.payload);
+        case 'ADD_CASE': {
+          const savedCase = await storage.create('cases', action.payload);
+          // Log case_created timeline entry
+          try {
+            await timelineService.addEntry({
+              caseId: (savedCase as any).id || action.payload.id,
+              type: 'case_created',
+              title: `Case Created: ${action.payload.caseNumber}`,
+              description: action.payload.title || 'New case',
+              createdBy: 'System',
+              metadata: {
+                caseNumber: action.payload.caseNumber,
+                stage: action.payload.currentStage,
+                priority: action.payload.priority
+              }
+            });
+          } catch (error) {
+            console.error('[Timeline] Failed to log case_created:', error);
+          }
           break;
-        case 'UPDATE_CASE':
+        }
+        case 'UPDATE_CASE': {
+          // Check if assignee changed
+          const previousCase = await storage.getById('cases', action.payload.id) as any;
+          const newAssignee = action.payload.assignedToId || action.payload.assignedTo;
+          const oldAssignee = previousCase?.assigned_to || previousCase?.assignedTo;
+          
           await storage.update('cases', action.payload.id, action.payload);
+          
+          // Log case_assigned if assignee changed
+          if (newAssignee && newAssignee !== oldAssignee) {
+            try {
+              await timelineService.addEntry({
+                caseId: action.payload.id,
+                type: 'case_assigned',
+                title: 'Case Assigned',
+                description: `Assigned to ${action.payload.assignedToName || 'team member'}`,
+                createdBy: 'System',
+                metadata: {
+                  assignedTo: newAssignee,
+                  assignedToName: action.payload.assignedToName
+                }
+              });
+            } catch (error) {
+              console.error('[Timeline] Failed to log case_assigned:', error);
+            }
+          }
           break;
+        }
         case 'DELETE_CASE':
           await storage.delete('cases', action.payload);
           break;
@@ -89,13 +133,41 @@ export const usePersistentDispatch = (
             updated_at: new Date().toISOString(),
           };
           
-          await storage.create('tasks', taskPayload);
+          const savedTask = await storage.create('tasks', taskPayload);
+          
+          // Log task_created timeline entry
+          if (taskPayload.case_id) {
+            try {
+              await timelineService.addEntry({
+                caseId: taskPayload.case_id,
+                type: 'task_created',
+                title: `Task Created: ${taskPayload.title}`,
+                description: `Assigned to ${taskPayload.assigned_to_name || 'unassigned'}`,
+                createdBy: 'System',
+                metadata: {
+                  taskId: (savedTask as any)?.id || taskPayload.id,
+                  priority: taskPayload.priority,
+                  status: taskPayload.status,
+                  dueDate: taskPayload.due_date,
+                  assignedTo: taskPayload.assigned_to,
+                  assignedToName: taskPayload.assigned_to_name
+                }
+              });
+            } catch (error) {
+              console.error('[Timeline] Failed to log task_created:', error);
+            }
+          }
           break;
         }
         case 'UPDATE_TASK': {
           const task = action.payload as any;
           const isValidUUID = (val: any) => typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
           const asUUIDOrNull = (val: any) => (isValidUUID(val) ? val : null);
+          
+          // Fetch previous task state to check completion transition
+          const previousTask = await storage.getById('tasks', task.id);
+          const prevStatus = (previousTask as any)?.status;
+          const newStatus = task.status;
           
           const updatePayload: any = {
             id: task.id,
@@ -124,6 +196,28 @@ export const usePersistentDispatch = (
           };
           
           await storage.update('tasks', task.id, updatePayload);
+          
+          // Log task_completed if status transitioned to Completed/Done
+          const isCompletedNow = newStatus === 'Completed' || newStatus === 'Done';
+          const wasNotCompletedBefore = prevStatus !== 'Completed' && prevStatus !== 'Done';
+          
+          if (isCompletedNow && wasNotCompletedBefore && updatePayload.case_id) {
+            try {
+              await timelineService.addEntry({
+                caseId: updatePayload.case_id,
+                type: 'task_completed',
+                title: `Task Completed: ${updatePayload.title}`,
+                description: `${updatePayload.assigned_to_name || 'Assignee'} marked task as completed`,
+                createdBy: 'System',
+                metadata: {
+                  taskId: task.id,
+                  completedBy: updatePayload.assigned_to_name || 'Unknown'
+                }
+              });
+            } catch (error) {
+              console.error('[Timeline] Failed to log task_completed:', error);
+            }
+          }
           break;
         }
         case 'DELETE_TASK':
