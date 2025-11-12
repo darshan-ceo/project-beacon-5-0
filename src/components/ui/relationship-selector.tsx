@@ -107,7 +107,7 @@ export const ClientSelector: React.FC<{
               <SelectTrigger>
                 <SelectValue placeholder="Select client" />
               </SelectTrigger>
-              <SelectContent className="z-[200]">
+              <SelectContent className="z-[200] bg-popover" position="popper" sideOffset={5}>
                 {options.map((option) => (
                   <SelectItem key={option.id} value={option.id}>
                     <div className="flex flex-col">
