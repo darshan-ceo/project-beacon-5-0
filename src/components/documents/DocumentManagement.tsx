@@ -741,6 +741,7 @@ export const DocumentManagement: React.FC = () => {
   // Return navigation handler
   const handleReturnToStageManagement = async () => {
     const returnContext = await navigationContextService.getContext();
+    
     if (returnContext?.returnTo === 'stage-management' && returnContext.returnCaseId) {
       navigate(`/cases?caseId=${returnContext.returnCaseId}`);
       await navigationContextService.clearContext();
@@ -755,6 +756,15 @@ export const DocumentManagement: React.FC = () => {
         });
         window.dispatchEvent(event);
       }, 100);
+    } else if (returnContext?.returnTo === 'case-documents' && returnContext.caseId) {
+      // Return to case's document tab
+      navigate(`/cases?caseId=${returnContext.caseId}&tab=documents`);
+      await navigationContextService.clearContext();
+      
+      toast({
+        title: "Returned to Case",
+        description: `Viewing documents for ${returnContext.caseNumber || 'case'}`,
+      });
     }
   };
 
@@ -765,9 +775,12 @@ export const DocumentManagement: React.FC = () => {
   useEffect(() => {
     const loadContext = async () => {
       const ctx = await navigationContextService.getContext();
-      setHasReturnCtx(ctx?.returnTo === 'stage-management' && !!ctx.returnCaseId);
+      setHasReturnCtx(
+        (ctx?.returnTo === 'stage-management' && !!ctx.returnCaseId) ||
+        (ctx?.returnTo === 'case-documents' && !!ctx.caseId)
+      );
       
-      const caseId = searchParams.get('caseId') || ctx?.returnCaseId;
+      const caseId = searchParams.get('caseId') || ctx?.returnCaseId || ctx?.caseId;
       if (caseId) {
         const currentCase = state.cases.find(c => c.id === caseId);
         setCurrentCaseInfo(currentCase ? { id: caseId, number: currentCase.caseNumber } : null);

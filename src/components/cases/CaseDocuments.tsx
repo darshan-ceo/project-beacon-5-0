@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   FileText,
@@ -12,7 +12,8 @@ import {
   Calendar,
   FileIcon,
   Plus,
-  ExternalLink
+  ExternalLink,
+  ArrowLeft
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,6 +25,8 @@ import { FilterDropdown } from '@/components/ui/filter-dropdown';
 import { useAppState, Case } from '@/contexts/AppStateContext';
 import { toast } from '@/hooks/use-toast';
 import { formatDateForDisplay } from '@/utils/dateFormatters';
+import { supabaseDocumentService } from '@/services/supabaseDocumentService';
+import { navigationContextService } from '@/services/navigationContextService';
 
 interface CaseDocumentsProps {
   selectedCase: Case | null;
@@ -34,6 +37,20 @@ export const CaseDocuments: React.FC<CaseDocumentsProps> = ({ selectedCase }) =>
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | string>('all');
+  const [hasReturnCtx, setHasReturnCtx] = useState(false);
+
+  // Check for return context
+  useEffect(() => {
+    const loadContext = async () => {
+      const ctx = await navigationContextService.getContext();
+      setHasReturnCtx(
+        ctx?.returnTo === 'case-documents' && 
+        !!ctx.caseId &&
+        ctx.caseId === selectedCase?.id
+      );
+    };
+    loadContext();
+  }, [selectedCase]);
 
   // Filter documents associated with the selected case
   const caseDocuments = useMemo(() => {
@@ -58,17 +75,94 @@ export const CaseDocuments: React.FC<CaseDocumentsProps> = ({ selectedCase }) =>
     return Array.from(types);
   }, [caseDocuments]);
 
-  const handleViewDocument = (documentId: string) => {
-    // Navigate to document management with specific document selected
-    navigate(`/documents?documentId=${documentId}`);
+  const handleViewDocument = async (documentId: string) => {
+    try {
+      const document = filteredDocuments.find(doc => doc.id === documentId);
+      if (!document) {
+        toast({
+          title: "Document Not Found",
+          description: "Unable to locate the selected document.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Save navigation context for return path
+      await navigationContextService.saveContext({
+        returnTo: 'case-documents',
+        caseId: selectedCase?.id,
+        caseNumber: selectedCase?.caseNumber,
+        caseTitle: selectedCase?.title,
+        documentId: documentId,
+        timestamp: Date.now()
+      });
+
+      // Get signed URL from Supabase Storage
+      const filePath = document.path;
+      if (!filePath) {
+        toast({
+          title: "Invalid Document",
+          description: "Document file path is missing.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Generate signed URL (valid for 1 hour)
+      const signedUrl = await supabaseDocumentService.getDownloadUrl(filePath, 3600);
+      
+      // Open in new tab for preview
+      window.open(signedUrl, '_blank');
+      
+      toast({
+        title: "Opening Document",
+        description: `${document.name} opened for preview`,
+      });
+    } catch (error) {
+      console.error('Failed to preview document:', error);
+      toast({
+        title: "Preview Failed",
+        description: "Unable to open document preview.",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleDownloadDocument = (document: any) => {
-    // Implement download logic
-    toast({
-      title: "Download Started",
-      description: `Downloading ${document.name}...`,
-    });
+  const handleDownloadDocument = async (document: any) => {
+    try {
+      const filePath = document.path;
+      if (!filePath) {
+        toast({
+          title: "Download Failed",
+          description: "Document file path is missing.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Get signed URL
+      const signedUrl = await supabaseDocumentService.getDownloadUrl(filePath, 3600);
+      
+      // Trigger download
+      const link = window.document.createElement('a');
+      link.href = signedUrl;
+      link.download = document.name || document.fileName || 'document.pdf';
+      window.document.body.appendChild(link);
+      link.click();
+      window.document.body.removeChild(link);
+      
+      toast({
+        title: "Download Started",
+        description: `Downloading ${document.name}...`,
+      });
+    } catch (error) {
+      console.error('Download failed:', error);
+      toast({
+        title: "Download Failed",
+        description: "Unable to download document.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleDeleteDocument = (documentId: string) => {
@@ -82,6 +176,20 @@ export const CaseDocuments: React.FC<CaseDocumentsProps> = ({ selectedCase }) =>
   const handleUploadToCase = () => {
     // Navigate to document management with case pre-selected
     navigate(`/documents?caseId=${selectedCase?.id}&action=upload`);
+  };
+
+  const handleReturnToDocument = async () => {
+    const returnContext = await navigationContextService.getContext();
+    if (returnContext?.returnTo === 'case-documents' && returnContext.documentId) {
+      await navigationContextService.clearContext();
+      
+      toast({
+        title: "Context Cleared",
+        description: "Returned to case documents view",
+      });
+      
+      setHasReturnCtx(false);
+    }
   };
 
   const formatFileSize = (bytes: number) => {
@@ -132,6 +240,16 @@ export const CaseDocuments: React.FC<CaseDocumentsProps> = ({ selectedCase }) =>
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {hasReturnCtx && (
+            <Button
+              variant="outline"
+              onClick={handleReturnToDocument}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Document
+            </Button>
+          )}
           <Button
             variant="outline"
             onClick={() => navigate('/documents')}
