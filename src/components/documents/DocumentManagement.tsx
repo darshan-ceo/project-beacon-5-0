@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 import { DocumentModal } from '@/components/modals/DocumentModal';
+import { BulkDocumentUploadModal } from '@/components/modals/BulkDocumentUploadModal';
 import { NewFolderModal } from './NewFolderModal';
 import { UnifiedDocumentSearch } from './UnifiedDocumentSearch';
 import { DuplicateHandlerModal } from './DuplicateHandlerModal';
@@ -134,6 +135,7 @@ export const DocumentManagement: React.FC = () => {
     mode: 'upload',
     document: null
   });
+  const [bulkUploadModal, setBulkUploadModal] = useState(false);
   const [newFolderModal, setNewFolderModal] = useState(false);
   const [tags, setTags] = useState<any[]>([]);
   const [duplicateModal, setDuplicateModal] = useState<{
@@ -873,6 +875,14 @@ export const DocumentManagement: React.FC = () => {
             <span className="hidden sm:inline">New Folder</span>
           </Button>
           <Button 
+            variant="default"
+            onClick={() => setBulkUploadModal(true)}
+            size="sm"
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">Bulk Upload</span>
+          </Button>
+          <Button 
             className="bg-primary hover:bg-primary-hover"
             onClick={() => {
               setDocumentModal({ isOpen: true, mode: 'upload', document: null });
@@ -1340,6 +1350,14 @@ export const DocumentManagement: React.FC = () => {
         isOpen={newFolderModal}
         onClose={() => setNewFolderModal(false)}
         onFolderCreated={handleFolderCreated}
+      />
+
+      <BulkDocumentUploadModal
+        isOpen={bulkUploadModal}
+        onClose={() => setBulkUploadModal(false)}
+        defaultCaseId={searchParams.get('caseId') || undefined}
+        defaultClientId={undefined}
+        defaultFolderId={selectedFolder || undefined}
       />
 
       <DuplicateHandlerModal

@@ -321,10 +321,80 @@ export const getDownloadUrl = async (filePath: string, expiresIn: number = 3600)
   return data.signedUrl;
 };
 
+export interface BulkUploadProgress {
+  total: number;
+  completed: number;
+  results: Array<{
+    filename: string;
+    success: boolean;
+    document?: UploadDocumentResult;
+    error?: string;
+  }>;
+}
+
+/**
+ * Upload multiple documents in parallel with progress tracking
+ */
+export const uploadDocumentsBulk = async (
+  filesWithMetadata: Array<{ file: File; metadata: DocumentMetadata }>,
+  onProgress?: (progress: BulkUploadProgress) => void
+): Promise<Array<{ filename: string; success: boolean; document?: UploadDocumentResult; error?: string }>> => {
+  const results: Array<{ filename: string; success: boolean; document?: UploadDocumentResult; error?: string }> = [];
+  const maxConcurrent = 3; // Upload max 3 files at a time
+  let completed = 0;
+
+  const uploadWithRetry = async (
+    file: File,
+    metadata: DocumentMetadata,
+    retries = 2
+  ): Promise<{ filename: string; success: boolean; document?: UploadDocumentResult; error?: string }> => {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const document = await uploadDocument(file, metadata);
+        return { filename: file.name, success: true, document };
+      } catch (error: any) {
+        if (attempt === retries) {
+          return {
+            filename: file.name,
+            success: false,
+            error: error.message || 'Upload failed',
+          };
+        }
+        // Wait before retry
+        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+      }
+    }
+    return { filename: file.name, success: false, error: 'Max retries exceeded' };
+  };
+
+  // Process uploads in batches
+  for (let i = 0; i < filesWithMetadata.length; i += maxConcurrent) {
+    const batch = filesWithMetadata.slice(i, i + maxConcurrent);
+    const batchResults = await Promise.all(
+      batch.map(({ file, metadata }) => uploadWithRetry(file, metadata))
+    );
+
+    results.push(...batchResults);
+    completed += batchResults.length;
+
+    // Report progress
+    if (onProgress) {
+      onProgress({
+        total: filesWithMetadata.length,
+        completed,
+        results: [...results],
+      });
+    }
+  }
+
+  return results;
+};
+
 export const supabaseDocumentService = {
   uploadDocument,
   getDocument,
   listDocuments,
   deleteDocument,
-  getDownloadUrl
+  getDownloadUrl,
+  uploadDocumentsBulk,
 };

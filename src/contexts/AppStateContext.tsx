@@ -341,6 +341,7 @@ interface Document {
   path: string;
   content?: string; // Base64 encoded file content
   folderId?: string; // Associated folder ID
+  category?: string; // Document category for classification
 }
 
 // Employee interface for universal assignment system
