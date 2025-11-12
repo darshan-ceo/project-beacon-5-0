@@ -27,6 +27,7 @@ import { toast } from '@/hooks/use-toast';
 import { formatDateForDisplay } from '@/utils/dateFormatters';
 import { supabaseDocumentService } from '@/services/supabaseDocumentService';
 import { navigationContextService } from '@/services/navigationContextService';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CaseDocumentsProps {
   selectedCase: Case | null;
@@ -51,6 +52,146 @@ export const CaseDocuments: React.FC<CaseDocumentsProps> = ({ selectedCase }) =>
     };
     loadContext();
   }, [selectedCase]);
+
+  // Set up real-time subscription for documents
+  useEffect(() => {
+    if (!selectedCase) return;
+
+    console.log(`[CaseDocuments] Setting up real-time subscription for case ${selectedCase.id}`);
+
+    const channel = supabase
+      .channel(`documents-case-${selectedCase.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'documents',
+          filter: `case_id=eq.${selectedCase.id}`
+        },
+        (payload) => {
+          console.log('[CaseDocuments] Real-time INSERT received:', payload);
+          
+          const newDoc = payload.new;
+          
+          // Map database fields to app state format
+          const mappedDoc = {
+            id: newDoc.id,
+            name: newDoc.file_name,
+            fileName: newDoc.file_name,
+            type: newDoc.file_type,
+            fileType: newDoc.file_type,
+            size: newDoc.file_size,
+            fileSize: newDoc.file_size,
+            path: newDoc.file_path,
+            filePath: newDoc.file_path,
+            mimeType: newDoc.mime_type,
+            storageUrl: newDoc.storage_url,
+            caseId: newDoc.case_id,
+            clientId: newDoc.client_id,
+            folderId: newDoc.folder_id,
+            category: newDoc.category,
+            uploadedBy: newDoc.uploaded_by,
+            uploadedById: newDoc.uploaded_by,
+            uploadedByName: 'User',
+            uploadTimestamp: newDoc.upload_timestamp,
+            uploadedAt: newDoc.upload_timestamp,
+            isShared: false,
+            tags: []
+          };
+          
+          dispatch({
+            type: 'ADD_DOCUMENT',
+            payload: mappedDoc
+          });
+          
+          toast({
+            title: "Document Uploaded",
+            description: `${newDoc.file_name} has been added to this case`,
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'documents',
+          filter: `case_id=eq.${selectedCase.id}`
+        },
+        (payload) => {
+          console.log('[CaseDocuments] Real-time UPDATE received:', payload);
+          
+          const updatedDoc = payload.new;
+          
+          const mappedDoc = {
+            id: updatedDoc.id,
+            name: updatedDoc.file_name,
+            fileName: updatedDoc.file_name,
+            type: updatedDoc.file_type,
+            fileType: updatedDoc.file_type,
+            size: updatedDoc.file_size,
+            fileSize: updatedDoc.file_size,
+            path: updatedDoc.file_path,
+            filePath: updatedDoc.file_path,
+            mimeType: updatedDoc.mime_type,
+            storageUrl: updatedDoc.storage_url,
+            caseId: updatedDoc.case_id,
+            clientId: updatedDoc.client_id,
+            folderId: updatedDoc.folder_id,
+            category: updatedDoc.category,
+            uploadedBy: updatedDoc.uploaded_by,
+            uploadedById: updatedDoc.uploaded_by,
+            uploadedByName: 'User',
+            uploadTimestamp: updatedDoc.upload_timestamp,
+            uploadedAt: updatedDoc.upload_timestamp,
+            isShared: false,
+            tags: []
+          };
+          
+          dispatch({
+            type: 'UPDATE_DOCUMENT',
+            payload: mappedDoc
+          });
+          
+          toast({
+            title: "Document Updated",
+            description: `${updatedDoc.file_name} has been modified`,
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'documents',
+          filter: `case_id=eq.${selectedCase.id}`
+        },
+        (payload) => {
+          console.log('[CaseDocuments] Real-time DELETE received:', payload);
+          
+          const deletedDoc = payload.old;
+          
+          dispatch({
+            type: 'DELETE_DOCUMENT',
+            payload: deletedDoc.id
+          });
+          
+          toast({
+            title: "Document Deleted",
+            description: `${deletedDoc.file_name} has been removed`,
+            variant: "destructive"
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log(`[CaseDocuments] Cleaning up real-time subscription for case ${selectedCase.id}`);
+      supabase.removeChannel(channel);
+    };
+  }, [dispatch, selectedCase]);
 
   // Filter documents associated with the selected case
   const caseDocuments = useMemo(() => {
