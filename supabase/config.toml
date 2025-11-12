@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.case-ai-assistant]
 verify_jwt = true
+
+[functions.categorize-document]
+verify_jwt = false

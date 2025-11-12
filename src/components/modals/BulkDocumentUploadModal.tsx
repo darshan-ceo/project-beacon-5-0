@@ -236,25 +236,40 @@ export const BulkDocumentUploadModal: React.FC<BulkDocumentUploadModalProps> = (
       // Dispatch successful uploads to state
       results.forEach((result, index) => {
         if (result.success && result.document) {
+          const uiPayload = {
+            id: result.document.id,
+            name: result.document.file_name,
+            type: result.document.file_type,
+            size: result.document.file_size,
+            path: result.document.file_path,
+            caseId: batchCaseId !== 'none' ? batchCaseId : '',
+            clientId: batchClientId !== 'none' ? batchClientId : '',
+            uploadedById: state.userProfile?.id || '',
+            uploadedByName: state.userProfile?.name || 'Unknown',
+            uploadedAt: new Date().toISOString(),
+            tags: [],
+            isShared: false,
+            category: files[index].category,
+            folderId: batchFolderId !== 'none' ? batchFolderId : undefined,
+          } as const;
+
+          // Include backend-normalized fields to satisfy SupabaseAdapter, while keeping UI types intact
+          const backendFields = {
+            fileName: result.document.file_name,
+            fileType: result.document.file_type,
+            fileSize: result.document.file_size,
+            filePath: result.document.file_path,
+            mimeType: result.document.mime_type,
+            storageUrl: result.document.storage_url,
+            uploadedBy: state.userProfile?.id || '',
+            uploadTimestamp: new Date().toISOString(),
+          } as const;
+
+          const payload: any = { ...uiPayload, ...backendFields };
+
           dispatch({
             type: 'ADD_DOCUMENT',
-            payload: {
-              id: result.document.id,
-              fileName: result.document.file_name,
-              fileType: result.document.file_type,
-              fileSize: result.document.file_size,
-              filePath: result.document.file_path,
-              mimeType: result.document.mime_type,
-              storageUrl: result.document.storage_url,
-              caseId: batchCaseId !== 'none' ? batchCaseId : '',
-              clientId: batchClientId !== 'none' ? batchClientId : '',
-              folderId: batchFolderId !== 'none' ? batchFolderId : undefined,
-              uploadedBy: state.userProfile?.id || '',
-              uploadTimestamp: new Date().toISOString(),
-              tags: [],
-              isShared: false,
-              category: files[index].category,
-            },
+            payload,
           });
         }
       });
