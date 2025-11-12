@@ -17,6 +17,7 @@ import { AddressView } from '@/components/ui/AddressView';
 import { EnhancedAddressData } from '@/services/addressMasterService';
 import { featureFlagService } from '@/services/featureFlagService';
 import { Separator } from '@/components/ui/separator';
+import { supabase } from '@/integrations/supabase/client';
 
 interface JudgeModalProps {
   isOpen: boolean;
@@ -36,6 +37,17 @@ interface JudgeModalProps {
 
 export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: judgeData, mode }) => {
   const { dispatch } = useAppState();
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentUserId(user.id);
+      }
+    };
+    fetchUser();
+  }, []);
 
   const handleSubmit = async (formData: any) => {
     try {
@@ -85,8 +97,8 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
           },
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          createdBy: 'system',
-          updatedBy: 'system'
+          createdBy: currentUserId || null,
+          updatedBy: currentUserId || null
         };
 
         dispatch({ type: 'ADD_JUDGE', payload: newJudge });
@@ -136,7 +148,7 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
             email: formData.email
           },
           updatedAt: new Date().toISOString(),
-          updatedBy: 'system'
+          updatedBy: currentUserId || null
         };
 
         dispatch({ type: 'UPDATE_JUDGE', payload: updatedJudge });
