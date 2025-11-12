@@ -570,8 +570,7 @@ export const DocumentManagement: React.FC = () => {
         tenant_id: profile.tenant_id,
         case_id: options.caseId,
         client_id: options.clientId,
-        folder_id: options.folderId,
-        category: 'general'
+        folder_id: options.folderId
       };
 
       console.log('🚀 [DocumentManagement] Calling supabaseDocumentService.uploadDocument with metadata:', metadata);

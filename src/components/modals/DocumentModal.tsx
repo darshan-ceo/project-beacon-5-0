@@ -45,6 +45,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
     clientId: 'none',
     caseId: 'none',
     folderId: selectedFolderId || 'none',
+    category: 'none' as string,
     tags: [] as string[],
     sharedWithClient: false,
     file: null as File | null
@@ -78,6 +79,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
         clientId: documentData.clientId || 'none',
         caseId: documentData.caseId || 'none',
         folderId: (documentData as any).folderId || 'none',
+        category: (documentData as any).category || 'none',
         tags: documentData.tags,
         sharedWithClient: documentData.isShared,
         file: null
@@ -89,6 +91,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
         clientId: contextClientId || 'none',
         caseId: contextCaseId || 'none',
         folderId: selectedFolderId || 'none',
+        category: 'none',
         tags: [],
         sharedWithClient: false,
         file: null
@@ -179,6 +182,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
         const finalCaseId = formData.caseId === 'none' ? undefined : formData.caseId;
         const finalClientId = formData.clientId === 'none' ? undefined : formData.clientId;
         const finalFolderId = formData.folderId === 'none' ? undefined : formData.folderId;
+        const finalCategory = formData.category === 'none' ? undefined : formData.category;
 
         console.log('📤 [DocumentModal] Submitting upload with converted values:', {
           fileName: formData.file.name,
@@ -220,7 +224,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
               case_id: finalCaseId,
               client_id: finalClientId,
               folder_id: finalFolderId,
-              category: 'general'
+              category: finalCategory
             }
           );
 
@@ -439,6 +443,34 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
                         )}
                       </div>
                     </div>
+                  </div>
+
+                  {/* Category (Optional) */}
+                  <div>
+                    <Label htmlFor="category">Category (Optional)</Label>
+                    <Select
+                      value={formData.category}
+                      onValueChange={(value) => {
+                        console.log('📂 [DocumentModal] Category selected:', value);
+                        setFormData(prev => ({ ...prev, category: value }));
+                      }}
+                    >
+                      <SelectTrigger id="category">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No category</SelectItem>
+                        <SelectItem value="Notice">Notice</SelectItem>
+                        <SelectItem value="Reply">Reply</SelectItem>
+                        <SelectItem value="Adjournment">Adjournment</SelectItem>
+                        <SelectItem value="Order">Order</SelectItem>
+                        <SelectItem value="Submission">Submission</SelectItem>
+                        <SelectItem value="Miscellaneous">Miscellaneous</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Optional: Choose a category to organize documents by type
+                    </p>
                   </div>
 
                   {/* Client Association */}

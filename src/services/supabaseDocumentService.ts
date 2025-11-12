@@ -174,9 +174,18 @@ export const uploadDocument = async (
         .remove([filePath]);
       
       // Check for specific constraint violations
-      if (dbError.message?.includes('at_least_one_link') || 
-          dbError.code === '23514') {
-        throw new Error('Please link this document to a Case, Client, or Folder before uploading.');
+      if (dbError.code === '23514') {
+        // Check constraint violation - determine which constraint
+        if (dbError.message?.includes('documents_at_least_one_link') || 
+            dbError.message?.includes('at_least_one_link')) {
+          throw new Error('Please link this document to a Case, Client, or Folder before uploading.');
+        }
+        if (dbError.message?.includes('documents_category_check') || 
+            dbError.message?.includes('category_check')) {
+          throw new Error('Invalid category. Allowed: Notice, Reply, Adjournment, Order, Submission, Miscellaneous.');
+        }
+        // Generic check constraint error fallback
+        throw new Error(`Database constraint violation: ${dbError.message}`);
       }
       
       // Check for folder foreign key violation
