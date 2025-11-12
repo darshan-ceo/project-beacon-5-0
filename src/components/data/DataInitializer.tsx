@@ -41,7 +41,8 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           employeesData,
           courtsData,
           judgesData,
-          foldersData
+          foldersData,
+          timelineData
         ] = await Promise.all([
           supabase.from('clients').select('*').eq('tenant_id', tenantId),
           supabase.from('client_groups').select('*').eq('tenant_id', tenantId),
@@ -52,7 +53,8 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           supabase.from('employees').select('*').eq('tenant_id', tenantId),
           supabase.from('courts').select('*').eq('tenant_id', tenantId),
           supabase.from('judges').select('*').eq('tenant_id', tenantId),
-          supabase.from('document_folders').select('*').eq('tenant_id', tenantId)
+          supabase.from('document_folders').select('*').eq('tenant_id', tenantId),
+          supabase.from('timeline_entries').select('*').eq('tenant_id', tenantId)
         ]);
 
         // Check for errors
@@ -66,7 +68,8 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           employeesData.error,
           courtsData.error,
           judgesData.error,
-          foldersData.error
+          foldersData.error,
+          timelineData.error
         ].filter(Boolean);
 
         if (errors.length > 0) {
@@ -241,6 +244,21 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           size: 0 // Will be computed client-side from documents
         }));
 
+        // Transform timeline entries data
+        const timelineEntries = (timelineData.data || []).map((t: any) => ({
+          id: t.id,
+          caseId: t.case_id,
+          tenantId: t.tenant_id,
+          type: t.type,
+          title: t.title,
+          description: t.description,
+          createdBy: t.created_by_name || 'Unknown', // For UI backwards compatibility
+          createdById: t.created_by,
+          createdByName: t.created_by_name,
+          createdAt: t.created_at,
+          metadata: t.metadata || {}
+        }));
+
         // Dispatch RESTORE_STATE action
         dispatch({
           type: 'RESTORE_STATE',
@@ -256,7 +274,8 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
             employees,
             courts,
             judges,
-            folders
+            folders,
+            timelineEntries
           },
         });
 
@@ -270,7 +289,8 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           employees: employees.length,
           courts: courts.length,
           judges: judges.length,
-          folders: folders.length
+          folders: folders.length,
+          timelineEntries: timelineEntries.length
         });
 
         toast.success('Data loaded successfully');
