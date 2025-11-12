@@ -1962,6 +1962,7 @@ export type Database = {
           actual_hours: number | null
           assigned_by: string | null
           assigned_to: string | null
+          bundle_id: string | null
           case_id: string | null
           case_number: string | null
           client_id: string | null
@@ -1988,6 +1989,7 @@ export type Database = {
           actual_hours?: number | null
           assigned_by?: string | null
           assigned_to?: string | null
+          bundle_id?: string | null
           case_id?: string | null
           case_number?: string | null
           client_id?: string | null
@@ -2014,6 +2016,7 @@ export type Database = {
           actual_hours?: number | null
           assigned_by?: string | null
           assigned_to?: string | null
+          bundle_id?: string | null
           case_id?: string | null
           case_number?: string | null
           client_id?: string | null
@@ -2042,6 +2045,13 @@ export type Database = {
             columns: ["assigned_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_bundle_id_fkey"
+            columns: ["bundle_id"]
+            isOneToOne: false
+            referencedRelation: "task_bundles"
             referencedColumns: ["id"]
           },
           {
