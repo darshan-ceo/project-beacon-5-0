@@ -33,12 +33,18 @@ export interface TimelineEntry {
 }
 
 class TimelineService {
-  private storage = storageManager.getStorage();
   private readonly STORAGE_KEY = 'timeline_entries';
   
   // Cache for tenant/user info
   private tenantId: string | null = null;
   private userId: string | null = null;
+
+  /**
+   * Lazy getter for storage - only accesses StorageManager when needed
+   */
+  private get storage() {
+    return storageManager.getStorage();
+  }
 
   /**
    * Fetch tenant_id and user_id from authenticated session
