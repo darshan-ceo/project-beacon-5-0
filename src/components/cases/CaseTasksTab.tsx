@@ -26,7 +26,7 @@ interface CaseTasksTabProps {
 }
 
 export const CaseTasksTab: React.FC<CaseTasksTabProps> = ({ caseData }) => {
-  const { state, dispatch } = useAppState();
+  const { state, dispatch, rawDispatch } = useAppState();
   const { hasPermission } = useAdvancedRBAC();
   const [taskModal, setTaskModal] = useState<{
     isOpen: boolean;
@@ -64,7 +64,10 @@ export const CaseTasksTab: React.FC<CaseTasksTabProps> = ({ caseData }) => {
           
           const newTask = payload.new as Task;
           
-          dispatch({
+          // ⚠️ IMPORTANT: Use rawDispatch for real-time events!
+          // Real-time events indicate data is ALREADY in the database.
+          // Using persistent dispatch would re-persist and trigger infinite loops.
+          rawDispatch({
             type: 'ADD_TASK',
             payload: newTask
           });
@@ -88,7 +91,8 @@ export const CaseTasksTab: React.FC<CaseTasksTabProps> = ({ caseData }) => {
           
           const updatedTask = payload.new as Task;
           
-          dispatch({
+          // ⚠️ IMPORTANT: Use rawDispatch for real-time events!
+          rawDispatch({
             type: 'UPDATE_TASK',
             payload: updatedTask
           });
@@ -112,7 +116,8 @@ export const CaseTasksTab: React.FC<CaseTasksTabProps> = ({ caseData }) => {
           
           const deletedTask = payload.old as Task;
           
-          dispatch({
+          // ⚠️ IMPORTANT: Use rawDispatch for real-time events!
+          rawDispatch({
             type: 'DELETE_TASK',
             payload: deletedTask.id
           });
@@ -130,7 +135,7 @@ export const CaseTasksTab: React.FC<CaseTasksTabProps> = ({ caseData }) => {
       console.log(`[CaseTasksTab] Cleaning up real-time subscription for case ${caseData.id}`);
       supabase.removeChannel(channel);
     };
-  }, [dispatch, caseData.id]);
+  }, [rawDispatch, caseData.id]);
 
   // Task statistics
   const taskStats = useMemo(() => {

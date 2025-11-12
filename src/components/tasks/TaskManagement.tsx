@@ -97,7 +97,7 @@ const enrichTasksWithClientNames = (tasks: Task[], clients: Client[]): Array<Tas
 };
 
 export const TaskManagement: React.FC = () => {
-  const { state, dispatch } = useAppState();
+  const { state, dispatch, rawDispatch } = useAppState();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
@@ -183,7 +183,8 @@ export const TaskManagement: React.FC = () => {
           
           const newTask = payload.new as Task;
           
-          dispatch({
+          // ⚠️ IMPORTANT: Use rawDispatch for real-time events!
+          rawDispatch({
             type: 'ADD_TASK',
             payload: newTask
           });
@@ -206,7 +207,8 @@ export const TaskManagement: React.FC = () => {
           
           const updatedTask = payload.new as Task;
           
-          dispatch({
+          // ⚠️ IMPORTANT: Use rawDispatch for real-time events!
+          rawDispatch({
             type: 'UPDATE_TASK',
             payload: updatedTask
           });
@@ -229,7 +231,8 @@ export const TaskManagement: React.FC = () => {
           
           const deletedTask = payload.old as Task;
           
-          dispatch({
+          // ⚠️ IMPORTANT: Use rawDispatch for real-time events!
+          rawDispatch({
             type: 'DELETE_TASK',
             payload: deletedTask.id
           });
@@ -247,7 +250,7 @@ export const TaskManagement: React.FC = () => {
       console.log('[TaskManagement] Cleaning up real-time subscription');
       supabase.removeChannel(channel);
     };
-  }, [dispatch]);
+  }, [rawDispatch]);
 
   const filteredTasks = state.tasks.filter((task) => {
     // Build lookups for enriched search

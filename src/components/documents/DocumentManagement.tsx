@@ -115,7 +115,7 @@ const mockFolders: Folder[] = [
 ];
 
 export const DocumentManagement: React.FC = () => {
-  const { state, dispatch } = useAppState();
+  const { state, dispatch, rawDispatch } = useAppState();
   const { currentUserId } = useAdvancedRBAC();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -295,7 +295,8 @@ export const DocumentManagement: React.FC = () => {
             tags: []
           };
           
-          dispatch({
+          // ⚠️ IMPORTANT: Use rawDispatch for real-time events!
+          rawDispatch({
             type: 'ADD_DOCUMENT',
             payload: mappedDoc
           });
@@ -343,7 +344,8 @@ export const DocumentManagement: React.FC = () => {
             tags: []
           };
           
-          dispatch({
+          // ⚠️ IMPORTANT: Use rawDispatch for real-time events!
+          rawDispatch({
             type: 'UPDATE_DOCUMENT',
             payload: mappedDoc
           });
@@ -366,7 +368,8 @@ export const DocumentManagement: React.FC = () => {
           
           const deletedDoc = payload.old;
           
-          dispatch({
+          // ⚠️ IMPORTANT: Use rawDispatch for real-time events!
+          rawDispatch({
             type: 'DELETE_DOCUMENT',
             payload: deletedDoc.id
           });
@@ -384,7 +387,7 @@ export const DocumentManagement: React.FC = () => {
       console.log('[DocumentManagement] Cleaning up real-time subscription');
       supabase.removeChannel(channel);
     };
-  }, [dispatch]);
+  }, [rawDispatch]);
 
   // Define applyFilters function first
   const applyFilters = useCallback(async () => {

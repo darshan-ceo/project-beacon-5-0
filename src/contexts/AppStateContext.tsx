@@ -2795,15 +2795,19 @@ function appReducer(state: AppState, action: AppAction): AppState {
 // Context
 const AppStateContext = createContext<{
   state: AppState;
-  dispatch: React.Dispatch<AppAction>;
+  dispatch: React.Dispatch<AppAction>;      // Persistent dispatch (for user actions)
+  rawDispatch: React.Dispatch<AppAction>;   // Non-persistent dispatch (for real-time events)
 } | null>(null);
 
 // Provider
 export const AppStateProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, originalDispatch] = useReducer(appReducer, initialState);
   
-  // Wrap dispatch with persistence middleware
+  // Wrap dispatch with persistence middleware for user actions
   const dispatch = useSyncPersistentDispatch(originalDispatch);
+  
+  // Expose raw dispatch for real-time subscriptions (data already in DB)
+  const rawDispatch = originalDispatch;
 
   // Initialize calendar auto-sync
   useEffect(() => {
@@ -2832,7 +2836,7 @@ export const AppStateProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, []);
 
   return (
-    <AppStateContext.Provider value={{ state, dispatch }}>
+    <AppStateContext.Provider value={{ state, dispatch, rawDispatch }}>
       {children}
     </AppStateContext.Provider>
   );
@@ -2844,7 +2848,7 @@ export const useAppState = () => {
   if (!context) {
     throw new Error('useAppState must be used within AppStateProvider');
   }
-  return context;
+  return context; // Now returns { state, dispatch, rawDispatch }
 };
 
 // Helper functions for court case calculations

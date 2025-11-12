@@ -34,7 +34,7 @@ interface CaseDocumentsProps {
 }
 
 export const CaseDocuments: React.FC<CaseDocumentsProps> = ({ selectedCase }) => {
-  const { state, dispatch } = useAppState();
+  const { state, dispatch, rawDispatch } = useAppState();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | string>('all');
@@ -100,7 +100,8 @@ export const CaseDocuments: React.FC<CaseDocumentsProps> = ({ selectedCase }) =>
             tags: []
           };
           
-          dispatch({
+          // ⚠️ IMPORTANT: Use rawDispatch for real-time events!
+          rawDispatch({
             type: 'ADD_DOCUMENT',
             payload: mappedDoc
           });
@@ -149,7 +150,8 @@ export const CaseDocuments: React.FC<CaseDocumentsProps> = ({ selectedCase }) =>
             tags: []
           };
           
-          dispatch({
+          // ⚠️ IMPORTANT: Use rawDispatch for real-time events!
+          rawDispatch({
             type: 'UPDATE_DOCUMENT',
             payload: mappedDoc
           });
@@ -173,7 +175,8 @@ export const CaseDocuments: React.FC<CaseDocumentsProps> = ({ selectedCase }) =>
           
           const deletedDoc = payload.old;
           
-          dispatch({
+          // ⚠️ IMPORTANT: Use rawDispatch for real-time events!
+          rawDispatch({
             type: 'DELETE_DOCUMENT',
             payload: deletedDoc.id
           });
@@ -191,7 +194,7 @@ export const CaseDocuments: React.FC<CaseDocumentsProps> = ({ selectedCase }) =>
       console.log(`[CaseDocuments] Cleaning up real-time subscription for case ${selectedCase.id}`);
       supabase.removeChannel(channel);
     };
-  }, [dispatch, selectedCase]);
+  }, [rawDispatch, selectedCase]);
 
   // Filter documents associated with the selected case
   const caseDocuments = useMemo(() => {
