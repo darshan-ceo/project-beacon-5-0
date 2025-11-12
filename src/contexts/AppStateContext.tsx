@@ -327,21 +327,31 @@ interface Judge {
 
 interface Document {
   id: string;
-  name: string;
-  type: string;
-  size: number;
+  fileName: string; // Mapped to file_name in DB
+  fileType: string; // Mapped to file_type in DB
+  fileSize: number; // Mapped to file_size in DB
+  filePath: string; // Mapped to file_path in DB
+  mimeType?: string; // Mapped to mime_type in DB
+  storageUrl?: string; // Mapped to storage_url in DB
   caseId: string; // FK to Case.id (optional - document may be client-only)
   clientId: string; // Can be direct association or derived from Case.clientId
-  uploadedById: string; // FK to Employee.id
-  uploadedByName: string; // Display name derived from Employee
-  uploadedAt: string;
+  uploadedBy: string; // FK to Employee.id, mapped to uploaded_by in DB
+  uploadedByName?: string; // Display name derived from Employee (UI only)
+  uploadTimestamp: string; // Mapped to upload_timestamp in DB
   createdAt?: string; // Make optional for backwards compatibility
   tags: string[];
   isShared: boolean;
-  path: string;
   content?: string; // Base64 encoded file content
   folderId?: string; // Associated folder ID
   category?: string; // Document category for classification
+  
+  // Legacy field aliases for backwards compatibility (UI display only)
+  name?: string;
+  type?: string;
+  size?: number;
+  path?: string;
+  uploadedAt?: string;
+  uploadedById?: string;
 }
 
 // Employee interface for universal assignment system
