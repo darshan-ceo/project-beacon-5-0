@@ -147,14 +147,40 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
 
         const documents = (documentsData.data || []).map((d: any) => ({
           ...d,
+          // Primary UI display fields
+          id: d.id,
+          name: d.file_name || d.name || 'Unnamed Document',
+          type: d.file_type || d.type || 'pdf',
+          size: d.file_size || d.size || 0,
+          path: d.file_path || d.path || '',
+          
+          // Backend persistence fields (camelCase for SupabaseAdapter)
+          fileName: d.file_name,
+          fileType: d.file_type,
+          fileSize: d.file_size,
+          filePath: d.file_path,
+          mimeType: d.mime_type,
+          storageUrl: d.storage_url,
+          
+          // Association fields
           caseId: d.case_id || d.caseId,
           clientId: d.client_id || d.clientId,
-          uploadedById: d.uploaded_by || d.uploaded_by_id || d.uploadedById,
-          uploadedByName: d.uploaded_by_name || d.uploadedByName,
-          uploadedAt: d.uploaded_at || d.uploadedAt,
-          createdAt: d.created_at || d.createdAt,
-          isShared: d.is_shared || d.isShared || false,
           folderId: d.folder_id || d.folderId,
+          hearingId: d.hearing_id || d.hearingId,
+          taskId: d.task_id || d.taskId,
+          
+          // Metadata fields
+          category: d.category,
+          uploadedById: d.uploaded_by || d.uploaded_by_id || d.uploadedById,
+          uploadedByName: d.uploaded_by_name || d.uploadedByName || 'Unknown',
+          uploadedAt: d.upload_timestamp || d.uploaded_at || d.uploadedAt || d.created_at,
+          uploadTimestamp: d.upload_timestamp || d.uploaded_at || d.created_at,
+          createdAt: d.created_at || d.createdAt,
+          updatedAt: d.updated_at || d.updatedAt,
+          
+          // UI state fields
+          tags: d.tags || [],
+          isShared: d.is_shared || d.isShared || false,
         }));
 
         const employees = (employeesData.data || []).map((e: any) => ({

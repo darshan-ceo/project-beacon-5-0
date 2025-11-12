@@ -461,13 +461,20 @@ export const DocumentManagement: React.FC = () => {
 
   const handleDocumentView = useCallback(async (doc: any) => {
     try {
-      // Try unified storage first
-      const documentRepository = storageManager.getDocumentRepository();
-      const fullDoc = await documentRepository.getWithAttachments(doc.id);
-      
-      if (fullDoc && fullDoc.content) {
-        const previewUrl = documentRepository.createPreviewUrl(fullDoc);
-        window.open(previewUrl, '_blank');
+      console.log('📖 [DocumentManagement] Attempting to preview document:', {
+        id: doc.id,
+        name: doc.name,
+        filePath: doc.filePath || doc.file_path,
+        storageUrl: doc.storageUrl
+      });
+
+      // For Supabase documents, use signed URL
+      if (doc.filePath || doc.file_path) {
+        const filePath = doc.filePath || doc.file_path;
+        const signedUrl = await supabaseDocumentService.getDownloadUrl(filePath, 3600);
+        
+        console.log('✅ [DocumentManagement] Opening preview with signed URL');
+        window.open(signedUrl, '_blank');
         
         toast({
           title: "Opening Document",
@@ -475,17 +482,12 @@ export const DocumentManagement: React.FC = () => {
         });
         return;
       }
+
+      // Fallback error
+      throw new Error('No file path available for preview');
       
-      // Fallback to legacy dmsService
-      const previewUrl = await dmsService.files.getPreviewUrl(doc.id);
-      window.open(previewUrl, '_blank');
-      
-      toast({
-        title: "Opening Document",
-        description: `${doc.name} opened for preview`,
-      });
     } catch (error) {
-      console.error('Document preview error:', error);
+      console.error('❌ [DocumentManagement] Preview error:', error);
       toast({
         title: "Preview Error",
         description: "Unable to preview this document. Try downloading instead.",
@@ -496,22 +498,39 @@ export const DocumentManagement: React.FC = () => {
 
   const handleDocumentDownload = useCallback(async (doc: any) => {
     try {
-      // Try unified storage first
-      const documentRepository = storageManager.getDocumentRepository();
-      const fullDoc = await documentRepository.getWithAttachments(doc.id);
-      
-      if (fullDoc && fullDoc.content) {
-        documentRepository.downloadDocument(fullDoc);
+      console.log('⬇️ [DocumentManagement] Attempting to download document:', {
+        id: doc.id,
+        name: doc.name,
+        filePath: doc.filePath || doc.file_path
+      });
+
+      if (doc.filePath || doc.file_path) {
+        const filePath = doc.filePath || doc.file_path;
+        const signedUrl = await supabaseDocumentService.getDownloadUrl(filePath, 3600);
+        
+        // Trigger download
+        const link = document.createElement('a');
+        link.href = signedUrl;
+        link.download = doc.name || doc.fileName || 'document.pdf';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        console.log('✅ [DocumentManagement] Download started');
+        toast({
+          title: "Download Started",
+          description: `Downloading ${doc.name}`,
+        });
         return;
       }
+
+      throw new Error('No file path available for download');
       
-      // Fallback to legacy dmsService
-      await dmsService.files.download(doc.id, doc.name);
     } catch (error) {
-      console.error('Document download error:', error);
+      console.error('❌ [DocumentManagement] Download error:', error);
       toast({
         title: "Download Error",
-        description: "Unable to download this document. Please try again.",
+        description: "Unable to download this document.",
         variant: "destructive",
       });
     }
