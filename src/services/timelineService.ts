@@ -1,13 +1,17 @@
 import { toast } from '@/hooks/use-toast';
 import { storageManager } from '@/data/StorageManager';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface TimelineEntry {
   id: string;
   caseId: string;
+  tenantId: string; // Required for Supabase
   type: 'doc_saved' | 'ai_draft_generated' | 'case_created' | 'hearing_scheduled' | 'task_completed' | 'stage_change' | 'comment' | 'deadline' | 'case_assigned';
   title: string;
   description: string;
-  createdBy: string;
+  createdBy: string; // Kept for UI backwards compatibility
+  createdById: string; // UUID of creator
+  createdByName: string; // Display name of creator
   createdAt: string;
   metadata?: {
     templateCode?: string;
@@ -31,6 +35,55 @@ export interface TimelineEntry {
 class TimelineService {
   private storage = storageManager.getStorage();
   private readonly STORAGE_KEY = 'timeline_entries';
+  
+  // Cache for tenant/user info
+  private tenantId: string | null = null;
+  private userId: string | null = null;
+
+  /**
+   * Fetch tenant_id and user_id from authenticated session
+   */
+  private async getTenantAndUser(): Promise<{ tenantId: string; userId: string; userName: string }> {
+    // Return cached if available
+    if (this.tenantId && this.userId) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', this.userId)
+        .single();
+      return { 
+        tenantId: this.tenantId, 
+        userId: this.userId, 
+        userName: profile?.full_name || 'User' 
+      };
+    }
+    
+    // Fetch from Supabase
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      throw new Error('User not authenticated');
+    }
+    
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('tenant_id, full_name')
+      .eq('id', user.id)
+      .single();
+    
+    if (profileError || !profile) {
+      throw new Error('User profile not found');
+    }
+    
+    // Cache values
+    this.tenantId = profile.tenant_id;
+    this.userId = user.id;
+    
+    return { 
+      tenantId: profile.tenant_id, 
+      userId: user.id,
+      userName: profile.full_name || 'User'
+    };
+  }
 
   /**
    * Initialize and load timeline entries from storage
@@ -76,19 +129,27 @@ class TimelineService {
   /**
    * Add a new timeline entry
    */
-  async addEntry(entry: Omit<TimelineEntry, 'id' | 'createdAt'>): Promise<TimelineEntry> {
+  async addEntry(entry: Omit<TimelineEntry, 'id' | 'createdAt' | 'tenantId' | 'createdById' | 'createdByName'>): Promise<TimelineEntry> {
     console.log('[Timeline] Creating entry:', { caseId: entry.caseId, type: entry.type });
     
-    const newEntry: TimelineEntry = {
-      ...entry,
-      id: `timeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      createdAt: new Date().toISOString()
-    };
-
     try {
-      // Save directly to storage (no need to load/push/save pattern)
+      // Fetch tenant_id and user info
+      const { tenantId, userId, userName } = await this.getTenantAndUser();
+      
+      const newEntry: TimelineEntry = {
+        ...entry,
+        id: `timeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        createdAt: new Date().toISOString(),
+        // Add tenant context
+        tenantId,
+        // Use actual user UUID and name
+        createdById: userId,
+        createdByName: entry.createdBy === 'System' ? 'System' : userName
+      };
+
+      // Save directly to storage
       await this.storage.create(this.STORAGE_KEY, newEntry);
-      console.log('[Timeline] ✅ Entry saved to IndexedDB:', newEntry.id);
+      console.log('[Timeline] ✅ Entry saved to Supabase:', newEntry.id);
       return newEntry;
     } catch (error) {
       console.error('[Timeline] ❌ Failed to save entry:', error);
