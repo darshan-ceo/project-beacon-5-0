@@ -127,17 +127,18 @@ export const hearingsService = {
       // Update React context after successful persistence
       dispatch({ type: 'ADD_HEARING', payload: newHearing });
       
-      // Add timeline entry
+      // Add timeline entry with proper user UUID
       try {
+        const { data: { user } } = await supabase.auth.getUser();
         const appState = await loadAppState();
         const relatedCase = appState.cases.find(c => c.id === data.case_id);
-        if (relatedCase) {
+        if (relatedCase && user) {
           await timelineService.addEntry({
             caseId: data.case_id,
             type: 'hearing_scheduled',
             title: 'Hearing Scheduled',
             description: `Hearing scheduled for ${format(new Date(data.date), 'dd MMM yyyy')} at ${data.start_time}`,
-            createdBy: 'current-user-id',
+            createdBy: 'System', // Will be converted to UUID in timelineService
             metadata: {
               hearingId: newHearing.id,
               hearingDate: data.date,
@@ -234,17 +235,18 @@ export const hearingsService = {
       const updatedHearing = { id, ...updateData };
       dispatch({ type: 'UPDATE_HEARING', payload: updatedHearing });
       
-      // Phase 2: Add timeline entry for hearing updated
+      // Phase 2: Add timeline entry for hearing updated with proper user UUID
       try {
+        const { data: { user } } = await supabase.auth.getUser();
         const appState = await loadAppState();
         const hearing = appState.hearings.find(h => h.id === id);
-        if (hearing) {
+        if (hearing && user) {
           await timelineService.addEntry({
             caseId: hearing.case_id,
             type: 'hearing_scheduled',
             title: 'Hearing Updated',
             description: `Hearing rescheduled to ${updates.date ? format(new Date(updates.date), 'dd MMM yyyy') : 'new date'}${updates.start_time ? ` at ${updates.start_time}` : ''}`,
-            createdBy: 'current-user-id',
+            createdBy: 'System', // Will be converted to UUID in timelineService
             metadata: {
               hearingId: id,
               hearingDate: updates.date,
