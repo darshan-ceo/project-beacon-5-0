@@ -4,6 +4,7 @@ import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { navigationContextService } from '@/services/navigationContextService';
 import { uiStateService } from '@/services/uiStateService';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   CheckSquare, 
   Clock, 
@@ -163,6 +164,90 @@ export const TaskManagement: React.FC = () => {
       navigationContextService.saveContext(returnContext);
     }
   }, [searchParams]);
+
+  // Set up real-time subscription for tasks
+  useEffect(() => {
+    console.log('[TaskManagement] Setting up real-time subscription for tasks');
+
+    const channel = supabase
+      .channel('tasks-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'tasks'
+        },
+        (payload) => {
+          console.log('[TaskManagement] Real-time INSERT received:', payload);
+          
+          const newTask = payload.new as Task;
+          
+          dispatch({
+            type: 'ADD_TASK',
+            payload: newTask
+          });
+          
+          toast({
+            title: "Task Created",
+            description: `${newTask.title} has been added`,
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'tasks'
+        },
+        (payload) => {
+          console.log('[TaskManagement] Real-time UPDATE received:', payload);
+          
+          const updatedTask = payload.new as Task;
+          
+          dispatch({
+            type: 'UPDATE_TASK',
+            payload: updatedTask
+          });
+          
+          toast({
+            title: "Task Updated",
+            description: `${updatedTask.title} has been modified`,
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'tasks'
+        },
+        (payload) => {
+          console.log('[TaskManagement] Real-time DELETE received:', payload);
+          
+          const deletedTask = payload.old as Task;
+          
+          dispatch({
+            type: 'DELETE_TASK',
+            payload: deletedTask.id
+          });
+          
+          toast({
+            title: "Task Deleted",
+            description: `${deletedTask.title} has been removed`,
+            variant: "destructive"
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('[TaskManagement] Cleaning up real-time subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [dispatch]);
 
   const filteredTasks = state.tasks.filter((task) => {
     // Build lookups for enriched search

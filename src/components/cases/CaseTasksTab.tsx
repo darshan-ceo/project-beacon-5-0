@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Plus, PlayCircle, CheckCircle, Clock, AlertCircle, Trash2, Edit, Bell } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { format } from 'date-fns';
 import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 import { toast } from '@/hooks/use-toast';
 import { getFollowUpBadgeVariant } from '@/utils/taskHelpers';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Table,
   TableBody,
@@ -43,6 +44,93 @@ export const CaseTasksTab: React.FC<CaseTasksTabProps> = ({ caseData }) => {
   const caseTasks = useMemo(() => {
     return state.tasks.filter(task => task.caseId === caseData.id);
   }, [state.tasks, caseData.id]);
+
+  // Set up real-time subscription for case tasks
+  useEffect(() => {
+    console.log(`[CaseTasksTab] Setting up real-time subscription for case ${caseData.id}`);
+
+    const channel = supabase
+      .channel(`tasks-case-${caseData.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'tasks',
+          filter: `case_id=eq.${caseData.id}`
+        },
+        (payload) => {
+          console.log('[CaseTasksTab] Real-time INSERT received:', payload);
+          
+          const newTask = payload.new as Task;
+          
+          dispatch({
+            type: 'ADD_TASK',
+            payload: newTask
+          });
+          
+          toast({
+            title: "Task Created",
+            description: `${newTask.title} has been added to this case`,
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'tasks',
+          filter: `case_id=eq.${caseData.id}`
+        },
+        (payload) => {
+          console.log('[CaseTasksTab] Real-time UPDATE received:', payload);
+          
+          const updatedTask = payload.new as Task;
+          
+          dispatch({
+            type: 'UPDATE_TASK',
+            payload: updatedTask
+          });
+          
+          toast({
+            title: "Task Updated",
+            description: `${updatedTask.title} has been modified`,
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'tasks',
+          filter: `case_id=eq.${caseData.id}`
+        },
+        (payload) => {
+          console.log('[CaseTasksTab] Real-time DELETE received:', payload);
+          
+          const deletedTask = payload.old as Task;
+          
+          dispatch({
+            type: 'DELETE_TASK',
+            payload: deletedTask.id
+          });
+          
+          toast({
+            title: "Task Deleted",
+            description: `${deletedTask.title} has been removed`,
+            variant: "destructive"
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log(`[CaseTasksTab] Cleaning up real-time subscription for case ${caseData.id}`);
+      supabase.removeChannel(channel);
+    };
+  }, [dispatch, caseData.id]);
 
   // Task statistics
   const taskStats = useMemo(() => {
