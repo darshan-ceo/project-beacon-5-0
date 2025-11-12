@@ -212,7 +212,7 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           workingDays: c.working_days || c.workingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
           addressId: c.address_id || c.addressId,
           benchLocation: c.bench_location || c.benchLocation,
-          authorityLevel: c.authority_level || c.authorityLevel,
+          authorityLevel: c.level || c.authority_level || c.authorityLevel,
         }));
 
         const judges = (judgesData.data || []).map((j: any) => ({

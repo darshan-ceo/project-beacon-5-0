@@ -1138,7 +1138,6 @@ export const CaseModal: React.FC<CaseModalProps> = ({
                         </SelectTrigger>
                         <SelectContent className="z-[200] bg-popover" position="popper" sideOffset={5}>
                           {state.courts
-                            .filter(court => court.status === 'Active')
                             .sort((a, b) => {
                               const levels = ['ADJUDICATION', 'FIRST_APPEAL', 'REVISIONAL', 'TRIBUNAL', 'HIGH_COURT', 'SUPREME_COURT'];
                               const aLevel = levels.indexOf(a.authorityLevel || '');
