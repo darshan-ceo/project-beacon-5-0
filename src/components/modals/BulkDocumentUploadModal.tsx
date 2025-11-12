@@ -25,6 +25,7 @@ import { categorizeDocument, cleanFilename, type DocumentCategory } from '@/serv
 import { uploadDocumentsBulk, type BulkUploadProgress } from '@/services/supabaseDocumentService';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface FileWithCategory {
   file: File;
@@ -55,15 +56,41 @@ export const BulkDocumentUploadModal: React.FC<BulkDocumentUploadModalProps> = (
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [tenantId, setTenantId] = useState<string>('');
   
   // Batch settings
   const [batchCaseId, setBatchCaseId] = useState<string>(defaultCaseId || 'none');
   const [batchClientId, setBatchClientId] = useState<string>(defaultClientId || 'none');
   const [batchFolderId, setBatchFolderId] = useState<string>(defaultFolderId || 'none');
 
-  // Get user tenant from employees
-  const currentUser = state.employees.find(e => e.id === state.userProfile?.id);
-  const tenantId = currentUser?.tenantId || '';
+  // Fetch tenant ID from profiles table
+  const fetchTenantId = async () => {
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        console.error('Error fetching user:', userError);
+        return;
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) {
+        console.error('Error fetching tenant_id:', profileError);
+        return;
+      }
+
+      if (profile?.tenant_id) {
+        setTenantId(profile.tenant_id);
+        console.log('📋 [BulkUploadModal] Tenant ID fetched:', profile.tenant_id);
+      }
+    } catch (error) {
+      console.error('Error in fetchTenantId:', error);
+    }
+  };
 
   // Reset state when modal opens
   useEffect(() => {
@@ -75,6 +102,7 @@ export const BulkDocumentUploadModal: React.FC<BulkDocumentUploadModalProps> = (
       setBatchCaseId(defaultCaseId || 'none');
       setBatchClientId(defaultClientId || 'none');
       setBatchFolderId(defaultFolderId || 'none');
+      fetchTenantId();
     }
   }, [isOpen, defaultCaseId, defaultClientId, defaultFolderId]);
 
@@ -142,6 +170,16 @@ export const BulkDocumentUploadModal: React.FC<BulkDocumentUploadModalProps> = (
 
   const handleUpload = async () => {
     if (files.length === 0) return;
+
+    // Validate tenant ID
+    if (!tenantId) {
+      toast({
+        title: "Unable to Upload",
+        description: "Unable to determine tenant context. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     // Validate at least one association
     if (batchCaseId === 'none' && batchClientId === 'none' && batchFolderId === 'none') {
