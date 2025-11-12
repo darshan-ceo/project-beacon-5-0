@@ -25,7 +25,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-lite",
+        model: "google/gemini-2.5-flash",
         messages: [
           {
             role: "system",
@@ -40,7 +40,9 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
-      throw new Error("AI categorization failed");
+      const errorText = await response.text();
+      console.error("AI Gateway error:", response.status, errorText);
+      throw new Error(`AI categorization failed: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
