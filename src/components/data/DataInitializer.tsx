@@ -78,6 +78,7 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           ...c,
           name: c.display_name, // Map display_name to name for UI compatibility
           display_name: c.display_name,
+          status: c.status === 'active' ? 'Active' : 'Inactive', // Convert lowercase to uppercase
           assignedCAId: c.assigned_ca_id || c.assignedCAId,
           assignedCAName: c.assigned_ca_name || c.assignedCAName,
           clientGroupId: c.client_group_id || c.clientGroupId,
