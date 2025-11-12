@@ -496,19 +496,26 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
       // Log to timeline
       try {
         const { timelineService } = await import('@/services/timelineService');
-        await timelineService.addEntry({
-          caseId: createdCase.id,
-          type: 'doc_saved',
-          title: 'Notice Document Linked',
-          description: `${uploadedFile.name} uploaded via Notice Intake Wizard`,
-          createdBy: 'System',
-          metadata: {
-            fileName: uploadedFile.name,
-            noticeType: createdCase.noticeType,
-            stage: createdCase.currentStage,
-            source: 'notice_intake_wizard'
-          }
-        });
+        const { supabase } = await import('@/integrations/supabase/client');
+        
+        // Get authenticated user for proper timeline tracking
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (user) {
+          await timelineService.addEntry({
+            caseId: createdCase.id,
+            type: 'doc_saved',
+            title: 'Notice Document Linked',
+            description: `${uploadedFile.name} uploaded via Notice Intake Wizard`,
+            createdBy: 'System', // Will be converted to actual user UUID in timelineService
+            metadata: {
+              fileName: uploadedFile.name,
+              noticeType: createdCase.noticeType,
+              stage: createdCase.currentStage,
+              source: 'notice_intake_wizard'
+            }
+          });
+        }
       } catch (error) {
         console.warn('[Wizard] Failed to log timeline entry:', error);
       }
