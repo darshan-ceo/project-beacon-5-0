@@ -179,9 +179,12 @@ export const CaseTimeline: React.FC<CaseTimelineProps> = ({ selectedCase }) => {
       case 'ai_draft_generated':
         return 'document_upload';
       case 'case_created':
+      case 'case_assigned':
+      case 'stage_change':
         return 'stage_change';
       case 'hearing_scheduled':
         return 'hearing_scheduled';
+      case 'task_created':
       case 'task_completed':
         return 'approval';
       default:
