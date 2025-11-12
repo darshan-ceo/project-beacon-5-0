@@ -168,11 +168,11 @@ export const HearingModal: React.FC<HearingModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      // Phase 1: Validate mandatory fields (Authority and Forum)
-      if (!formData.authorityId || !formData.forumId) {
+      // Phase 1: Validate mandatory field (Legal Forum)
+      if (!formData.forumId) {
         toast({
           title: "Validation Error",
-          description: "Authority and Legal Forum are mandatory fields",
+          description: "Legal Forum is a mandatory field",
           variant: "destructive"
         });
         setIsSubmitting(false);
@@ -404,9 +404,8 @@ export const HearingModal: React.FC<HearingModalProps> = ({
                 
                 {/* Phase 1: Authority and Forum Selectors */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-1">
-                      <Label>Authority <span className="text-destructive">*</span></Label>
+                  <div>
+                    <div className="flex items-center gap-1 mb-2">
                       <FieldTooltip formId="create-hearing" fieldId="authority" />
                     </div>
                     <AuthoritySelector
@@ -416,13 +415,12 @@ export const HearingModal: React.FC<HearingModalProps> = ({
                         setFormData(prev => ({ ...prev, authorityId: value }));
                       }}
                       disabled={mode === 'view'}
-                      required={true}
+                      required={false}
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-1">
-                      <Label>Legal Forum <span className="text-destructive">*</span></Label>
+                  <div>
+                    <div className="flex items-center gap-1 mb-2">
                       <FieldTooltip formId="create-hearing" fieldId="forum" />
                     </div>
                     <LegalForumSelector
@@ -439,9 +437,8 @@ export const HearingModal: React.FC<HearingModalProps> = ({
                 </div>
 
                 {/* Judge Selector */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1">
-                    <Label>Judge (Optional)</Label>
+                <div>
+                  <div className="flex items-center gap-1 mb-2">
                     <FieldTooltip formId="create-hearing" fieldId="judge" />
                   </div>
                   <JudgeSelector

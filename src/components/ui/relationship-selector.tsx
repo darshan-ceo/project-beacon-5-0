@@ -200,7 +200,7 @@ export const JudgeSelector: React.FC<{
   );
 };
 
-// Authority Selector - Shows only Courts with authorityLevel
+// Authority Selector - Shows Courts with authorityLevel, or all courts as fallback
 export const AuthoritySelector: React.FC<{
   courts: Court[];
   value?: string;
@@ -209,16 +209,21 @@ export const AuthoritySelector: React.FC<{
   required?: boolean;
   filterByLevel?: string;
 }> = ({ courts, filterByLevel, required = true, ...props }) => {
-  // Filter courts to only show those with authorityLevel defined and Active status
+  // Filter courts by authorityLevel if specified
   const authorityCourts = courts.filter(court => 
-    court.authorityLevel && 
-    (!filterByLevel || court.authorityLevel === filterByLevel)
+    !filterByLevel || court.authorityLevel === filterByLevel
   );
 
-  const options = authorityCourts.map(court => ({
+  // Show courts with authorityLevel if available, otherwise show all as fallback
+  const courtsWithAuthority = authorityCourts.filter(c => c.authorityLevel);
+  const displayCourts = courtsWithAuthority.length > 0 ? courtsWithAuthority : authorityCourts;
+
+  const options = displayCourts.map(court => ({
     id: court.id,
     label: court.name,
-    subtitle: `${court.authorityLevel} • ${court.city || court.jurisdiction}`
+    subtitle: court.authorityLevel 
+      ? `${court.authorityLevel} • ${court.city || court.jurisdiction}`
+      : `${court.type} • ${court.city || court.jurisdiction}`
   }));
 
   return (
