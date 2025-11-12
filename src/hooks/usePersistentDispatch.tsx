@@ -8,7 +8,6 @@ import { useCallback } from 'react';
 import { AppAction } from '@/contexts/AppStateContext';
 import { storageManager } from '@/data/StorageManager';
 import { toast } from '@/hooks/use-toast';
-import { timelineService } from '@/services/timelineService';
 
 type PersistCallback = () => Promise<void>;
 
@@ -37,58 +36,10 @@ export const usePersistentDispatch = (
         // Cases
         case 'ADD_CASE':
           await storage.create('cases', action.payload);
-          
-          // Create timeline entry for case creation
-          try {
-            const caseData = action.payload as any;
-            await timelineService.addEntry({
-              caseId: caseData.id,
-              type: 'case_created',
-              title: 'Case Created',
-              description: `Case ${caseData.caseNumber} created: ${caseData.title || 'New case'}`,
-              createdBy: 'System',
-              metadata: {
-                caseNumber: caseData.caseNumber,
-                stage: caseData.currentStage || caseData.stage_code,
-                priority: caseData.priority
-              }
-            });
-            console.log('[Timeline] ✅ Case creation timeline entry added');
-          } catch (error) {
-            console.error('[Timeline] ❌ Failed to create case timeline entry:', error);
-          }
           break;
-        case 'UPDATE_CASE': {
-          const caseUpdate = action.payload as any;
-          const oldCase = await storage.get('cases', caseUpdate.id);
-          
-          await storage.update('cases', caseUpdate.id, caseUpdate);
-          
-          // Create timeline entry if case assignment changed
-          const assignmentChanged = oldCase && (
-            (caseUpdate.assignedToId || caseUpdate.assigned_to) && 
-            (oldCase.assignedToId !== caseUpdate.assignedToId || oldCase.assigned_to !== caseUpdate.assigned_to)
-          );
-          
-          if (assignmentChanged) {
-            try {
-              await timelineService.addEntry({
-                caseId: caseUpdate.id,
-                type: 'case_assigned',
-                title: 'Case Assigned',
-                description: `Case assigned to ${caseUpdate.assignedToName || caseUpdate.assigned_to_name || 'team member'}`,
-                createdBy: 'System',
-                metadata: {
-                  assignedTo: caseUpdate.assignedToName || caseUpdate.assigned_to_name
-                }
-              });
-              console.log('[Timeline] ✅ Case assignment timeline entry added');
-            } catch (error) {
-              console.error('[Timeline] ❌ Failed to create case assignment timeline entry:', error);
-            }
-          }
+        case 'UPDATE_CASE':
+          await storage.update('cases', action.payload.id, action.payload);
           break;
-        }
         case 'DELETE_CASE':
           await storage.delete('cases', action.payload);
           break;
@@ -139,28 +90,6 @@ export const usePersistentDispatch = (
           };
           
           await storage.create('tasks', taskPayload);
-          
-          // Create timeline entry for task creation
-          if (task.caseId || task.case_id) {
-            try {
-              await timelineService.addEntry({
-                caseId: task.caseId || task.case_id,
-                type: 'task_created',
-                title: 'Task Created',
-                description: `Task "${task.title}" assigned to ${task.assignedToName || 'team member'}`,
-                createdBy: 'System',
-                metadata: {
-                  taskId: task.id,
-                  priority: task.priority,
-                  status: task.status,
-                  dueDate: task.dueDate || task.due_date
-                }
-              });
-              console.log('[Timeline] ✅ Task creation timeline entry added');
-            } catch (error) {
-              console.error('[Timeline] ❌ Failed to create task timeline entry:', error);
-            }
-          }
           break;
         }
         case 'UPDATE_TASK': {
@@ -194,32 +123,7 @@ export const usePersistentDispatch = (
             updated_at: new Date().toISOString(),
           };
           
-          const oldTask = await storage.get('tasks', task.id);
           await storage.update('tasks', task.id, updatePayload);
-          
-          // Create timeline entry if task is being marked as completed
-          const statusChanged = oldTask && 
-            (oldTask.status !== task.status) && 
-            (task.status === 'Completed' || task.status === 'Done');
-          
-          if (statusChanged && (task.caseId || task.case_id)) {
-            try {
-              await timelineService.addEntry({
-                caseId: task.caseId || task.case_id,
-                type: 'task_completed',
-                title: 'Task Completed',
-                description: `Task "${task.title}" has been completed`,
-                createdBy: 'System',
-                metadata: {
-                  taskId: task.id,
-                  completedBy: task.assignedToName || 'team member'
-                }
-              });
-              console.log('[Timeline] ✅ Task completion timeline entry added');
-            } catch (error) {
-              console.error('[Timeline] ❌ Failed to create task completion timeline entry:', error);
-            }
-          }
           break;
         }
         case 'DELETE_TASK':
