@@ -18,6 +18,7 @@ import {
 import { entityTemplatesService } from './entityTemplatesService';
 import { mappingService } from './mappingService';
 import { importIntegrationService } from './importIntegrationService';
+import { supabase } from '@/integrations/supabase/client';
 
 class ClientSideImportExportService {
   private generateJobId(): string {
@@ -270,7 +271,7 @@ class ClientSideImportExportService {
 
   /**
    * Commit import job with mapping
-   * Now uses pre-validated data from validateImportData()
+   * Migrated to Supabase persistence with Redux state sync
    */
   async commitImport(jobId: string, mapping: ColumnMapping): Promise<{ success: boolean; data: ImportJob | null; error?: string }> {
     try {
@@ -281,29 +282,23 @@ class ClientSideImportExportService {
       
       const { job } = JSON.parse(jobData);
       
-      // Get already-validated records from job
-      const validRecords: any[] = [];
-      const invalidRecords: any[] = [];
-      const errors: any[] = [];
-
       // Re-run validation to get fresh data
       const validationResult = await this.validateImportData(jobId, mapping);
       if (!validationResult.success) {
         throw new Error(validationResult.error || 'Validation failed');
       }
 
-      validRecords.push(...validationResult.validRecords);
-      invalidRecords.push(...validationResult.invalidRecords);
-      errors.push(...validationResult.errors);
+      const validRecords = validationResult.validRecords;
+      let invalidRecords = validationResult.invalidRecords;
+      let errors = validationResult.errors;
       
       // Update processing status
       job.status = 'processing';
       job.mapping = mapping;
       job.updatedAt = new Date().toISOString();
 
-      // Insert valid records into database
+      // Insert valid records into Supabase
       let insertedCount = 0;
-      const insertionErrors: Array<{ record: any; error: string }> = [];
 
       if (validRecords.length > 0) {
         try {
@@ -317,8 +312,6 @@ class ClientSideImportExportService {
           // Handle insertion errors
           if (insertResult.errors.length > 0) {
             insertResult.errors.forEach(err => {
-              insertionErrors.push(err);
-              // Move failed records from valid to invalid
               const failedIndex = validRecords.findIndex(r => r === err.record);
               if (failedIndex !== -1) {
                 const failedRecord = validRecords.splice(failedIndex, 1)[0];
@@ -329,7 +322,7 @@ class ClientSideImportExportService {
                   row: (failedRecord._rowIndex || 0) + 2,
                   column: '',
                   value: '',
-                  error: `Database insertion failed: ${err.error}`,
+                  error: `Database error: ${err.error}`,
                   severity: 'error' as const,
                   canAutoFix: false
                 });
@@ -366,11 +359,13 @@ class ClientSideImportExportService {
         localStorage.setItem(`import_job_${jobId}`, JSON.stringify({ ...parsed, job }));
       }
       
-      // Trigger storage event to refresh Client Master list
-      window.dispatchEvent(new StorageEvent('storage', {
-        key: 'clients',
-        newValue: localStorage.getItem('clients')
-      }));
+      // Trigger Redux/DataInitializer refresh by dispatching a storage event
+      if (insertedCount > 0) {
+        window.dispatchEvent(new StorageEvent('storage', {
+          key: `refresh_${job.entityType}`,
+          newValue: Date.now().toString()
+        }));
+      }
       
       return {
         success: true,
@@ -429,7 +424,7 @@ class ClientSideImportExportService {
   }
 
   /**
-   * Export data (mock implementation)
+   * Export data from Supabase
    */
   async exportData(request: ExportRequest): Promise<ExportResponse> {
     try {
@@ -441,18 +436,13 @@ class ClientSideImportExportService {
         userId: request.userId,
         createdAt: new Date().toISOString(),
         filters: request.filters,
-        recordCount: 100 // Mock record count
+        recordCount: 0
       };
       
-      // Simulate processing delay
-      setTimeout(() => {
-        job.status = 'completed';
-        job.completedAt = new Date().toISOString();
-        job.fileUrl = `mock://export/${job.id}.${job.format}`;
-        localStorage.setItem(`export_job_${job.id}`, JSON.stringify(job));
-      }, 3000);
-      
       localStorage.setItem(`export_job_${job.id}`, JSON.stringify(job));
+      
+      // Start export in background
+      this.performExport(job.id, request).catch(console.error);
       
       return {
         success: true,
@@ -463,6 +453,125 @@ class ClientSideImportExportService {
         success: false,
         error: error instanceof Error ? error.message : 'Export failed'
       };
+    }
+  }
+
+  private async performExport(jobId: string, request: ExportRequest): Promise<void> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.tenant_id) throw new Error('Tenant not found');
+
+      // Query Supabase for entity data
+      const tableName = this.getTableName(request.entityType);
+      const { data, error } = await (supabase as any)
+        .from(tableName)
+        .select('*')
+        .eq('tenant_id', profile.tenant_id);
+
+      if (error) throw error;
+
+      // Transform data to match export template
+      const transformedData = this.transformForExport(request.entityType, data || []);
+
+      // Generate Excel file
+      const ws = XLSX.utils.json_to_sheet(transformedData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, request.entityType);
+
+      // Convert to binary
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+      // Store blob URL
+      const url = URL.createObjectURL(blob);
+
+      // Update job status
+      const jobData = localStorage.getItem(`export_job_${jobId}`);
+      if (jobData) {
+        const job = JSON.parse(jobData);
+        job.status = 'completed';
+        job.recordCount = transformedData.length;
+        job.completedAt = new Date().toISOString();
+        job.fileUrl = url;
+        localStorage.setItem(`export_job_${jobId}`, JSON.stringify(job));
+      }
+    } catch (error) {
+      console.error('Export failed:', error);
+      const jobData = localStorage.getItem(`export_job_${jobId}`);
+      if (jobData) {
+        const job = JSON.parse(jobData);
+        job.status = 'failed';
+        localStorage.setItem(`export_job_${jobId}`, JSON.stringify(job));
+      }
+    }
+  }
+
+  private getTableName(entityType: EntityType): string {
+    const tableMap: Record<EntityType, string> = {
+      client: 'clients',
+      employee: 'employees',
+      court: 'courts',
+      judge: 'judges'
+    };
+    return tableMap[entityType];
+  }
+
+  private transformForExport(entityType: EntityType, data: any[]): any[] {
+    switch (entityType) {
+      case 'client':
+        return data.map(c => ({
+          'Legal Name': c.display_name,
+          'GSTIN': c.gstin || '',
+          'PAN': c.pan || '',
+          'Email': c.email || '',
+          'Phone': c.phone || '',
+          'City': c.city || '',
+          'State': c.state || '',
+          'Status': c.status || ''
+        }));
+      
+      case 'court':
+        return data.map(c => ({
+          'Court Name': c.name,
+          'Type': c.type || '',
+          'Level': c.level || '',
+          'Code': c.code || '',
+          'City': c.city || '',
+          'State': c.state || '',
+          'Address': c.address || '',
+          'Jurisdiction': c.jurisdiction || ''
+        }));
+      
+      case 'judge':
+        return data.map(j => ({
+          'Judge Name': j.name,
+          'Designation': j.designation || '',
+          'Email': j.email || '',
+          'Phone': j.phone || ''
+        }));
+      
+      case 'employee':
+        return data.map(e => ({
+          'Full Name': e.full_name,
+          'Employee Code': e.employee_code,
+          'Email': e.email,
+          'Mobile': e.mobile || '',
+          'Designation': e.designation || '',
+          'Department': e.department || '',
+          'Role': e.role,
+          'Status': e.status || ''
+        }));
+      
+      default:
+        return data;
     }
   }
 
@@ -494,24 +603,28 @@ class ClientSideImportExportService {
   }
 
   /**
-   * Download export file (mock)
+   * Download export file
    */
   async downloadExport(jobId: string): Promise<TemplateResponse> {
     try {
-      // Create a mock Excel file for export
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.aoa_to_sheet([
-        ['Name', 'Email', 'Phone', 'City'],
-        ['John Doe', 'john@example.com', '+91-9876543210', 'Mumbai'],
-        ['Jane Smith', 'jane@example.com', '+91-9876543211', 'Delhi']
-      ]);
+      const jobData = localStorage.getItem(`export_job_${jobId}`);
+      if (!jobData) {
+        throw new Error('Export job not found');
+      }
       
-      XLSX.utils.book_append_sheet(wb, ws, 'Export Data');
+      const job = JSON.parse(jobData);
       
-      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
-      const blob = new Blob([wbout], { 
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=utf-8' 
-      });
+      if (job.status !== 'completed') {
+        throw new Error('Export is not ready for download');
+      }
+      
+      if (!job.fileUrl) {
+        throw new Error('Download URL not available');
+      }
+      
+      // Fetch the blob from the stored URL
+      const response = await fetch(job.fileUrl);
+      const blob = await response.blob();
       
       return {
         success: true,
