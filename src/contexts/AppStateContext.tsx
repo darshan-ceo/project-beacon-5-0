@@ -589,7 +589,8 @@ export type AppAction =
   | { type: 'REMOVE_TAG'; payload: string }
   | { type: 'UPDATE_USER_PROFILE'; payload: Partial<UserProfile> }
   | { type: 'ADD_TIMELINE_ENTRY'; payload: any }
-  | { type: 'REMOVE_TIMELINE_ENTRY'; payload: string }
+  | { type: 'UPDATE_TIMELINE_ENTRY'; payload: any }
+  | { type: 'DELETE_TIMELINE_ENTRY'; payload: string }
   | { type: 'RESTORE_STATE'; payload: Partial<AppState> }
   | { type: 'CLEAR_ALL_DATA' };
 
@@ -2751,7 +2752,14 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         timelineEntries: [...state.timelineEntries, action.payload]
       };
-    case 'REMOVE_TIMELINE_ENTRY':
+    case 'UPDATE_TIMELINE_ENTRY':
+      return {
+        ...state,
+        timelineEntries: state.timelineEntries.map(entry =>
+          entry.id === action.payload.id ? { ...entry, ...action.payload } : entry
+        )
+      };
+    case 'DELETE_TIMELINE_ENTRY':
       return {
         ...state,
         timelineEntries: state.timelineEntries.filter(e => e.id !== action.payload)

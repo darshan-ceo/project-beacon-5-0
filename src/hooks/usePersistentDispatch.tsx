@@ -242,6 +242,17 @@ export const usePersistentDispatch = (
           await storage.delete('folders', action.payload);
           break;
           
+        // Timeline Entries
+        case 'ADD_TIMELINE_ENTRY':
+          await storage.create('timeline_entries', action.payload);
+          break;
+        case 'UPDATE_TIMELINE_ENTRY':
+          await storage.update('timeline_entries', action.payload.id, action.payload);
+          break;
+        case 'DELETE_TIMELINE_ENTRY':
+          await storage.delete('timeline_entries', action.payload);
+          break;
+          
         // For other actions that don't need immediate persistence
         default:
           // No persistence needed for these actions (e.g., UI state changes)
