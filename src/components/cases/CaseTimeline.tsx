@@ -178,15 +178,12 @@ export const CaseTimeline: React.FC<CaseTimelineProps> = ({ selectedCase }) => {
       case 'doc_saved':
       case 'ai_draft_generated':
         return 'document_upload';
+      case 'case_created':
+        return 'stage_change';
       case 'hearing_scheduled':
         return 'hearing_scheduled';
-      case 'task_created':
       case 'task_completed':
         return 'approval';
-      case 'case_created':
-      case 'case_assigned':
-      case 'stage_change':
-        return 'stage_change';
       default:
         return 'comment';
     }
@@ -241,43 +238,16 @@ export const CaseTimeline: React.FC<CaseTimelineProps> = ({ selectedCase }) => {
       >
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center">
-                  <Clock className="mr-2 h-5 w-5 text-primary" />
-                  Case Timeline & Audit Trail
-                </CardTitle>
-                <CardDescription>
-                  {selectedCase ? 
-                    `Complete chronological history for ${selectedCase.caseNumber} - ${selectedCase.title}` :
-                    'Select a case to view its detailed timeline and audit trail'
-                  }
-                </CardDescription>
-              </div>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={async () => {
-                  const { timelineBackfillService } = await import('@/services/timelineBackfillService');
-                  const result = await timelineBackfillService.backfillTimeline();
-                  const totalCreated = result.tasksCreated + result.tasksCompleted + result.casesCreated + result.casesAssigned;
-                  
-                  toast({
-                    title: totalCreated > 0 ? 'Timeline Backfill Complete' : 'No Missing Entries',
-                    description: totalCreated > 0 
-                      ? `✅ Created ${result.tasksCreated} task entries, ${result.tasksCompleted} completion entries, ${result.casesCreated} case entries, ${result.casesAssigned} assignment entries`
-                      : 'All historical data already has timeline entries.',
-                  });
-                  
-                  if (totalCreated > 0) {
-                    setTimeout(() => window.location.reload(), 1500);
-                  }
-                }}
-              >
-                <Clock className="mr-2 h-4 w-4" />
-                Backfill Timeline
-              </Button>
-            </div>
+            <CardTitle className="flex items-center">
+              <Clock className="mr-2 h-5 w-5 text-primary" />
+              Case Timeline & Audit Trail
+            </CardTitle>
+            <CardDescription>
+              {selectedCase ? 
+                `Complete chronological history for ${selectedCase.caseNumber} - ${selectedCase.title}` :
+                'Select a case to view its detailed timeline and audit trail'
+              }
+            </CardDescription>
           </CardHeader>
           {selectedCase && (
             <CardContent>

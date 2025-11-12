@@ -6,7 +6,7 @@ export interface TimelineEntry {
   id: string;
   caseId: string;
   tenantId: string; // Required for Supabase
-  type: 'doc_saved' | 'ai_draft_generated' | 'case_created' | 'hearing_scheduled' | 'task_created' | 'task_completed' | 'stage_change' | 'comment' | 'deadline' | 'case_assigned';
+  type: 'doc_saved' | 'ai_draft_generated' | 'case_created' | 'hearing_scheduled' | 'task_completed' | 'stage_change' | 'comment' | 'deadline' | 'case_assigned';
   title: string;
   description: string;
   createdBy: string; // Kept for UI backwards compatibility
