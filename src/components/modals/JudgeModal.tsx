@@ -52,8 +52,7 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
   const handleSubmit = async (formData: any) => {
     try {
       if (mode === 'create') {
-        const newJudge: Judge = {
-          id: Date.now().toString(),
+        const newJudge = {
           name: formData.name,
           designation: formData.designation,
           status: formData.status,
@@ -99,9 +98,9 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
           updatedAt: new Date().toISOString(),
           createdBy: currentUserId || null,
           updatedBy: currentUserId || null
-        };
+        } as any;
 
-        dispatch({ type: 'ADD_JUDGE', payload: newJudge });
+        dispatch({ type: 'ADD_JUDGE', payload: newJudge as any });
         toast({
           title: "Judge Added",
           description: `Judge "${formData.name}" has been added successfully.`,
