@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { navigationContextService } from '@/services/navigationContextService';
+import { supabase } from '@/integrations/supabase/client';
 import { formatCaseTitle } from '@/utils/caseTitleFormatter';
 import { 
   Scale, 
@@ -172,6 +173,104 @@ export const CaseManagement: React.FC = () => {
       setActiveTab('lifecycle'); // This will trigger a re-render
     }
   };
+
+  // Set up real-time subscription for cases table
+  useEffect(() => {
+    console.log('[CaseManagement] Setting up real-time subscription for cases');
+
+    const channel = supabase
+      .channel('cases-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'cases'
+        },
+        (payload) => {
+          console.log('[CaseManagement] Real-time INSERT received:', payload);
+          
+          const newCase = payload.new as Case;
+          
+          // Dispatch ADD_CASE action
+          dispatch({
+            type: 'ADD_CASE',
+            payload: newCase
+          });
+          
+          toast({
+            title: "New Case Created",
+            description: `Case ${newCase.caseNumber} has been added`,
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'cases'
+        },
+        (payload) => {
+          console.log('[CaseManagement] Real-time UPDATE received:', payload);
+          
+          const updatedCase = payload.new as Case;
+          
+          // Dispatch UPDATE_CASE action
+          dispatch({
+            type: 'UPDATE_CASE',
+            payload: updatedCase
+          });
+          
+          // Update selected case if it's the one being updated
+          if (selectedCase?.id === updatedCase.id) {
+            setSelectedCase(updatedCase);
+          }
+          
+          toast({
+            title: "Case Updated",
+            description: `Case ${updatedCase.caseNumber} has been updated`,
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'cases'
+        },
+        (payload) => {
+          console.log('[CaseManagement] Real-time DELETE received:', payload);
+          
+          const deletedCase = payload.old as Case;
+          
+          // Dispatch DELETE_CASE action
+          dispatch({
+            type: 'DELETE_CASE',
+            payload: deletedCase.id
+          });
+          
+          // Clear selected case if it's the one being deleted
+          if (selectedCase?.id === deletedCase.id) {
+            setSelectedCase(null);
+          }
+          
+          toast({
+            title: "Case Deleted",
+            description: `Case ${deletedCase.caseNumber} has been removed`,
+            variant: "destructive"
+          });
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on unmount
+    return () => {
+      console.log('[CaseManagement] Cleaning up real-time subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [dispatch, selectedCase]);
 
   const getTimelineBreachColor = (status: string) => {
     switch (status) {
