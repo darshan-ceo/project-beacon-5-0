@@ -5,6 +5,7 @@ import { Hearing as GlobalHearing } from '@/types/hearings';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { integrationsService, CalendarConnectionStatus } from '@/services/integrationsService';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   Calendar, 
   Clock, 
@@ -89,6 +90,101 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases, selec
     };
     loadCalendarStatus();
   }, []);
+
+  // Set up real-time subscription for hearings
+  useEffect(() => {
+    const channelName = selectedCase 
+      ? `hearings-case-${selectedCase.id}` 
+      : 'hearings-global';
+    
+    console.log(`[HearingScheduler] Setting up real-time subscription: ${channelName}`);
+
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'hearings',
+          ...(selectedCase ? { filter: `case_id=eq.${selectedCase.id}` } : {})
+        },
+        (payload) => {
+          console.log('[HearingScheduler] Real-time INSERT received:', payload);
+          
+          const newHearing = payload.new as GlobalHearing;
+          
+          // Dispatch ADD_HEARING action
+          dispatch({
+            type: 'ADD_HEARING',
+            payload: newHearing
+          });
+          
+          toast({
+            title: "Hearing Scheduled",
+            description: `New hearing has been added to the calendar`,
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'hearings',
+          ...(selectedCase ? { filter: `case_id=eq.${selectedCase.id}` } : {})
+        },
+        (payload) => {
+          console.log('[HearingScheduler] Real-time UPDATE received:', payload);
+          
+          const updatedHearing = payload.new as GlobalHearing;
+          
+          // Dispatch UPDATE_HEARING action
+          dispatch({
+            type: 'UPDATE_HEARING',
+            payload: updatedHearing
+          });
+          
+          toast({
+            title: "Hearing Updated",
+            description: `Hearing details have been modified`,
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'hearings',
+          ...(selectedCase ? { filter: `case_id=eq.${selectedCase.id}` } : {})
+        },
+        (payload) => {
+          console.log('[HearingScheduler] Real-time DELETE received:', payload);
+          
+          const deletedHearing = payload.old as GlobalHearing;
+          
+          // Dispatch DELETE_HEARING action
+          dispatch({
+            type: 'DELETE_HEARING',
+            payload: deletedHearing.id
+          });
+          
+          toast({
+            title: "Hearing Deleted",
+            description: `Hearing has been removed`,
+            variant: "destructive"
+          });
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on unmount or when case changes
+    return () => {
+      console.log(`[HearingScheduler] Cleaning up real-time subscription: ${channelName}`);
+      supabase.removeChannel(channel);
+    };
+  }, [dispatch, selectedCase]);
 
   // Transform state hearings to local format for compatibility
   const allHearings: Hearing[] = state.hearings.map(h => {
