@@ -849,12 +849,17 @@ export const dmsService = {
       if (options.caseId) {
         try {
           const { timelineService } = await import('./timelineService');
+          const { supabase } = await import('@/integrations/supabase/client');
+          
+          // Get authenticated user for proper timeline tracking
+          const { data: { user } } = await supabase.auth.getUser();
+          
           await timelineService.addEntry({
             caseId: options.caseId,
             type: 'doc_saved',
             title: 'Document Uploaded',
             description: `${file.name} uploaded to ${folder?.name || 'case documents'}`,
-            createdBy: userId === 'system' ? 'System' : 'Current User',
+            createdBy: userId === 'system' ? 'System' : 'System', // Will be converted to actual user UUID in timelineService
             metadata: {
               fileName: file.name,
               fileSize: file.size,
