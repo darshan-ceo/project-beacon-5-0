@@ -80,7 +80,7 @@ export const CaseTimeline: React.FC<CaseTimelineProps> = ({ selectedCase }) => {
           description: entry.description,
           timestamp: entry.createdAt,
           user: {
-            name: entry.createdBy,
+            name: entry.createdByName || entry.createdBy,
             role: entry.createdBy === 'System' ? 'Automated' : 'User',
             avatar: undefined
           },
