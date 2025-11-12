@@ -248,6 +248,53 @@ export const useRealtimeSync = () => {
           }
         }
       )
+      // Timeline Entries
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'timeline_entries',
+          filter: `tenant_id=eq.${tenantId}`
+        },
+        (payload) => {
+          console.log('[Realtime] Timeline change:', payload.eventType, payload);
+          if (payload.eventType === 'INSERT' && payload.new) {
+            // Transform snake_case to camelCase for app state
+            const timelineEntry = {
+              id: payload.new.id,
+              caseId: payload.new.case_id,
+              tenantId: payload.new.tenant_id,
+              type: payload.new.type,
+              title: payload.new.title,
+              description: payload.new.description,
+              createdBy: payload.new.created_by_name || 'Unknown',
+              createdById: payload.new.created_by,
+              createdByName: payload.new.created_by_name,
+              createdAt: payload.new.created_at,
+              metadata: payload.new.metadata || {}
+            };
+            dispatch({ type: 'ADD_TIMELINE_ENTRY', payload: timelineEntry });
+          } else if (payload.eventType === 'UPDATE' && payload.new) {
+            const timelineEntry = {
+              id: payload.new.id,
+              caseId: payload.new.case_id,
+              tenantId: payload.new.tenant_id,
+              type: payload.new.type,
+              title: payload.new.title,
+              description: payload.new.description,
+              createdBy: payload.new.created_by_name || 'Unknown',
+              createdById: payload.new.created_by,
+              createdByName: payload.new.created_by_name,
+              createdAt: payload.new.created_at,
+              metadata: payload.new.metadata || {}
+            };
+            dispatch({ type: 'UPDATE_TIMELINE_ENTRY', payload: timelineEntry });
+          } else if (payload.eventType === 'DELETE' && payload.old) {
+            dispatch({ type: 'DELETE_TIMELINE_ENTRY', payload: (payload.old as any).id });
+          }
+        }
+      )
       .subscribe((status) => {
         console.log('[Realtime] Subscription status:', status);
       });
