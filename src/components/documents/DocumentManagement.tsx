@@ -583,18 +583,29 @@ export const DocumentManagement: React.FC = () => {
         type: 'ADD_DOCUMENT',
         payload: {
           id: uploadResult.id,
+          // UI layer fields (for AppStateContext)
           name: uploadResult.file_name,
           type: uploadResult.file_type,
           size: uploadResult.file_size,
-          clientId: options.clientId,
-          caseId: options.caseId,
-          uploadedAt: new Date().toISOString(),
+          path: uploadResult.file_path,
+          // Backend layer fields (for SupabaseAdapter persistence)
+          fileName: uploadResult.file_name,
+          filePath: uploadResult.file_path,
+          fileType: uploadResult.file_type,
+          fileSize: uploadResult.file_size,
+          mimeType: uploadResult.mime_type,
+          storageUrl: uploadResult.storage_url,
+          caseId: options.caseId || '',
+          clientId: options.clientId || '',
+          folderId: options.folderId,
+          uploadedBy: user.id,
           uploadedById: user.id,
           uploadedByName: profile.full_name || 'Unknown',
+          uploadedAt: new Date().toISOString(),
+          uploadTimestamp: new Date().toISOString(),
           tags: options.tags || [],
-          isShared: false,
-          path: uploadResult.file_path
-        }
+          isShared: false
+        } as any
       });
 
       toast({
