@@ -154,7 +154,9 @@ export const usePersistentDispatch = (
           
         // Documents
         case 'ADD_DOCUMENT':
-          await storage.create('documents', action.payload);
+          // Documents are persisted by supabaseDocumentService before dispatch
+          // Skip re-persistence to avoid duplicate insertion
+          console.log('⏭️ Skipping ADD_DOCUMENT persistence (already persisted by upload service)');
           break;
         case 'UPDATE_DOCUMENT':
           await storage.update('documents', action.payload.id, action.payload);
