@@ -1690,6 +1690,33 @@ export type Database = {
         }
         Relationships: []
       }
+      tags: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+          tenant_id: string
+          usage_count: number
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          tenant_id: string
+          usage_count?: number
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          tenant_id?: string
+          usage_count?: number
+        }
+        Relationships: []
+      }
       task_bundle_items: {
         Row: {
           assigned_role: string | null

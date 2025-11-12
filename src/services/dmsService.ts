@@ -1,7 +1,7 @@
 import { AppAction } from '@/contexts/AppStateContext';
 import { toast } from '@/hooks/use-toast';
 import { HashService } from './hashService';
-import { idbStorage } from '@/utils/idb';
+import { supabase } from '@/integrations/supabase/client';
 import { setItem, getItem, loadAppState, saveAppState } from '@/data/storageShim';
 
 const isDev = import.meta.env.DEV;
@@ -191,87 +191,41 @@ const saveMockFolders = async () => {
   }
 };
 
-// Initialize persistent tags with IndexedDB fallback
-const getDefaultTags = (): Tag[] => [
-  { id: '1', name: 'urgent', color: '#ef4444', createdAt: '2024-01-10', usageCount: 12 },
-  { id: '2', name: 'appeal', color: '#3b82f6', createdAt: '2024-01-10', usageCount: 8 },
-  { id: '3', name: 'evidence', color: '#10b981', createdAt: '2024-01-12', usageCount: 15 },
-  { id: '4', name: 'order', color: '#f59e0b', createdAt: '2024-01-15', usageCount: 6 }
-];
-
-let mockTags: Tag[] = [];
-
-// Initialize tags from storage
-const initializeTags = async (): Promise<void> => {
-  try {
-    // Try IndexedDB first
-    const storedTags = await idbStorage.get('dms_tags');
-    if (Array.isArray(storedTags) && storedTags.length > 0) {
-      mockTags = storedTags;
-      return;
-    }
-
-    // Fallback to storageShim
-    const localTags = await getItem<Tag[]>('dms_tags');
-    if (localTags && Array.isArray(localTags) && localTags.length > 0) {
-      mockTags = localTags;
-      // Migrate to IndexedDB
-      await idbStorage.set('dms_tags', mockTags);
-      return;
-    }
-
-    // Use defaults if no stored tags
-    mockTags = getDefaultTags();
-    await idbStorage.set('dms_tags', mockTags);
-    await setItem('dms_tags', mockTags);
-  } catch (error) {
-    console.warn('Failed to initialize tags, using defaults:', error);
-    mockTags = getDefaultTags();
-  }
+// Helper to get tenant_id from authenticated session
+const getTenantId = async (): Promise<string> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('User not authenticated');
+  
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('tenant_id')
+    .eq('id', user.id)
+    .single();
+  
+  if (!profile) throw new Error('User profile not found');
+  return profile.tenant_id;
 };
-
-// Save tags to persistent storage
-const saveTags = async (): Promise<void> => {
-  try {
-    await idbStorage.set('dms_tags', mockTags);
-    await setItem('dms_tags', mockTags);
-  } catch (error) {
-    console.warn('Failed to save tags:', error);
-  }
-};
-
-// Initialize tags immediately
-initializeTags();
 
 // Helper function to calculate actual document counts for folders
 const calculateFolderDocumentCounts = async (folders: Folder[]): Promise<Folder[]> => {
-  // Get documents from both IndexedDB and in-memory state
+  // Get documents from Redux state only (loaded from Supabase by DataInitializer)
   const appData = await loadAppState();
-  const inMemoryDocs = appData.documents || [];
-  const idbDocs = await idbStorage.get('documents') || [];
-  
-  // Combine and deduplicate by ID
-  const documentMap = new Map();
-  [...idbDocs, ...inMemoryDocs].forEach(doc => {
-    if (doc && doc.id) {
-      documentMap.set(doc.id, doc);
-    }
-  });
-  const documents = Array.from(documentMap.values());
+  const documents = appData.documents || [];
   
   // Calculate counts for each folder
   const folderCounts = new Map<string, number>();
   
   for (const doc of documents) {
-    // Count documents where doc.folderId matches folder.id
-    if (doc.folderId) {
-      folderCounts.set(doc.folderId, (folderCounts.get(doc.folderId) || 0) + 1);
+    // Count documents where doc.folderId or doc.folder_id matches folder.id
+    const docFolderId = (doc as any).folderId || (doc as any).folder_id;
+    if (docFolderId) {
+      folderCounts.set(docFolderId, (folderCounts.get(docFolderId) || 0) + 1);
     }
     
     // Also count documents where doc.path starts with folder.path (for nested documents)
-    if (doc.path && typeof doc.path === 'string') {
+    if ((doc as any).path && typeof (doc as any).path === 'string') {
       for (const folder of folders) {
-        if (folder.path && doc.path.startsWith(folder.path)) {
+        if (folder.path && (doc as any).path.startsWith(folder.path)) {
           folderCounts.set(folder.id, (folderCounts.get(folder.id) || 0) + 1);
         }
       }
@@ -282,6 +236,46 @@ const calculateFolderDocumentCounts = async (folders: Folder[]): Promise<Folder[
   return folders.map(folder => ({
     ...folder,
     documentCount: folderCounts.get(folder.id) || 0
+  }));
+};
+
+// Helper function to create default folders in Supabase
+const createDefaultFolders = async (tenantId: string): Promise<Folder[]> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('User not authenticated');
+  
+  const defaults = initializeMockFolders();
+  const foldersToInsert = defaults.map(f => ({
+    id: f.id,
+    tenant_id: tenantId,
+    name: f.name,
+    parent_id: f.parentId || null,
+    path: f.path,
+    description: f.description,
+    created_by: user.id,
+    is_default: true
+  }));
+  
+  const { data, error } = await supabase
+    .from('document_folders')
+    .insert(foldersToInsert)
+    .select();
+  
+  if (error) {
+    console.error('Failed to create default folders:', error);
+    return defaults;
+  }
+  
+  return (data || []).map(f => ({
+    id: f.id,
+    name: f.name,
+    parentId: f.parent_id || undefined,
+    documentCount: 0,
+    size: 0,
+    createdAt: f.created_at,
+    lastAccess: f.updated_at || f.created_at,
+    description: f.description || undefined,
+    path: f.path
   }));
 };
 
@@ -303,163 +297,45 @@ export const dmsService = {
     listAll: async (): Promise<Folder[]> => {
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      // Try multiple sources in order: localStorage -> IndexedDB -> defaults
-      let allFolders: any[] | null = null;
-      
-      // First try storageShim
       try {
-        const storedFolders = await getItem<Folder[]>('dms_folders');
-        if (storedFolders && Array.isArray(storedFolders)) {
-          allFolders = storedFolders;
+        // Get tenant_id
+        const tenantId = await getTenantId();
+        
+        // Query folders from Supabase
+        const { data: folders, error } = await supabase
+          .from('document_folders')
+          .select('*')
+          .eq('tenant_id', tenantId)
+          .order('created_at', { ascending: true });
+        
+        if (error) throw error;
+        
+        // Transform to match Folder interface
+        let allFolders: Folder[] = (folders || []).map(f => ({
+          id: f.id,
+          name: f.name,
+          parentId: f.parent_id || undefined,
+          caseId: f.case_id || undefined,
+          documentCount: 0, // Will be calculated
+          size: 0,
+          createdAt: f.created_at,
+          lastAccess: f.updated_at || f.created_at,
+          description: f.description || undefined,
+          path: f.path
+        }));
+        
+        // If no folders exist, create defaults
+        if (allFolders.length === 0) {
+          console.log('No folders found, creating defaults');
+          allFolders = await createDefaultFolders(tenantId);
         }
+        
+        return allFolders;
       } catch (error) {
-        console.warn('Failed to parse storageShim folders:', error);
-        allFolders = null;
+        console.error('Failed to load folders from Supabase:', error);
+        // Fallback to canonical defaults
+        return [...initializeMockFolders()];
       }
-      
-      // Then try IndexedDB if localStorage failed
-      if (!allFolders || !Array.isArray(allFolders) || allFolders.length === 0) {
-        try {
-          const idbFolders = await idbStorage.get('folders');
-          if (Array.isArray(idbFolders) && idbFolders.length > 0) {
-            allFolders = idbFolders;
-          }
-        } catch (error) {
-          console.warn('Failed to load folders from IndexedDB:', error);
-        }
-      }
-      
-      // Fall back to canonical defaults if both failed
-      if (!allFolders || !Array.isArray(allFolders) || allFolders.length === 0) {
-        console.log('Using canonical default folders');
-        allFolders = [...initializeMockFolders()];
-      }
-      
-      // MIGRATION: normalize to the 3-folder system and remap legacy IDs/paths without deleting user data
-      const canonicalDefaults = initializeMockFolders();
-      const allowedTopLevel = new Set(['litigation-docs', 'client-docs', 'internal-docs']);
-      const legacyIdMap: Record<string, string> = {
-        '1': 'litigation-docs',
-        '2': 'gst-assessment', // old GSTAT id
-        '3': 'client-uploads',
-        'gstat-docs': 'gst-assessment',
-        'appeals-docs': 'appeals',
-      };
-      const nameHints: Array<{ test: (n: string) => boolean; target: { id: string; parentId?: string; name?: string; path?: string } }> = [
-        { test: (n) => /gstat|gst.?assessment/i.test(n), target: { id: 'gst-assessment', parentId: 'litigation-docs', name: 'GST Assessment', path: '/folders/litigation-docs/gst-assessment' } },
-        { test: (n) => /appeal/i.test(n), target: { id: 'appeals', parentId: 'litigation-docs', name: 'Appeals', path: '/folders/litigation-docs/appeals' } },
-        { test: (n) => /client\s*uploads?/i.test(n), target: { id: 'client-uploads', parentId: 'client-docs', name: 'Client Uploads', path: '/folders/client-docs/uploads' } },
-        { test: (n) => /template/i.test(n), target: { id: 'templates', parentId: 'internal-docs', name: 'Templates', path: '/folders/internal-docs/templates' } },
-        { test: (n) => /litigation/i.test(n), target: { id: 'litigation-docs', name: 'Litigation Documents', path: '/folders/litigation-docs' } },
-      ];
-
-      // Build normalized folder map
-      const mapById = new Map<string, Folder>();
-      const upsert = (f: Folder) => {
-        mapById.set(f.id, f);
-      };
-
-      // Start with existing folders (normalize legacy ones)
-      for (const f of allFolders as Folder[]) {
-        let nf: Folder = { ...f } as Folder;
-        if (nf.id && legacyIdMap[nf.id]) {
-          const targetId = legacyIdMap[nf.id];
-          nf.id = targetId as any;
-        }
-        // Name-driven normalization
-        const hint = nameHints.find(h => h.test(nf.name || ''));
-        if (hint) {
-          nf = { ...nf, ...hint.target, createdAt: nf.createdAt || new Date().toISOString(), lastAccess: nf.lastAccess || new Date().toISOString(), documentCount: nf.documentCount ?? 0, size: nf.size ?? 0 } as Folder;
-        }
-        // Ensure subfolders have correct parents
-        if (nf.id === 'client-uploads') nf.parentId = 'client-docs';
-        if (nf.id === 'templates') nf.parentId = 'internal-docs';
-        // Ensure only 3 top-level
-        if (!nf.parentId && !allowedTopLevel.has(nf.id)) {
-          // Move unknown top-level under Client Documents by default
-          nf.parentId = 'client-docs';
-          nf.path = `/folders/client-docs/${(nf.name || 'folder').toLowerCase().replace(/\s+/g, '-')}`;
-        }
-        upsert(nf);
-      }
-
-      // Ensure canonical defaults exist
-      for (const df of canonicalDefaults) {
-        if (!mapById.has(df.id)) {
-          upsert({ ...df });
-        } else {
-          // Also ensure correct parent/path for canonical items
-          const cur = mapById.get(df.id)!;
-          const fixed = { ...cur };
-          if (df.parentId && cur.parentId !== df.parentId) fixed.parentId = df.parentId;
-          if (cur.path !== df.path) fixed.path = df.path;
-          if (cur.name !== df.name) fixed.name = df.name;
-          mapById.set(df.id, fixed);
-        }
-      }
-
-      const normalizedFolders = Array.from(mapById.values());
-
-      // Update documents to match new folder ids/paths
-      try {
-        let documents = await idbStorage.get('documents');
-        if (!Array.isArray(documents)) documents = [];
-        let updated = 0;
-        const pathRewrites: Array<{ from: RegExp; to: string }> = [
-          { from: /\/folders\/litigation-docs\/gstat/gi, to: '/folders/litigation-docs/gst-assessment' },
-          { from: /\/folders\/client-uploads/gi, to: '/folders/client-docs/uploads' },
-          { from: /\/folders\/appeals-docs/gi, to: '/folders/litigation-docs/appeals' },
-        ];
-        const idMap = legacyIdMap;
-        for (const d of documents) {
-          if (d.folderId && idMap[d.folderId]) {
-            d.folderId = idMap[d.folderId];
-            updated++;
-          }
-          if (typeof d.path === 'string') {
-            let newPath = d.path;
-            for (const rw of pathRewrites) {
-              newPath = newPath.replace(rw.from, rw.to);
-            }
-            if (newPath !== d.path) {
-              d.path = newPath;
-              updated++;
-            }
-          }
-        }
-        if (updated > 0) {
-          await idbStorage.set('documents', documents);
-          // Mirror into storageShim app state cache if present
-          try {
-            const appState = await loadAppState();
-            if (appState && Array.isArray(appState.documents)) {
-              appState.documents = documents as any;
-              await saveAppState({ documents: appState.documents });
-            }
-          } catch {}
-          console.log(`[DMS] Migrated ${updated} document references to canonical folders`);
-        }
-      } catch (err) {
-        console.warn('Failed to migrate document folder references:', err);
-      }
-
-      // Sync normalized folders to storage and internal cache
-      const finalFolders = normalizedFolders;
-      try {
-        await setItem('dms_folders', finalFolders);
-        await idbStorage.set('folders', finalFolders);
-        // Keep internal cache in sync for path lookups
-        mockFolders = [...finalFolders];
-        await saveMockFolders();
-        console.log('Folders normalized and synchronized to all storage layers');
-      } catch (error) {
-        console.warn('Failed to sync folders to storage:', error);
-      }
-      
-      // Calculate actual document counts before returning
-      const foldersWithCounts = await calculateFolderDocumentCounts(finalFolders);
-      
-      return foldersWithCounts;
     },
 
     create: async (
@@ -470,51 +346,78 @@ export const dmsService = {
     ): Promise<Folder> => {
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Validate unique name within parent
-      const siblings = mockFolders.filter(f => f.parentId === parentId);
-      if (siblings.some(f => f.name.toLowerCase() === name.toLowerCase())) {
-        throw new Error('Folder name already exists in this location');
-      }
-
-      const newFolder: Folder = {
-        id: `folder-${Date.now()}`,
-        name,
-        parentId,
-        caseId,
-        documentCount: 0,
-        size: 0,
-        createdAt: new Date().toISOString(),
-        lastAccess: new Date().toISOString(),
-        path: parentId ? `${mockFolders.find(f => f.id === parentId)?.path}/${name.toLowerCase().replace(/\s+/g, '-')}` : `/folders/${name.toLowerCase().replace(/\s+/g, '-')}`
-      };
-
-      // Add to all storage layers
-      mockFolders.push(newFolder);
-      saveMockFolders(); // Persist to localStorage
-      
-      // Also update dms_folders for consistency
       try {
-        const allFolders = await dmsService.folders.listAll();
-        allFolders.push(newFolder);
-        await setItem('dms_folders', allFolders);
-        await idbStorage.set('folders', allFolders);
-      } catch (error) {
-        console.warn('Failed to sync new folder to storage:', error);
-      }
-      
-      // Sync with AppStateContext for persistence
-      if (dispatch) {
-        dispatch({ type: 'ADD_FOLDER', payload: newFolder });
-      }
-      
-      log('success', 'DMS', 'createFolder', { folderId: newFolder.id, name });
-      
-      toast({
-        title: "Folder Created",
-        description: `Folder "${name}" has been created successfully.`,
-      });
+        // Get tenant_id and user
+        const tenantId = await getTenantId();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('User not authenticated');
+        
+        // Get parent folder for path calculation
+        let parentPath = '/folders';
+        if (parentId) {
+          const { data: parent } = await supabase
+            .from('document_folders')
+            .select('path')
+            .eq('id', parentId)
+            .single();
+          if (parent) parentPath = parent.path;
+        }
+        
+        const folderPath = `${parentPath}/${name.toLowerCase().replace(/\s+/g, '-')}`;
+        
+        // Insert into Supabase
+        const { data, error } = await supabase
+          .from('document_folders')
+          .insert({
+            name,
+            parent_id: parentId || null,
+            case_id: caseId || null,
+            tenant_id: tenantId,
+            created_by: user.id,
+            path: folderPath,
+            is_default: false
+          } as any)
+          .select()
+          .single();
+        
+        if (error) throw error;
+        const newFolder = data;
+        
+        const folder: Folder = {
+          id: newFolder.id,
+          name: newFolder.name,
+          parentId: newFolder.parent_id || undefined,
+          caseId: newFolder.case_id || undefined,
+          documentCount: 0,
+          size: 0,
+          createdAt: newFolder.created_at,
+          lastAccess: newFolder.created_at,
+          description: newFolder.description || undefined,
+          path: newFolder.path
+        };
+        
+        // Sync with AppStateContext
+        if (dispatch) {
+          dispatch({ type: 'ADD_FOLDER', payload: folder });
+        }
+        
+        log('success', 'DMS', 'createFolder', { folderId: folder.id, name });
+        
+        toast({
+          title: "Folder Created",
+          description: `Folder "${name}" has been created successfully.`,
+        });
 
-      return newFolder;
+        return folder;
+      } catch (error: any) {
+        console.error('Failed to create folder:', error);
+        toast({
+          title: "Error",
+          description: error.message || "Failed to create folder",
+          variant: "destructive"
+        });
+        throw error;
+      }
     },
 
     rename: async (
@@ -1028,15 +931,9 @@ export const dmsService = {
       await new Promise(resolve => setTimeout(resolve, 200));
       
       try {
-        // Get the document from state to retrieve actual content
+        // Get the document from Redux state (loaded from Supabase by DataInitializer)
         const appData = await loadAppState();
-        let documents = appData.documents || [];
-        if (!documents || documents.length === 0) {
-          try {
-            const idbDocs = await idbStorage.get('documents');
-            documents = Array.isArray(idbDocs) ? idbDocs : [];
-          } catch {}
-        }
+        const documents = appData.documents || [];
         const foundDocument: any = documents.find((doc: any) => doc.id === documentId);
         
         if (foundDocument && foundDocument.content) {
@@ -1169,15 +1066,9 @@ export const dmsService = {
         // Simulate API call delay
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        // Get the document from state to retrieve actual content
+        // Get the document from Redux state (loaded from Supabase by DataInitializer)
         const appData = await loadAppState();
-        let documents = appData.documents || [];
-        if (!documents || documents.length === 0) {
-          try {
-            const idbDocs = await idbStorage.get('documents');
-            documents = Array.isArray(idbDocs) ? idbDocs : [];
-          } catch {}
-        }
+        const documents = appData.documents || [];
         
         // Import file type utilities for better content generation
         const { generateSampleContent } = await import('@/utils/fileTypeUtils');
@@ -1342,15 +1233,9 @@ export const dmsService = {
     list: async (filter: DocumentFilter): Promise<Document[]> => {
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      // Get documents from app state
+      // Get documents from Redux state (loaded from Supabase by DataInitializer)
       const appData = await loadAppState();
-      let documents: any[] = appData.documents || [];
-      if (!documents || documents.length === 0) {
-        try {
-          const idbDocs = await idbStorage.get('documents');
-          documents = Array.isArray(idbDocs) ? idbDocs : [];
-        } catch {}
-      }
+      const documents: any[] = appData.documents || [];
       
       // Apply filters
       let filteredDocs = documents;
@@ -1410,78 +1295,169 @@ export const dmsService = {
     list: async (): Promise<Tag[]> => {
       await new Promise(resolve => setTimeout(resolve, 200));
       
-      // Ensure tags are initialized
-      if (mockTags.length === 0) {
-        await initializeTags();
+      try {
+        const tenantId = await getTenantId();
+        
+        const { data: tags, error } = await supabase
+          .from('tags')
+          .select('*')
+          .eq('tenant_id', tenantId)
+          .order('created_at', { ascending: true });
+        
+        if (error) throw error;
+        
+        return (tags || []).map(t => ({
+          id: t.id,
+          name: t.name,
+          color: t.color,
+          createdAt: t.created_at,
+          usageCount: t.usage_count
+        }));
+      } catch (error) {
+        console.error('Failed to load tags from Supabase:', error);
+        return [];
       }
-      
-      return [...mockTags];
     },
 
     create: async (name: string, color: string = '#3b82f6'): Promise<Tag> => {
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      const normalizedName = name.toLowerCase().trim();
-      
-      // Check if tag already exists
-      if (mockTags.some(t => t.name.toLowerCase() === normalizedName)) {
-        // Return existing tag instead of throwing error
-        const existingTag = mockTags.find(t => t.name.toLowerCase() === normalizedName)!;
-        // Increment usage count
-        existingTag.usageCount++;
-        await saveTags();
-        return existingTag;
+      try {
+        const tenantId = await getTenantId();
+        const normalizedName = name.toLowerCase().trim();
+        
+        // Check if tag already exists
+        const { data: existing } = await supabase
+          .from('tags')
+          .select('*')
+          .eq('tenant_id', tenantId)
+          .eq('name', normalizedName)
+          .single();
+        
+        if (existing) {
+          // Increment usage count
+          const { data: updated, error } = await supabase
+            .from('tags')
+            .update({ usage_count: existing.usage_count + 1 })
+            .eq('id', existing.id)
+            .select()
+            .single();
+          
+          if (error) throw error;
+          
+          return {
+            id: updated.id,
+            name: updated.name,
+            color: updated.color,
+            createdAt: updated.created_at,
+            usageCount: updated.usage_count
+          };
+        }
+        
+        // Create new tag
+        const { data: newTag, error } = await supabase
+          .from('tags')
+          .insert({
+            tenant_id: tenantId,
+            name: normalizedName,
+            color,
+            usage_count: 1
+          })
+          .select()
+          .single();
+        
+        if (error) throw error;
+        
+        log('success', 'DMS', 'createTag', { tagId: newTag.id, name: normalizedName });
+        
+        return {
+          id: newTag.id,
+          name: newTag.name,
+          color: newTag.color,
+          createdAt: newTag.created_at,
+          usageCount: newTag.usage_count
+        };
+      } catch (error: any) {
+        console.error('Failed to create tag:', error);
+        throw error;
       }
-
-      const newTag: Tag = {
-        id: `tag-${Date.now()}`,
-        name: normalizedName,
-        color,
-        createdAt: new Date().toISOString(),
-        usageCount: 1
-      };
-
-      mockTags.push(newTag);
-      await saveTags();
-      
-      log('success', 'DMS', 'createTag', { tagId: newTag.id, name: normalizedName });
-
-      return newTag;
     },
 
     incrementUsage: async (tagName: string): Promise<void> => {
-      const tag = mockTags.find(t => t.name.toLowerCase() === tagName.toLowerCase());
-      if (tag) {
-        tag.usageCount++;
-        await saveTags();
+      try {
+        const tenantId = await getTenantId();
+        const normalizedName = tagName.toLowerCase().trim();
+        
+        const { data: tag } = await supabase
+          .from('tags')
+          .select('*')
+          .eq('tenant_id', tenantId)
+          .eq('name', normalizedName)
+          .single();
+        
+        if (tag) {
+          await supabase
+            .from('tags')
+            .update({ usage_count: tag.usage_count + 1 })
+            .eq('id', tag.id);
+        }
+      } catch (error) {
+        console.warn('Failed to increment tag usage:', error);
       }
     },
 
     delete: async (tagId: string): Promise<void> => {
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      const tagToDelete = mockTags.find(t => t.id === tagId);
-      if (!tagToDelete) return;
-      
-      mockTags = mockTags.filter(t => t.id !== tagId);
-      await saveTags();
-      
-      log('success', 'DMS', 'deleteTag', { tagId });
-      
-      toast({
-        title: "Tag Deleted",
-        description: `Tag "${tagToDelete.name}" has been deleted successfully.`,
-      });
+      try {
+        const { error } = await supabase
+          .from('tags')
+          .delete()
+          .eq('id', tagId);
+        
+        if (error) throw error;
+        
+        log('success', 'DMS', 'deleteTag', { tagId });
+        
+        toast({
+          title: "Tag Deleted",
+          description: "Tag has been deleted successfully.",
+        });
+      } catch (error: any) {
+        console.error('Failed to delete tag:', error);
+        toast({
+          title: "Error",
+          description: error.message || "Failed to delete tag",
+          variant: "destructive"
+        });
+        throw error;
+      }
     },
 
     getMostUsed: async (limit: number = 10): Promise<Tag[]> => {
-      if (mockTags.length === 0) {
-        await initializeTags();
+      try {
+        const tenantId = await getTenantId();
+        
+        const { data: tags, error } = await supabase
+          .from('tags')
+          .select('*')
+          .eq('tenant_id', tenantId)
+          .order('usage_count', { ascending: false })
+          .limit(limit);
+        
+        if (error) throw error;
+        
+        return (tags || []).map(t => ({
+          id: t.id,
+          name: t.name,
+          color: t.color,
+          createdAt: t.created_at,
+          usageCount: t.usage_count
+        }));
+      } catch (error) {
+        console.error('Failed to get most used tags:', error);
+        return [];
       }
-      
-      return [...mockTags]
-        .sort((a, b) => b.usageCount - a.usageCount)
-        .slice(0, limit);
     }
   },
 
