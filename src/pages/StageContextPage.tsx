@@ -80,7 +80,8 @@ const StageContextPage: React.FC = () => {
         navigate(`/tasks?${taskParams.toString()}`);
         break;
       case 'hearings':
-        navigate('/hearings/calendar', { state: { caseId, ...params } });
+        // Navigate to case hearings tab to see all hearings for this case
+        navigate(`/cases?caseId=${caseId}&tab=hearings`);
         break;
       case 'documents':
         navigate('/documents', { state: { caseId, ...params } });
@@ -237,10 +238,16 @@ const StageContextPage: React.FC = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 {contextData.hearings.next ? (
-                  <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div 
+                    className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-950/30 transition-colors"
+                    onClick={() => navigateToWorkspace('hearings')}
+                  >
                     <div className="flex items-center justify-between">
                       <div>
-                        <h4 className="font-medium text-blue-900 dark:text-blue-100">Next Hearing</h4>
+                        <h4 className="font-medium text-blue-900 dark:text-blue-100 flex items-center gap-2">
+                          Next Hearing
+                          <ExternalLink className="w-4 h-4" />
+                        </h4>
                         <p className="text-sm text-blue-700 dark:text-blue-300">
                           {new Date(contextData.hearings.next.date).toLocaleDateString()}
                         </p>
@@ -258,11 +265,20 @@ const StageContextPage: React.FC = () => {
                 )}
                 
                 {contextData.hearings.last && (
-                  <div className="p-4 bg-gray-50 dark:bg-gray-950/20 rounded-lg border">
-                    <h4 className="font-medium mb-2">Last Hearing</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(contextData.hearings.last.date).toLocaleDateString()} - {contextData.hearings.last.outcome}
-                    </p>
+                  <div className="p-4 bg-gray-50 dark:bg-gray-950/20 rounded-lg border cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-950/30 transition-colors"
+                    onClick={() => navigateToWorkspace('hearings')}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium mb-2 flex items-center gap-2">
+                          Last Hearing
+                          <ExternalLink className="w-4 h-4" />
+                        </h4>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(contextData.hearings.last.date).toLocaleDateString()} - {contextData.hearings.last.outcome}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 )}
                 
