@@ -74,753 +74,135 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
   dispatch
 }) => {
   const { state } = useAppState();
+  const { toast } = useToast();
   
-  // Feature flag check
-  const lifecycleCyclesEnabled = featureFlagService.isEnabled('lifecycle_cycles_v1');
+  // Feature flags
   const checklistEnabled = featureFlagService.isEnabled('stage_checklist_v1');
   const contextSnapshotEnabled = featureFlagService.isEnabled('stage_context_snapshot_v1');
-  const contextNewTabEnabled = featureFlagService.isEnabled('stage_context_open_newtab_v1');
 
-  console.log('UnifiedStageDialog feature flags:', {
-    lifecycleCyclesEnabled,
-    checklistEnabled, 
-    contextSnapshotEnabled,
-    caseId,
-    isOpen
-  });
-
-  // State management
+  // State
   const [lifecycleState, setLifecycleState] = useState<LifecycleState | null>(null);
   const [transitionType, setTransitionType] = useState<TransitionType>('Forward');
   const [selectedStage, setSelectedStage] = useState('');
   const [comments, setComments] = useState('');
   const [orderDetails, setOrderDetails] = useState<Partial<OrderDetails>>({});
   const [isProcessing, setIsProcessing] = useState(false);
-  const [checklistOverrides, setChecklistOverrides] = useState<Record<string, string>>({});
-  const [attestingItems, setAttestingItems] = useState<Set<string>>(new Set());
-  const [overrideModal, setOverrideModal] = useState<{ 
-    isOpen: boolean; 
-    itemKey: string; 
-    itemLabel: string;
-    note: string;
-  }>({
-    isOpen: false,
-    itemKey: '',
-    itemLabel: '',
-    note: ''
-  });
-  const [inlineContextOpen, setInlineContextOpen] = useState(false);
-  const [matterType, setMatterType] = useState<MatterType>('Scrutiny');
-  const [tribunalBench, setTribunalBench] = useState<'State Bench' | 'Principal Bench'>('State Bench');
-  const { toast } = useToast();
-  
-  // Compute effective stage with fallback
-  const effectiveStage = currentStage || state.cases.find(c => c.id === caseId)?.currentStage || 'Assessment';
+
+  const caseData = state.cases.find(c => c.id === caseId);
+  const effectiveStage = currentStage || caseData?.currentStage || 'Assessment';
   const canonicalStage = normalizeStage(effectiveStage);
-
-  // Load lifecycle data
-  useEffect(() => {
-    if (isOpen && caseId && lifecycleCyclesEnabled) {
-      loadLifecycleData();
-    }
-  }, [isOpen, caseId, lifecycleCyclesEnabled]);
-
-  const loadLifecycleData = async () => {
-    if (!caseId) return;
-    
-    console.log('Loading lifecycle data for case:', caseId);
-    
-    try {
-      const data = await lifecycleService.getLifecycle(caseId);
-      console.log('Lifecycle data loaded:', data);
-      setLifecycleState(data);
-    } catch (error) {
-      console.error('Failed to load lifecycle data:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load case lifecycle data",
-        variant: "destructive"
-      });
-    }
-  };
-
-  // Get available stages based on transition type (already computed canonicalStage above)
   const availableStages = lifecycleService.getAvailableStages(canonicalStage, transitionType);
 
-  // Auto-route based on Tribunal Bench selection
   useEffect(() => {
-    if (currentStage === 'Tribunal' && transitionType === 'Forward') {
-      if (tribunalBench === 'Principal Bench') {
-        setSelectedStage('Supreme Court');
-      } else if (tribunalBench === 'State Bench' && selectedStage === 'Supreme Court') {
-        // Reset to High Court if user switches back to State Bench
-        setSelectedStage('High Court');
+    const loadLifecycle = async () => {
+      if (!caseId || !isOpen) return;
+      try {
+        const lifecycle = await lifecycleService.getLifecycle(caseId);
+        setLifecycleState(lifecycle);
+      } catch (error) {
+        console.error('Failed to load lifecycle:', error);
       }
-    }
-  }, [tribunalBench, currentStage, transitionType, selectedStage]);
+    };
+    loadLifecycle();
+  }, [caseId, isOpen]);
 
-  // Validate transition based on checklist
-  const validation = lifecycleState?.checklistItems ? 
-    lifecycleService.validateTransition(lifecycleState.checklistItems, transitionType) :
-    { isValid: true, missingItems: [] };
-
-  // Check if order details are required
-  const requiresOrderDetails = ['Send Back', 'Remand'].includes(transitionType);
-
-  // Validate order details completeness
-  const orderDetailsValid = !requiresOrderDetails || (
-    orderDetails.reasonEnum && 
-    orderDetails.orderNo && 
-    orderDetails.orderDate
-  );
-
-  const canProceed = selectedStage && 
-    (validation.isValid || transitionType !== 'Forward') && 
-    orderDetailsValid;
-
-  const handleTransitionTypeChange = (value: TransitionType) => {
-    setTransitionType(value);
-    setSelectedStage('');
-    setOrderDetails({});
-  };
-
-  const handleAttestItem = async (itemKey: string) => {
-    if (!lifecycleState?.checklistItems || attestingItems.has(itemKey)) return;
-    
-    const item = lifecycleState.checklistItems.find(i => i.itemKey === itemKey);
-    if (!item || item.ruleType !== 'manual' || item.status !== 'Pending') return;
-
-    setAttestingItems(prev => new Set(prev).add(itemKey));
-    
-    try {
-      await lifecycleService.attestChecklistItem(itemKey);
-      
-      // Update local state immediately for better UX
-      setLifecycleState(prev => prev ? {
-        ...prev,
-        checklistItems: prev.checklistItems.map(i => 
-          i.itemKey === itemKey 
-            ? { ...i, status: 'Attested', attestedBy: 'current-user', attestedAt: new Date().toISOString() }
-            : i
-        )
-      } : prev);
-      
-      toast({
-        title: "Item Attested",
-        description: `${item.label} has been marked as completed`
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to attest checklist item",
-        variant: "destructive"
-      });
-    } finally {
-      setAttestingItems(prev => {
-        const next = new Set(prev);
-        next.delete(itemKey);
-        return next;
-      });
-    }
-  };
-
-  const handleOverrideItem = async (itemKey: string, note: string) => {
-    if (!lifecycleState?.checklistItems) return;
-    
-    const item = lifecycleState.checklistItems.find(i => i.itemKey === itemKey);
-    if (!item) return;
-
-    try {
-      await lifecycleService.overrideChecklistItem(itemKey, note);
-      
-      // Update local state immediately
-      setLifecycleState(prev => prev ? {
-        ...prev,
-        checklistItems: prev.checklistItems.map(i => 
-          i.itemKey === itemKey 
-            ? { ...i, status: 'Override', attestedBy: 'current-user', attestedAt: new Date().toISOString(), note }
-            : i
-        )
-      } : prev);
-      
-      toast({
-        title: "Item Overridden",
-        description: `${item.label} has been overridden with justification`
-      });
-      
-      setOverrideModal({ isOpen: false, itemKey: '', itemLabel: '', note: '' });
-    } catch (error) {
-      toast({
-        title: "Error", 
-        description: "Failed to override checklist item",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleSubmit = async () => {
+  const handleTransition = async () => {
     if (!caseId || !selectedStage || isProcessing) return;
-
     setIsProcessing(true);
-
     try {
-      // Process checklist overrides
-      const overrides = Object.entries(checklistOverrides).map(([itemKey, note]) => ({
-        itemKey,
-        note
-      }));
-
       await lifecycleService.createTransition({
         caseId,
-        type: transitionType,
-        toStageKey: selectedStage,
-        comments,
-        checklistOverrides: overrides,
-        orderDetails: requiresOrderDetails ? orderDetails as OrderDetails : undefined,
-        dispatch
-      });
+        fromStage: canonicalStage,
+        toStage: selectedStage,
+        transitionType,
+        notes: comments,
+      }, dispatch);
 
-      if (onStageUpdated) {
-        onStageUpdated({ 
-          stage: selectedStage, 
-          type: transitionType,
-          caseId: caseId,
-          updatedAt: new Date().toISOString()
-        });
-      }
-
+      toast({ title: "Success", description: `Case moved to ${selectedStage}` });
+      onStageUpdated?.({ currentStage: selectedStage });
       onClose();
-      resetForm();
-    } catch (error) {
-      console.error('Stage transition failed:', error);
-      toast({
-        title: "Error",
-        description: "Failed to process stage transition",
-        variant: "destructive"
-      });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Failed to update stage", variant: "destructive" });
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const resetForm = () => {
-    setTransitionType('Forward');
-    setSelectedStage('');
-    setComments('');
-    setOrderDetails({});
-    setChecklistOverrides({});
-    setAttestingItems(new Set());
-    setMatterType('Scrutiny');
-    setTribunalBench('State Bench');
-  };
-
-  const getCycleDisplay = () => {
-    if (!lifecycleState?.currentInstance) return '';
-    return ` (C${lifecycleState.currentInstance.cycleNo})`;
-  };
-
-  const getTransitionButtonLabel = () => {
-    switch (transitionType) {
-      case 'Forward': return 'Advance Stage';
-      case 'Send Back': return 'Send Back';
-      case 'Remand': return 'Remand Case';
-      default: return 'Process';
-    }
-  };
-
-  // Fallback to basic dialog if feature flags are disabled
-  if (!lifecycleCyclesEnabled) {
-    return (
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Feature Not Available</DialogTitle>
-          </DialogHeader>
-          <p>Cyclic lifecycle management is not enabled. Please contact your administrator.</p>
-          <Button onClick={onClose} className="mt-4">Close</Button>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
   return (
-    <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <div className="flex items-center justify-between">
-              <DialogTitle>Manage Case Stage</DialogTitle>
-              {/* Context Integration */}
-              {contextSnapshotEnabled && caseId && (
-                <>
-                  {contextNewTabEnabled ? (
-                    <ContextSplitButton
-                      caseId={caseId}
-                      stageInstanceId={lifecycleState?.currentInstance?.id || 'temp-instance-id'}
-                      onOpenInline={() => setInlineContextOpen(!inlineContextOpen)}
-                      isInlineOpen={inlineContextOpen}
-                    />
-                  ) : (
-                    <ContextPanel 
-                      caseId={caseId}
-                      stageInstanceId={lifecycleState?.currentInstance?.id || 'temp-instance-id'}
-                    />
-                  )}
-                </>
-              )}
-            </div>
-          </DialogHeader>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            Manage Case Stage
+          </DialogTitle>
+          <DialogDescription>Transition the case through its lifecycle</DialogDescription>
+        </DialogHeader>
 
-          <div className="space-y-6">
-            {/* Current Stage Header */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  Current Stage
-                  <Badge variant="outline">
-                    {effectiveStage}{getCycleDisplay()}
-                  </Badge>
-                  <Badge 
-                    variant={lifecycleState?.currentInstance?.status === 'Active' ? 'default' : 'secondary'}
+        <div className="space-y-4 overflow-y-auto max-h-[60vh] px-1">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">Current Stage</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Badge variant="secondary">{effectiveStage}</Badge>
+            </CardContent>
+          </Card>
+
+          <div className="space-y-2">
+            <Label>Transition Type *</Label>
+            <div className="grid grid-cols-3 gap-3">
+              {transitionTypeOptions.map((option) => {
+                const Icon = option.icon;
+                return (
+                  <Card 
+                    key={option.value}
+                    className={`cursor-pointer ${transitionType === option.value ? 'border-primary' : ''}`}
+                    onClick={() => setTransitionType(option.value)}
                   >
-                    {lifecycleState?.currentInstance?.status || 'Active'}
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-            </Card>
-
-            {/* Transition Type Selection */}
-            <div className="space-y-3">
-              <Label>Transition Type</Label>
-              <RadioGroup 
-                value={transitionType} 
-                onValueChange={handleTransitionTypeChange}
-                className="grid grid-cols-3 gap-4"
-              >
-                {transitionTypeOptions.map(option => {
-                  const Icon = option.icon;
-                  return (
-                    <div key={option.value}>
-                      <RadioGroupItem
-                        value={option.value}
-                        id={option.value}
-                        className="peer sr-only"
-                      />
-                      <Label
-                        htmlFor={option.value}
-                        className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
-                      >
-                        <Icon className="h-6 w-6 mb-2" />
-                        <div className="font-medium">{option.label}</div>
-                        <div className="text-xs text-muted-foreground text-center">
-                          {option.description}
-                        </div>
-                      </Label>
-                    </div>
-                  );
-                })}
-              </RadioGroup>
-            </div>
-
-            {/* Next Stage Selection */}
-            <div className="space-y-2">
-              <Label htmlFor="nextStage">
-                {transitionType === 'Remand' ? 'Restart Stage' : 'Next Stage'}
-              </Label>
-              <Select 
-                value={selectedStage} 
-                onValueChange={setSelectedStage}
-                disabled={currentStage === 'Tribunal' && tribunalBench === 'Principal Bench'}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={`Select ${transitionType.toLowerCase()} stage`} />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableStages.map(stage => (
-                    <SelectItem key={stage} value={stage}>
-                      {stage}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {availableStages.length === 0 && canonicalStage && (
-                <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
-                    No stages available. Current stage '{effectiveStage}' is not recognized or is the final stage.
-                  </AlertDescription>
-                </Alert>
-              )}
-              {currentStage === 'Tribunal' && tribunalBench === 'Principal Bench' && (
-                <Alert className="border-blue-500/50 bg-blue-500/10">
-                  <Info className="h-4 w-4 text-blue-600" />
-                  <AlertDescription className="text-sm">
-                    Principal Bench cases route directly to Supreme Court
-                  </AlertDescription>
-                </Alert>
-              )}
-            </div>
-
-            {/* Matter Type Selector - shown when advancing TO Assessment */}
-            {selectedStage === 'Assessment' && (
-              <Card className="border-primary/20">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <Info className="h-4 w-4" />
-                    Matter Type
-                    <Badge variant="outline">Required</Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Select value={matterType} onValueChange={(val: MatterType) => setMatterType(val)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select matter type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MATTER_TYPES.map(type => (
-                        <SelectItem key={type} value={type}>
-                          {type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Tribunal Bench Selector - shown when advancing FROM Tribunal */}
-            {currentStage === 'Tribunal' && transitionType === 'Forward' && (
-              <Card className="border-primary/20">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <Info className="h-4 w-4" />
-                    Tribunal Bench
-                    <Badge variant="outline">Required</Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Select value={tribunalBench} onValueChange={(val: 'State Bench' | 'Principal Bench') => setTribunalBench(val)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select tribunal bench" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="State Bench">
-                        State Bench → High Court
-                      </SelectItem>
-                      <SelectItem value="Principal Bench">
-                        Principal Bench → Supreme Court
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  
-                  {tribunalBench === 'Principal Bench' && (
-                    <Alert className="border-amber-500/50 bg-amber-500/10">
-                      <AlertTriangle className="h-4 w-4 text-amber-600" />
-                      <AlertDescription className="text-sm">
-                        ⚠️ Principal Bench will route directly to Supreme Court (skips High Court)
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Stage Checklist (for Forward transitions) */}
-            {checklistEnabled && transitionType === 'Forward' && lifecycleState?.checklistItems && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4" />
-                    Stage Checklist
-                    {!validation.isValid && (
-                      <Badge variant="destructive">
-                        {validation.missingItems.length} Required
-                      </Badge>
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Item</TableHead>
-                        <TableHead>Required</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {lifecycleState.checklistItems.map(item => (
-                        <TableRow key={item.id}>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <span>{item.label}</span>
-                              {/* Context Info Icon */}
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
-                                  </TooltipTrigger>
-                                  <TooltipContent side="right" className="max-w-xs">
-                                    <div className="text-xs space-y-1">
-                                      <div className="font-medium">Context:</div>
-                                      <div>
-                                        {item.ruleType === 'auto_dms' && 'Checks document status in DMS'}
-                                        {item.ruleType === 'auto_hearing' && 'Validates hearing completion'}
-                                        {item.ruleType === 'auto_field' && 'Validates required case data'}
-                                        {item.ruleType === 'manual' && 'Requires manual attestation'}
-                                      </div>
-                                      {item.note && (
-                                        <div className="text-muted-foreground">
-                                          Note: {item.note}
-                                        </div>
-                                      )}
-                                    </div>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {item.required && <Badge variant="outline">Required</Badge>}
-                          </TableCell>
-                          <TableCell>
-                            <Badge 
-                              variant={
-                                item.status === 'Auto✓' ? 'default' :
-                                item.status === 'Attested' ? 'default' :
-                                item.status === 'Override' ? 'secondary' :
-                                'outline'
-                              }
-                            >
-                              {item.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {item.status === 'Pending' && item.ruleType === 'manual' && (
-                              <div className="flex gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleAttestItem(item.itemKey)}
-                                  disabled={attestingItems.has(item.itemKey)}
-                                >
-                                  {attestingItems.has(item.itemKey) ? (
-                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                  ) : (
-                                    <CheckCircle className="h-3 w-3 mr-1" />
-                                  )}
-                                  {attestingItems.has(item.itemKey) ? 'Attesting...' : 'Attest'}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => setOverrideModal({
-                                    isOpen: true,
-                                    itemKey: item.itemKey,
-                                    itemLabel: item.label,
-                                    note: ''
-                                  })}
-                                >
-                                  <Shield className="h-3 w-3 mr-1" />
-                                  Override
-                                </Button>
-                              </div>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Order Details (for Send Back/Remand) */}
-            {requiresOrderDetails && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Order Details
-                    <Badge variant="destructive">Mandatory</Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="reason">Reason</Label>
-                      <Select 
-                        value={orderDetails.reasonEnum || ''} 
-                        onValueChange={(value: ReasonEnum) => 
-                          setOrderDetails(prev => ({ ...prev, reasonEnum: value }))
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select reason" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {reasonOptions.map(reason => (
-                            <SelectItem key={reason} value={reason}>
-                              {reason}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="orderNo">Order Number</Label>
-                      <Input
-                        id="orderNo"
-                        placeholder="Enter order number"
-                        value={orderDetails.orderNo || ''}
-                        onChange={e => setOrderDetails(prev => ({ ...prev, orderNo: e.target.value }))}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="orderDate">Order Date</Label>
-                    <Input
-                      id="orderDate"
-                      type="date"
-                      value={orderDetails.orderDate || ''}
-                      onChange={e => setOrderDetails(prev => ({ ...prev, orderDate: e.target.value }))}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="reasonText">Additional Notes</Label>
-                    <Textarea
-                      id="reasonText"
-                      placeholder="Provide additional details..."
-                      value={orderDetails.reasonText || ''}
-                      onChange={e => setOrderDetails(prev => ({ ...prev, reasonText: e.target.value }))}
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Attach Order PDF</Label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="file"
-                        accept=".pdf"
-                        onChange={e => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            setOrderDetails(prev => ({ ...prev, attachedFile: file }));
-                          }
-                        }}
-                      />
-                      <Upload className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Comments */}
-            <div className="space-y-2">
-              <Label htmlFor="comments">Comments (Optional)</Label>
-              <Textarea
-                id="comments"
-                placeholder="Add notes about this transition..."
-                value={comments}
-                onChange={e => setComments(e.target.value)}
-                rows={3}
-              />
-            </div>
-
-            {/* Validation Warnings */}
-            {!validation.isValid && transitionType === 'Forward' && (
-              <Card className="border-destructive">
-                <CardContent className="pt-4">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="h-4 w-4 text-destructive mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium">Cannot advance stage</p>
-                      <p className="text-xs text-muted-foreground">
-                        The following required items must be completed:
-                      </p>
-                      <ul className="text-xs text-muted-foreground mt-1 ml-4">
-                        {validation.missingItems.map((item, index) => (
-                          <li key={index}>• {item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          <Separator className="my-4" />
-
-          {/* Actions */}
-          <div className="flex justify-between">
-            <Button variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            
-            <Button 
-              onClick={handleSubmit}
-              disabled={!canProceed || isProcessing}
-              className="min-w-32"
-            >
-              {isProcessing ? 'Processing...' : getTransitionButtonLabel()}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Override Reason Modal */}
-      <Dialog open={overrideModal.isOpen} onOpenChange={(open) => 
-        setOverrideModal(prev => ({ ...prev, isOpen: open }))
-      }>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Override Checklist Item</DialogTitle>
-            <DialogDescription>
-              Provide a reason for overriding: {overrideModal.itemLabel}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="overrideReason">Justification</Label>
-              <Textarea
-                id="overrideReason"
-                placeholder="Explain why this item is being overridden..."
-                value={overrideModal.note}
-                onChange={(e) => setOverrideModal(prev => ({
-                  ...prev,
-                  note: e.target.value
-                }))}
-                rows={3}
-              />
+                    <CardContent className="p-3">
+                      <Icon className="h-4 w-4 mb-1" />
+                      <p className="font-medium text-sm">{option.label}</p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           </div>
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setOverrideModal({ isOpen: false, itemKey: '', itemLabel: '', note: '' })}
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={() => {
-                if (overrideModal.note?.trim()) {
-                  handleOverrideItem(overrideModal.itemKey, overrideModal.note.trim());
-                }
-              }}
-              disabled={!overrideModal.note?.trim()}
-            >
-              Override Item
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+
+          <div className="space-y-2">
+            <Label>Next Stage *</Label>
+            <Select value={selectedStage} onValueChange={setSelectedStage}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select stage..." />
+              </SelectTrigger>
+              <SelectContent className="z-[300] bg-popover">
+                {availableStages.map((stage) => (
+                  <SelectItem key={stage} value={stage}>{stage}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Notes</Label>
+            <Textarea
+              placeholder="Add notes..."
+              value={comments}
+              onChange={(e) => setComments(e.target.value)}
+              rows={3}
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={handleTransition} disabled={!selectedStage || isProcessing}>
+            {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
+            Confirm
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };

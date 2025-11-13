@@ -1,0 +1,67 @@
+{
+  "transitionType": {
+    "title": "Stage Transition Type",
+    "content": "Choose how to move this case through its lifecycle: Forward advances to the next stage, Send Back returns to a previous stage for corrections, and Remand/Reopen restarts the current stage workflow.",
+    "learnMoreUrl": "https://docs.example.com/case-lifecycle"
+  },
+  "forward": {
+    "title": "Forward Stage Transition",
+    "content": "Advances the case to the next stage in the lifecycle after completing all required prerequisites and checklist items.",
+    "learnMoreUrl": "https://docs.example.com/forward-stage"
+  },
+  "sendBack": {
+    "title": "Send Back to Previous Stage",
+    "content": "Returns the case to an earlier stage when corrections or additional work is needed. Requires a reason for the reversal.",
+    "learnMoreUrl": "https://docs.example.com/send-back"
+  },
+  "remand": {
+    "title": "Remand/Reopen Stage",
+    "content": "Restarts the current stage workflow when new information requires re-processing without moving to a different stage.",
+    "learnMoreUrl": "https://docs.example.com/remand-stage"
+  },
+  "currentStage": {
+    "title": "Current Case Stage",
+    "content": "The stage where this case currently resides in its lifecycle. Each stage has specific requirements and timelines.",
+    "learnMoreUrl": "https://docs.example.com/case-stages"
+  },
+  "nextStage": {
+    "title": "Next Stage Selection",
+    "content": "Select the target stage for this transition. Available stages depend on the current stage and transition type selected.",
+    "learnMoreUrl": "https://docs.example.com/stage-progression"
+  },
+  "stageComments": {
+    "title": "Stage Transition Notes",
+    "content": "Document the reason for this stage transition, any important context, decisions made, or instructions for the next stage owner. This creates an audit trail.",
+    "learnMoreUrl": "https://docs.example.com/documentation-best-practices"
+  },
+  "prerequisites": {
+    "title": "Stage Prerequisites",
+    "content": "Required conditions that must be met before advancing to the next stage. These ensure compliance and completeness of case work.",
+    "learnMoreUrl": "https://docs.example.com/prerequisites"
+  },
+  "checklist": {
+    "title": "Stage Checklist",
+    "content": "Tasks and requirements that must be completed for this stage transition. Some items can be manually attested or overridden with proper justification.",
+    "learnMoreUrl": "https://docs.example.com/checklists"
+  },
+  "checklistItem": {
+    "title": "Checklist Item",
+    "content": "Individual requirement for stage completion. Auto-checked items are verified by the system. Manual items require your attestation.",
+    "learnMoreUrl": "https://docs.example.com/checklist-items"
+  },
+  "orderDetails": {
+    "title": "Order Details",
+    "content": "Enter information about the court order, including order number, date, and key provisions. This information is critical for compliance tracking.",
+    "learnMoreUrl": "https://docs.example.com/order-tracking"
+  },
+  "reasonForSendBack": {
+    "title": "Reason for Reversal",
+    "content": "Select the primary reason why this case is being sent back to an earlier stage. This helps track quality issues and process improvements.",
+    "learnMoreUrl": "https://docs.example.com/send-back-reasons"
+  },
+  "caseDetails": {
+    "title": "Case Information",
+    "content": "Summary of key case information including case number, title, client, and current assignment. Review before making stage transitions.",
+    "learnMoreUrl": "https://docs.example.com/case-details"
+  }
+}

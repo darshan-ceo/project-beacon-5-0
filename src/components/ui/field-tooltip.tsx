@@ -410,6 +410,36 @@ Use 'Inactive' for merged Commissioner Appeals offices or abolished authorities 
       content: 'Add any additional information relevant to the hearing such as special instructions, preparation reminders, or case-specific details.',
       learnMoreUrl: '/help/hearings/preparation'
     }
+  },
+  'stage-management': {
+    'transition-type': {
+      title: 'Stage Transition Type',
+      content: 'Choose how to move this case: Forward (advance), Send Back (corrections needed), or Remand (restart current stage).',
+    },
+    'current-stage': {
+      title: 'Current Case Stage',
+      content: 'The stage where this case currently resides. Each stage has specific requirements and SLA timelines.',
+    },
+    'next-stage': {
+      title: 'Next Stage Selection',
+      content: 'Select the target stage. Available options depend on current stage and transition type.',
+    },
+    'stage-comments': {
+      title: 'Stage Transition Notes',
+      content: 'Document the reason for this transition, key decisions, and instructions for next stage owner.',
+    },
+    'prerequisites': {
+      title: 'Stage Prerequisites',
+      content: 'Required conditions that must be met before stage advancement. Ensures compliance and work completeness.',
+    },
+    'checklist-item': {
+      title: 'Checklist Requirement',
+      content: 'Task or requirement for stage completion. Auto-checked by system or requires manual attestation.',
+    },
+    'reason-send-back': {
+      title: 'Reason for Reversal',
+      content: 'Select why this case is returning to an earlier stage. Helps track quality and process improvements.',
+    },
   }
 };
 
