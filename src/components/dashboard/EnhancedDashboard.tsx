@@ -23,12 +23,14 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
 } from '@dnd-kit/core';
 import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
-  rectSortingStrategy,
+  rectSwappingStrategy,
 } from '@dnd-kit/sortable';
 
 const STORAGE_KEY = 'dashboard_user_tiles';
@@ -38,6 +40,7 @@ export const EnhancedDashboard: React.FC = () => {
   const { hasPermission } = useRBAC();
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [selectedTiles, setSelectedTiles] = useState<string[]>([]);
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
 
   // Load user preferences from localStorage
   useEffect(() => {
@@ -81,18 +84,33 @@ export const EnhancedDashboard: React.FC = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newSelection));
   };
 
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveDragId(event.active.id as string);
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    
+    setActiveDragId(null); // Clear active drag
 
     if (over && active.id !== over.id) {
+      // Find indices in the visible sorted tiles
       const oldIndex = sortedTiles.findIndex((tile) => tile.id === active.id);
       const newIndex = sortedTiles.findIndex((tile) => tile.id === over.id);
 
-      const reorderedTiles = arrayMove(sortedTiles, oldIndex, newIndex);
-      const reorderedIds = reorderedTiles.map((tile) => tile.id);
+      // Reorder the visible tiles
+      const reorderedVisibleTiles = arrayMove(sortedTiles, oldIndex, newIndex);
+      const reorderedVisibleIds = reorderedVisibleTiles.map((tile) => tile.id);
       
-      setSelectedTiles(reorderedIds);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(reorderedIds));
+      // Preserve non-visible selected tiles and merge with reordered visible ones
+      const nonVisibleTileIds = selectedTiles.filter(
+        id => !sortedTiles.some(tile => tile.id === id)
+      );
+      
+      const finalOrder = [...reorderedVisibleIds, ...nonVisibleTileIds];
+      
+      setSelectedTiles(finalOrder);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(finalOrder));
     }
   };
 
@@ -133,11 +151,12 @@ export const EnhancedDashboard: React.FC = () => {
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
         <SortableContext
           items={sortedTiles.map((tile) => tile.id)}
-          strategy={rectSortingStrategy}
+          strategy={rectSwappingStrategy}
         >
           <motion.div
             initial={{ opacity: 0 }}
@@ -145,19 +164,26 @@ export const EnhancedDashboard: React.FC = () => {
             transition={{ delay: 0.1 }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
           >
-            {sortedTiles.map((tile, index) => (
-              <motion.div
+            {sortedTiles.map((tile) => (
+              <div
                 key={tile.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
                 className={tile.id === 'casesByStage' || tile.id === 'caseAgingSummary' ? 'md:col-span-2' : ''}
               >
                 <DashboardWidget tile={tile} />
-              </motion.div>
+              </div>
             ))}
           </motion.div>
         </SortableContext>
+        
+        <DragOverlay>
+          {activeDragId ? (
+            <div className="opacity-50">
+              <DashboardWidget 
+                tile={sortedTiles.find(t => t.id === activeDragId)!} 
+              />
+            </div>
+          ) : null}
+        </DragOverlay>
       </DndContext>
 
       {/* Customization Modal */}
