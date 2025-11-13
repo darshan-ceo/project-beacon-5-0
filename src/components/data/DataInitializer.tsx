@@ -4,6 +4,7 @@ import { useAppState } from '@/contexts/AppStateContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { normalizeStage } from '@/utils/stageUtils';
 
 /**
  * DataInitializer Component
@@ -107,7 +108,7 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           ...c,
           caseNumber: c.case_number || c.caseNumber,
           clientId: c.client_id || c.clientId,
-          currentStage: c.current_stage || c.currentStage,
+          currentStage: normalizeStage(c.stage_code || c.current_stage || c.currentStage || 'Assessment'),
           timelineBreachStatus: c.timeline_breach_status || c.timelineBreachStatus,
           assignedToId: c.assigned_to || c.assigned_to_id || c.assignedToId,
           assignedToName: c.assigned_to_name || c.assignedToName,
