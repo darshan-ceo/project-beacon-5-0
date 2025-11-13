@@ -94,12 +94,16 @@ class LifecycleService {
 
       if (!profile) throw new Error('User profile not found');
 
-      // Get current case stage
-      const { data: caseData } = await supabase
+      // Get complete case data including all required fields
+      const { data: caseData, error: caseError } = await supabase
         .from('cases')
-        .select('stage_code')
+        .select('stage_code, case_number, client_id, assigned_to, title')
         .eq('id', request.caseId)
         .single();
+
+      if (caseError || !caseData) {
+        throw new Error(`Failed to fetch case data: ${caseError?.message || 'Case not found'}`);
+      }
 
       // Save transition to database
       const { data: savedTransition, error: insertError } = await supabase
@@ -139,12 +143,16 @@ class LifecycleService {
         const slaStatus = request.toStageKey === 'Adjudication' ? 'Amber' : 
                          request.toStageKey === 'High Court' ? 'Green' : 'Green';
 
-        const oldStage = 'Unknown'; // Would be retrieved from current case state in real implementation
+        const oldStage = caseData.stage_code || 'Unknown';
         
         request.dispatch({
           type: 'UPDATE_CASE',
           payload: {
             id: request.caseId,
+            caseNumber: caseData.case_number,
+            title: caseData.title,
+            clientId: caseData.client_id,
+            assignedToId: caseData.assigned_to,
             currentStage: request.toStageKey as 'Assessment' | 'Adjudication' | 'First Appeal' | 'Tribunal' | 'High Court' | 'Supreme Court',
             slaStatus: slaStatus as 'Green' | 'Amber' | 'Red',
             lastUpdated: new Date().toISOString()
@@ -153,19 +161,30 @@ class LifecycleService {
 
         // Trigger stage transition automation (Templates + Bundles)
         try {
-          // Mock case data - in real implementation, this would be fetched
-          const caseData = {
+          // Fetch assigned user name for automation
+          let assignedToName = 'Unassigned';
+          if (caseData.assigned_to) {
+            const { data: assignedUser } = await supabase
+              .from('profiles')
+              .select('full_name')
+              .eq('id', caseData.assigned_to)
+              .single();
+            assignedToName = assignedUser?.full_name || 'Unknown User';
+          }
+
+          // Use real case data for automation
+          const automationCaseData = {
             id: request.caseId,
-            caseNumber: `CASE-${request.caseId.slice(-4)}`,
-            clientId: 'client-1',
-            assignedToId: 'emp-1',
-            assignedToName: 'Current User',
+            caseNumber: caseData.case_number,
+            clientId: caseData.client_id,
+            assignedToId: caseData.assigned_to,
+            assignedToName,
             currentStage: request.toStageKey
           };
           
           // Process task templates automation
           const templateResult = await stageTransitionService.processStageTransition(
-            caseData,
+            automationCaseData,
             oldStage,
             request.toStageKey as GSTStage,
             request.dispatch
@@ -173,7 +192,7 @@ class LifecycleService {
           
           // Process task bundles automation
           const bundleResult = await taskBundleTriggerService.triggerTaskBundles(
-            caseData,
+            automationCaseData,
             'OnStageEnter',
             request.toStageKey as GSTStage,
             request.dispatch
@@ -198,7 +217,7 @@ class LifecycleService {
 
       toast({
         title: "Stage Transition Created",
-        description: `Successfully ${request.type.toLowerCase()}ed case to ${request.toStageKey}`
+        description: `Successfully ${request.type?.toLowerCase() || 'moved'} case to ${request.toStageKey}`
       });
 
       return transition;
