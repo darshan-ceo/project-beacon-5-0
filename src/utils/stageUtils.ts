@@ -24,13 +24,21 @@ const CODE_MAP: Record<string, CaseStage> = {
 
 // Legacy stage mapping for backward compatibility
 export const LEGACY_STAGE_MAP: Record<string, CaseStage> = {
+  // Original legacy mappings
   'Scrutiny': 'Assessment',  // Legacy: Scrutiny renamed to Assessment
   'Demand': 'Adjudication',
   'Appeals': 'First Appeal',
   'GSTAT': 'Tribunal',
   'CESTAT': 'Tribunal',
   'HC': 'High Court',
-  'SC': 'Supreme Court'
+  'SC': 'Supreme Court',
+  
+  // Workflow sub-step mappings (legacy from pre-migration)
+  'NOTICE_RECEIVED': 'Assessment',      // Initial notice → Assessment stage
+  'REPLY_FILED': 'Adjudication',         // Reply submitted → Adjudication stage
+  'HEARING_SCHEDULED': 'Adjudication',   // Hearing scheduled → Adjudication stage
+  'ORDER_PENDING': 'Adjudication',       // Awaiting order → Adjudication stage
+  'APPEAL_FILED': 'First Appeal',        // Appeal filed → First Appeal stage
 };
 
 // Stage aliases for UI display
@@ -58,8 +66,14 @@ export function normalizeStage(stage: string): string {
     return CODE_MAP[stage];
   }
   
-  // Map legacy to canonical
-  return LEGACY_STAGE_MAP[stage] || stage;
+  // Map legacy/workflow to canonical
+  if (LEGACY_STAGE_MAP[stage]) {
+    return LEGACY_STAGE_MAP[stage];
+  }
+  
+  // Final safety fallback for any unrecognized stage
+  console.warn(`[normalizeStage] Unrecognized stage "${stage}", defaulting to Assessment`);
+  return 'Assessment';
 }
 
 /**
