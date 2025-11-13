@@ -112,11 +112,11 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
     try {
       await lifecycleService.createTransition({
         caseId,
-        fromStage: canonicalStage,
-        toStage: selectedStage,
-        transitionType,
-        notes: comments,
-      }, dispatch);
+        type: transitionType,
+        toStageKey: selectedStage,
+        comments: comments,
+        dispatch: dispatch
+      });
 
       toast({ title: "Success", description: `Case moved to ${selectedStage}` });
       onStageUpdated?.({ currentStage: selectedStage });
