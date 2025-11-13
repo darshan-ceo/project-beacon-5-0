@@ -235,6 +235,14 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
                 isInlineOpen={isInlineContextOpen}
               />
             </div>
+            {isInlineContextOpen && (
+              <div className="mt-4">
+                <ContextPanel 
+                  caseId={caseId}
+                  stageInstanceId={stageInstanceId}
+                />
+              </div>
+            )}
             <Separator className="mt-4" />
           </div>
         )}
