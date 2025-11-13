@@ -505,7 +505,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
             setShowStageModal(false);
             toast({
               title: "Stage Transition Completed",
-              description: `Case ${updatedData.type.toLowerCase()}ed successfully.`,
+              description: `Case ${updatedData.type?.toLowerCase() || 'moved'} successfully.`,
             });
           }}
         />
