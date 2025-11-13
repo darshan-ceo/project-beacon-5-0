@@ -21,6 +21,7 @@ import { featureFlagService } from '@/services/featureFlagService';
 import { contextService } from '@/services/contextService';
 import { ContextPanel } from './ContextPanel';
 import { ContextSplitButton } from './ContextSplitButton';
+import { StageTransitionHistory } from './StageTransitionHistory';
 import { lifecycleService } from '@/services/lifecycleService';
 import { TransitionType, ChecklistItem, OrderDetails, ReasonEnum, LifecycleState } from '@/types/lifecycle';
 import { MATTER_TYPES, MatterType } from '../../../config/appConfig';
@@ -148,7 +149,7 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh]">
+      <DialogContent className="max-w-5xl max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
@@ -157,7 +158,9 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
           <DialogDescription>Transition the case through its lifecycle</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 overflow-y-auto max-h-[60vh] px-1">
+        <div className="grid grid-cols-3 gap-4 overflow-y-auto max-h-[65vh] px-1">
+          {/* Left Column: Stage Transition Form */}
+          <div className="col-span-2 space-y-4">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm">Current Stage</CardTitle>
@@ -279,6 +282,12 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
               onChange={(e) => setComments(e.target.value)}
               rows={3}
             />
+          </div>
+          </div>
+
+          {/* Right Column: Stage History */}
+          <div className="col-span-1">
+            {caseId && <StageTransitionHistory caseId={caseId} />}
           </div>
         </div>
 

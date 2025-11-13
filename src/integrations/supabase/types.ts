@@ -1651,6 +1651,42 @@ export type Database = {
           },
         ]
       }
+      stage_transitions: {
+        Row: {
+          case_id: string
+          comments: string | null
+          created_at: string | null
+          created_by: string
+          from_stage: string | null
+          id: string
+          tenant_id: string
+          to_stage: string
+          transition_type: string
+        }
+        Insert: {
+          case_id: string
+          comments?: string | null
+          created_at?: string | null
+          created_by: string
+          from_stage?: string | null
+          id?: string
+          tenant_id: string
+          to_stage: string
+          transition_type: string
+        }
+        Update: {
+          case_id?: string
+          comments?: string | null
+          created_at?: string | null
+          created_by?: string
+          from_stage?: string | null
+          id?: string
+          tenant_id?: string
+          to_stage?: string
+          transition_type?: string
+        }
+        Relationships: []
+      }
       system_settings: {
         Row: {
           category: string | null

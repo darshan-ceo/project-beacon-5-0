@@ -79,16 +79,52 @@ class LifecycleService {
    */
   async createTransition(request: CreateTransitionRequest): Promise<StageTransition> {
     try {
-      // Mock implementation - replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Import supabase dynamically to avoid circular dependencies
+      const { supabase } = await import('@/integrations/supabase/client');
+      
+      // Get user and tenant info
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile) throw new Error('User profile not found');
+
+      // Get current case stage
+      const { data: caseData } = await supabase
+        .from('cases')
+        .select('stage_code')
+        .eq('id', request.caseId)
+        .single();
+
+      // Save transition to database
+      const { data: savedTransition, error: insertError } = await supabase
+        .from('stage_transitions')
+        .insert({
+          tenant_id: profile.tenant_id,
+          case_id: request.caseId,
+          from_stage: caseData?.stage_code || null,
+          to_stage: request.toStageKey,
+          transition_type: request.type,
+          comments: request.comments || null,
+          created_by: user.id
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
 
       const transition: StageTransition = {
-        id: 'tr_' + Date.now(),
+        id: savedTransition.id,
         caseId: request.caseId,
-        toStageInstanceId: 'si_' + (Date.now() + 1),
+        toStageInstanceId: 'si_' + Date.now(),
         type: request.type,
         comments: request.comments,
-        createdBy: 'current-user',
+        createdBy: user.id,
         createdAt: new Date().toISOString(),
         ...request.orderDetails && {
           reasonEnum: request.orderDetails.reasonEnum,
