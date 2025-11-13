@@ -24,6 +24,7 @@ import { ContextSplitButton } from './ContextSplitButton';
 import { lifecycleService } from '@/services/lifecycleService';
 import { TransitionType, ChecklistItem, OrderDetails, ReasonEnum, LifecycleState } from '@/types/lifecycle';
 import { MATTER_TYPES, MatterType } from '../../../config/appConfig';
+import { normalizeStage } from '@/utils/stageUtils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   ArrowRight, 
@@ -136,8 +137,9 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
     }
   };
 
-  // Get available stages based on transition type
-  const availableStages = lifecycleService.getAvailableStages(currentStage, transitionType);
+  // Get available stages based on transition type (normalize stage first)
+  const canonicalStage = normalizeStage(currentStage);
+  const availableStages = lifecycleService.getAvailableStages(canonicalStage, transitionType);
 
   // Auto-route based on Tribunal Bench selection
   useEffect(() => {
@@ -435,6 +437,14 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
                   ))}
                 </SelectContent>
               </Select>
+              {availableStages.length === 0 && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    No stages available. Current stage '{currentStage}' is not recognized. Please edit the case stage or contact admin.
+                  </AlertDescription>
+                </Alert>
+              )}
               {currentStage === 'Tribunal' && tribunalBench === 'Principal Bench' && (
                 <Alert className="border-blue-500/50 bg-blue-500/10">
                   <Info className="h-4 w-4 text-blue-600" />

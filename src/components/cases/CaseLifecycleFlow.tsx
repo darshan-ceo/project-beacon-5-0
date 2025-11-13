@@ -16,6 +16,7 @@ import { useAppState, Case, GeneratedForm } from '@/contexts/AppStateContext';
 import { casesService } from '@/services/casesService';
 import { dmsService } from '@/services/dmsService';
 import { formTemplatesService } from '@/services/formTemplatesService';
+import { normalizeStage } from '@/utils/stageUtils';
 import {
   CheckCircle,
   Clock,
@@ -116,9 +117,8 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
 
   const getCurrentStageIndex = () => {
     if (!selectedCase) return 0;
-    return lifecycleStages.findIndex(stage => 
-      stage.id === selectedCase.currentStage
-    );
+    const canonical = normalizeStage(selectedCase.currentStage);
+    return lifecycleStages.findIndex(stage => stage.id === canonical);
   };
 
   const currentStageIndex = getCurrentStageIndex();

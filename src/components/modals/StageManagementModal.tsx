@@ -10,7 +10,8 @@ import { useAppState } from '@/contexts/AppStateContext';
 import { useToast } from '@/hooks/use-toast';
 import { casesService } from '@/services/casesService';
 import { ArrowRight, Clock, AlertCircle, CheckCircle } from 'lucide-react';
-import { CASE_STAGES } from '@/utils/stageUtils';
+import { CASE_STAGES, normalizeStage } from '@/utils/stageUtils';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface StageManagementModalProps {
   isOpen: boolean;
@@ -33,7 +34,9 @@ export const StageManagementModal: React.FC<StageManagementModalProps> = ({
   const [comments, setComments] = useState('');
   const [isAdvancing, setIsAdvancing] = useState(false);
 
-  const currentStageIndex = CASE_STAGES.findIndex(s => s === currentStage);
+  // Normalize the current stage to canonical form
+  const canonicalStage = normalizeStage(currentStage);
+  const currentStageIndex = CASE_STAGES.findIndex(s => s === canonicalStage);
   const availableNextStages = currentStageIndex >= 0 ? CASE_STAGES.slice(currentStageIndex + 1) : [];
 
   const handleAdvanceStage = async () => {
@@ -117,6 +120,14 @@ export const StageManagementModal: React.FC<StageManagementModalProps> = ({
                 ))}
               </SelectContent>
             </Select>
+            {availableNextStages.length === 0 && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  No stages available. Current stage '{currentStage}' is not recognized or is the final stage.
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -137,7 +148,7 @@ export const StageManagementModal: React.FC<StageManagementModalProps> = ({
           </Button>
           <Button 
             onClick={handleAdvanceStage} 
-            disabled={!selectedNextStage || isAdvancing}
+            disabled={!selectedNextStage || isAdvancing || availableNextStages.length === 0}
           >
             <CheckCircle className="mr-2 h-4 w-4" />
             {isAdvancing ? 'Advancing...' : 'Advance Stage'}

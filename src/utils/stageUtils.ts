@@ -12,6 +12,16 @@ export const CASE_STAGES = [
 
 export type CaseStage = typeof CASE_STAGES[number];
 
+// Code mapping for database stage_code values (C1-C6)
+const CODE_MAP: Record<string, CaseStage> = {
+  'C1': 'Assessment',
+  'C2': 'Adjudication',
+  'C3': 'First Appeal',
+  'C4': 'Tribunal',
+  'C5': 'High Court',
+  'C6': 'Supreme Court'
+};
+
 // Legacy stage mapping for backward compatibility
 export const LEGACY_STAGE_MAP: Record<string, CaseStage> = {
   'Scrutiny': 'Assessment',  // Legacy: Scrutiny renamed to Assessment
@@ -35,12 +45,17 @@ export const STAGE_ALIASES: Record<CaseStage, string[]> = {
 
 /**
  * Normalize a stage name to its canonical form
- * Handles both legacy and canonical stage names
+ * Handles both legacy names, code-style (C1-C6), and canonical stage names
  */
 export function normalizeStage(stage: string): string {
   // Already canonical
   if (CASE_STAGES.includes(stage as CaseStage)) {
     return stage;
+  }
+  
+  // Check code-style stage codes (C1-C6)
+  if (CODE_MAP[stage]) {
+    return CODE_MAP[stage];
   }
   
   // Map legacy to canonical

@@ -7,7 +7,7 @@ import { StageInstance, StageTransition, ChecklistItem, TransitionType, OrderDet
 import { stageTransitionService } from './stageTransitionService';
 import { taskBundleTriggerService } from './taskBundleTriggerService';
 import { GSTStage } from '../../config/appConfig';
-import { CASE_STAGES, getNextStage } from '@/utils/stageUtils';
+import { CASE_STAGES, getNextStage, normalizeStage } from '@/utils/stageUtils';
 import { toast } from '@/hooks/use-toast';
 import React from 'react';
 
@@ -258,10 +258,13 @@ class LifecycleService {
    * Get available next stages based on transition type
    */
   getAvailableStages(currentStage: string, type: TransitionType): string[] {
-    const currentIndex = CASE_STAGES.findIndex(s => s === currentStage);
+    // Normalize the stage to canonical form first
+    const canonical = normalizeStage(currentStage);
+    const currentIndex = CASE_STAGES.findIndex(s => s === canonical);
     
     // Handle unknown stages
     if (currentIndex === -1) {
+      console.warn(`Unknown stage: ${currentStage} (normalized: ${canonical})`);
       return [];
     }
 
@@ -271,7 +274,7 @@ class LifecycleService {
       case 'Send Back':
         return [...CASE_STAGES.slice(0, currentIndex)];
       case 'Remand':
-        return [currentStage]; // Same stage, new cycle
+        return [canonical]; // Same stage, new cycle
       default:
         return [];
     }
