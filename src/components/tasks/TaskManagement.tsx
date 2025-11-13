@@ -102,6 +102,7 @@ export const TaskManagement: React.FC = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [highlightedTaskId, setHighlightedTaskId] = useState<string | null>(null);
+  const [shouldAutoOpenTask, setShouldAutoOpenTask] = useState<string | null>(null);
   const [activeFilters, setActiveFilters] = useState<Record<string, any>>({});
   const [activeTab, setActiveTab] = useState('board');
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
@@ -141,6 +142,7 @@ export const TaskManagement: React.FC = () => {
     
     if (highlight) {
       setHighlightedTaskId(highlight);
+      setShouldAutoOpenTask(highlight);
       // Auto-scroll to highlighted task after a short delay
       setTimeout(() => {
         const element = document.getElementById(`task-${highlight}`);
@@ -164,6 +166,20 @@ export const TaskManagement: React.FC = () => {
       navigationContextService.saveContext(returnContext);
     }
   }, [searchParams]);
+
+  // Auto-open task drawer when highlighted task is loaded
+  useEffect(() => {
+    if (shouldAutoOpenTask && state.tasks) {
+      // Wait for scroll to complete, then open drawer
+      setTimeout(() => {
+        const task = state.tasks.find(t => t.id === shouldAutoOpenTask);
+        if (task) {
+          setTaskModal({ isOpen: true, mode: 'view', task });
+        }
+        setShouldAutoOpenTask(null);
+      }, 800);
+    }
+  }, [shouldAutoOpenTask, state.tasks]);
 
   // Set up real-time subscription for tasks
   useEffect(() => {

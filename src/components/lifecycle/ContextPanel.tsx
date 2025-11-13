@@ -138,6 +138,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
       timestamp: Date.now()
     };
     navigationContextService.saveContext(returnContext);
+    // Navigate to case hearings tab to see all hearings
     navigate(`/cases?caseId=${caseId}&tab=hearings&returnTo=stage-management&returnCaseId=${caseId}&returnStage=${stageInstanceId}`);
   };
 
