@@ -142,7 +142,7 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
       });
 
       toast({ title: "Success", description: `Case moved to ${selectedStage}` });
-      onStageUpdated?.({ currentStage: selectedStage });
+      onStageUpdated?.({ currentStage: selectedStage, type: transitionType });
       onClose();
     } catch (error: any) {
       toast({ title: "Error", description: error.message || "Failed to update stage", variant: "destructive" });
