@@ -5,6 +5,13 @@ import { useAppState } from '@/contexts/AppStateContext';
 import { useRBAC } from '@/hooks/useAdvancedRBAC';
 import { ProtectedComponent } from '@/hooks/useAdvancedRBAC';
 import { HearingCalendar } from '@/components/cases/HearingCalendar';
+import { FollowUpsDueWidget } from '@/components/dashboard/FollowUpsDueWidget';
+import { ActiveClientsWidget } from '@/components/dashboard/ActiveClientsWidget';
+import { OpenCasesWidget } from '@/components/dashboard/OpenCasesWidget';
+import { PendingTasksWidget } from '@/components/dashboard/PendingTasksWidget';
+import { UpcomingHearingsWidget } from '@/components/dashboard/UpcomingHearingsWidget';
+import { RecentDocumentsWidget } from '@/components/dashboard/RecentDocumentsWidget';
+import { TaskCompletionWidget } from '@/components/dashboard/TaskCompletionWidget';
 import { 
   Users, 
   FileText, 
@@ -209,6 +216,24 @@ export const DashboardOverview: React.FC = () => {
             </Card>
           </motion.div>
         ))}
+      </motion.div>
+
+      {/* Live Data Widgets */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.3 }}
+      >
+        <h2 className="text-xl font-semibold text-foreground mb-4">Live Dashboard</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <FollowUpsDueWidget />
+          <ActiveClientsWidget />
+          <OpenCasesWidget />
+          <PendingTasksWidget />
+          <UpcomingHearingsWidget />
+          <RecentDocumentsWidget />
+          <TaskCompletionWidget />
+        </div>
       </motion.div>
 
       {/* Content Grid */}

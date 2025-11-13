@@ -12,9 +12,9 @@ export const FollowUpsDueWidget: React.FC = () => {
   const navigate = useNavigate();
   
   const tasksDue = state.tasks.filter(task => {
-    if (!task.currentFollowUpDate) return false;
+    if (!task.followUpDate) return false;
     try {
-      const dueDate = parseISO(task.currentFollowUpDate);
+      const dueDate = parseISO(task.followUpDate);
       return isToday(dueDate) || isPast(dueDate);
     } catch {
       return false;
@@ -23,7 +23,7 @@ export const FollowUpsDueWidget: React.FC = () => {
   
   const overdue = tasksDue.filter(t => {
     try {
-      return isPast(parseISO(t.currentFollowUpDate!)) && !isToday(parseISO(t.currentFollowUpDate!));
+      return isPast(parseISO(t.followUpDate!)) && !isToday(parseISO(t.followUpDate!));
     } catch {
       return false;
     }
