@@ -90,11 +90,15 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
   const [comments, setComments] = useState('');
   const [orderDetails, setOrderDetails] = useState<Partial<OrderDetails>>({});
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isInlineContextOpen, setIsInlineContextOpen] = useState(false);
 
   const caseData = state.cases.find(c => c.id === caseId);
   const effectiveStage = currentStage || caseData?.currentStage || 'Assessment';
   const canonicalStage = normalizeStage(effectiveStage);
   const availableStages = lifecycleService.getAvailableStages(canonicalStage, transitionType);
+  
+  // Generate temporary stage instance ID (caseId + stage combination)
+  const stageInstanceId = caseId ? `${caseId}-${effectiveStage.toLowerCase().replace(/\s+/g, '-')}` : '';
 
   // Stage descriptions for preview
   const stageDescriptions: Record<string, string> = {
@@ -157,6 +161,26 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
           </DialogTitle>
           <DialogDescription>Transition the case through its lifecycle</DialogDescription>
         </DialogHeader>
+
+        {/* Context Access Button */}
+        {caseId && (
+          <div className="px-6 pb-4">
+            <Separator className="mb-4" />
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Stage Context</p>
+                <p className="text-xs text-muted-foreground">Review tasks, hearings, docs & contacts before deciding</p>
+              </div>
+              <ContextSplitButton
+                caseId={caseId}
+                stageInstanceId={stageInstanceId}
+                onOpenInline={() => setIsInlineContextOpen(!isInlineContextOpen)}
+                isInlineOpen={isInlineContextOpen}
+              />
+            </div>
+            <Separator className="mt-4" />
+          </div>
+        )}
 
         <div className="grid grid-cols-3 gap-4 overflow-y-auto max-h-[65vh] px-1">
           {/* Left Column: Stage Transition Form */}
