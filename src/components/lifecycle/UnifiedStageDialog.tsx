@@ -38,7 +38,9 @@ import {
   Upload,
   Loader2,
   Info,
-  AlertTriangle
+  AlertTriangle,
+  MoveRight,
+  Sparkles
 } from 'lucide-react';
 
 interface UnifiedStageDialogProps {
@@ -92,6 +94,22 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
   const effectiveStage = currentStage || caseData?.currentStage || 'Assessment';
   const canonicalStage = normalizeStage(effectiveStage);
   const availableStages = lifecycleService.getAvailableStages(canonicalStage, transitionType);
+
+  // Stage descriptions for preview
+  const stageDescriptions: Record<string, string> = {
+    'Assessment': 'Initial notice review and case assessment phase',
+    'Adjudication': 'Active proceedings with hearings and submissions',
+    'First Appeal': 'First level appellate proceedings',
+    'Tribunal': 'Tribunal-level adjudication',
+    'High Court': 'High Court proceedings',
+    'Supreme Court': 'Supreme Court proceedings'
+  };
+
+  // Get transition icon
+  const getTransitionIcon = () => {
+    const option = transitionTypeOptions.find(o => o.value === transitionType);
+    return option?.icon || ArrowRight;
+  };
 
   useEffect(() => {
     const loadLifecycle = async () => {
@@ -183,6 +201,75 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
               </SelectContent>
             </Select>
           </div>
+
+          {/* Stage Progression Preview Card */}
+          {selectedStage && (
+            <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  Transition Preview
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Visual Stage Flow */}
+                <div className="flex items-center gap-3">
+                  {/* Current Stage */}
+                  <div className="flex-1 text-center">
+                    <Badge 
+                      variant="secondary" 
+                      className="mb-2 px-3 py-1.5 text-sm font-medium"
+                    >
+                      {effectiveStage}
+                    </Badge>
+                    <p className="text-xs text-muted-foreground">
+                      {stageDescriptions[canonicalStage] || 'Current stage'}
+                    </p>
+                  </div>
+
+                  {/* Transition Arrow */}
+                  <div className="flex flex-col items-center px-4">
+                    {(() => {
+                      const TransitionIcon = getTransitionIcon();
+                      return <TransitionIcon className="h-6 w-6 text-primary animate-pulse" />;
+                    })()}
+                    <span className="text-xs font-medium text-primary mt-1">
+                      {transitionType}
+                    </span>
+                  </div>
+
+                  {/* Next Stage */}
+                  <div className="flex-1 text-center">
+                    <Badge 
+                      variant="default" 
+                      className="mb-2 px-3 py-1.5 text-sm font-medium"
+                    >
+                      {selectedStage}
+                    </Badge>
+                    <p className="text-xs text-muted-foreground">
+                      {stageDescriptions[selectedStage] || 'Next stage'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Impact Notice */}
+                <Alert className="bg-background/50">
+                  <Info className="h-4 w-4" />
+                  <AlertDescription className="text-xs">
+                    {transitionType === 'Forward' && (
+                      <>This will advance the case to <strong>{selectedStage}</strong> stage. All stakeholders will be notified.</>
+                    )}
+                    {transitionType === 'Send Back' && (
+                      <>This will return the case to <strong>{selectedStage}</strong> for corrections or additional work.</>
+                    )}
+                    {transitionType === 'Remand' && (
+                      <>This will restart the <strong>{selectedStage}</strong> stage workflow from the beginning.</>
+                    )}
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+            </Card>
+          )}
 
           <div className="space-y-2">
             <Label>Notes</Label>
