@@ -275,6 +275,11 @@ export const AddressForm: React.FC<AddressFormProps> = ({
   };
 
   const isFieldRequired = (fieldName: AddressFieldName): boolean => {
+    // If required prop is explicitly false, no fields are required
+    if (required === false) {
+      return false;
+    }
+    
     if (!isAddressMasterEnabled) {
       // Legacy required fields
       return ['line1', 'cityId', 'stateId', 'countryId', 'pincode'].includes(fieldName);
@@ -331,7 +336,7 @@ export const AddressForm: React.FC<AddressFormProps> = ({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="address-line1">
-                Address Line 1 {(required || isFieldRequired('line1')) && '*'}
+                Address Line 1 {isFieldRequired('line1') && '*'}
               </Label>
               {isAddressMasterEnabled && fieldSources['line1'] && (
                 <SourceChip source={fieldSources['line1']} />
@@ -343,7 +348,7 @@ export const AddressForm: React.FC<AddressFormProps> = ({
               onChange={(e) => handleFieldChange('line1', e.target.value)}
               placeholder="Street address, building name"
               disabled={disabled || !isFieldEditable('line1')}
-              required={required || isFieldRequired('line1')}
+              required={isFieldRequired('line1')}
             />
           </div>
         )}
@@ -422,7 +427,7 @@ export const AddressForm: React.FC<AddressFormProps> = ({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="district">
-                  District {(required || isFieldRequired('district')) && '*'}
+                  District {isFieldRequired('district') && '*'}
                 </Label>
                 {isAddressMasterEnabled && fieldSources['district'] && (
                   <SourceChip source={fieldSources['district']} />
@@ -434,7 +439,7 @@ export const AddressForm: React.FC<AddressFormProps> = ({
                 onChange={(e) => handleFieldChange('district', e.target.value)}
                 placeholder="District"
                 disabled={disabled || !isFieldEditable('district')}
-                required={required || isFieldRequired('district')}
+                required={isFieldRequired('district')}
               />
             </div>
           )}
@@ -444,7 +449,7 @@ export const AddressForm: React.FC<AddressFormProps> = ({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="pincode">
-                  Pincode {(required || isFieldRequired('pincode')) && '*'}
+                  Pincode {isFieldRequired('pincode') && '*'}
                 </Label>
                 {isAddressMasterEnabled && fieldSources['pincode'] && (
                   <SourceChip source={fieldSources['pincode']} />
@@ -463,7 +468,7 @@ export const AddressForm: React.FC<AddressFormProps> = ({
                 pattern="[0-9]{6}"
                 maxLength={6}
                 disabled={disabled || !isFieldEditable('pincode')}
-                required={required || isFieldRequired('pincode')}
+                required={isFieldRequired('pincode')}
                 className={
                   value.pincode && value.pincode.length > 0 && value.pincode.length !== 6
                     ? 'border-destructive'
@@ -489,7 +494,7 @@ export const AddressForm: React.FC<AddressFormProps> = ({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="country">
-                  Country {(required || isFieldRequired('countryId')) && '*'}
+                  Country {isFieldRequired('countryId') && '*'}
                 </Label>
                 {isAddressMasterEnabled && fieldSources['countryId'] && (
                   <SourceChip source={fieldSources['countryId']} />
@@ -499,7 +504,7 @@ export const AddressForm: React.FC<AddressFormProps> = ({
                 value={value.countryId || ''}
                 onValueChange={(countryId) => loadStates(countryId)}
                 disabled={disabled || !isFieldEditable('countryId')}
-                required={required || isFieldRequired('countryId')}
+                required={isFieldRequired('countryId')}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select country" />
@@ -520,7 +525,7 @@ export const AddressForm: React.FC<AddressFormProps> = ({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="state">
-                  State {(required || isFieldRequired('stateId')) && '*'}
+                  State {isFieldRequired('stateId') && '*'}
                 </Label>
                 {isAddressMasterEnabled && fieldSources['stateId'] && (
                   <SourceChip source={fieldSources['stateId']} />
@@ -542,7 +547,7 @@ export const AddressForm: React.FC<AddressFormProps> = ({
                   loadCities(stateId);
                 }}
                 disabled={disabled || !value.countryId || !isFieldEditable('stateId')}
-                required={required || isFieldRequired('stateId')}
+                required={isFieldRequired('stateId')}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select state" />
@@ -563,7 +568,7 @@ export const AddressForm: React.FC<AddressFormProps> = ({
             <div className={`space-y-2 ${manualCityMode ? 'md:col-span-3' : ''}`}>
               <div className="flex items-center justify-between">
                 <Label htmlFor="city">
-                  City {(required || isFieldRequired('cityId')) && '*'}
+                  City {isFieldRequired('cityId') && '*'}
                 </Label>
                 {isAddressMasterEnabled && fieldSources['cityId'] && (
                   <SourceChip source={fieldSources['cityId']} />
@@ -589,7 +594,7 @@ export const AddressForm: React.FC<AddressFormProps> = ({
                     }
                   }}
                   disabled={disabled || !value.stateId || !isFieldEditable('cityId')}
-                  required={required || isFieldRequired('cityId')}
+                  required={isFieldRequired('cityId')}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder={

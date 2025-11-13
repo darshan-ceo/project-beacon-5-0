@@ -964,6 +964,7 @@ export const JudgeForm: React.FC<JudgeFormProps> = ({
             }}
             onChange={(address) => setFormData(prev => ({ ...prev, address }))}
             disabled={isReadOnly}
+            required={false}
             module="judge"
           />
         </CardContent>
