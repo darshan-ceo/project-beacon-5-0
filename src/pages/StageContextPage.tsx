@@ -66,7 +66,18 @@ const StageContextPage: React.FC = () => {
   const navigateToWorkspace = (workspace: string, params?: any) => {
     switch (workspace) {
       case 'tasks':
-        navigate('/tasks', { state: { caseId, stageInstanceId: instanceId, ...params } });
+        // Build URL with query parameters for proper task highlighting
+        const taskParams = new URLSearchParams();
+        if (params?.taskId) {
+          taskParams.set('highlight', params.taskId);
+        }
+        if (caseId) {
+          taskParams.set('caseId', caseId);
+        }
+        if (instanceId) {
+          taskParams.set('stageInstanceId', instanceId);
+        }
+        navigate(`/tasks?${taskParams.toString()}`);
         break;
       case 'hearings':
         navigate('/hearings/calendar', { state: { caseId, ...params } });
