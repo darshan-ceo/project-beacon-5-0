@@ -26,6 +26,7 @@ import { TransitionType, ChecklistItem, OrderDetails, ReasonEnum, LifecycleState
 import { MATTER_TYPES, MatterType } from '../../../config/appConfig';
 import { normalizeStage } from '@/utils/stageUtils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useAppState } from '@/contexts/AppStateContext';
 import { 
   ArrowRight, 
   ArrowLeft, 
@@ -72,6 +73,8 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
   onStageUpdated,
   dispatch
 }) => {
+  const { state } = useAppState();
+  
   // Feature flag check
   const lifecycleCyclesEnabled = featureFlagService.isEnabled('lifecycle_cycles_v1');
   const checklistEnabled = featureFlagService.isEnabled('stage_checklist_v1');
@@ -110,6 +113,10 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
   const [matterType, setMatterType] = useState<MatterType>('Scrutiny');
   const [tribunalBench, setTribunalBench] = useState<'State Bench' | 'Principal Bench'>('State Bench');
   const { toast } = useToast();
+  
+  // Compute effective stage with fallback
+  const effectiveStage = currentStage || state.cases.find(c => c.id === caseId)?.currentStage || 'Assessment';
+  const canonicalStage = normalizeStage(effectiveStage);
 
   // Load lifecycle data
   useEffect(() => {
@@ -137,8 +144,7 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
     }
   };
 
-  // Get available stages based on transition type (normalize stage first)
-  const canonicalStage = normalizeStage(currentStage);
+  // Get available stages based on transition type (already computed canonicalStage above)
   const availableStages = lifecycleService.getAvailableStages(canonicalStage, transitionType);
 
   // Auto-route based on Tribunal Bench selection
@@ -372,7 +378,7 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
                 <CardTitle className="text-sm flex items-center gap-2">
                   Current Stage
                   <Badge variant="outline">
-                    {currentStage}{getCycleDisplay()}
+                    {effectiveStage}{getCycleDisplay()}
                   </Badge>
                   <Badge 
                     variant={lifecycleState?.currentInstance?.status === 'Active' ? 'default' : 'secondary'}
@@ -437,11 +443,11 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
                   ))}
                 </SelectContent>
               </Select>
-              {availableStages.length === 0 && (
+              {availableStages.length === 0 && canonicalStage && (
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
-                    No stages available. Current stage '{currentStage}' is not recognized. Please edit the case stage or contact admin.
+                    No stages available. Current stage '{effectiveStage}' is not recognized or is the final stage.
                   </AlertDescription>
                 </Alert>
               )}

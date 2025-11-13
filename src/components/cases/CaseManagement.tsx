@@ -65,7 +65,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 
 export const CaseManagement: React.FC = () => {
-  const { state, dispatch } = useAppState();
+  const { state, dispatch, rawDispatch } = useAppState();
   const { hasPermission } = useAdvancedRBAC();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -190,10 +190,32 @@ export const CaseManagement: React.FC = () => {
         (payload) => {
           console.log('[CaseManagement] Real-time INSERT received:', payload);
           
-          const newCase = payload.new as Case;
+          const row = payload.new as any;
           
-          // Dispatch ADD_CASE action
-          dispatch({
+          // Map snake_case to camelCase
+          const newCase: Case = {
+            id: row.id,
+            caseNumber: row.case_number,
+            clientId: row.client_id,
+            currentStage: row.stage_code || row.current_stage || 'Assessment',
+            assignedToId: row.assigned_to,
+            assignedToName: row.assigned_to_name,
+            status: row.status,
+            priority: row.priority,
+            createdDate: row.created_at,
+            lastUpdated: row.updated_at,
+            title: row.title,
+            description: row.description,
+            forumId: row.forum_id,
+            authorityId: row.authority_id,
+            timelineBreachStatus: row.timeline_breach_status || 'Green',
+            documents: 0,
+            progress: 0,
+            generatedForms: []
+          };
+          
+          // Use rawDispatch to avoid re-persistence
+          rawDispatch({
             type: 'ADD_CASE',
             payload: newCase
           });
@@ -214,10 +236,32 @@ export const CaseManagement: React.FC = () => {
         (payload) => {
           console.log('[CaseManagement] Real-time UPDATE received:', payload);
           
-          const updatedCase = payload.new as Case;
+          const row = payload.new as any;
           
-          // Dispatch UPDATE_CASE action
-          dispatch({
+          // Map snake_case to camelCase
+          const updatedCase: Case = {
+            id: row.id,
+            caseNumber: row.case_number,
+            clientId: row.client_id,
+            currentStage: row.stage_code || row.current_stage || 'Assessment',
+            assignedToId: row.assigned_to,
+            assignedToName: row.assigned_to_name,
+            status: row.status,
+            priority: row.priority,
+            createdDate: row.created_at,
+            lastUpdated: row.updated_at,
+            title: row.title,
+            description: row.description,
+            forumId: row.forum_id,
+            authorityId: row.authority_id,
+            timelineBreachStatus: row.timeline_breach_status || 'Green',
+            documents: state.cases.find(c => c.id === row.id)?.documents || 0,
+            progress: state.cases.find(c => c.id === row.id)?.progress || 0,
+            generatedForms: state.cases.find(c => c.id === row.id)?.generatedForms || []
+          };
+          
+          // Use rawDispatch to avoid re-persistence loop
+          rawDispatch({
             type: 'UPDATE_CASE',
             payload: updatedCase
           });
@@ -227,10 +271,7 @@ export const CaseManagement: React.FC = () => {
             setSelectedCase(updatedCase);
           }
           
-          toast({
-            title: "Case Updated",
-            description: `Case ${updatedCase.caseNumber} has been updated`,
-          });
+          // Silent background sync - no toast to avoid spam
         }
       )
       .on(
@@ -243,22 +284,22 @@ export const CaseManagement: React.FC = () => {
         (payload) => {
           console.log('[CaseManagement] Real-time DELETE received:', payload);
           
-          const deletedCase = payload.old as Case;
+          const row = payload.old as any;
           
-          // Dispatch DELETE_CASE action
-          dispatch({
+          // Use rawDispatch to avoid re-persistence
+          rawDispatch({
             type: 'DELETE_CASE',
-            payload: deletedCase.id
+            payload: row.id
           });
           
           // Clear selected case if it's the one being deleted
-          if (selectedCase?.id === deletedCase.id) {
+          if (selectedCase?.id === row.id) {
             setSelectedCase(null);
           }
           
           toast({
             title: "Case Deleted",
-            description: `Case ${deletedCase.caseNumber} has been removed`,
+            description: `Case ${row.case_number || '(unnumbered)'} has been removed`,
             variant: "destructive"
           });
         }
@@ -270,7 +311,7 @@ export const CaseManagement: React.FC = () => {
       console.log('[CaseManagement] Cleaning up real-time subscription');
       supabase.removeChannel(channel);
     };
-  }, [dispatch, selectedCase]);
+  }, [rawDispatch, selectedCase]);
 
   const getTimelineBreachColor = (status: string) => {
     switch (status) {

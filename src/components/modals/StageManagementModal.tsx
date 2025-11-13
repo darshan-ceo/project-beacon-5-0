@@ -34,8 +34,9 @@ export const StageManagementModal: React.FC<StageManagementModalProps> = ({
   const [comments, setComments] = useState('');
   const [isAdvancing, setIsAdvancing] = useState(false);
 
-  // Normalize the current stage to canonical form
-  const canonicalStage = normalizeStage(currentStage);
+  // Compute effective stage with fallback
+  const effectiveStage = currentStage || state.cases.find(c => c.id === caseId)?.currentStage || 'Assessment';
+  const canonicalStage = normalizeStage(effectiveStage);
   const currentStageIndex = CASE_STAGES.findIndex(s => s === canonicalStage);
   const availableNextStages = currentStageIndex >= 0 ? CASE_STAGES.slice(currentStageIndex + 1) : [];
 
@@ -98,7 +99,7 @@ export const StageManagementModal: React.FC<StageManagementModalProps> = ({
             <CardContent>
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-primary" />
-                <Badge variant="secondary">{currentStage}</Badge>
+                <Badge variant="secondary">{effectiveStage}</Badge>
               </div>
             </CardContent>
           </Card>
@@ -120,14 +121,14 @@ export const StageManagementModal: React.FC<StageManagementModalProps> = ({
                 ))}
               </SelectContent>
             </Select>
-            {availableNextStages.length === 0 && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  No stages available. Current stage '{currentStage}' is not recognized or is the final stage.
-                </AlertDescription>
-              </Alert>
-            )}
+              {availableNextStages.length === 0 && canonicalStage && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    No stages available. Current stage '{effectiveStage}' is not recognized or is the final stage.
+                  </AlertDescription>
+                </Alert>
+              )}
           </div>
 
           <div className="space-y-2">
