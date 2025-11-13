@@ -74,15 +74,16 @@ export const DashboardWidget: React.FC<DashboardWidgetProps> = ({ tile }) => {
       <button
         {...attributes}
         {...listeners}
-        className="absolute top-2 right-2 z-10 p-1.5 rounded-md
-          bg-background/80 hover:bg-background
-          border border-border/50 hover:border-border
+        className="absolute top-2 right-2 z-50 p-1.5 rounded-md
+          bg-background/90 hover:bg-background
+          border border-border hover:border-primary
           opacity-0 group-hover:opacity-100
           transition-opacity cursor-grab active:cursor-grabbing
-          shadow-sm hover:shadow-md"
+          shadow-md hover:shadow-lg"
         aria-label="Drag to reorder"
+        onClick={(e) => e.stopPropagation()}
       >
-        <GripVertical className="h-4 w-4 text-muted-foreground" />
+        <GripVertical className="h-4 w-4 text-muted-foreground hover:text-primary" />
       </button>
       
       <WidgetComponent />
