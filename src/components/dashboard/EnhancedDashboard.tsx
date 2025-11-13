@@ -3,7 +3,7 @@
  * Modular, personalization-enabled dashboard with vibrant tiles
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useAppState } from '@/contexts/AppStateContext';
 import { useRBAC } from '@/hooks/useAdvancedRBAC';
@@ -12,16 +12,47 @@ import { Settings } from 'lucide-react';
 import { PageHelp } from '@/components/help/PageHelp';
 import { InlineHelp } from '@/components/help/InlineHelp';
 import { FollowUpsDueWidget } from './FollowUpsDueWidget';
-import { ActiveClientsWidget } from './ActiveClientsWidget';
-import { OpenCasesWidget } from './OpenCasesWidget';
-import { PendingTasksWidget } from './PendingTasksWidget';
-import { UpcomingHearingsWidget } from './UpcomingHearingsWidget';
-import { RecentDocumentsWidget } from './RecentDocumentsWidget';
-import { TaskCompletionWidget } from './TaskCompletionWidget';
+import { DashboardWidget } from './DashboardWidget';
+import { CustomizeDashboard } from './CustomizeDashboard';
+import { filterTilesByRBAC, getDefaultTiles } from '@/utils/rbacHelper';
+
+const STORAGE_KEY = 'dashboard_user_tiles';
 
 export const EnhancedDashboard: React.FC = () => {
   const { state } = useAppState();
   const { hasPermission } = useRBAC();
+  const [customizeOpen, setCustomizeOpen] = useState(false);
+  const [selectedTiles, setSelectedTiles] = useState<string[]>([]);
+
+  // Load user preferences from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        setSelectedTiles(JSON.parse(saved));
+      } catch (error) {
+        console.error('Failed to parse saved tiles:', error);
+        setSelectedTiles(getDefaultTiles());
+      }
+    } else {
+      setSelectedTiles(getDefaultTiles());
+    }
+  }, []);
+
+  // Filter tiles by RBAC
+  const accessibleTiles = useMemo(() => {
+    return filterTilesByRBAC(selectedTiles, hasPermission);
+  }, [selectedTiles, hasPermission]);
+
+  // Sort tiles by order
+  const sortedTiles = useMemo(() => {
+    return [...accessibleTiles].sort((a, b) => a.order - b.order);
+  }, [accessibleTiles]);
+
+  const handleSaveLayout = (newSelection: string[]) => {
+    setSelectedTiles(newSelection);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newSelection));
+  };
 
   return (
     <div className="space-y-6">
@@ -38,6 +69,10 @@ export const EnhancedDashboard: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button onClick={() => setCustomizeOpen(true)} variant="outline">
+            <Settings className="mr-2 h-4 w-4" />
+            Customize Dashboard
+          </Button>
           <PageHelp pageId="dashboard" variant="floating" />
           <InlineHelp module="dashboard" />
         </div>
@@ -52,20 +87,33 @@ export const EnhancedDashboard: React.FC = () => {
         <FollowUpsDueWidget />
       </motion.div>
 
-      {/* Live Supabase-Backed Widgets */}
+      {/* Customizable Dashboard Widgets */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.1 }}
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
       >
-        <ActiveClientsWidget />
-        <OpenCasesWidget />
-        <PendingTasksWidget />
-        <UpcomingHearingsWidget />
-        <RecentDocumentsWidget />
-        <TaskCompletionWidget />
+        {sortedTiles.map((tile, index) => (
+          <motion.div
+            key={tile.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.05 }}
+            className={tile.id === 'casesByStage' || tile.id === 'caseAgingSummary' ? 'md:col-span-2' : ''}
+          >
+            <DashboardWidget tile={tile} />
+          </motion.div>
+        ))}
       </motion.div>
+
+      {/* Customization Modal */}
+      <CustomizeDashboard
+        open={customizeOpen}
+        onClose={() => setCustomizeOpen(false)}
+        onSave={handleSaveLayout}
+        currentSelection={selectedTiles}
+      />
     </div>
   );
 };
