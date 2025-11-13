@@ -97,6 +97,24 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
   const canonicalStage = normalizeStage(effectiveStage);
   const availableStages = lifecycleService.getAvailableStages(canonicalStage, transitionType);
   
+  // Validation: Check for incomplete tasks and pending hearings
+  const incompleteTasks = caseId 
+    ? state.tasks.filter(t => 
+        t.caseId === caseId && 
+        t.stage === canonicalStage && 
+        t.status !== 'Completed'
+      )
+    : [];
+  
+  const pendingHearings = caseId
+    ? state.hearings.filter(h => 
+        h.case_id === caseId && 
+        h.status === 'scheduled'
+      )
+    : [];
+
+  const hasBlockingItems = transitionType === 'Forward' && (incompleteTasks.length > 0 || pendingHearings.length > 0);
+  
   // Generate temporary stage instance ID (caseId + stage combination)
   const stageInstanceId = caseId ? `${caseId}-${effectiveStage.toLowerCase().replace(/\s+/g, '-')}` : '';
 
@@ -229,6 +247,47 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
             </Select>
           </div>
 
+          {/* Blocking Items Alert */}
+          {hasBlockingItems && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <div className="font-semibold mb-2">Cannot advance stage - incomplete items:</div>
+                {incompleteTasks.length > 0 && (
+                  <div className="mb-2">
+                    <div className="font-medium">Incomplete Tasks ({incompleteTasks.length}):</div>
+                    <ul className="list-disc list-inside ml-2 text-sm">
+                      {incompleteTasks.slice(0, 5).map(task => (
+                        <li key={task.id}>{task.title} - {task.status}</li>
+                      ))}
+                      {incompleteTasks.length > 5 && (
+                        <li className="text-muted-foreground">...and {incompleteTasks.length - 5} more</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+                {pendingHearings.length > 0 && (
+                  <div>
+                    <div className="font-medium">Pending Hearings ({pendingHearings.length}):</div>
+                    <ul className="list-disc list-inside ml-2 text-sm">
+                      {pendingHearings.slice(0, 5).map(hearing => (
+                        <li key={hearing.id}>
+                          {new Date(hearing.date).toLocaleDateString()} at {hearing.start_time}
+                        </li>
+                      ))}
+                      {pendingHearings.length > 5 && (
+                        <li className="text-muted-foreground">...and {pendingHearings.length - 5} more</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+                <div className="mt-2 text-sm">
+                  Please complete all tasks and conclude all hearings before advancing to the next stage.
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Stage Progression Preview Card */}
           {selectedStage && (
             <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
@@ -317,7 +376,10 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleTransition} disabled={!selectedStage || isProcessing}>
+          <Button 
+            onClick={handleTransition} 
+            disabled={!selectedStage || isProcessing || hasBlockingItems}
+          >
             {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
             Confirm
           </Button>
