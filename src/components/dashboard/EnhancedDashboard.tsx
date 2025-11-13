@@ -15,6 +15,21 @@ import { FollowUpsDueWidget } from './FollowUpsDueWidget';
 import { DashboardWidget } from './DashboardWidget';
 import { CustomizeDashboard } from './CustomizeDashboard';
 import { filterTilesByRBAC, getDefaultTiles } from '@/utils/rbacHelper';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+} from '@dnd-kit/sortable';
 
 const STORAGE_KEY = 'dashboard_user_tiles';
 
@@ -44,14 +59,41 @@ export const EnhancedDashboard: React.FC = () => {
     return filterTilesByRBAC(selectedTiles, hasPermission);
   }, [selectedTiles, hasPermission]);
 
-  // Sort tiles by order
+  // Maintain user's custom order or default order
   const sortedTiles = useMemo(() => {
-    return [...accessibleTiles].sort((a, b) => a.order - b.order);
+    return [...accessibleTiles];
   }, [accessibleTiles]);
+
+  // Setup drag-and-drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Require 8px movement before drag starts
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const handleSaveLayout = (newSelection: string[]) => {
     setSelectedTiles(newSelection);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newSelection));
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = sortedTiles.findIndex((tile) => tile.id === active.id);
+      const newIndex = sortedTiles.findIndex((tile) => tile.id === over.id);
+
+      const reorderedTiles = arrayMove(sortedTiles, oldIndex, newIndex);
+      const reorderedIds = reorderedTiles.map((tile) => tile.id);
+      
+      setSelectedTiles(reorderedIds);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(reorderedIds));
+    }
   };
 
   return (
@@ -87,25 +129,36 @@ export const EnhancedDashboard: React.FC = () => {
         <FollowUpsDueWidget />
       </motion.div>
 
-      {/* Customizable Dashboard Widgets */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.1 }}
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+      {/* Customizable Dashboard Widgets with Drag-and-Drop */}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
       >
-        {sortedTiles.map((tile, index) => (
+        <SortableContext
+          items={sortedTiles.map((tile) => tile.id)}
+          strategy={rectSortingStrategy}
+        >
           <motion.div
-            key={tile.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05 }}
-            className={tile.id === 'casesByStage' || tile.id === 'caseAgingSummary' ? 'md:col-span-2' : ''}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.1 }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
           >
-            <DashboardWidget tile={tile} />
+            {sortedTiles.map((tile, index) => (
+              <motion.div
+                key={tile.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+                className={tile.id === 'casesByStage' || tile.id === 'caseAgingSummary' ? 'md:col-span-2' : ''}
+              >
+                <DashboardWidget tile={tile} />
+              </motion.div>
+            ))}
           </motion.div>
-        ))}
-      </motion.div>
+        </SortableContext>
+      </DndContext>
 
       {/* Customization Modal */}
       <CustomizeDashboard
