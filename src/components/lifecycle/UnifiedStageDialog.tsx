@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -28,6 +29,7 @@ import { MATTER_TYPES, MatterType } from '../../../config/appConfig';
 import { normalizeStage } from '@/utils/stageUtils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAppState } from '@/contexts/AppStateContext';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   ArrowRight, 
   ArrowLeft, 
@@ -91,6 +93,8 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
   const [orderDetails, setOrderDetails] = useState<Partial<OrderDetails>>({});
   const [isProcessing, setIsProcessing] = useState(false);
   const [isInlineContextOpen, setIsInlineContextOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [forceOverride, setForceOverride] = useState(false);
 
   const caseData = state.cases.find(c => c.id === caseId);
   const effectiveStage = currentStage || caseData?.currentStage || 'Assessment';
@@ -115,6 +119,33 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
 
   const hasBlockingItems = transitionType === 'Forward' && (incompleteTasks.length > 0 || pendingHearings.length > 0);
   
+  // Check if user is admin
+  useEffect(() => {
+    const checkAdminRole = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data, error } = await supabase.rpc('has_role', {
+            _user_id: user.id,
+            _role: 'admin'
+          });
+          
+          if (!error && data) {
+            setIsAdmin(true);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking admin role:', error);
+      }
+    };
+
+    if (isOpen) {
+      checkAdminRole();
+      // Reset force override when dialog opens
+      setForceOverride(false);
+    }
+  }, [isOpen]);
+
   // Generate temporary stage instance ID (caseId + stage combination)
   const stageInstanceId = caseId ? `${caseId}-${effectiveStage.toLowerCase().replace(/\s+/g, '-')}` : '';
 
@@ -151,15 +182,23 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
     if (!caseId || !selectedStage || isProcessing) return;
     setIsProcessing(true);
     try {
+      // Add force override notice to comments for audit trail
+      let finalComments = comments;
+      if (forceOverride && hasBlockingItems) {
+        const overrideNotice = `\n\n[ADMIN OVERRIDE] Stage transition forced despite ${incompleteTasks.length} incomplete task(s) and ${pendingHearings.length} pending hearing(s). Administrator bypass used for exceptional circumstances.`;
+        finalComments = comments ? comments + overrideNotice : overrideNotice.trim();
+      }
+
       await lifecycleService.createTransition({
         caseId,
         type: transitionType,
         toStageKey: selectedStage,
-        comments: comments,
+        comments: finalComments,
         dispatch: dispatch
       });
 
-      toast({ title: "Success", description: `Case moved to ${selectedStage}` });
+      const overrideMsg = forceOverride && hasBlockingItems ? ' (Admin Override)' : '';
+      toast({ title: "Success", description: `Case moved to ${selectedStage}${overrideMsg}` });
       onStageUpdated?.({ currentStage: selectedStage, type: transitionType });
       onClose();
     } catch (error: any) {
@@ -285,10 +324,39 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
                   Please complete all tasks and conclude all hearings before advancing to the next stage.
                 </div>
               </AlertDescription>
-            </Alert>
-          )}
+              </Alert>
+            )}
 
-          {/* Stage Progression Preview Card */}
+            {/* Admin Force Override Option */}
+            {isAdmin && hasBlockingItems && (
+              <Card className="border-orange-500/50 bg-orange-50/50 dark:bg-orange-950/20">
+                <CardContent className="pt-4">
+                  <div className="flex items-start space-x-3">
+                    <Checkbox
+                      id="force-override"
+                      checked={forceOverride}
+                      onCheckedChange={(checked) => setForceOverride(checked as boolean)}
+                      className="mt-1"
+                    />
+                    <div className="flex-1">
+                      <Label
+                        htmlFor="force-override"
+                        className="text-sm font-semibold text-orange-900 dark:text-orange-100 cursor-pointer flex items-center gap-2"
+                      >
+                        <Shield className="h-4 w-4" />
+                        Force Override (Admin Only)
+                      </Label>
+                      <p className="text-xs text-orange-700 dark:text-orange-300 mt-1">
+                        Bypass validation and proceed with stage transition despite incomplete items. 
+                        Use this option only in exceptional circumstances with proper justification in notes.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Stage Progression Preview Card */}
           {selectedStage && (
             <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
               <CardHeader className="pb-3">
@@ -378,10 +446,10 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button 
             onClick={handleTransition} 
-            disabled={!selectedStage || isProcessing || hasBlockingItems}
+            disabled={!selectedStage || isProcessing || (hasBlockingItems && !forceOverride)}
           >
             {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
-            Confirm
+            {forceOverride && hasBlockingItems ? 'Force Transition' : 'Confirm'}
           </Button>
         </DialogFooter>
       </DialogContent>
