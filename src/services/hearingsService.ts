@@ -18,6 +18,17 @@ const log = (level: 'success' | 'error', action: string, details?: any) => {
   console.log(`%c[Hearings] ${action} ${level}`, color, details);
 };
 
+/**
+ * Converts empty strings to null for UUID fields
+ * Prevents "invalid input syntax for type uuid" errors
+ */
+const sanitizeUuidField = (value: string | undefined | null): string | null => {
+  if (!value || value.trim() === '') {
+    return null;
+  }
+  return value;
+};
+
 export const hearingsService = {
   /**
    * Fetch hearings with filters and pagination
@@ -88,6 +99,10 @@ export const hearingsService = {
         case_id: data.case_id,
         hearing_date: new Date(`${data.date}T${data.start_time || '10:00'}:00`).toISOString(),
         next_hearing_date: null,
+        // Sanitize UUID fields - convert empty strings to null
+        court_id: sanitizeUuidField(data.court_id),
+        authority_id: sanitizeUuidField(data.authority_id),
+        forum_id: sanitizeUuidField(data.forum_id),
         court_name: data.court_id || null,
         judge_name: data.judge_ids?.join(', ') || null,
         status: 'scheduled',
@@ -208,6 +223,10 @@ export const hearingsService = {
     try {
       const updateData = {
         ...updates,
+        // Sanitize UUID fields if present
+        court_id: updates.court_id !== undefined ? sanitizeUuidField(updates.court_id) : undefined,
+        authority_id: updates.authority_id !== undefined ? sanitizeUuidField(updates.authority_id) : undefined,
+        forum_id: updates.forum_id !== undefined ? sanitizeUuidField(updates.forum_id) : undefined,
         updated_at: new Date().toISOString()
       };
 

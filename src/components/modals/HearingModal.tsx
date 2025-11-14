@@ -266,12 +266,12 @@ export const HearingModal: React.FC<HearingModalProps> = ({
           start_time: startTime,
           end_time: endTime,
           timezone: 'Asia/Kolkata',
-          court_id: formData.forumId, // Use forum as court for backward compatibility
+          court_id: formData.forumId || undefined, // Convert empty to undefined
           judge_ids: formData.judgeId ? [formData.judgeId] : [],
           purpose: 'mention' as const,
           notes: formData.notes || formData.agenda,
-          authority_id: formData.authorityId,
-          forum_id: formData.forumId,
+          authority_id: formData.authorityId || undefined, // Convert empty to undefined
+          forum_id: formData.forumId || undefined,         // Convert empty to undefined
           authority_name: authority?.name,
           forum_name: forum?.name,
           judge_name: judge?.name,
