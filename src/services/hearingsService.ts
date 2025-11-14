@@ -90,7 +90,7 @@ export const hearingsService = {
         next_hearing_date: null,
         court_name: data.court_id || null,
         judge_name: data.judge_ids?.join(', ') || null,
-        status: 'Scheduled',
+        status: 'scheduled',
         notes: data.notes || null,
         outcome: null
       };

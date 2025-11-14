@@ -144,11 +144,6 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases, selec
             type: 'UPDATE_HEARING',
             payload: updatedHearing
           });
-          
-          toast({
-            title: "Hearing Updated",
-            description: `Hearing details have been modified`,
-          });
         }
       )
       .on(
