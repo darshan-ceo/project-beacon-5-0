@@ -20,15 +20,14 @@ interface AppWithPersistenceProps {
 }
 
 export const AppWithPersistence: React.FC<AppWithPersistenceProps> = ({ children }) => {
-  const [initialized, setInitialized] = useState(false);
+  const [initialized, setInitialized] = useState(globalStorageInitialized);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const initStorage = async () => {
-      // Quick path: if already initialized globally, just update local state
+      // Quick path: if already initialized globally, skip entirely
       if (globalStorageInitialized) {
         console.log('✅ Storage already initialized globally, skipping re-init');
-        setInitialized(true);
         return;
       }
 
@@ -134,7 +133,12 @@ export const AppWithPersistence: React.FC<AppWithPersistenceProps> = ({ children
     initStorage();
   }, []);
 
-  // Show loading state while initializing
+  // If globally initialized, skip straight to children
+  if (globalStorageInitialized) {
+    return <>{children}</>;
+  }
+
+  // Show loading state while initializing (only on first load)
   if (!initialized && !error) {
     return (
       <div className="flex items-center justify-center h-screen bg-background">
