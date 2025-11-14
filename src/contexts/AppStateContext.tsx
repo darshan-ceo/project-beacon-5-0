@@ -212,6 +212,7 @@ interface Client {
   registrationNo?: string;
   gstin?: string;
   pan: string;
+  state?: string; // Top-level state field for imported clients
   address: Address | string | any; // Support both new and legacy format plus enhanced
   jurisdiction?: Jurisdiction;
   portalAccess?: PortalAccess;

@@ -191,19 +191,27 @@ export const ClientMasters: React.FC = () => {
       addr = entityAddresses[client.id] || null;
     }
     
-    if (!addr) return 'N/A';
-    
-    // Prefer full state name
-    const byName = addr.stateName || addr.state;
-    if (byName && byName.trim()) return byName;
-    
-    // Map stateId to full name using statesMap
-    if (addr.stateId && statesMap[addr.stateId]) {
-      return statesMap[addr.stateId];
+    if (addr) {
+      // Prefer full state name
+      const byName = addr.stateName || addr.state;
+      if (byName && byName.trim()) return byName;
+      
+      // Map stateId to full name using statesMap
+      if (addr.stateId && statesMap[addr.stateId]) {
+        return statesMap[addr.stateId];
+      }
+      
+      // Last resort from address object: show the code if no name found
+      const stateCode = addr.stateId;
+      if (stateCode) return stateCode;
     }
     
-    // Last resort: show the code if no name found
-    return addr.stateId || 'N/A';
+    // Fallback to top-level state field (for imported clients or legacy data)
+    if (client.state && client.state.trim()) {
+      return client.state;
+    }
+    
+    return 'N/A';
   };
 
   // Compute unique states from client addresses
@@ -444,8 +452,18 @@ export const ClientMasters: React.FC = () => {
                     <TableCell className="hidden md:table-cell">
                       {(() => {
                         const primaryContact = (() => {
-                          if (client.signatories && client.signatories.length > 0) {
-                            const primary = client.signatories.find(s => s.isPrimary) || client.signatories[0];
+                          // Parse signatories if it's a JSON string (legacy data)
+                          let signatories = client.signatories;
+                          if (typeof signatories === 'string') {
+                            try {
+                              signatories = JSON.parse(signatories);
+                            } catch {
+                              signatories = null;
+                            }
+                          }
+                          
+                          if (signatories && Array.isArray(signatories) && signatories.length > 0) {
+                            const primary = signatories.find(s => s.isPrimary) || signatories[0];
                             
                             // Get primary email (new multi-email support)
                             const primaryEmail = (() => {
