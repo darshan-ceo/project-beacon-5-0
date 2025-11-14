@@ -235,8 +235,8 @@ class ImportIntegrationService {
         owner_id: userId,
         client_group_id: clientGroupId,
         type: record.constitution ? this.mapConstitutionType(record.constitution) : 'Company',
-        signatories: signatories.length > 0 ? JSON.stringify(signatories) : null,
-        address: JSON.stringify(addressData),
+        signatories: signatories.length > 0 ? signatories : null,
+        address: addressData,
         // Don't include id - let Supabase generate UUID
       };
 
