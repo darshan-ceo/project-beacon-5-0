@@ -20,6 +20,7 @@ import { FieldTooltip } from '@/components/ui/field-tooltip';
 import { AUTHORITY_LEVEL_OPTIONS, AUTHORITY_LEVEL_METADATA, AuthorityLevel } from '@/types/authority-level';
 import { clientsService } from '@/services/clientsService';
 import { autoCapitalizeFirst } from '@/utils/textFormatters';
+import { extractCityFromAddress } from '@/utils/cityExtractor';
 
 interface CourtModalProps {
   isOpen: boolean;
@@ -480,8 +481,9 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                     id="city"
                     value={formData.city}
                     onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                    onBlur={(e) => setFormData(prev => ({ ...prev, city: autoCapitalizeFirst(e.target.value) }))}
                     disabled={mode === 'view'}
-                    placeholder="Example: Ahmedabad, Vadodara, Surat"
+                    placeholder="City will be auto-extracted from address"
                     required
                     className={errors.city ? 'border-destructive' : ''}
                   />
@@ -514,7 +516,15 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
               ) : (
                 <AddressForm
                   value={formData.address}
-                  onChange={(address) => setFormData(prev => ({ ...prev, address }))}
+                  onChange={(address) => {
+                    const extractedCity = extractCityFromAddress(address);
+                    setFormData(prev => ({
+                      ...prev,
+                      address,
+                      // Only auto-fill if city is empty or N/A
+                      city: !prev.city || prev.city === 'N/A' || prev.city === '' ? extractedCity : prev.city
+                    }));
+                  }}
                   disabled={mode === 'view'}
                   required={true}
                   module="court"
