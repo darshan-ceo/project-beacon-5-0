@@ -14,6 +14,7 @@ import { SourceChip, DataSource, EditableSourceChip } from '@/components/ui/sour
 import { featureFlagService } from '@/services/featureFlagService';
 import { Download, MapPin, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { autoCapitalizeFirst } from '@/utils/textFormatters';
 
 interface AddressFormProps {
   value: EnhancedAddressData | AddressData;
@@ -346,6 +347,12 @@ export const AddressForm: React.FC<AddressFormProps> = ({
               id="address-line1"
               value={value.line1 || ''}
               onChange={(e) => handleFieldChange('line1', e.target.value)}
+              onBlur={(e) => {
+                const capitalized = autoCapitalizeFirst(e.target.value);
+                if (capitalized !== e.target.value) {
+                  handleFieldChange('line1', capitalized);
+                }
+              }}
               placeholder="Street address, building name"
               disabled={disabled || !isFieldEditable('line1')}
               required={isFieldRequired('line1')}
@@ -368,6 +375,12 @@ export const AddressForm: React.FC<AddressFormProps> = ({
               id="address-line2"
               value={value.line2 || ''}
               onChange={(e) => handleFieldChange('line2', e.target.value)}
+              onBlur={(e) => {
+                const capitalized = autoCapitalizeFirst(e.target.value);
+                if (capitalized !== e.target.value) {
+                  handleFieldChange('line2', capitalized);
+                }
+              }}
               placeholder="Apartment, suite, unit (optional)"
               disabled={disabled || !isFieldEditable('line2')}
               required={isFieldRequired('line2')}
@@ -391,6 +404,12 @@ export const AddressForm: React.FC<AddressFormProps> = ({
                 id="landmark"
                 value={(value as any).landmark || ''}
                 onChange={(e) => handleFieldChange('landmark', e.target.value)}
+                onBlur={(e) => {
+                  const capitalized = autoCapitalizeFirst(e.target.value);
+                  if (capitalized !== e.target.value) {
+                    handleFieldChange('landmark', capitalized);
+                  }
+                }}
                 placeholder="Nearby landmark"
                 disabled={disabled || !isFieldEditable('landmark')}
                 required={isFieldRequired('landmark')}

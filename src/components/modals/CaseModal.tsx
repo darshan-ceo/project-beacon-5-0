@@ -1259,6 +1259,10 @@ export const CaseModal: React.FC<CaseModalProps> = ({
                     id="description"
                     value={formData.description}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    onBlur={(e) => {
+                      const capitalized = autoCapitalizeFirst(e.target.value);
+                      setFormData(prev => ({ ...prev, description: capitalized }));
+                    }}
                     disabled={mode === 'view'}
                     rows={3}
                     placeholder="Additional case details..."
