@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAppState } from '@/contexts/AppStateContext';
 import { useToast } from '@/hooks/use-toast';
 import { clientGroupsService } from '@/services/clientGroupsService';
+import { autoCapitalizeFirst } from '@/utils/textFormatters';
 import { Building2, Code, FileText, User } from 'lucide-react';
 
 interface ClientGroupModalProps {
@@ -16,13 +17,15 @@ interface ClientGroupModalProps {
   onClose: () => void;
   mode: 'add' | 'edit' | 'view';
   group?: any;
+  onSuccess?: (newGroup: any) => void;
 }
 
 export const ClientGroupModal: React.FC<ClientGroupModalProps> = ({
   isOpen,
   onClose,
   mode,
-  group
+  group,
+  onSuccess
 }) => {
   const { state, dispatch } = useAppState();
   const { toast } = useToast();
@@ -108,6 +111,11 @@ export const ClientGroupModal: React.FC<ClientGroupModalProps> = ({
         title: 'Success',
         description: 'Client group created successfully.',
       });
+      
+      // Call onSuccess callback if provided
+      if (onSuccess) {
+        onSuccess(newGroup);
+      }
     } else if (mode === 'edit') {
       const updatedGroup = {
         ...group,
@@ -120,6 +128,11 @@ export const ClientGroupModal: React.FC<ClientGroupModalProps> = ({
         title: 'Success',
         description: 'Client group updated successfully.',
       });
+      
+      // Call onSuccess callback if provided
+      if (onSuccess) {
+        onSuccess(updatedGroup);
+      }
     }
 
     onClose();
@@ -149,6 +162,7 @@ export const ClientGroupModal: React.FC<ClientGroupModalProps> = ({
               id="name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onBlur={(e) => setFormData({ ...formData, name: autoCapitalizeFirst(e.target.value) })}
               placeholder="e.g., Tata Group, Landmark Group"
               disabled={isViewMode}
             />
@@ -184,6 +198,7 @@ export const ClientGroupModal: React.FC<ClientGroupModalProps> = ({
               id="description"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onBlur={(e) => setFormData({ ...formData, description: autoCapitalizeFirst(e.target.value) })}
               placeholder="Optional description for internal use"
               rows={3}
               disabled={isViewMode}

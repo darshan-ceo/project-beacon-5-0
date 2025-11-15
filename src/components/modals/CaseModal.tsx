@@ -25,6 +25,7 @@ import { IssueTypeSelector } from '@/components/ui/IssueTypeSelector';
 import { CASE_TYPES, MATTER_TYPES } from '../../../config/appConfig';
 import { generateCaseNumber, getNextSequence, type CaseType } from '@/utils/caseNumberGenerator';
 import { formatCaseTitle } from '@/utils/caseTitleFormatter';
+import { autoCapitalizeFirst } from '@/utils/textFormatters';
 import { format, addDays } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -1191,6 +1192,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
                       id="specificOfficer"
                       value={formData.specificOfficer}
                       onChange={(e) => setFormData(prev => ({ ...prev, specificOfficer: e.target.value }))}
+                      onBlur={(e) => setFormData(prev => ({ ...prev, specificOfficer: autoCapitalizeFirst(e.target.value) }))}
                       disabled={mode === 'view'}
                       placeholder="e.g., Shri Rajesh Kumar, Deputy Commissioner"
                     />
@@ -1218,6 +1220,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
                       id="jurisdictionalCommissionerate"
                       value={formData.jurisdictionalCommissionerate}
                       onChange={(e) => setFormData(prev => ({ ...prev, jurisdictionalCommissionerate: e.target.value }))}
+                      onBlur={(e) => setFormData(prev => ({ ...prev, jurisdictionalCommissionerate: autoCapitalizeFirst(e.target.value) }))}
                       disabled={mode === 'view'}
                       placeholder="e.g., Mumbai GST Commissionerate"
                     />
@@ -1234,6 +1237,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
                       id="departmentLocation"
                       value={formData.departmentLocation}
                       onChange={(e) => setFormData(prev => ({ ...prev, departmentLocation: e.target.value }))}
+                      onBlur={(e) => setFormData(prev => ({ ...prev, departmentLocation: autoCapitalizeFirst(e.target.value) }))}
                       disabled={mode === 'view'}
                       placeholder="e.g., Mumbai Central"
                     />

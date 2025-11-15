@@ -19,6 +19,7 @@ import { MapPin, Phone, Mail, Building2, Scale, Globe } from 'lucide-react';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
 import { AUTHORITY_LEVEL_OPTIONS, AUTHORITY_LEVEL_METADATA, AuthorityLevel } from '@/types/authority-level';
 import { clientsService } from '@/services/clientsService';
+import { autoCapitalizeFirst } from '@/utils/textFormatters';
 
 interface CourtModalProps {
   isOpen: boolean;
@@ -312,6 +313,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                onBlur={(e) => setFormData(prev => ({ ...prev, name: autoCapitalizeFirst(e.target.value) }))}
                 placeholder="Example: Commissioner (Appeals), CGST Zone - Ahmedabad"
                 disabled={mode === 'view'}
                 required
@@ -373,6 +375,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                   id="jurisdiction"
                   value={formData.jurisdiction}
                   onChange={(e) => setFormData(prev => ({ ...prev, jurisdiction: e.target.value }))}
+                  onBlur={(e) => setFormData(prev => ({ ...prev, jurisdiction: autoCapitalizeFirst(e.target.value) }))}
                   placeholder="Example: Ahmedabad South Division, Gujarat State, All India"
                   disabled={mode === 'view'}
                   required
@@ -457,6 +460,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                     id="benchLocation"
                     value={formData.benchLocation}
                     onChange={(e) => setFormData(prev => ({ ...prev, benchLocation: e.target.value }))}
+                    onBlur={(e) => setFormData(prev => ({ ...prev, benchLocation: autoCapitalizeFirst(e.target.value) }))}
                     disabled={mode === 'view'}
                     placeholder="Example: Ahmedabad, New Delhi"
                   />
