@@ -790,6 +790,13 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                         ...prev, 
                         jurisdiction: { ...prev.jurisdiction, commissionerate: e.target.value }
                       }))}
+                      onBlur={(e) => {
+                        const capitalized = autoCapitalizeFirst(e.target.value);
+                        setFormData(prev => ({ 
+                          ...prev, 
+                          jurisdiction: { ...prev.jurisdiction, commissionerate: capitalized }
+                        }));
+                      }}
                       disabled={mode === 'view'}
                     />
                   </div>
@@ -803,6 +810,13 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                         ...prev, 
                         jurisdiction: { ...prev.jurisdiction, division: e.target.value }
                       }))}
+                      onBlur={(e) => {
+                        const capitalized = autoCapitalizeFirst(e.target.value);
+                        setFormData(prev => ({ 
+                          ...prev, 
+                          jurisdiction: { ...prev.jurisdiction, division: capitalized }
+                        }));
+                      }}
                       disabled={mode === 'view'}
                     />
                   </div>
@@ -816,6 +830,13 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                         ...prev, 
                         jurisdiction: { ...prev.jurisdiction, range: e.target.value }
                       }))}
+                      onBlur={(e) => {
+                        const capitalized = autoCapitalizeFirst(e.target.value);
+                        setFormData(prev => ({ 
+                          ...prev, 
+                          jurisdiction: { ...prev.jurisdiction, range: capitalized }
+                        }));
+                      }}
                       disabled={mode === 'view'}
                     />
                   </div>

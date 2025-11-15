@@ -14,6 +14,7 @@ import type { Signatory, SignatoryEmail, SignatoryPhone } from '@/contexts/AppSt
 import { FieldTooltip } from '@/components/ui/field-tooltip';
 import { SignatoryEmailManager } from '@/components/contacts/SignatoryEmailManager';
 import { SignatoryPhoneManager } from '@/components/contacts/SignatoryPhoneManager';
+import { autoCapitalizeFirst } from '@/utils/textFormatters';
 
 interface SignatoryModalProps {
   isOpen: boolean;
@@ -235,6 +236,10 @@ export const SignatoryModal: React.FC<SignatoryModalProps> = ({
                   setFormData(prev => ({ ...prev, fullName: e.target.value }));
                   setErrors(prev => ({ ...prev, fullName: '' }));
                 }}
+                onBlur={(e) => {
+                  const capitalized = autoCapitalizeFirst(e.target.value);
+                  setFormData(prev => ({ ...prev, fullName: capitalized }));
+                }}
                 disabled={mode === 'view'}
                 className={errors.fullName ? 'border-destructive' : ''}
               />
@@ -249,6 +254,10 @@ export const SignatoryModal: React.FC<SignatoryModalProps> = ({
                 id="designation"
                 value={formData.designation}
                 onChange={(e) => setFormData(prev => ({ ...prev, designation: e.target.value }))}
+                onBlur={(e) => {
+                  const capitalized = autoCapitalizeFirst(e.target.value);
+                  setFormData(prev => ({ ...prev, designation: capitalized }));
+                }}
                 disabled={mode === 'view'}
                 placeholder="e.g., Director, Partner, Authorized Representative"
               />
