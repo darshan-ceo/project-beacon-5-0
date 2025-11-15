@@ -31,6 +31,7 @@ import { AUTHORITY_LEVEL_OPTIONS, AUTHORITY_LEVEL_METADATA } from '@/types/autho
 import { MAPPING_SERVICES } from '@/utils/mappingServices';
 import { UnifiedCourtSearch } from '@/components/masters/UnifiedCourtSearch';
 import { GlossaryTooltip } from '@/components/help/GlossaryTooltip';
+import { extractCityFromAddress } from '@/utils/cityExtractor';
 
 
 export const CourtMasters: React.FC = () => {
@@ -81,6 +82,30 @@ export const CourtMasters: React.FC = () => {
 
   const uniqueJurisdictions = [...new Set((state.courts || []).map(court => court.jurisdiction))];
 
+  const migrateCityData = () => {
+    let updated = 0;
+    const updatedCourts = state.courts.map(court => {
+      if (!court.city || court.city === 'N/A' || court.city === '') {
+        const extractedCity = extractCityFromAddress(court.address);
+        updated++;
+        return { ...court, city: extractedCity };
+      }
+      return court;
+    });
+    
+    // Update courts one by one
+    updatedCourts.forEach(court => {
+      if (court.id) {
+        dispatch({ type: 'UPDATE_COURT', payload: court });
+      }
+    });
+    
+    toast({
+      title: "City Data Updated",
+      description: `Successfully extracted city information for ${updated} legal authorities.`
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -94,6 +119,16 @@ export const CourtMasters: React.FC = () => {
           <p className="text-muted-foreground mt-2">Manage legal authorities with jurisdiction hierarchy and contact information</p>
         </div>
           <div className="flex flex-wrap gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="gap-2"
+              onClick={migrateCityData}
+            >
+              <MapPin className="h-4 w-4" />
+              <span className="hidden sm:inline">Fix City Data</span>
+              <span className="sm:hidden">Fix Cities</span>
+            </Button>
             {featureFlagService.isEnabled('data_io_v1') && hasPermission('io.import.court', 'write') && (
               <Button 
                 variant="outline" 
@@ -214,22 +249,20 @@ export const CourtMasters: React.FC = () => {
                     transition={{ delay: index * 0.05 }}
                     className="hover:bg-muted/50"
                   >
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className="font-medium">{court.name}</div>
-                        <div className="text-sm text-muted-foreground flex items-center gap-1">
-                          <MapPin className="h-3 w-3" />
-                          {typeof court.address === 'string' 
-                            ? court.address 
-                            : `${court.address.line1}${court.address.line2 ? ', ' + court.address.line2 : ''}${court.address.locality ? ', ' + court.address.locality : ''}${court.address.district ? ', ' + court.address.district : ''}`
-                          }
+                    <TableCell className="max-w-md">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-4 w-4 text-primary opacity-70" />
+                          <span className="font-medium text-sm">{court.name}</span>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className="font-medium text-sm">
-                          {court.city || 'N/A'}
+                        <div className="text-xs text-muted-foreground flex items-start gap-1">
+                          <MapPin className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                          <span className="line-clamp-1">
+                            {typeof court.address === 'string' 
+                              ? court.address 
+                              : `${court.address.line1}${court.address.line2 ? ', ' + court.address.line2 : ''}`
+                            }
+                          </span>
                         </div>
                         {court.authorityLevel && (
                           <GlossaryTooltip 
@@ -237,12 +270,20 @@ export const CourtMasters: React.FC = () => {
                           >
                             <Badge 
                               variant="outline" 
-                              className={`text-xs ${AUTHORITY_LEVEL_METADATA[court.authorityLevel]?.color || 'bg-gray-100'}`}
+                              className={`text-[10px] px-1.5 py-0 ${AUTHORITY_LEVEL_METADATA[court.authorityLevel]?.color || 'bg-gray-100'}`}
                             >
                               {AUTHORITY_LEVEL_METADATA[court.authorityLevel]?.label || court.authorityLevel}
                             </Badge>
                           </GlossaryTooltip>
                         )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5 text-primary opacity-70" />
+                        <span className="font-medium text-sm">
+                          {court.city || 'N/A'}
+                        </span>
                       </div>
                     </TableCell>
                      <TableCell>
