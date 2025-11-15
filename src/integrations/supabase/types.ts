@@ -446,6 +446,7 @@ export type Database = {
       }
       clients: {
         Row: {
+          address: Json | null
           city: string | null
           client_group_id: string | null
           created_at: string | null
@@ -456,12 +457,15 @@ export type Database = {
           owner_id: string | null
           pan: string | null
           phone: string | null
+          signatories: Json | null
           state: string | null
           status: string | null
           tenant_id: string
+          type: string | null
           updated_at: string | null
         }
         Insert: {
+          address?: Json | null
           city?: string | null
           client_group_id?: string | null
           created_at?: string | null
@@ -472,12 +476,15 @@ export type Database = {
           owner_id?: string | null
           pan?: string | null
           phone?: string | null
+          signatories?: Json | null
           state?: string | null
           status?: string | null
           tenant_id: string
+          type?: string | null
           updated_at?: string | null
         }
         Update: {
+          address?: Json | null
           city?: string | null
           client_group_id?: string | null
           created_at?: string | null
@@ -488,9 +495,11 @@ export type Database = {
           owner_id?: string | null
           pan?: string | null
           phone?: string | null
+          signatories?: Json | null
           state?: string | null
           status?: string | null
           tenant_id?: string
+          type?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -1685,7 +1694,15 @@ export type Database = {
           to_stage?: string
           transition_type?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_stage_transitions_created_by"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       system_settings: {
         Row: {

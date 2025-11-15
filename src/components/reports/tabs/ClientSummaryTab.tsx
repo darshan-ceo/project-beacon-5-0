@@ -56,7 +56,6 @@ export const ClientSummaryTab: React.FC<ClientSummaryTabProps> = ({ filters }) =
           <Table className="min-w-[800px]">
             <TableHeader>
             <TableRow>
-              <TableHead>Client ID</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Total Cases</TableHead>
               <TableHead>Active Cases</TableHead>
@@ -68,7 +67,6 @@ export const ClientSummaryTab: React.FC<ClientSummaryTabProps> = ({ filters }) =
           <TableBody>
             {data.map((item) => (
               <TableRow key={item.id}>
-                <TableCell className="font-medium">{item.id}</TableCell>
                 <TableCell>{item.name}</TableCell>
                 <TableCell>{item.totalCases}</TableCell>
                 <TableCell>{item.activeCases}</TableCell>
