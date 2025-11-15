@@ -15,6 +15,7 @@ import { toast } from '@/hooks/use-toast';
 import { Client, useAppState, type Signatory, type Address, type Jurisdiction, type PortalAccess } from '@/contexts/AppStateContext';
 import { CASelector } from '@/components/ui/employee-selector';
 import { SignatoryModal } from './SignatoryModal';
+import { ClientGroupModal } from './ClientGroupModal';
 import { clientsService, INDIAN_STATES } from '@/services/clientsService';
 import { GSTSection } from '@/components/gst/GSTSection';
 import { ContactsDrawer } from '@/components/contacts/ContactsDrawer';
@@ -26,6 +27,7 @@ import { AddressView } from '@/components/ui/AddressView';
 import { EnhancedAddressData, addressMasterService } from '@/services/addressMasterService';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
 import { TagInput } from '@/components/ui/TagInput';
+import { autoCapitalizeFirst } from '@/utils/textFormatters';
 import { format } from 'date-fns';
 
 interface ClientModalProps {
@@ -101,7 +103,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
     mode: 'create' | 'edit' | 'view';
     signatory?: Signatory | null;
   }>({ isOpen: false, mode: 'create', signatory: null });
-  
+  const [clientGroupModal, setClientGroupModal] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [isAddressMasterEnabled, setIsAddressMasterEnabled] = useState(false);
@@ -584,6 +586,9 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                         setFormData(prev => ({ ...prev, name: e.target.value }));
                         setErrors(prev => ({ ...prev, name: '' }));
                       }}
+                      onBlur={(e) => {
+                        setFormData(prev => ({ ...prev, name: autoCapitalizeFirst(e.target.value) }));
+                      }}
                       disabled={mode === 'view'}
                       className={errors.name ? 'border-destructive' : ''}
                     />
@@ -619,7 +624,13 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                   <Label htmlFor="clientGroupId">Client Group</Label>
                   <Select
                     value={formData.clientGroupId || 'none'}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, clientGroupId: value === 'none' ? undefined : value }))}
+                    onValueChange={(value) => {
+                      if (value === '__create_new__') {
+                        setClientGroupModal(true);
+                        return;
+                      }
+                      setFormData(prev => ({ ...prev, clientGroupId: value === 'none' ? undefined : value }));
+                    }}
                     disabled={mode === 'view'}
                   >
                     <SelectTrigger>
@@ -628,13 +639,15 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                     <SelectContent>
                       <SelectItem value="none">None (Unclassified)</SelectItem>
                       {state.clientGroups
-                        .filter(g => g.status === 'Active')
                         .sort((a, b) => a.name.localeCompare(b.name))
                         .map(group => (
                           <SelectItem key={group.id} value={group.id}>
                             🏢 {group.name} ({group.totalClients} clients)
                           </SelectItem>
                         ))}
+                      <SelectItem value="__create_new__" className="text-primary font-semibold border-t mt-1 pt-2">
+                        ➕ Create New Group...
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground mt-1">
@@ -1222,6 +1235,17 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         mode={signatoryModal.mode}
         onSubmit={handleSignatorySubmit}
         existingSignatories={signatories}
+      />
+
+      {/* Client Group Modal */}
+      <ClientGroupModal
+        isOpen={clientGroupModal}
+        onClose={() => setClientGroupModal(false)}
+        mode="add"
+        onSuccess={(newGroup) => {
+          setFormData(prev => ({ ...prev, clientGroupId: newGroup.id }));
+          setClientGroupModal(false);
+        }}
       />
     </>
   );

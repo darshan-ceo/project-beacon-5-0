@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { TagInput } from '@/components/ui/TagInput';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
 import { JudgePhotoUpload } from '@/components/masters/judges/JudgePhotoUpload';
+import { autoCapitalizeFirst } from '@/utils/textFormatters';
 
 interface JudgeFormData {
   name: string;
@@ -358,6 +359,7 @@ export const JudgeForm: React.FC<JudgeFormProps> = ({
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                onBlur={(e) => setFormData(prev => ({ ...prev, name: autoCapitalizeFirst(e.target.value) }))}
                 disabled={isReadOnly}
                 required
               />
@@ -410,6 +412,7 @@ export const JudgeForm: React.FC<JudgeFormProps> = ({
                 id="bench"
                 value={formData.bench || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, bench: e.target.value }))}
+                onBlur={(e) => setFormData(prev => ({ ...prev, bench: autoCapitalizeFirst(e.target.value) }))}
                 disabled={isReadOnly}
                 placeholder="e.g., Bench A, Court Room 3"
               />
@@ -423,6 +426,7 @@ export const JudgeForm: React.FC<JudgeFormProps> = ({
                 id="jurisdiction"
                 value={formData.jurisdiction || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, jurisdiction: e.target.value }))}
+                onBlur={(e) => setFormData(prev => ({ ...prev, jurisdiction: autoCapitalizeFirst(e.target.value) }))}
                 disabled={isReadOnly}
                 placeholder="e.g., Delhi, Mumbai"
               />
