@@ -383,7 +383,6 @@ export const ClientMasters: React.FC = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[100px]">Client ID</TableHead>
                     <TableHead className="w-[200px]">Client Name</TableHead>
                     <TableHead className="w-[180px]">GSTN / PAN / State</TableHead>
                     <TableHead className="w-[140px] hidden md:table-cell">Client Group</TableHead>
@@ -403,12 +402,7 @@ export const ClientMasters: React.FC = () => {
                     transition={{ duration: 0.3, delay: index * 0.05 }}
                     className="hover:bg-muted/50"
                   >
-                    {/* Column 1: Client ID */}
-                    <TableCell className="font-mono text-sm text-muted-foreground">
-                      {client.id || 'N/A'}
-                    </TableCell>
-
-                    {/* Column 2: Client Name */}
+                    {/* Column 1: Client Name */}
                     <TableCell>
                       <button
                         onClick={() => setClientModal({ isOpen: true, mode: 'edit', client })}
