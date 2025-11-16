@@ -21,6 +21,7 @@ import { AUTHORITY_LEVEL_OPTIONS, AUTHORITY_LEVEL_METADATA, AuthorityLevel } fro
 import { clientsService } from '@/services/clientsService';
 import { autoCapitalizeFirst } from '@/utils/textFormatters';
 import { extractCityFromAddress } from '@/utils/cityExtractor';
+import { authorityHierarchyService } from '@/services/authorityHierarchyService';
 
 interface CourtModalProps {
   isOpen: boolean;
@@ -39,6 +40,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     name: string;
     type: 'Supreme Court' | 'High Court' | 'District Court' | 'Tribunal' | 'Commission';
     authorityLevel?: AuthorityLevel;
+    matterTypes?: string[];
     jurisdiction: string;
     address: EnhancedAddressData;
     digitalFiling: boolean;
@@ -56,6 +58,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     name: '',
     type: 'District Court',
     authorityLevel: undefined,
+    matterTypes: [],
     jurisdiction: '',
     address: {
       line1: '',
@@ -91,6 +94,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         name: courtData.name,
         type: courtData.type,
         authorityLevel: courtData.authorityLevel,
+        matterTypes: courtData.matterTypes || [],
         jurisdiction: courtData.jurisdiction,
         address: typeof courtData.address === 'string' 
           ? { line1: courtData.address, line2: '', locality: '', district: '', cityId: '', stateId: '', pincode: '', countryId: 'IN', source: 'manual' } as EnhancedAddressData
@@ -207,6 +211,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         name: formData.name,
         type: formData.type,
         authorityLevel: formData.authorityLevel,
+        matterTypes: formData.matterTypes,
         jurisdiction: formData.jurisdiction,
         address: formData.address,
         activeCases: 0,
@@ -249,6 +254,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         name: formData.name,
         type: formData.type,
         authorityLevel: formData.authorityLevel,
+        matterTypes: formData.matterTypes,
         jurisdiction: formData.jurisdiction,
         address: formData.address,
         digitalFiling: formData.digitalFiling,
@@ -337,7 +343,8 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                 value={formData.authorityLevel || ''}
                 onValueChange={(value) => setFormData(prev => ({ 
                   ...prev, 
-                  authorityLevel: value as AuthorityLevel || undefined
+                  authorityLevel: value as AuthorityLevel || undefined,
+                  matterTypes: [] // Reset matter types when authority level changes
                 }))}
                 disabled={mode === 'view'}
                 required
@@ -365,6 +372,52 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Matter Types - Conditional based on authority level */}
+            {formData.authorityLevel && 
+             authorityHierarchyService.allowsMatterTypes(formData.authorityLevel) && (
+              <div>
+                <div className="flex items-center gap-1">
+                  <Label>Applicable Matter Types</Label>
+                  <FieldTooltip formId="create-court" fieldId="matterTypes" />
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Select which matter types this forum handles
+                </p>
+                <div className="space-y-2 max-h-[200px] overflow-y-auto border rounded-lg p-3">
+                  {authorityHierarchyService
+                    .getMatterTypesByLevel(formData.authorityLevel)
+                    .map(matterType => (
+                      <div key={matterType.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`matter-${matterType.id}`}
+                          checked={formData.matterTypes?.includes(matterType.id)}
+                          onCheckedChange={(checked) => {
+                            setFormData(prev => ({
+                              ...prev,
+                              matterTypes: checked
+                                ? [...(prev.matterTypes || []), matterType.id]
+                                : prev.matterTypes?.filter(id => id !== matterType.id) || []
+                            }));
+                          }}
+                          disabled={mode === 'view'}
+                        />
+                        <Label 
+                          htmlFor={`matter-${matterType.id}`}
+                          className="text-sm font-normal cursor-pointer"
+                        >
+                          {matterType.name}
+                          {matterType.description && (
+                            <span className="text-xs text-muted-foreground ml-1">
+                              - {matterType.description}
+                            </span>
+                          )}
+                        </Label>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>

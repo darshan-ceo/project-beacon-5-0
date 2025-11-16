@@ -32,6 +32,7 @@ import { MAPPING_SERVICES } from '@/utils/mappingServices';
 import { UnifiedCourtSearch } from '@/components/masters/UnifiedCourtSearch';
 import { GlossaryTooltip } from '@/components/help/GlossaryTooltip';
 import { extractCityFromAddress } from '@/utils/cityExtractor';
+import { authorityHierarchyService } from '@/services/authorityHierarchyService';
 
 
 export const CourtMasters: React.FC = () => {
@@ -265,16 +266,36 @@ export const CourtMasters: React.FC = () => {
                           </span>
                         </div>
                         {court.authorityLevel && (
-                          <GlossaryTooltip 
-                            term={AUTHORITY_LEVEL_METADATA[court.authorityLevel]?.label || court.authorityLevel}
-                          >
-                            <Badge 
-                              variant="outline" 
-                              className={`text-[10px] px-1.5 py-0 ${AUTHORITY_LEVEL_METADATA[court.authorityLevel]?.color || 'bg-gray-100'}`}
+                          <div className="space-y-1">
+                            <GlossaryTooltip 
+                              term={AUTHORITY_LEVEL_METADATA[court.authorityLevel]?.label || court.authorityLevel}
                             >
-                              {AUTHORITY_LEVEL_METADATA[court.authorityLevel]?.label || court.authorityLevel}
-                            </Badge>
-                          </GlossaryTooltip>
+                              <Badge 
+                                variant="outline" 
+                                className={`text-[10px] px-1.5 py-0 ${AUTHORITY_LEVEL_METADATA[court.authorityLevel]?.color || 'bg-gray-100'}`}
+                              >
+                                {AUTHORITY_LEVEL_METADATA[court.authorityLevel]?.label || court.authorityLevel}
+                              </Badge>
+                            </GlossaryTooltip>
+                            
+                            {/* Display Matter Types if available */}
+                            {court.matterTypes && court.matterTypes.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {court.matterTypes.map(mtId => {
+                                  const matterType = authorityHierarchyService.findMatterTypeGlobal(mtId);
+                                  return matterType ? (
+                                    <Badge 
+                                      key={mtId} 
+                                      variant="secondary" 
+                                      className="text-[9px] px-1 py-0"
+                                    >
+                                      {matterType.matterType.name}
+                                    </Badge>
+                                  ) : null;
+                                })}
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
                     </TableCell>

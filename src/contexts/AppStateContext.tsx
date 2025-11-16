@@ -243,6 +243,7 @@ interface Court {
   name: string;
   type: 'Supreme Court' | 'High Court' | 'District Court' | 'Tribunal' | 'Commission';
   authorityLevel?: 'ASSESSMENT' | 'ADJUDICATION' | 'FIRST_APPEAL' | 'REVISIONAL' | 'TRIBUNAL' | 'PRINCIPAL_BENCH' | 'HIGH_COURT' | 'SUPREME_COURT';
+  matterTypes?: string[]; // IDs of applicable matter types for this court/forum
   jurisdiction: string;
   address: string | any;
   activeCases: number;
