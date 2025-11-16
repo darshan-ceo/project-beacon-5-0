@@ -10,6 +10,7 @@ export const MOCK_LEGAL_AUTH_COUNTS: LegalAuthorityMetrics = {
   totalLegalForums: 18,
   activeLegalForums: 15,
   levels: {
+    ASSESSMENT: 0,
     ADJUDICATION: 7,
     FIRST_APPEAL: 4,
     REVISIONAL: 1,

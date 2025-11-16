@@ -44,15 +44,8 @@ export const GST_STAGES = [
   'Any Stage'
 ] as const;
 
-export const EMPLOYEE_ROLES = [
-  'Associate',
-  'Senior Associate',
-  'Team Lead', 
-  'Partner',
-  'Senior Partner',
-  'Managing Partner',
-  'Client Relations'
-] as const;
+// REMOVED: EMPLOYEE_ROLES - Now dynamically sourced from Employee Master
+// Use getAvailableEmployeeRoles() from masterDataUtils.ts
 
 export const GST_NOTICE_TYPES = [
   'ASMT-10',
@@ -85,7 +78,6 @@ export const PRIORITY_OPTIONS = [
 export type CaseType = typeof CASE_TYPES[number];
 export type MatterType = typeof MATTER_TYPES[number];
 export type GSTStage = typeof GST_STAGES[number];
-export type EmployeeRole = typeof EMPLOYEE_ROLES[number];
 export type GSTNoticeType = typeof GST_NOTICE_TYPES[number];
 export type ClientTier = typeof CLIENT_TIERS[number];
 export type TaskCategory = typeof TASK_CATEGORIES[number];
@@ -104,7 +96,6 @@ export const APP_CONFIG = {
   CASE_TYPES,
   MATTER_TYPES,
   GST_STAGES,
-  EMPLOYEE_ROLES,
   GST_NOTICE_TYPES,
   CLIENT_TIERS,
   TASK_CATEGORIES,

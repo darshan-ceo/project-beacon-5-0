@@ -63,12 +63,15 @@ import type { TaskBundle, TaskBundleItem } from '@/data/db';
 import type { EnhancedTaskBundleWithItems } from '@/types/enhancedTaskBundle';
 import type { CreateTaskBundleData } from '@/data/repositories/TaskBundleRepository';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useAppState } from '@/contexts/AppStateContext';
+import { getAvailableEmployeeRoles } from '@/utils/masterDataUtils';
 
 const GST_STAGES = ['Any Stage', 'Notice Received', 'Reply Filed', 'Hearing', 'Order'];
-const EMPLOYEE_ROLES = ['Partner', 'Senior Associate', 'Associate', 'Junior Associate', 'Paralegal'];
 
 export const TaskAutomation: React.FC = () => {
   const { initialized } = useUnifiedPersistence();
+  const { state } = useAppState();
+  const employeeRoles = getAvailableEmployeeRoles(state.employees);
   const [bundles, setBundles] = useState<EnhancedTaskBundleWithItems[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editingBundle, setEditingBundle] = useState<EnhancedTaskBundleWithItems | null>(null);
@@ -1151,7 +1154,7 @@ export const TaskAutomation: React.FC = () => {
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {EMPLOYEE_ROLES.map(role => (
+                                  {employeeRoles.map(role => (
                                     <SelectItem key={role} value={role}>{role}</SelectItem>
                                   ))}
                                 </SelectContent>

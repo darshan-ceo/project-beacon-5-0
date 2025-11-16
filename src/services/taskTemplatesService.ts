@@ -4,7 +4,7 @@
  */
 
 import { TaskTemplate, createDefaultTaskTemplate, validateTaskTemplate, TaskTemplateConditions } from '@/types/taskTemplate';
-import { GST_STAGES, EMPLOYEE_ROLES, GSTStage } from '../../config/appConfig';
+import { GST_STAGES, GSTStage } from '../../config/appConfig';
 import { idbStorage } from '@/utils/idb';
 import { toast } from 'sonner';
 
@@ -297,7 +297,8 @@ class TaskTemplatesService {
   }
 
   getAvailableRoles(): string[] {
-    return [...EMPLOYEE_ROLES];
+    // Return default roles - actual roles should be fetched from employee master
+    return ['Associate', 'Senior Associate', 'Partner', 'Senior Partner'];
   }
 
   getAvailableStages(): GSTStage[] {
