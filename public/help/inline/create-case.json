@@ -35,8 +35,8 @@
     "learnMoreUrl": "/help/case-creation-tutorial"
   },
   "current_stage": {
-    "title": "Current Stage",
-    "content": "Litigation stage - determines appeal routes and timeline tracking.",
+    "title": "Authority Level",
+    "content": "The current position in the legal hierarchy - determines appeal routes and timeline tracking.",
     "learnMoreUrl": "/help/manage-stage-checklist"
   },
   "matter_type": {

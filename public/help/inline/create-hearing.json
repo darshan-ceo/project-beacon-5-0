@@ -5,8 +5,8 @@
     "learnMoreUrl": "/help/articles/hearing-case-linkage"
   },
   "authority": {
-    "title": "GST Authority",
-    "content": "The GST authority issuing the notice or order (e.g., Commissioner, Joint Commissioner, Tribunal). This field is mandatory for tracking authority hierarchy.",
+    "title": "Authority",
+    "content": "The authority or forum issuing the notice or order (e.g., Commissioner, Joint Commissioner, Tribunal). This field is mandatory for tracking authority hierarchy.",
     "learnMoreUrl": "/help/articles/authority-hierarchy"
   },
   "forum": {

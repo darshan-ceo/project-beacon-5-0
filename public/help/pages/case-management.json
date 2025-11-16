@@ -48,8 +48,8 @@
     },
     {
       "step": 2,
-      "action": "Set the current stage (Scrutiny, Demand, etc.)",
-      "gstContext": "Match the stage to where your GST case currently stands"
+      "action": "Set the authority level (Assessment, Adjudication, Tribunal, etc.)",
+      "gstContext": "Match the level to where your case currently stands in the legal hierarchy"
     },
     {
       "step": 3,
