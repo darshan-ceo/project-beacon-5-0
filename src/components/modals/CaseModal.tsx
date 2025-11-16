@@ -22,12 +22,13 @@ import { useRelationships } from '@/hooks/useRelationships';
 import { useContextualForms } from '@/hooks/useContextualForms';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
 import { IssueTypeSelector } from '@/components/ui/IssueTypeSelector';
-import { CASE_TYPES, MATTER_TYPES } from '../../../config/appConfig';
+import { CASE_TYPES } from '../../../config/appConfig';
 import { generateCaseNumber, getNextSequence, type CaseType } from '@/utils/caseNumberGenerator';
 import { formatCaseTitle } from '@/utils/caseTitleFormatter';
 import { autoCapitalizeFirst } from '@/utils/textFormatters';
 import { format, addDays } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { authorityHierarchyService } from '@/services/authorityHierarchyService';
 
 interface CaseModalProps {
   isOpen: boolean;
@@ -894,7 +895,9 @@ export const CaseModal: React.FC<CaseModalProps> = ({
                       </Select>
                     </div>
 
-                    {formData.currentStage === 'Assessment' && (
+                    {/* Matter Type - Dynamic based on current stage */}
+                    {formData.currentStage && 
+                     authorityHierarchyService.allowsMatterTypes(formData.currentStage) && (
                       <div>
                         <div className="flex items-center gap-1 mb-2">
                           <Label htmlFor="matterType">Matter Type</Label>
@@ -906,38 +909,16 @@ export const CaseModal: React.FC<CaseModalProps> = ({
                           disabled={mode === 'view'}
                         >
                           <SelectTrigger className="bg-background">
-                            <SelectValue />
+                            <SelectValue placeholder="Select matter type" />
                           </SelectTrigger>
                           <SelectContent className="z-[200] bg-popover" position="popper" sideOffset={5}>
-                            {MATTER_TYPES.map(type => (
-                              <SelectItem key={type} value={type}>{type}</SelectItem>
-                            ))}
+                            {authorityHierarchyService
+                              .getMatterTypesByLevel(formData.currentStage)
+                              .map(type => (
+                                <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
+                              ))}
                           </SelectContent>
                         </Select>
-                      </div>
-                    )}
-
-                    {formData.currentStage === 'Tribunal' && (
-                      <div>
-                        <Label htmlFor="tribunalBench">Tribunal Bench</Label>
-                        <Select 
-                          value={formData.tribunalBench} 
-                          onValueChange={(value) => setFormData(prev => ({ ...prev, tribunalBench: value as any }))}
-                          disabled={mode === 'view'}
-                        >
-                          <SelectTrigger className="bg-background">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="z-[200] bg-popover" position="popper" sideOffset={5}>
-                            <SelectItem value="State Bench">State Bench → High Court</SelectItem>
-                            <SelectItem value="Principal Bench">Principal Bench → Supreme Court</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        {formData.tribunalBench === 'Principal Bench' && (
-                          <p className="text-xs text-warning mt-1">
-                            ⚠️ Principal Bench will route directly to Supreme Court
-                          </p>
-                        )}
                       </div>
                     )}
                   </div>
