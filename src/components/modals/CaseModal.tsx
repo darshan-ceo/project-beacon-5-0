@@ -877,20 +877,23 @@ export const CaseModal: React.FC<CaseModalProps> = ({
                       </div>
                       <Select 
                         value={formData.currentStage} 
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, currentStage: value as any }))}
+                        onValueChange={(value) => setFormData(prev => ({ 
+                          ...prev, 
+                          currentStage: value,
+                          matterType: '' // Reset matter type when authority level changes
+                        }))}
                         disabled={mode === 'view'}
                         data-tour="lifecycle-selector"
                       >
                         <SelectTrigger className="bg-background">
-                          <SelectValue />
+                          <SelectValue placeholder="Select authority level" />
                         </SelectTrigger>
                         <SelectContent className="z-[200] bg-popover" position="popper" sideOffset={5}>
-                          <SelectItem value="Assessment">Assessment</SelectItem>
-                          <SelectItem value="Adjudication">Adjudication</SelectItem>
-                          <SelectItem value="First Appeal">First Appeal</SelectItem>
-                          <SelectItem value="Tribunal">Tribunal</SelectItem>
-                          <SelectItem value="High Court">High Court</SelectItem>
-                          <SelectItem value="Supreme Court">Supreme Court</SelectItem>
+                          {authorityHierarchyService.getActiveAuthorityLevels().map(level => (
+                            <SelectItem key={level.id} value={level.id}>
+                              {level.name}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
