@@ -30,6 +30,7 @@ import { CalendarIntegrationPanel } from './CalendarIntegrationPanel';
 import { AddressSettings } from './AddressSettings';
 import { EmailConfiguration } from './EmailConfiguration';
 import { OutcomeTemplateManager } from './OutcomeTemplateManager';
+import { AuthorityHierarchySettings } from '@/components/settings/AuthorityHierarchySettings';
 import { featureFlagService } from '@/services/featureFlagService';
 
 interface SystemParameter {
@@ -211,11 +212,12 @@ export const GlobalParameters: React.FC = () => {
                 <TabsTrigger value="ai-communications" className="min-w-[140px] whitespace-nowrap">AI & Communications</TabsTrigger>
                 <TabsTrigger value="address-config" className="min-w-[120px] whitespace-nowrap">Address Config</TabsTrigger>
                 <TabsTrigger value="outcome-templates" className="min-w-[140px] whitespace-nowrap">Outcome Templates</TabsTrigger>
+                <TabsTrigger value="authority-hierarchy" className="min-w-[140px] whitespace-nowrap">Master Data</TabsTrigger>
               </TabsList>
             </div>
           </div>
         ) : (
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-1 p-1 h-auto">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 gap-1 p-1 h-auto">
             <TabsTrigger value="system" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">System</TabsTrigger>
             <TabsTrigger value="security" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Security</TabsTrigger>
             <TabsTrigger value="notifications" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Notifications</TabsTrigger>
@@ -224,6 +226,7 @@ export const GlobalParameters: React.FC = () => {
             <TabsTrigger value="ai-communications" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">AI & Communications</TabsTrigger>
             <TabsTrigger value="address-config" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Address Configuration</TabsTrigger>
             <TabsTrigger value="outcome-templates" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Outcome Templates</TabsTrigger>
+            <TabsTrigger value="authority-hierarchy" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Master Data</TabsTrigger>
           </TabsList>
         )}
 
@@ -592,6 +595,10 @@ export const GlobalParameters: React.FC = () => {
 
         <TabsContent value="outcome-templates" className="space-y-6">
           <OutcomeTemplateManager />
+        </TabsContent>
+
+        <TabsContent value="authority-hierarchy" className="space-y-6">
+          <AuthorityHierarchySettings />
         </TabsContent>
       </Tabs>
     </div>
