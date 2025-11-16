@@ -16,7 +16,9 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { FieldTooltipWrapper } from '@/components/help/FieldTooltipWrapper';
 import { Check, ChevronDown, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { EMPLOYEE_ROLES, GST_STAGES } from '../../../config/appConfig';
+import { GST_STAGES } from '../../../config/appConfig';
+import { useAppState } from '@/contexts/AppStateContext';
+import { getAvailableEmployeeRoles } from '@/utils/masterDataUtils';
 
 // Form interfaces
 export interface AutomationFlags {
@@ -79,6 +81,8 @@ export const TaskFormFields: React.FC<TaskFormFieldsProps> = ({
   fieldPrefix = ''
 }) => {
   const getFieldError = (field: string) => errors[fieldPrefix ? `${fieldPrefix}_${field}` : field];
+  const { state } = useAppState();
+  const employeeRoles = getAvailableEmployeeRoles(state.employees);
 
   return (
     <div className="space-y-4">
@@ -136,7 +140,7 @@ export const TaskFormFields: React.FC<TaskFormFieldsProps> = ({
                 <SelectValue placeholder="Select role" />
               </SelectTrigger>
               <SelectContent>
-                {EMPLOYEE_ROLES.map(role => (
+                {employeeRoles.map(role => (
                   <SelectItem key={role} value={role}>{role}</SelectItem>
                 ))}
               </SelectContent>

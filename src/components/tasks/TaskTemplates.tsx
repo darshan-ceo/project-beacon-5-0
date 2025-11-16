@@ -49,8 +49,10 @@ import {
 } from '@/components/ui/popover';
 import { TaskTemplate } from '@/types/taskTemplate';
 import { taskTemplatesService } from '@/services/taskTemplatesService';
-import { GST_STAGES, EMPLOYEE_ROLES } from '../../../config/appConfig';
+import { GST_STAGES } from '../../../config/appConfig';
 import { HelpButton } from '@/components/ui/help-button';
+import { useAppState } from '@/contexts/AppStateContext';
+import { getAvailableEmployeeRoles } from '@/utils/masterDataUtils';
 
 interface TaskBundle {
   id: string;
@@ -93,8 +95,9 @@ export const TaskTemplates: React.FC<TaskTemplatesProps> = ({ bundles }) => {
   });
 
   const [stageScopeOpen, setStageScopeOpen] = useState(false);
-
-  const roles = ['All', ...EMPLOYEE_ROLES];
+  const { state: appState } = useAppState();
+  const employeeRoles = getAvailableEmployeeRoles(appState.employees);
+  const roles = ['All', ...employeeRoles];
 
   useEffect(() => {
     loadTemplates();

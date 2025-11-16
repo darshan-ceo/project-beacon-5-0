@@ -19,7 +19,7 @@ interface Case {
   caseNumber: string;
   title: string;
   clientId: string; // FK to Client.id
-  currentStage: 'Assessment' | 'Adjudication' | 'First Appeal' | 'Tribunal' | 'High Court' | 'Supreme Court';
+  currentStage: string; // Sync with AuthorityLevel from Legal Authorities master
   priority: 'High' | 'Medium' | 'Low';
   timelineBreachStatus: 'Green' | 'Amber' | 'Red';
   status?: 'Active' | 'Completed';
@@ -242,7 +242,7 @@ interface Court {
   id: string;
   name: string;
   type: 'Supreme Court' | 'High Court' | 'District Court' | 'Tribunal' | 'Commission';
-  authorityLevel?: 'ADJUDICATION' | 'FIRST_APPEAL' | 'REVISIONAL' | 'TRIBUNAL' | 'PRINCIPAL_BENCH' | 'HIGH_COURT' | 'SUPREME_COURT';
+  authorityLevel?: 'ASSESSMENT' | 'ADJUDICATION' | 'FIRST_APPEAL' | 'REVISIONAL' | 'TRIBUNAL' | 'PRINCIPAL_BENCH' | 'HIGH_COURT' | 'SUPREME_COURT';
   jurisdiction: string;
   address: string | any;
   activeCases: number;

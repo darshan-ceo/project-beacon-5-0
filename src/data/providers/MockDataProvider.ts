@@ -1,6 +1,5 @@
 // Import types locally since they're not exported
-// Import configuration
-import { EMPLOYEE_ROLES } from '../../../config/appConfig';
+// Mock Data Provider - Provides sample data when no backend is connected
 
 interface Document {
   id: string;
@@ -429,29 +428,11 @@ class MockDataProvider implements DataProvider {
     employees: {
       list: async () => {
         const employees = await idbStorage.get('employees') || [];
-        
-        // Ensure all roles from config are represented
-        const enhancedEmployees = [...employees];
-        
-        // Check if we have employees for all required roles
-        EMPLOYEE_ROLES.forEach((role, index) => {
-          const hasRole = enhancedEmployees.some(emp => emp.role === role);
-          if (!hasRole) {
-            // Add a placeholder employee for missing roles
-            enhancedEmployees.push({
-              id: `emp-${Date.now()}-${index}`,
-              name: `${role} Representative`,
-              email: `${role.toLowerCase().replace(/\s+/g, '.')}.rep@firm.com`,
-              role: role,
-              phone: `+91 98765 ${String(43210 + index).padStart(5, '0')}`,
-              address: 'Mumbai Office',
-              specializations: ['GST Litigation'],
-              active: true
-            });
-          }
-        });
-        
-        return enhancedEmployees;
+        return employees;
+      },
+      getAll: async () => {
+        const employees = await idbStorage.get('employees') || [];
+        return employees;
       },
       create: async (employee: any) => {
         const employees = await idbStorage.get('employees') || [];

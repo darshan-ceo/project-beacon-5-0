@@ -61,10 +61,12 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { TaskFormFields, TaskFormData } from '@/components/ui/TaskFormFields';
-import { GST_STAGES, EMPLOYEE_ROLES } from '../../../config/appConfig';
+import { GST_STAGES } from '../../../config/appConfig';
 import { validateDueOffset } from '@/utils/date';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { useAppState } from '@/contexts/AppStateContext';
+import { getAvailableEmployeeRoles } from '@/utils/masterDataUtils';
 
 interface BundleTask {
   id: string;

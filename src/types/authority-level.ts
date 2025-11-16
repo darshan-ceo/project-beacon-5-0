@@ -1,8 +1,9 @@
 /**
  * Legal Authority Hierarchy Levels
- * Represents the progression of legal authorities from original adjudication to apex court
+ * Represents the progression of legal authorities from pre-adjudication to apex court
  */
 export type AuthorityLevel =
+  | 'ASSESSMENT'         // Pre-adjudication / Assessment stage (Proper Officer)
   | 'ADJUDICATION'       // Original authority (Proper Officer / Commissionerate)
   | 'FIRST_APPEAL'       // Commissioner (Appeals) / Appellate Authority (GST)
   | 'REVISIONAL'         // Revisional Authority (S.108 GST Act, etc.)
@@ -20,6 +21,13 @@ export interface AuthorityLevelMetadata {
 }
 
 export const AUTHORITY_LEVEL_METADATA: Record<AuthorityLevel, AuthorityLevelMetadata> = {
+  ASSESSMENT: {
+    key: 'ASSESSMENT',
+    label: 'Assessment',
+    description: 'Pre-adjudication stage',
+    hint: 'Proper Officer / Assessment',
+    color: 'bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-300'
+  },
   ADJUDICATION: {
     key: 'ADJUDICATION',
     label: 'Adjudication Authority',
@@ -73,6 +81,7 @@ export const AUTHORITY_LEVEL_METADATA: Record<AuthorityLevel, AuthorityLevelMeta
 
 export const AUTHORITY_LEVEL_OPTIONS = [
   { value: 'all', label: 'All Authority Levels' },
+  { value: 'ASSESSMENT', label: 'Assessment' },
   { value: 'ADJUDICATION', label: 'Adjudication Authority' },
   { value: 'FIRST_APPEAL', label: 'First Appeal' },
   { value: 'REVISIONAL', label: 'Revisional Authority' },

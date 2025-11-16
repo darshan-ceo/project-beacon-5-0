@@ -82,7 +82,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
     issueType: string;
     title: string;
     clientId: string;
-    currentStage: 'Assessment' | 'Adjudication' | 'First Appeal' | 'Tribunal' | 'High Court' | 'Supreme Court';
+    currentStage: string; // Synced with AuthorityLevel from Legal Authorities
     priority: 'High' | 'Medium' | 'Low';
     assignedToId: string;
     assignedToName: string;
