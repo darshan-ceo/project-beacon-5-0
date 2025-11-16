@@ -20,8 +20,8 @@
     "learnMoreUrl": "https://docs.example.com/remand-stage"
   },
   "currentStage": {
-    "title": "Current Case Stage",
-    "content": "The stage where this case currently resides in its lifecycle. Each stage has specific requirements and timelines.",
+    "title": "Current Authority Level",
+    "content": "The authority level where this case currently resides in its lifecycle. Each level has specific requirements and timelines.",
     "learnMoreUrl": "https://docs.example.com/case-stages"
   },
   "nextStage": {

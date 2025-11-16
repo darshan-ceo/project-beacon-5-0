@@ -336,7 +336,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
 
             <div>
               <div className="flex items-center gap-1">
-                <Label htmlFor="authorityLevel">GST Authority Level <span className="text-destructive">*</span></Label>
+                <Label htmlFor="authorityLevel">Authority Level <span className="text-destructive">*</span></Label>
                 <FieldTooltip formId="create-court" fieldId="authorityLevel" />
               </div>
               <Select
@@ -350,7 +350,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                 required
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select GST authority level" />
+                  <SelectValue placeholder="Select authority level" />
                 </SelectTrigger>
                 <SelectContent className="max-h-[400px]">
                   {AUTHORITY_LEVEL_OPTIONS.filter(opt => opt.value !== 'all').map(option => {

@@ -871,7 +871,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
                     <div data-tour="case-timeline">
                       <div className="flex items-center gap-1 mb-2">
                         <Label htmlFor="currentStage">
-                          Current Stage <span className="text-destructive">*</span>
+                          Authority Level <span className="text-destructive">*</span>
                         </Label>
                         <FieldTooltip formId="create-case" fieldId="current_stage" />
                       </div>
