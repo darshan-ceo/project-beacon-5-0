@@ -1,13 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogPortal, DialogOverlay } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Search } from 'lucide-react';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Check, ChevronsUpDown, Plus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 interface IssueType {
   id: string;
@@ -30,7 +43,7 @@ export const IssueTypeSelector: React.FC<IssueTypeSelectorProps> = ({
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newIssueType, setNewIssueType] = useState('');
   const [addToMaster, setAddToMaster] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [open, setOpen] = useState(false);
   const [issueTypes, setIssueTypes] = useState<IssueType[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -61,9 +74,6 @@ export const IssueTypeSelector: React.FC<IssueTypeSelectorProps> = ({
     }
   };
   
-  const filteredIssues = issueTypes.filter(issue =>
-    issue.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
   
   const handleAddNew = async () => {
     if (!newIssueType.trim()) {
@@ -127,6 +137,7 @@ export const IssueTypeSelector: React.FC<IssueTypeSelectorProps> = ({
       setIsAddDialogOpen(false);
       setNewIssueType('');
       setAddToMaster(false);
+      setOpen(false);
     } catch (error) {
       console.error('Error adding issue type:', error);
       toast({
@@ -139,58 +150,74 @@ export const IssueTypeSelector: React.FC<IssueTypeSelectorProps> = ({
   
   return (
     <>
-      <div className="space-y-2">
-        <Select value={value} onValueChange={onValueChange} disabled={disabled || loading}>
-          <SelectTrigger className="bg-background">
-            <SelectValue placeholder="Select or search issue type..." />
-          </SelectTrigger>
-          <SelectContent className="z-[200] bg-popover" position="popper" sideOffset={5}>
-            <div className="p-2 sticky top-0 bg-popover border-b z-10">
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search issues..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8"
-                />
-              </div>
-            </div>
-            <div className="max-h-[300px] overflow-y-auto">
-              {filteredIssues.length > 0 ? (
-                filteredIssues.map((issue) => (
-                  <SelectItem key={issue.id} value={issue.name}>
-                    <div className="flex flex-col">
-                      <span>{issue.name}</span>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-full justify-between bg-background"
+            disabled={disabled || loading}
+          >
+            {value || "Select or search issue type..."}
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-full p-0 z-[200]" align="start" sideOffset={5}>
+          <Command>
+            <CommandInput placeholder="Search issue types..." />
+            <CommandList>
+              <CommandEmpty>
+                {loading ? "Loading issue types..." : "No issue type found."}
+              </CommandEmpty>
+              <CommandGroup>
+                {issueTypes.map((issue) => (
+                  <CommandItem
+                    key={issue.id}
+                    value={`${issue.name} ${issue.category || ''}`}
+                    onSelect={() => {
+                      onValueChange(issue.name);
+                      setOpen(false);
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        value === issue.name ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    <div className="flex flex-col items-start gap-0.5">
+                      <span className="font-medium">{issue.name}</span>
                       {issue.category && (
-                        <span className="text-xs text-muted-foreground">{issue.category}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {issue.category}
+                        </span>
                       )}
                     </div>
-                  </SelectItem>
-                ))
-              ) : (
-                <div className="p-4 text-center text-sm text-muted-foreground">
-                  No issue types found
-                </div>
-              )}
-            </div>
-            <div className="border-t mt-2 pt-2 sticky bottom-0 bg-popover z-10">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setIsAddDialogOpen(true);
-                }}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Custom Issue Type
-              </Button>
-            </div>
-          </SelectContent>
-        </Select>
-      </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+          
+          {/* Add New Button */}
+          <div className="border-t border-border p-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={() => {
+                setIsAddDialogOpen(true);
+                setOpen(false);
+              }}
+              disabled={loading}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add Custom Issue Type
+            </Button>
+          </div>
+        </PopoverContent>
+      </Popover>
       
       {/* Add New Issue Type Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
