@@ -9,6 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { authorityHierarchyService } from '@/services/authorityHierarchyService';
 import { MatterTypeConfig } from '@/types/authority-matter-hierarchy';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { MapPin, ChevronDown, ChevronRight } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface MatterTypeFormProps {
   open: boolean;
@@ -33,6 +36,7 @@ export const MatterTypeForm: React.FC<MatterTypeFormProps> = ({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isLocationOpen, setIsLocationOpen] = useState(false);
   const parentLevel = authorityHierarchyService.getAuthorityLevelById(levelId);
 
   useEffect(() => {
@@ -191,6 +195,49 @@ export const MatterTypeForm: React.FC<MatterTypeFormProps> = ({
               </p>
             </div>
           </div>
+
+          {/* Location Requirements (Read-only display) */}
+          {matterType?.requiresLocation && matterType?.locations && matterType.locations.length > 0 && (
+            <Card className="border-blue-200 bg-blue-50/50 dark:bg-blue-950/20">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-blue-600" />
+                  <CardTitle className="text-sm">Location Requirements</CardTitle>
+                  <Badge variant="secondary" className="ml-auto text-xs">Pre-configured</Badge>
+                </div>
+                <CardDescription className="text-xs">
+                  This matter type requires state and city selection when creating cases
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Collapsible open={isLocationOpen} onOpenChange={setIsLocationOpen}>
+                  <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium hover:text-primary transition-colors w-full">
+                    {isLocationOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                    View Configured Locations ({matterType.locations.length} states)
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-3 space-y-3 max-h-[300px] overflow-y-auto">
+                    {matterType.locations.map((location, idx) => (
+                      <div key={idx} className="rounded-lg border bg-background p-3 space-y-1.5">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="font-semibold">{location.state}</Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {location.cities.length} {location.cities.length === 1 ? 'city' : 'cities'}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {location.cities.map((city, cityIdx) => (
+                            <Badge key={cityIdx} variant="secondary" className="text-xs">
+                              {city}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </CollapsibleContent>
+                </Collapsible>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <DialogFooter>
