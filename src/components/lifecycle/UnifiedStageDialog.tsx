@@ -30,6 +30,7 @@ import { normalizeStage } from '@/utils/stageUtils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAppState } from '@/contexts/AppStateContext';
 import { supabase } from '@/integrations/supabase/client';
+import { MapPin } from 'lucide-react';
 import { 
   ArrowRight, 
   ArrowLeft, 
@@ -255,7 +256,19 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
               <CardTitle className="text-sm">Current Stage</CardTitle>
             </CardHeader>
             <CardContent>
-              <Badge variant="secondary">{effectiveStage}</Badge>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge variant="secondary">{effectiveStage}</Badge>
+                {/* State Bench Location Badge */}
+                {caseData?.currentStage === 'Tribunal' && 
+                 (caseData as any)?.matterType === 'state_bench' && 
+                 caseData?.stateBenchState && 
+                 caseData?.stateBenchCity && (
+                  <Badge variant="outline" className="flex items-center gap-1">
+                    <MapPin className="h-3 w-3" />
+                    {caseData.stateBenchState} - {caseData.stateBenchCity}
+                  </Badge>
+                )}
+              </div>
             </CardContent>
           </Card>
 

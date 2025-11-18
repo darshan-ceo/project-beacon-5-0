@@ -304,6 +304,8 @@ export type Database = {
           priority: string | null
           reply_due_date: string | null
           stage_code: string | null
+          state_bench_city: string | null
+          state_bench_state: string | null
           status: string | null
           tax_demand: number | null
           tenant_id: string
@@ -330,6 +332,8 @@ export type Database = {
           priority?: string | null
           reply_due_date?: string | null
           stage_code?: string | null
+          state_bench_city?: string | null
+          state_bench_state?: string | null
           status?: string | null
           tax_demand?: number | null
           tenant_id: string
@@ -356,6 +360,8 @@ export type Database = {
           priority?: string | null
           reply_due_date?: string | null
           stage_code?: string | null
+          state_bench_city?: string | null
+          state_bench_state?: string | null
           status?: string | null
           tax_demand?: number | null
           tenant_id?: string

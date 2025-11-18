@@ -116,6 +116,8 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           lastUpdated: c.last_updated || c.updated_at || c.lastUpdated,
           generatedForms: c.generated_forms || c.generatedForms || [],
           amountInDispute: c.amount_in_dispute || c.amountInDispute,
+          stateBenchState: c.state_bench_state || c.stateBenchState,
+          stateBenchCity: c.state_bench_city || c.stateBenchCity,
         }));
 
         const tasks = (tasksData.data || []).map((t: any) => ({

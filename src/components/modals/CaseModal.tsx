@@ -29,6 +29,7 @@ import { autoCapitalizeFirst } from '@/utils/textFormatters';
 import { format, addDays } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { authorityHierarchyService } from '@/services/authorityHierarchyService';
+import { getAllStates, getCitiesForState } from '@/data/gstat-state-benches';
 
 interface CaseModalProps {
   isOpen: boolean;
@@ -103,6 +104,8 @@ export const CaseModal: React.FC<CaseModalProps> = ({
     departmentLocation: string;
     matterType: string;
     tribunalBench: 'State Bench' | 'Principal Bench';
+    stateBenchState: string; // State selection for State Bench
+    stateBenchCity: string; // City selection for State Bench
     // Phase 1: Production-ready fields
     notice_no: string;
     form_type: string;
@@ -138,6 +141,8 @@ export const CaseModal: React.FC<CaseModalProps> = ({
     departmentLocation: '',
     matterType: 'Scrutiny',
     tribunalBench: 'State Bench',
+    stateBenchState: '',
+    stateBenchCity: '',
     notice_no: '',
     form_type: '',
     section_invoked: '',
@@ -176,6 +181,8 @@ export const CaseModal: React.FC<CaseModalProps> = ({
         departmentLocation: caseData.departmentLocation || '',
         matterType: caseData.matterType || 'Scrutiny',
         tribunalBench: caseData.tribunalBench || 'State Bench',
+        stateBenchState: caseData.stateBenchState || '',
+        stateBenchCity: caseData.stateBenchCity || '',
         notice_no: caseData.notice_no || '',
         form_type: caseData.form_type || '',
         section_invoked: caseData.section_invoked || '',
@@ -403,6 +410,8 @@ export const CaseModal: React.FC<CaseModalProps> = ({
         departmentLocation: formData.departmentLocation,
         matterType: formData.currentStage === 'Assessment' ? formData.matterType as any : undefined,
         tribunalBench: formData.currentStage === 'Tribunal' ? formData.tribunalBench : undefined,
+        stateBenchState: (formData.currentStage === 'Tribunal' && formData.matterType === 'state_bench') ? formData.stateBenchState : undefined,
+        stateBenchCity: (formData.currentStage === 'Tribunal' && formData.matterType === 'state_bench') ? formData.stateBenchCity : undefined,
         notice_no: formData.notice_no,
         form_type: formData.form_type as any,
         section_invoked: formData.section_invoked,
@@ -450,6 +459,8 @@ export const CaseModal: React.FC<CaseModalProps> = ({
         departmentLocation: formData.departmentLocation,
         matterType: formData.currentStage === 'Assessment' ? formData.matterType as any : undefined,
         tribunalBench: formData.currentStage === 'Tribunal' ? formData.tribunalBench : undefined,
+        stateBenchState: (formData.currentStage === 'Tribunal' && formData.matterType === 'state_bench') ? formData.stateBenchState : undefined,
+        stateBenchCity: (formData.currentStage === 'Tribunal' && formData.matterType === 'state_bench') ? formData.stateBenchCity : undefined,
         notice_no: formData.notice_no,
         form_type: formData.form_type as any,
         section_invoked: formData.section_invoked,
@@ -908,7 +919,13 @@ export const CaseModal: React.FC<CaseModalProps> = ({
                         </div>
                         <Select 
                           value={formData.matterType} 
-                          onValueChange={(value) => setFormData(prev => ({ ...prev, matterType: value }))}
+                          onValueChange={(value) => setFormData(prev => ({ 
+                            ...prev, 
+                            matterType: value,
+                            // Reset state bench location when matter type changes
+                            stateBenchState: value === 'state_bench' ? prev.stateBenchState : '',
+                            stateBenchCity: value === 'state_bench' ? prev.stateBenchCity : ''
+                          }))}
                           disabled={mode === 'view'}
                         >
                           <SelectTrigger className="bg-background">
@@ -923,6 +940,67 @@ export const CaseModal: React.FC<CaseModalProps> = ({
                           </SelectContent>
                         </Select>
                       </div>
+                    )}
+
+                    {/* State Bench Location - Cascading State and City selection */}
+                    {formData.currentStage === 'Tribunal' && formData.matterType === 'state_bench' && (
+                      <>
+                        <div>
+                          <div className="flex items-center gap-1 mb-2">
+                            <Label htmlFor="stateBenchState">State *</Label>
+                            <FieldTooltip 
+                              formId="create-case" 
+                              fieldId="state_bench_state" 
+                              content="Select the state for State Bench jurisdiction as per GSTAT notification"
+                            />
+                          </div>
+                          <Select 
+                            value={formData.stateBenchState} 
+                            onValueChange={(value) => setFormData(prev => ({ 
+                              ...prev, 
+                              stateBenchState: value,
+                              stateBenchCity: '' // Reset city when state changes
+                            }))}
+                            disabled={mode === 'view'}
+                          >
+                            <SelectTrigger className="bg-background">
+                              <SelectValue placeholder="Select state" />
+                            </SelectTrigger>
+                            <SelectContent className="z-[200] bg-popover max-h-[300px]" position="popper" sideOffset={5}>
+                              {getAllStates().map(state => (
+                                <SelectItem key={state} value={state}>{state}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {formData.stateBenchState && (
+                          <div>
+                            <div className="flex items-center gap-1 mb-2">
+                              <Label htmlFor="stateBenchCity">City *</Label>
+                              <FieldTooltip 
+                                formId="create-case" 
+                                fieldId="state_bench_city" 
+                                content="Select the city where the State Bench is located for this state"
+                              />
+                            </div>
+                            <Select 
+                              value={formData.stateBenchCity} 
+                              onValueChange={(value) => setFormData(prev => ({ ...prev, stateBenchCity: value }))}
+                              disabled={mode === 'view'}
+                            >
+                              <SelectTrigger className="bg-background">
+                                <SelectValue placeholder="Select city" />
+                              </SelectTrigger>
+                              <SelectContent className="z-[200] bg-popover max-h-[300px]" position="popper" sideOffset={5}>
+                                {getCitiesForState(formData.stateBenchState).map(city => (
+                                  <SelectItem key={city} value={city}>{city}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </CardContent>
