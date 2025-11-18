@@ -169,11 +169,17 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
     if (!uploadedFile) return;
     
     setLoading(true);
+    console.debug('📤 [handleExtractData] Starting extraction...');
+    console.debug('  📄 File:', uploadedFile?.name);
+    console.debug('  🔑 API Key configured:', apiKeyInfo.hasKeys);
+    
     try {
       const result = await noticeExtractionService.extractFromPDF(uploadedFile);
+      console.debug('  ✅ [Extraction result]:', { success: result.success, hasData: !!result.data });
       
       // Handle specific errors
       if (result.errorCode === 'INVALID_API_KEY') {
+        console.debug('  ❌ [Error] Invalid API key');
         toast({
           title: "Invalid OpenAI API Key",
           description: "Please configure a valid API key to use AI extraction.",
@@ -185,6 +191,7 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
       }
       
       if (result.errorCode === 'RATE_LIMIT') {
+        console.debug('  ⏱️ [Error] Rate limit exceeded');
         toast({
           title: "Rate Limit Reached",
           description: "OpenAI rate limit exceeded. Please try again in a minute.",
@@ -299,6 +306,10 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
   };
 
   const handleResolveGaps = () => {
+    console.debug('🔍 [handleResolveGaps] Starting...');
+    console.debug('  userOverrides:', userOverrides);
+    console.debug('  validationResult:', { canProceed: validationResult.canProceed, errors: validationResult.errors });
+    
     if (!extractedData || !resolverOutput) return;
     
     // Re-run resolver with current user overrides
@@ -342,6 +353,7 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
   };
 
   const handleUpdateField = (path: string, value: any) => {
+    console.debug('[handleUpdateField]', { path, value });
     setUserOverrides(prev => ({
       ...prev,
       [path]: value
@@ -850,6 +862,29 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
                 </CardContent>
               </Card>
             )}
+            
+            {extractedData && (() => {
+              // Check if most key fields are empty
+              const keyFields = [
+                extractedData.din,
+                extractedData.taxpayer?.gstin,
+                extractedData.notice_no,
+                extractedData.issue_date,
+                extractedData.action?.response_due_date
+              ];
+              const emptyCount = keyFields.filter(f => !f || f === 'Not found').length;
+              const mostlyEmpty = emptyCount >= 3;
+              
+              return mostlyEmpty ? (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>Low Extraction Results:</strong> AI/OCR could not detect most key fields from this notice. 
+                    You can proceed to manually fill in the required information (especially GSTIN) in the next step.
+                  </AlertDescription>
+                </Alert>
+              ) : null;
+            })()}
           </div>
         );
 

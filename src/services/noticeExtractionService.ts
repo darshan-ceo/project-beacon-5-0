@@ -231,8 +231,19 @@ Return the data as JSON with this structure:
       };
 
     } catch (error) {
-      console.error('AI/OCR extraction error:', error);
-      throw new Error('AI/OCR extraction failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      console.error('❌ [AI Extraction] Error:', error);
+      
+      // Categorize errors for better user feedback
+      if (error instanceof Error) {
+        if (error.message.includes('401') || error.message.includes('Invalid API key')) {
+          throw { code: 'INVALID_API_KEY', message: 'Invalid OpenAI API key' };
+        }
+        if (error.message.includes('429') || error.message.includes('rate limit')) {
+          throw { code: 'RATE_LIMIT', message: 'API rate limit exceeded. Please try again later.' };
+        }
+      }
+      
+      throw { code: 'AI_ERROR', message: 'AI extraction failed: ' + (error instanceof Error ? error.message : 'Unknown error') };
     }
   }
 
@@ -240,6 +251,8 @@ Return the data as JSON with this structure:
    * Extract structured data using regex patterns with confidence scoring
    */
   private extractDataFromText(text: string): ExtractedNoticeData {
+    console.debug('📄 [Regex Extraction] Starting with text length:', text.length);
+    
     const extracted: ExtractedNoticeData = {
       din: '',
       gstin: '',
@@ -258,6 +271,7 @@ Return the data as JSON with this structure:
           .replace(/[–—]/g, '-'); // Normalize dashes
         
         (extracted as any)[key] = value;
+        console.debug(`  ✓ [Regex] Found ${key}:`, value);
         
         // Calculate confidence based on validation
         let confidence = 50; // Base confidence for regex match
