@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Scale, Plus, Edit, Trash2, GripVertical, ChevronDown, ChevronRight, Download, Upload, RotateCcw, AlertCircle } from 'lucide-react';
+import { Scale, Plus, Edit, Trash2, GripVertical, ChevronDown, ChevronRight, Download, Upload, RotateCcw, AlertCircle, MapPin } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -369,6 +369,12 @@ export const AuthorityHierarchySettings: React.FC = () => {
                                     <span className="font-medium text-sm">{matterType.name}</span>
                                     {!matterType.isActive && (
                                       <Badge variant="secondary" className="text-xs">Inactive</Badge>
+                                    )}
+                                    {matterType.requiresLocation && (
+                                      <Badge variant="outline" className="text-xs flex items-center gap-1 bg-blue-50 dark:bg-blue-950/20 border-blue-200">
+                                        <MapPin className="h-3 w-3" />
+                                        Location Required
+                                      </Badge>
                                     )}
                                   </div>
                                   {matterType.description && (

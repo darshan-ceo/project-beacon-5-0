@@ -259,7 +259,7 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge variant="secondary">{effectiveStage}</Badge>
                 {/* State Bench Location Badge */}
-                {caseData?.currentStage === 'Tribunal' && 
+                {caseData?.currentStage === 'TRIBUNAL' && 
                  (caseData as any)?.matterType === 'state_bench' && 
                  caseData?.stateBenchState && 
                  caseData?.stateBenchCity && (

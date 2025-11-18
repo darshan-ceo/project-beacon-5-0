@@ -408,10 +408,10 @@ export const CaseModal: React.FC<CaseModalProps> = ({
         specificOfficer: formData.specificOfficer,
         jurisdictionalCommissionerate: formData.jurisdictionalCommissionerate,
         departmentLocation: formData.departmentLocation,
-        matterType: formData.currentStage === 'Assessment' ? formData.matterType as any : undefined,
-        tribunalBench: formData.currentStage === 'Tribunal' ? formData.tribunalBench : undefined,
-        stateBenchState: (formData.currentStage === 'Tribunal' && formData.matterType === 'state_bench') ? formData.stateBenchState : undefined,
-        stateBenchCity: (formData.currentStage === 'Tribunal' && formData.matterType === 'state_bench') ? formData.stateBenchCity : undefined,
+        matterType: formData.currentStage === 'ASSESSMENT' ? formData.matterType as any : undefined,
+        tribunalBench: formData.currentStage === 'TRIBUNAL' ? formData.tribunalBench : undefined,
+        stateBenchState: (formData.currentStage === 'TRIBUNAL' && formData.matterType === 'state_bench') ? formData.stateBenchState : undefined,
+        stateBenchCity: (formData.currentStage === 'TRIBUNAL' && formData.matterType === 'state_bench') ? formData.stateBenchCity : undefined,
         notice_no: formData.notice_no,
         form_type: formData.form_type as any,
         section_invoked: formData.section_invoked,
@@ -457,10 +457,10 @@ export const CaseModal: React.FC<CaseModalProps> = ({
         specificOfficer: formData.specificOfficer,
         jurisdictionalCommissionerate: formData.jurisdictionalCommissionerate,
         departmentLocation: formData.departmentLocation,
-        matterType: formData.currentStage === 'Assessment' ? formData.matterType as any : undefined,
-        tribunalBench: formData.currentStage === 'Tribunal' ? formData.tribunalBench : undefined,
-        stateBenchState: (formData.currentStage === 'Tribunal' && formData.matterType === 'state_bench') ? formData.stateBenchState : undefined,
-        stateBenchCity: (formData.currentStage === 'Tribunal' && formData.matterType === 'state_bench') ? formData.stateBenchCity : undefined,
+        matterType: formData.currentStage === 'ASSESSMENT' ? formData.matterType as any : undefined,
+        tribunalBench: formData.currentStage === 'TRIBUNAL' ? formData.tribunalBench : undefined,
+        stateBenchState: (formData.currentStage === 'TRIBUNAL' && formData.matterType === 'state_bench') ? formData.stateBenchState : undefined,
+        stateBenchCity: (formData.currentStage === 'TRIBUNAL' && formData.matterType === 'state_bench') ? formData.stateBenchCity : undefined,
         notice_no: formData.notice_no,
         form_type: formData.form_type as any,
         section_invoked: formData.section_invoked,
@@ -943,7 +943,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
                     )}
 
                     {/* State Bench Location - Cascading State and City selection */}
-                    {formData.currentStage === 'Tribunal' && formData.matterType === 'state_bench' && (
+                    {formData.currentStage === 'TRIBUNAL' && formData.matterType === 'state_bench' && (
                       <>
                         <div>
                           <div className="flex items-center gap-1 mb-2">
