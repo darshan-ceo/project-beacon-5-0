@@ -77,6 +77,10 @@ interface Case {
   penalty_amount?: number; // Penalty amount proposed/imposed
   total_demand?: number; // Computed: tax + interest + penalty
   
+  // Phase 4: State Bench Location Enhancement (GSTAT Notification Compliance)
+  stateBenchState?: string; // State selection for State Bench cases (e.g., "Gujarat", "Maharashtra")
+  stateBenchCity?: string; // City selection for State Bench cases (e.g., "Ahmedabad", "Mumbai")
+  
   // Backward compatibility
   slaStatus?: 'Green' | 'Amber' | 'Red'; // Deprecated: use timelineBreachStatus
 }
