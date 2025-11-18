@@ -13,6 +13,8 @@
       "defaultEnabled": true,
       "order": 1,
       "showDetails": true,
+      "heightClass": "compact",
+      "colSpan": 1,
       "clickAction": {
         "navigateTo": "/clients",
         "tooltip": "View all clients",
@@ -32,6 +34,8 @@
       "defaultEnabled": true,
       "order": 2,
       "showDetails": true,
+      "heightClass": "compact",
+      "colSpan": 1,
       "clickAction": {
         "navigateTo": "/cases?status=Active",
         "tooltip": "View all open cases",
@@ -51,6 +55,8 @@
       "defaultEnabled": true,
       "order": 3,
       "showDetails": false,
+      "heightClass": "medium",
+      "colSpan": 1,
       "clickAction": {
         "navigateTo": "/reports?tab=timeline-breach-compliance",
         "tooltip": "View timeline report",
@@ -70,6 +76,8 @@
       "defaultEnabled": true,
       "order": 4,
       "showDetails": true,
+      "heightClass": "compact",
+      "colSpan": 1,
       "clickAction": {
         "navigateTo": "/hearings/calendar",
         "tooltip": "Open full hearing calendar",
@@ -89,6 +97,8 @@
       "defaultEnabled": true,
       "order": 5,
       "showDetails": true,
+      "heightClass": "compact",
+      "colSpan": 1,
       "clickAction": {
         "navigateTo": "/reports?tab=timeline-breach-compliance",
         "tooltip": "View timeline breach details",
