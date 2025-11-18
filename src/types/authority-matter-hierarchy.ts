@@ -3,12 +3,19 @@
  * Defines configurable hierarchy where authority levels can have sub-levels (matter types)
  */
 
+export interface LocationMetadata {
+  state: string;
+  cities: string[];
+}
+
 export interface MatterTypeConfig {
   id: string;
   name: string;
   description?: string;
   isActive: boolean;
   sortOrder: number;
+  requiresLocation?: boolean; // If true, requires state and city selection
+  locations?: LocationMetadata[]; // Available state-city combinations
 }
 
 export interface AuthorityLevelConfig {
@@ -29,9 +36,11 @@ export interface AuthorityHierarchyMaster {
   lastUpdated: string;
 }
 
+import { GSTAT_STATE_BENCHES } from '@/data/gstat-state-benches';
+
 // Default hierarchy configuration
 export const DEFAULT_AUTHORITY_HIERARCHY: AuthorityHierarchyMaster = {
-  version: '1.0',
+  version: '1.1',
   lastUpdated: new Date().toISOString(),
   authorityLevels: [
     {
@@ -94,8 +103,23 @@ export const DEFAULT_AUTHORITY_HIERARCHY: AuthorityHierarchyMaster = {
       sortOrder: 5,
       allowsMatterTypes: true,
       matterTypes: [
-        { id: 'state_bench', name: 'State Bench', description: 'State level tribunal bench', isActive: true, sortOrder: 1 },
-        { id: 'principal_bench', name: 'Principal Bench', description: 'Principal tribunal bench', isActive: true, sortOrder: 2 }
+        { 
+          id: 'state_bench', 
+          name: 'State Bench', 
+          description: 'State level tribunal bench with location-specific jurisdiction', 
+          isActive: true, 
+          sortOrder: 1,
+          requiresLocation: true,
+          locations: GSTAT_STATE_BENCHES
+        },
+        { 
+          id: 'principal_bench', 
+          name: 'Principal Bench', 
+          description: 'Principal tribunal bench (New Delhi)', 
+          isActive: true, 
+          sortOrder: 2,
+          requiresLocation: false
+        }
       ]
     },
     {
