@@ -1218,6 +1218,13 @@ export class SupabaseAdapter implements StoragePort {
           if (normalized.clientId && !normalized.client_id) {
             normalized.client_id = normalized.clientId;
           }
+          // State Bench location fields
+          if (normalized.stateBenchState && !normalized.state_bench_state) {
+            normalized.state_bench_state = normalized.stateBenchState;
+          }
+          if (normalized.stateBenchCity && !normalized.state_bench_city) {
+            normalized.state_bench_city = normalized.stateBenchCity;
+          }
           // Accept client field as object or string
           if (!normalized.client_id && normalized.client && typeof normalized.client === 'object' && normalized.client.id) {
             normalized.client_id = normalized.client.id;
@@ -1269,6 +1276,8 @@ export class SupabaseAdapter implements StoragePort {
           delete normalized.noticeType;
           delete normalized.noticeNo;
           delete normalized.nextHearingDate;
+          delete normalized.stateBenchState;
+          delete normalized.stateBenchCity;
           
           // Delete frontend-only fields
           delete normalized.caseType;
