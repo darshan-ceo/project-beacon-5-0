@@ -69,14 +69,8 @@ export const DashboardWidget: React.FC<DashboardWidgetProps> = ({ tile }) => {
     return null;
   }
 
-  // Map heightClass to Tailwind classes
-  const heightClassMap = {
-    compact: 'min-h-[200px]',
-    medium: 'min-h-[240px]',
-    tall: 'min-h-[320px]',
-  };
-
-  const heightClass = heightClassMap[tile.heightClass as keyof typeof heightClassMap] || 'min-h-[200px]';
+  // All tiles now use medium height (240px)
+  const heightClass = 'min-h-[240px]';
 
   return (
     <div
@@ -84,16 +78,16 @@ export const DashboardWidget: React.FC<DashboardWidgetProps> = ({ tile }) => {
       style={style}
       className={cn("relative group", heightClass)}
     >
-      {/* Drag Handle - Always visible */}
+      {/* Drag Handle - Always visible, larger hit area */}
       <Button
         {...attributes}
         {...listeners}
         variant="ghost"
         size="icon"
-        className="absolute top-2 left-2 z-10 opacity-60 hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing bg-background/80 hover:bg-background shadow-sm"
+        className="absolute top-2 left-2 z-10 opacity-70 hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing bg-background/90 hover:bg-background shadow-md h-8 w-8"
         title="Drag to reorder"
       >
-        <GripVertical className="h-4 w-4" />
+        <GripVertical className="h-5 w-5" />
       </Button>
 
       {/* Render the widget */}

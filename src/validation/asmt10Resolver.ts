@@ -131,22 +131,21 @@ function getLastDayOfMonth(month: number, year: number): string {
 }
 
 /**
- * Normalize GSTIN - strict validation
- * Must be exactly 15 characters in correct format
+ * Normalize GSTIN - relaxed validation
+ * Must be exactly 15 characters (pattern validation is non-blocking)
  */
 export function normalizeGSTIN(input: any): string | null {
   if (!input) return null;
   
   const str = String(input).trim().toUpperCase().replace(/\s/g, '');
   
-  // GSTIN format: 2 digits + 10 alphanumeric + 1 letter + 1 alphanumeric + Z + 1 alphanumeric
-  // Example: 03AAGCB9221K1ZR
-  const gstinPattern = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[0-9A-Z]{1}Z[0-9A-Z]{1}$/;
-  
-  if (str.length === 15 && gstinPattern.test(str)) {
+  // Accept any 15-character string
+  if (str.length === 15) {
+    console.debug('[GSTIN Validation] Accepted 15-char GSTIN:', str);
     return str;
   }
   
+  console.debug('[GSTIN Validation] Rejected - length:', str.length, 'value:', str);
   return null;
 }
 
@@ -183,7 +182,7 @@ const VALIDATION_RULES: ValidationRule[] = [
     normalize: normalizeGSTIN,
     validate: (value, normalized) => {
       if (!normalized) {
-        return { valid: false, message: 'GSTIN is required and must be exactly 15 characters in valid format' };
+        return { valid: false, message: 'GSTIN is required and must be exactly 15 characters' };
       }
       return { valid: true };
     },

@@ -91,26 +91,22 @@ export const EnhancedDashboard: React.FC = () => {
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     
-    setActiveDragId(null); // Clear active drag
+    setActiveDragId(null);
 
     if (over && active.id !== over.id) {
-      // Find indices in the visible sorted tiles
       const oldIndex = sortedTiles.findIndex((tile) => tile.id === active.id);
       const newIndex = sortedTiles.findIndex((tile) => tile.id === over.id);
 
-      // Reorder the visible tiles
-      const reorderedVisibleTiles = arrayMove(sortedTiles, oldIndex, newIndex);
-      const reorderedVisibleIds = reorderedVisibleTiles.map((tile) => tile.id);
-      
-      // Preserve non-visible selected tiles and merge with reordered visible ones
-      const nonVisibleTileIds = selectedTiles.filter(
-        id => !sortedTiles.some(tile => tile.id === id)
-      );
-      
-      const finalOrder = [...reorderedVisibleIds, ...nonVisibleTileIds];
-      
-      setSelectedTiles(finalOrder);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(finalOrder));
+      if (oldIndex !== -1 && newIndex !== -1) {
+        // Reorder tiles
+        const reordered = arrayMove(sortedTiles, oldIndex, newIndex);
+        const newIds = reordered.map((tile) => tile.id);
+        
+        setSelectedTiles(newIds);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(newIds));
+        
+        console.debug('[Dashboard] Reordered tiles:', { from: oldIndex, to: newIndex });
+      }
     }
   };
 
@@ -162,15 +158,10 @@ export const EnhancedDashboard: React.FC = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.1 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
           >
             {sortedTiles.map((tile) => (
-              <div
-                key={tile.id}
-                className={tile.colSpan === 2 ? 'md:col-span-2' : ''}
-              >
-                <DashboardWidget tile={tile} />
-              </div>
+              <DashboardWidget key={tile.id} tile={tile} />
             ))}
           </motion.div>
         </SortableContext>

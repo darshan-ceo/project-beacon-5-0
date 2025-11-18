@@ -13,7 +13,7 @@
       "defaultEnabled": true,
       "order": 1,
       "showDetails": true,
-      "heightClass": "compact",
+      "heightClass": "medium",
       "colSpan": 1,
       "clickAction": {
         "navigateTo": "/clients",
@@ -34,7 +34,7 @@
       "defaultEnabled": true,
       "order": 2,
       "showDetails": true,
-      "heightClass": "compact",
+      "heightClass": "medium",
       "colSpan": 1,
       "clickAction": {
         "navigateTo": "/cases?status=Active",
@@ -76,7 +76,7 @@
       "defaultEnabled": true,
       "order": 4,
       "showDetails": true,
-      "heightClass": "compact",
+      "heightClass": "medium",
       "colSpan": 1,
       "clickAction": {
         "navigateTo": "/hearings/calendar",
@@ -97,7 +97,7 @@
       "defaultEnabled": true,
       "order": 5,
       "showDetails": true,
-      "heightClass": "compact",
+      "heightClass": "medium",
       "colSpan": 1,
       "clickAction": {
         "navigateTo": "/reports?tab=timeline-breach-compliance",
