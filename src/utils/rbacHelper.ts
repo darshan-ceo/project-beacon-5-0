@@ -18,6 +18,8 @@ export interface DashboardTile {
   defaultEnabled: boolean;
   order: number;
   showDetails?: boolean;
+  heightClass?: 'compact' | 'medium' | 'tall';
+  colSpan?: 1 | 2;
   clickAction?: {
     navigateTo: string;
     tooltip?: string;

@@ -14,8 +14,8 @@ export const OpenCasesWidget: React.FC = () => {
   const criticalCases = openCases.filter(c => c.priority === 'High');
   
   return (
-    <Card className="hover:shadow-lg transition-shadow">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+    <Card className="hover:shadow-lg transition-shadow h-full flex flex-col overflow-hidden">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 h-[60px]">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <Briefcase className="h-4 w-4 text-primary" />
           Open Cases
@@ -26,22 +26,22 @@ export const OpenCasesWidget: React.FC = () => {
           </Badge>
         )}
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1 flex flex-col justify-between">
         <div className="space-y-3">
           <div className="text-2xl font-bold text-foreground">{openCases.length}</div>
           <p className="text-xs text-muted-foreground">
             Active cases across all stages
           </p>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="w-full mt-2"
-            onClick={() => navigate('/cases')}
-          >
-            View All Cases
-            <ArrowRight className="ml-2 h-3 w-3" />
-          </Button>
         </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full mt-4"
+          onClick={() => navigate('/cases')}
+        >
+          View All Cases
+          <ArrowRight className="ml-2 h-3 w-3" />
+        </Button>
       </CardContent>
     </Card>
   );

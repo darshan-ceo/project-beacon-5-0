@@ -16,15 +16,15 @@ export const TimelineStatusWidget: React.FC = () => {
   const redCases = state.cases.filter(c => c.status === 'Active' && c.timelineBreachStatus === 'Red').length;
   
   return (
-    <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-amber-50 to-orange-50">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+    <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-amber-50 to-orange-50 h-full flex flex-col overflow-hidden">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 h-[60px]">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <Signal className="h-4 w-4 text-amber-600" />
           Timeline Status
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
+      <CardContent className="flex-1 flex flex-col justify-between">
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded-full bg-green-500" />
@@ -52,16 +52,16 @@ export const TimelineStatusWidget: React.FC = () => {
               {redCases}
             </Badge>
           </div>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="w-full mt-2 hover:bg-amber-100"
-            onClick={() => navigate('/cases')}
-          >
-            View All Cases
-            <ArrowRight className="ml-2 h-3 w-3" />
-          </Button>
         </div>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="w-full mt-4 hover:bg-amber-100"
+          onClick={() => navigate('/cases')}
+        >
+          View All Cases
+          <ArrowRight className="ml-2 h-3 w-3" />
+        </Button>
       </CardContent>
     </Card>
   );

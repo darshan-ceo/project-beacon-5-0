@@ -4,11 +4,12 @@
  */
 
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { DashboardTile } from '@/utils/rbacHelper';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { ActiveClientsWidget } from './ActiveClientsWidget';
 import { OpenCasesWidget } from './OpenCasesWidget';
 import { PendingTasksWidget } from './PendingTasksWidget';
@@ -68,25 +69,37 @@ export const DashboardWidget: React.FC<DashboardWidgetProps> = ({ tile }) => {
     return null;
   }
 
+  // Map heightClass to Tailwind classes
+  const heightClassMap = {
+    compact: 'min-h-[200px]',
+    medium: 'min-h-[240px]',
+    tall: 'min-h-[320px]',
+  };
+
+  const heightClass = heightClassMap[tile.heightClass as keyof typeof heightClassMap] || 'min-h-[200px]';
+
   return (
-    <div ref={setNodeRef} style={style} className="relative group">
-      {/* Drag Handle */}
-      <button
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn("relative group", heightClass)}
+    >
+      {/* Drag Handle - Always visible */}
+      <Button
         {...attributes}
         {...listeners}
-        className="absolute top-2 right-2 z-50 p-1.5 rounded-md
-          bg-background/90 hover:bg-background
-          border border-border hover:border-primary
-          opacity-0 group-hover:opacity-100
-          transition-opacity cursor-grab active:cursor-grabbing
-          shadow-md hover:shadow-lg"
-        aria-label="Drag to reorder"
-        onClick={(e) => e.stopPropagation()}
+        variant="ghost"
+        size="icon"
+        className="absolute top-2 left-2 z-10 opacity-60 hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing bg-background/80 hover:bg-background shadow-sm"
+        title="Drag to reorder"
       >
-        <GripVertical className="h-4 w-4 text-muted-foreground hover:text-primary" />
-      </button>
-      
-      <WidgetComponent />
+        <GripVertical className="h-4 w-4" />
+      </Button>
+
+      {/* Render the widget */}
+      <div className="h-full">
+        <WidgetComponent />
+      </div>
     </div>
   );
 };

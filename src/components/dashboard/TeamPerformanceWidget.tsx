@@ -29,15 +29,15 @@ export const TeamPerformanceWidget: React.FC = () => {
     .slice(0, 5);
   
   return (
-    <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-purple-50 to-violet-50">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+    <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-purple-50 to-violet-50 h-full flex flex-col overflow-hidden">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 h-[60px]">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <Trophy className="h-4 w-4 text-purple-600" />
           Team Performance
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
+      <CardContent className="flex-1 flex flex-col justify-between">
+        <div className="space-y-3 flex-1 overflow-auto">
           {employeeStats.length === 0 ? (
             <p className="text-sm text-muted-foreground">No task data available</p>
           ) : (
@@ -60,16 +60,16 @@ export const TeamPerformanceWidget: React.FC = () => {
               ))}
             </div>
           )}
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="w-full mt-2 hover:bg-purple-100"
-            onClick={() => navigate('/tasks')}
-          >
-            View All Tasks
-            <ArrowRight className="ml-2 h-3 w-3" />
-          </Button>
         </div>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="w-full mt-4 hover:bg-purple-100"
+          onClick={() => navigate('/tasks')}
+        >
+          View All Tasks
+          <ArrowRight className="ml-2 h-3 w-3" />
+        </Button>
       </CardContent>
     </Card>
   );
