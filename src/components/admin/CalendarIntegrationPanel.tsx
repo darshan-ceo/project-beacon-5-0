@@ -6,8 +6,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { AlertCircle, Check, Loader2, ExternalLink, X } from 'lucide-react';
+import { AlertCircle, Check, Loader2, ExternalLink, X, Info } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   CalendarIntegrationSettings, 
   CalendarConnectionStatus,
@@ -138,11 +139,28 @@ export const CalendarIntegrationPanel: React.FC = () => {
       await OAuthManager.startOAuth(settings.provider === 'outlook' ? 'microsoft' : 'google', config);
     } catch (error) {
       console.error('OAuth start failed:', error);
-      toast({
-        title: "Connection Failed",
-        description: "Failed to start authentication. Please check your configuration.",
-        variant: "destructive",
-      });
+      
+      // Enhanced error handling for redirect_uri_mismatch
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const isRedirectUriError = errorMessage.toLowerCase().includes('redirect_uri') || 
+                                  errorMessage.includes('400') ||
+                                  errorMessage.toLowerCase().includes('redirect uri mismatch');
+      
+      if (isRedirectUriError) {
+        toast({
+          title: "OAuth Redirect URI Mismatch",
+          description: `Please ensure your ${settings.provider === 'google' ? 'Google Cloud Console' : 'Azure Portal'} has the correct redirect URI configured: ${window.location.origin}/oauth/callback`,
+          variant: "destructive",
+          duration: 10000, // Longer duration for important error
+        });
+      } else {
+        toast({
+          title: "Connection Failed",
+          description: "Failed to start authentication. Please check your configuration.",
+          variant: "destructive",
+        });
+      }
+      
       setIsConnecting(false);
     }
   };
@@ -360,14 +378,33 @@ export const CalendarIntegrationPanel: React.FC = () => {
 
             <div className="flex gap-2">
               {!connectionStatus.connected ? (
-                <Button 
-                  onClick={handleConnect}
-                  disabled={isConnecting}
-                  className="flex-1"
-                >
-                  {isConnecting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                  Connect {settings.provider === 'google' ? 'Google' : 'Microsoft'} Account
-                </Button>
+                <div className="flex items-center gap-2 flex-1">
+                  <Button 
+                    onClick={handleConnect}
+                    disabled={isConnecting}
+                    className="flex-1"
+                  >
+                    {isConnecting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    Connect {settings.provider === 'google' ? 'Google' : 'Microsoft'} Account
+                  </Button>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-md" side="left">
+                        <div className="space-y-2 text-sm">
+                          <p className="font-semibold">OAuth Configuration Required</p>
+                          <p>Before connecting, ensure your {settings.provider === 'google' ? 'Google Cloud Console' : 'Azure Portal'} has:</p>
+                          <ul className="list-disc list-inside space-y-1 text-xs">
+                            <li><strong>Redirect URI:</strong> {window.location.origin}/oauth/callback</li>
+                            <li><strong>JavaScript origin:</strong> {window.location.origin}</li>
+                          </ul>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
               ) : (
                 <Button 
                   variant="outline" 
