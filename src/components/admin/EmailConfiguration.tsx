@@ -11,7 +11,8 @@ import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from '@/hooks/use-toast';
 import { EmailTestDialog } from './EmailTestDialog';
-import { 
+import { EmailHealthStatus } from './EmailHealthStatus';
+import {
   getEmailSettings, 
   saveEmailSettings, 
   validateProviderConfig,
@@ -20,7 +21,7 @@ import {
   isEmailConfigured
 } from '@/services/emailSettingsService';
 import { sendTestEmail } from '@/services/emailService';
-import type { EmailSettings, EmailMode, EmailProvider } from '@/types/email';
+import type { EmailSettings, EmailMode, EmailProvider, EmailTestResult } from '@/types/email';
 import { COMMON_PORTS } from '@/utils/emailValidation';
 import { Mail, Server, AlertCircle, CheckCircle2, Eye, EyeOff, Send, Save, RotateCcw, ExternalLink } from 'lucide-react';
 
@@ -36,6 +37,7 @@ export function EmailConfiguration() {
   const [showProviderPassword, setShowProviderPassword] = useState(false);
   const [showClientPassword, setShowClientPassword] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [lastTestResult, setLastTestResult] = useState<EmailTestResult | null>(null);
 
   // Load settings on mount
   useEffect(() => {
@@ -107,7 +109,9 @@ export function EmailConfiguration() {
   };
 
   const handleTestEmail = async (recipientEmail: string) => {
-    return await sendTestEmail(recipientEmail, settings);
+    const result = await sendTestEmail(recipientEmail, settings);
+    setLastTestResult(result);
+    return result;
   };
 
   const handleResetDefaults = () => {
@@ -173,6 +177,9 @@ export function EmailConfiguration() {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Email Health Status */}
+          <EmailHealthStatus lastTestResult={lastTestResult} />
+
           {/* Demo Mode Warning */}
           <Alert>
             <AlertCircle className="h-4 w-4" />

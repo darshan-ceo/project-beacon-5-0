@@ -116,9 +116,16 @@ export function EmailTestDialog({ open, onOpenChange, onSendTest }: EmailTestDia
                   <div className="font-medium">
                     {result.success ? 'Test Email Sent Successfully!' : 'Test Email Failed'}
                   </div>
-                  <div className="text-sm">
-                    {result.details || result.error}
-                  </div>
+                  {result.error && !result.success && (
+                    <div className="text-sm font-medium mt-1">
+                      {result.error}
+                    </div>
+                  )}
+                  {result.details && (
+                    <div className="text-sm mt-1 whitespace-pre-line">
+                      {result.details}
+                    </div>
+                  )}
                   {result.messageId && (
                     <div className="text-xs text-muted-foreground mt-2">
                       Message ID: {result.messageId}

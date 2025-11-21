@@ -1,7 +1,13 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+// Check if API key is configured
+const apiKey = Deno.env.get("RESEND_API_KEY");
+if (!apiKey) {
+  console.error("[send-email] FATAL: RESEND_API_KEY is not configured in backend secrets");
+}
+
+const resend = new Resend(apiKey);
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,6 +31,22 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Early check: API key must be configured
+    if (!apiKey) {
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: 'Email backend not configured',
+          details: 'RESEND_API_KEY is missing in backend secrets. Please configure it in Cloud → Secrets.',
+          timestamp: new Date().toISOString()
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
     const { to, subject, body, html, replyTo, cc, bcc }: SendEmailRequest = await req.json();
 
     console.log('[send-email] Processing email request:', { to, subject });
@@ -75,11 +97,29 @@ const handler = async (req: Request): Promise<Response> => {
     // Check if Resend returned an error
     if (emailResponse.error) {
       console.error('[send-email] Resend API error:', emailResponse.error);
+      
+      // Normalize common Resend errors into clearer messages
+      let userFriendlyError = emailResponse.error.message || 'Resend API error';
+      let userFriendlyDetails = '';
+      
+      if (emailResponse.error.message?.toLowerCase().includes('api key is invalid')) {
+        userFriendlyError = 'Invalid Resend API Key';
+        userFriendlyDetails = 'Your Resend API key is invalid or expired. Please:\n1. Go to https://resend.com/api-keys\n2. Create a new API key\n3. Update RESEND_API_KEY in Cloud → Secrets\n4. Make sure to copy the key starting with "re_"';
+      } else if (emailResponse.error.message?.toLowerCase().includes('domain not verified')) {
+        userFriendlyError = 'Domain Not Verified';
+        userFriendlyDetails = 'Your sending domain is not verified in Resend. Verify it at https://resend.com/domains';
+      } else if (emailResponse.error.message?.toLowerCase().includes('rate limit')) {
+        userFriendlyError = 'Rate Limit Exceeded';
+        userFriendlyDetails = 'Too many emails sent. Please wait a few minutes and try again, or upgrade your Resend plan.';
+      } else {
+        userFriendlyDetails = `Failed to send email: ${emailResponse.error.message}`;
+      }
+      
       return new Response(
         JSON.stringify({ 
           success: false,
-          error: emailResponse.error.message || 'Resend API error',
-          details: `Failed to send email: ${emailResponse.error.message}. Please check your RESEND_API_KEY configuration.`,
+          error: userFriendlyError,
+          details: userFriendlyDetails,
           timestamp: new Date().toISOString()
         }),
         {
