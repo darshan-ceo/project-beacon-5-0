@@ -36,10 +36,21 @@ export function EmailHealthStatus({ lastTestResult }: EmailHealthStatusProps) {
     <Alert variant="destructive">
       <XCircle className="h-4 w-4" />
       <AlertDescription>
-        <strong>Backend Error: {lastTestResult.error} ❌</strong>
+        <strong className="block mb-2">Backend Error: {lastTestResult.error} ❌</strong>
         {lastTestResult.details && (
-          <div className="text-sm mt-2 whitespace-pre-line">
+          <div className="text-sm mt-2 whitespace-pre-line bg-destructive/10 p-3 rounded border border-destructive/20">
             {lastTestResult.details}
+          </div>
+        )}
+        {lastTestResult.error?.includes('Resend') && (
+          <div className="text-xs mt-3 p-2 bg-muted rounded">
+            <strong>Quick Fix:</strong>
+            <ol className="list-decimal ml-4 mt-1 space-y-1">
+              <li>Visit <a href="https://resend.com/api-keys" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">resend.com/api-keys</a></li>
+              <li>Create a new API key (starts with "re_")</li>
+              <li>Go to Cloud → Secrets and update RESEND_API_KEY</li>
+              <li>Return here and send another test email</li>
+            </ol>
           </div>
         )}
         <div className="text-xs mt-2 opacity-75">

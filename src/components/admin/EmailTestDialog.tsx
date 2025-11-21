@@ -112,22 +112,33 @@ export function EmailTestDialog({ open, onOpenChange, onSendTest }: EmailTestDia
                 ) : (
                   <XCircle className="h-5 w-5 mt-0.5" />
                 )}
-                <div className="flex-1 space-y-1">
+                <div className="flex-1 space-y-2">
                   <div className="font-medium">
                     {result.success ? 'Test Email Sent Successfully!' : 'Test Email Failed'}
                   </div>
                   {result.error && !result.success && (
-                    <div className="text-sm font-medium mt-1">
+                    <div className="text-sm font-medium">
                       {result.error}
                     </div>
                   )}
                   {result.details && (
-                    <div className="text-sm mt-1 whitespace-pre-line">
+                    <div className="text-sm whitespace-pre-line bg-destructive/10 p-3 rounded border border-destructive/20">
                       {result.details}
                     </div>
                   )}
+                  {!result.success && result.error?.includes('Resend') && (
+                    <div className="text-xs p-2 bg-muted rounded border">
+                      <strong>Quick Fix Steps:</strong>
+                      <ol className="list-decimal ml-4 mt-1 space-y-1">
+                        <li>Visit <a href="https://resend.com/api-keys" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">resend.com/api-keys</a></li>
+                        <li>Create a new API key (must start with "re_")</li>
+                        <li>Go to Cloud → Secrets and update RESEND_API_KEY</li>
+                        <li>Return here and send another test email</li>
+                      </ol>
+                    </div>
+                  )}
                   {result.messageId && (
-                    <div className="text-xs text-muted-foreground mt-2">
+                    <div className="text-xs text-muted-foreground">
                       Message ID: {result.messageId}
                     </div>
                   )}

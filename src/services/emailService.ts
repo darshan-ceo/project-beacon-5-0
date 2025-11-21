@@ -59,10 +59,34 @@ export async function sendEmail(
 
     if (error) {
       console.error('[Email Service] Edge function error:', error);
+      
+      // Try to parse error response body for better error messages
+      let errorDetails = error.message || 'An error occurred while sending email';
+      let errorTitle = 'Failed to send email';
+      
+      // If error has context with a non-2xx response, try to extract the edge function's JSON response
+      if (error.message && error.message.includes('Edge function returned')) {
+        try {
+          // Extract JSON from error message if present
+          const jsonMatch = error.message.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsedError = JSON.parse(jsonMatch[0]);
+            if (parsedError.error) {
+              errorTitle = parsedError.error;
+            }
+            if (parsedError.details) {
+              errorDetails = parsedError.details;
+            }
+          }
+        } catch (parseError) {
+          console.warn('[Email Service] Could not parse edge function error response:', parseError);
+        }
+      }
+      
       return {
         success: false,
-        error: 'Failed to send email',
-        details: error.message || 'An error occurred while sending email',
+        error: errorTitle,
+        details: errorDetails,
         timestamp: new Date()
       };
     }
