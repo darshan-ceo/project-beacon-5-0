@@ -70,7 +70,29 @@ const handler = async (req: Request): Promise<Response> => {
       ...(bcc && { bcc }),
     });
 
-    console.log('[send-email] Email sent successfully:', emailResponse);
+    console.log('[send-email] Resend API response:', emailResponse);
+
+    // Check if Resend returned an error
+    if (emailResponse.error) {
+      console.error('[send-email] Resend API error:', emailResponse.error);
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: emailResponse.error.message || 'Resend API error',
+          details: `Failed to send email: ${emailResponse.error.message}. Please check your RESEND_API_KEY configuration.`,
+          timestamp: new Date().toISOString()
+        }),
+        {
+          status: 400,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          },
+        }
+      );
+    }
+
+    console.log('[send-email] Email sent successfully, message ID:', emailResponse.data?.id);
 
     return new Response(
       JSON.stringify({ 
