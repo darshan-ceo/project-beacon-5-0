@@ -1,5 +1,8 @@
 project_id = "myncxddatwvtyiioqekh"
 
+[functions.send-email]
+verify_jwt = false
+
 [functions.create-tenant-and-user]
 verify_jwt = false
 

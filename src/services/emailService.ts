@@ -1,77 +1,13 @@
 import type { EmailSettings, EmailMessage, EmailTestResult } from '@/types/email';
-import { PROVIDER_CONFIGS } from '@/types/email';
 import { validateEmail } from '@/utils/emailValidation';
-import { v4 as uuidv4 } from 'uuid';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Mock Email Service
- * Simulates realistic email sending behavior for demo purposes
+ * Real Email Service using Resend via Supabase Edge Functions
  */
 
-// Simulate network delay
-const SEND_DELAY_MS = 1500;
-
-// Success rate for realistic testing (90% success)
-const SUCCESS_RATE = 0.9;
-
 /**
- * Mock error scenarios for testing
- */
-const MOCK_ERRORS = [
-  { error: 'Authentication failed', details: 'Invalid username or password. Please check your credentials.' },
-  { error: 'Connection timeout', details: 'Unable to reach SMTP server. Please verify host and port.' },
-  { error: 'Invalid recipient', details: 'The recipient email address is not valid or does not exist.' },
-  { error: 'Rate limit exceeded', details: 'Too many emails sent. Please try again later.' },
-  { error: 'SSL/TLS error', details: 'Secure connection failed. Check your security settings.' }
-];
-
-/**
- * Simulate SMTP connection test
- */
-async function simulateSmtpConnection(settings: EmailSettings): Promise<{ success: boolean; error?: string }> {
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
-  // Validate configuration
-  if (settings.mode === 'provider') {
-    const config = settings.providerConfig;
-    if (!config || !config.email || !config.appPassword) {
-      return { success: false, error: 'Incomplete provider configuration' };
-    }
-    if (!validateEmail(config.email)) {
-      return { success: false, error: 'Invalid email address' };
-    }
-  } else if (settings.mode === 'client') {
-    const config = settings.clientConfig;
-    if (!config || !config.host || !config.port || !config.username || !config.password) {
-      return { success: false, error: 'Incomplete SMTP configuration' };
-    }
-    if (!validateEmail(config.fromAddress)) {
-      return { success: false, error: 'Invalid from address' };
-    }
-  }
-  
-  // Simulate random success/failure for testing
-  const shouldSucceed = Math.random() < SUCCESS_RATE;
-  
-  if (!shouldSucceed) {
-    const randomError = MOCK_ERRORS[Math.floor(Math.random() * MOCK_ERRORS.length)];
-    return { success: false, error: randomError.error };
-  }
-  
-  return { success: true };
-}
-
-/**
- * Generate mock email ID
- */
-function generateEmailId(): string {
-  const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(2, 15);
-  return `<${timestamp}.${random}@mock-smtp.local>`;
-}
-
-/**
- * Send email (mock implementation)
+ * Send email via Resend (real implementation)
  */
 export async function sendEmail(
   message: EmailMessage,
@@ -107,36 +43,57 @@ export async function sendEmail(
     }
   }
 
-  // Simulate sending delay
-  await new Promise(resolve => setTimeout(resolve, SEND_DELAY_MS));
+  try {
+    // Call send-email edge function
+    const { data, error } = await supabase.functions.invoke('send-email', {
+      body: {
+        to: message.to,
+        subject: message.subject,
+        body: message.body,
+        html: message.html,
+        replyTo: message.replyTo,
+        cc: message.cc,
+        bcc: message.bcc,
+      }
+    });
 
-  // Test SMTP connection
-  const connectionResult = await simulateSmtpConnection(settings);
-  if (!connectionResult.success) {
-    const errorDetails = MOCK_ERRORS.find(e => e.error === connectionResult.error);
+    if (error) {
+      console.error('[Email Service] Edge function error:', error);
+      return {
+        success: false,
+        error: 'Failed to send email',
+        details: error.message || 'An error occurred while sending email',
+        timestamp: new Date()
+      };
+    }
+
+    if (!data.success) {
+      console.error('[Email Service] Email sending failed:', data);
+      return {
+        success: false,
+        error: data.error || 'Email sending failed',
+        details: data.details || 'Unknown error',
+        timestamp: new Date()
+      };
+    }
+
+    console.log('[Email Service] Email sent successfully:', data);
+
+    return {
+      success: true,
+      messageId: data.messageId,
+      details: data.details || `Email sent successfully to ${Array.isArray(message.to) ? message.to.join(', ') : message.to}`,
+      timestamp: new Date()
+    };
+  } catch (error: any) {
+    console.error('[Email Service] Unexpected error:', error);
     return {
       success: false,
-      error: connectionResult.error || 'Connection failed',
-      details: errorDetails?.details || 'Unable to connect to SMTP server',
+      error: 'Unexpected error',
+      details: error.message || 'An unexpected error occurred while sending email',
       timestamp: new Date()
     };
   }
-
-  // Generate mock message ID
-  const messageId = generateEmailId();
-
-  console.log('[Email Service] Email sent successfully:', {
-    messageId,
-    to: message.to,
-    timestamp: new Date().toISOString()
-  });
-
-  return {
-    success: true,
-    messageId,
-    details: `Email sent successfully to ${Array.isArray(message.to) ? message.to.join(', ') : message.to}`,
-    timestamp: new Date()
-  };
 }
 
 /**
@@ -151,20 +108,23 @@ export async function sendTestEmail(
   const testMessage: EmailMessage = {
     to: recipientEmail,
     subject: 'Test Email from Law Firm Case Management',
-    body: `This is a test email sent at ${new Date().toLocaleString()}.\n\nIf you received this message, your email configuration is working correctly.\n\nEmail Mode: ${settings.mode === 'provider' ? 'Provider SMTP' : 'Client SMTP'}\n\nThis is a demo/mock email service. No actual email was sent.`,
+    body: `This is a test email sent at ${new Date().toLocaleString()}.\n\nIf you received this message, your email configuration is working correctly.\n\nEmail Mode: ${settings.mode === 'provider' ? 'Provider SMTP' : 'Client SMTP'}`,
     html: `
-      <div style="font-family: Arial, sans-serif; padding: 20px;">
-        <h2>Test Email</h2>
+      <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px;">
+        <h2 style="color: #333; border-bottom: 2px solid #4F46E5; padding-bottom: 10px;">✅ Test Email Successful</h2>
         <p>This is a test email sent at <strong>${new Date().toLocaleString()}</strong>.</p>
-        <p>If you received this message, your email configuration is working correctly.</p>
-        <hr style="margin: 20px 0;" />
+        <p style="background: #E0E7FF; padding: 15px; border-radius: 8px; border-left: 4px solid #4F46E5;">
+          <strong>✓ Success!</strong> If you're reading this, your email configuration is working correctly and emails are being delivered via Resend.
+        </p>
+        <hr style="margin: 20px 0; border: none; border-top: 1px solid #E5E7EB;" />
         <p><strong>Configuration Details:</strong></p>
-        <ul>
+        <ul style="line-height: 1.8;">
           <li>Email Mode: ${settings.mode === 'provider' ? 'Provider SMTP' : 'Client SMTP'}</li>
           <li>Status: Email enabled</li>
+          <li>Delivery: via Resend API</li>
         </ul>
-        <p style="color: #666; font-size: 12px; margin-top: 20px;">
-          ⚠️ This is a demo/mock email service. No actual email was sent.
+        <p style="color: #16A34A; font-size: 14px; margin-top: 20px; padding: 10px; background: #F0FDF4; border-radius: 6px;">
+          ✉️ This is a real email delivered through Resend email service.
         </p>
       </div>
     `
