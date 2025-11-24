@@ -215,40 +215,49 @@ export const CaseManagement: React.FC = () => {
         (payload) => {
           console.log('[CaseManagement] Real-time INSERT received:', payload);
           
-          const row = payload.new as any;
-          
-          // Map snake_case to camelCase
-          const newCase: Case = {
-            id: row.id,
-            caseNumber: row.case_number,
-            clientId: row.client_id,
-            currentStage: row.stage_code || row.current_stage || 'Assessment',
-            assignedToId: row.assigned_to,
-            assignedToName: row.assigned_to_name,
-            status: row.status,
-            priority: row.priority,
-            createdDate: row.created_at,
-            lastUpdated: row.updated_at,
-            title: row.title,
-            description: row.description,
-            forumId: row.forum_id,
-            authorityId: row.authority_id,
-            timelineBreachStatus: row.timeline_breach_status || 'Green',
-            documents: 0,
-            progress: 0,
-            generatedForms: []
-          };
-          
-          // Use rawDispatch to avoid re-persistence
-          rawDispatch({
-            type: 'ADD_CASE',
-            payload: newCase
-          });
-          
-          toast({
-            title: "New Case Created",
-            description: `Case ${newCase.caseNumber} has been added`,
-          });
+          try {
+            const row = payload.new as any;
+            
+            // Map snake_case to camelCase
+            const newCase: Case = {
+              id: row.id,
+              caseNumber: row.case_number,
+              clientId: row.client_id,
+              currentStage: row.stage_code || row.current_stage || 'Assessment',
+              assignedToId: row.assigned_to,
+              assignedToName: row.assigned_to_name,
+              status: row.status,
+              priority: row.priority,
+              createdDate: row.created_at,
+              lastUpdated: row.updated_at,
+              title: row.title,
+              description: row.description,
+              forumId: row.forum_id,
+              authorityId: row.authority_id,
+              timelineBreachStatus: row.timeline_breach_status || 'Green',
+              documents: 0,
+              progress: 0,
+              generatedForms: []
+            };
+            
+            // Use rawDispatch to avoid re-persistence
+            rawDispatch({
+              type: 'ADD_CASE',
+              payload: newCase
+            });
+            
+            toast({
+              title: "New Case Created",
+              description: `Case ${newCase.caseNumber} has been added`,
+            });
+          } catch (error) {
+            console.error('[CaseManagement] Error processing INSERT event:', error);
+            toast({
+              title: "Sync Error",
+              description: "Failed to sync new case. Please refresh the page.",
+              variant: "destructive"
+            });
+          }
         }
       )
       .on(
@@ -261,42 +270,46 @@ export const CaseManagement: React.FC = () => {
         (payload) => {
           console.log('[CaseManagement] Real-time UPDATE received:', payload);
           
-          const row = payload.new as any;
-          
-          // Map snake_case to camelCase
-          const updatedCase: Case = {
-            id: row.id,
-            caseNumber: row.case_number,
-            clientId: row.client_id,
-            currentStage: row.stage_code || row.current_stage || 'Assessment',
-            assignedToId: row.assigned_to,
-            assignedToName: row.assigned_to_name,
-            status: row.status,
-            priority: row.priority,
-            createdDate: row.created_at,
-            lastUpdated: row.updated_at,
-            title: row.title,
-            description: row.description,
-            forumId: row.forum_id,
-            authorityId: row.authority_id,
-            timelineBreachStatus: row.timeline_breach_status || 'Green',
-            documents: state.cases.find(c => c.id === row.id)?.documents || 0,
-            progress: state.cases.find(c => c.id === row.id)?.progress || 0,
-            generatedForms: state.cases.find(c => c.id === row.id)?.generatedForms || []
-          };
-          
-          // Use rawDispatch to avoid re-persistence loop
-          rawDispatch({
-            type: 'UPDATE_CASE',
-            payload: updatedCase
-          });
-          
-          // Update selected case if it's the one being updated
-          if (selectedCase?.id === updatedCase.id) {
-            setSelectedCase(updatedCase);
+          try {
+            const row = payload.new as any;
+            
+            // Map snake_case to camelCase
+            const updatedCase: Case = {
+              id: row.id,
+              caseNumber: row.case_number,
+              clientId: row.client_id,
+              currentStage: row.stage_code || row.current_stage || 'Assessment',
+              assignedToId: row.assigned_to,
+              assignedToName: row.assigned_to_name,
+              status: row.status,
+              priority: row.priority,
+              createdDate: row.created_at,
+              lastUpdated: row.updated_at,
+              title: row.title,
+              description: row.description,
+              forumId: row.forum_id,
+              authorityId: row.authority_id,
+              timelineBreachStatus: row.timeline_breach_status || 'Green',
+              documents: state.cases.find(c => c.id === row.id)?.documents || 0,
+              progress: state.cases.find(c => c.id === row.id)?.progress || 0,
+              generatedForms: state.cases.find(c => c.id === row.id)?.generatedForms || []
+            };
+            
+            // Use rawDispatch to avoid re-persistence loop
+            rawDispatch({
+              type: 'UPDATE_CASE',
+              payload: updatedCase
+            });
+            
+            // Update selected case if it's the one being updated
+            if (selectedCase?.id === updatedCase.id) {
+              setSelectedCase(updatedCase);
+            }
+            
+            // Silent background sync - no toast to avoid spam
+          } catch (error) {
+            console.error('[CaseManagement] Error processing UPDATE event:', error);
           }
-          
-          // Silent background sync - no toast to avoid spam
         }
       )
       .on(
@@ -309,34 +322,53 @@ export const CaseManagement: React.FC = () => {
         (payload) => {
           console.log('[CaseManagement] Real-time DELETE received:', payload);
           
-          const row = payload.old as any;
-          
-          // Use rawDispatch to avoid re-persistence
-          rawDispatch({
-            type: 'DELETE_CASE',
-            payload: row.id
-          });
-          
-          // Clear selected case if it's the one being deleted
-          if (selectedCase?.id === row.id) {
-            setSelectedCase(null);
+          try {
+            const row = payload.old as any;
+            
+            // Use rawDispatch to avoid re-persistence
+            rawDispatch({
+              type: 'DELETE_CASE',
+              payload: row.id
+            });
+            
+            // Clear selected case if it's the one being deleted
+            if (selectedCase?.id === row.id) {
+              setSelectedCase(null);
+            }
+            
+            toast({
+              title: "Case Deleted",
+              description: `Case ${row.case_number || '(unnumbered)'} has been removed`,
+              variant: "destructive"
+            });
+          } catch (error) {
+            console.error('[CaseManagement] Error processing DELETE event:', error);
           }
-          
-          toast({
-            title: "Case Deleted",
-            description: `Case ${row.case_number || '(unnumbered)'} has been removed`,
-            variant: "destructive"
-          });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('[CaseManagement] ✅ Successfully subscribed to real-time updates');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('[CaseManagement] ❌ Channel error - real-time sync may not work');
+          toast({
+            title: "Connection Issue",
+            description: "Real-time updates may be delayed. Data will sync on refresh.",
+            variant: "destructive"
+          });
+        } else if (status === 'TIMED_OUT') {
+          console.error('[CaseManagement] ⏱️ Subscription timed out');
+        } else if (status === 'CLOSED') {
+          console.log('[CaseManagement] 🔌 Real-time connection closed');
+        }
+      });
 
     // Cleanup subscription on unmount
     return () => {
       console.log('[CaseManagement] Cleaning up real-time subscription');
       supabase.removeChannel(channel);
     };
-  }, [rawDispatch, selectedCase]);
+  }, [rawDispatch, selectedCase, state.cases]);
 
   const getTimelineBreachColor = (status: string) => {
     switch (status) {
