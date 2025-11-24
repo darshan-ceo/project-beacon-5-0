@@ -29,6 +29,8 @@ import {
 import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 import { casesService } from '@/services/casesService';
 import { getNextStage, validateStagePrerequisites, generateStageDefaults } from '@/utils/stageUtils';
+import { getTimelineBreaches } from '@/services/slaService';
+import { differenceInDays, startOfDay, addDays } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -96,6 +98,29 @@ export const CaseManagement: React.FC = () => {
     isLoading: false
   });
   
+  // Calculate real-time metrics from state data
+  const metrics = useMemo(() => {
+    const activeCases = state.cases.filter(c => c.status === 'Active');
+    // Count all non-active cases as completed (Closed, Completed, etc.)
+    const completedCases = state.cases.filter(c => c.status !== 'Active');
+    const timelineBreaches = getTimelineBreaches(state.cases);
+    
+    // Calculate upcoming hearings (next 7 days)
+    const now = startOfDay(new Date());
+    const sevenDaysFromNow = addDays(now, 7);
+    const upcomingHearings = state.hearings.filter(hearing => {
+      const hearingDate = startOfDay(new Date(hearing.date));
+      return hearingDate >= now && hearingDate <= sevenDaysFromNow;
+    });
+
+    return {
+      activeCases: activeCases.length,
+      completedCases: completedCases.length,
+      timelineBreaches: timelineBreaches.length,
+      upcomingHearings: upcomingHearings.length
+    };
+  }, [state.cases, state.hearings]);
+
   const [formTemplateModal, setFormTemplateModal] = useState<{
     isOpen: boolean;
     template: any;
@@ -712,8 +737,8 @@ export const CaseManagement: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Active Cases</p>
-                  <p className="text-2xl font-bold text-foreground">156</p>
-                  <p className="text-xs text-success mt-1">+12 this month</p>
+                  <p className="text-2xl font-bold text-foreground">{metrics.activeCases}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Currently ongoing</p>
                 </div>
                 <Scale className="h-8 w-8 text-primary" />
               </div>
@@ -727,8 +752,8 @@ export const CaseManagement: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Timeline Breaches</p>
-                  <p className="text-2xl font-bold text-destructive">8</p>
-                  <p className="text-xs text-destructive mt-1">Needs attention</p>
+                  <p className="text-2xl font-bold text-destructive">{metrics.timelineBreaches}</p>
+                  <p className="text-xs text-destructive mt-1">{metrics.timelineBreaches > 0 ? 'Needs attention' : 'All on track'}</p>
                 </div>
                 <AlertTriangle className="h-8 w-8 text-destructive" />
               </div>
@@ -742,8 +767,8 @@ export const CaseManagement: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Upcoming Hearings</p>
-                  <p className="text-2xl font-bold text-foreground">23</p>
-                  <p className="text-xs text-warning mt-1">Next 7 days</p>
+                  <p className="text-2xl font-bold text-foreground">{metrics.upcomingHearings}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Next 7 days</p>
                 </div>
                 <Calendar className="h-8 w-8 text-secondary" />
               </div>
@@ -756,8 +781,8 @@ export const CaseManagement: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Completed Cases</p>
-                <p className="text-2xl font-bold text-foreground">342</p>
-                <p className="text-xs text-success mt-1">This year</p>
+                <p className="text-2xl font-bold text-foreground">{metrics.completedCases}</p>
+                <p className="text-xs text-success mt-1">Total resolved</p>
               </div>
               <CheckCircle className="h-8 w-8 text-success" />
             </div>
