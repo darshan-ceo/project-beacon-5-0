@@ -344,7 +344,7 @@ export const DebugSearchInspector: React.FC = () => {
             <AlertDescription>
               Reindexing operations may take some time to complete. 
               {provider === 'DEMO' ? 
-                ' In DEMO mode, changes are applied to the local IndexedDB.' :
+                ' In DEMO mode, changes are applied to local storage.' :
                 ' In API mode, changes are processed server-side.'
               }
             </AlertDescription>

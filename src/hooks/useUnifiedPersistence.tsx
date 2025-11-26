@@ -1,6 +1,6 @@
 /**
- * Unified Persistence Hook - FIXED VERSION
- * Uses repository-based storage with actual persistence to IndexedDB
+ * Unified Persistence Hook - Supabase Integration
+ * Uses repository-based storage with persistence to Supabase
  */
 
 import { useEffect, useState, useRef } from 'react';

@@ -67,7 +67,7 @@ export const StorageHealthMonitor: React.FC = () => {
             {isAutoSaving && <RefreshCw className="h-4 w-4 animate-spin text-blue-500" />}
           </CardTitle>
           <CardDescription>
-            Real-time monitoring of IndexedDB storage health and performance
+            Real-time monitoring of database storage health and performance
           </CardDescription>
         </CardHeader>
         <CardContent>

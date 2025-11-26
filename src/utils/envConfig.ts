@@ -56,7 +56,6 @@ export const envConfig = {
   
   // Validation functions (PRODUCTION LOCKED)
   isDemoMode: () => false,
-  isIndexedDBMode: () => false,
   isSupabaseMode: () => true,
   enforceDemo: () => false,
   
@@ -114,9 +113,5 @@ export const envConfig = {
   // DEMO mode guards (DEPRECATED)
   assertDemoMode: () => {
     throw new Error('Demo mode is deprecated - application uses production Supabase');
-  },
-  
-  assertIndexedDB: () => {
-    throw new Error('IndexedDB is no longer supported - use Supabase');
   }
 };
