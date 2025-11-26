@@ -208,6 +208,236 @@ describe('CRUD Integration Tests', () => {
     });
   });
 
+  describe('HearingsService', () => {
+    let mockDispatch: any;
+
+    beforeEach(() => {
+      mockDispatch = vi.fn();
+      vi.clearAllMocks();
+    });
+
+    it('should create hearing and dispatch ADD_HEARING', async () => {
+      const { hearingsService } = await import('@/services/hearingsService');
+      
+      const hearingData = {
+        case_id: 'case-uuid-1',
+        date: '2025-12-15',
+        start_time: '10:00',
+        end_time: '11:00',
+        timezone: 'Asia/Kolkata',
+        court_id: 'court-uuid-1',
+        judge_ids: ['judge-uuid-1'],
+        purpose: 'mention' as const,
+        notes: 'Test hearing'
+      };
+
+      const result = await hearingsService.createHearing(hearingData, mockDispatch);
+
+      expect(result).toHaveProperty('id');
+      expect(result.case_id).toBe('case-uuid-1');
+      expect(mockDispatch).toHaveBeenCalledWith({
+        type: 'ADD_HEARING',
+        payload: expect.objectContaining({
+          case_id: 'case-uuid-1',
+          status: 'scheduled'
+        })
+      });
+    });
+
+    it('should sanitize empty UUID fields to null', async () => {
+      const { hearingsService } = await import('@/services/hearingsService');
+      
+      const hearingData = {
+        case_id: 'case-uuid-1',
+        date: '2025-12-15',
+        start_time: '10:00',
+        end_time: '11:00',
+        timezone: 'Asia/Kolkata',
+        court_id: '', // Empty string should become null
+        judge_ids: [],
+        purpose: 'mention' as const
+      };
+
+      // Should not throw UUID error
+      const result = await hearingsService.createHearing(hearingData, mockDispatch);
+      expect(result).toHaveProperty('id');
+    });
+
+    it('should update hearing and dispatch UPDATE_HEARING', async () => {
+      const { hearingsService } = await import('@/services/hearingsService');
+      
+      await hearingsService.updateHearing('hearing-uuid-1', { status: 'concluded' }, mockDispatch);
+
+      expect(mockDispatch).toHaveBeenCalledWith({
+        type: 'UPDATE_HEARING',
+        payload: expect.objectContaining({
+          id: 'hearing-uuid-1',
+          status: 'concluded'
+        })
+      });
+    });
+
+    it('should delete hearing and dispatch DELETE_HEARING', async () => {
+      const { hearingsService } = await import('@/services/hearingsService');
+      
+      await hearingsService.deleteHearing('hearing-uuid-1', mockDispatch);
+
+      expect(mockDispatch).toHaveBeenCalledWith({
+        type: 'DELETE_HEARING',
+        payload: 'hearing-uuid-1'
+      });
+    });
+  });
+
+  describe('DocumentsService', () => {
+    it('should upload document with valid metadata', async () => {
+      const { supabaseDocumentService } = await import('@/services/supabaseDocumentService');
+      
+      const mockFile = new File(['test content'], 'test.pdf', { type: 'application/pdf' });
+      const metadata = {
+        tenant_id: 'tenant-uuid-1',
+        case_id: 'case-uuid-1',
+        category: 'Notice'
+      };
+
+      const result = await supabaseDocumentService.uploadDocument(mockFile, metadata);
+
+      expect(result).toHaveProperty('id');
+      expect(result).toHaveProperty('file_path');
+      expect(result.file_name).toBe('test.pdf');
+    });
+
+    it('should reject upload without entity link', async () => {
+      const { supabaseDocumentService } = await import('@/services/supabaseDocumentService');
+      
+      const mockFile = new File(['test'], 'test.pdf', { type: 'application/pdf' });
+      const metadata = {
+        tenant_id: 'tenant-uuid-1'
+        // No case_id, client_id, or folder_id
+      };
+
+      await expect(supabaseDocumentService.uploadDocument(mockFile, metadata))
+        .rejects.toThrow('Please link this document');
+    });
+
+    it('should list documents with filters', async () => {
+      const { supabaseDocumentService } = await import('@/services/supabaseDocumentService');
+      
+      const documents = await supabaseDocumentService.listDocuments({ case_id: 'case-uuid-1' });
+
+      expect(Array.isArray(documents)).toBe(true);
+    });
+
+    it('should get document by ID', async () => {
+      const { supabaseDocumentService } = await import('@/services/supabaseDocumentService');
+      
+      const document = await supabaseDocumentService.getDocument('doc-uuid-1');
+
+      expect(document).toHaveProperty('id');
+      expect(document).toHaveProperty('file_name');
+    });
+
+    it('should delete document and clean up storage', async () => {
+      const { supabaseDocumentService } = await import('@/services/supabaseDocumentService');
+      
+      // Should not throw
+      await supabaseDocumentService.deleteDocument('doc-uuid-1');
+    });
+  });
+
+  describe('EmployeesService', () => {
+    let mockDispatch: any;
+    const existingEmployees: any[] = [];
+
+    beforeEach(() => {
+      mockDispatch = vi.fn();
+      vi.clearAllMocks();
+    });
+
+    it('should create employee with auto-generated code', async () => {
+      const { employeesService } = await import('@/services/employeesService');
+      
+      const employeeData = {
+        full_name: 'John Doe',
+        role: 'Staff' as const,
+        email: 'john@example.com',
+        department: 'Legal',
+        date_of_joining: '2025-01-01'
+      };
+
+      const result = await employeesService.create(employeeData, mockDispatch, existingEmployees);
+
+      expect(result).toHaveProperty('id');
+      expect(result.employeeCode).toMatch(/^GSTE\d{4}$/);
+      expect(mockDispatch).toHaveBeenCalledWith({
+        type: 'ADD_EMPLOYEE',
+        payload: expect.objectContaining({ full_name: 'John Doe' })
+      });
+    });
+
+    it('should validate required fields', async () => {
+      const { employeesService } = await import('@/services/employeesService');
+      
+      const invalidData = {
+        full_name: '',
+        role: 'Staff' as const,
+        department: '',
+        email: 'invalid-email'
+      };
+
+      await expect(employeesService.create(invalidData, mockDispatch, existingEmployees))
+        .rejects.toThrow();
+    });
+
+    it('should update employee and sync RBAC', async () => {
+      const { employeesService } = await import('@/services/employeesService');
+      
+      const existingEmployee = {
+        id: 'emp-uuid-1',
+        full_name: 'Jane Doe',
+        role: 'Staff' as const,
+        email: 'jane@example.com',
+        department: 'Legal',
+        employeeCode: 'GSTE0001',
+        status: 'Active' as const,
+        workloadCapacity: 40
+      };
+      const updates = { role: 'Manager' as const };
+
+      await employeesService.update('emp-uuid-1', updates, mockDispatch, [existingEmployee]);
+
+      expect(mockDispatch).toHaveBeenCalledWith({
+        type: 'UPDATE_EMPLOYEE',
+        payload: expect.objectContaining({
+          id: 'emp-uuid-1'
+        })
+      });
+    });
+
+    it('should prevent deletion with dependencies', async () => {
+      const { employeesService } = await import('@/services/employeesService');
+      
+      const dependencies = ['3 cases', '5 tasks'];
+
+      await expect(employeesService.delete('emp-uuid-1', mockDispatch, dependencies))
+        .rejects.toThrow('Cannot delete employee');
+    });
+
+    it('should deactivate employee', async () => {
+      const { employeesService } = await import('@/services/employeesService');
+      
+      await employeesService.deactivate('emp-uuid-1', mockDispatch);
+
+      expect(mockDispatch).toHaveBeenCalledWith({
+        type: 'UPDATE_EMPLOYEE',
+        payload: {
+          id: 'emp-uuid-1',
+          updates: { status: 'Inactive' }
+        }
+      });
+    });
+  });
+
   describe('Error Handling', () => {
     it('should handle storage errors gracefully for cases', async () => {
       // Mock storage failure
