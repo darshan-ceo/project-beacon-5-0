@@ -1,6 +1,7 @@
 import { Judge } from '@/contexts/AppStateContext';
 import { storageManager } from '@/data/StorageManager';
 import { toast } from '@/hooks/use-toast';
+import { normalizeJudgePayload } from '@/utils/formatters';
 
 export interface CreateJudgeData {
   name: string;
@@ -36,22 +37,25 @@ class JudgesService {
     try {
       const storage = storageManager.getStorage();
 
+      // Normalize payload before persistence
+      const normalizedData = normalizeJudgePayload(judgeData);
+
       // Calculate years of service
-      const yearsOfService = judgeData.appointmentDate
-        ? Math.floor((new Date().getTime() - new Date(judgeData.appointmentDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+      const yearsOfService = normalizedData.appointmentDate
+        ? Math.floor((new Date().getTime() - new Date(normalizedData.appointmentDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
         : 0;
 
       // Build complete judge object
       const newJudge: Judge = {
         id: '', // Server will generate UUID
-        name: judgeData.name || '',
-        designation: judgeData.designation || '',
-        status: judgeData.status || 'Active',
-        courtId: judgeData.courtId || '',
-        bench: judgeData.bench,
-        jurisdiction: judgeData.jurisdiction,
-        city: judgeData.city,
-        state: judgeData.state,
+        name: normalizedData.name || '',
+        designation: normalizedData.designation || '',
+        status: normalizedData.status || 'Active',
+        courtId: normalizedData.courtId || '',
+        bench: normalizedData.bench,
+        jurisdiction: normalizedData.jurisdiction,
+        city: normalizedData.city,
+        state: normalizedData.state,
         appointmentDate: judgeData.appointmentDate || '',
         retirementDate: judgeData.retirementDate,
         yearsOfService,
@@ -130,8 +134,11 @@ class JudgesService {
     try {
       const storage = storageManager.getStorage();
 
+      // Normalize payload before persistence
+      const normalizedUpdates = normalizeJudgePayload(updates);
+
       // Recalculate years of service if appointment date changes
-      let yearsOfService = updates.yearsOfService;
+      let yearsOfService = normalizedUpdates.yearsOfService;
       if (updates.appointmentDate) {
         yearsOfService = Math.floor(
           (new Date().getTime() - new Date(updates.appointmentDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000)
