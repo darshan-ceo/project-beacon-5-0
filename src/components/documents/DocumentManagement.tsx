@@ -1234,11 +1234,15 @@ export const DocumentManagement: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
-            <RecentDocuments documents={filteredDocuments.slice(0, 10).map(doc => ({ 
-              ...doc, 
-              type: String(doc.type),
-              size: typeof doc.size === 'string' ? parseInt(doc.size) || 0 : doc.size
-            }))} />
+            <RecentDocuments 
+              documents={filteredDocuments.slice(0, 10).map(doc => ({ 
+                ...doc, 
+                type: String(doc.type),
+                size: typeof doc.size === 'string' ? parseInt(doc.size) || 0 : doc.size
+              }))} 
+              onViewDocument={handleDocumentView}
+              onDownloadDocument={handleDocumentDownload}
+            />
           </motion.div>
         </TabsContent>
 

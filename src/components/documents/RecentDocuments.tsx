@@ -8,9 +8,11 @@ import { formatDateForDisplay } from '@/utils/dateFormatters';
 
 interface RecentDocumentsProps {
   documents: Document[];
+  onViewDocument?: (doc: Document) => void;
+  onDownloadDocument?: (doc: Document) => void;
 }
 
-export const RecentDocuments: React.FC<RecentDocumentsProps> = ({ documents }) => {
+export const RecentDocuments: React.FC<RecentDocumentsProps> = ({ documents, onViewDocument, onDownloadDocument }) => {
   // Sort documents by uploadedAt (most recent first) and take the last 10
   const recentDocuments = documents
     .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())
@@ -106,20 +108,14 @@ export const RecentDocuments: React.FC<RecentDocumentsProps> = ({ documents }) =
             <Button 
               variant="ghost" 
               size="sm"
-              onClick={() => {
-                // TODO: Implement view functionality
-                console.log('View document:', doc.id);
-              }}
+              onClick={() => onViewDocument?.(doc)}
             >
               <Eye className="h-4 w-4" />
             </Button>
             <Button 
               variant="ghost" 
               size="sm"
-              onClick={() => {
-                // TODO: Implement download functionality
-                console.log('Download document:', doc.id);
-              }}
+              onClick={() => onDownloadDocument?.(doc)}
             >
               <Download className="h-4 w-4" />
             </Button>
