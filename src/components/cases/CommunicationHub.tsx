@@ -30,6 +30,7 @@ import { toast } from '@/hooks/use-toast';
 import { communicationService, CommunicationLog, MessageComposer } from '@/services/communicationService';
 import { isEmailConfigured } from '@/services/emailSettingsService';
 import { useAppState, Case } from '@/contexts/AppStateContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CommunicationHubProps {
   selectedCase: Case | null;
@@ -81,6 +82,57 @@ export const CommunicationHub: React.FC<CommunicationHubProps> = ({ selectedCase
     if (selectedCase) {
       loadCommunicationLogs();
     }
+  }, [selectedCase]);
+
+  // Real-time subscription for communication logs
+  useEffect(() => {
+    if (!selectedCase) return;
+
+    const channel = supabase
+      .channel('communication_logs_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'communication_logs',
+          filter: `case_id=eq.${selectedCase.id}`
+        },
+        (payload) => {
+          console.log('[CommunicationHub] Real-time INSERT:', payload);
+          const newLog = payload.new;
+          
+          // Map to CommunicationLog interface
+          const communicationLog: CommunicationLog = {
+            id: newLog.id,
+            caseId: newLog.case_id,
+            clientId: newLog.client_id,
+            channel: newLog.channel,
+            direction: newLog.direction,
+            subject: newLog.subject,
+            message: newLog.message,
+            attachments: newLog.attachments || [],
+            sentBy: newLog.sent_by_name,
+            sentTo: newLog.sent_to,
+            sentToName: newLog.sent_to_name,
+            timestamp: newLog.created_at,
+            status: newLog.status,
+            metadata: {
+              messageId: newLog.message_id,
+              deliveredAt: newLog.delivered_at,
+              readAt: newLog.read_at,
+              failureReason: newLog.failure_reason
+            }
+          };
+          
+          setCommunicationLogs(prev => [communicationLog, ...prev]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [selectedCase]);
 
   const loadCommunicationLogs = async () => {
@@ -164,8 +216,8 @@ export const CommunicationHub: React.FC<CommunicationHubProps> = ({ selectedCase
           throw new Error('Invalid channel');
       }
 
-      // Add to local state
-      setCommunicationLogs(prev => [communicationLog, ...prev]);
+      // Communication log is now persisted to Supabase by communicationService
+      // Real-time subscription will update UI automatically
       
       // Reset form
       setMessageForm({

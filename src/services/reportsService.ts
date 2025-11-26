@@ -531,9 +531,65 @@ export const reportsService = {
 
   // Get communication reports with filters
   getCommunicationReport: async (filters: any): Promise<{ data: any[] }> => {
-    // Communication tracking not yet implemented in the system
-    console.info('Communication tracking feature coming soon');
-    return { data: [] };
+    try {
+      const { storageManager } = await import('@/data/StorageManager');
+      const storage = storageManager.getStorage();
+
+      const communications = await storage.getAll('communication_logs');
+      const cases = await storage.getAll('cases');
+      const clients = await storage.getAll('clients');
+
+      const caseMap = new Map(cases.map((c: any) => [c.id, c]));
+      const clientMap = new Map(clients.map((c: any) => [c.id, c.name || c.display_name]));
+
+      let filteredComms = communications;
+
+      // Apply filters
+      if (filters.caseId) {
+        filteredComms = filteredComms.filter((c: any) => c.case_id === filters.caseId);
+      }
+
+      if (filters.clientId) {
+        filteredComms = filteredComms.filter((c: any) => c.client_id === filters.clientId);
+      }
+
+      if (filters.channel) {
+        filteredComms = filteredComms.filter((c: any) => c.channel === filters.channel);
+      }
+
+      if (filters.status) {
+        filteredComms = filteredComms.filter((c: any) => c.status === filters.status);
+      }
+
+      if (filters.dateRange) {
+        const { start, end } = filters.dateRange;
+        filteredComms = filteredComms.filter((c: any) => {
+          const createdDate = new Date(c.created_at);
+          return createdDate >= new Date(start) && createdDate <= new Date(end);
+        });
+      }
+
+      const reportData = filteredComms.map((comm: any) => {
+        const relatedCase = caseMap.get(comm.case_id);
+        
+        return {
+          id: comm.id,
+          date: comm.created_at,
+          caseId: comm.case_id,
+          caseNumber: relatedCase?.caseNumber || relatedCase?.case_number || 'N/A',
+          client: clientMap.get(comm.client_id) || 'Unknown',
+          channel: comm.channel,
+          to: comm.sent_to,
+          status: comm.status,
+          template: comm.subject || 'N/A'
+        };
+      });
+
+      return { data: reportData };
+    } catch (error) {
+      console.error('Error fetching communication report:', error);
+      return { data: [] };
+    }
   },
 
   // Get form timeline reports with filters

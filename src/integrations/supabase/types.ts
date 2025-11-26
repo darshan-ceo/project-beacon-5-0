@@ -556,6 +556,125 @@ export type Database = {
           },
         ]
       }
+      communication_logs: {
+        Row: {
+          attachments: Json | null
+          case_id: string | null
+          channel: string
+          client_id: string | null
+          created_at: string | null
+          delivered_at: string | null
+          direction: string
+          failure_reason: string | null
+          id: string
+          message: string
+          message_id: string | null
+          read_at: string | null
+          sent_by: string | null
+          sent_by_name: string | null
+          sent_to: string
+          sent_to_name: string | null
+          status: string
+          subject: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          attachments?: Json | null
+          case_id?: string | null
+          channel: string
+          client_id?: string | null
+          created_at?: string | null
+          delivered_at?: string | null
+          direction?: string
+          failure_reason?: string | null
+          id?: string
+          message: string
+          message_id?: string | null
+          read_at?: string | null
+          sent_by?: string | null
+          sent_by_name?: string | null
+          sent_to: string
+          sent_to_name?: string | null
+          status?: string
+          subject?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          attachments?: Json | null
+          case_id?: string | null
+          channel?: string
+          client_id?: string | null
+          created_at?: string | null
+          delivered_at?: string | null
+          direction?: string
+          failure_reason?: string | null
+          id?: string
+          message?: string
+          message_id?: string | null
+          read_at?: string | null
+          sent_by?: string | null
+          sent_by_name?: string | null
+          sent_to?: string
+          sent_to_name?: string | null
+          status?: string
+          subject?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_logs_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "case_activity_summary"
+            referencedColumns: ["case_id"]
+          },
+          {
+            foreignKeyName: "communication_logs_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_logs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_logs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_logs_sent_by_fkey"
+            columns: ["sent_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "communication_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       courts: {
         Row: {
           address: string | null

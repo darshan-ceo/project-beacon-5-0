@@ -64,4 +64,4 @@ export type EntityType =
   | 'documents' | 'document_folders' | 'document_tags' | 'document_versions'
   | 'courts' | 'judges' | 'employees'
   | 'audit_log' | 'automation_rules' | 'automation_logs'
-  | 'timeline_entries' | 'profiles';
+  | 'timeline_entries' | 'profiles' | 'communication_logs';
