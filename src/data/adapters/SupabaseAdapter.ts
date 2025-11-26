@@ -1225,6 +1225,31 @@ export class SupabaseAdapter implements StoragePort {
           if (normalized.stateBenchCity && !normalized.state_bench_city) {
             normalized.state_bench_city = normalized.stateBenchCity;
           }
+          // New case classification fields
+          if (normalized.caseType && !normalized.case_type) {
+            normalized.case_type = normalized.caseType;
+          }
+          if (normalized.caseYear && !normalized.case_year) {
+            normalized.case_year = normalized.caseYear;
+          }
+          if (normalized.caseSequence && !normalized.case_sequence) {
+            normalized.case_sequence = normalized.caseSequence;
+          }
+          if (normalized.officeFileNo && !normalized.office_file_no) {
+            normalized.office_file_no = normalized.officeFileNo;
+          }
+          if (normalized.issueType && !normalized.issue_type) {
+            normalized.issue_type = normalized.issueType;
+          }
+          if (normalized.formType && !normalized.form_type) {
+            normalized.form_type = normalized.formType;
+          }
+          if (normalized.sectionInvoked && !normalized.section_invoked) {
+            normalized.section_invoked = normalized.sectionInvoked;
+          }
+          if (normalized.financialYear && !normalized.financial_year) {
+            normalized.financial_year = normalized.financialYear;
+          }
           // Accept client field as object or string
           if (!normalized.client_id && normalized.client && typeof normalized.client === 'object' && normalized.client.id) {
             normalized.client_id = normalized.client.id;
@@ -1278,10 +1303,16 @@ export class SupabaseAdapter implements StoragePort {
           delete normalized.nextHearingDate;
           delete normalized.stateBenchState;
           delete normalized.stateBenchCity;
-          
-          // Delete frontend-only fields
           delete normalized.caseType;
+          delete normalized.caseYear;
+          delete normalized.caseSequence;
+          delete normalized.officeFileNo;
           delete normalized.issueType;
+          delete normalized.formType;
+          delete normalized.sectionInvoked;
+          delete normalized.financialYear;
+          
+          // Delete frontend-only fields (non-database fields)
           delete normalized.matterType;
           delete normalized.tribunalBench;
           delete normalized.slaStatus;
@@ -1289,6 +1320,7 @@ export class SupabaseAdapter implements StoragePort {
           delete normalized.clientName;
           delete normalized.assignedToName;
           delete normalized.ownerName;
+          delete normalized.timelineBreachStatus;
           
           // Validate required client_id
           if (!normalized.client_id || !isValidUUID(normalized.client_id)) {
@@ -1314,7 +1346,11 @@ export class SupabaseAdapter implements StoragePort {
             'id', 'tenant_id', 'case_number', 'title', 'description', 
             'client_id', 'stage_code', 'status', 'priority', 'assigned_to', 
             'owner_id', 'notice_type', 'notice_no', 'notice_date', 'tax_demand',
-            'created_at', 'updated_at', 'forum_id', 'authority_id', 'next_hearing_date'
+            'created_at', 'updated_at', 'forum_id', 'authority_id', 'next_hearing_date',
+            'state_bench_state', 'state_bench_city',
+            'case_type', 'case_year', 'case_sequence', 'office_file_no',
+            'issue_type', 'form_type', 'section_invoked', 'financial_year',
+            'interest_amount', 'penalty_amount', 'total_demand', 'reply_due_date'
           ];
           Object.keys(normalized).forEach(key => {
             if (!validCaseFields.includes(key)) delete normalized[key];
