@@ -187,18 +187,43 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
         }));
 
 
-        const hearings = (hearingsData.data || []).map((h: any) => ({
-          ...h,
-          case_id: h.case_id || h.caseId,
-          court_id: h.court_id || h.courtId,
-          judge_ids: h.judge_ids || (h.judgeId ? [h.judgeId] : []),
-          start_time: h.start_time || h.time || '10:00',
-          end_time: h.end_time || '11:00',
-          timezone: h.timezone || 'Asia/Kolkata',
-          created_by: h.created_by || user.id,
-          created_at: h.created_at || h.createdDate,
-          updated_at: h.updated_at || h.lastUpdated,
-        }));
+        // UUID validation helper
+        const isValidUUID = (str: string) => {
+          if (!str) return false;
+          return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+        };
+
+        const hearings = (hearingsData.data || []).map((h: any) => {
+          // Extract date and time from hearing_date timestamp (critical fix!)
+          let dateStr = '';
+          let timeStr = '10:00';
+          
+          if (h.hearing_date) {
+            const hearingDateTime = new Date(h.hearing_date);
+            dateStr = hearingDateTime.toISOString().split('T')[0]; // "2025-11-12"
+            timeStr = hearingDateTime.toTimeString().slice(0, 5);   // "10:00"
+          }
+          
+          return {
+            ...h,
+            // Map hearing_date to date field (critical for HearingModal!)
+            date: dateStr || h.date,
+            // Map hearing_date time to start_time  
+            start_time: timeStr || h.start_time || h.time || '10:00',
+            end_time: h.end_time || '11:00',
+            // Map court_id with fallback
+            case_id: h.case_id || h.caseId,
+            court_id: h.court_id || h.courtId,
+            // Handle judge_name which can be UUID or name string
+            judge_ids: h.judge_ids || (h.judge_name && isValidUUID(h.judge_name) ? [h.judge_name] : []),
+            judge_name: h.judge_name,
+            // Timezone and audit fields
+            timezone: h.timezone || 'Asia/Kolkata',
+            created_by: h.created_by || user.id,
+            created_at: h.created_at || h.createdDate,
+            updated_at: h.updated_at || h.lastUpdated,
+          };
+        });
 
         const documents = (documentsData.data || []).map((d: any) => ({
           ...d,
