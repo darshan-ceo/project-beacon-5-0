@@ -7,22 +7,39 @@ import { toast } from 'sonner';
 import { normalizeStage } from '@/utils/stageUtils';
 import { calculateSLAStatus } from '@/services/slaService';
 
+// Global flags to persist data loaded state across component remounts
+// This prevents the "Loading your data..." screen from appearing when switching tabs
+let globalDataLoaded = false;
+let globalLoadedTenantId: string | null = null;
+
 /**
  * DataInitializer Component
  * 
  * Loads all entity data from Supabase into AppStateContext on app startup.
  * Waits for authentication to complete before loading tenant-specific data.
+ * Uses global flags to prevent unnecessary reloads on tab switch/remount.
  */
 export const DataInitializer = ({ children }: { children: React.ReactNode }) => {
   const { user, tenantId } = useAuth();
   const { dispatch } = useAppState();
-  const [isLoading, setIsLoading] = useState(true);
+  
+  // Only show loading if data hasn't been loaded for this tenant yet
+  const [isLoading, setIsLoading] = useState(
+    !globalDataLoaded || globalLoadedTenantId !== tenantId
+  );
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
       if (!user || !tenantId) {
         console.log('[DataInitializer] Waiting for authentication...', { user: !!user, tenantId });
+        setIsLoading(false);
+        return;
+      }
+
+      // Skip reload if data was already loaded for this tenant
+      if (globalDataLoaded && globalLoadedTenantId === tenantId) {
+        console.log('[DataInitializer] Data already loaded for tenant, skipping reload');
         setIsLoading(false);
         return;
       }
@@ -312,6 +329,10 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
             timelineEntries
           },
         });
+
+        // Mark data as loaded for this tenant
+        globalDataLoaded = true;
+        globalLoadedTenantId = tenantId;
 
         console.log('[DataInitializer] ✅ Data loaded successfully:', {
           clients: clients.length,
