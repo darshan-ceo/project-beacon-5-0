@@ -540,10 +540,10 @@ class SearchService {
       console.warn(`[Search] Dexie fetch failed for ${entity}:`, error);
     }
     
-    // Fallback to KV store
+    // Fallback to KV store (Supabase-only mode)
     try {
       if (entity === 'clientGroups') {
-        kvItems = await idbStorage.get('clientGroups').catch(() => []) as any[];
+        kvItems = []; // No IndexedDB in Supabase-only mode
       } else {
         kvItems = await persistenceService.getAll(entity);
       }

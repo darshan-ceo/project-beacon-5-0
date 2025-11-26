@@ -44,8 +44,8 @@ export const DevTools: React.FC = () => {
       setNetworkStats(networkInterceptor.getCallStats());
     }, 5000);
 
-    // Load storage stats
-    idbStorage.getStorageStats().then(setStorageStats);
+    // Storage stats: Supabase-only mode (no IndexedDB)
+    setStorageStats({ mode: 'Supabase Only', indexeddb: null });
 
     return () => clearInterval(interval);
   }, []);
@@ -133,21 +133,7 @@ export const DevTools: React.FC = () => {
     });
   };
 
-  const runMigration = async () => {
-    try {
-      await migrateFromLocalStorage();
-      toast({
-        title: 'Migration Complete',
-        description: 'Legacy localStorage data migrated to IndexedDB',
-      });
-    } catch (error) {
-      toast({
-        title: 'Migration Failed',
-        description: (error as Error).message,
-        variant: 'destructive'
-      });
-    }
-  };
+  // Migration removed: Supabase-only mode
 
   const simulateStageChange = async () => {
     if (!selectedCase || !selectedStage) {
@@ -601,15 +587,15 @@ export const DevTools: React.FC = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle>Migration Tools</CardTitle>
+                <CardTitle>Storage Mode</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <Button onClick={runMigration} variant="outline" className="w-full">
-                  Migrate localStorage → IndexedDB
-                </Button>
-                <p className="text-sm text-muted-foreground">
-                  Migrate legacy localStorage data to IndexedDB for better performance and reliability.
-                </p>
+              <CardContent>
+                <Alert>
+                  <Database className="h-4 w-4" />
+                  <AlertDescription>
+                    Application runs in Supabase-only mode. IndexedDB migration not available.
+                  </AlertDescription>
+                </Alert>
               </CardContent>
             </Card>
           </div>
