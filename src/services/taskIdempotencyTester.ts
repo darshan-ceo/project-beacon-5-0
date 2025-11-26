@@ -478,23 +478,18 @@ class TaskIdempotencyTester {
   }
 
   private async setupTestEnvironment(testCase: IdempotencyTestCase): Promise<void> {
-    // Clear any existing test data
-    await this.cleanupTestEnvironment(testCase.caseData.id);
-    
-    // Setup fresh test case
-    await idbStorage.set(`test-case-${testCase.caseData.id}`, testCase.caseData);
+    // Stubbed: Supabase-only mode - no IndexedDB test storage
+    console.warn('[TaskIdempotencyTester] Test setup not available in Supabase-only mode');
   }
 
   private async cleanupTestEnvironment(caseId: string): Promise<void> {
-    await Promise.all([
-      idbStorage.delete(`test-case-${caseId}`),
-      idbStorage.delete(`${this.FOOTPRINTS_KEY}-${caseId}`),
-      idbStorage.delete(`stage-instance-${caseId}`)
-    ]);
+    // Stubbed: Supabase-only mode
+    console.warn('[TaskIdempotencyTester] Test cleanup not available in Supabase-only mode');
   }
 
   private async getFootprints(caseId: string): Promise<TaskCreationFootprint[]> {
-    return await idbStorage.get(`${this.FOOTPRINTS_KEY}-${caseId}`) || [];
+    // Stubbed: Supabase-only mode
+    return [];
   }
 
   private detectDuplicates(tasksCreated: number[], expectedBehavior: ExpectedBehavior): number {
@@ -539,21 +534,8 @@ class TaskIdempotencyTester {
   }
 
   private async simulateError(caseId: string, errorType: string): Promise<void> {
-    switch (errorType) {
-      case 'NETWORK_FAILURE':
-        // Simulate network failure by temporarily corrupting storage
-        await idbStorage.set(`network-error-${caseId}`, true);
-        break;
-      case 'STORAGE_ERROR':
-        // Simulate storage error
-        await idbStorage.set(`storage-error-${caseId}`, true);
-        break;
-      case 'VALIDATION_ERROR':
-        // Corrupt case data temporarily
-        const caseData = await idbStorage.get(`test-case-${caseId}`);
-        await idbStorage.set(`test-case-${caseId}`, { ...caseData, assignedToId: null });
-        break;
-    }
+    // Stubbed: Supabase-only mode - no IndexedDB error simulation
+    console.warn('[TaskIdempotencyTester] Error simulation not available in Supabase-only mode');
   }
 
   private async simulateTemplateChange(oldTemplateId: string, newTemplateId: string): Promise<void> {
@@ -562,34 +544,13 @@ class TaskIdempotencyTester {
   }
 
   private async simulateDataCorruption(caseId: string, corruptionType: string): Promise<void> {
-    const footprints = await this.getFootprints(caseId);
-    
-      switch (corruptionType) {
-        case 'MALFORMED_JSON':
-          await idbStorage.set(`${this.FOOTPRINTS_KEY}-${caseId}`, '{"malformed": json}');
-          break;
-        case 'MISSING_FIELDS':
-          if (footprints.length > 0) {
-            const corrupted = footprints.map(fp => ({ caseId: fp.caseId })); // Remove other fields
-            await idbStorage.set(`${this.FOOTPRINTS_KEY}-${caseId}`, corrupted);
-          }
-          break;
-      case 'INVALID_DATES':
-        if (footprints.length > 0) {
-          const corrupted = footprints.map(fp => ({ ...fp, createdAt: 'invalid-date' }));
-          await idbStorage.set(`${this.FOOTPRINTS_KEY}-${caseId}`, corrupted);
-        }
-        break;
-    }
+    // Stubbed: Supabase-only mode - no data corruption testing
+    console.warn('[TaskIdempotencyTester] Data corruption testing not available in Supabase-only mode');
   }
 
   private async saveTestResults(results: IdempotencyTestResult[]): Promise<void> {
-    const timestamp = new Date().toISOString();
-    await idbStorage.set(`${this.TEST_RESULTS_KEY}-${timestamp}`, {
-      timestamp,
-      results,
-      summary: this.generateTestSummary(results)
-    });
+    // Stubbed: Supabase-only mode - no IndexedDB test results storage
+    console.warn('[TaskIdempotencyTester] Test results not saved in Supabase-only mode');
   }
 
   private generateTestSummary(results: IdempotencyTestResult[]): any {
