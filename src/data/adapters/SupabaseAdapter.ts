@@ -739,6 +739,32 @@ export class SupabaseAdapter implements StoragePort {
         case 'judges':
           if (r.courtId && !r.court_id) r.court_id = r.courtId;
           if (r.createdBy && !r.created_by) r.created_by = r.createdBy;
+          if (r.updatedBy && !r.updated_by) r.updated_by = r.updatedBy;
+          
+          // Validate UUID foreign keys
+          if (r.created_by && !isValidUUID(r.created_by)) {
+            console.warn(`[SupabaseAdapter] Invalid created_by UUID: ${r.created_by}, setting to null`);
+            r.created_by = null;
+          }
+          if (r.updated_by && !isValidUUID(r.updated_by)) {
+            console.warn(`[SupabaseAdapter] Invalid updated_by UUID: ${r.updated_by}, setting to null`);
+            r.updated_by = null;
+          }
+          if (r.court_id && !isValidUUID(r.court_id)) {
+            throw new Error('Invalid court ID - please select a valid court');
+          }
+          
+          // Keep only valid database columns for judges
+          const validJudgeFields = [
+            'id', 'tenant_id', 'name', 'designation', 'status', 'court_id',
+            'bench', 'jurisdiction', 'city', 'state', 'email', 'phone',
+            'appointment_date', 'retirement_date', 'years_of_service',
+            'specialization', 'chambers', 'assistant', 'availability',
+            'tags', 'notes', 'photo_url', 'created_at', 'updated_at', 'created_by'
+          ];
+          Object.keys(r).forEach(key => {
+            if (!validJudgeFields.includes(key)) delete r[key];
+          });
           break;
         case 'document_folders':
           if (r.caseId && !r.case_id) r.case_id = r.caseId;

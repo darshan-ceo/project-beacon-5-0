@@ -36,7 +36,7 @@ interface JudgeModalProps {
 }
 
 export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: judgeData, mode }) => {
-  const { dispatch } = useAppState();
+  const { dispatch, rawDispatch } = useAppState();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -67,7 +67,7 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
           email: formData.email,
         };
 
-        await judgesService.create(judgeData, dispatch);
+        await judgesService.create(judgeData, rawDispatch);
       } else if (mode === 'edit' && judgeData) {
         await judgesService.update(judgeData.id, formData, dispatch);
       }

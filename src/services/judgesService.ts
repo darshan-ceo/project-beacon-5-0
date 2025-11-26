@@ -73,8 +73,6 @@ class JudgesService {
         },
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        createdBy: 'system',
-        updatedBy: 'system'
       };
 
       // Persist to Supabase
