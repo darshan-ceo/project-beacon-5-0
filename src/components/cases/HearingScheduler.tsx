@@ -61,7 +61,7 @@ interface HearingSchedulerProps {
 
 export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases, selectedCase }) => {
   const navigate = useNavigate();
-  const { state, dispatch } = useAppState();
+  const { state, dispatch, rawDispatch } = useAppState();
   const [selectedDate, setSelectedDate] = useState('');
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [editingHearing, setEditingHearing] = useState<Hearing | null>(null);
@@ -116,7 +116,7 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases, selec
           const newHearing = payload.new as GlobalHearing;
           
           // Dispatch ADD_HEARING action
-          dispatch({
+          rawDispatch({
             type: 'ADD_HEARING',
             payload: newHearing
           });
@@ -141,7 +141,7 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases, selec
           const updatedHearing = payload.new as GlobalHearing;
           
           // Dispatch UPDATE_HEARING action
-          dispatch({
+          rawDispatch({
             type: 'UPDATE_HEARING',
             payload: updatedHearing
           });
@@ -161,7 +161,7 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases, selec
           const deletedHearing = payload.old as GlobalHearing;
           
           // Dispatch DELETE_HEARING action
-          dispatch({
+          rawDispatch({
             type: 'DELETE_HEARING',
             payload: deletedHearing.id
           });
