@@ -246,10 +246,7 @@ export const CaseManagement: React.FC = () => {
               payload: newCase
             });
             
-            toast({
-              title: "New Case Created",
-              description: `Case ${newCase.caseNumber} has been added`,
-            });
+            // Toast already shown by casesService.create() - no duplicate needed
           } catch (error) {
             console.error('[CaseManagement] Error processing INSERT event:', error);
             toast({
