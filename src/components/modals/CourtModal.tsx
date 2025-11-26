@@ -85,6 +85,8 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
   const [isAddressMasterEnabled, setIsAddressMasterEnabled] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     setIsAddressMasterEnabled(featureFlagService.isEnabled('address_master_v1'));
@@ -190,103 +192,105 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
       return;
     }
     
-    if (mode === 'create') {
-      let addressId: string | undefined;
-      
-      // Save address if address master is enabled
-      if (isAddressMasterEnabled) {
-        try {
-          const addressResponse = await addressMasterService.createAddress(formData.address);
-          
-          if (addressResponse.success && addressResponse.data) {
-            addressId = addressResponse.data.id;
+    setIsSaving(true);
+    try {
+      const { courtsService } = await import('@/services/courtsService');
+
+      if (mode === 'create') {
+        let addressId: string | undefined;
+        
+        // Save address if address master is enabled
+        if (isAddressMasterEnabled) {
+          try {
+            const addressResponse = await addressMasterService.createAddress(formData.address);
+            
+            if (addressResponse.success && addressResponse.data) {
+              addressId = addressResponse.data.id;
+            }
+          } catch (error) {
+            console.error('Failed to save address:', error);
           }
-        } catch (error) {
-          console.error('Failed to save address:', error);
         }
-      }
 
-      const newCourt: Court = {
-        id: '', // Will be replaced by server-generated UUID
-        name: formData.name,
-        type: formData.type,
-        authorityLevel: formData.authorityLevel,
-        matterTypes: formData.matterTypes,
-        jurisdiction: formData.jurisdiction,
-        address: formData.address,
-        activeCases: 0,
-        avgHearingTime: '30 mins',
-        digitalFiling: formData.digitalFiling,
-        digitalFilingPortal: formData.digitalFilingPortal,
-        digitalFilingPortalUrl: formData.digitalFilingPortalUrl,
-        digitalFilingInstructions: formData.digitalFilingInstructions,
-        workingDays: formData.workingDays,
-        phone: formData.phone,
-        email: formData.email,
-        benchLocation: formData.benchLocation,
-        addressId: addressId,
-        city: formData.city,
-        status: formData.status
-      };
+        const courtToCreate = {
+          name: formData.name,
+          type: formData.type,
+          authorityLevel: formData.authorityLevel,
+          matterTypes: formData.matterTypes,
+          jurisdiction: formData.jurisdiction,
+          address: formData.address,
+          digitalFiling: formData.digitalFiling,
+          digitalFilingPortal: formData.digitalFilingPortal,
+          digitalFilingPortalUrl: formData.digitalFilingPortalUrl,
+          digitalFilingInstructions: formData.digitalFilingInstructions,
+          workingDays: formData.workingDays,
+          phone: formData.phone,
+          email: formData.email,
+          benchLocation: formData.benchLocation,
+          addressId: addressId,
+          city: formData.city,
+          status: formData.status
+        };
 
-      // Link address if saved
-      if (addressId) {
-        await addressMasterService.linkAddress('court', newCourt.id, addressId, true);
-      }
+        const created = await courtsService.create(courtToCreate, dispatch);
 
-      dispatch({ type: 'ADD_COURT', payload: newCourt });
-      toast({
-        title: "Legal Forum Added",
-        description: `Legal Forum "${formData.name}" has been added successfully.`,
-      });
-    } else if (mode === 'edit' && courtData) {
-      // Handle address updates
-      if (isAddressMasterEnabled && courtData.addressId) {
-        try {
-          await addressMasterService.updateAddress(courtData.addressId, formData.address);
-        } catch (error) {
-          console.error('Failed to update address:', error);
+        // Link address if saved
+        if (addressId && created.id) {
+          await addressMasterService.linkAddress('court', created.id, addressId, true);
         }
+      } else if (mode === 'edit' && courtData) {
+        // Handle address updates
+        if (isAddressMasterEnabled && courtData.addressId) {
+          try {
+            await addressMasterService.updateAddress(courtData.addressId, formData.address);
+          } catch (error) {
+            console.error('Failed to update address:', error);
+          }
+        }
+
+        const updates = {
+          ...courtData,
+          name: formData.name,
+          type: formData.type,
+          authorityLevel: formData.authorityLevel,
+          matterTypes: formData.matterTypes,
+          jurisdiction: formData.jurisdiction,
+          address: formData.address,
+          digitalFiling: formData.digitalFiling,
+          digitalFilingPortal: formData.digitalFilingPortal,
+          digitalFilingPortalUrl: formData.digitalFilingPortalUrl,
+          digitalFilingInstructions: formData.digitalFilingInstructions,
+          workingDays: formData.workingDays,
+          phone: formData.phone,
+          email: formData.email,
+          benchLocation: formData.benchLocation,
+          city: formData.city,
+          status: formData.status
+        };
+
+        await courtsService.update(courtData.id, updates, dispatch);
       }
 
-      const updatedCourt: Court = {
-        ...courtData,
-        name: formData.name,
-        type: formData.type,
-        authorityLevel: formData.authorityLevel,
-        matterTypes: formData.matterTypes,
-        jurisdiction: formData.jurisdiction,
-        address: formData.address,
-        digitalFiling: formData.digitalFiling,
-        digitalFilingPortal: formData.digitalFilingPortal,
-        digitalFilingPortalUrl: formData.digitalFilingPortalUrl,
-        digitalFilingInstructions: formData.digitalFilingInstructions,
-        workingDays: formData.workingDays,
-        phone: formData.phone,
-        email: formData.email,
-        benchLocation: formData.benchLocation,
-        city: formData.city,
-        status: formData.status
-      };
-
-      dispatch({ type: 'UPDATE_COURT', payload: updatedCourt });
-      toast({
-        title: "Legal Forum Updated",
-        description: `Legal Forum "${formData.name}" has been updated successfully.`,
-      });
+      onClose();
+    } catch (error) {
+      console.error('Court operation failed:', error);
+    } finally {
+      setIsSaving(false);
     }
-
-    onClose();
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (courtData) {
-      dispatch({ type: 'DELETE_COURT', payload: courtData.id });
-      toast({
-        title: "Legal Forum Deleted",
-        description: `Legal Forum "${courtData.name}" has been deleted.`,
-      });
-      onClose();
+      setIsDeleting(true);
+      try {
+        const { courtsService } = await import('@/services/courtsService');
+        await courtsService.delete(courtData.id, dispatch);
+        onClose();
+      } catch (error) {
+        console.error('Court deletion failed:', error);
+      } finally {
+        setIsDeleting(false);
+      }
     }
   };
 

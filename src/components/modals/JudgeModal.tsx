@@ -38,6 +38,8 @@ interface JudgeModalProps {
 export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: judgeData, mode }) => {
   const { dispatch } = useAppState();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -50,120 +52,46 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
   }, []);
 
   const handleSubmit = async (formData: any) => {
+    setIsSaving(true);
     try {
+      const { judgesService } = await import('@/services/judgesService');
+      
       if (mode === 'create') {
-        const newJudge = {
+        const judgeData = {
           name: formData.name,
           designation: formData.designation,
           status: formData.status,
           courtId: formData.courtId,
-          bench: formData.bench,
-          jurisdiction: formData.jurisdiction,
-          city: formData.city,
-          state: formData.state,
-          photoUrl: formData.photoUrl,
           appointmentDate: formData.appointmentDate?.toISOString().split('T')[0] || '',
-          retirementDate: formData.retirementDate?.toISOString().split('T')[0],
-          yearsOfService: formData.appointmentDate ? 
-            Math.floor((new Date().getTime() - formData.appointmentDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : 0,
-          specialization: formData.specializations || [],
-          chambers: formData.chambers,
-          email: formData.email,
           phone: formData.phone,
-          assistant: formData.assistant,
-          address: formData.address,
-          availability: formData.availability,
-          tags: formData.tags,
-          notes: formData.notes,
-          // Phase 1 fields
-          memberType: formData.memberType,
-          authorityLevel: formData.authorityLevel,
-          qualifications: formData.qualifications,
-          tenureDetails: formData.tenureDetails ? {
-            tenureStartDate: formData.tenureDetails.tenureStartDate?.toISOString().split('T')[0],
-            tenureEndDate: formData.tenureDetails.tenureEndDate?.toISOString().split('T')[0],
-            maxTenureYears: formData.tenureDetails.maxTenureYears,
-            extensionGranted: formData.tenureDetails.extensionGranted,
-            ageLimit: formData.tenureDetails.ageLimit
-          } : undefined,
-          // Legacy fields
-          totalCases: 0,
-          avgDisposalTime: '0 days',
-          contactInfo: {
-            chambers: formData.chambers || '',
-            phone: formData.phone,
-            email: formData.email
-          },
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          createdBy: currentUserId || null,
-          updatedBy: currentUserId || null
-        } as any;
-
-        dispatch({ type: 'ADD_JUDGE', payload: newJudge as any });
-        toast({
-          title: "Judge Added",
-          description: `Judge "${formData.name}" has been added successfully.`,
-        });
-      } else if (mode === 'edit' && judgeData) {
-        const updatedJudge: Judge = {
-          ...judgeData,
-          name: formData.name,
-          designation: formData.designation,
-          status: formData.status,
-          courtId: formData.courtId,
-          bench: formData.bench,
-          jurisdiction: formData.jurisdiction,
-          city: formData.city,
-          state: formData.state,
-          photoUrl: formData.photoUrl,
-          appointmentDate: formData.appointmentDate?.toISOString().split('T')[0] || judgeData.appointmentDate,
-          retirementDate: formData.retirementDate?.toISOString().split('T')[0],
-          yearsOfService: formData.appointmentDate ? 
-            Math.floor((new Date().getTime() - formData.appointmentDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : judgeData.yearsOfService,
-          specialization: formData.specializations || [],
-          chambers: formData.chambers,
           email: formData.email,
-          phone: formData.phone,
-          assistant: formData.assistant,
-          address: formData.address,
-          availability: formData.availability,
-          tags: formData.tags,
-          notes: formData.notes,
-          // Phase 1 fields
-          memberType: formData.memberType,
-          authorityLevel: formData.authorityLevel,
-          qualifications: formData.qualifications,
-          tenureDetails: formData.tenureDetails ? {
-            tenureStartDate: formData.tenureDetails.tenureStartDate?.toISOString().split('T')[0],
-            tenureEndDate: formData.tenureDetails.tenureEndDate?.toISOString().split('T')[0],
-            maxTenureYears: formData.tenureDetails.maxTenureYears,
-            extensionGranted: formData.tenureDetails.extensionGranted,
-            ageLimit: formData.tenureDetails.ageLimit
-          } : undefined,
-          contactInfo: {
-            chambers: formData.chambers || '',
-            phone: formData.phone,
-            email: formData.email
-          },
-          updatedAt: new Date().toISOString(),
-          updatedBy: currentUserId || null
         };
 
-        dispatch({ type: 'UPDATE_JUDGE', payload: updatedJudge });
-        toast({
-          title: "Judge Updated",
-          description: `Judge "${formData.name}" has been updated successfully.`,
-        });
+        await judgesService.create(judgeData, dispatch);
+      } else if (mode === 'edit' && judgeData) {
+        await judgesService.update(judgeData.id, formData, dispatch);
       }
 
       onClose();
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to save judge. Please try again.",
-        variant: "destructive"
-      });
+      console.error('Judge operation failed:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (judgeData) {
+      setIsDeleting(true);
+      try {
+        const { judgesService } = await import('@/services/judgesService');
+        await judgesService.delete(judgeData.id, dispatch);
+        onClose();
+      } catch (error) {
+        console.error('Judge deletion failed:', error);
+      } finally {
+        setIsDeleting(false);
+      }
     }
   };
 

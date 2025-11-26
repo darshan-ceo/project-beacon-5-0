@@ -37,8 +37,8 @@ class TaskCreationService {
     dispatch?: React.Dispatch<AppAction>
   ): Promise<TaskCreationResult> {
     try {
-      // Create the task using the tasks service
-      const task = await tasksService.create(request.userId || 'system', {
+      // Use tasksService with new API (dispatch parameter required)
+      const task = await tasksService.create({
         title: request.title,
         description: this.buildDescription(request),
         caseId: request.caseId,
@@ -49,11 +49,9 @@ class TaskCreationService {
         status: 'Not Started',
         assignedToId: request.assignedToId,
         assignedToName: request.assignedToName,
-        assignedById: 'system',
-        assignedByName: this.getAssignedByName(request.source),
         dueDate: this.calculateDueDate(request.estimatedHours),
         estimatedHours: request.estimatedHours
-      } as CreateTaskData);
+      }, dispatch);
 
       // Add automation metadata
       const finalTask = {
