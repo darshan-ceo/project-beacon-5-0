@@ -348,19 +348,23 @@ class SeedDataService {
   }
 
   private async saveClients(clients: any[]): Promise<void> {
-    await idbStorage.set('seed-clients', clients);
+    // Stubbed: Supabase-only mode - no IndexedDB seed storage
+    console.log('[SeedData] saveClients() skipped in Supabase-only mode');
   }
 
   private async saveCases(cases: GSTCaseProfile[]): Promise<void> {
-    await idbStorage.set(this.GST_CASES_KEY, cases);
+    // Stubbed: Supabase-only mode - no IndexedDB seed storage
+    console.log('[SeedData] saveCases() skipped in Supabase-only mode');
   }
 
   private async saveDocuments(documents: DocumentProfile[][]): Promise<void> {
-    await idbStorage.set('seed-documents', documents.flat());
+    // Stubbed: Supabase-only mode - no IndexedDB seed storage
+    console.log('[SeedData] saveDocuments() skipped in Supabase-only mode');
   }
 
   private async saveTasks(tasks: TaskProfile[][]): Promise<void> {
-    await idbStorage.set('seed-tasks', tasks.flat());
+    // Stubbed: Supabase-only mode - no IndexedDB seed storage
+    console.log('[SeedData] saveTasks() skipped in Supabase-only mode');
   }
 
   async getSeedData(): Promise<{
@@ -370,25 +374,14 @@ class SeedDataService {
     tasks: TaskProfile[];
     taskBundles: any[];
   }> {
-    const [clients, cases, documents, tasks, taskBundles] = await Promise.all([
-      idbStorage.get('seed-clients') || [],
-      idbStorage.get(this.GST_CASES_KEY) || [],
-      idbStorage.get('seed-documents') || [],
-      idbStorage.get('seed-tasks') || [],
-      idbStorage.get('seed-task-bundles') || []
-    ]);
-
-    return { clients, cases, documents, tasks, taskBundles };
+    // Stubbed: Supabase-only mode - no IndexedDB seed retrieval
+    console.log('[SeedData] getSeedData() returns empty in Supabase-only mode');
+    return { clients: [], cases: [], documents: [], tasks: [], taskBundles: [] };
   }
 
   async clearSeedData(): Promise<void> {
-    await Promise.all([
-      idbStorage.delete('seed-clients'),
-      idbStorage.delete(this.GST_CASES_KEY),
-      idbStorage.delete('seed-documents'),
-      idbStorage.delete('seed-tasks'),
-      idbStorage.delete('seed-task-bundles')
-    ]);
+    // Stubbed: Supabase-only mode - no IndexedDB seed data to clear
+    console.log('[SeedData] clearSeedData() no-op in Supabase-only mode');
   }
 
   /**
@@ -723,13 +716,10 @@ class SeedDataService {
         });
       }
       
-      // Also save to localStorage for QA validation
-      await idbStorage.set('seed-task-bundles', bundles);
-      console.log(`[SeedData] Created ${bundles.length} comprehensive task bundles`);
+      // Supabase-only mode: no IndexedDB storage
+      console.log(`[SeedData] Created ${bundles.length} comprehensive task bundles (Supabase-only mode)`);
     } catch (error) {
       console.error('[SeedData] Failed to create task bundles:', error);
-      // Fallback: just save to localStorage
-      await idbStorage.set('seed-task-bundles', bundles);
     }
   }
 }

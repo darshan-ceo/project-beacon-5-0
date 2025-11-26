@@ -1,5 +1,11 @@
-import { DataProvider } from './MockDataProvider';
-// Import types locally since they're not exported
+// DataProvider interface definition (MockDataProvider removed)
+interface DataProvider {
+  dms: any;
+  help: any;
+  masters: any;
+}
+
+// Import types locally
 interface Document {
   id: string;
   name: string;
@@ -35,7 +41,7 @@ import { AppAction } from '@/contexts/AppStateContext';
 import { envConfig } from '@/utils/envConfig';
 import { getItem } from '@/data/storageShim';
 
-class ApiDataProvider implements DataProvider {
+class ApiDataProvider {
   private baseUrl: string;
 
   constructor() {
