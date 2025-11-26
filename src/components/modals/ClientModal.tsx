@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Edit, Trash2, User, Eye, Building2, MapPin, Shield, AlertCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, User, Eye, Building2, MapPin, Shield, AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Client, useAppState, type Signatory, type Address, type Jurisdiction, type PortalAccess } from '@/contexts/AppStateContext';
 import { CASelector } from '@/components/ui/employee-selector';
@@ -39,6 +39,8 @@ interface ClientModalProps {
 
 export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, client: clientData, mode }) => {
   const { state, dispatch } = useAppState();
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const [formData, setFormData] = useState<{
     name: string;
@@ -407,6 +409,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         }
       }
 
+      setIsSaving(true);
       const clientToSave: Partial<Client> = {
         ...formData,
         address: formData.address, // Keep inline address as fallback for immediate display
@@ -440,16 +443,21 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         description: "Failed to save client. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleDelete = async () => {
     if (clientData) {
+      setIsDeleting(true);
       try {
         await clientsService.delete(clientData.id, dispatch);
         onClose();
       } catch (error) {
         // Error handling is done in the service
+      } finally {
+        setIsDeleting(false);
       }
     }
   };
@@ -1221,8 +1229,15 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
               {mode === 'view' ? 'Close' : 'Cancel'}
             </Button>
             {mode === 'edit' && (
-              <Button type="button" variant="destructive" onClick={handleDelete}>
-                Delete Client
+              <Button type="button" variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete Client'
+                )}
               </Button>
             )}
             {mode !== 'view' && (
@@ -1232,8 +1247,16 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                   e.preventDefault();
                   handleSubmit(e);
                 }}
+                disabled={isSaving}
               >
-                {mode === 'create' ? 'Create Client' : 'Update Client'}
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {mode === 'create' ? 'Creating...' : 'Updating...'}
+                  </>
+                ) : (
+                  mode === 'create' ? 'Create Client' : 'Update Client'
+                )}
               </Button>
             )}
           </DialogFooter>
