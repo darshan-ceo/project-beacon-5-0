@@ -246,21 +246,13 @@ class TaskBundleTriggerService {
   }
 
   private async getFootprints(): Promise<BundleCreationFootprint[]> {
-    try {
-      const footprints = await idbStorage.get(this.FOOTPRINTS_KEY);
-      return Array.isArray(footprints) ? footprints : [];
-    } catch (error) {
-      console.error('Failed to load bundle footprints:', error);
-      return [];
-    }
+    // Stubbed: Supabase-only mode - no IndexedDB footprint storage
+    return [];
   }
 
   private async saveFootprints(footprints: BundleCreationFootprint[]): Promise<void> {
-    try {
-      await idbStorage.set(this.FOOTPRINTS_KEY, footprints);
-    } catch (error) {
-      console.error('Failed to save bundle footprints:', error);
-    }
+    // Stubbed: Supabase-only mode - no IndexedDB footprint storage
+    console.warn('[TaskBundleTriggerService] Footprint saving not available in Supabase-only mode');
   }
 
   // Get automation history for analytics
@@ -271,7 +263,8 @@ class TaskBundleTriggerService {
 
   // Clear automation history (for testing/cleanup)
   async clearAutomationHistory(): Promise<void> {
-    await idbStorage.delete(this.FOOTPRINTS_KEY);
+    // Stubbed: Supabase-only mode
+    console.warn('[TaskBundleTriggerService] Clear history not available in Supabase-only mode');
   }
 }
 

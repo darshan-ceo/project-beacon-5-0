@@ -41,7 +41,7 @@ class PersistenceChecker {
 
     // Collect stats
     const networkStats = networkInterceptor.getCallStats();
-    const storageStats = await idbStorage.getStorageStats();
+    const storageStats = { mode: 'Supabase Only', indexeddb: null }; // Stubbed
     const featureFlags = featureFlagService.getAllFlags();
 
     const summary = this.calculateSummary();
@@ -105,44 +105,16 @@ class PersistenceChecker {
         path: '/QC Test Folder'
       };
 
-      // Save folder
-      const folders = await idbStorage.get('folders') || [];
-      folders.push(testFolder);
-      await idbStorage.set('folders', folders);
-
-      // Verify persistence
-      const savedFolders = await idbStorage.get('folders');
-      const found = savedFolders?.find((f: any) => f.id === testFolder.id);
-      
-      if (!found) {
-        throw new Error('Folder not persisted correctly');
-      }
-
-      // Cleanup
-      const cleanedFolders = savedFolders.filter((f: any) => f.id !== testFolder.id);
-      await idbStorage.set('folders', cleanedFolders);
+      // Stubbed: Supabase-only mode - no IndexedDB testing
+      throw new Error('Test not supported in Supabase-only mode');
     });
 
     await this.runTest('Document Blob Storage', 'persistence', async () => {
       const testBlob = new Blob(['QC test content'], { type: 'text/plain' });
       const blobKey = `qc-test-${Date.now()}`;
 
-      // Store blob
-      const storedKey = await idbStorage.setBlob(blobKey, testBlob);
-
-      // Retrieve blob
-      const retrievedBlob = await idbStorage.getBlob(storedKey);
-      
-      if (!retrievedBlob) {
-        throw new Error('Blob not retrieved');
-      }
-
-      if (retrievedBlob.size !== testBlob.size) {
-        throw new Error('Blob size mismatch');
-      }
-
-      // Cleanup
-      await idbStorage.deleteBlob(storedKey);
+      // Stubbed: Supabase-only mode - no IndexedDB blob testing
+      throw new Error('Test not supported in Supabase-only mode');
     });
 
     await this.runTest('Help Article Persistence', 'persistence', async () => {
@@ -156,22 +128,8 @@ class PersistenceChecker {
         createdAt: new Date().toISOString()
       };
 
-      // Save article
-      const articles = await idbStorage.get('help-articles') || [];
-      articles.push(testArticle);
-      await idbStorage.set('help-articles', articles);
-
-      // Verify persistence
-      const savedArticles = await idbStorage.get('help-articles');
-      const found = savedArticles?.find((a: any) => a.id === testArticle.id);
-      
-      if (!found) {
-        throw new Error('Help article not persisted correctly');
-      }
-
-      // Cleanup
-      const cleanedArticles = savedArticles.filter((a: any) => a.id !== testArticle.id);
-      await idbStorage.set('help-articles', cleanedArticles);
+      // Stubbed: Supabase-only mode - no IndexedDB testing
+      throw new Error('Test not supported in Supabase-only mode');
     });
   }
 
@@ -179,28 +137,13 @@ class PersistenceChecker {
     console.log('[QC] Running retrieval tests...');
 
     await this.runTest('Filter Visibility Check', 'retrieval', async () => {
-      // This test would verify that newly created items are visible
-      // when filters are cleared or set to show all items
-      const folders = await idbStorage.get('folders') || [];
-      
-      // If we have folders, they should be retrievable
-      if (folders.length > 0) {
-        const firstFolder = folders[0];
-        if (!firstFolder.id || !firstFolder.name) {
-          throw new Error('Folder structure is invalid');
-        }
-      }
+      // Stubbed: Supabase-only mode - no IndexedDB testing
+      throw new Error('Test not supported in Supabase-only mode');
     });
 
     await this.runTest('Search Index Integrity', 'retrieval', async () => {
-      const articles = await idbStorage.get('help-articles') || [];
-      
-      // Verify articles have searchable content
-      articles.forEach((article: any) => {
-        if (!article.title && !article.content) {
-          throw new Error(`Article ${article.id} has no searchable content`);
-        }
-      });
+      // Stubbed: Supabase-only mode
+      throw new Error('Test not supported in Supabase-only mode');
     });
   }
 
@@ -330,51 +273,8 @@ class PersistenceChecker {
         path: '/DMS QC Test'
       };
 
-      const folders = await idbStorage.get('folders') || [];
-      folders.push(testFolder);
-      await idbStorage.set('folders', folders);
-
-      // Simulate upload with tags
-      const testDoc = {
-        id: `doc-test-${Date.now()}`,
-        name: 'test-document.pdf',
-        type: 'application/pdf',
-        size: 1024,
-        caseId: 'test-case-1',
-        folderId: testFolder.id,
-        uploadedBy: 'qc-user',
-        uploadedAt: new Date().toISOString(),
-        tags: ['DRC-07', 'test'],
-        shared: false,
-        path: `/DMS QC Test/test-document.pdf`
-      };
-
-      const documents = await idbStorage.get('documents') || [];
-      documents.push(testDoc);
-      await idbStorage.set('documents', documents);
-
-      // Verify reload persistence
-      const reloadedFolders = await idbStorage.get('folders');
-      const reloadedDocs = await idbStorage.get('documents');
-
-      const folderExists = reloadedFolders?.some((f: any) => f.id === testFolder.id);
-      const docExists = reloadedDocs?.some((d: any) => d.id === testDoc.id);
-
-      if (!folderExists || !docExists) {
-        throw new Error('DMS data not persistent after reload simulation');
-      }
-
-      scenarioResults.push({
-        testName: 'DMS Folder & Document Persistence',
-        category: 'persistence',
-        status: 'pass',
-        message: 'Folder and document persist correctly with tags',
-        duration: Date.now() - startTime
-      });
-
-      // Cleanup
-      await idbStorage.set('folders', folders.filter((f: any) => f.id !== testFolder.id));
-      await idbStorage.set('documents', documents.filter((d: any) => d.id !== testDoc.id));
+      // Stubbed: Supabase-only mode - no IndexedDB testing
+      throw new Error('Test not supported in Supabase-only mode');
 
     } catch (error) {
       scenarioResults.push({
@@ -405,47 +305,8 @@ class PersistenceChecker {
         createdAt: new Date().toISOString()
       };
 
-      const articles = await idbStorage.get('help-articles') || [];
-      articles.push(draftArticle);
-      await idbStorage.set('help-articles', articles);
-
-      // Publish article
-      draftArticle.status = 'published';
-      (draftArticle as any).publishedAt = new Date().toISOString();
-      
-      const articleIndex = articles.findIndex((a: any) => a.id === draftArticle.id);
-      articles[articleIndex] = draftArticle;
-      await idbStorage.set('help-articles', articles);
-
-      // Verify search functionality
-      const searchResults = articles.filter((a: any) => 
-        a.title.toLowerCase().includes('asmt-10') ||
-        a.content.toLowerCase().includes('asmt-10') ||
-        a.tags.some((tag: string) => tag.toLowerCase().includes('asmt'))
-      );
-
-      if (searchResults.length === 0) {
-        throw new Error('Search indexing failed - article not found by search');
-      }
-
-      // Verify reload persistence
-      const reloadedArticles = await idbStorage.get('help-articles');
-      const articleExists = reloadedArticles?.some((a: any) => a.id === draftArticle.id && a.status === 'published');
-
-      if (!articleExists) {
-        throw new Error('Help article not persistent after publish and reload');
-      }
-
-      scenarioResults.push({
-        testName: 'Help Article Draft→Publish→Search',
-        category: 'persistence',
-        status: 'pass',
-        message: 'Article draft, publish, and search workflow works correctly',
-        duration: Date.now() - startTime
-      });
-
-      // Cleanup
-      await idbStorage.set('help-articles', articles.filter((a: any) => a.id !== draftArticle.id));
+      // Stubbed: Supabase-only mode - no IndexedDB testing
+      throw new Error('Test not supported in Supabase-only mode');
 
     } catch (error) {
       scenarioResults.push({

@@ -299,11 +299,8 @@ class StageTransitionQA {
   }
 
   private async setupTestEnvironment(testCase: TransitionTestCase): Promise<void> {
-    // Create test case data in storage
-    await idbStorage.set(`test-case-${testCase.caseData.id}`, testCase.caseData);
-    
-    // Clear any existing footprints for this test
-    await idbStorage.delete(`task-creation-footprints-${testCase.caseData.id}`);
+    // Stubbed: Supabase-only mode - no IndexedDB test storage
+    console.warn('[StageTransitionQA] Test environment setup not available in Supabase-only mode');
     
     // Setup test stage instance
     const stageInstance: StageInstance = {
@@ -317,7 +314,8 @@ class StageTransitionQA {
       createdAt: new Date().toISOString()
     };
     
-    await idbStorage.set(`stage-instance-${testCase.caseData.id}`, stageInstance);
+    // Stubbed: Supabase-only mode - no stage instance storage
+    console.warn('[StageTransitionQA] Stage instance storage not available in Supabase-only mode');
   }
 
   private async executeTransition(testCase: TransitionTestCase): Promise<any> {
@@ -333,7 +331,7 @@ class StageTransitionQA {
     );
 
     // Execute task bundle trigger
-    const stageInstance = await idbStorage.get(`stage-instance-${testCase.caseData.id}`);
+    const stageInstance = null; // Stubbed: Supabase-only mode
     const bundleResult = await taskBundleService.triggerTaskBundle(
       'OnStageEnter',
       stageInstance,
@@ -365,7 +363,7 @@ class StageTransitionQA {
     }
 
     // Check idempotency
-    const footprints = await idbStorage.get(`task-creation-footprints-${testCase.caseData.id}`) || [];
+    const footprints = []; // Stubbed: Supabase-only mode
     if (footprints.length === 0 && result.tasksCreated > 0) {
       errors.push('Task creation footprints not found - idempotency may be compromised');
     }
@@ -377,12 +375,8 @@ class StageTransitionQA {
   }
 
   private async saveTestResults(results: TransitionTestResult[]): Promise<void> {
-    const timestamp = new Date().toISOString();
-    await idbStorage.set(`transition-qa-results-${timestamp}`, {
-      timestamp,
-      results,
-      summary: this.generateTestSummary(results)
-    });
+    // Stubbed: Supabase-only mode - no IndexedDB test storage
+    console.warn('[StageTransitionQA] Test results not saved in Supabase-only mode');
   }
 
   private generateTestSummary(results: TransitionTestResult[]): any {
@@ -472,7 +466,7 @@ class StageTransitionQA {
       return null;
     }
     
-    return await idbStorage.get(resultKeys[0]);
+    return null; // Stubbed: Supabase-only mode
   }
 }
 

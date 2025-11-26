@@ -16,13 +16,9 @@ class TaskTemplatesService {
     if (this.initialized) return;
     
     try {
-      const stored = await idbStorage.get(this.STORAGE_KEY);
-      if (stored && Array.isArray(stored)) {
-        this.templates = stored;
-      } else {
-        // Initialize with default templates
-        await this.seedDefaultTemplates();
-      }
+      // Stubbed: Supabase-only mode - no IndexedDB template storage
+      this.templates = [];
+      await this.seedDefaultTemplates();
       this.initialized = true;
     } catch (error) {
       console.error('Failed to initialize task templates service:', error);
@@ -154,12 +150,8 @@ class TaskTemplatesService {
   }
 
   private async persist(): Promise<void> {
-    try {
-      await idbStorage.set(this.STORAGE_KEY, this.templates);
-    } catch (error) {
-      console.error('Failed to persist task templates:', error);
-      throw new Error('Failed to save templates');
-    }
+    // Stubbed: Supabase-only mode - no IndexedDB persistence
+    console.warn('[TaskTemplatesService] Template persistence not available in Supabase-only mode');
   }
 
   private async seedDefaultTemplates(): Promise<void> {
