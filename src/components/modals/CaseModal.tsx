@@ -73,6 +73,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [clientCountBeforeAdd, setClientCountBeforeAdd] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const [formData, setFormData] = useState<{
     // Basic fields
@@ -478,24 +479,38 @@ export const CaseModal: React.FC<CaseModalProps> = ({
         lastUpdated: new Date().toISOString().split('T')[0]
       };
 
-      dispatch({ type: 'UPDATE_CASE', payload: updatedCase });
-      toast({
-        title: "✅ Case Updated",
-        description: `Case "${formData.title}" has been updated successfully.`,
-      });
+      setIsSaving(true);
+      try {
+        // Service handles persistence and toast notifications
+        const { casesService } = await import('@/services/casesService');
+        await casesService.update(caseData.id, updatedCase, dispatch);
+        onClose();
+      } catch (error) {
+        console.error('Case update failed:', error);
+        // Error toast already shown by service
+      } finally {
+        setIsSaving(false);
+      }
+      return; // Prevent additional onClose call
     }
 
     onClose();
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (caseData) {
-      dispatch({ type: 'DELETE_CASE', payload: caseData.id });
-      toast({
-        title: "Case Deleted",
-        description: `Case "${caseData.title}" has been deleted.`,
-      });
-      onClose();
+      setIsDeleting(true);
+      try {
+        // Service handles persistence and toast notifications
+        const { casesService } = await import('@/services/casesService');
+        await casesService.delete(caseData.id, dispatch);
+        onClose();
+      } catch (error) {
+        console.error('Case deletion failed:', error);
+        // Error toast already shown by service
+      } finally {
+        setIsDeleting(false);
+      }
     }
   };
 
@@ -1350,8 +1365,15 @@ export const CaseModal: React.FC<CaseModalProps> = ({
             {mode === 'view' ? 'Close' : 'Cancel'}
           </Button>
           {mode === 'edit' && (
-            <Button type="button" variant="destructive" onClick={handleDelete}>
-              Delete Case
+            <Button type="button" variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete Case'
+              )}
             </Button>
           )}
           {mode !== 'view' && (
