@@ -7,7 +7,6 @@ import { QATest, QATestResult } from './qaService';
 import { stageTransitionService } from './stageTransitionService';
 import { taskBundleService } from './taskBundleService';
 import { TaskCreationFootprint } from '@/types/taskTemplate';
-import { idbStorage } from '@/utils/idb';
 import { GSTStage } from '../../config/appConfig';
 
 export interface IdempotencyTestCase {

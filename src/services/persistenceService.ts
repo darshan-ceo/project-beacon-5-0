@@ -1,4 +1,3 @@
-import { idbStorage } from '@/utils/idb';
 import { AppState, Case, Client, ClientGroup, Court, Judge, Employee, Hearing, Task, Document, Folder } from '@/contexts/AppStateContext';
 import { toast } from '@/hooks/use-toast';
 

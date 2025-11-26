@@ -1,4 +1,3 @@
-import { idbStorage } from './idb';
 import { networkInterceptor } from './networkInterceptor';
 import { featureFlagService } from '@/services/featureFlagService';
 

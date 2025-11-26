@@ -2,7 +2,6 @@ import { dmsService } from './dmsService';
 import { toast } from '@/hooks/use-toast';
 import { AppAction } from '@/contexts/AppStateContext';
 import { loadAppState } from '@/data/storageShim';
-import { idbStorage } from '@/utils/idb';
 
 export type EmployeeDocumentCategory = 
   | 'resume' 

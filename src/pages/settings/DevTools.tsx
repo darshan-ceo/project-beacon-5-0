@@ -22,7 +22,6 @@ import {
 } from 'lucide-react';
 import { persistenceChecker, QCReport, QCTestResult } from '@/utils/persistenceCheck';
 import { networkInterceptor } from '@/utils/networkInterceptor';
-import { idbStorage, migrateFromLocalStorage } from '@/utils/idb';
 import { featureFlagService } from '@/services/featureFlagService';
 import { useAppState } from '@/contexts/AppStateContext';
 import { GST_STAGES } from '../../../config/appConfig';

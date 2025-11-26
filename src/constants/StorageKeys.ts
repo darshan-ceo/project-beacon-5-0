@@ -56,10 +56,10 @@ export const STORAGE_KEYS = {
 export type StorageKey = typeof STORAGE_KEYS[keyof typeof STORAGE_KEYS];
 
 /**
- * Database names for different storage backends
+ * Database names (Legacy - kept for reference only)
+ * Application now uses Supabase exclusively
  */
 export const DB_NAMES = {
-  INDEXED_DB: 'hoffice_dev_local',
   LEGACY_IDB: 'beacon_case_management_db',
 } as const;
 

@@ -9,7 +9,6 @@ import { taskBundleService } from './taskBundleService';
 import { lifecycleService } from './lifecycleService';
 import { GST_STAGES, GSTStage } from '../../config/appConfig';
 import { StageInstance, StageTransition, TransitionType } from '@/types/lifecycle';
-import { idbStorage } from '@/utils/idb';
 
 export interface TransitionTestCase {
   name: string;

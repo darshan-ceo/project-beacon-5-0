@@ -117,7 +117,7 @@ class DemoConfig {
   getDemoUrl(params: Record<string, string | boolean> = {}): string {
     const url = new URL(window.location.href);
     url.searchParams.set('mode', 'demo');
-    url.searchParams.set('storage', 'indexeddb');
+    // Removed indexeddb storage parameter - app uses Supabase exclusively
     
     Object.entries(params).forEach(([key, value]) => {
       url.searchParams.set(key, String(value));
