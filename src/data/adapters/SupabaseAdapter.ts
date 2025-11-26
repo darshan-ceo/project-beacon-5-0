@@ -1123,7 +1123,6 @@ export class SupabaseAdapter implements StoragePort {
           delete normalized.gstNumber;
           delete normalized.registrationDate;
           delete normalized.assignedCAName;
-          delete normalized.jurisdiction;
           delete normalized.needsAddressReview;
           delete normalized.needsSignatoryReview;
           
@@ -1136,8 +1135,8 @@ export class SupabaseAdapter implements StoragePort {
             normalized.owner_id = null;
           }
           
-          // Keep only valid DB columns
-          const validClientFields = ['id', 'tenant_id', 'display_name', 'email', 'phone', 'pan', 'gstin', 'state', 'city', 'status', 'client_group_id', 'owner_id', 'created_at', 'updated_at', 'address', 'signatories', 'type'];
+          // Keep only valid DB columns (now including jurisdiction)
+          const validClientFields = ['id', 'tenant_id', 'display_name', 'email', 'phone', 'pan', 'gstin', 'state', 'city', 'status', 'client_group_id', 'owner_id', 'created_at', 'updated_at', 'address', 'signatories', 'type', 'jurisdiction'];
           Object.keys(normalized).forEach(key => {
             if (!validClientFields.includes(key)) delete normalized[key];
           });

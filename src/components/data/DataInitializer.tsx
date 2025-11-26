@@ -110,6 +110,17 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           signatories: c.signatories ? (typeof c.signatories === 'string' ? JSON.parse(c.signatories) : c.signatories) : [],
           // Parse address from JSON string
           address: c.address ? (typeof c.address === 'string' ? JSON.parse(c.address) : c.address) : undefined,
+          // Parse jurisdiction from JSON with backward compatibility
+          jurisdiction: c.jurisdiction ? (typeof c.jurisdiction === 'string' ? JSON.parse(c.jurisdiction) : c.jurisdiction) : {
+            // Provide default structure
+            jurisdictionType: 'both',
+            stateJurisdiction: {},
+            centerJurisdiction: {},
+            // Backward compatibility for legacy fields
+            commissionerate: '',
+            division: '',
+            range: ''
+          },
         }));
 
         const clientGroups = (clientGroupsData.data || []).map((cg: any) => ({

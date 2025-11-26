@@ -80,6 +80,20 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
       source: 'manual'
     } as EnhancedAddressData,
     jurisdiction: {
+      jurisdictionType: 'both',
+      stateJurisdiction: {
+        state: '',
+        division: '',
+        range: '',
+        unit: ''
+      },
+      centerJurisdiction: {
+        zone: '',
+        commissionerate: '',
+        division: '',
+        range: ''
+      },
+      // Backward compatibility
       commissionerate: '',
       division: '',
       range: ''
@@ -775,71 +789,308 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
               </CardContent>
             </Card>
 
-            {/* Jurisdiction Information */}
+            {/* Jurisdiction Information - GST Portal Format */}
             <Card>
               <CardHeader>
-                <CardTitle>Jurisdiction (Center / State)</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="h-4 w-4" />
+                  Jurisdiction Details
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="commissionerate">Commissionerate</Label>
-                    <Input
-                      id="commissionerate"
-                      value={formData.jurisdiction.commissionerate || ''}
-                      onChange={(e) => setFormData(prev => ({ 
-                        ...prev, 
-                        jurisdiction: { ...prev.jurisdiction, commissionerate: e.target.value }
-                      }))}
-                      onBlur={(e) => {
-                        const capitalized = autoCapitalizeFirst(e.target.value);
-                        setFormData(prev => ({ 
+              <CardContent>
+                <div className="grid grid-cols-2 gap-6">
+                  {/* STATE JURISDICTION (Administrative Office) */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 mb-4">
+                      <h4 className="text-sm font-semibold text-foreground">JURISDICTION - STATE</h4>
+                      <Badge variant="outline" className="text-xs">Administrative Office</Badge>
+                    </div>
+                    
+                    <div>
+                      <div className="flex items-center gap-1">
+                        <Label htmlFor="state-jurisdiction-state">State</Label>
+                        <FieldTooltip 
+                          formId="client-master" 
+                          fieldId="state-jurisdiction"
+                          content="State jurisdiction under GST Administrative Office"
+                        />
+                      </div>
+                      <Input
+                        id="state-jurisdiction-state"
+                        value={formData.jurisdiction.stateJurisdiction?.state || ''}
+                        onChange={(e) => setFormData(prev => ({ 
                           ...prev, 
-                          jurisdiction: { ...prev.jurisdiction, commissionerate: capitalized }
-                        }));
-                      }}
-                      disabled={mode === 'view'}
-                    />
+                          jurisdiction: { 
+                            ...prev.jurisdiction, 
+                            stateJurisdiction: {
+                              ...prev.jurisdiction.stateJurisdiction,
+                              state: e.target.value
+                            }
+                          }
+                        }))}
+                        onBlur={(e) => {
+                          const capitalized = autoCapitalizeFirst(e.target.value);
+                          setFormData(prev => ({ 
+                            ...prev, 
+                            jurisdiction: { 
+                              ...prev.jurisdiction, 
+                              stateJurisdiction: {
+                                ...prev.jurisdiction.stateJurisdiction,
+                                state: capitalized
+                              }
+                            }
+                          }));
+                        }}
+                        disabled={mode === 'view'}
+                        placeholder="e.g., Gujarat"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="state-jurisdiction-division">Division</Label>
+                      <Input
+                        id="state-jurisdiction-division"
+                        value={formData.jurisdiction.stateJurisdiction?.division || ''}
+                        onChange={(e) => setFormData(prev => ({ 
+                          ...prev, 
+                          jurisdiction: { 
+                            ...prev.jurisdiction, 
+                            stateJurisdiction: {
+                              ...prev.jurisdiction.stateJurisdiction,
+                              division: e.target.value
+                            }
+                          }
+                        }))}
+                        onBlur={(e) => {
+                          const capitalized = autoCapitalizeFirst(e.target.value);
+                          setFormData(prev => ({ 
+                            ...prev, 
+                            jurisdiction: { 
+                              ...prev.jurisdiction, 
+                              stateJurisdiction: {
+                                ...prev.jurisdiction.stateJurisdiction,
+                                division: capitalized
+                              }
+                            }
+                          }));
+                        }}
+                        disabled={mode === 'view'}
+                        placeholder="e.g., Division - 1"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="state-jurisdiction-range">Range</Label>
+                      <Input
+                        id="state-jurisdiction-range"
+                        value={formData.jurisdiction.stateJurisdiction?.range || ''}
+                        onChange={(e) => setFormData(prev => ({ 
+                          ...prev, 
+                          jurisdiction: { 
+                            ...prev.jurisdiction, 
+                            stateJurisdiction: {
+                              ...prev.jurisdiction.stateJurisdiction,
+                              range: e.target.value
+                            }
+                          }
+                        }))}
+                        onBlur={(e) => {
+                          const capitalized = autoCapitalizeFirst(e.target.value);
+                          setFormData(prev => ({ 
+                            ...prev, 
+                            jurisdiction: { 
+                              ...prev.jurisdiction, 
+                              stateJurisdiction: {
+                                ...prev.jurisdiction.stateJurisdiction,
+                                range: capitalized
+                              }
+                            }
+                          }));
+                        }}
+                        disabled={mode === 'view'}
+                        placeholder="e.g., Range - 3"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="state-jurisdiction-unit">Unit / Ghatak</Label>
+                      <Input
+                        id="state-jurisdiction-unit"
+                        value={formData.jurisdiction.stateJurisdiction?.unit || ''}
+                        onChange={(e) => setFormData(prev => ({ 
+                          ...prev, 
+                          jurisdiction: { 
+                            ...prev.jurisdiction, 
+                            stateJurisdiction: {
+                              ...prev.jurisdiction.stateJurisdiction,
+                              unit: e.target.value
+                            }
+                          }
+                        }))}
+                        onBlur={(e) => {
+                          const capitalized = autoCapitalizeFirst(e.target.value);
+                          setFormData(prev => ({ 
+                            ...prev, 
+                            jurisdiction: { 
+                              ...prev.jurisdiction, 
+                              stateJurisdiction: {
+                                ...prev.jurisdiction.stateJurisdiction,
+                                unit: capitalized
+                              }
+                            }
+                          }));
+                        }}
+                        disabled={mode === 'view'}
+                        placeholder="e.g., Ghatak 9 (Ahmedabad)"
+                      />
+                    </div>
                   </div>
 
-                  <div>
-                    <Label htmlFor="division">Division / Circle</Label>
-                    <Input
-                      id="division"
-                      value={formData.jurisdiction.division || ''}
-                      onChange={(e) => setFormData(prev => ({ 
-                        ...prev, 
-                        jurisdiction: { ...prev.jurisdiction, division: e.target.value }
-                      }))}
-                      onBlur={(e) => {
-                        const capitalized = autoCapitalizeFirst(e.target.value);
-                        setFormData(prev => ({ 
+                  {/* CENTER JURISDICTION (Other Office - CBIC) */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 mb-4">
+                      <h4 className="text-sm font-semibold text-foreground">JURISDICTION - CENTER (CBIC)</h4>
+                      <Badge variant="outline" className="text-xs">Other Office</Badge>
+                    </div>
+                    
+                    <div>
+                      <div className="flex items-center gap-1">
+                        <Label htmlFor="center-jurisdiction-zone">Zone</Label>
+                        <FieldTooltip 
+                          formId="client-master" 
+                          fieldId="center-jurisdiction"
+                          content="Center jurisdiction under CBIC Other Office"
+                        />
+                      </div>
+                      <Input
+                        id="center-jurisdiction-zone"
+                        value={formData.jurisdiction.centerJurisdiction?.zone || ''}
+                        onChange={(e) => setFormData(prev => ({ 
                           ...prev, 
-                          jurisdiction: { ...prev.jurisdiction, division: capitalized }
-                        }));
-                      }}
-                      disabled={mode === 'view'}
-                    />
-                  </div>
+                          jurisdiction: { 
+                            ...prev.jurisdiction, 
+                            centerJurisdiction: {
+                              ...prev.jurisdiction.centerJurisdiction,
+                              zone: e.target.value
+                            }
+                          }
+                        }))}
+                        onBlur={(e) => {
+                          const capitalized = e.target.value.toUpperCase();
+                          setFormData(prev => ({ 
+                            ...prev, 
+                            jurisdiction: { 
+                              ...prev.jurisdiction, 
+                              centerJurisdiction: {
+                                ...prev.jurisdiction.centerJurisdiction,
+                                zone: capitalized
+                              }
+                            }
+                          }));
+                        }}
+                        disabled={mode === 'view'}
+                        placeholder="e.g., AHMEDABAD"
+                      />
+                    </div>
 
-                  <div>
-                    <Label htmlFor="range">Range / Ward</Label>
-                    <Input
-                      id="range"
-                      value={formData.jurisdiction.range || ''}
-                      onChange={(e) => setFormData(prev => ({ 
-                        ...prev, 
-                        jurisdiction: { ...prev.jurisdiction, range: e.target.value }
-                      }))}
-                      onBlur={(e) => {
-                        const capitalized = autoCapitalizeFirst(e.target.value);
-                        setFormData(prev => ({ 
+                    <div>
+                      <Label htmlFor="center-jurisdiction-commissionerate">Commissionerate</Label>
+                      <Input
+                        id="center-jurisdiction-commissionerate"
+                        value={formData.jurisdiction.centerJurisdiction?.commissionerate || ''}
+                        onChange={(e) => setFormData(prev => ({ 
                           ...prev, 
-                          jurisdiction: { ...prev.jurisdiction, range: capitalized }
-                        }));
-                      }}
-                      disabled={mode === 'view'}
-                    />
+                          jurisdiction: { 
+                            ...prev.jurisdiction, 
+                            centerJurisdiction: {
+                              ...prev.jurisdiction.centerJurisdiction,
+                              commissionerate: e.target.value
+                            }
+                          }
+                        }))}
+                        onBlur={(e) => {
+                          const capitalized = e.target.value.toUpperCase();
+                          setFormData(prev => ({ 
+                            ...prev, 
+                            jurisdiction: { 
+                              ...prev.jurisdiction, 
+                              centerJurisdiction: {
+                                ...prev.jurisdiction.centerJurisdiction,
+                                commissionerate: capitalized
+                              }
+                            }
+                          }));
+                        }}
+                        disabled={mode === 'view'}
+                        placeholder="e.g., AHMEDABAD SOUTH"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="center-jurisdiction-division">Division</Label>
+                      <Input
+                        id="center-jurisdiction-division"
+                        value={formData.jurisdiction.centerJurisdiction?.division || ''}
+                        onChange={(e) => setFormData(prev => ({ 
+                          ...prev, 
+                          jurisdiction: { 
+                            ...prev.jurisdiction, 
+                            centerJurisdiction: {
+                              ...prev.jurisdiction.centerJurisdiction,
+                              division: e.target.value
+                            }
+                          }
+                        }))}
+                        onBlur={(e) => {
+                          const capitalized = e.target.value.toUpperCase();
+                          setFormData(prev => ({ 
+                            ...prev, 
+                            jurisdiction: { 
+                              ...prev.jurisdiction, 
+                              centerJurisdiction: {
+                                ...prev.jurisdiction.centerJurisdiction,
+                                division: capitalized
+                              }
+                            }
+                          }));
+                        }}
+                        disabled={mode === 'view'}
+                        placeholder="e.g., DIVISION-VII - SATELLITE"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="center-jurisdiction-range">Range</Label>
+                      <Input
+                        id="center-jurisdiction-range"
+                        value={formData.jurisdiction.centerJurisdiction?.range || ''}
+                        onChange={(e) => setFormData(prev => ({ 
+                          ...prev, 
+                          jurisdiction: { 
+                            ...prev.jurisdiction, 
+                            centerJurisdiction: {
+                              ...prev.jurisdiction.centerJurisdiction,
+                              range: e.target.value
+                            }
+                          }
+                        }))}
+                        onBlur={(e) => {
+                          const capitalized = e.target.value.toUpperCase();
+                          setFormData(prev => ({ 
+                            ...prev, 
+                            jurisdiction: { 
+                              ...prev.jurisdiction, 
+                              centerJurisdiction: {
+                                ...prev.jurisdiction.centerJurisdiction,
+                                range: capitalized
+                              }
+                            }
+                          }));
+                        }}
+                        disabled={mode === 'view'}
+                        placeholder="e.g., RANGE I"
+                      />
+                    </div>
                   </div>
                 </div>
               </CardContent>
