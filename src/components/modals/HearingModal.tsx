@@ -98,6 +98,7 @@ export const HearingModal: React.FC<HearingModalProps> = ({
   const [isAddressMasterEnabled, setIsAddressMasterEnabled] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
+  const [isInitialized, setIsInitialized] = useState(false);
   const [conflicts, setConflicts] = useState<{
     hasConflicts: boolean;
     conflicts: Array<{
@@ -113,7 +114,8 @@ export const HearingModal: React.FC<HearingModalProps> = ({
   useEffect(() => {
     setIsAddressMasterEnabled(featureFlagService.isEnabled('address_master_v1'));
     
-    if (hearingData && (mode === 'edit' || mode === 'view')) {
+    // Only initialize formData ONCE when modal opens with hearingData in edit/view mode
+    if (isOpen && hearingData && (mode === 'edit' || mode === 'view') && !isInitialized) {
       setFormData({
         // Use snake_case with camelCase fallback for legacy data
         caseId: hearingData.case_id || hearingData.caseId || '',
@@ -138,13 +140,15 @@ export const HearingModal: React.FC<HearingModalProps> = ({
         courtId: hearingData.court_id || hearingData.courtId,
         judgeId: hearingData.judge_ids?.[0] || hearingData.judgeId
       });
+      setIsInitialized(true);
     }
     
-    // Clear attachments when modal closes or mode changes
+    // Reset initialization flag and clear attachments when modal closes
     if (!isOpen) {
+      setIsInitialized(false);
       setAttachments([]);
     }
-  }, [hearingData, mode, updateContext, isOpen]);
+  }, [hearingData, mode, updateContext, isOpen, isInitialized]);
 
   // Check for conflicts when date, time, or court changes
   useEffect(() => {
@@ -353,32 +357,18 @@ export const HearingModal: React.FC<HearingModalProps> = ({
           }
         }
       } else if (mode === 'edit' && hearingData) {
-        // Calculate end time for updates too
-        const startTime = formData.time;
-        const [hours, minutes] = startTime.split(':').map(Number);
-        const endDate = new Date();
-        endDate.setHours(hours + 1, minutes);
-        const endTime = endDate.toTimeString().slice(0, 5);
-
-        // Phase 1: Get authority and forum names for derived fields
-        const authority = state.courts.find(c => c.id === formData.authorityId);
-        const forum = state.courts.find(c => c.id === formData.forumId);
+        // Get judge name for update
         const judge = formData.judgeId ? state.judges.find(j => j.id === formData.judgeId) : undefined;
 
         const updates = {
-          court_id: formData.forumId, // Use forum as court for backward compatibility
-          judge_ids: formData.judgeId ? [formData.judgeId] : [],
-          date: format(formData.date, 'yyyy-MM-dd'),
-          start_time: startTime,
-          end_time: endTime,
-          agenda: formData.agenda,
-          notes: formData.notes,
-          authority_id: formData.authorityId,
-          forum_id: formData.forumId,
-          authority_name: authority?.name,
-          forum_name: forum?.name,
-          judge_name: judge?.name,
-          bench_details: judge?.bench
+          case_id: formData.caseId || hearingData.case_id, // CRITICAL: Include case_id
+          court_id: formData.forumId,
+          authority_id: formData.authorityId || undefined,
+          forum_id: formData.forumId || undefined,
+          hearing_date: format(formData.date, 'yyyy-MM-dd'),
+          judge_name: judge?.name || undefined,
+          notes: formData.notes || undefined,
+          status: formData.status
         };
 
         await hearingsService.updateHearing(hearingData.id, updates, dispatch);
