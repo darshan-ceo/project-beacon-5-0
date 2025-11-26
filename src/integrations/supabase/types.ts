@@ -2050,6 +2050,36 @@ export type Database = {
           },
         ]
       }
+      task_creation_footprints: {
+        Row: {
+          case_id: string
+          created_at: string
+          id: string
+          stage: string
+          task_id: string
+          template_id: string
+          tenant_id: string
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          id?: string
+          stage: string
+          task_id: string
+          template_id: string
+          tenant_id: string
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          id?: string
+          stage?: string
+          task_id?: string
+          template_id?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
       task_followups: {
         Row: {
           client_interaction: boolean | null

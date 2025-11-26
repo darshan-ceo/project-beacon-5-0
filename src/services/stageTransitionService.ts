@@ -7,7 +7,7 @@ import { TaskTemplate, TaskCreationFootprint, StageTransitionSuggestion, StageTr
 import { GSTStage, GSTNoticeType, ClientTier } from '../../config/appConfig';
 import { taskTemplatesService } from './taskTemplatesService';
 import { tasksService, CreateTaskData } from './tasksService';
-import { idbStorage } from '@/utils/idb';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { AppAction } from '@/contexts/AppStateContext';
 import { persistenceService } from '@/services/persistenceService';
@@ -24,7 +24,25 @@ interface CaseData {
 }
 
 class StageTransitionService {
-  private readonly FOOTPRINTS_KEY = 'task-creation-footprints';
+  private tenantId: string | null = null;
+
+  private async getTenantId(): Promise<string> {
+    if (this.tenantId) return this.tenantId;
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+    
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('tenant_id')
+      .eq('id', user.id)
+      .single();
+    
+    if (!profile) throw new Error('User profile not found');
+    
+    this.tenantId = profile.tenant_id;
+    return this.tenantId;
+  }
 
   async processStageTransition(
     caseData: CaseData,
@@ -196,8 +214,25 @@ class StageTransitionService {
 
   private async getFootprints(): Promise<TaskCreationFootprint[]> {
     try {
-      const footprints = await idbStorage.get(this.FOOTPRINTS_KEY);
-      return Array.isArray(footprints) ? footprints : [];
+      const tenantId = await this.getTenantId();
+      
+      const { data, error } = await supabase
+        .from('task_creation_footprints')
+        .select('*')
+        .eq('tenant_id', tenantId);
+      
+      if (error) {
+        console.error('Failed to load task footprints:', error);
+        return [];
+      }
+      
+      return (data || []).map(row => ({
+        caseId: row.case_id,
+        templateId: row.template_id,
+        taskId: row.task_id,
+        stage: row.stage as GSTStage,
+        createdAt: row.created_at
+      }));
     } catch (error) {
       console.error('Failed to load task footprints:', error);
       return [];
@@ -206,7 +241,27 @@ class StageTransitionService {
 
   private async saveFootprints(footprints: TaskCreationFootprint[]): Promise<void> {
     try {
-      await idbStorage.set(this.FOOTPRINTS_KEY, footprints);
+      const tenantId = await this.getTenantId();
+      
+      // Insert new footprints (use upsert to handle conflicts)
+      const records = footprints.map(f => ({
+        tenant_id: tenantId,
+        case_id: f.caseId,
+        template_id: f.templateId,
+        task_id: f.taskId,
+        stage: f.stage,
+        created_at: f.createdAt
+      }));
+      
+      const { error } = await supabase
+        .from('task_creation_footprints')
+        .upsert(records, {
+          onConflict: 'tenant_id,case_id,template_id,stage'
+        });
+      
+      if (error) {
+        console.error('Failed to save task footprints:', error);
+      }
     } catch (error) {
       console.error('Failed to save task footprints:', error);
     }

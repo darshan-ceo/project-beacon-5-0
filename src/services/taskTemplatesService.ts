@@ -5,7 +5,6 @@
 
 import { TaskTemplate, createDefaultTaskTemplate, validateTaskTemplate, TaskTemplateConditions } from '@/types/taskTemplate';
 import { GST_STAGES, GSTStage } from '../../config/appConfig';
-import { idbStorage } from '@/utils/idb';
 import { toast } from 'sonner';
 
 class TaskTemplatesService {

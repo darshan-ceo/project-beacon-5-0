@@ -6,7 +6,6 @@
 import { apiService } from './apiService';
 import { envConfig } from '@/utils/envConfig';
 import { featureFlagService } from './featureFlagService';
-import { idbStorage } from '@/utils/idb';
 import { storageManager } from '@/data/StorageManager';
 import { persistenceService } from '@/services/persistenceService';
 import { format } from 'date-fns';

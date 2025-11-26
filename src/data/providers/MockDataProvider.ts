@@ -33,7 +33,6 @@ interface Folder {
   path: string;
 }
 import { AppAction } from '@/contexts/AppStateContext';
-import { idbStorage } from '@/utils/idb';
 
 export interface DataProvider {
   // DMS

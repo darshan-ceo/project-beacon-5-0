@@ -8,7 +8,6 @@ import { StorageManager } from '@/data/StorageManager';
 import { tasksService, CreateTaskData } from './tasksService';
 import { persistenceService } from './persistenceService';
 import { GSTStage, GSTNoticeType, ClientTier } from '../../config/appConfig';
-import { idbStorage } from '@/utils/idb';
 import { toast } from 'sonner';
 import type { AppAction } from '@/contexts/AppStateContext';
 

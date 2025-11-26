@@ -3,7 +3,6 @@
  * Generates realistic test data across various GST case types, stages, and complexity levels
  */
 
-import { idbStorage } from '@/utils/idb';
 import { GST_STAGES, GSTStage, GSTNoticeType, ClientTier } from '../../config/appConfig';
 
 export interface GSTCaseProfile {
