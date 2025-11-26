@@ -15,7 +15,7 @@ import { AddressForm } from '@/components/ui/AddressForm';
 import { AddressView } from '@/components/ui/AddressView';
 import { EnhancedAddressData, addressMasterService } from '@/services/addressMasterService';
 import { featureFlagService } from '@/services/featureFlagService';
-import { MapPin, Phone, Mail, Building2, Scale, Globe } from 'lucide-react';
+import { MapPin, Phone, Mail, Building2, Scale, Globe, Loader2 } from 'lucide-react';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
 import { AUTHORITY_LEVEL_OPTIONS, AUTHORITY_LEVEL_METADATA, AuthorityLevel } from '@/types/authority-level';
 import { clientsService } from '@/services/clientsService';
@@ -761,8 +761,15 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                   </AlertDialogContent>
                 </AlertDialog>
               )}
-              <Button type="submit" form="court-form">
-                {mode === 'create' ? 'Create Court' : 'Update Court'}
+              <Button type="submit" form="court-form" disabled={isSaving}>
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {mode === 'create' ? 'Creating...' : 'Updating...'}
+                  </>
+                ) : (
+                  mode === 'create' ? 'Create Court' : 'Update Court'
+                )}
               </Button>
             </>
           )}
