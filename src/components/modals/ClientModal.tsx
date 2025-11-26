@@ -28,6 +28,7 @@ import { EnhancedAddressData, addressMasterService } from '@/services/addressMas
 import { FieldTooltip } from '@/components/ui/field-tooltip';
 import { TagInput } from '@/components/ui/TagInput';
 import { autoCapitalizeFirst } from '@/utils/textFormatters';
+import { secureLog } from '@/utils/secureLogger';
 import { format } from 'date-fns';
 
 interface ClientModalProps {
@@ -354,10 +355,10 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('🔄 handleSubmit called', { mode, formData, signatories });
+    secureLog.debug('handleSubmit called', { mode, hasSignatories: signatories.length > 0 });
     
     if (!validateForm()) {
-      console.log('❌ Validation failed', { errors, validationErrors });
+      secureLog.warn('Validation failed', { errorCount: Object.keys(errors).length });
       toast({
         title: "Validation Failed",
         description: "Please fix the highlighted errors before saving.",
@@ -370,7 +371,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
       return;
     }
     
-    console.log('✅ Validation passed, proceeding with save');
+    secureLog.debug('Validation passed, proceeding with save');
 
     try {
       let addressId = formData.addressId;

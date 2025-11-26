@@ -1,6 +1,6 @@
 /**
  * Storage Port Interface - defines the contract for all storage operations
- * Supports IndexedDB, InMemory, and future API adapters
+ * Supports Supabase and future storage adapters
  */
 
 export interface VersionedEntity {

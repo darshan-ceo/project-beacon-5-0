@@ -7,7 +7,7 @@ export const STORAGE_KEYS = {
   // Core Application Data
   APP_STATE: 'lawfirm_app_data',
   
-  // Entity Tables (IndexedDB)
+  // Entity Tables (Supabase)
   CLIENTS: 'clients',
   CASES: 'cases',
   NOTICES: 'notices',

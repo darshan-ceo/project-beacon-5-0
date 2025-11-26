@@ -26,6 +26,7 @@ import { uploadDocumentsBulk, type BulkUploadProgress } from '@/services/supabas
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { secureLog } from '@/utils/secureLogger';
 
 interface FileWithCategory {
   file: File;
@@ -85,7 +86,7 @@ export const BulkDocumentUploadModal: React.FC<BulkDocumentUploadModalProps> = (
 
       if (profile?.tenant_id) {
         setTenantId(profile.tenant_id);
-        console.log('📋 [BulkUploadModal] Tenant ID fetched:', profile.tenant_id);
+        secureLog.debug('Tenant ID fetched', { tenantId: profile.tenant_id });
       }
     } catch (error) {
       console.error('Error in fetchTenantId:', error);

@@ -15,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Upload, FileText, Link2, Tag } from 'lucide-react';
 import { TagInput } from '@/components/ui/TagInput';
 import { useRBAC } from '@/hooks/useAdvancedRBAC';
+import { secureLog } from '@/utils/secureLogger';
 
 interface DocumentModalProps {
   isOpen: boolean;
@@ -65,7 +66,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
     if (isOpen) {
       // Load clients if state is empty
       if (state.clients.length === 0) {
-        console.log('⚠️ [DocumentModal] No clients in state, fetching from backend...');
+        secureLog.warn('No clients in state, fetching from backend');
         fetchClientsFromBackend();
       } else {
         setLocalClients(state.clients);
@@ -128,9 +129,9 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
       }));
 
       setLocalClients(mappedClients);
-      console.log('✅ [DocumentModal] Fetched clients from backend:', mappedClients.length);
+      secureLog.debug('Fetched clients from backend', { count: mappedClients.length });
     } catch (error) {
-      console.error('❌ [DocumentModal] Error fetching clients:', error);
+      secureLog.error('Error fetching clients', error);
     }
   };
 
@@ -170,13 +171,10 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
           return;
         }
 
-        console.log('📋 [DocumentModal] Form data before conversion:', {
+        secureLog.debug('Form data before conversion', {
           caseId: formData.caseId,
           clientId: formData.clientId,
-          folderId: formData.folderId,
-          availableCases: state.cases.length,
-          availableClients: localClients.length,
-          availableFolders: state.folders.length
+          folderId: formData.folderId
         });
 
         const finalCaseId = formData.caseId === 'none' ? undefined : formData.caseId;
@@ -184,7 +182,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
         const finalFolderId = formData.folderId === 'none' ? undefined : formData.folderId;
         const finalCategory = formData.category === 'none' ? undefined : formData.category;
 
-        console.log('📤 [DocumentModal] Submitting upload with converted values:', {
+        secureLog.debug('Submitting upload with converted values', {
           fileName: formData.file.name,
           finalCaseId,
           finalClientId,
@@ -382,7 +380,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
                       <Select
                         value={formData.folderId}
                         onValueChange={(value) => {
-                          console.log('📁 [DocumentModal] Folder selected:', value);
+                          secureLog.debug('Folder selected', { folderId: value });
                           setFormData(prev => ({ ...prev, folderId: value }));
                         }}
                       >
@@ -451,7 +449,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
                     <Select
                       value={formData.category}
                       onValueChange={(value) => {
-                        console.log('📂 [DocumentModal] Category selected:', value);
+                        secureLog.debug('Category selected', { category: value });
                         setFormData(prev => ({ ...prev, category: value }));
                       }}
                     >

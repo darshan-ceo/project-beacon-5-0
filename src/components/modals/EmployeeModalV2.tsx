@@ -28,6 +28,7 @@ import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { EmployeeDocumentUpload } from '@/components/employees/EmployeeDocumentUpload';
+import { secureLog } from '@/utils/secureLogger';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -251,10 +252,10 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
       }
 
       if (mode === 'create') {
-        console.log('🔵 [EmployeeModal] Starting employee creation process...');
+        secureLog.debug('Starting employee creation process');
         
         // Step 1: Verify authentication session
-        console.log('🔐 [EmployeeModal] Verifying authentication session...');
+        secureLog.debug('Verifying authentication session');
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
@@ -267,8 +268,7 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
           throw new Error('You must be logged in to create employees');
         }
         
-        console.log('✅ [EmployeeModal] Session verified. User ID:', session.user.id);
-        console.log('🔑 [EmployeeModal] Access token present:', !!session.access_token);
+        secureLog.debug('Session verified', { userId: session.user.id, hasToken: !!session.access_token });
         
         // Step 2: Prepare request payload
         const requestPayload = {
@@ -324,20 +324,15 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
           notes: formData.notes,
         };
         
-        console.log('📦 [EmployeeModal] Request payload prepared:', {
+        secureLog.debug('Request payload prepared', {
           email: requestPayload.email,
           fullName: requestPayload.fullName,
           role: requestPayload.role,
-          department: requestPayload.department,
-          passwordOption: formData.passwordOption,
-          hasPassword: !!requestPayload.password,
-          sendWelcomeEmail: requestPayload.sendWelcomeEmail,
-          payloadKeys: Object.keys(requestPayload),
-          payloadSize: JSON.stringify(requestPayload).length + ' bytes'
+          department: requestPayload.department
         });
         
         // Step 3: Call edge function
-        console.log('🚀 [EmployeeModal] Invoking invite-employee edge function...');
+        secureLog.debug('Invoking invite-employee edge function');
         const startTime = Date.now();
         
         const { data, error } = await supabase.functions.invoke('invite-employee', {
@@ -348,7 +343,7 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
         });
         
         const duration = Date.now() - startTime;
-        console.log(`⏱️ [EmployeeModal] Edge function completed in ${duration}ms`);
+        secureLog.debug('Edge function completed', { duration: `${duration}ms` });
 
         if (error) {
           console.error('❌ [EmployeeModal] Edge function error:', {
@@ -361,17 +356,14 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
           throw new Error(`Failed to create employee: ${error.message || 'Unknown error'}`);
         }
         
-        console.log('📥 [EmployeeModal] Edge function response:', {
+        secureLog.debug('Edge function response', {
           success: data?.success,
           hasEmployee: !!data?.employee,
-          employeeCode: data?.employee?.employeeCode,
-          employeeName: data?.employee?.fullName,
-          error: data?.error,
-          fullResponse: data
+          hasUserId: !!data?.userId
         });
 
         if (data?.success) {
-          console.log('✅ [EmployeeModal] Employee created successfully:', {
+          secureLog.info('Employee created successfully', {
             employeeCode: data.employee.employeeCode,
             fullName: data.employee.fullName,
             email: data.employee.email
@@ -387,9 +379,9 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
           });
           
           // Refresh employee list from database
-          console.log('🔄 [EmployeeModal] Invalidating employee queries...');
+          secureLog.debug('Invalidating employee queries');
           await queryClient.invalidateQueries({ queryKey: ['employees'] });
-          console.log('✅ [EmployeeModal] Employee creation complete. Closing modal.');
+          secureLog.info('Employee creation complete');
           onClose();
         } else {
           const errorMsg = data?.error || 'Failed to create employee';
