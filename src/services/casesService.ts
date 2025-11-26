@@ -26,7 +26,6 @@ const log = (level: 'success' | 'error', tab: string, action: string, details?: 
 export const casesService = {
   create: async (caseData: Partial<Case>, dispatch: React.Dispatch<AppAction>): Promise<Case> => {
     try {
-      // FIXED: Use UUID instead of timestamp
       const { generateId } = await import('@/data/db');
       const newCase: Case = {
         id: generateId(),
@@ -47,32 +46,7 @@ export const casesService = {
         ...caseData
       };
 
-      // FIXED: Persist to storage
-      const { storageManager } = await import('@/data/StorageManager');
-      const { changeTracker } = await import('./changeTracker');
-      const { ENTITY_TYPES } = await import('@/constants/StorageKeys');
-      
-      try {
-        const storage = storageManager.getStorage();
-        await storage.create('cases', {
-          id: newCase.id,
-          clientId: newCase.clientId,
-          stageCode: newCase.currentStage,
-          status: newCase.status,
-          caseNumber: newCase.caseNumber,
-          title: newCase.title,
-          assignedTo: newCase.assignedToId,
-          priority: newCase.priority,
-          forumId: newCase.forumId,
-          description: newCase.description,
-        });
-
-        changeTracker.markDirty(ENTITY_TYPES.CASE, newCase.id, 'create');
-        changeTracker.logChange(ENTITY_TYPES.CASE, newCase.id, 'create');
-      } catch (storageError) {
-        console.error('Failed to persist case to storage:', storageError);
-      }
-
+      // Dispatch handles persistence via usePersistentDispatch
       dispatch({ type: 'ADD_CASE', payload: newCase });
       log('success', 'Overview', 'create', { caseId: newCase.id, title: newCase.title });
       
@@ -97,29 +71,7 @@ export const casesService = {
     try {
       const updatedCase = { id: caseId, lastUpdated: new Date().toISOString(), ...updates };
       
-      // FIXED: Persist to storage
-      const { storageManager } = await import('@/data/StorageManager');
-      const { changeTracker } = await import('./changeTracker');
-      const { ENTITY_TYPES } = await import('@/constants/StorageKeys');
-      
-      try {
-        const storage = storageManager.getStorage();
-        await storage.update('cases', caseId, {
-          ...updates,
-          clientId: updates.clientId,
-          stageCode: updates.currentStage,
-          status: updates.status,
-          forumId: updates.forumId,
-          assignedTo: updates.assignedToId,
-          priority: updates.priority,
-        });
-
-        changeTracker.markDirty(ENTITY_TYPES.CASE, caseId, 'update');
-        changeTracker.logChange(ENTITY_TYPES.CASE, caseId, 'update');
-      } catch (storageError) {
-        console.error('Failed to update case in storage:', storageError);
-      }
-      
+      // Dispatch handles persistence via usePersistentDispatch
       dispatch({ type: 'UPDATE_CASE', payload: updatedCase });
       log('success', 'Overview', 'update', { caseId, updates: Object.keys(updates) });
       
@@ -140,21 +92,7 @@ export const casesService = {
 
   delete: async (caseId: string, dispatch: React.Dispatch<AppAction>): Promise<void> => {
     try {
-      // Persist to storage
-      const { storageManager } = await import('@/data/StorageManager');
-      const { changeTracker } = await import('./changeTracker');
-      const { ENTITY_TYPES } = await import('@/constants/StorageKeys');
-      
-      try {
-        const storage = storageManager.getStorage();
-        await storage.delete('cases', caseId);
-        changeTracker.markDirty(ENTITY_TYPES.CASE, caseId, 'delete');
-        changeTracker.logChange(ENTITY_TYPES.CASE, caseId, 'delete');
-      } catch (storageError) {
-        console.error('Failed to delete case from storage:', storageError);
-        throw storageError;
-      }
-
+      // Dispatch handles persistence via usePersistentDispatch
       dispatch({ type: 'DELETE_CASE', payload: caseId });
       log('success', 'Overview', 'delete', { caseId });
       
@@ -198,23 +136,7 @@ export const casesService = {
         ...(assignedTo && { assignedToName: assignedTo }),
       };
 
-      // Persist to storage
-      const { storageManager } = await import('@/data/StorageManager');
-      const { changeTracker } = await import('./changeTracker');
-      const { ENTITY_TYPES } = await import('@/constants/StorageKeys');
-      
-      try {
-        const storage = storageManager.getStorage();
-        await storage.update('cases', caseId, {
-          stageCode: updates.currentStage,
-          status: updates.slaStatus,
-        } as any);
-        changeTracker.markDirty(ENTITY_TYPES.CASE, caseId, 'update');
-        changeTracker.logChange(ENTITY_TYPES.CASE, caseId, 'update');
-      } catch (storageError) {
-        console.error('Failed to persist stage advancement to storage:', storageError);
-      }
-
+      // Dispatch handles persistence via usePersistentDispatch
       dispatch({ type: 'UPDATE_CASE', payload: { id: caseId, ...updates } });
       
       // Add timeline entry with proper stage_change type
