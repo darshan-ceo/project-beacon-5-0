@@ -365,7 +365,7 @@ export const HearingModal: React.FC<HearingModalProps> = ({
           court_id: formData.forumId,
           authority_id: formData.authorityId || undefined,
           forum_id: formData.forumId || undefined,
-          hearing_date: format(formData.date, 'yyyy-MM-dd'),
+          hearing_date: `${format(formData.date, 'yyyy-MM-dd')}T${formData.time}:00`,
           judge_name: judge?.name || undefined,
           notes: formData.notes || undefined,
           status: formData.status
