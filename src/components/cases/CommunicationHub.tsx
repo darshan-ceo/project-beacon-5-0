@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Mail, 
@@ -26,6 +26,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from '@/hooks/use-toast';
 import { communicationService, CommunicationLog, MessageComposer } from '@/services/communicationService';
 import { isEmailConfigured } from '@/services/emailSettingsService';
@@ -76,6 +77,18 @@ export const CommunicationHub: React.FC<CommunicationHubProps> = ({ selectedCase
       type: 'primary'
     }
   ] : [];
+
+  // Compute whether the user can send based on contact availability
+  const canSend = useMemo(() => {
+    if (!caseClient) return false;
+    if (!messageForm.message?.trim()) return false;
+    
+    if (messageForm.channel === 'email') {
+      return !!caseClient.email && caseClient.email.includes('@');
+    } else {
+      return !!caseClient.phone;
+    }
+  }, [caseClient, messageForm.channel, messageForm.message]);
 
   // Load communication logs
   useEffect(() => {
@@ -172,6 +185,27 @@ export const CommunicationHub: React.FC<CommunicationHubProps> = ({ selectedCase
         variant: "destructive"
       });
       return;
+    }
+
+    // Validate contact information based on channel
+    if (messageForm.channel === 'email') {
+      if (!caseClient.email || !caseClient.email.includes('@')) {
+        toast({
+          title: "Email Not Available",
+          description: "The client doesn't have a valid email address. Please update client profile first.",
+          variant: "destructive"
+        });
+        return;
+      }
+    } else if (messageForm.channel === 'sms' || messageForm.channel === 'whatsapp') {
+      if (!caseClient.phone) {
+        toast({
+          title: "Phone Not Available",
+          description: "The client doesn't have a phone number. Please update client profile first.",
+          variant: "destructive"
+        });
+        return;
+      }
     }
 
     setIsSending(true);
@@ -453,9 +487,27 @@ export const CommunicationHub: React.FC<CommunicationHubProps> = ({ selectedCase
                   </div>
                 )}
 
+                {/* Warning alert when contact info is missing */}
+                {messageForm.channel === 'email' && !caseClient?.email && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Client doesn't have an email address. Update client profile to send emails.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {(messageForm.channel === 'sms' || messageForm.channel === 'whatsapp') && !caseClient?.phone && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Client doesn't have a phone number. Update client profile to send {messageForm.channel === 'sms' ? 'SMS' : 'WhatsApp'} messages.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 <Button 
                   onClick={handleSendMessage}
-                  disabled={isSending || !messageForm.message?.trim()}
+                  disabled={isSending || !canSend}
                   className="w-full"
                 >
                   {isSending ? (
