@@ -9,5 +9,13 @@ export const seedDataService = {
   },
   clearAll: async () => {
     console.warn('[seedDataService] DEPRECATED - use Supabase data');
+  },
+  generateComprehensiveSeedData: async () => {
+    console.warn('[seedDataService] DEPRECATED - use Supabase data');
+    return { cases: [], clients: [], tasks: [] };
+  },
+  getSeedData: () => {
+    console.warn('[seedDataService] DEPRECATED - use Supabase data');
+    return { cases: [], clients: [], tasks: [] };
   }
 };

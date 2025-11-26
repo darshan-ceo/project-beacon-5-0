@@ -7,5 +7,13 @@ export const stageTransitionQA = {
   runAllTests: async () => {
     console.warn('[stageTransitionQA] DEPRECATED');
     return { passed: 0, failed: 0, results: [] };
+  },
+  getQATests: () => {
+    console.warn('[stageTransitionQA] DEPRECATED');
+    return [];
+  },
+  runAllTransitionTests: async () => {
+    console.warn('[stageTransitionQA] DEPRECATED');
+    return { passed: 0, failed: 0, results: [] };
   }
 };

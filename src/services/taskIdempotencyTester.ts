@@ -7,5 +7,13 @@ export const taskIdempotencyTester = {
   runAllTests: async () => {
     console.warn('[taskIdempotencyTester] DEPRECATED');
     return { passed: 0, failed: 0, results: [] };
+  },
+  runAllIdempotencyTests: async () => {
+    console.warn('[taskIdempotencyTester] DEPRECATED');
+    return { passed: 0, failed: 0, results: [] };
+  },
+  getQATests: () => {
+    console.warn('[taskIdempotencyTester] DEPRECATED');
+    return [];
   }
 };

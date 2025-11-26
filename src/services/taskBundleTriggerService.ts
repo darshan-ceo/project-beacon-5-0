@@ -11,5 +11,9 @@ export const taskBundleTriggerService = {
   processNoticeReceived: async () => {
     console.warn('[taskBundleTriggerService] DEPRECATED');
     return { createdTasks: [], errors: [] };
+  },
+  triggerTaskBundles: async () => {
+    console.warn('[taskBundleTriggerService] DEPRECATED');
+    return { createdTasks: [], errors: [] };
   }
 };
