@@ -115,16 +115,17 @@ export const HearingModal: React.FC<HearingModalProps> = ({
     
     if (hearingData && (mode === 'edit' || mode === 'view')) {
       setFormData({
-        caseId: hearingData.caseId,
-        courtId: hearingData.courtId,
-        judgeId: hearingData.judgeId,
-        authorityId: hearingData.authority_id || hearingData.courtId,
-        forumId: hearingData.forum_id || hearingData.courtId,
+        // Use snake_case with camelCase fallback for legacy data
+        caseId: hearingData.case_id || hearingData.caseId || '',
+        courtId: hearingData.court_id || hearingData.courtId || '',
+        judgeId: hearingData.judge_ids?.[0] || hearingData.judgeId || '',
+        authorityId: hearingData.authority_id || hearingData.court_id || hearingData.courtId || '',
+        forumId: hearingData.forum_id || hearingData.court_id || hearingData.courtId || '',
         date: new Date(hearingData.date),
-        time: hearingData.time,
-        type: hearingData.type,
-        status: hearingData.status as any,
-        agenda: hearingData.agenda,
+        time: hearingData.start_time || hearingData.time || '10:00',
+        type: hearingData.type || 'Preliminary',
+        status: (hearingData.status as any) || 'scheduled',
+        agenda: hearingData.agenda || hearingData.notes || '',
         notes: hearingData.notes || '',
         outcome: hearingData.outcome,
         outcomeText: hearingData.outcome_text || '',
@@ -132,10 +133,10 @@ export const HearingModal: React.FC<HearingModalProps> = ({
         autoCreateNextHearing: false
       });
       updateContext({ 
-        caseId: hearingData.caseId, 
+        caseId: hearingData.case_id || hearingData.caseId, 
         clientId: hearingData.clientId,
-        courtId: hearingData.courtId,
-        judgeId: hearingData.judgeId
+        courtId: hearingData.court_id || hearingData.courtId,
+        judgeId: hearingData.judge_ids?.[0] || hearingData.judgeId
       });
     }
     
