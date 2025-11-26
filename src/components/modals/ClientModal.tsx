@@ -159,7 +159,25 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
           gstin: clientData.gstin || '',
           pan: clientData.pan || clientData.panNumber || '',
           address: addressObj,
-          jurisdiction: clientData.jurisdiction || { commissionerate: '', division: '', range: '' },
+          jurisdiction: {
+            jurisdictionType: clientData.jurisdiction?.jurisdictionType || 'both',
+            stateJurisdiction: {
+              state: clientData.jurisdiction?.stateJurisdiction?.state || '',
+              division: clientData.jurisdiction?.stateJurisdiction?.division || '',
+              range: clientData.jurisdiction?.stateJurisdiction?.range || '',
+              unit: clientData.jurisdiction?.stateJurisdiction?.unit || ''
+            },
+            centerJurisdiction: {
+              zone: clientData.jurisdiction?.centerJurisdiction?.zone || '',
+              commissionerate: clientData.jurisdiction?.centerJurisdiction?.commissionerate || '',
+              division: clientData.jurisdiction?.centerJurisdiction?.division || '',
+              range: clientData.jurisdiction?.centerJurisdiction?.range || ''
+            },
+            // Backward compatibility
+            commissionerate: clientData.jurisdiction?.commissionerate || '',
+            division: clientData.jurisdiction?.division || '',
+            range: clientData.jurisdiction?.range || ''
+          },
           portalAccess: clientData.portalAccess || { allowLogin: false },
           assignedCAId: clientData.assignedCAId,
           assignedCAName: clientData.assignedCAName,
@@ -190,6 +208,19 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
             source: 'manual'
           } as EnhancedAddressData,
           jurisdiction: {
+            jurisdictionType: 'both',
+            stateJurisdiction: {
+              state: '',
+              division: '',
+              range: '',
+              unit: ''
+            },
+            centerJurisdiction: {
+              zone: '',
+              commissionerate: '',
+              division: '',
+              range: ''
+            },
             commissionerate: '',
             division: '',
             range: ''
