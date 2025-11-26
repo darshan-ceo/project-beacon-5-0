@@ -160,8 +160,8 @@ export const communicationService = {
       }
 
       // Validate email address
-      if (!message.to.includes('@')) {
-        throw new Error('Invalid email address');
+      if (!message.to || !message.to.includes('@')) {
+        throw new Error('Invalid email address - recipient email is required');
       }
 
       // Build email message
