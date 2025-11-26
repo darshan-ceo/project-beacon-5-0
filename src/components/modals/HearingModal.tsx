@@ -308,7 +308,7 @@ export const HearingModal: React.FC<HearingModalProps> = ({
                     tenant_id: profile.tenant_id,
                     hearing_id: newHearing.id,
                     case_id: formData.caseId,
-                    category: 'Hearing'
+                    category: 'Miscellaneous'
                   });
                 }
                 toast({
@@ -380,7 +380,7 @@ export const HearingModal: React.FC<HearingModalProps> = ({
                     tenant_id: profile.tenant_id,
                     hearing_id: hearingData.id,
                     case_id: formData.caseId,
-                    category: 'Hearing'
+                    category: 'Miscellaneous'
                   });
                 }
                 toast({
