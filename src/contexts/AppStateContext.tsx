@@ -2955,9 +2955,29 @@ export interface Address {
 }
 
 export interface Jurisdiction {
-  commissionerate?: string;
-  division?: string;
-  range?: string;
+  // JURISDICTION TYPE SELECTOR
+  jurisdictionType?: 'state' | 'center' | 'both';
+  
+  // STATE JURISDICTION (Administrative Office)
+  stateJurisdiction?: {
+    state?: string;          // e.g., "Gujarat"
+    division?: string;       // e.g., "Division - 1"
+    range?: string;          // e.g., "Range - 3"
+    unit?: string;           // e.g., "Ghatak 9 (Ahmedabad)"
+  };
+  
+  // CENTER JURISDICTION (Other Office - CBIC)
+  centerJurisdiction?: {
+    zone?: string;           // e.g., "AHMEDABAD"
+    commissionerate?: string; // e.g., "AHMEDABAD SOUTH"
+    division?: string;       // e.g., "DIVISION-VII - SATELLITE"
+    range?: string;          // e.g., "RANGE I"
+  };
+  
+  // BACKWARD COMPATIBILITY (keep existing fields)
+  commissionerate?: string;  // Legacy field
+  division?: string;         // Legacy field
+  range?: string;            // Legacy field
 }
 
 export interface PortalAccess {

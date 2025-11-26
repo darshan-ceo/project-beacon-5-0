@@ -484,6 +484,7 @@ export type Database = {
           email: string | null
           gstin: string | null
           id: string
+          jurisdiction: Json | null
           owner_id: string | null
           pan: string | null
           phone: string | null
@@ -503,6 +504,7 @@ export type Database = {
           email?: string | null
           gstin?: string | null
           id?: string
+          jurisdiction?: Json | null
           owner_id?: string | null
           pan?: string | null
           phone?: string | null
@@ -522,6 +524,7 @@ export type Database = {
           email?: string | null
           gstin?: string | null
           id?: string
+          jurisdiction?: Json | null
           owner_id?: string | null
           pan?: string | null
           phone?: string | null
