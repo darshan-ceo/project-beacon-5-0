@@ -270,7 +270,7 @@ export const HearingModal: React.FC<HearingModalProps> = ({
 
         const hearingFormData = {
           case_id: formData.caseId,
-          date: formData.date.toISOString().split('T')[0],
+          date: format(formData.date, 'yyyy-MM-dd'),
           start_time: startTime,
           end_time: endTime,
           timezone: 'Asia/Kolkata',
@@ -305,12 +305,35 @@ export const HearingModal: React.FC<HearingModalProps> = ({
                 console.warn('Unable to determine tenant for document upload');
               } else {
                 for (const file of attachments) {
-                  await uploadDocument(file, {
+                  const uploadedDoc = await uploadDocument(file, {
                     tenant_id: profile.tenant_id,
                     hearing_id: newHearing.id,
                     case_id: formData.caseId,
                     category: 'Miscellaneous'
                   });
+                  
+                  // Add document to state so it appears immediately
+                  if (uploadedDoc) {
+                    dispatch({
+                      type: 'ADD_DOCUMENT',
+                      payload: {
+                        id: uploadedDoc.id,
+                        name: uploadedDoc.file_name,
+                        type: uploadedDoc.file_type,
+                        size: uploadedDoc.file_size,
+                        path: uploadedDoc.file_path,
+                        caseId: formData.caseId,
+                        clientId: caseWithClient.client.id,
+                        uploadedById: user.id,
+                        uploadedByName: user.email || 'Unknown',
+                        uploadedAt: new Date().toISOString(),
+                        tags: [],
+                        isShared: false,
+                        folderId: undefined,
+                        category: 'Miscellaneous'
+                      }
+                    });
+                  }
                 }
                 toast({
                   title: "Documents Uploaded",
@@ -345,7 +368,7 @@ export const HearingModal: React.FC<HearingModalProps> = ({
         const updates = {
           court_id: formData.forumId, // Use forum as court for backward compatibility
           judge_ids: formData.judgeId ? [formData.judgeId] : [],
-          date: formData.date.toISOString().split('T')[0],
+          date: format(formData.date, 'yyyy-MM-dd'),
           start_time: startTime,
           end_time: endTime,
           agenda: formData.agenda,
@@ -377,12 +400,35 @@ export const HearingModal: React.FC<HearingModalProps> = ({
                 console.warn('Unable to determine tenant for document upload');
               } else {
                 for (const file of attachments) {
-                  await uploadDocument(file, {
+                  const uploadedDoc = await uploadDocument(file, {
                     tenant_id: profile.tenant_id,
                     hearing_id: hearingData.id,
                     case_id: formData.caseId,
                     category: 'Miscellaneous'
                   });
+                  
+                  // Add document to state so it appears immediately
+                  if (uploadedDoc) {
+                    dispatch({
+                      type: 'ADD_DOCUMENT',
+                      payload: {
+                        id: uploadedDoc.id,
+                        name: uploadedDoc.file_name,
+                        type: uploadedDoc.file_type,
+                        size: uploadedDoc.file_size,
+                        path: uploadedDoc.file_path,
+                        caseId: formData.caseId,
+                        clientId: caseWithClient.client.id,
+                        uploadedById: user.id,
+                        uploadedByName: user.email || 'Unknown',
+                        uploadedAt: new Date().toISOString(),
+                        tags: [],
+                        isShared: false,
+                        folderId: undefined,
+                        category: 'Miscellaneous'
+                      }
+                    });
+                  }
                 }
                 toast({
                   title: "Documents Uploaded",
