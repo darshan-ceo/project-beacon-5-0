@@ -2514,6 +2514,10 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'SET_ERROR':
       return { ...state, error: action.payload };
     case 'ADD_CASE':
+      if (state.cases.some(c => c.id === action.payload.id)) {
+        console.warn(`[AppStateContext] Skipping duplicate case: ${action.payload.id}`);
+        return state;
+      }
       return { ...state, cases: [...state.cases, action.payload] };
     case 'UPDATE_CASE':
       return {
@@ -2526,6 +2530,10 @@ function appReducer(state: AppState, action: AppAction): AppState {
         cases: state.cases.filter(c => c.id !== action.payload)
       };
     case 'ADD_TASK':
+      if (state.tasks.some(t => t.id === action.payload.id)) {
+        console.warn(`[AppStateContext] Skipping duplicate task: ${action.payload.id}`);
+        return state;
+      }
       return { ...state, tasks: [...state.tasks, action.payload] };
     case 'UPDATE_TASK':
       return {
@@ -2557,6 +2565,10 @@ function appReducer(state: AppState, action: AppAction): AppState {
         taskFollowUps: state.taskFollowUps.filter(f => f.id !== action.payload)
       };
     case 'ADD_CLIENT':
+      if (state.clients.some(c => c.id === action.payload.id)) {
+        console.warn(`[AppStateContext] Skipping duplicate client: ${action.payload.id}`);
+        return state;
+      }
       return { ...state, clients: [...state.clients, action.payload] };
     case 'UPDATE_CLIENT':
       return {
@@ -2663,6 +2675,10 @@ function appReducer(state: AppState, action: AppAction): AppState {
         )
       };
     case 'ADD_COURT':
+      if (state.courts.some(c => c.id === action.payload.id)) {
+        console.warn(`[AppStateContext] Skipping duplicate court: ${action.payload.id}`);
+        return state;
+      }
       return { ...state, courts: [...state.courts, action.payload] };
     case 'UPDATE_COURT':
       return {
@@ -2675,6 +2691,10 @@ function appReducer(state: AppState, action: AppAction): AppState {
         courts: state.courts.filter(c => c.id !== action.payload)
       };
     case 'ADD_JUDGE':
+      if (state.judges.some(j => j.id === action.payload.id)) {
+        console.warn(`[AppStateContext] Skipping duplicate judge: ${action.payload.id}`);
+        return state;
+      }
       return { ...state, judges: [...state.judges, action.payload] };
     case 'UPDATE_JUDGE':
       return {
@@ -2687,6 +2707,10 @@ function appReducer(state: AppState, action: AppAction): AppState {
         judges: state.judges.filter(j => j.id !== action.payload)
       };
     case 'ADD_DOCUMENT':
+      if (state.documents.some(d => d.id === action.payload.id)) {
+        console.warn(`[AppStateContext] Skipping duplicate document: ${action.payload.id}`);
+        return state;
+      }
       return { ...state, documents: [...state.documents, action.payload] };
     case 'UPDATE_DOCUMENT':
       return {
@@ -2713,6 +2737,10 @@ function appReducer(state: AppState, action: AppAction): AppState {
         folders: state.folders.filter(f => f.id !== action.payload)
       };
     case 'ADD_HEARING':
+      if (state.hearings.some(h => h.id === action.payload.id)) {
+        console.warn(`[AppStateContext] Skipping duplicate hearing: ${action.payload.id}`);
+        return state;
+      }
       return { ...state, hearings: [...state.hearings, action.payload] };
     case 'UPDATE_HEARING':
       return {
@@ -2725,6 +2753,10 @@ function appReducer(state: AppState, action: AppAction): AppState {
         hearings: state.hearings.filter(h => h.id !== action.payload)
       };
     case 'ADD_EMPLOYEE':
+      if (state.employees.some(e => e.id === action.payload.id)) {
+        console.warn(`[AppStateContext] Skipping duplicate employee: ${action.payload.id}`);
+        return state;
+      }
       return { ...state, employees: [...state.employees, action.payload] };
     case 'UPDATE_EMPLOYEE':
       return {
@@ -2754,6 +2786,10 @@ function appReducer(state: AppState, action: AppAction): AppState {
         userProfile: { ...state.userProfile, ...action.payload }
       };
     case 'ADD_TIMELINE_ENTRY':
+      if (state.timelineEntries.some(e => e.id === action.payload.id)) {
+        console.warn(`[AppStateContext] Skipping duplicate timeline entry: ${action.payload.id}`);
+        return state;
+      }
       return {
         ...state,
         timelineEntries: [...state.timelineEntries, action.payload]

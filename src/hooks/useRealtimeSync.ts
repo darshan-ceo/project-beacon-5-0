@@ -8,7 +8,7 @@ import { RealtimeChannel } from '@supabase/supabase-js';
  * Subscribes to postgres_changes for core tables and updates React context
  */
 export const useRealtimeSync = () => {
-  const { dispatch } = useAppState();
+  const { dispatch, rawDispatch } = useAppState();
   const channelRef = useRef<RealtimeChannel | null>(null);
   const [tenantId, setTenantId] = useState<string | null>(null);
 
@@ -56,11 +56,11 @@ export const useRealtimeSync = () => {
         (payload) => {
           console.log('[Realtime] Cases change:', payload.eventType, payload);
           if (payload.eventType === 'INSERT' && payload.new) {
-            dispatch({ type: 'ADD_CASE', payload: payload.new as any });
+            rawDispatch({ type: 'ADD_CASE', payload: payload.new as any });
           } else if (payload.eventType === 'UPDATE' && payload.new) {
-            dispatch({ type: 'UPDATE_CASE', payload: payload.new as any });
+            rawDispatch({ type: 'UPDATE_CASE', payload: payload.new as any });
           } else if (payload.eventType === 'DELETE' && payload.old) {
-            dispatch({ type: 'DELETE_CASE', payload: (payload.old as any).id });
+            rawDispatch({ type: 'DELETE_CASE', payload: (payload.old as any).id });
           }
         }
       )
@@ -92,7 +92,7 @@ export const useRealtimeSync = () => {
               createdAt: payload.new.created_at,
               updatedAt: payload.new.updated_at
             };
-            dispatch({ type: 'ADD_CLIENT', payload: client as any });
+            rawDispatch({ type: 'ADD_CLIENT', payload: client as any });
           } else if (payload.eventType === 'UPDATE' && payload.new) {
             const client = {
               id: payload.new.id,
@@ -108,9 +108,9 @@ export const useRealtimeSync = () => {
               },
               updatedAt: payload.new.updated_at
             };
-            dispatch({ type: 'UPDATE_CLIENT', payload: client as any });
+            rawDispatch({ type: 'UPDATE_CLIENT', payload: client as any });
           } else if (payload.eventType === 'DELETE' && payload.old) {
-            dispatch({ type: 'DELETE_CLIENT', payload: payload.old.id });
+            rawDispatch({ type: 'DELETE_CLIENT', payload: payload.old.id });
           }
         }
       )
@@ -140,11 +140,11 @@ export const useRealtimeSync = () => {
                 minute: '2-digit' 
               })
             };
-            dispatch({ type: 'ADD_HEARING', payload: hearing as any });
+            rawDispatch({ type: 'ADD_HEARING', payload: hearing as any });
           } else if (payload.eventType === 'UPDATE' && payload.new) {
-            dispatch({ type: 'UPDATE_HEARING', payload: { id: payload.new.id, ...payload.new } });
+            rawDispatch({ type: 'UPDATE_HEARING', payload: { id: payload.new.id, ...payload.new } });
           } else if (payload.eventType === 'DELETE' && payload.old) {
-            dispatch({ type: 'DELETE_HEARING', payload: payload.old.id });
+            rawDispatch({ type: 'DELETE_HEARING', payload: payload.old.id });
           }
         }
       )
@@ -160,11 +160,11 @@ export const useRealtimeSync = () => {
         (payload) => {
           console.log('[Realtime] Tasks change:', payload.eventType, payload);
           if (payload.eventType === 'INSERT' && payload.new) {
-            dispatch({ type: 'ADD_TASK', payload: payload.new as any });
+            rawDispatch({ type: 'ADD_TASK', payload: payload.new as any });
           } else if (payload.eventType === 'UPDATE' && payload.new) {
-            dispatch({ type: 'UPDATE_TASK', payload: payload.new as any });
+            rawDispatch({ type: 'UPDATE_TASK', payload: payload.new as any });
           } else if (payload.eventType === 'DELETE' && payload.old) {
-            dispatch({ type: 'DELETE_TASK', payload: (payload.old as any).id });
+            rawDispatch({ type: 'DELETE_TASK', payload: (payload.old as any).id });
           }
         }
       )
@@ -180,11 +180,11 @@ export const useRealtimeSync = () => {
         (payload) => {
           console.log('[Realtime] Documents change:', payload.eventType, payload);
           if (payload.eventType === 'INSERT' && payload.new) {
-            dispatch({ type: 'ADD_DOCUMENT', payload: payload.new as any });
+            rawDispatch({ type: 'ADD_DOCUMENT', payload: payload.new as any });
           } else if (payload.eventType === 'UPDATE' && payload.new) {
-            dispatch({ type: 'UPDATE_DOCUMENT', payload: payload.new as any });
+            rawDispatch({ type: 'UPDATE_DOCUMENT', payload: payload.new as any });
           } else if (payload.eventType === 'DELETE' && payload.old) {
-            dispatch({ type: 'DELETE_DOCUMENT', payload: (payload.old as any).id });
+            rawDispatch({ type: 'DELETE_DOCUMENT', payload: (payload.old as any).id });
           }
         }
       )
@@ -200,11 +200,11 @@ export const useRealtimeSync = () => {
         (payload) => {
           console.log('[Realtime] Employees change:', payload.eventType, payload);
           if (payload.eventType === 'INSERT' && payload.new) {
-            dispatch({ type: 'ADD_EMPLOYEE', payload: payload.new as any });
+            rawDispatch({ type: 'ADD_EMPLOYEE', payload: payload.new as any });
           } else if (payload.eventType === 'UPDATE' && payload.new) {
-            dispatch({ type: 'UPDATE_EMPLOYEE', payload: { id: (payload.new as any).id, updates: payload.new } as any });
+            rawDispatch({ type: 'UPDATE_EMPLOYEE', payload: { id: (payload.new as any).id, updates: payload.new } as any });
           } else if (payload.eventType === 'DELETE' && payload.old) {
-            dispatch({ type: 'DELETE_EMPLOYEE', payload: (payload.old as any).id });
+            rawDispatch({ type: 'DELETE_EMPLOYEE', payload: (payload.old as any).id });
           }
         }
       )
@@ -220,11 +220,11 @@ export const useRealtimeSync = () => {
         (payload) => {
           console.log('[Realtime] Courts change:', payload.eventType, payload);
           if (payload.eventType === 'INSERT' && payload.new) {
-            dispatch({ type: 'ADD_COURT', payload: payload.new as any });
+            rawDispatch({ type: 'ADD_COURT', payload: payload.new as any });
           } else if (payload.eventType === 'UPDATE' && payload.new) {
-            dispatch({ type: 'UPDATE_COURT', payload: payload.new as any });
+            rawDispatch({ type: 'UPDATE_COURT', payload: payload.new as any });
           } else if (payload.eventType === 'DELETE' && payload.old) {
-            dispatch({ type: 'DELETE_COURT', payload: (payload.old as any).id });
+            rawDispatch({ type: 'DELETE_COURT', payload: (payload.old as any).id });
           }
         }
       )
@@ -240,11 +240,11 @@ export const useRealtimeSync = () => {
         (payload) => {
           console.log('[Realtime] Judges change:', payload.eventType, payload);
           if (payload.eventType === 'INSERT' && payload.new) {
-            dispatch({ type: 'ADD_JUDGE', payload: payload.new as any });
+            rawDispatch({ type: 'ADD_JUDGE', payload: payload.new as any });
           } else if (payload.eventType === 'UPDATE' && payload.new) {
-            dispatch({ type: 'UPDATE_JUDGE', payload: payload.new as any });
+            rawDispatch({ type: 'UPDATE_JUDGE', payload: payload.new as any });
           } else if (payload.eventType === 'DELETE' && payload.old) {
-            dispatch({ type: 'DELETE_JUDGE', payload: (payload.old as any).id });
+            rawDispatch({ type: 'DELETE_JUDGE', payload: (payload.old as any).id });
           }
         }
       )
@@ -274,7 +274,7 @@ export const useRealtimeSync = () => {
               createdAt: payload.new.created_at,
               metadata: payload.new.metadata || {}
             };
-            dispatch({ type: 'ADD_TIMELINE_ENTRY', payload: timelineEntry });
+            rawDispatch({ type: 'ADD_TIMELINE_ENTRY', payload: timelineEntry });
           } else if (payload.eventType === 'UPDATE' && payload.new) {
             const timelineEntry = {
               id: payload.new.id,
@@ -289,9 +289,9 @@ export const useRealtimeSync = () => {
               createdAt: payload.new.created_at,
               metadata: payload.new.metadata || {}
             };
-            dispatch({ type: 'UPDATE_TIMELINE_ENTRY', payload: timelineEntry });
+            rawDispatch({ type: 'UPDATE_TIMELINE_ENTRY', payload: timelineEntry });
           } else if (payload.eventType === 'DELETE' && payload.old) {
-            dispatch({ type: 'DELETE_TIMELINE_ENTRY', payload: (payload.old as any).id });
+            rawDispatch({ type: 'DELETE_TIMELINE_ENTRY', payload: (payload.old as any).id });
           }
         }
       )
@@ -305,7 +305,7 @@ export const useRealtimeSync = () => {
       console.log('[Realtime] Unsubscribing from real-time sync');
       channel.unsubscribe();
     };
-  }, [tenantId, dispatch]);
+  }, [tenantId, rawDispatch]);
 
   return null;
 };
