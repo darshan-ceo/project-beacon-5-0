@@ -16,7 +16,8 @@ import {
   BarChart3,
   ToggleLeft,
   ToggleRight,
-  RefreshCw
+  RefreshCw,
+  Loader2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -90,6 +91,7 @@ export const RBACManagement: React.FC = () => {
   const [analytics, setAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [roleForm, setRoleForm] = useState<RoleFormData>({ name: '', description: '', permissions: [] });
+  const [isCreatingRole, setIsCreatingRole] = useState(false);
 
   // Load data on mount
   useEffect(() => {
@@ -192,6 +194,7 @@ export const RBACManagement: React.FC = () => {
   };
 
   const handleCreateRole = async () => {
+    setIsCreatingRole(true);
     try {
       const newRole = await advancedRbacService.createRole(roleForm);
       setRoles([...roles, newRole]);
@@ -200,6 +203,8 @@ export const RBACManagement: React.FC = () => {
       setRoleForm({ name: '', description: '', permissions: [] });
     } catch (error) {
       toast.error(error.message || "Failed to create role");
+    } finally {
+      setIsCreatingRole(false);
     }
   };
 
@@ -270,9 +275,18 @@ export const RBACManagement: React.FC = () => {
               ) : (
             <div className="space-y-4">
               <div className="flex justify-end">
-                <Button onClick={() => setIsCreateRoleOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Role
+                <Button onClick={() => setIsCreateRoleOpen(true)} disabled={isCreatingRole}>
+                  {isCreatingRole ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Role
+                    </>
+                  )}
                 </Button>
               </div>
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
