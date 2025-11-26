@@ -44,8 +44,8 @@ export const DevTools: React.FC = () => {
       setNetworkStats(networkInterceptor.getCallStats());
     }, 5000);
 
-    // Load storage stats
-    idbStorage.getStorageStats().then(setStorageStats);
+    // Storage stats removed - app uses Supabase exclusively
+    setStorageStats({ used: 0, available: 0, quotaWarning: false });
 
     return () => clearInterval(interval);
   }, []);
@@ -134,19 +134,12 @@ export const DevTools: React.FC = () => {
   };
 
   const runMigration = async () => {
-    try {
-      await migrateFromLocalStorage();
-      toast({
-        title: 'Migration Complete',
-        description: 'Legacy localStorage data migrated to IndexedDB',
-      });
-    } catch (error) {
-      toast({
-        title: 'Migration Failed',
-        description: (error as Error).message,
-        variant: 'destructive'
-      });
-    }
+    // Migration removed - app uses Supabase exclusively
+    toast({
+      title: 'Migration Not Available',
+      description: 'App uses Supabase exclusively - no migration needed',
+      variant: 'default'
+    });
   };
 
   const simulateStageChange = async () => {

@@ -189,16 +189,9 @@ export const employeeDocumentService = {
    */
   getDocument: async (documentId: string) => {
     try {
-      // Get documents from app state
+      // Get documents from app state (Supabase only)
       const appData = await loadAppState();
-      let documents: any[] = appData.documents || [];
-      
-      if (!documents || documents.length === 0) {
-        try {
-          const idbDocs = await idbStorage.get('documents');
-          documents = Array.isArray(idbDocs) ? idbDocs : [];
-        } catch {}
-      }
+      const documents: any[] = appData.documents || [];
       
       return documents.find((doc: any) => doc.id === documentId) || null;
     } catch (error) {
