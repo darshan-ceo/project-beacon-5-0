@@ -69,10 +69,12 @@ export const EmployeeSelector: React.FC<EmployeeSelectorProps> = ({
 
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium text-foreground">
-        {label}
-        {required && <span className="text-destructive ml-1">*</span>}
-      </label>
+      {label && (
+        <label className="text-sm font-medium text-foreground">
+          {label}
+          {required && <span className="text-destructive ml-1">*</span>}
+        </label>
+      )}
       <Select value={value} onValueChange={onValueChange} disabled={disabled}>
         <SelectTrigger className="w-full">
           <div className="flex items-center space-x-2">

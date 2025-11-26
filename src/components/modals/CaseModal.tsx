@@ -843,14 +843,8 @@ export const CaseModal: React.FC<CaseModalProps> = ({
                   </div>
 
                   <div data-tour="case-team-assignment">
-                    <div className="flex items-center gap-1 mb-2">
-                      <Label>
-                        Case Owner <span className="text-destructive">*</span>
-                      </Label>
-                      <FieldTooltip formId="create-case" fieldId="case_owner" />
-                    </div>
                     <EmployeeSelector
-                      label=""
+                      label="Assigned To"
                       value={formData.assignedToId}
                       onValueChange={(value) => {
                         const employee = state.employees.find(e => e.id === value);
