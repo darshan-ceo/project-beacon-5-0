@@ -540,15 +540,11 @@ class SearchService {
       console.warn(`[Search] Dexie fetch failed for ${entity}:`, error);
     }
     
-    // Fallback to KV store
+    // Fallback to storage manager only
     try {
-      if (entity === 'clientGroups') {
-        kvItems = await idbStorage.get('clientGroups').catch(() => []) as any[];
-      } else {
-        kvItems = await persistenceService.getAll(entity);
-      }
+      kvItems = await persistenceService.getAll(entity);
     } catch (error) {
-      console.warn(`[Search] KV fetch failed for ${entity}:`, error);
+      console.warn(`[Search] Storage fetch failed for ${entity}:`, error);
     }
     
     // Merge and deduplicate (prefer Dexie when ID exists in both)

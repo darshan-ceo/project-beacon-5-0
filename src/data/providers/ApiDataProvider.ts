@@ -42,6 +42,17 @@ class ApiDataProvider implements DataProvider {
     this.baseUrl = envConfig.API || 'http://localhost:3001/api';
   }
 
+  // Add missing tags property for interface compliance
+  tags = {
+    list: async (): Promise<string[]> => {
+      console.warn('[ApiDataProvider] tags.list not implemented');
+      return [];
+    },
+    create: async (tag: string): Promise<void> => {
+      console.warn('[ApiDataProvider] tags.create not implemented');
+    }
+  };
+
   private async apiCall(endpoint: string, options: RequestInit = {}): Promise<any> {
     const url = `${this.baseUrl}${endpoint}`;
     const authToken = await getItem<string>('auth_token');
