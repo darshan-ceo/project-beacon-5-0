@@ -289,20 +289,28 @@ export type Database = {
           assigned_to: string | null
           authority_id: string | null
           case_number: string
+          case_sequence: string | null
+          case_type: string | null
+          case_year: string | null
           client_id: string
           created_at: string | null
           description: string | null
+          financial_year: string | null
+          form_type: string | null
           forum_id: string | null
           id: string
           interest_amount: number | null
+          issue_type: string | null
           next_hearing_date: string | null
           notice_date: string | null
           notice_no: string | null
           notice_type: string | null
+          office_file_no: string | null
           owner_id: string | null
           penalty_amount: number | null
           priority: string | null
           reply_due_date: string | null
+          section_invoked: string | null
           stage_code: string | null
           state_bench_city: string | null
           state_bench_state: string | null
@@ -317,20 +325,28 @@ export type Database = {
           assigned_to?: string | null
           authority_id?: string | null
           case_number: string
+          case_sequence?: string | null
+          case_type?: string | null
+          case_year?: string | null
           client_id: string
           created_at?: string | null
           description?: string | null
+          financial_year?: string | null
+          form_type?: string | null
           forum_id?: string | null
           id?: string
           interest_amount?: number | null
+          issue_type?: string | null
           next_hearing_date?: string | null
           notice_date?: string | null
           notice_no?: string | null
           notice_type?: string | null
+          office_file_no?: string | null
           owner_id?: string | null
           penalty_amount?: number | null
           priority?: string | null
           reply_due_date?: string | null
+          section_invoked?: string | null
           stage_code?: string | null
           state_bench_city?: string | null
           state_bench_state?: string | null
@@ -345,20 +361,28 @@ export type Database = {
           assigned_to?: string | null
           authority_id?: string | null
           case_number?: string
+          case_sequence?: string | null
+          case_type?: string | null
+          case_year?: string | null
           client_id?: string
           created_at?: string | null
           description?: string | null
+          financial_year?: string | null
+          form_type?: string | null
           forum_id?: string | null
           id?: string
           interest_amount?: number | null
+          issue_type?: string | null
           next_hearing_date?: string | null
           notice_date?: string | null
           notice_no?: string | null
           notice_type?: string | null
+          office_file_no?: string | null
           owner_id?: string | null
           penalty_amount?: number | null
           priority?: string | null
           reply_due_date?: string | null
+          section_invoked?: string | null
           stage_code?: string | null
           state_bench_city?: string | null
           state_bench_state?: string | null

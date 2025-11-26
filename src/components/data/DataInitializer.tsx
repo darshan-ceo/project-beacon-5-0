@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { normalizeStage } from '@/utils/stageUtils';
+import { calculateSLAStatus } from '@/services/slaService';
 
 /**
  * DataInitializer Component
@@ -104,21 +105,46 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           updatedBy: cg.updated_by || cg.updatedBy,
         }));
 
-        const cases = (casesData.data || []).map((c: any) => ({
-          ...c,
-          caseNumber: c.case_number || c.caseNumber,
-          clientId: c.client_id || c.clientId,
-          currentStage: normalizeStage(c.stage_code || c.current_stage || c.currentStage || 'Assessment'),
-          timelineBreachStatus: c.timeline_breach_status || c.timelineBreachStatus,
-          assignedToId: c.assigned_to || c.assigned_to_id || c.assignedToId,
-          assignedToName: c.assigned_to_name || c.assignedToName,
-          createdDate: c.created_date || c.created_at || c.createdDate,
-          lastUpdated: c.last_updated || c.updated_at || c.lastUpdated,
-          generatedForms: c.generated_forms || c.generatedForms || [],
-          amountInDispute: c.amount_in_dispute || c.amountInDispute,
-          stateBenchState: c.state_bench_state || c.stateBenchState,
-          stateBenchCity: c.state_bench_city || c.stateBenchCity,
-        }));
+        const cases = (casesData.data || []).map((c: any) => {
+          // Normalize status: 'open'/'Open' → 'Active'
+          const normalizedStatus = ['open', 'Open', 'active', 'Active'].includes(c.status) 
+            ? 'Active' 
+            : c.status || 'Active';
+          
+          // Build case object with proper field mapping
+          const caseObj = {
+            ...c,
+            caseNumber: c.case_number || c.caseNumber,
+            clientId: c.client_id || c.clientId,
+            status: normalizedStatus,
+            currentStage: normalizeStage(c.stage_code || c.current_stage || c.currentStage || 'Assessment'),
+            assignedToId: c.assigned_to || c.assigned_to_id || c.assignedToId,
+            assignedToName: c.assigned_to_name || c.assignedToName,
+            createdDate: c.created_date || c.created_at || c.createdDate,
+            lastUpdated: c.last_updated || c.updated_at || c.lastUpdated,
+            generatedForms: c.generated_forms || c.generatedForms || [],
+            amountInDispute: c.amount_in_dispute || c.amountInDispute,
+            stateBenchState: c.state_bench_state || c.stateBenchState,
+            stateBenchCity: c.state_bench_city || c.stateBenchCity,
+            // New fields from migration
+            caseType: c.case_type || c.caseType,
+            caseYear: c.case_year || c.caseYear,
+            caseSequence: c.case_sequence || c.caseSequence,
+            officeFileNo: c.office_file_no || c.officeFileNo,
+            issueType: c.issue_type || c.issueType,
+            formType: c.form_type || c.formType,
+            sectionInvoked: c.section_invoked || c.sectionInvoked,
+            financialYear: c.financial_year || c.financialYear,
+          };
+          
+          // Auto-calculate timeline breach status using SLA service
+          const timelineBreachStatus = calculateSLAStatus(caseObj as any);
+          
+          return {
+            ...caseObj,
+            timelineBreachStatus,
+          };
+        });
 
         const tasks = (tasksData.data || []).map((t: any) => ({
           ...t,
