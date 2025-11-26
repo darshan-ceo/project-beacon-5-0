@@ -2,6 +2,8 @@ import { toast } from '@/hooks/use-toast';
 import { getEmailSettings } from './emailSettingsService';
 import { sendEmail as sendEmailService } from './emailService';
 import type { EmailMessage } from '@/types/email';
+import { supabase } from '@/integrations/supabase/client';
+import { storageManager } from '@/data/StorageManager';
 
 export interface CommunicationLog {
   id: string;
@@ -43,6 +45,26 @@ export interface MessageComposer {
 }
 
 // Mock communication templates
+// Helper to get tenant and user context
+const getTenantAndUser = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('User not authenticated');
+  
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('tenant_id, full_name')
+    .eq('id', user.id)
+    .single();
+  
+  if (!profile) throw new Error('User profile not found');
+  
+  return { 
+    userId: user.id, 
+    tenantId: profile.tenant_id,
+    userName: profile.full_name || 'Unknown User'
+  };
+};
+
 const MESSAGE_TEMPLATES = {
   hearing_reminder: {
     email: {
@@ -157,9 +179,39 @@ export const communicationService = {
         throw new Error(result.error || 'Failed to send email');
       }
 
-      // Create communication log
+      // Get user context
+      const { userId, tenantId, userName } = await getTenantAndUser();
+
+      // Persist communication log to Supabase
+      const storage = storageManager.getStorage();
+      const logData = {
+        tenant_id: tenantId,
+        case_id: message.caseId,
+        client_id: message.clientId,
+        channel: 'email' as const,
+        direction: 'outbound' as const,
+        subject: message.subject,
+        message: message.message,
+        sent_by: userId,
+        sent_by_name: userName,
+        sent_to: message.to,
+        sent_to_name: message.toName,
+        status: 'sent' as const,
+        message_id: result.messageId || '',
+        delivered_at: new Date().toISOString(),
+        attachments: message.attachments.map(file => ({
+          id: `att-${Date.now()}-${Math.random()}`,
+          name: file.name,
+          type: file.type,
+          size: file.size
+        }))
+      };
+
+      const savedLog: any = await storage.create('communication_logs', logData as any);
+
+      // Create communication log response
       const communicationLog: CommunicationLog = {
-        id: result.messageId || `comm-${Date.now()}`,
+        id: savedLog.id,
         caseId: message.caseId,
         clientId: message.clientId,
         channel: 'email',
@@ -173,10 +225,10 @@ export const communicationService = {
           size: file.size,
           url: URL.createObjectURL(file)
         })),
-        sentBy: 'Current User',
+        sentBy: userName,
         sentTo: message.to,
         sentToName: message.toName,
-        timestamp: new Date().toISOString(),
+        timestamp: savedLog.created_at || new Date().toISOString(),
         status: 'sent',
         metadata: {
           messageId: result.messageId,
@@ -211,6 +263,7 @@ export const communicationService = {
     clientId: string,
     clientName: string
   ): Promise<CommunicationLog> => {
+    // Note: Real SMS delivery requires Twilio or similar SMS provider setup
     await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 400));
 
     try {
@@ -226,19 +279,43 @@ export const communicationService = {
         });
       }
 
+      // Get user context
+      const { userId, tenantId, userName } = await getTenantAndUser();
+
+      // Persist communication log to Supabase
+      const storage = storageManager.getStorage();
+      const logData = {
+        tenant_id: tenantId,
+        case_id: caseId,
+        client_id: clientId,
+        channel: 'sms' as const,
+        direction: 'outbound' as const,
+        message,
+        sent_by: userId,
+        sent_by_name: userName,
+        sent_to: phoneNumber,
+        sent_to_name: clientName,
+        status: 'sent' as const,
+        message_id: `sms-${Date.now()}`,
+        delivered_at: new Date(Date.now() + 2000).toISOString(),
+        attachments: []
+      };
+
+      const savedLog: any = await storage.create('communication_logs', logData as any);
+
       const communicationLog: CommunicationLog = {
-        id: `sms-${Date.now()}`,
+        id: savedLog.id,
         caseId,
         clientId,
         channel: 'sms',
         direction: 'outbound',
         message,
         attachments: [],
-        sentBy: 'Current User',
+        sentBy: userName,
         sentTo: phoneNumber,
         sentToName: clientName,
-        timestamp: new Date().toISOString(),
-        status: Math.random() > 0.05 ? 'delivered' : 'failed',
+        timestamp: savedLog.created_at || new Date().toISOString(),
+        status: 'sent',
         metadata: {
           messageId: `sms-${Date.now()}`,
           deliveredAt: new Date(Date.now() + 2000).toISOString()
@@ -265,11 +342,41 @@ export const communicationService = {
     clientId: string,
     clientName: string
   ): Promise<CommunicationLog> => {
+    // Note: Real WhatsApp delivery requires WhatsApp Business API setup
     await new Promise(resolve => setTimeout(resolve, 1200 + Math.random() * 600));
 
     try {
+      // Get user context
+      const { userId, tenantId, userName } = await getTenantAndUser();
+
+      // Persist communication log to Supabase
+      const storage = storageManager.getStorage();
+      const logData = {
+        tenant_id: tenantId,
+        case_id: caseId,
+        client_id: clientId,
+        channel: 'whatsapp' as const,
+        direction: 'outbound' as const,
+        message,
+        sent_by: userId,
+        sent_by_name: userName,
+        sent_to: phoneNumber,
+        sent_to_name: clientName,
+        status: 'sent' as const,
+        message_id: `wa-${Date.now()}`,
+        delivered_at: new Date(Date.now() + 1500).toISOString(),
+        attachments: attachments.map(file => ({
+          id: `att-${Date.now()}-${Math.random()}`,
+          name: file.name,
+          type: file.type,
+          size: file.size
+        }))
+      };
+
+      const savedLog: any = await storage.create('communication_logs', logData as any);
+
       const communicationLog: CommunicationLog = {
-        id: `wa-${Date.now()}`,
+        id: savedLog.id,
         caseId,
         clientId,
         channel: 'whatsapp',
@@ -282,11 +389,11 @@ export const communicationService = {
           size: file.size,
           url: URL.createObjectURL(file)
         })),
-        sentBy: 'Current User',
+        sentBy: userName,
         sentTo: phoneNumber,
         sentToName: clientName,
-        timestamp: new Date().toISOString(),
-        status: Math.random() > 0.02 ? 'delivered' : 'failed',
+        timestamp: savedLog.created_at || new Date().toISOString(),
+        status: 'sent',
         metadata: {
           messageId: `wa-${Date.now()}`,
           deliveredAt: new Date(Date.now() + 1500).toISOString()
@@ -306,49 +413,40 @@ export const communicationService = {
 
   // Get communication log for a case
   getCommunicationLog: async (caseId: string): Promise<CommunicationLog[]> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
+    try {
+      const storage = storageManager.getStorage();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
 
-    // Mock communication history
-    return [
-      {
-        id: 'comm-1',
-        caseId,
-        clientId: 'client-1',
-        channel: 'email',
-        direction: 'outbound',
-        subject: 'Hearing Reminder - Case: CASE-2024-0001',
-        message: 'This is to remind you about your upcoming hearing...',
-        attachments: [],
-        sentBy: 'Partner',
-        sentTo: 'client@example.com',
-        sentToName: 'John Doe',
-        timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-        status: 'read',
+      // Query communication_logs from Supabase filtered by case_id
+      const logs = await storage.query('communication_logs', (log: any) => log.case_id === caseId);
+      
+      // Map database fields to CommunicationLog interface
+      return logs.map((log: any) => ({
+        id: log.id,
+        caseId: log.case_id,
+        clientId: log.client_id,
+        channel: log.channel,
+        direction: log.direction,
+        subject: log.subject,
+        message: log.message,
+        attachments: log.attachments || [],
+        sentBy: log.sent_by_name,
+        sentTo: log.sent_to,
+        sentToName: log.sent_to_name,
+        timestamp: log.created_at,
+        status: log.status,
         metadata: {
-          messageId: 'msg-001',
-          deliveredAt: new Date(Date.now() - 24 * 60 * 60 * 1000 + 1000).toISOString(),
-          readAt: new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString()
+          messageId: log.message_id,
+          failureReason: log.failure_reason,
+          deliveredAt: log.delivered_at,
+          readAt: log.read_at
         }
-      },
-      {
-        id: 'comm-2',
-        caseId,
-        clientId: 'client-1',
-        channel: 'sms',
-        direction: 'outbound',
-        message: 'Hearing tomorrow at 10 AM. Please arrive 30 min early.',
-        attachments: [],
-        sentBy: 'Associate',
-        sentTo: '+91-9876543210',
-        sentToName: 'John Doe',
-        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        status: 'delivered',
-        metadata: {
-          messageId: 'sms-002',
-          deliveredAt: new Date(Date.now() - 2 * 60 * 60 * 1000 + 2000).toISOString()
-        }
-      }
-    ];
+      })).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    } catch (error) {
+      console.error('Failed to load communication logs:', error);
+      return [];
+    }
   },
 
   // Get message templates
