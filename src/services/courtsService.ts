@@ -61,6 +61,8 @@ class CourtsService {
         city: newCourt.city,
         phone: newCourt.phone,
         email: newCourt.email,
+        status: newCourt.status,
+        bench_location: newCourt.benchLocation,
       } as any);
 
       // Get server-generated UUID
@@ -103,6 +105,8 @@ class CourtsService {
         ...(updates.city && { city: updates.city }),
         ...(updates.phone && { phone: updates.phone }),
         ...(updates.email && { email: updates.email }),
+        ...(updates.status && { status: updates.status }),
+        ...(updates.benchLocation && { bench_location: updates.benchLocation }),
         updated_at: new Date().toISOString(),
       } as any);
 
@@ -176,12 +180,12 @@ class CourtsService {
         city: c.city,
         phone: c.phone,
         email: c.email,
-        status: c.status || 'Active',
+        status: c.status,
+        benchLocation: c.bench_location,
         activeCases: 0,
         avgHearingTime: '30 mins',
         digitalFiling: false,
         workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-        benchLocation: c.bench_location,
       } as Court));
     } catch (error) {
       console.error('Failed to list courts:', error);
@@ -208,12 +212,12 @@ class CourtsService {
         city: court.city,
         phone: court.phone,
         email: court.email,
-        status: court.status || 'Active',
+        status: court.status,
+        benchLocation: court.bench_location,
         activeCases: 0,
         avgHearingTime: '30 mins',
         digitalFiling: false,
         workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-        benchLocation: court.bench_location,
       } as Court;
     } catch (error) {
       console.error('Failed to get court:', error);

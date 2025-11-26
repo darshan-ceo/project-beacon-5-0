@@ -678,48 +678,60 @@ export type Database = {
       courts: {
         Row: {
           address: string | null
+          bench_location: string | null
           city: string | null
           code: string | null
           created_at: string
           created_by: string | null
+          email: string | null
           established_year: number | null
           id: string
           jurisdiction: string | null
           level: string | null
           name: string
+          phone: string | null
           state: string | null
+          status: string | null
           tenant_id: string
           type: string | null
           updated_at: string
         }
         Insert: {
           address?: string | null
+          bench_location?: string | null
           city?: string | null
           code?: string | null
           created_at?: string
           created_by?: string | null
+          email?: string | null
           established_year?: number | null
           id?: string
           jurisdiction?: string | null
           level?: string | null
           name: string
+          phone?: string | null
           state?: string | null
+          status?: string | null
           tenant_id: string
           type?: string | null
           updated_at?: string
         }
         Update: {
           address?: string | null
+          bench_location?: string | null
           city?: string | null
           code?: string | null
           created_at?: string
           created_by?: string | null
+          email?: string | null
           established_year?: number | null
           id?: string
           jurisdiction?: string | null
           level?: string | null
           name?: string
+          phone?: string | null
           state?: string | null
+          status?: string | null
           tenant_id?: string
           type?: string | null
           updated_at?: string
@@ -1450,40 +1462,85 @@ export type Database = {
       }
       judges: {
         Row: {
+          appointment_date: string | null
+          assistant: Json | null
+          availability: Json | null
+          bench: string | null
+          chambers: string | null
+          city: string | null
           court_id: string | null
           created_at: string
           created_by: string | null
           designation: string | null
           email: string | null
           id: string
+          jurisdiction: string | null
           name: string
+          notes: string | null
           phone: string | null
+          photo_url: string | null
+          retirement_date: string | null
+          specialization: string[] | null
+          state: string | null
+          status: string | null
+          tags: string[] | null
           tenant_id: string
           updated_at: string
+          years_of_service: number | null
         }
         Insert: {
+          appointment_date?: string | null
+          assistant?: Json | null
+          availability?: Json | null
+          bench?: string | null
+          chambers?: string | null
+          city?: string | null
           court_id?: string | null
           created_at?: string
           created_by?: string | null
           designation?: string | null
           email?: string | null
           id?: string
+          jurisdiction?: string | null
           name: string
+          notes?: string | null
           phone?: string | null
+          photo_url?: string | null
+          retirement_date?: string | null
+          specialization?: string[] | null
+          state?: string | null
+          status?: string | null
+          tags?: string[] | null
           tenant_id: string
           updated_at?: string
+          years_of_service?: number | null
         }
         Update: {
+          appointment_date?: string | null
+          assistant?: Json | null
+          availability?: Json | null
+          bench?: string | null
+          chambers?: string | null
+          city?: string | null
           court_id?: string | null
           created_at?: string
           created_by?: string | null
           designation?: string | null
           email?: string | null
           id?: string
+          jurisdiction?: string | null
           name?: string
+          notes?: string | null
           phone?: string | null
+          photo_url?: string | null
+          retirement_date?: string | null
+          specialization?: string[] | null
+          state?: string | null
+          status?: string | null
+          tags?: string[] | null
           tenant_id?: string
           updated_at?: string
+          years_of_service?: number | null
         }
         Relationships: [
           {
