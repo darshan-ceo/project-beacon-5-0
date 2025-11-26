@@ -42,6 +42,7 @@ import {
   Save,
   Info,
   Mail,
+  Loader2,
 } from 'lucide-react';
 
 interface EmployeeModalV2Props {
@@ -510,8 +511,17 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
         Cancel
       </Button>
       <Button onClick={handleSubmit} disabled={isSubmitting}>
-        <Save className="h-4 w-4 mr-2" />
-        {mode === 'create' ? 'Save Employee' : 'Update Employee'}
+        {isSubmitting ? (
+          <>
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            {mode === 'create' ? 'Creating...' : 'Updating...'}
+          </>
+        ) : (
+          <>
+            <Save className="h-4 w-4 mr-2" />
+            {mode === 'create' ? 'Save Employee' : 'Update Employee'}
+          </>
+        )}
       </Button>
     </div>
   ) : (
