@@ -26,7 +26,7 @@ export const QuickEditHearing: React.FC<QuickEditHearingProps> = ({
   trigger,
   onSuccess
 }) => {
-  const { dispatch } = useAppState();
+  const { state, dispatch } = useAppState();
   const [isOpen, setIsOpen] = useState(false);
   const [date, setDate] = useState<Date>(new Date(currentDate));
   const [time, setTime] = useState(currentTime);
@@ -78,10 +78,23 @@ export const QuickEditHearing: React.FC<QuickEditHearingProps> = ({
       endDate.setHours(hours + 1, minutes);
       const endTime = endDate.toTimeString().slice(0, 5);
 
+      // Get current hearing to include case_id in update
+      const currentHearing = state.hearings.find(h => h.id === hearingId);
+      if (!currentHearing) {
+        toast({
+          title: "Error",
+          description: "Hearing not found",
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
       await hearingsService.updateHearing(
         hearingId,
         {
-          date: date.toISOString().split('T')[0],
+          case_id: currentHearing.case_id || currentHearing.caseId,
+          date: format(date, 'yyyy-MM-dd'),
           start_time: normalizedTime,
           end_time: endTime
         },

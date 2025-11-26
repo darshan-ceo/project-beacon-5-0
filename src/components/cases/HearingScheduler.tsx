@@ -64,6 +64,7 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases, selec
   const { state, dispatch } = useAppState();
   const [selectedDate, setSelectedDate] = useState('');
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
+  const [editingHearing, setEditingHearing] = useState<Hearing | null>(null);
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'global' | 'case'>('global');
   const [calendarStatus, setCalendarStatus] = useState<{
@@ -635,7 +636,12 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases, selec
                         </Button>
                       }
                     />
-                    <Button variant="ghost" size="sm" title="View details">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      title="Edit hearing"
+                      onClick={() => setEditingHearing(hearing)}
+                    >
                       <Edit className="h-4 w-4" />
                     </Button>
                   </div>
@@ -645,6 +651,17 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases, selec
           </CardContent>
         </Card>
       </motion.div>
+      
+      {/* Edit Hearing Modal */}
+      {editingHearing && (
+        <HearingModal
+          isOpen={!!editingHearing}
+          onClose={() => setEditingHearing(null)}
+          mode="edit"
+          hearing={state.hearings.find(h => h.id === editingHearing.id)}
+          contextCaseId={editingHearing.caseId}
+        />
+      )}
       
       {/* Notification Configuration Modal */}
       <NotificationConfigModal
