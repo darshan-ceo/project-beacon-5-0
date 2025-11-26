@@ -27,6 +27,8 @@ import { HearingDocumentUpload } from '../hearings/HearingDocumentUpload';
 import { HearingSummaryGenerator } from '../hearings/HearingSummaryGenerator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { detectHearingConflicts } from '@/utils/hearingConflicts';
+import { supabase } from '@/integrations/supabase/client';
+import { uploadDocument } from '@/services/supabaseDocumentService';
 
 interface HearingModalProps {
   isOpen: boolean;
@@ -136,7 +138,12 @@ export const HearingModal: React.FC<HearingModalProps> = ({
         judgeId: hearingData.judgeId
       });
     }
-  }, [hearingData, mode, updateContext]);
+    
+    // Clear attachments when modal closes or mode changes
+    if (!isOpen) {
+      setAttachments([]);
+    }
+  }, [hearingData, mode, updateContext, isOpen]);
 
   // Check for conflicts when date, time, or court changes
   useEffect(() => {
@@ -278,7 +285,49 @@ export const HearingModal: React.FC<HearingModalProps> = ({
           bench_details: judge?.bench
         };
 
-        await hearingsService.createHearing(hearingFormData, dispatch);
+        const newHearing = await hearingsService.createHearing(hearingFormData, dispatch);
+
+        // Upload attached documents
+        if (attachments.length > 0 && newHearing?.id) {
+          try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+              console.warn('No authenticated user found for document upload');
+            } else {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('tenant_id')
+                .eq('id', user.id)
+                .single();
+              
+              if (!profile?.tenant_id) {
+                console.warn('Unable to determine tenant for document upload');
+              } else {
+                for (const file of attachments) {
+                  await uploadDocument(file, {
+                    tenant_id: profile.tenant_id,
+                    hearing_id: newHearing.id,
+                    case_id: formData.caseId,
+                    category: 'Hearing'
+                  });
+                }
+                toast({
+                  title: "Documents Uploaded",
+                  description: `${attachments.length} document(s) linked to hearing.`
+                });
+                // Clear attachments after successful upload
+                setAttachments([]);
+              }
+            }
+          } catch (docError) {
+            console.error('Failed to upload hearing documents:', docError);
+            toast({
+              title: "Warning",
+              description: "Hearing scheduled but some documents failed to upload.",
+              variant: "destructive"
+            });
+          }
+        }
       } else if (mode === 'edit' && hearingData) {
         // Calculate end time for updates too
         const startTime = formData.time;
@@ -309,6 +358,48 @@ export const HearingModal: React.FC<HearingModalProps> = ({
         };
 
         await hearingsService.updateHearing(hearingData.id, updates, dispatch);
+
+        // Upload any new attached documents
+        if (attachments.length > 0 && hearingData.id) {
+          try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+              console.warn('No authenticated user found for document upload');
+            } else {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('tenant_id')
+                .eq('id', user.id)
+                .single();
+              
+              if (!profile?.tenant_id) {
+                console.warn('Unable to determine tenant for document upload');
+              } else {
+                for (const file of attachments) {
+                  await uploadDocument(file, {
+                    tenant_id: profile.tenant_id,
+                    hearing_id: hearingData.id,
+                    case_id: formData.caseId,
+                    category: 'Hearing'
+                  });
+                }
+                toast({
+                  title: "Documents Uploaded",
+                  description: `${attachments.length} document(s) linked to hearing.`
+                });
+                // Clear attachments after successful upload
+                setAttachments([]);
+              }
+            }
+          } catch (docError) {
+            console.error('Failed to upload hearing documents:', docError);
+            toast({
+              title: "Warning",
+              description: "Hearing updated but some documents failed to upload.",
+              variant: "destructive"
+            });
+          }
+        }
       }
 
       // Phase 2: Record outcome if provided
