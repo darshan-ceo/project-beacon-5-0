@@ -447,14 +447,9 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
         status: caseData.status || 'Active'
       };
 
-      // Persist case using casesService
+      // Persist case using casesService (service handles toast notification)
       const persistedCase = await casesService.create(casePayload, dispatch);
       setCreatedCase(persistedCase);
-      
-      toast({
-        title: "Case created",
-        description: `Case "${persistedCase.title}" created successfully`,
-      });
       
       setCurrentStep(6);
     } catch (error) {

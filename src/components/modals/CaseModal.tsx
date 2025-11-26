@@ -11,7 +11,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
-import { Calendar as CalendarIcon, FileText, Users, Clock, Scale, DollarSign, MapPin, AlignLeft } from 'lucide-react';
+import { Calendar as CalendarIcon, FileText, Users, Clock, Scale, DollarSign, MapPin, AlignLeft, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Case, useAppState } from '@/contexts/AppStateContext';
 import { ClientSelector, LegalForumSelector } from '@/components/ui/relationship-selector';
@@ -72,6 +72,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
   
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [clientCountBeforeAdd, setClientCountBeforeAdd] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
   
   const [formData, setFormData] = useState<{
     // Basic fields
@@ -237,7 +238,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
     }
   }, [formData.taxDemand, formData.interest_amount, formData.penalty_amount]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validate required fields
@@ -425,11 +426,18 @@ export const CaseModal: React.FC<CaseModalProps> = ({
         generatedForms: []
       };
 
-      dispatch({ type: 'ADD_CASE', payload: newCase });
-      toast({
-        title: "✅ Case Created",
-        description: `Case "${formData.title}" has been created successfully.`,
-      });
+      setIsSaving(true);
+      try {
+        // Service handles persistence and toast notifications
+        const { casesService } = await import('@/services/casesService');
+        await casesService.create(newCase, dispatch);
+        onClose();
+      } catch (error) {
+        console.error('Case creation failed:', error);
+        // Error toast already shown by service
+      } finally {
+        setIsSaving(false);
+      }
     } else if (mode === 'edit' && caseData) {
       const updatedCase: Case = {
         ...caseData,
@@ -1347,8 +1355,15 @@ export const CaseModal: React.FC<CaseModalProps> = ({
             </Button>
           )}
           {mode !== 'view' && (
-            <Button type="submit" onClick={handleSubmit} data-tour="save-case-btn">
-              {mode === 'create' ? 'Create Case' : 'Update Case'}
+            <Button type="submit" onClick={handleSubmit} data-tour="save-case-btn" disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                mode === 'create' ? 'Create Case' : 'Update Case'
+              )}
             </Button>
           )}
         </DialogFooter>
