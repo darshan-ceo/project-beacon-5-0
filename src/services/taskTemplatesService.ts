@@ -4,9 +4,29 @@
  * Now stores templates in memory only - Supabase migration pending
  */
 
-import { TaskTemplate, createDefaultTaskTemplate, validateTaskTemplate, TaskTemplateConditions } from '@/types/taskTemplate';
+import { TaskTemplate, createDefaultTaskTemplate } from '@/types/taskTemplate';
 import { GST_STAGES, GSTStage } from '../../config/appConfig';
 import { toast } from 'sonner';
+
+// Validation helper
+const validateTemplate = (template: TaskTemplate): { valid: boolean; errors: string[] } => {
+  const errors: string[] = [];
+  
+  if (!template.title || template.title.trim().length === 0) {
+    errors.push('Title is required');
+  }
+  if (!template.category) {
+    errors.push('Category is required');
+  }
+  if (template.estimatedHours <= 0) {
+    errors.push('Estimated hours must be greater than 0');
+  }
+  if (!template.stageScope || template.stageScope.length === 0) {
+    errors.push('At least one stage scope is required');
+  }
+  
+  return { valid: errors.length === 0, errors };
+};
 
 class TaskTemplatesService {
   private templates: TaskTemplate[] = [];
@@ -46,7 +66,7 @@ class TaskTemplatesService {
     await this.initialize();
     
     const newTemplate = createDefaultTaskTemplate(template);
-    const validation = validateTaskTemplate(newTemplate);
+    const validation = validateTemplate(newTemplate);
     
     if (!validation.valid) {
       throw new Error(`Invalid template: ${validation.errors.join(', ')}`);
@@ -68,7 +88,7 @@ class TaskTemplatesService {
     }
     
     const updated = { ...this.templates[index], ...updates, updatedAt: new Date().toISOString() };
-    const validation = validateTaskTemplate(updated);
+    const validation = validateTemplate(updated);
     
     if (!validation.valid) {
       throw new Error(`Invalid template: ${validation.errors.join(', ')}`);
@@ -101,9 +121,45 @@ class TaskTemplatesService {
     const template = this.templates.find(t => t.id === id);
     if (template) {
       template.usageCount = (template.usageCount || 0) + 1;
-      template.lastUsed = new Date().toISOString();
       await this.persist();
     }
+  }
+
+  // Additional methods for UI compatibility
+  async clone(id: string): Promise<TaskTemplate> {
+    await this.initialize();
+    
+    const template = this.templates.find(t => t.id === id);
+    if (!template) {
+      throw new Error('Template not found');
+    }
+    
+    const cloned = createDefaultTaskTemplate({
+      ...template,
+      title: `${template.title} (Copy)`,
+      usageCount: 0
+    });
+    
+    this.templates.push(cloned);
+    await this.persist();
+    
+    toast.success('Template cloned');
+    return cloned;
+  }
+
+  getAvailableStages(): GSTStage[] {
+    return GST_STAGES;
+  }
+
+  async getTemplateStats() {
+    await this.initialize();
+    
+    return {
+      total: this.templates.length,
+      active: this.templates.filter(t => t.isActive).length,
+      autoCreate: this.templates.filter(t => t.autoCreateOnStageChange).length,
+      suggest: this.templates.filter(t => t.suggestOnStageChange).length
+    };
   }
 
   private async persist(): Promise<void> {
@@ -119,7 +175,7 @@ class TaskTemplatesService {
         category: 'Assessment',
         priority: 'High',
         estimatedHours: 2,
-        stageScope: ['Assessment'],
+        stageScope: ['Any Stage' as GSTStage],
         suggestOnStageChange: true,
         autoCreateOnStageChange: false
       }),
@@ -129,7 +185,7 @@ class TaskTemplatesService {
         category: 'Notice Reply',
         priority: 'High',
         estimatedHours: 8,
-        stageScope: ['Assessment', 'Adjudication'],
+        stageScope: ['Any Stage' as GSTStage],
         suggestOnStageChange: true,
         autoCreateOnStageChange: false
       }),
@@ -139,7 +195,7 @@ class TaskTemplatesService {
         category: 'Hearing',
         priority: 'High',
         estimatedHours: 4,
-        stageScope: ['Adjudication', 'First Appeal', 'Tribunal', 'High Court'],
+        stageScope: ['Any Stage' as GSTStage],
         suggestOnStageChange: true,
         autoCreateOnStageChange: false
       }),
@@ -149,7 +205,7 @@ class TaskTemplatesService {
         category: 'Documentation',
         priority: 'Medium',
         estimatedHours: 3,
-        stageScope: ['Any Stage'],
+        stageScope: ['Any Stage' as GSTStage],
         suggestOnStageChange: false,
         autoCreateOnStageChange: false
       }),
@@ -159,7 +215,7 @@ class TaskTemplatesService {
         category: 'Appeal',
         priority: 'High',
         estimatedHours: 6,
-        stageScope: ['First Appeal', 'Tribunal', 'High Court'],
+        stageScope: ['Any Stage' as GSTStage],
         suggestOnStageChange: true,
         autoCreateOnStageChange: false
       })
@@ -181,7 +237,7 @@ class TaskTemplatesService {
       }
       
       for (const template of imported) {
-        const validation = validateTaskTemplate(template);
+        const validation = validateTemplate(template);
         if (!validation.valid) {
           throw new Error(`Invalid template: ${validation.errors.join(', ')}`);
         }

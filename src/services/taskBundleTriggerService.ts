@@ -4,16 +4,16 @@
  */
 
 export const taskBundleTriggerService = {
-  processStageTransition: async () => {
+  processStageTransition: async (..._args: any[]) => {
     console.warn('[taskBundleTriggerService] DEPRECATED');
-    return { createdTasks: [], errors: [] };
+    return { createdTasks: [], errors: [], totalTasksCreated: 0 };
   },
-  processNoticeReceived: async () => {
+  processNoticeReceived: async (..._args: any[]) => {
     console.warn('[taskBundleTriggerService] DEPRECATED');
-    return { createdTasks: [], errors: [] };
+    return { createdTasks: [], errors: [], totalTasksCreated: 0 };
   },
-  triggerTaskBundles: async () => {
+  triggerTaskBundles: async (..._args: any[]) => {
     console.warn('[taskBundleTriggerService] DEPRECATED');
-    return { createdTasks: [], errors: [] };
+    return { createdTasks: [], errors: [], totalTasksCreated: 0 };
   }
 };

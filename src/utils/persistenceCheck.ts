@@ -34,7 +34,16 @@ export const persistenceChecker = {
       timestamp: new Date(),
       environment: 'supabase',
       summary: { total: 0, passed: 0, failed: 0, skipped: 0 },
-      tests: []
+      tests: [],
+      results: []
     };
+  },
+  runDMSScenario: async () => {
+    console.warn('[persistenceChecker] DEPRECATED');
+    return { passed: 0, failed: 0, results: [] };
+  },
+  runHelpScenario: async () => {
+    console.warn('[persistenceChecker] DEPRECATED');
+    return { passed: 0, failed: 0, results: [] };
   }
 };
