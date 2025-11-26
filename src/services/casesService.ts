@@ -2,6 +2,7 @@ import { AppAction } from '@/contexts/AppStateContext';
 import { toast } from '@/hooks/use-toast';
 
 import { Case } from '@/contexts/AppStateContext';
+import { normalizeCasePayload } from '@/utils/formatters';
 import { lifecycleService } from '@/services/lifecycleService';
 import { taskBundleService } from '@/services/taskBundleService';
 import { timelineService } from '@/services/timelineService';
@@ -26,24 +27,27 @@ const log = (level: 'success' | 'error', tab: string, action: string, details?: 
 export const casesService = {
   create: async (caseData: Partial<Case>, dispatch: React.Dispatch<AppAction>): Promise<Case> => {
     try {
+      // Normalize payload before persistence
+      const normalizedData = normalizeCasePayload(caseData);
+      
       const { generateId } = await import('@/data/db');
       const newCase: Case = {
         id: generateId(),
         caseNumber: `CAS${Date.now().toString().slice(-6)}`,
-        title: caseData.title || '',
-        clientId: caseData.clientId || '',
+        title: normalizedData.title || '',
+        clientId: normalizedData.clientId || '',
         currentStage: 'Adjudication',
-        priority: caseData.priority || 'Medium',
+        priority: normalizedData.priority || 'Medium',
         timelineBreachStatus: 'Green',
         status: 'Active',
-        assignedToId: caseData.assignedToId || 'emp-1',
-        assignedToName: caseData.assignedToName || 'John Doe',
+        assignedToId: normalizedData.assignedToId || 'emp-1',
+        assignedToName: normalizedData.assignedToName || 'John Doe',
         createdDate: new Date().toISOString(),
         lastUpdated: new Date().toISOString(),
         documents: 0,
         progress: 0,
         generatedForms: [],
-        ...caseData
+        ...normalizedData
       };
 
       // Dispatch handles persistence via usePersistentDispatch
@@ -69,7 +73,9 @@ export const casesService = {
 
   update: async (caseId: string, updates: Partial<Case>, dispatch: React.Dispatch<AppAction>): Promise<void> => {
     try {
-      const updatedCase = { id: caseId, lastUpdated: new Date().toISOString(), ...updates };
+      // Normalize payload before persistence
+      const normalizedUpdates = normalizeCasePayload(updates);
+      const updatedCase = { id: caseId, lastUpdated: new Date().toISOString(), ...normalizedUpdates };
       
       // Dispatch handles persistence via usePersistentDispatch
       dispatch({ type: 'UPDATE_CASE', payload: updatedCase });

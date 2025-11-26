@@ -27,7 +27,7 @@ import { AddressView } from '@/components/ui/AddressView';
 import { EnhancedAddressData, addressMasterService } from '@/services/addressMasterService';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
 import { TagInput } from '@/components/ui/TagInput';
-import { autoCapitalizeFirst } from '@/utils/textFormatters';
+import { toTitleCase, toLowerCase } from '@/utils/formatters';
 import { secureLog } from '@/utils/secureLogger';
 import { format } from 'date-fns';
 
@@ -633,7 +633,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                         setErrors(prev => ({ ...prev, name: '' }));
                       }}
                       onBlur={(e) => {
-                        setFormData(prev => ({ ...prev, name: autoCapitalizeFirst(e.target.value) }));
+                        setFormData(prev => ({ ...prev, name: toTitleCase(e.target.value) }));
                       }}
                       disabled={mode === 'view'}
                       className={errors.name ? 'border-destructive' : ''}
@@ -860,7 +860,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                           }
                         }))}
                         onBlur={(e) => {
-                          const capitalized = autoCapitalizeFirst(e.target.value);
+                          const capitalized = toTitleCase(e.target.value);
                           setFormData(prev => ({ 
                             ...prev, 
                             jurisdiction: { 
@@ -893,7 +893,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                           }
                         }))}
                         onBlur={(e) => {
-                          const capitalized = autoCapitalizeFirst(e.target.value);
+                          const capitalized = toTitleCase(e.target.value);
                           setFormData(prev => ({ 
                             ...prev, 
                             jurisdiction: { 
@@ -926,7 +926,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                           }
                         }))}
                         onBlur={(e) => {
-                          const capitalized = autoCapitalizeFirst(e.target.value);
+                          const capitalized = toTitleCase(e.target.value);
                           setFormData(prev => ({ 
                             ...prev, 
                             jurisdiction: { 
@@ -959,7 +959,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                           }
                         }))}
                         onBlur={(e) => {
-                          const capitalized = autoCapitalizeFirst(e.target.value);
+                          const capitalized = toTitleCase(e.target.value);
                           setFormData(prev => ({ 
                             ...prev, 
                             jurisdiction: { 

@@ -1,6 +1,7 @@
 import { Court } from '@/contexts/AppStateContext';
 import { storageManager } from '@/data/StorageManager';
 import { toast } from '@/hooks/use-toast';
+import { normalizeCourtPayload } from '@/utils/formatters';
 
 export interface CreateCourtData {
   name: string;
@@ -33,23 +34,26 @@ class CourtsService {
         throw new Error('City is required');
       }
 
+      // Normalize payload before persistence
+      const normalizedData = normalizeCourtPayload(courtData);
+
       // Build complete court object
       const newCourt: Court = {
         id: '', // Server will generate UUID
-        name: courtData.name || '',
-        type: courtData.type || 'District Court',
-        jurisdiction: courtData.jurisdiction || '',
-        address: courtData.address || '',
+        name: normalizedData.name || '',
+        type: normalizedData.type || 'District Court',
+        jurisdiction: normalizedData.jurisdiction || '',
+        address: normalizedData.address || '',
         activeCases: 0,
         avgHearingTime: '30 mins',
-        digitalFiling: courtData.digitalFiling || false,
-        workingDays: courtData.workingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-        city: courtData.city,
-        phone: courtData.phone,
-        email: courtData.email,
-        benchLocation: courtData.benchLocation,
-        status: courtData.status || 'Active',
-        ...courtData
+        digitalFiling: normalizedData.digitalFiling || false,
+        workingDays: normalizedData.workingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+        city: normalizedData.city,
+        phone: normalizedData.phone,
+        email: normalizedData.email,
+        benchLocation: normalizedData.benchLocation,
+        status: normalizedData.status || 'Active',
+        ...normalizedData
       };
 
       // Persist to Supabase
@@ -95,6 +99,9 @@ class CourtsService {
   async update(courtId: string, updates: Partial<Court>, dispatch: any): Promise<Court> {
     try {
       const storage = storageManager.getStorage();
+
+      // Normalize payload before persistence
+      const normalizedUpdates = normalizeCourtPayload(updates);
 
       // Persist to Supabase
       await storage.update('courts', courtId, {

@@ -1,6 +1,7 @@
 import { toast } from "@/hooks/use-toast";
 import { AppAction } from "@/contexts/AppStateContext";
 import { roleMapperService } from './roleMapperService';
+import { normalizeEmployeePayload } from '@/utils/formatters';
 
 export interface Employee {
   id: string;
@@ -162,17 +163,20 @@ const validateEmployee = (employee: Partial<Employee>, existingEmployees: Employ
 export const employeesService = {
   // Create new employee
   create: async (employeeData: Partial<Employee>, dispatch: React.Dispatch<AppAction>, existingEmployees: Employee[]): Promise<Employee> => {
+    // Normalize payload before persistence
+    const normalizedData = normalizeEmployeePayload(employeeData);
+
     // Auto-generate employee code if not provided
-    if (!employeeData.employeeCode) {
-      employeeData.employeeCode = generateEmployeeCode(existingEmployees);
+    if (!normalizedData.employeeCode) {
+      normalizedData.employeeCode = generateEmployeeCode(existingEmployees);
     }
 
     // Set officialEmail as primary email if email not provided
-    if (!employeeData.email && employeeData.officialEmail) {
-      employeeData.email = employeeData.officialEmail;
+    if (!normalizedData.email && normalizedData.officialEmail) {
+      normalizedData.email = normalizedData.officialEmail;
     }
 
-    const errors = validateEmployee(employeeData, existingEmployees);
+    const errors = validateEmployee(normalizedData, existingEmployees);
     if (errors.length > 0) {
       throw new Error(errors.join(", "));
     }

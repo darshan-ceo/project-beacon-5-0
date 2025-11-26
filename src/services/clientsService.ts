@@ -1,5 +1,6 @@
 import { toast } from '@/hooks/use-toast';
 import type { Client, Signatory, PortalAccess, AppAction } from '@/contexts/AppStateContext';
+import { normalizeClientPayload } from '@/utils/formatters';
 
 // GSTIN validation regex
 const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
@@ -174,15 +175,18 @@ export const clientsService = {
       const { storageManager } = await import('@/data/StorageManager');
       const storage = storageManager.getStorage();
 
+      // Normalize payload before persistence
+      const normalizedData = normalizeClientPayload(clientData);
+
       // Prepare client data for Supabase
       const supabaseClient = {
-        display_name: clientData.name!.trim(),
-        gstin: clientData.gstin?.toUpperCase(),
-        pan: clientData.pan!.toUpperCase(),
-        email: clientData.email || null,
+        display_name: normalizedData.name || normalizedData.displayName || clientData.name!.trim(),
+        gstin: normalizedData.gstin,
+        pan: normalizedData.pan,
+        email: normalizedData.email || null,
         phone: clientData.phone || null,
-        city: clientData.address?.city || null,
-        state: clientData.address?.state || 'Gujarat',
+        city: normalizedData.city || clientData.address?.city || null,
+        state: normalizedData.state || clientData.address?.state || 'Gujarat',
         status: (clientData.status || 'Active').toLowerCase(),
       };
 
@@ -260,6 +264,9 @@ export const clientsService = {
       // Import storage manager
       const { storageManager } = await import('@/data/StorageManager');
       const storage = storageManager.getStorage();
+
+      // Normalize payload before persistence
+      const normalizedUpdates = normalizeClientPayload(updates);
 
       // Prepare updates for Supabase
       const supabaseUpdates: any = {};
