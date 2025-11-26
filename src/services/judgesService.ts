@@ -187,6 +187,60 @@ class JudgesService {
       throw error;
     }
   }
+
+  /**
+   * List all judges from Supabase
+   */
+  async list(): Promise<Judge[]> {
+    try {
+      const storage = storageManager.getStorage();
+      const judges = await storage.getAll('judges');
+      
+      return judges.map((j: any) => ({
+        id: j.id,
+        name: j.name,
+        designation: j.designation,
+        courtId: j.court_id,
+        email: j.email,
+        phone: j.phone,
+        specialization: j.specialization || [],
+        appointmentDate: j.appointment_date,
+        yearsOfService: j.years_of_service || 0,
+        status: 'Active',
+      } as Judge));
+    } catch (error) {
+      console.error('Failed to list judges:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get single judge by ID
+   */
+  async getById(judgeId: string): Promise<Judge | null> {
+    try {
+      const storage = storageManager.getStorage();
+      const judge = await storage.getById('judges', judgeId) as any;
+      
+      if (!judge) return null;
+      
+      return {
+        id: judge.id,
+        name: judge.name,
+        designation: judge.designation,
+        courtId: judge.court_id,
+        email: judge.email,
+        phone: judge.phone,
+        specialization: judge.specialization || [],
+        appointmentDate: judge.appointment_date,
+        yearsOfService: judge.years_of_service || 0,
+        status: 'Active',
+      } as Judge;
+    } catch (error) {
+      console.error('Failed to get judge:', error);
+      throw error;
+    }
+  }
 }
 
 export const judgesService = new JudgesService();

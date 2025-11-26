@@ -158,6 +158,68 @@ class CourtsService {
       throw error;
     }
   }
+
+  /**
+   * List all courts from Supabase
+   */
+  async list(): Promise<Court[]> {
+    try {
+      const storage = storageManager.getStorage();
+      const courts = await storage.getAll('courts');
+      
+      return courts.map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        type: c.type,
+        jurisdiction: c.jurisdiction,
+        address: c.address,
+        city: c.city,
+        phone: c.phone,
+        email: c.email,
+        status: c.status || 'Active',
+        activeCases: 0,
+        avgHearingTime: '30 mins',
+        digitalFiling: false,
+        workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+        benchLocation: c.bench_location,
+      } as Court));
+    } catch (error) {
+      console.error('Failed to list courts:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get single court by ID
+   */
+  async getById(courtId: string): Promise<Court | null> {
+    try {
+      const storage = storageManager.getStorage();
+      const court = await storage.getById('courts', courtId) as any;
+      
+      if (!court) return null;
+      
+      return {
+        id: court.id,
+        name: court.name,
+        type: court.type,
+        jurisdiction: court.jurisdiction,
+        address: court.address,
+        city: court.city,
+        phone: court.phone,
+        email: court.email,
+        status: court.status || 'Active',
+        activeCases: 0,
+        avgHearingTime: '30 mins',
+        digitalFiling: false,
+        workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+        benchLocation: court.bench_location,
+      } as Court;
+    } catch (error) {
+      console.error('Failed to get court:', error);
+      throw error;
+    }
+  }
 }
 
 export const courtsService = new CourtsService();
