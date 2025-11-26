@@ -14,7 +14,8 @@ import {
   RefreshCw,
   AlertTriangle,
   MapPin,
-  ListChecks
+  ListChecks,
+  Loader2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -90,6 +91,7 @@ const systemParameters: SystemParameter[] = [
 export const GlobalParameters: React.FC = () => {
   const [parameters, setParameters] = useState(systemParameters);
   const [hasChanges, setHasChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const updateParameter = (id: string, value: string) => {
     setParameters(prev => prev.map(param => 
@@ -98,12 +100,25 @@ export const GlobalParameters: React.FC = () => {
     setHasChanges(true);
   };
 
-  const saveChanges = () => {
-    toast({
-      title: "Settings Saved",
-      description: "Global parameters have been updated successfully.",
-    });
-    setHasChanges(false);
+  const saveChanges = async () => {
+    setIsSaving(true);
+    try {
+      // Simulate save operation (or actual backend call when implemented)
+      await new Promise(resolve => setTimeout(resolve, 500));
+      toast({
+        title: "Settings Saved",
+        description: "Global parameters have been updated successfully.",
+      });
+      setHasChanges(false);
+    } catch (error) {
+      toast({
+        title: "Save Failed",
+        description: "Failed to save global parameters.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const resetToDefaults = () => {
@@ -178,10 +193,20 @@ export const GlobalParameters: React.FC = () => {
             <span className="hidden sm:inline">Reset to Defaults</span>
             <span className="sm:hidden">Reset</span>
           </Button>
-          <Button onClick={saveChanges} disabled={!hasChanges} className="flex-1 sm:flex-none">
-            <Save className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">Save Changes</span>
-            <span className="sm:hidden">Save</span>
+          <Button onClick={saveChanges} disabled={!hasChanges || isSaving} className="flex-1 sm:flex-none">
+            {isSaving ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <span className="hidden sm:inline">Saving...</span>
+                <span className="sm:hidden">Saving</span>
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Save Changes</span>
+                <span className="sm:hidden">Save</span>
+              </>
+            )}
           </Button>
         </div>
       </div>
