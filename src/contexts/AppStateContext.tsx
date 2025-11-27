@@ -446,8 +446,10 @@ interface Hearing {
   end_time: string;
   timezone: string;
   court_id: string;
+  court_name?: string;
   courtroom?: string;
   judge_ids: string[];
+  judge_name?: string;
   purpose: 'PH' | 'mention' | 'final' | 'other';
   status: 'scheduled' | 'concluded' | 'adjourned' | 'no-board' | 'withdrawn';
   outcome?: 'Adjournment' | 'Submission Done' | 'Order Passed' | 'Closed' | 'Part-heard' | 'Allowed' | 'Dismissed' | 'Withdrawn' | 'Other';
@@ -473,7 +475,6 @@ interface Hearing {
   forum_id?: string;
   authority_name?: string;
   forum_name?: string;
-  judge_name?: string;
   bench_details?: string;
   
   // Legacy compatibility

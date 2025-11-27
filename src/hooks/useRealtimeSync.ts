@@ -212,7 +212,26 @@ export const useRealtimeSync = () => {
             };
             rawDispatch({ type: 'ADD_HEARING', payload: hearing as any });
           } else if (payload.eventType === 'UPDATE' && payload.new) {
-            rawDispatch({ type: 'UPDATE_HEARING', payload: { id: payload.new.id, ...payload.new } });
+            // Parse time from hearing_date like INSERT handler
+            const hearing = {
+              ...payload.new,
+              date: payload.new.hearing_date?.split('T')[0],
+              start_time: payload.new.hearing_date 
+                ? new Date(payload.new.hearing_date).toLocaleTimeString('en-US', { 
+                    hour12: false, 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })
+                : payload.new.start_time,
+              time: payload.new.hearing_date 
+                ? new Date(payload.new.hearing_date).toLocaleTimeString('en-US', { 
+                    hour12: false, 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })
+                : payload.new.time
+            };
+            rawDispatch({ type: 'UPDATE_HEARING', payload: hearing as any });
           } else if (payload.eventType === 'DELETE' && payload.old) {
             rawDispatch({ type: 'DELETE_HEARING', payload: payload.old.id });
           }

@@ -96,10 +96,10 @@ const HearingsList: React.FC<{
                       {formatDateForDisplay(hearing.date)} at {formatTimeForDisplay(hearing.start_time)}
                     </p>
                     <p className="text-xs md:text-sm text-muted-foreground">
-                      {court?.name}
+                      {court?.name || hearing.court_name || 'No court assigned'}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Judges: {judges.length > 0 ? judges.map(j => j.name).join(', ') : 'No judges assigned'}
+                      Judges: {judges.length > 0 ? judges.map(j => j.name).join(', ') : (hearing.judge_name || 'No judges assigned')}
                     </p>
                     {calendarProvider && calendarProvider !== 'none' && (
                       <div className="mt-2">
