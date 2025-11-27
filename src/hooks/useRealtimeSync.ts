@@ -67,7 +67,29 @@ export const useRealtimeSync = () => {
                 assignedToName: employee?.full_name || '',
                 caseNumber: caseData.case_number,
                 clientId: caseData.client_id,
-                currentStage: caseData.stage_code || caseData.current_stage || 'Assessment'
+                currentStage: (caseData.stage_code || caseData.current_stage || 'ASSESSMENT').toUpperCase(),
+                officeFileNo: caseData.office_file_no || caseData.officeFileNo,
+                noticeNo: caseData.notice_no || caseData.noticeNo,
+                city: caseData.city,
+                authorityId: caseData.authority_id || caseData.authorityId,
+                forumId: caseData.forum_id || caseData.forumId,
+                caseType: caseData.case_type || caseData.caseType,
+                caseYear: caseData.case_year || caseData.caseYear,
+                caseSequence: caseData.case_sequence || caseData.caseSequence,
+                issueType: caseData.issue_type || caseData.issueType,
+                formType: caseData.form_type || caseData.formType,
+                sectionInvoked: caseData.section_invoked || caseData.sectionInvoked,
+                financialYear: caseData.financial_year || caseData.financialYear,
+                noticeDate: caseData.notice_date || caseData.noticeDate,
+                noticeType: caseData.notice_type || caseData.noticeType,
+                replyDueDate: caseData.reply_due_date || caseData.replyDueDate,
+                taxDemand: caseData.tax_demand || caseData.taxDemand,
+                interestAmount: caseData.interest_amount || caseData.interestAmount,
+                penaltyAmount: caseData.penalty_amount || caseData.penaltyAmount,
+                totalDemand: caseData.total_demand || caseData.totalDemand,
+                stateBenchState: caseData.state_bench_state || caseData.stateBenchState,
+                stateBenchCity: caseData.state_bench_city || caseData.stateBenchCity,
+                nextHearingDate: caseData.next_hearing_date || caseData.nextHearingDate
               } as any 
             });
           } else if (payload.eventType === 'UPDATE' && payload.new) {
@@ -82,7 +104,29 @@ export const useRealtimeSync = () => {
                 assignedToName: employee?.full_name || '',
                 caseNumber: caseData.case_number,
                 clientId: caseData.client_id,
-                currentStage: caseData.stage_code || caseData.current_stage || 'Assessment'
+                currentStage: (caseData.stage_code || caseData.current_stage || 'ASSESSMENT').toUpperCase(),
+                officeFileNo: caseData.office_file_no || caseData.officeFileNo,
+                noticeNo: caseData.notice_no || caseData.noticeNo,
+                city: caseData.city,
+                authorityId: caseData.authority_id || caseData.authorityId,
+                forumId: caseData.forum_id || caseData.forumId,
+                caseType: caseData.case_type || caseData.caseType,
+                caseYear: caseData.case_year || caseData.caseYear,
+                caseSequence: caseData.case_sequence || caseData.caseSequence,
+                issueType: caseData.issue_type || caseData.issueType,
+                formType: caseData.form_type || caseData.formType,
+                sectionInvoked: caseData.section_invoked || caseData.sectionInvoked,
+                financialYear: caseData.financial_year || caseData.financialYear,
+                noticeDate: caseData.notice_date || caseData.noticeDate,
+                noticeType: caseData.notice_type || caseData.noticeType,
+                replyDueDate: caseData.reply_due_date || caseData.replyDueDate,
+                taxDemand: caseData.tax_demand || caseData.taxDemand,
+                interestAmount: caseData.interest_amount || caseData.interestAmount,
+                penaltyAmount: caseData.penalty_amount || caseData.penaltyAmount,
+                totalDemand: caseData.total_demand || caseData.totalDemand,
+                stateBenchState: caseData.state_bench_state || caseData.stateBenchState,
+                stateBenchCity: caseData.state_bench_city || caseData.stateBenchCity,
+                nextHearingDate: caseData.next_hearing_date || caseData.nextHearingDate
               } as any
             });
           } else if (payload.eventType === 'DELETE' && payload.old) {
