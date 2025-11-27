@@ -292,6 +292,7 @@ export type Database = {
           case_sequence: string | null
           case_type: string | null
           case_year: string | null
+          city: string | null
           client_id: string
           created_at: string | null
           description: string | null
@@ -328,6 +329,7 @@ export type Database = {
           case_sequence?: string | null
           case_type?: string | null
           case_year?: string | null
+          city?: string | null
           client_id: string
           created_at?: string | null
           description?: string | null
@@ -364,6 +366,7 @@ export type Database = {
           case_sequence?: string | null
           case_type?: string | null
           case_year?: string | null
+          city?: string | null
           client_id?: string
           created_at?: string | null
           description?: string | null
