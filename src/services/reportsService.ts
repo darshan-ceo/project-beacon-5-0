@@ -214,22 +214,22 @@ export const reportsService = {
       const clients = await storage.getAll('clients');
       const employees = await storage.getAll('employees');
 
-      const clientMap = new Map(clients.map((c: any) => [c.id, c.name]));
-      const employeeMap = new Map(employees.map((e: any) => [e.id, e.name || `${e.firstName} ${e.lastName}`]));
+      const clientMap = new Map(clients.map((c: any) => [c.id, c.display_name || c.name || 'Unknown']));
+      const employeeMap = new Map(employees.map((e: any) => [e.id, e.full_name || e.name || 'Unknown']));
 
       let filteredCases = cases;
 
       if (filters.clientId) {
-        filteredCases = filteredCases.filter((c: any) => c.clientId === filters.clientId);
+        filteredCases = filteredCases.filter((c: any) => (c.client_id || c.clientId) === filters.clientId);
       }
 
       if (filters.stage) {
         const normalizedFilterStage = normalizeStage(filters.stage);
-        filteredCases = filteredCases.filter((c: any) => normalizeStage(c.currentStage) === normalizedFilterStage);
+        filteredCases = filteredCases.filter((c: any) => normalizeStage(c.stage_code || c.currentStage) === normalizedFilterStage);
       }
 
       if (filters.ragStatus) {
-        filteredCases = filteredCases.filter((c: any) => c.timelineBreachStatus === filters.ragStatus);
+        filteredCases = filteredCases.filter((c: any) => (c.timeline_breach_status || c.timelineBreachStatus) === filters.ragStatus);
       }
 
       if (filters.priority) {
@@ -237,7 +237,7 @@ export const reportsService = {
       }
 
       if (filters.ownerId) {
-        filteredCases = filteredCases.filter((c: any) => c.assignedToId === filters.ownerId);
+        filteredCases = filteredCases.filter((c: any) => (c.assigned_to || c.assignedToId) === filters.ownerId);
       }
 
       if (filters.status) {
@@ -247,36 +247,36 @@ export const reportsService = {
       if (filters.dateRange) {
         const { start, end } = filters.dateRange;
         filteredCases = filteredCases.filter((c: any) => {
-          const createdDate = new Date(c.createdDate);
+          const createdDate = new Date(c.created_at || c.createdDate);
           return createdDate >= new Date(start) && createdDate <= new Date(end);
         });
       }
 
       const reportData = filteredCases.map((caseItem: any) => {
         const agingDays = Math.floor(
-          (new Date().getTime() - new Date(caseItem.createdDate).getTime()) / (1000 * 60 * 60 * 24)
+          (new Date().getTime() - new Date(caseItem.created_at || caseItem.createdDate).getTime()) / (1000 * 60 * 60 * 24)
         );
 
         return {
           id: caseItem.id,
-          caseNumber: caseItem.caseNumber || 'N/A',
-          caseType: caseItem.caseType || 'GST',
+          caseNumber: caseItem.case_number || caseItem.caseNumber || 'N/A',
+          caseType: caseItem.case_type || caseItem.caseType || 'GST',
           title: caseItem.title,
-          client: clientMap.get(caseItem.clientId) || 'Unknown',
-          stage: caseItem.currentStage,
-          owner: employeeMap.get(caseItem.assignedToId) || 'Unassigned',
-          createdDate: caseItem.createdDate,
-          updatedDate: caseItem.lastUpdated,
-          timelineBreachStatus: caseItem.timelineBreachStatus,
+          client: clientMap.get(caseItem.client_id || caseItem.clientId) || 'Unknown',
+          stage: caseItem.stage_code || caseItem.currentStage || 'Unknown',
+          owner: employeeMap.get(caseItem.assigned_to || caseItem.assignedToId) || 'Unassigned',
+          createdDate: caseItem.created_at || caseItem.createdDate,
+          updatedDate: caseItem.updated_at || caseItem.lastUpdated,
+          timelineBreachStatus: caseItem.timeline_breach_status || caseItem.timelineBreachStatus || 'Green',
           priority: caseItem.priority,
           agingDays,
           status: caseItem.status || 'Active',
-          taxDemand: caseItem.taxDemand,
+          taxDemand: caseItem.tax_demand || caseItem.taxDemand,
           period: caseItem.period,
           authority: caseItem.authority,
-          officeFileNo: caseItem.officeFileNo,
-          noticeNo: caseItem.noticeNo,
-          reviewDate: caseItem.reviewDate,
+          officeFileNo: caseItem.office_file_no || caseItem.officeFileNo,
+          noticeNo: caseItem.notice_no || caseItem.noticeNo,
+          reviewDate: caseItem.review_date || caseItem.reviewDate,
         };
       });
 
@@ -300,7 +300,7 @@ export const reportsService = {
       const judges = await storage.getAll('judges');
 
       const caseMap = new Map(cases.map((c: any) => [c.id, c]));
-      const clientMap = new Map(clients.map((c: any) => [c.id, c.name]));
+      const clientMap = new Map(clients.map((c: any) => [c.id, c.display_name || c.name || 'Unknown']));
       const courtMap = new Map(courts.map((c: any) => [c.id, c.name]));
       const judgeMap = new Map(judges.map((j: any) => [j.id, j.name]));
 
@@ -309,17 +309,17 @@ export const reportsService = {
       if (filters.dateRange) {
         const { start, end } = filters.dateRange;
         filteredHearings = filteredHearings.filter((h: any) => {
-          const hearingDate = new Date(h.date);
+          const hearingDate = new Date(h.hearing_date || h.date);
           return hearingDate >= new Date(start) && hearingDate <= new Date(end);
         });
       }
 
       if (filters.courtId) {
-        filteredHearings = filteredHearings.filter((h: any) => h.court_id === filters.courtId);
+        filteredHearings = filteredHearings.filter((h: any) => (h.court_id || h.courtId) === filters.courtId);
       }
 
       if (filters.judgeId) {
-        filteredHearings = filteredHearings.filter((h: any) => h.judge_id === filters.judgeId);
+        filteredHearings = filteredHearings.filter((h: any) => (h.judge_id || h.judgeId) === filters.judgeId);
       }
 
       if (filters.status) {
@@ -327,19 +327,19 @@ export const reportsService = {
       }
 
       const reportData = filteredHearings.map((hearing: any) => {
-        const relatedCase = caseMap.get(hearing.case_id);
-        const clientId = relatedCase?.clientId;
+        const relatedCase = caseMap.get(hearing.case_id || hearing.caseId);
+        const clientId = relatedCase?.client_id || relatedCase?.clientId;
 
         return {
           id: hearing.id,
-          caseId: hearing.case_id,
+          caseId: hearing.case_id || hearing.caseId,
           caseTitle: relatedCase?.title || 'Unknown',
           client: clientId ? (clientMap.get(clientId) || 'Unknown') : 'Unknown',
-          date: hearing.date,
+          date: hearing.hearing_date || hearing.date,
           time: hearing.time || hearing.start_time || '10:00',
-          court: courtMap.get(hearing.court_id) || 'Unknown',
+          court: courtMap.get(hearing.court_id || hearing.courtId) || 'Unknown',
           bench: hearing.bench || 'N/A',
-          judge: judgeMap.get(hearing.judge_id) || 'Unknown',
+          judge: judgeMap.get(hearing.judge_id || hearing.judgeId) || 'Unknown',
           type: hearing.purpose || 'Scheduled',
           status: hearing.status || 'Scheduled',
         };
@@ -362,41 +362,41 @@ export const reportsService = {
       const clients = await storage.getAll('clients');
       const employees = await storage.getAll('employees');
 
-      const clientMap = new Map(clients.map((c: any) => [c.id, c.name]));
-      const employeeMap = new Map(employees.map((e: any) => [e.id, e.name || `${e.firstName} ${e.lastName}`]));
+      const clientMap = new Map(clients.map((c: any) => [c.id, c.display_name || c.name || 'Unknown']));
+      const employeeMap = new Map(employees.map((e: any) => [e.id, e.full_name || e.name || 'Unknown']));
 
       let filteredCases = cases;
 
       if (filters.ragStatus) {
-        filteredCases = filteredCases.filter((c: any) => c.timelineBreachStatus === filters.ragStatus);
+        filteredCases = filteredCases.filter((c: any) => (c.timeline_breach_status || c.timelineBreachStatus) === filters.ragStatus);
       }
 
       if (filters.stage) {
         const normalizedFilterStage = normalizeStage(filters.stage);
-        filteredCases = filteredCases.filter((c: any) => normalizeStage(c.currentStage) === normalizedFilterStage);
+        filteredCases = filteredCases.filter((c: any) => normalizeStage(c.stage_code || c.currentStage) === normalizedFilterStage);
       }
 
       if (filters.ownerId) {
-        filteredCases = filteredCases.filter((c: any) => c.assignedToId === filters.ownerId);
+        filteredCases = filteredCases.filter((c: any) => (c.assigned_to || c.assignedToId) === filters.ownerId);
       }
 
       const reportData = filteredCases.map((caseItem: any) => {
         const agingDays = Math.floor(
-          (new Date().getTime() - new Date(caseItem.createdDate).getTime()) / (1000 * 60 * 60 * 24)
+          (new Date().getTime() - new Date(caseItem.created_at || caseItem.createdDate).getTime()) / (1000 * 60 * 60 * 24)
         );
 
-        const breached = caseItem.timelineBreachStatus === 'Red' || 
-          (caseItem.reviewDate && new Date(caseItem.reviewDate) < new Date());
+        const breached = (caseItem.timeline_breach_status || caseItem.timelineBreachStatus) === 'Red' || 
+          (caseItem.review_date || caseItem.reviewDate) && new Date(caseItem.review_date || caseItem.reviewDate) < new Date();
 
         return {
           caseId: caseItem.id,
           caseTitle: caseItem.title,
-          client: clientMap.get(caseItem.clientId) || 'Unknown',
-          stage: caseItem.currentStage,
-          timelineDue: caseItem.reviewDate || 'N/A',
+          client: clientMap.get(caseItem.client_id || caseItem.clientId) || 'Unknown',
+          stage: caseItem.stage_code || caseItem.currentStage || 'Unknown',
+          timelineDue: caseItem.review_date || caseItem.reviewDate || 'N/A',
           agingDays,
-          ragStatus: caseItem.timelineBreachStatus,
-          owner: employeeMap.get(caseItem.assignedToId) || 'Unassigned',
+          ragStatus: caseItem.timeline_breach_status || caseItem.timelineBreachStatus || 'Green',
+          owner: employeeMap.get(caseItem.assigned_to || caseItem.assignedToId) || 'Unassigned',
           breached,
         };
       });
@@ -423,7 +423,7 @@ export const reportsService = {
       const tasks = await storage.getAll('tasks');
       const cases = await storage.getAll('cases');
 
-      const caseMap = new Map(cases.map((c: any) => [c.id, { title: c.title, caseNumber: c.caseNumber }]));
+      const caseMap = new Map(cases.map((c: any) => [c.id, { title: c.title, caseNumber: c.case_number || c.caseNumber }]));
 
       let filteredTasks = tasks;
 
@@ -432,7 +432,7 @@ export const reportsService = {
       }
 
       if (filters.assigneeId) {
-        filteredTasks = filteredTasks.filter((t: any) => t.assigned_to === filters.assigneeId);
+        filteredTasks = filteredTasks.filter((t: any) => (t.assigned_to || t.assignedToId) === filters.assigneeId);
       }
 
       if (filters.priority) {
@@ -442,25 +442,25 @@ export const reportsService = {
       if (filters.dateRange) {
         const { start, end } = filters.dateRange;
         filteredTasks = filteredTasks.filter((t: any) => {
-          if (!t.due_date) return false;
-          const dueDate = new Date(t.due_date);
+          if (!t.due_date && !t.dueDate) return false;
+          const dueDate = new Date(t.due_date || t.dueDate);
           return dueDate >= new Date(start) && dueDate <= new Date(end);
         });
       }
 
       const reportData = filteredTasks.map((task: any) => {
-        const caseInfo = caseMap.get(task.case_id);
+        const caseInfo = caseMap.get(task.case_id || task.caseId);
         const agingDays = Math.floor(
-          (new Date().getTime() - new Date(task.created_at).getTime()) / (1000 * 60 * 60 * 24)
+          (new Date().getTime() - new Date(task.created_at || task.createdAt).getTime()) / (1000 * 60 * 60 * 24)
         );
 
         return {
           id: task.id,
           title: task.title,
-          caseId: task.case_id,
+          caseId: task.case_id || task.caseId,
           caseTitle: caseInfo?.title || 'Unknown',
           assignee: task.assignedToName || 'Unassigned',
-          dueDate: task.due_date ? new Date(task.due_date).toISOString().split('T')[0] : 'N/A',
+          dueDate: (task.due_date || task.dueDate) ? new Date(task.due_date || task.dueDate).toISOString().split('T')[0] : 'N/A',
           status: task.status as any,
           agingDays,
           escalated: (task.escalation_level || 0) > 0,
@@ -492,27 +492,28 @@ export const reportsService = {
       }
 
       const reportData = filteredClients.map((client: any) => {
-        const clientCases = cases.filter((c: any) => c.clientId === client.id);
+        const clientCases = cases.filter((c: any) => (c.client_id || c.clientId) === client.id);
         const activeCases = clientCases.filter((c: any) => c.status === 'Active' || !c.status);
 
         const stageMix: { [key: string]: number } = {};
         clientCases.forEach((c: any) => {
-          stageMix[c.currentStage] = (stageMix[c.currentStage] || 0) + 1;
+          const stage = c.stage_code || c.currentStage || 'Unknown';
+          stageMix[stage] = (stageMix[stage] || 0) + 1;
         });
 
-        const slaBreaches = clientCases.filter((c: any) => c.timelineBreachStatus === 'Red').length;
+        const slaBreaches = clientCases.filter((c: any) => (c.timeline_breach_status || c.timelineBreachStatus) === 'Red').length;
 
         const clientCaseIds = new Set(clientCases.map((c: any) => c.id));
         const clientHearings = hearings
-          .filter((h: any) => clientCaseIds.has(h.case_id))
-          .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
-        const nextHearing = (clientHearings[0] as any)?.date;
+          .filter((h: any) => clientCaseIds.has(h.case_id || h.caseId))
+          .sort((a: any, b: any) => new Date(a.hearing_date || a.date).getTime() - new Date(b.hearing_date || b.date).getTime());
+        const nextHearing = (clientHearings[0] as any)?.hearing_date || (clientHearings[0] as any)?.date;
 
-        const totalValue = clientCases.reduce((sum: number, c: any) => sum + (c.taxDemand || c.amountInDispute || 0), 0);
+        const totalValue = clientCases.reduce((sum: number, c: any) => sum + (c.tax_demand || c.taxDemand || c.amountInDispute || 0), 0);
 
         return {
           id: client.id,
-          name: client.name,
+          name: client.display_name || client.name || 'Unknown',
           totalCases: clientCases.length,
           activeCases: activeCases.length,
           stageMix,
@@ -601,16 +602,16 @@ export const reportsService = {
       const cases = await storage.getAll('cases');
       const clients = await storage.getAll('clients');
 
-      const clientMap = new Map(clients.map((c: any) => [c.id, c.name]));
+      const clientMap = new Map(clients.map((c: any) => [c.id, c.display_name || c.name || 'Unknown']));
 
       let filteredCases = cases;
 
       if (filters.clientId) {
-        filteredCases = filteredCases.filter((c: any) => c.clientId === filters.clientId);
+        filteredCases = filteredCases.filter((c: any) => (c.client_id || c.clientId) === filters.clientId);
       }
 
       if (filters.stage) {
-        filteredCases = filteredCases.filter((c: any) => c.currentStage === filters.stage);
+        filteredCases = filteredCases.filter((c: any) => (c.stage_code || c.currentStage) === filters.stage);
       }
 
       const reportData: any[] = [];
@@ -644,10 +645,10 @@ export const reportsService = {
               formCode: form.formCode,
               formTitle: form.formCode.replace(/_/g, '-'),
               caseId: caseItem.id,
-              caseNumber: caseItem.caseNumber || 'N/A',
+              caseNumber: caseItem.case_number || caseItem.caseNumber || 'N/A',
               caseTitle: caseItem.title,
-              client: clientMap.get(caseItem.clientId) || 'Unknown',
-              stage: caseItem.currentStage,
+              client: clientMap.get(caseItem.client_id || caseItem.clientId) || 'Unknown',
+              stage: caseItem.stage_code || caseItem.currentStage || 'Unknown',
               submissionDate,
               dueDate: undefined,
               status,
