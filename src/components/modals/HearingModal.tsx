@@ -365,8 +365,10 @@ export const HearingModal: React.FC<HearingModalProps> = ({
           court_id: formData.forumId,
           authority_id: formData.authorityId || undefined,
           forum_id: formData.forumId || undefined,
-          hearing_date: `${format(formData.date, 'yyyy-MM-dd')}T${formData.time}:00`,
-          judge_name: judge?.name || undefined,
+          // Use UI-friendly fields so the service can map to DB + update state correctly
+          date: format(formData.date, 'yyyy-MM-dd'),
+          start_time: formData.time,
+          judge_ids: formData.judgeId ? [formData.judgeId] : undefined,
           notes: formData.notes || undefined,
           status: formData.status
         };
