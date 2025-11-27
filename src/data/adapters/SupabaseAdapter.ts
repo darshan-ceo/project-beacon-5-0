@@ -1312,6 +1312,48 @@ export class SupabaseAdapter implements StoragePort {
           if (normalized.nextHearingDate && !normalized.next_hearing_date) {
             normalized.next_hearing_date = normalized.nextHearingDate;
           }
+          if (normalized.stateBenchState && !normalized.state_bench_state) {
+            normalized.state_bench_state = normalized.stateBenchState;
+          }
+          if (normalized.stateBenchCity && !normalized.state_bench_city) {
+            normalized.state_bench_city = normalized.stateBenchCity;
+          }
+          if (normalized.caseType && !normalized.case_type) {
+            normalized.case_type = normalized.caseType;
+          }
+          if (normalized.caseYear && !normalized.case_year) {
+            normalized.case_year = normalized.caseYear;
+          }
+          if (normalized.caseSequence && !normalized.case_sequence) {
+            normalized.case_sequence = normalized.caseSequence;
+          }
+          if (normalized.officeFileNo && !normalized.office_file_no) {
+            normalized.office_file_no = normalized.officeFileNo;
+          }
+          if (normalized.issueType && !normalized.issue_type) {
+            normalized.issue_type = normalized.issueType;
+          }
+          if (normalized.formType && !normalized.form_type) {
+            normalized.form_type = normalized.formType;
+          }
+          if (normalized.sectionInvoked && !normalized.section_invoked) {
+            normalized.section_invoked = normalized.sectionInvoked;
+          }
+          if (normalized.financialYear && !normalized.financial_year) {
+            normalized.financial_year = normalized.financialYear;
+          }
+          if (normalized.interestAmount && !normalized.interest_amount) {
+            normalized.interest_amount = normalized.interestAmount;
+          }
+          if (normalized.penaltyAmount && !normalized.penalty_amount) {
+            normalized.penalty_amount = normalized.penaltyAmount;
+          }
+          if (normalized.totalDemand && !normalized.total_demand) {
+            normalized.total_demand = normalized.totalDemand;
+          }
+          if (normalized.replyDueDate && !normalized.reply_due_date) {
+            normalized.reply_due_date = normalized.replyDueDate;
+          }
           
           // Delete camelCase versions after mapping
           delete normalized.caseNumber;
