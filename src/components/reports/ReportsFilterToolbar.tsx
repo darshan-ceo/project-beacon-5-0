@@ -67,10 +67,11 @@ export const ReportsFilterToolbar: React.FC<ReportsFilterToolbarProps> = ({
   ];
 
   const taskStatuses = [
-    { value: 'open', label: 'Open' },
-    { value: 'in-progress', label: 'In Progress' },
-    { value: 'completed', label: 'Completed' },
-    { value: 'overdue', label: 'Overdue' }
+    { value: 'Open', label: 'Open' },
+    { value: 'In Progress', label: 'In Progress' },
+    { value: 'Not Started', label: 'Not Started' },
+    { value: 'Completed', label: 'Completed' },
+    { value: 'Overdue', label: 'Overdue' }
   ];
 
   const communicationChannels = [
