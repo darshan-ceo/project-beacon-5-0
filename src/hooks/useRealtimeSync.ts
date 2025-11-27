@@ -8,7 +8,7 @@ import { RealtimeChannel } from '@supabase/supabase-js';
  * Subscribes to postgres_changes for core tables and updates React context
  */
 export const useRealtimeSync = () => {
-  const { dispatch, rawDispatch } = useAppState();
+  const { dispatch, rawDispatch, state } = useAppState();
   const channelRef = useRef<RealtimeChannel | null>(null);
   const [tenantId, setTenantId] = useState<string | null>(null);
 
@@ -56,9 +56,35 @@ export const useRealtimeSync = () => {
         (payload) => {
           console.log('[Realtime] Cases change:', payload.eventType, payload);
           if (payload.eventType === 'INSERT' && payload.new) {
-            rawDispatch({ type: 'ADD_CASE', payload: payload.new as any });
+            const caseData = payload.new as any;
+            // Derive assignedToName from employees state
+            const employee = state.employees.find(e => e.id === caseData.assigned_to);
+            rawDispatch({ 
+              type: 'ADD_CASE', 
+              payload: {
+                ...caseData,
+                assignedToId: caseData.assigned_to,
+                assignedToName: employee?.full_name || '',
+                caseNumber: caseData.case_number,
+                clientId: caseData.client_id,
+                currentStage: caseData.stage_code || caseData.current_stage || 'Assessment'
+              } as any 
+            });
           } else if (payload.eventType === 'UPDATE' && payload.new) {
-            rawDispatch({ type: 'UPDATE_CASE', payload: payload.new as any });
+            const caseData = payload.new as any;
+            // Derive assignedToName from employees state
+            const employee = state.employees.find(e => e.id === caseData.assigned_to);
+            rawDispatch({ 
+              type: 'UPDATE_CASE', 
+              payload: {
+                ...caseData,
+                assignedToId: caseData.assigned_to,
+                assignedToName: employee?.full_name || '',
+                caseNumber: caseData.case_number,
+                clientId: caseData.client_id,
+                currentStage: caseData.stage_code || caseData.current_stage || 'Assessment'
+              } as any
+            });
           } else if (payload.eventType === 'DELETE' && payload.old) {
             rawDispatch({ type: 'DELETE_CASE', payload: (payload.old as any).id });
           }

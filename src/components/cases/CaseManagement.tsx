@@ -218,6 +218,9 @@ export const CaseManagement: React.FC = () => {
           try {
             const row = payload.new as any;
             
+            // Derive assignedToName from employees state
+            const employee = state.employees.find(e => e.id === row.assigned_to);
+            
             // Map snake_case to camelCase
             const newCase: Case = {
               id: row.id,
@@ -225,7 +228,7 @@ export const CaseManagement: React.FC = () => {
               clientId: row.client_id,
               currentStage: row.stage_code || row.current_stage || 'Assessment',
               assignedToId: row.assigned_to,
-              assignedToName: row.assigned_to_name,
+              assignedToName: employee?.full_name || '',
               status: row.status,
               priority: row.priority,
               createdDate: row.created_at,
@@ -270,6 +273,9 @@ export const CaseManagement: React.FC = () => {
           try {
             const row = payload.new as any;
             
+            // Derive assignedToName from employees state
+            const employee = state.employees.find(e => e.id === row.assigned_to);
+            
             // Map snake_case to camelCase
             const updatedCase: Case = {
               id: row.id,
@@ -277,7 +283,7 @@ export const CaseManagement: React.FC = () => {
               clientId: row.client_id,
               currentStage: row.stage_code || row.current_stage || 'Assessment',
               assignedToId: row.assigned_to,
-              assignedToName: row.assigned_to_name,
+              assignedToName: employee?.full_name || '',
               status: row.status,
               priority: row.priority,
               createdDate: row.created_at,

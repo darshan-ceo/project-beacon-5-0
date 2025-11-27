@@ -133,11 +133,27 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           updatedBy: cg.updated_by || cg.updatedBy,
         }));
 
+        // Create employees map for quick lookup (used for deriving assignedToName)
+        const employeesMap = new Map(
+          (employeesData.data || []).map((e: any) => [
+            e.id, 
+            e.full_name || e.name || 'Unknown'
+          ])
+        );
+
         const cases = (casesData.data || []).map((c: any) => {
           // Normalize status: 'open'/'Open' → 'Active'
           const normalizedStatus = ['open', 'Open', 'active', 'Active'].includes(c.status) 
             ? 'Active' 
             : c.status || 'Active';
+          
+          // Get assigned_to UUID
+          const assignedToId = c.assigned_to || c.assigned_to_id || c.assignedToId;
+          
+          // Derive assignedToName from employees map
+          const assignedToName = assignedToId 
+            ? (employeesMap.get(assignedToId) || c.assigned_to_name || c.assignedToName || '')
+            : '';
           
           // Build case object with proper field mapping
           const caseObj = {
@@ -146,8 +162,8 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
             clientId: c.client_id || c.clientId,
             status: normalizedStatus,
             currentStage: normalizeStage(c.stage_code || c.current_stage || c.currentStage || 'Assessment'),
-            assignedToId: c.assigned_to || c.assigned_to_id || c.assignedToId,
-            assignedToName: c.assigned_to_name || c.assignedToName,
+            assignedToId,
+            assignedToName,
             createdDate: c.created_date || c.created_at || c.createdDate,
             lastUpdated: c.last_updated || c.updated_at || c.lastUpdated,
             generatedForms: c.generated_forms || c.generatedForms || [],
