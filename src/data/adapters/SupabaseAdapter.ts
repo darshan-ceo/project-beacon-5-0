@@ -1337,6 +1337,11 @@ export class SupabaseAdapter implements StoragePort {
           delete normalized.sectionInvoked;
           delete normalized.financialYear;
           
+          // Map currentStage to stage_code before deletion
+          if (normalized.currentStage && !normalized.stage_code) {
+            normalized.stage_code = normalized.currentStage;
+          }
+          
           // Delete frontend-only fields (non-database fields)
           delete normalized.matterType;
           delete normalized.tribunalBench;
@@ -1372,7 +1377,7 @@ export class SupabaseAdapter implements StoragePort {
             'client_id', 'stage_code', 'status', 'priority', 'assigned_to', 
             'owner_id', 'notice_type', 'notice_no', 'notice_date', 'tax_demand',
             'created_at', 'updated_at', 'forum_id', 'authority_id', 'next_hearing_date',
-            'state_bench_state', 'state_bench_city',
+            'state_bench_state', 'state_bench_city', 'city',
             'case_type', 'case_year', 'case_sequence', 'office_file_no',
             'issue_type', 'form_type', 'section_invoked', 'financial_year',
             'interest_amount', 'penalty_amount', 'total_demand', 'reply_due_date'
