@@ -299,6 +299,12 @@ export const reportsService = {
       const courts = await storage.getAll('courts');
       const judges = await storage.getAll('judges');
 
+      // Helper to validate UUID format
+      const isValidUUID = (str: string) => {
+        if (!str) return false;
+        return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+      };
+
       const caseMap = new Map(cases.map((c: any) => [c.id, c]));
       const clientMap = new Map(clients.map((c: any) => [c.id, c.display_name || c.name || 'Unknown']));
       const courtMap = new Map(courts.map((c: any) => [c.id, c.name]));
@@ -319,7 +325,17 @@ export const reportsService = {
       }
 
       if (filters.judgeId) {
-        filteredHearings = filteredHearings.filter((h: any) => (h.judge_id || h.judgeId) === filters.judgeId);
+        const searchTerm = filters.judgeId.toLowerCase();
+        filteredHearings = filteredHearings.filter((h: any) => {
+          const judgeName = h.judge_name || '';
+          // If judge_name is a UUID, look up the name for comparison
+          if (isValidUUID(judgeName)) {
+            const judgeNameFromMap = judgeMap.get(judgeName);
+            return judgeNameFromMap?.toLowerCase().includes(searchTerm);
+          }
+          // Otherwise search the text name directly
+          return judgeName.toLowerCase().includes(searchTerm);
+        });
       }
 
       if (filters.status) {
@@ -339,7 +355,14 @@ export const reportsService = {
           time: hearing.time || hearing.start_time || '10:00',
           court: courtMap.get(hearing.court_id || hearing.courtId) || 'Unknown',
           bench: hearing.bench || 'N/A',
-          judge: judgeMap.get(hearing.judge_id || hearing.judgeId) || 'Unknown',
+          judge: (() => {
+            const judgeName = hearing.judge_name;
+            if (!judgeName) return 'Unknown';
+            if (isValidUUID(judgeName)) {
+              return judgeMap.get(judgeName) || 'Unknown';
+            }
+            return judgeName; // Use the text name directly
+          })(),
           type: hearing.purpose || 'Scheduled',
           status: hearing.status || 'Scheduled',
         };

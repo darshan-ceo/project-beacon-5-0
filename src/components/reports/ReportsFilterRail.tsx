@@ -482,7 +482,7 @@ export const ReportsFilterRail: React.FC<ReportsFilterRailProps> = ({
         </div>
 
         {/* Owner Filter */}
-        {userRole === 'Admin' && (
+        {userRole === 'Admin' && reportType !== 'hearings' && (
           <div className="space-y-2">
             <Label className="text-sm font-medium">Owner</Label>
             <Select value={filters.ownerId || 'all'} onValueChange={(value) => updateFilters({ ownerId: value === 'all' ? undefined : value })}>
