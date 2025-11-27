@@ -445,17 +445,27 @@ export const reportsService = {
 
       const tasks = await storage.getAll('tasks');
       const cases = await storage.getAll('cases');
+      const employees = await storage.getAll('employees');
 
       const caseMap = new Map(cases.map((c: any) => [c.id, { title: c.title, caseNumber: c.case_number || c.caseNumber }]));
+      const employeeMap = new Map(employees.map((e: any) => [e.id, e.full_name || e.name || 'Unknown']));
 
       let filteredTasks = tasks;
 
+      // Map ownerId to assigneeId for compatibility (tasks use assignee concept)
+      const effectiveAssigneeId = filters.assigneeId || filters.ownerId;
+
       if (filters.status) {
-        filteredTasks = filteredTasks.filter((t: any) => t.status === filters.status);
+        // Case-insensitive status comparison to handle different formats
+        const normalizedStatus = filters.status.toLowerCase().replace('-', ' ');
+        filteredTasks = filteredTasks.filter((t: any) => 
+          (t.status || '').toLowerCase() === normalizedStatus ||
+          t.status === filters.status
+        );
       }
 
-      if (filters.assigneeId) {
-        filteredTasks = filteredTasks.filter((t: any) => (t.assigned_to || t.assignedToId) === filters.assigneeId);
+      if (effectiveAssigneeId) {
+        filteredTasks = filteredTasks.filter((t: any) => (t.assigned_to || t.assignedToId) === effectiveAssigneeId);
       }
 
       if (filters.priority) {
@@ -482,7 +492,7 @@ export const reportsService = {
           title: task.title,
           caseId: task.case_id || task.caseId,
           caseTitle: caseInfo?.title || 'Unknown',
-          assignee: task.assignedToName || 'Unassigned',
+          assignee: employeeMap.get(task.assigned_to || task.assignedToId) || task.assignedToName || 'Unassigned',
           dueDate: (task.due_date || task.dueDate) ? new Date(task.due_date || task.dueDate).toISOString().split('T')[0] : 'N/A',
           status: task.status as any,
           agingDays,

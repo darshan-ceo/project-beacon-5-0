@@ -205,15 +205,21 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           };
         });
 
-        const tasks = (tasksData.data || []).map((t: any) => ({
-          ...t,
-          caseId: t.case_id || t.caseId,
-          clientId: t.client_id || t.clientId,
-          caseNumber: t.case_number || t.caseNumber,
-          assignedToId: t.assigned_to || t.assigned_to_id || t.assignedToId,
-          assignedToName: t.assigned_to_name || t.assignedToName,
-          assignedById: t.assigned_by || t.assigned_by_id || t.assignedById,
-          assignedByName: t.assigned_by_name || t.assignedByName,
+        const tasks = (tasksData.data || []).map((t: any) => {
+          const assignedToId = t.assigned_to || t.assigned_to_id || t.assignedToId;
+          const assignedToName = assignedToId 
+            ? (employeesMap.get(assignedToId) || t.assigned_to_name || t.assignedToName || '')
+            : '';
+          
+          return {
+            ...t,
+            caseId: t.case_id || t.caseId,
+            clientId: t.client_id || t.clientId,
+            caseNumber: t.case_number || t.caseNumber,
+            assignedToId,
+            assignedToName,
+            assignedById: t.assigned_by || t.assigned_by_id || t.assignedById,
+            assignedByName: t.assigned_by_name || t.assignedByName,
           createdDate: t.created_date || t.created_at || t.createdDate,
           dueDate: t.due_date || t.dueDate,
           completedDate: t.completed_date || t.completedDate,
@@ -226,7 +232,8 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           timezone: t.timezone || 'Asia/Kolkata',
           dueDateValidated: t.due_date_validated || t.dueDateValidated || true,
           audit_trail: t.audit_trail || { created_by: user.id, created_at: new Date().toISOString(), updated_by: user.id, updated_at: new Date().toISOString(), change_log: [] },
-        }));
+          };
+        });
 
 
         // UUID validation helper

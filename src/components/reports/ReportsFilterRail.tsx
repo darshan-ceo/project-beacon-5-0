@@ -66,10 +66,11 @@ export const ReportsFilterRail: React.FC<ReportsFilterRailProps> = ({
   ];
 
   const taskStatuses = [
-    { value: 'open', label: 'Open' },
-    { value: 'in-progress', label: 'In Progress' },
-    { value: 'completed', label: 'Completed' },
-    { value: 'overdue', label: 'Overdue' }
+    { value: 'Open', label: 'Open' },
+    { value: 'In Progress', label: 'In Progress' },
+    { value: 'Not Started', label: 'Not Started' },
+    { value: 'Completed', label: 'Completed' },
+    { value: 'Overdue', label: 'Overdue' }
   ];
 
   const communicationChannels = [
@@ -482,7 +483,7 @@ export const ReportsFilterRail: React.FC<ReportsFilterRailProps> = ({
         </div>
 
         {/* Owner Filter */}
-        {userRole === 'Admin' && reportType !== 'hearings' && (
+        {userRole === 'Admin' && reportType !== 'hearings' && reportType !== 'tasks' && (
           <div className="space-y-2">
             <Label className="text-sm font-medium">Owner</Label>
             <Select value={filters.ownerId || 'all'} onValueChange={(value) => updateFilters({ ownerId: value === 'all' ? undefined : value })}>
