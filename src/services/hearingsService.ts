@@ -221,40 +221,52 @@ export const hearingsService = {
    */
   async updateHearing(id: string, updates: Partial<Hearing>, dispatch: React.Dispatch<AppAction>): Promise<void> {
     try {
-      const updateData = {
-        ...updates,
-        // Sanitize UUID fields if present
-        court_id: updates.court_id !== undefined ? sanitizeUuidField(updates.court_id) : undefined,
-        authority_id: updates.authority_id !== undefined ? sanitizeUuidField(updates.authority_id) : undefined,
-        forum_id: updates.forum_id !== undefined ? sanitizeUuidField(updates.forum_id) : undefined,
+      // Import storage manager
+      const { storageManager } = await import('@/data/StorageManager');
+      const storage = storageManager.getStorage();
+
+      // Prepare update data with proper field mapping
+      const updateData: Record<string, any> = {
         updated_at: new Date().toISOString()
       };
 
-      // Try API call first
-      try {
-        const response = await apiService.put<Hearing>(`/api/hearings/${id}`, updateData);
-        
-        if (response.success) {
-          const updatedHearing = { id, ...updateData };
-          dispatch({ type: 'UPDATE_HEARING', payload: updatedHearing });
-          
-          toast({
-            title: "Hearing Updated",
-            description: "Hearing has been updated successfully.",
-          });
-          
-          log('success', 'update hearing', { hearingId: id, updates: Object.keys(updates) });
-          return;
-        }
-      } catch (apiError) {
-        log('error', 'API call failed, using offline mode', apiError);
+      // Map camelCase to snake_case for database fields
+      if (updates.date !== undefined) {
+        // Combine date and time into hearing_date timestamp
+        const timeValue = updates.start_time || updates.time || '10:00';
+        updateData.hearing_date = new Date(`${updates.date}T${timeValue}:00`).toISOString();
+      }
+      if (updates.start_time !== undefined || updates.time !== undefined) {
+        const dateValue = updates.date || new Date().toISOString().split('T')[0];
+        const timeValue = updates.start_time || updates.time || '10:00';
+        updateData.hearing_date = new Date(`${dateValue}T${timeValue}:00`).toISOString();
+      }
+      if (updates.status !== undefined) updateData.status = updates.status;
+      if (updates.notes !== undefined) updateData.notes = updates.notes;
+      if (updates.agenda !== undefined) updateData.agenda = updates.agenda;
+      if (updates.outcome !== undefined) updateData.outcome = updates.outcome;
+      if (updates.outcome_text !== undefined) updateData.outcome_text = updates.outcome_text;
+      if (updates.next_hearing_date !== undefined) updateData.next_hearing_date = updates.next_hearing_date;
+      
+      // Sanitize UUID fields
+      if (updates.court_id !== undefined) updateData.court_id = sanitizeUuidField(updates.court_id);
+      if (updates.authority_id !== undefined) updateData.authority_id = sanitizeUuidField(updates.authority_id);
+      if (updates.forum_id !== undefined) updateData.forum_id = sanitizeUuidField(updates.forum_id);
+      if (updates.case_id !== undefined) updateData.case_id = sanitizeUuidField(updates.case_id);
+      
+      // Handle judge_name from judge_ids
+      if (updates.judge_ids !== undefined) {
+        updateData.judge_name = updates.judge_ids?.join(', ') || null;
       }
 
-      // Fallback to local update when API fails
-      const updatedHearing = { id, ...updateData };
+      // Persist to Supabase
+      await storage.update('hearings', id, updateData);
+
+      // Update Redux state with the original updates object for UI
+      const updatedHearing = { id, ...updates };
       dispatch({ type: 'UPDATE_HEARING', payload: updatedHearing });
       
-      // Phase 2: Add timeline entry for hearing updated with proper user UUID
+      // Add timeline entry for hearing updated with proper user UUID
       try {
         const { data: { user } } = await supabase.auth.getUser();
         const appState = await loadAppState();
@@ -310,17 +322,17 @@ export const hearingsService = {
       }
       
       toast({
-        title: "Hearing Updated (Offline)",
-        description: "Hearing has been updated locally. Will sync when online.",
+        title: "Hearing Updated",
+        description: "Hearing has been updated successfully.",
       });
       
-      log('success', 'update hearing (offline)', { hearingId: id, updates: Object.keys(updates) });
+      log('success', 'update hearing', { hearingId: id, updates: Object.keys(updates) });
       
     } catch (error) {
-      log('error', 'update hearing failed completely', error);
+      log('error', 'update hearing failed', error);
       toast({
         title: "Error",
-        description: "Failed to update hearing. Please check your connection and try again.",
+        description: "Failed to update hearing. Please try again.",
         variant: "destructive",
       });
       throw error;
