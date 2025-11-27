@@ -12,6 +12,7 @@ import { CalendarIcon, Filter, X, RotateCcw } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { getStageOptionsWithAliases } from '@/utils/stageUtils';
+import { useAppState } from '@/contexts/AppStateContext';
 
 import { ReportType, ReportFilter } from '@/types/reports';
 
@@ -35,30 +36,22 @@ export const ReportsFilterRail: React.FC<ReportsFilterRailProps> = ({
     filters.dateRange?.end ? new Date(filters.dateRange.end) : undefined
   );
 
-  // Mock data for filter options
-  const mockClients = [
-    { value: 'abc-pvt-ltd', label: 'ABC Pvt Ltd' },
-    { value: 'xyz-corp', label: 'XYZ Corp' },
-    { value: 'global-enterprises', label: 'Global Enterprises' },
-    { value: 'tech-solutions', label: 'Tech Solutions' },
-    { value: 'legal-associates', label: 'Legal Associates' }
-  ];
+  // Get actual data from AppStateContext
+  const { state } = useAppState();
+
+  const clients = state.clients
+    .filter(c => c.status === 'Active')
+    .map(c => ({ value: c.id, label: c.name || 'Unknown' }));
 
   const stages = getStageOptionsWithAliases();
 
-  const mockCourts = [
-    { value: 'high-court', label: 'High Court' },
-    { value: 'district-court', label: 'District Court' },
-    { value: 'sessions-court', label: 'Sessions Court' },
-    { value: 'magistrate-court', label: 'Magistrate Court' }
-  ];
+  const courts = state.courts
+    .filter(c => c.status === 'Active')
+    .map(c => ({ value: c.id, label: c.name }));
 
-  const mockEmployees = [
-    { value: 'john-smith', label: 'Adv. John Smith' },
-    { value: 'sarah-johnson', label: 'Adv. Sarah Johnson' },
-    { value: 'michael-brown', label: 'Adv. Michael Brown' },
-    { value: 'emily-davis', label: 'Adv. Emily Davis' }
-  ];
+  const employees = state.employees
+    .filter(e => e.status === 'Active')
+    .map(e => ({ value: e.id, label: e.full_name || 'Unknown' }));
 
   const priorities = [
     { value: 'high', label: 'High' },
@@ -196,7 +189,7 @@ export const ReportsFilterRail: React.FC<ReportsFilterRailProps> = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All courts</SelectItem>
-                  {mockCourts.map(court => (
+                  {courts.map(court => (
                     <SelectItem key={court.value} value={court.value}>{court.label}</SelectItem>
                   ))}
                 </SelectContent>
@@ -240,7 +233,7 @@ export const ReportsFilterRail: React.FC<ReportsFilterRailProps> = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All assignees</SelectItem>
-                  {mockEmployees.map(emp => (
+                  {employees.map(emp => (
                     <SelectItem key={emp.value} value={emp.value}>{emp.label}</SelectItem>
                   ))}
                 </SelectContent>
@@ -465,7 +458,7 @@ export const ReportsFilterRail: React.FC<ReportsFilterRailProps> = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All clients</SelectItem>
-              {mockClients.map(client => (
+              {clients.map(client => (
                 <SelectItem key={client.value} value={client.value}>{client.label}</SelectItem>
               ))}
             </SelectContent>
@@ -496,11 +489,11 @@ export const ReportsFilterRail: React.FC<ReportsFilterRailProps> = ({
               <SelectTrigger>
                 <SelectValue placeholder="All owners" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All owners</SelectItem>
-                {mockEmployees.map(emp => (
-                  <SelectItem key={emp.value} value={emp.value}>{emp.label}</SelectItem>
-                ))}
+            <SelectContent>
+              <SelectItem value="all">All owners</SelectItem>
+              {employees.map(emp => (
+                <SelectItem key={emp.value} value={emp.value}>{emp.label}</SelectItem>
+              ))}
               </SelectContent>
             </Select>
           </div>
