@@ -309,12 +309,30 @@ export const CaseDocuments: React.FC<CaseDocumentsProps> = ({ selectedCase }) =>
     }
   };
 
-  const handleDeleteDocument = (documentId: string) => {
-    // Implement delete logic
-    toast({
-      title: "Document Deleted",
-      description: "Document has been removed from the case.",
-    });
+  const handleDeleteDocument = async (documentId: string) => {
+    if (!confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
+      return;
+    }
+    
+    try {
+      // Delete from Supabase (Storage + Database)
+      await supabaseDocumentService.deleteDocument(documentId);
+      
+      // Dispatch to update Redux state immediately
+      dispatch({ type: 'DELETE_DOCUMENT', payload: documentId });
+      
+      toast({
+        title: "Document Deleted",
+        description: "Document has been permanently removed.",
+      });
+    } catch (error: any) {
+      console.error('Failed to delete document:', error);
+      toast({
+        title: "Delete Failed",
+        description: error.message || "Could not delete the document. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleUploadToCase = () => {

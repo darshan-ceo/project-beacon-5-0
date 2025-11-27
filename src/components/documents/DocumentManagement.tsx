@@ -832,16 +832,31 @@ export const DocumentManagement: React.FC = () => {
   };
 
   const handleDocumentDelete = async (doc: any) => {
-    if (confirm(`Are you sure you want to delete ${doc.name}? This action cannot be undone.`)) {
-      try {
-        await dmsService.files.delete(doc.id, dispatch);
-        // Remove from filtered list immediately
-        setFilteredDocuments(prev => prev.filter(d => d.id !== doc.id));
-        // Reload current folder
-        await loadFolderContents(selectedFolder);
-      } catch (error) {
-        // Error already handled in service
-      }
+    if (!confirm(`Are you sure you want to delete ${doc.name}? This action cannot be undone.`)) {
+      return;
+    }
+    
+    try {
+      // Delete from Supabase (Storage + Database)
+      await supabaseDocumentService.deleteDocument(doc.id);
+      
+      // Dispatch to update Redux state
+      dispatch({ type: 'DELETE_DOCUMENT', payload: doc.id });
+      
+      // Remove from filtered list immediately
+      setFilteredDocuments(prev => prev.filter(d => d.id !== doc.id));
+      
+      toast({
+        title: "Document Deleted",
+        description: `${doc.name} has been permanently removed.`,
+      });
+    } catch (error: any) {
+      console.error('Failed to delete document:', error);
+      toast({
+        title: "Delete Failed",
+        description: error.message || "Could not delete the document. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
