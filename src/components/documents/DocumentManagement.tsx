@@ -366,19 +366,28 @@ export const DocumentManagement: React.FC = () => {
         (payload) => {
           console.log('[DocumentManagement] Real-time DELETE received:', payload);
           
-          const deletedDoc = payload.old;
+          const deletedDocId = payload.old?.id;
           
-          // ⚠️ IMPORTANT: Use rawDispatch for real-time events!
-          rawDispatch({
-            type: 'DELETE_DOCUMENT',
-            payload: deletedDoc.id
-          });
+          if (!deletedDocId) return;
           
-          toast({
-            title: "Document Deleted",
-            description: `${deletedDoc.file_name} has been removed`,
-            variant: "destructive"
-          });
+          // Lookup document name from state BEFORE dispatching delete
+          const existingDoc = state.documents.find(d => d.id === deletedDocId);
+          
+          // Only dispatch if document exists in state (prevents duplicate processing)
+          if (existingDoc) {
+            // ⚠️ IMPORTANT: Use rawDispatch for real-time events!
+            rawDispatch({
+              type: 'DELETE_DOCUMENT',
+              payload: deletedDocId
+            });
+            
+            // Use the name from state, which has the actual document info
+            toast({
+              title: "Document Deleted",
+              description: `${existingDoc.name || 'Document'} has been removed`,
+              variant: "destructive"
+            });
+          }
         }
       )
       .subscribe();
