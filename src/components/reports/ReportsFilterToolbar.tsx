@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { getStageOptionsWithAliases } from '@/utils/stageUtils';
 import { ReportType, ReportFilter } from '@/types/reports';
+import { useAppState } from '@/contexts/AppStateContext';
 
 interface ReportsFilterToolbarProps {
   reportType: ReportType;
@@ -36,30 +37,22 @@ export const ReportsFilterToolbar: React.FC<ReportsFilterToolbarProps> = ({
     filters.dateRange?.end ? new Date(filters.dateRange.end) : undefined
   );
 
-  // Mock data for filter options
-  const mockClients = [
-    { value: 'abc-pvt-ltd', label: 'ABC Pvt Ltd' },
-    { value: 'xyz-corp', label: 'XYZ Corp' },
-    { value: 'global-enterprises', label: 'Global Enterprises' },
-    { value: 'tech-solutions', label: 'Tech Solutions' },
-    { value: 'legal-associates', label: 'Legal Associates' }
-  ];
+  // Get actual data from AppStateContext
+  const { state } = useAppState();
+
+  const clients = state.clients
+    .filter(c => c.status === 'Active')
+    .map(c => ({ value: c.id, label: c.name || 'Unknown' }));
 
   const stages = getStageOptionsWithAliases();
 
-  const mockCourts = [
-    { value: 'high-court', label: 'High Court' },
-    { value: 'district-court', label: 'District Court' },
-    { value: 'sessions-court', label: 'Sessions Court' },
-    { value: 'magistrate-court', label: 'Magistrate Court' }
-  ];
+  const courts = state.courts
+    .filter(c => c.status === 'Active')
+    .map(c => ({ value: c.id, label: c.name }));
 
-  const mockEmployees = [
-    { value: 'john-smith', label: 'Adv. John Smith' },
-    { value: 'sarah-johnson', label: 'Adv. Sarah Johnson' },
-    { value: 'michael-brown', label: 'Adv. Michael Brown' },
-    { value: 'emily-davis', label: 'Adv. Emily Davis' }
-  ];
+  const employees = state.employees
+    .filter(e => e.status === 'Active')
+    .map(e => ({ value: e.id, label: e.full_name || 'Unknown' }));
 
   const priorities = [
     { value: 'high', label: 'High' },
@@ -163,7 +156,7 @@ export const ReportsFilterToolbar: React.FC<ReportsFilterToolbarProps> = ({
       case 'dateRange':
         return `${format(new Date(value.start), 'MMM d')} - ${format(new Date(value.end), 'MMM d')}`;
       case 'clientId':
-        return mockClients.find(c => c.value === value)?.label || value;
+        return clients.find(c => c.value === value)?.label || value;
       case 'stage':
         return stages.find(s => s.value === value)?.label || value;
       case 'priority':
@@ -171,7 +164,11 @@ export const ReportsFilterToolbar: React.FC<ReportsFilterToolbarProps> = ({
       case 'ragStatus':
         return `RAG: ${value}`;
       case 'courtId':
-        return mockCourts.find(c => c.value === value)?.label || value;
+        return courts.find(c => c.value === value)?.label || value;
+      case 'ownerId':
+        return employees.find(e => e.value === value)?.label || value;
+      case 'assigneeId':
+        return employees.find(e => e.value === value)?.label || value;
       case 'status':
         return value;
       case 'channel':
@@ -278,7 +275,7 @@ export const ReportsFilterToolbar: React.FC<ReportsFilterToolbarProps> = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All courts</SelectItem>
-                  {mockCourts.map(court => (
+                  {courts.map(court => (
                     <SelectItem key={court.value} value={court.value}>{court.label}</SelectItem>
                   ))}
                 </SelectContent>
@@ -323,7 +320,7 @@ export const ReportsFilterToolbar: React.FC<ReportsFilterToolbarProps> = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All assignees</SelectItem>
-                  {mockEmployees.map(emp => (
+                  {employees.map(emp => (
                     <SelectItem key={emp.value} value={emp.value}>{emp.label}</SelectItem>
                   ))}
                 </SelectContent>
@@ -586,12 +583,12 @@ export const ReportsFilterToolbar: React.FC<ReportsFilterToolbarProps> = ({
                   <SelectTrigger className="h-9">
                     <SelectValue placeholder="All clients" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All clients</SelectItem>
-                    {mockClients.map(client => (
-                      <SelectItem key={client.value} value={client.value}>{client.label}</SelectItem>
-                    ))}
-                  </SelectContent>
+              <SelectContent>
+                <SelectItem value="all">All clients</SelectItem>
+                {clients.map(client => (
+                  <SelectItem key={client.value} value={client.value}>{client.label}</SelectItem>
+                ))}
+              </SelectContent>
                 </Select>
               </div>
 
@@ -602,12 +599,12 @@ export const ReportsFilterToolbar: React.FC<ReportsFilterToolbarProps> = ({
                   <SelectTrigger className="h-9">
                     <SelectValue placeholder="All owners" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All owners</SelectItem>
-                    {mockEmployees.map(emp => (
-                      <SelectItem key={emp.value} value={emp.value}>{emp.label}</SelectItem>
-                    ))}
-                  </SelectContent>
+              <SelectContent>
+                <SelectItem value="all">All owners</SelectItem>
+                {employees.map(emp => (
+                  <SelectItem key={emp.value} value={emp.value}>{emp.label}</SelectItem>
+                ))}
+              </SelectContent>
                 </Select>
               </div>
 
