@@ -185,10 +185,10 @@ export const CaseModal: React.FC<CaseModalProps> = ({
         tribunalBench: caseData.tribunalBench || 'State Bench',
         stateBenchState: caseData.stateBenchState || '',
         stateBenchCity: caseData.stateBenchCity || '',
-        notice_no: caseData.notice_no || '',
-        form_type: caseData.form_type || '',
-        section_invoked: caseData.section_invoked || '',
-        financial_year: caseData.financial_year || '',
+        notice_no: (caseData as any).noticeNo || caseData.notice_no || '',
+        form_type: (caseData as any).formType || caseData.form_type || '',
+        section_invoked: (caseData as any).sectionInvoked || caseData.section_invoked || '',
+        financial_year: (caseData as any).financialYear || caseData.financial_year || '',
         authorityId: caseData.authorityId || '',
         city: caseData.city || ''
       });
