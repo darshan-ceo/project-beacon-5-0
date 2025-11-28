@@ -220,14 +220,19 @@ export const HearingsPage: React.FC = () => {
 
   // Simple filtering
   const filteredHearings = state.hearings.filter(hearing => {
-    // Date range filter (for next7days)
-    if (dateRangeParam === 'next7days') {
+    // Date range filter (for next7days from URL param OR filters.dateRange)
+    if (dateRangeParam === 'next7days' || filters.dateRange) {
       const hearingDate = new Date(hearing.date);
-      const now = new Date();
-      const sevenDaysFromNow = new Date();
-      sevenDaysFromNow.setDate(now.getDate() + 7);
       
-      if (hearingDate < now || hearingDate > sevenDaysFromNow) {
+      // Use filters.dateRange if set, otherwise calculate next7days
+      const now = filters.dateRange?.from || new Date();
+      const endDate = filters.dateRange?.to || (() => {
+        const sevenDaysFromNow = new Date();
+        sevenDaysFromNow.setDate(new Date().getDate() + 7);
+        return sevenDaysFromNow;
+      })();
+      
+      if (hearingDate < now || hearingDate > endDate) {
         return false;
       }
     }

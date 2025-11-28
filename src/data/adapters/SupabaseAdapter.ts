@@ -1512,8 +1512,8 @@ export class SupabaseAdapter implements StoragePort {
           delete normalized.start_time;
           delete normalized.date;
           
-          // Validate required case_id
-          if (!normalized.case_id || !isValidUUID(normalized.case_id)) {
+          // Validate case_id only if it's being updated (conditional for partial updates)
+          if (normalized.case_id !== undefined && !isValidUUID(normalized.case_id)) {
             throw new Error('Invalid case ID - please select a valid case for the hearing');
           }
           
