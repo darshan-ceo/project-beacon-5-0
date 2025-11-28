@@ -3,6 +3,7 @@ import { AppAction } from '@/contexts/AppStateContext';
 import { formTemplatesService, type FormTemplate } from './formTemplatesService';
 import { Case, Client } from '@/contexts/AppStateContext';
 import { normalizeStage } from '@/utils/stageUtils';
+import { calculateSLAStatus } from '@/services/slaService';
 
 // DEPRECATED: Export functions moved to @/utils/reportExporter
 // Use the new reportExporter utility for proper Excel and PDF exports
@@ -217,7 +218,26 @@ export const reportsService = {
       const clientMap = new Map(clients.map((c: any) => [c.id, c.display_name || c.name || 'Unknown']));
       const employeeMap = new Map(employees.map((e: any) => [e.id, e.full_name || e.name || 'Unknown']));
 
-      let filteredCases = cases;
+      // Transform cases to add calculated timelineBreachStatus
+      const casesWithSLA = cases.map((c: any) => {
+        // Build case object with required fields for SLA calculation
+        const caseObj = {
+          ...c,
+          lastUpdated: c.updated_at || c.lastUpdated || c.created_at,
+          status: c.status || 'Active',
+          nextHearing: c.next_hearing_date ? { date: c.next_hearing_date } : undefined,
+        };
+        
+        // Calculate SLA status using the same logic as DataInitializer
+        const timelineBreachStatus = calculateSLAStatus(caseObj as any);
+        
+        return {
+          ...c,
+          timelineBreachStatus,
+        };
+      });
+
+      let filteredCases = casesWithSLA;
 
       if (filters.clientId) {
         filteredCases = filteredCases.filter((c: any) => (c.client_id || c.clientId) === filters.clientId);
@@ -388,7 +408,26 @@ export const reportsService = {
       const clientMap = new Map(clients.map((c: any) => [c.id, c.display_name || c.name || 'Unknown']));
       const employeeMap = new Map(employees.map((e: any) => [e.id, e.full_name || e.name || 'Unknown']));
 
-      let filteredCases = cases;
+      // Transform cases to add calculated timelineBreachStatus
+      const casesWithSLA = cases.map((c: any) => {
+        // Build case object with required fields for SLA calculation
+        const caseObj = {
+          ...c,
+          lastUpdated: c.updated_at || c.lastUpdated || c.created_at,
+          status: c.status || 'Active',
+          nextHearing: c.next_hearing_date ? { date: c.next_hearing_date } : undefined,
+        };
+        
+        // Calculate SLA status using the same logic as DataInitializer
+        const timelineBreachStatus = calculateSLAStatus(caseObj as any);
+        
+        return {
+          ...c,
+          timelineBreachStatus,
+        };
+      });
+
+      let filteredCases = casesWithSLA;
 
       if (filters.ragStatus) {
         filteredCases = filteredCases.filter((c: any) => (c.timeline_breach_status || c.timelineBreachStatus) === filters.ragStatus);
