@@ -317,6 +317,7 @@ export const reportsService = {
       const cases = await storage.getAll('cases');
       const clients = await storage.getAll('clients');
       const courts = await storage.getAll('courts');
+      const employees = await storage.getAll('employees');
       const judges = await storage.getAll('judges');
 
       // Helper to validate UUID format
@@ -329,6 +330,7 @@ export const reportsService = {
       const clientMap = new Map(clients.map((c: any) => [c.id, c.display_name || c.name || 'Unknown']));
       const courtMap = new Map(courts.map((c: any) => [c.id, c.name]));
       const judgeMap = new Map(judges.map((j: any) => [j.id, j.name]));
+      const employeeMap = new Map(employees.map((e: any) => [e.id, e.full_name || e.name || 'Unknown']));
 
       let filteredHearings = hearings;
 
@@ -371,6 +373,7 @@ export const reportsService = {
           caseId: hearing.case_id || hearing.caseId,
           caseTitle: relatedCase?.title || 'Unknown',
           client: clientId ? (clientMap.get(clientId) || 'Unknown') : 'Unknown',
+          owner: relatedCase?.assigned_to ? (employeeMap.get(relatedCase.assigned_to) || 'Unassigned') : 'Unassigned',
           date: hearing.hearing_date || hearing.date,
           time: hearing.time || hearing.start_time || '10:00',
           court: courtMap.get(hearing.court_id || hearing.courtId) || 'Unknown',

@@ -67,6 +67,7 @@ export interface HearingReportData {
   caseId: string;
   caseTitle: string;
   client: string;
+  owner: string;
   date: string;
   time: string;
   court: string;
