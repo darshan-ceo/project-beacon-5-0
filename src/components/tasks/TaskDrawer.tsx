@@ -743,10 +743,10 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
                       <div className="flex items-center mt-1">
                         <Avatar className="h-8 w-8 mr-2">
                           <AvatarFallback className="text-xs bg-primary text-primary-foreground">
-                            {task.assignedToName.split(' ').map(n => n[0]).join('')}
+                            {(task.assignedToName || 'Unassigned').split(' ').map(n => n[0]).join('')}
                           </AvatarFallback>
                         </Avatar>
-                        <span className="text-sm">{task.assignedToName}</span>
+                        <span className="text-sm">{task.assignedToName || 'Unassigned'}</span>
                       </div>
                     </div>
                     <div>
@@ -754,10 +754,10 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
                       <div className="flex items-center mt-1">
                         <Avatar className="h-8 w-8 mr-2">
                           <AvatarFallback className="text-xs bg-secondary text-secondary-foreground">
-                            {task.assignedByName.split(' ').map(n => n[0]).join('')}
+                            {(task.assignedByName || 'System').split(' ').map(n => n[0]).join('')}
                           </AvatarFallback>
                         </Avatar>
-                        <span className="text-sm">{task.assignedByName}</span>
+                        <span className="text-sm">{task.assignedByName || 'System'}</span>
                       </div>
                     </div>
                   </div>
