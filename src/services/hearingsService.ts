@@ -423,7 +423,14 @@ export const hearingsService = {
       if (response.success || import.meta.env.DEV) {
         // Update hearing in state
         if (dispatch) {
-          dispatch({ type: 'UPDATE_HEARING', payload: { id, ...updates } });
+          dispatch({ 
+            type: 'UPDATE_HEARING', 
+            payload: { 
+              id, 
+              case_id: hearing.case_id || hearing.caseId,  // CRITICAL: Include case_id
+              ...updates 
+            } 
+          });
         }
 
         // Phase 2: Add timeline entry for outcome
