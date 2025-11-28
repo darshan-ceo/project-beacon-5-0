@@ -117,7 +117,10 @@ export const ClientMasters: React.FC = () => {
       })();
       
     const matchesFilter = filterStatus === 'all' || client.status === filterStatus;
-    const matchesType = filterType === 'all' || client.type === filterType;
+    const matchesType = filterType === 'all' || 
+      (filterType === 'Other' 
+        ? (!client.type || client.type === 'Other')
+        : client.type === filterType);
     
     return matchesSearch && matchesFilter && matchesType;
   });
