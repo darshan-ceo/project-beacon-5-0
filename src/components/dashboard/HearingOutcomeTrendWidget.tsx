@@ -19,7 +19,7 @@ export const HearingOutcomeTrendWidget = () => {
     state.hearings.forEach(hearing => {
       if (hearing.outcome === 'Adjournment') {
         outcomes.Adjourned++;
-      } else if (hearing.outcome === 'Closed' || hearing.outcome === 'Order Passed') {
+      } else if (hearing.outcome === 'Closed' || hearing.outcome === 'Order Passed' || hearing.outcome === 'Submission Done') {
         outcomes.Closed++;
       } else {
         outcomes.Pending++;
@@ -36,7 +36,12 @@ export const HearingOutcomeTrendWidget = () => {
   const handlePieClick = (data: any) => {
     if (data && data.outcomeKey) {
       if (data.outcomeKey === 'Pending') {
+        // Pending = scheduled hearings without outcome
         navigate('/hearings?status=scheduled');
+      } else if (data.outcomeKey === 'Closed') {
+        // Closed = hearings with 'Closed', 'Order Passed', or 'Submission Done' outcome
+        // HearingsPage will expand this to all three values
+        navigate('/hearings?outcome=Closed');
       } else {
         navigate(`/hearings?outcome=${data.outcomeKey}`);
       }
