@@ -138,6 +138,16 @@ export const TaskManagement: React.FC = () => {
       setActiveFilters(prev => ({ ...prev, status: 'followups_due' }));
     } else if (filterParam === 'updated_today') {
       setActiveFilters(prev => ({ ...prev, status: 'updated_today' }));
+    } else if (filterParam === 'pending') {
+      setActiveFilters(prev => ({ 
+        ...prev, 
+        status: ['Not Started', 'In Progress'] 
+      }));
+    } else if (filterParam === 'followups_added_today') {
+      setActiveFilters(prev => ({ 
+        ...prev, 
+        status: 'followups_added_today' 
+      }));
     }
     
     if (highlight) {
@@ -307,6 +317,18 @@ export const TaskManagement: React.FC = () => {
         noteDate.setHours(0, 0, 0, 0);
         return noteDate.getTime() === today.getTime();
       });
+    } else if (activeFilters.status === 'followups_added_today') {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const taskFollowupsToday = state.taskFollowUps?.filter(f => {
+        if (f.taskId !== task.id) return false;
+        const fDate = new Date(f.createdAt);
+        fDate.setHours(0, 0, 0, 0);
+        return fDate.getTime() === today.getTime();
+      }) || [];
+      matchesStatus = taskFollowupsToday.length > 0;
+    } else if (Array.isArray(activeFilters.status)) {
+      matchesStatus = activeFilters.status.includes(task.status);
     } else {
       matchesStatus = !activeFilters.status || task.status === activeFilters.status;
     }
