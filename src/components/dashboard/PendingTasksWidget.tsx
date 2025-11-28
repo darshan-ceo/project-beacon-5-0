@@ -53,7 +53,7 @@ export const PendingTasksWidget: React.FC = () => {
             variant="outline" 
             size="sm" 
             className="w-full mt-2"
-            onClick={() => navigate('/tasks')}
+            onClick={() => navigate('/tasks?filter=pending')}
           >
             View All Tasks
             <ArrowRight className="ml-2 h-3 w-3" />

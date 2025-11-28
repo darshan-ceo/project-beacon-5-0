@@ -12,23 +12,28 @@ export const FollowupsAddedTodayWidget = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const todayTasks = state.tasks.filter(task => {
-      if (!task.createdDate) return false;
-      const taskDate = new Date(task.createdDate);
-      taskDate.setHours(0, 0, 0, 0);
-      return taskDate.getTime() === today.getTime();
-    });
+    // Get unique task IDs that had follow-ups added today
+    const taskIdsWithFollowupsToday = new Set(
+      state.taskFollowUps
+        .filter(followUp => {
+          if (!followUp.createdAt) return false;
+          const followUpDate = new Date(followUp.createdAt);
+          followUpDate.setHours(0, 0, 0, 0);
+          return followUpDate.getTime() === today.getTime();
+        })
+        .map(followUp => followUp.taskId)
+    );
 
     return {
-      count: todayTasks.length,
-      trend: todayTasks.length > 0 ? '+' : ''
+      count: taskIdsWithFollowupsToday.size,
+      trend: taskIdsWithFollowupsToday.size > 0 ? '+' : ''
     };
-  }, [state.tasks]);
+  }, [state.taskFollowUps]);
 
   return (
     <Card 
       className="hover:shadow-lg transition-shadow bg-gradient-to-br from-emerald-50 to-green-50 cursor-pointer"
-      onClick={() => navigate('/tasks')}
+      onClick={() => navigate('/tasks?filter=followups_added_today')}
     >
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
