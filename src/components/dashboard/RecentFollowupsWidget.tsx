@@ -24,7 +24,7 @@ export const RecentFollowupsWidget = () => {
   }, [state.tasks]);
 
   return (
-    <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-violet-50 to-purple-50">
+    <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-fuchsia-50 to-pink-50">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <MessageSquare className="h-4 w-4 text-violet-600" />

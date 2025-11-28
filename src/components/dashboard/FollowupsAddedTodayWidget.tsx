@@ -32,7 +32,7 @@ export const FollowupsAddedTodayWidget = () => {
 
   return (
     <Card 
-      className="hover:shadow-lg transition-shadow bg-gradient-to-br from-emerald-50 to-green-50 cursor-pointer"
+      className="hover:shadow-lg transition-shadow bg-gradient-to-br from-teal-50 to-emerald-50 cursor-pointer"
       onClick={() => navigate('/tasks?filter=followups_added_today')}
     >
       <CardHeader className="pb-3">

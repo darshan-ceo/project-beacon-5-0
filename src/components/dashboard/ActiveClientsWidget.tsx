@@ -12,7 +12,7 @@ export const ActiveClientsWidget: React.FC = () => {
   const activeClients = state.clients.filter(c => c.status === 'Active');
   
   return (
-    <Card className="hover:shadow-lg transition-shadow h-full flex flex-col overflow-hidden">
+    <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-purple-50 to-violet-50 h-full flex flex-col overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 h-[60px]">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <Users className="h-4 w-4 text-primary" />
