@@ -1,5 +1,6 @@
 import { Case, Client, Signatory } from '../contexts/AppStateContext';
 import { customTemplatesService } from './customTemplatesService';
+import { normalizeStage } from '@/utils/stageUtils';
 
 export interface FormField {
   key: string;
@@ -78,13 +79,29 @@ class FormTemplatesService {
 
   // Stage to Template Mapping - Maps lifecycle stages to template codes
   private static LIFECYCLE_TO_TEMPLATE_MAPPING: Record<string, string[]> = {
+    // Assessment stages
+    'Assessment': ['ASMT10_REPLY', 'ASMT11_REPRESENTATION', 'ASMT13_REPLY', 'GST_REFUND_REPLY'],
     'Scrutiny': ['ASMT10_REPLY', 'ASMT11_REPRESENTATION', 'ASMT13_REPLY', 'GST_REFUND_REPLY'],
-    'Demand': ['DRC01_REPLY', 'DRC02_REPLY', 'DRC03_REPLY', 'DRC04_REPLY', 'DRC07_OBJECTION'],
+    
+    // Adjudication stages  
     'Adjudication': ['DRC01_REPLY', 'DRC05_REPLY', 'DRC06_REPLY', 'DRC07_OBJECTION', 'DRC08_REPLY', 'DRC09_REPLY', 'DRC10_REPLY', 'ASMT12_REPLY'],
+    'Demand': ['DRC01_REPLY', 'DRC02_REPLY', 'DRC03_REPLY', 'DRC04_REPLY', 'DRC07_OBJECTION'],
+    
+    // First Appeal
+    'First Appeal': ['APPEAL_FIRST', 'APPEAL_SECOND', 'APPEAL_CROSS', 'APPEAL_RECTIFICATION'],
     'Appeals': ['APPEAL_FIRST', 'APPEAL_SECOND', 'APPEAL_CROSS', 'APPEAL_RECTIFICATION'],
-    'GSTAT': ['GSTAT', 'GSTAT_STAY', 'GSTAT_MISC'],     // GSTAT lifecycle → GSTAT template (stored as "Tribunal" in JSON)
-    'HC': ['HC_PETITION', 'HC_STAY', 'HC_INTERIM'],  // HC lifecycle → HC template (stored as "High Court" in JSON)
-    'SC': ['SC_SLP', 'SC_STAY', 'SC_REVIEW']        // SC lifecycle → SC template (stored as "Supreme Court" in JSON)
+    
+    // Tribunal - all variants
+    'Tribunal': ['GSTAT', 'GSTAT_STAY', 'GSTAT_MISC'],
+    'GSTAT': ['GSTAT', 'GSTAT_STAY', 'GSTAT_MISC'],
+    
+    // High Court - all variants
+    'High Court': ['HC_PETITION', 'HC_STAY', 'HC_INTERIM'],
+    'HC': ['HC_PETITION', 'HC_STAY', 'HC_INTERIM'],
+    
+    // Supreme Court - all variants
+    'Supreme Court': ['SC_SLP', 'SC_STAY', 'SC_REVIEW'],
+    'SC': ['SC_SLP', 'SC_STAY', 'SC_REVIEW']
   };
 
   // Template Category to Lifecycle Stage Mapping - For display purposes
@@ -95,10 +112,18 @@ class FormTemplatesService {
   };
 
   getFormsByStage(stage: string, matterType?: string): string[] {
-    // First try exact stage match
-    let templates = FormTemplatesService.LIFECYCLE_TO_TEMPLATE_MAPPING[stage];
+    // Normalize the stage to canonical form first
+    const canonicalStage = normalizeStage(stage);
     
-    // If no templates found and matterType provided, try matter type
+    // Try canonical stage match
+    let templates = FormTemplatesService.LIFECYCLE_TO_TEMPLATE_MAPPING[canonicalStage];
+    
+    // If no templates found, try original stage (for backward compatibility)
+    if (!templates || templates.length === 0) {
+      templates = FormTemplatesService.LIFECYCLE_TO_TEMPLATE_MAPPING[stage];
+    }
+    
+    // If still no templates and matterType provided, try matter type
     if ((!templates || templates.length === 0) && matterType) {
       templates = FormTemplatesService.LIFECYCLE_TO_TEMPLATE_MAPPING[matterType];
     }
