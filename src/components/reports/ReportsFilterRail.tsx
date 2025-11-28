@@ -53,6 +53,10 @@ export const ReportsFilterRail: React.FC<ReportsFilterRailProps> = ({
     .filter(e => e.status === 'Active')
     .map(e => ({ value: e.id, label: e.full_name || 'Unknown' }));
 
+  const judges = state.judges
+    .filter(j => j.status === 'Active')
+    .map(j => ({ value: j.id, label: j.name }));
+
   const priorities = [
     { value: 'high', label: 'High' },
     { value: 'medium', label: 'Medium' },
@@ -199,11 +203,17 @@ export const ReportsFilterRail: React.FC<ReportsFilterRailProps> = ({
 
             <div className="space-y-2">
               <Label className="text-sm font-medium">Judge</Label>
-              <Input
-                placeholder="Search judge..."
-                value={filters.judgeId || ''}
-                onChange={(e) => updateFilters({ judgeId: e.target.value || undefined })}
-              />
+              <Select value={filters.judgeId || 'all'} onValueChange={(value) => updateFilters({ judgeId: value === 'all' ? undefined : value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All judges" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All judges</SelectItem>
+                  {judges.map(judge => (
+                    <SelectItem key={judge.value} value={judge.value}>{judge.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </>
         );
