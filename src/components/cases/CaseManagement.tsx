@@ -142,6 +142,7 @@ export const CaseManagement: React.FC = () => {
     // Read stage and status from URL for drill-down filtering
     const stageParam = searchParams.get('stage');
     const statusParam = searchParams.get('status');
+    const ragStatusParam = searchParams.get('ragStatus');
     
     if (stageParam && stageParam !== 'all') {
       // Convert to title case to match stage names
@@ -151,6 +152,10 @@ export const CaseManagement: React.FC = () => {
     
     if (statusParam && (statusParam === 'Active' || statusParam === 'Completed')) {
       setFilterCaseStatus(statusParam);
+    }
+    
+    if (ragStatusParam && ['Green', 'Amber', 'Red'].includes(ragStatusParam)) {
+      setFilterTimelineBreach(ragStatusParam);
     }
     
     if (caseId) {

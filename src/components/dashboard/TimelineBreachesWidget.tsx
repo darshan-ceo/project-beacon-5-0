@@ -47,7 +47,7 @@ export const TimelineBreachesWidget: React.FC = () => {
             variant="ghost" 
             size="sm" 
             className="w-full mt-2 hover:bg-red-100"
-            onClick={() => navigate('/cases?filter=breached')}
+            onClick={() => navigate('/cases?ragStatus=Red')}
           >
             View Breached Cases
             <ArrowRight className="ml-2 h-3 w-3" />

@@ -25,7 +25,10 @@ export const TimelineStatusWidget: React.FC = () => {
       </CardHeader>
       <CardContent className="flex-1 flex flex-col justify-between">
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
+          <div 
+            className="flex items-center justify-between cursor-pointer hover:bg-green-100 p-2 rounded-md transition-colors"
+            onClick={() => navigate('/cases?ragStatus=Green')}
+          >
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded-full bg-green-500" />
               <span className="text-sm text-muted-foreground">Green</span>
@@ -34,7 +37,10 @@ export const TimelineStatusWidget: React.FC = () => {
               {greenCases}
             </Badge>
           </div>
-          <div className="flex items-center justify-between">
+          <div 
+            className="flex items-center justify-between cursor-pointer hover:bg-amber-100 p-2 rounded-md transition-colors"
+            onClick={() => navigate('/cases?ragStatus=Amber')}
+          >
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded-full bg-amber-500" />
               <span className="text-sm text-muted-foreground">Amber</span>
@@ -43,7 +49,10 @@ export const TimelineStatusWidget: React.FC = () => {
               {amberCases}
             </Badge>
           </div>
-          <div className="flex items-center justify-between">
+          <div 
+            className="flex items-center justify-between cursor-pointer hover:bg-red-100 p-2 rounded-md transition-colors"
+            onClick={() => navigate('/cases?ragStatus=Red')}
+          >
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded-full bg-red-500" />
               <span className="text-sm text-muted-foreground">Red</span>
