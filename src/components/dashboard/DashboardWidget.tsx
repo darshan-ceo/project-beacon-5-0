@@ -23,6 +23,13 @@ import { CasesByStageWidget } from './CasesByStageWidget';
 import { CaseAgingSummaryWidget } from './CaseAgingSummaryWidget';
 import { ClientByCategoryWidget } from './ClientByCategoryWidget';
 import { TeamPerformanceWidget } from './TeamPerformanceWidget';
+import { TimelineComplianceWidget } from './TimelineComplianceWidget';
+import { HearingOutcomeTrendWidget } from './HearingOutcomeTrendWidget';
+import { CaseLoadByAdvocateWidget } from './CaseLoadByAdvocateWidget';
+import { RecentFollowupsWidget } from './RecentFollowupsWidget';
+import { TimeLoggedThisWeekWidget } from './TimeLoggedThisWeekWidget';
+import { FollowupsAddedTodayWidget } from './FollowupsAddedTodayWidget';
+import { SystemHealthWidget } from './SystemHealthWidget';
 
 interface DashboardWidgetProps {
   tile: DashboardTile;
@@ -44,6 +51,13 @@ const WIDGET_COMPONENT_MAP: Record<string, React.ComponentType<any>> = {
   'caseAgingSummary': CaseAgingSummaryWidget,
   'clientByCategory': ClientByCategoryWidget,
   'teamPerformance': TeamPerformanceWidget,
+  'timelineCompliance': TimelineComplianceWidget,
+  'hearingOutcomeTrend': HearingOutcomeTrendWidget,
+  'caseLoadByAdvocate': CaseLoadByAdvocateWidget,
+  'recentFollowups': RecentFollowupsWidget,
+  'timeLoggedThisWeek': TimeLoggedThisWeekWidget,
+  'followupsAddedToday': FollowupsAddedTodayWidget,
+  'systemHealth': SystemHealthWidget,
 };
 
 export const DashboardWidget: React.FC<DashboardWidgetProps> = ({ tile }) => {
