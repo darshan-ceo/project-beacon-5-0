@@ -81,7 +81,7 @@ export const UpcomingHearingsWidget: React.FC = () => {
           variant="outline" 
           size="sm" 
           className="w-full mt-4"
-          onClick={() => navigate('/hearings/calendar')}
+          onClick={() => navigate('/hearings?dateRange=next7days')}
         >
           View Calendar
           <ArrowRight className="ml-2 h-3 w-3" />

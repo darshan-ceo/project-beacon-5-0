@@ -2,10 +2,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAppState } from '@/contexts/AppStateContext';
 import { Users } from 'lucide-react';
 import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 export const CaseLoadByAdvocateWidget = () => {
   const { state } = useAppState();
+  const navigate = useNavigate();
 
   const chartData = useMemo(() => {
     const casesByAdvocate = new Map<string, { name: string; count: number }>();
@@ -23,14 +25,21 @@ export const CaseLoadByAdvocateWidget = () => {
       }
     });
 
-    return Array.from(casesByAdvocate.values())
-      .sort((a, b) => b.count - a.count)
+    return Array.from(casesByAdvocate.entries())
+      .sort((a, b) => b[1].count - a[1].count)
       .slice(0, 5)
-      .map(item => ({
+      .map(([advocateId, item]) => ({
         name: item.name.split(' ')[0] || item.name,
+        advocateId: advocateId,
         count: item.count
       }));
   }, [state.cases, state.employees]);
+
+  const handleBarClick = (data: any) => {
+    if (data && data.advocateId) {
+      navigate(`/cases?assignedTo=${data.advocateId}`);
+    }
+  };
 
   return (
     <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-orange-50 to-red-50 md:col-span-2">
@@ -53,7 +62,13 @@ export const CaseLoadByAdvocateWidget = () => {
               />
               <YAxis tick={{ fontSize: 10 }} />
               <Tooltip />
-              <Bar dataKey="count" fill="#f97316" radius={[4, 4, 0, 0]} />
+              <Bar 
+                dataKey="count" 
+                fill="#f97316" 
+                radius={[4, 4, 0, 0]} 
+                onClick={handleBarClick}
+                style={{ cursor: 'pointer' }}
+              />
             </BarChart>
           </ResponsiveContainer>
         </div>

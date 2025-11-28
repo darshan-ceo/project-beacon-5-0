@@ -85,6 +85,7 @@ export const CaseManagement: React.FC = () => {
   const [filterTimelineBreach, setFilterTimelineBreach] = useState<'all' | string>('all');
   const [filterCaseStatus, setFilterCaseStatus] = useState<'all' | 'Active' | 'Completed'>('all');
   const [filterAging, setFilterAging] = useState<'all' | string>('all');
+  const [filterAssignedTo, setFilterAssignedTo] = useState<'all' | string>('all');
   const [advanceStageModal, setAdvanceStageModal] = useState<{
     isOpen: boolean;
     caseData: Case | null;
@@ -145,6 +146,7 @@ export const CaseManagement: React.FC = () => {
     const statusParam = searchParams.get('status');
     const ragStatusParam = searchParams.get('ragStatus');
     const agingParam = searchParams.get('aging');
+    const assignedToParam = searchParams.get('assignedTo');
     
     if (stageParam && stageParam !== 'all') {
       // Convert to title case to match stage names
@@ -162,6 +164,10 @@ export const CaseManagement: React.FC = () => {
     
     if (agingParam) {
       setFilterAging(agingParam);
+    }
+    
+    if (assignedToParam) {
+      setFilterAssignedTo(assignedToParam);
     }
     
     if (caseId) {
@@ -588,9 +594,12 @@ export const CaseManagement: React.FC = () => {
         }
       }
 
-      return matchesSearch && matchesStage && matchesTimelineBreach && matchesStatus && matchesAging;
+      // 6. Assigned To (Advocate) filter
+      const matchesAssignedTo = filterAssignedTo === 'all' || caseItem.assignedToId === filterAssignedTo;
+
+      return matchesSearch && matchesStage && matchesTimelineBreach && matchesStatus && matchesAging && matchesAssignedTo;
     });
-  }, [state.cases, state.clients, searchTerm, filterStage, filterTimelineBreach, filterCaseStatus, filterAging]);
+  }, [state.cases, state.clients, searchTerm, filterStage, filterTimelineBreach, filterCaseStatus, filterAging, filterAssignedTo]);
 
   // Compute next hearing for each case from state.hearings
   const casesWithNextHearing = useMemo(() => {

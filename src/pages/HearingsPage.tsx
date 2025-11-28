@@ -156,6 +156,9 @@ export const HearingsPage: React.FC = () => {
   const caseId = searchParams.get('caseId');
   const hearingDate = searchParams.get('hearingDate');
   const courtId = searchParams.get('courtId');
+  const dateRangeParam = searchParams.get('dateRange');
+  const outcomeParam = searchParams.get('outcome');
+  const statusParam = searchParams.get('status');
   
   const [filters, setFilters] = useState<HearingFiltersState>({
     searchTerm: searchParams.get('search') || '',
@@ -164,7 +167,8 @@ export const HearingsPage: React.FC = () => {
     courtIds: courtId ? [courtId] : searchParams.getAll('court') || [],
     judgeIds: searchParams.getAll('judge') || [],
     hearingTypes: searchParams.getAll('type') || [],
-    statuses: searchParams.getAll('status') || [],
+    statuses: statusParam ? [statusParam] : searchParams.getAll('status') || [],
+    outcomes: outcomeParam ? [outcomeParam] : searchParams.getAll('outcome') || [],
     internalCounselIds: searchParams.getAll('counsel') || [],
     tags: searchParams.getAll('tag') || [],
   });
@@ -175,6 +179,18 @@ export const HearingsPage: React.FC = () => {
 
   // Simple filtering
   const filteredHearings = state.hearings.filter(hearing => {
+    // Date range filter (for next7days)
+    if (dateRangeParam === 'next7days') {
+      const hearingDate = new Date(hearing.date);
+      const now = new Date();
+      const sevenDaysFromNow = new Date();
+      sevenDaysFromNow.setDate(now.getDate() + 7);
+      
+      if (hearingDate < now || hearingDate > sevenDaysFromNow) {
+        return false;
+      }
+    }
+    
     if (filters.searchTerm) {
       const case_ = state.cases.find(c => c.id === hearing.case_id);
       const court = state.courts.find(c => c.id === hearing.court_id);
@@ -195,6 +211,16 @@ export const HearingsPage: React.FC = () => {
     
     if (filters.courtIds.length > 0 && !filters.courtIds.includes(hearing.court_id)) {
       return false;
+    }
+    
+    // Status filter (for pending hearings - scheduled without outcome)
+    if (filters.statuses && filters.statuses.length > 0) {
+      if (filters.statuses.includes('scheduled') && !hearing.outcome) {
+        // Include this hearing - it's scheduled/pending
+      } else if (filters.statuses.includes('scheduled') && hearing.outcome) {
+        // Exclude - it has an outcome so it's not pending
+        return false;
+      }
     }
     
     // Outcome filter
