@@ -19,8 +19,15 @@ export const CasesByStageWidget: React.FC = () => {
   
   const chartData = Object.entries(stageGroups).map(([stage, count]) => ({
     stage: stage.substring(0, 12),
+    fullStage: stage,
     count
   }));
+  
+  const handleBarClick = (data: any) => {
+    if (data && data.fullStage) {
+      navigate(`/cases?stage=${encodeURIComponent(data.fullStage)}`);
+    }
+  };
   
   return (
     <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-blue-50 to-indigo-50 md:col-span-2">
@@ -44,7 +51,13 @@ export const CasesByStageWidget: React.FC = () => {
                 />
                 <YAxis tick={{ fontSize: 10 }} />
                 <Tooltip />
-                <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <Bar 
+                  dataKey="count" 
+                  fill="#3b82f6" 
+                  radius={[4, 4, 0, 0]} 
+                  onClick={handleBarClick}
+                  style={{ cursor: 'pointer' }}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
