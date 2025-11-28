@@ -187,12 +187,8 @@ export const HearingsPage: React.FC = () => {
       newFilters.statuses = [statusParam];
     }
     if (outcomeParam) {
-      // Handle grouped outcomes - 'Closed' should include 'Closed', 'Order Passed', and 'Submission Done'
-      if (outcomeParam === 'Closed') {
-        newFilters.outcomes = ['Closed', 'Order Passed', 'Submission Done'];
-      } else {
-        newFilters.outcomes = [outcomeParam];
-      }
+      // Handle URL decoding for values like "Submission Done" and "Order Passed"
+      newFilters.outcomes = [decodeURIComponent(outcomeParam)];
     }
     if (caseIdParam) {
       newFilters.caseIds = [caseIdParam];
