@@ -461,6 +461,18 @@ export const reportsService = {
         filteredCases = filteredCases.filter((c: any) => (c.assigned_to || c.assignedToId) === filters.ownerId);
       }
 
+      if (filters.clientId) {
+        filteredCases = filteredCases.filter((c: any) => (c.client_id || c.clientId) === filters.clientId);
+      }
+
+      if (filters.dateRange) {
+        const { start, end } = filters.dateRange;
+        filteredCases = filteredCases.filter((c: any) => {
+          const createdDate = new Date(c.created_at || c.createdDate);
+          return createdDate >= new Date(start) && createdDate <= new Date(end);
+        });
+      }
+
       const reportData = filteredCases.map((caseItem: any) => {
         const agingDays = Math.floor(
           (new Date().getTime() - new Date(caseItem.created_at || caseItem.createdDate).getTime()) / (1000 * 60 * 60 * 24)
