@@ -14,7 +14,7 @@ export const OpenCasesWidget: React.FC = () => {
   const criticalCases = openCases.filter(c => c.priority === 'High');
   
   return (
-    <Card className="hover:shadow-lg transition-shadow h-full flex flex-col overflow-hidden">
+    <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-blue-50 to-sky-50 h-full flex flex-col overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 h-[60px]">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <Briefcase className="h-4 w-4 text-primary" />

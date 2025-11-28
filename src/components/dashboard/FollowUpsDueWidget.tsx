@@ -34,7 +34,7 @@ export const FollowUpsDueWidget: React.FC = () => {
   };
   
   return (
-    <Card className="hover:shadow-lg transition-shadow">
+    <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-rose-50 to-red-50">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <Bell className="h-4 w-4 text-primary" />

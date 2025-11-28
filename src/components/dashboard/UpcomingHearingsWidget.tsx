@@ -40,7 +40,7 @@ export const UpcomingHearingsWidget: React.FC = () => {
   });
   
   return (
-    <Card className="hover:shadow-lg transition-shadow h-full flex flex-col overflow-hidden">
+    <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-violet-50 to-indigo-50 h-full flex flex-col overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 h-[60px]">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <Calendar className="h-4 w-4 text-primary" />
