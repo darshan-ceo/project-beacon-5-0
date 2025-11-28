@@ -84,6 +84,7 @@ export const CaseManagement: React.FC = () => {
   const [filterStage, setFilterStage] = useState<'all' | string>('all');
   const [filterTimelineBreach, setFilterTimelineBreach] = useState<'all' | string>('all');
   const [filterCaseStatus, setFilterCaseStatus] = useState<'all' | 'Active' | 'Completed'>('all');
+  const [filterAging, setFilterAging] = useState<'all' | string>('all');
   const [advanceStageModal, setAdvanceStageModal] = useState<{
     isOpen: boolean;
     caseData: Case | null;
@@ -143,6 +144,7 @@ export const CaseManagement: React.FC = () => {
     const stageParam = searchParams.get('stage');
     const statusParam = searchParams.get('status');
     const ragStatusParam = searchParams.get('ragStatus');
+    const agingParam = searchParams.get('aging');
     
     if (stageParam && stageParam !== 'all') {
       // Convert to title case to match stage names
@@ -156,6 +158,10 @@ export const CaseManagement: React.FC = () => {
     
     if (ragStatusParam && ['Green', 'Amber', 'Red'].includes(ragStatusParam)) {
       setFilterTimelineBreach(ragStatusParam);
+    }
+    
+    if (agingParam) {
+      setFilterAging(agingParam);
     }
     
     if (caseId) {
@@ -557,9 +563,34 @@ export const CaseManagement: React.FC = () => {
       // 4. Case status filter (Active/Completed)
       const matchesStatus = filterCaseStatus === 'all' || caseItem.status === filterCaseStatus;
 
-      return matchesSearch && matchesStage && matchesTimelineBreach && matchesStatus;
+      // 5. Aging filter
+      let matchesAging = true;
+      if (filterAging !== 'all') {
+        const createdDate = caseItem.createdDate ? new Date(caseItem.createdDate) : null;
+        if (createdDate && caseItem.status === 'Active') {
+          const ageDays = Math.floor((Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+          switch (filterAging) {
+            case '0-30':
+              matchesAging = ageDays <= 30;
+              break;
+            case '31-60':
+              matchesAging = ageDays > 30 && ageDays <= 60;
+              break;
+            case '61-90':
+              matchesAging = ageDays > 60 && ageDays <= 90;
+              break;
+            case '90+':
+              matchesAging = ageDays > 90;
+              break;
+          }
+        } else {
+          matchesAging = false;
+        }
+      }
+
+      return matchesSearch && matchesStage && matchesTimelineBreach && matchesStatus && matchesAging;
     });
-  }, [state.cases, state.clients, searchTerm, filterStage, filterTimelineBreach, filterCaseStatus]);
+  }, [state.cases, state.clients, searchTerm, filterStage, filterTimelineBreach, filterCaseStatus, filterAging]);
 
   // Compute next hearing for each case from state.hearings
   const casesWithNextHearing = useMemo(() => {

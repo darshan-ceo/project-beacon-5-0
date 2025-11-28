@@ -35,8 +35,15 @@ export const CaseAgingSummaryWidget: React.FC = () => {
   
   const chartData = Object.entries(ageGroups).map(([range, count]) => ({
     range,
+    agingKey: range.split(' ')[0],
     count
   }));
+  
+  const handleBarClick = (data: any) => {
+    if (data && data.agingKey) {
+      navigate(`/cases?aging=${encodeURIComponent(data.agingKey)}`);
+    }
+  };
   
   return (
     <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-cyan-50 to-teal-50 md:col-span-2">
@@ -57,7 +64,13 @@ export const CaseAgingSummaryWidget: React.FC = () => {
                 />
                 <YAxis tick={{ fontSize: 10 }} />
                 <Tooltip />
-                <Bar dataKey="count" fill="#06b6d4" radius={[4, 4, 0, 0]} />
+                <Bar 
+                  dataKey="count" 
+                  fill="#06b6d4" 
+                  radius={[4, 4, 0, 0]} 
+                  onClick={handleBarClick}
+                  style={{ cursor: 'pointer' }}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
