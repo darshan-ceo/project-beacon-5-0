@@ -100,6 +100,8 @@ export interface TaskReportData {
   title: string;
   caseId: string;
   caseTitle: string;
+  client: string;
+  owner: string;
   assignee: string;
   dueDate: string;
   status: 'Open' | 'In Progress' | 'Completed' | 'Overdue';
