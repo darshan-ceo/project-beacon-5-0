@@ -32,7 +32,14 @@ export const PendingTasksWidget: React.FC = () => {
           Pending Tasks
         </CardTitle>
         {overdueTasks.length > 0 && (
-          <Badge variant="destructive" className="animate-pulse">
+          <Badge 
+            variant="destructive" 
+            className="animate-pulse cursor-pointer hover:bg-destructive/90"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate('/tasks?filter=overdue');
+            }}
+          >
             {overdueTasks.length} overdue
           </Badge>
         )}
@@ -40,7 +47,10 @@ export const PendingTasksWidget: React.FC = () => {
       <CardContent>
         <div className="space-y-3">
           {overdueTasks.length > 0 && (
-            <div className="flex items-center gap-2 text-destructive p-2 bg-destructive/10 rounded">
+            <div 
+              className="flex items-center gap-2 text-destructive p-2 bg-destructive/10 rounded cursor-pointer hover:bg-destructive/20 transition-colors"
+              onClick={() => navigate('/tasks?filter=overdue')}
+            >
               <AlertTriangle className="h-4 w-4" />
               <span className="text-sm font-semibold">{overdueTasks.length} overdue task{overdueTasks.length !== 1 ? 's' : ''}</span>
             </div>

@@ -148,6 +148,16 @@ export const TaskManagement: React.FC = () => {
         ...prev, 
         status: 'followups_added_today' 
       }));
+    } else if (filterParam === 'completed') {
+      setActiveFilters(prev => ({ 
+        ...prev, 
+        status: 'Completed' 
+      }));
+    } else if (filterParam === 'overdue') {
+      setActiveFilters(prev => ({ 
+        ...prev, 
+        status: 'Overdue' 
+      }));
     }
     
     if (highlight) {
