@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { reportsService } from '@/services/reportsService';
 import { addressLookupService } from '@/services/addressLookupService';
@@ -50,8 +51,10 @@ export const ClientMasters: React.FC = () => {
   const { state, dispatch } = useAppState();
   const { hasPermission } = useRBAC();
   const { checkDependencies, safeDelete } = useRelationships();
+  const [searchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'Active' | 'Inactive' | 'Pending'>('all');
+  const [filterType, setFilterType] = useState<string>('all');
   const [clientModal, setClientModal] = useState<{ isOpen: boolean; mode: 'create' | 'edit' | 'view'; client?: Client | null }>({
     isOpen: false,
     mode: 'create',
@@ -75,6 +78,16 @@ export const ClientMasters: React.FC = () => {
     };
     loadStates();
   }, []);
+
+  // Read type parameter from URL
+  useEffect(() => {
+    const typeParam = searchParams.get('type');
+    if (typeParam) {
+      setFilterType(typeParam);
+    } else {
+      setFilterType('all');
+    }
+  }, [searchParams]);
 
   const filteredClients = state.clients.filter(client => {
     const matchesSearch = 
@@ -104,8 +117,9 @@ export const ClientMasters: React.FC = () => {
       })();
       
     const matchesFilter = filterStatus === 'all' || client.status === filterStatus;
+    const matchesType = filterType === 'all' || client.type === filterType;
     
-    return matchesSearch && matchesFilter;
+    return matchesSearch && matchesFilter && matchesType;
   });
 
   const getPrimaryContact = (client: Client) => {

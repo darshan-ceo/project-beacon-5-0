@@ -24,6 +24,12 @@ export const ClientByCategoryWidget: React.FC = () => {
     value
   }));
   
+  const handlePieClick = (data: any) => {
+    if (data && data.name) {
+      navigate(`/clients?type=${encodeURIComponent(data.name)}`);
+    }
+  };
+  
   return (
     <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-green-50 to-emerald-50">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -46,9 +52,14 @@ export const ClientByCategoryWidget: React.FC = () => {
                   outerRadius={60}
                   fill="#8884d8"
                   dataKey="value"
+                  onClick={handlePieClick}
                 >
                   {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={COLORS[index % COLORS.length]}
+                      style={{ cursor: 'pointer' }}
+                    />
                   ))}
                 </Pie>
                 <Tooltip />
