@@ -347,16 +347,21 @@ export const reportsService = {
       }
 
       if (filters.judgeId) {
-        const searchTerm = filters.judgeId.toLowerCase();
         filteredHearings = filteredHearings.filter((h: any) => {
-          const judgeName = h.judge_name || '';
-          // If judge_name is a UUID, look up the name for comparison
-          if (isValidUUID(judgeName)) {
-            const judgeNameFromMap = judgeMap.get(judgeName);
-            return judgeNameFromMap?.toLowerCase().includes(searchTerm);
+          const hearingJudgeName = h.judge_name || '';
+          
+          // If hearing's judge_name is a UUID, compare UUIDs directly
+          if (isValidUUID(hearingJudgeName)) {
+            return hearingJudgeName === filters.judgeId;
           }
-          // Otherwise search the text name directly
-          return judgeName.toLowerCase().includes(searchTerm);
+          
+          // If hearing's judge_name is plain text, look up the selected judge's name and compare
+          const selectedJudgeName = judgeMap.get(filters.judgeId);
+          if (selectedJudgeName) {
+            return hearingJudgeName.toLowerCase() === selectedJudgeName.toLowerCase();
+          }
+          
+          return false;
         });
       }
 
