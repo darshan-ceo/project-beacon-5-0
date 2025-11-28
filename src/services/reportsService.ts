@@ -516,9 +516,16 @@ export const reportsService = {
       const tasks = await storage.getAll('tasks');
       const cases = await storage.getAll('cases');
       const employees = await storage.getAll('employees');
+      const clients = await storage.getAll('clients');
 
-      const caseMap = new Map(cases.map((c: any) => [c.id, { title: c.title, caseNumber: c.case_number || c.caseNumber }]));
+      const caseMap = new Map(cases.map((c: any) => [c.id, { 
+        title: c.title, 
+        caseNumber: c.case_number || c.caseNumber,
+        clientId: c.client_id || c.clientId,
+        assignedTo: c.assigned_to || c.assignedToId
+      }]));
       const employeeMap = new Map(employees.map((e: any) => [e.id, e.full_name || e.name || 'Unknown']));
+      const clientMap = new Map(clients.map((c: any) => [c.id, c.display_name || c.name || 'Unknown']));
 
       let filteredTasks = tasks;
 
@@ -542,6 +549,13 @@ export const reportsService = {
         filteredTasks = filteredTasks.filter((t: any) => t.priority === filters.priority);
       }
 
+      if (filters.clientId) {
+        filteredTasks = filteredTasks.filter((t: any) => {
+          const caseInfo = caseMap.get(t.case_id || t.caseId);
+          return caseInfo && caseInfo.clientId === filters.clientId;
+        });
+      }
+
       if (filters.dateRange) {
         const { start, end } = filters.dateRange;
         filteredTasks = filteredTasks.filter((t: any) => {
@@ -562,6 +576,8 @@ export const reportsService = {
           title: task.title,
           caseId: task.case_id || task.caseId,
           caseTitle: caseInfo?.title || 'Unknown',
+          client: caseInfo ? clientMap.get(caseInfo.clientId) || 'Unknown Client' : 'Unknown Client',
+          owner: caseInfo ? employeeMap.get(caseInfo.assignedTo) || 'Unassigned' : 'Unassigned',
           assignee: employeeMap.get(task.assigned_to || task.assignedToId) || task.assignedToName || 'Unassigned',
           dueDate: (task.due_date || task.dueDate) ? new Date(task.due_date || task.dueDate).toISOString().split('T')[0] : 'N/A',
           status: task.status as any,
