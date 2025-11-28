@@ -173,6 +173,38 @@ export const HearingsPage: React.FC = () => {
     tags: searchParams.getAll('tag') || [],
   });
 
+  // Sync URL params to filters when they change
+  useEffect(() => {
+    const newFilters: Partial<typeof filters> = {};
+    
+    const statusParam = searchParams.get('status');
+    const outcomeParam = searchParams.get('outcome');
+    const caseIdParam = searchParams.get('caseId');
+    const courtIdParam = searchParams.get('courtId');
+    
+    if (statusParam) {
+      newFilters.statuses = [statusParam];
+    }
+    if (outcomeParam) {
+      // Handle grouped outcomes - 'Closed' should include 'Closed', 'Order Passed', and 'Submission Done'
+      if (outcomeParam === 'Closed') {
+        newFilters.outcomes = ['Closed', 'Order Passed', 'Submission Done'];
+      } else {
+        newFilters.outcomes = [outcomeParam];
+      }
+    }
+    if (caseIdParam) {
+      newFilters.caseIds = [caseIdParam];
+    }
+    if (courtIdParam) {
+      newFilters.courtIds = [courtIdParam];
+    }
+    
+    if (Object.keys(newFilters).length > 0) {
+      setFilters(prev => ({ ...prev, ...newFilters }));
+    }
+  }, [searchParams]);
+
   // Load calendar settings (use first client as org for now)
   const currentOrg = state.clients[0];
   const calendarSettings = currentOrg ? integrationsService.loadCalendarSettings(currentOrg.id) : null;
@@ -225,12 +257,13 @@ export const HearingsPage: React.FC = () => {
     
     // Outcome filter
     if (filters.outcomes && filters.outcomes.length > 0) {
-      // Only filter if hearing has an outcome (skip scheduled hearings without outcome)
-      if (hearing.outcome && !filters.outcomes.includes(hearing.outcome)) {
-        return false;
-      }
-      // If filter is active but hearing has no outcome, hide it
-      if (!hearing.outcome) {
+      if (hearing.outcome) {
+        // Check if hearing outcome matches any of the filter outcomes
+        if (!filters.outcomes.includes(hearing.outcome)) {
+          return false;
+        }
+      } else {
+        // If filter is active but hearing has no outcome, hide it
         return false;
       }
     }
