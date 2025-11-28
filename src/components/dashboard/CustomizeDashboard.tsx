@@ -124,13 +124,13 @@ export const CustomizeDashboard: React.FC<CustomizeDashboardProps> = ({
     >
       <Tabs defaultValue={modules[0]} className="flex-1 flex flex-col">
         {/* Responsive TabsList - No wrapping, better spacing */}
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-2 gap-y-6 mb-6 border-b bg-background z-10 p-2 min-h-[56px]">
+        <TabsList className="flex w-full overflow-x-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent gap-1 mb-6 bg-muted/50 rounded-lg p-1.5 h-auto flex-wrap justify-start">
           {modules.map((module) => (
             <TabsTrigger 
               key={module} 
               value={module} 
               title={module}
-              className="text-xs sm:text-sm px-2 py-1.5 whitespace-nowrap truncate"
+              className="text-xs sm:text-sm px-3 py-2 whitespace-nowrap rounded-md font-inter font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm"
             >
               {module}
             </TabsTrigger>
@@ -145,13 +145,13 @@ export const CustomizeDashboard: React.FC<CustomizeDashboardProps> = ({
             <TabsContent 
               key={module} 
               value={module} 
-              className="space-y-3 mt-0 min-h-[360px]"
+              className="space-y-3 mt-0 min-h-[360px] max-h-[400px] overflow-y-auto scroll-smooth pr-1"
             >
               {tilesByModule[module].length > 0 ? (
                 <>
                   {/* Module-level Select All */}
-                  <div className="flex items-center justify-between p-2 sm:p-3 rounded-lg border bg-muted/30">
-                    <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="flex items-center justify-between p-4 rounded-lg border-2 border-dashed border-primary/20 bg-primary/5">
+                    <div className="flex items-center gap-3">
                       <Checkbox
                         id={`select-all-${module}`}
                         checked={
@@ -167,12 +167,12 @@ export const CustomizeDashboard: React.FC<CustomizeDashboardProps> = ({
                       />
                       <label
                         htmlFor={`select-all-${module}`}
-                        className="text-sm font-medium cursor-pointer"
+                        className="text-sm font-inter font-medium cursor-pointer"
                       >
                         Select all in {module}
                       </label>
                     </div>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs font-inter text-muted-foreground">
                       {moduleState.selectedInModule}/{moduleState.totalInModule} selected
                     </span>
                   </div>
@@ -181,7 +181,7 @@ export const CustomizeDashboard: React.FC<CustomizeDashboardProps> = ({
                   {tilesByModule[module].map((tile) => (
                 <div
                   key={tile.id}
-                  className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+                  className="flex items-start gap-3 p-4 rounded-lg border border-border/60 hover:bg-muted/40 hover:border-border transition-all duration-200"
                 >
                   <Checkbox
                     id={tile.id}
@@ -190,8 +190,8 @@ export const CustomizeDashboard: React.FC<CustomizeDashboardProps> = ({
                     className="mt-1"
                   />
                   <label htmlFor={tile.id} className="flex-1 cursor-pointer">
-                    <p className="font-medium text-sm">{tile.title}</p>
-                    <p className="text-xs text-muted-foreground line-clamp-2">
+                    <p className="font-inter font-medium text-sm text-foreground">{tile.title}</p>
+                    <p className="font-inter text-xs text-muted-foreground leading-relaxed mt-1">
                       {tile.description}
                     </p>
                   </label>
