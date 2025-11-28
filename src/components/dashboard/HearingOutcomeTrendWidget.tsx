@@ -11,26 +11,35 @@ export const HearingOutcomeTrendWidget = () => {
 
   const outcomeData = useMemo(() => {
     const outcomes = {
-      Adjourned: 0,
+      Adjournment: 0,
+      'Submission Done': 0,
+      'Order Passed': 0,
       Closed: 0,
       Pending: 0,
     };
 
     state.hearings.forEach(hearing => {
       if (hearing.outcome === 'Adjournment') {
-        outcomes.Adjourned++;
-      } else if (hearing.outcome === 'Closed' || hearing.outcome === 'Order Passed' || hearing.outcome === 'Submission Done') {
+        outcomes.Adjournment++;
+      } else if (hearing.outcome === 'Submission Done') {
+        outcomes['Submission Done']++;
+      } else if (hearing.outcome === 'Order Passed') {
+        outcomes['Order Passed']++;
+      } else if (hearing.outcome === 'Closed') {
         outcomes.Closed++;
       } else {
+        // No outcome = Pending
         outcomes.Pending++;
       }
     });
 
     return [
-      { name: 'Adjourned', value: outcomes.Adjourned, color: '#f59e0b', outcomeKey: 'Adjournment' },
+      { name: 'Adjournment', value: outcomes.Adjournment, color: '#f59e0b', outcomeKey: 'Adjournment' },
+      { name: 'Submission Done', value: outcomes['Submission Done'], color: '#3b82f6', outcomeKey: 'Submission Done' },
+      { name: 'Order Passed', value: outcomes['Order Passed'], color: '#22c55e', outcomeKey: 'Order Passed' },
       { name: 'Closed', value: outcomes.Closed, color: '#10b981', outcomeKey: 'Closed' },
       { name: 'Pending', value: outcomes.Pending, color: '#6366f1', outcomeKey: 'Pending' },
-    ];
+    ].filter(item => item.value > 0); // Only show categories with data
   }, [state.hearings]);
 
   const handlePieClick = (data: any) => {
@@ -38,12 +47,9 @@ export const HearingOutcomeTrendWidget = () => {
       if (data.outcomeKey === 'Pending') {
         // Pending = scheduled hearings without outcome
         navigate('/hearings?status=scheduled');
-      } else if (data.outcomeKey === 'Closed') {
-        // Closed = hearings with 'Closed', 'Order Passed', or 'Submission Done' outcome
-        // HearingsPage will expand this to all three values
-        navigate('/hearings?outcome=Closed');
       } else {
-        navigate(`/hearings?outcome=${data.outcomeKey}`);
+        // Navigate to exact outcome (URL encode for "Submission Done" and "Order Passed")
+        navigate(`/hearings?outcome=${encodeURIComponent(data.outcomeKey)}`);
       }
     }
   };
