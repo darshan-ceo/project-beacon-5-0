@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 import { casesService } from '@/services/casesService';
-import { getNextStage, validateStagePrerequisites, generateStageDefaults } from '@/utils/stageUtils';
+import { getNextStage, validateStagePrerequisites, generateStageDefaults, normalizeStage } from '@/utils/stageUtils';
 import { getTimelineBreaches } from '@/services/slaService';
 import { differenceInDays, startOfDay, addDays } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -243,7 +243,7 @@ export const CaseManagement: React.FC = () => {
               id: row.id,
               caseNumber: row.case_number,
               clientId: row.client_id,
-              currentStage: row.stage_code || row.current_stage || 'Assessment',
+              currentStage: normalizeStage(row.stage_code || row.current_stage || 'Assessment'),
               assignedToId: row.assigned_to,
               assignedToName: employee?.full_name || '',
               status: row.status,
@@ -298,7 +298,7 @@ export const CaseManagement: React.FC = () => {
               id: row.id,
               caseNumber: row.case_number,
               clientId: row.client_id,
-              currentStage: row.stage_code || row.current_stage || 'Assessment',
+              currentStage: normalizeStage(row.stage_code || row.current_stage || 'Assessment'),
               assignedToId: row.assigned_to,
               assignedToName: employee?.full_name || '',
               status: row.status,
@@ -560,7 +560,7 @@ export const CaseManagement: React.FC = () => {
         client?.gstin?.toLowerCase().includes(searchLower);
 
       // 2. Stage filter
-      const matchesStage = filterStage === 'all' || caseItem.currentStage === filterStage;
+      const matchesStage = filterStage === 'all' || normalizeStage(caseItem.currentStage) === filterStage;
 
       // 3. Timeline breach filter
       const timelineStatus = caseItem.timelineBreachStatus || caseItem.slaStatus || 'Green';

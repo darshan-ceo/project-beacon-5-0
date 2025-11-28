@@ -161,7 +161,7 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
             caseNumber: c.case_number || c.caseNumber,
             clientId: c.client_id || c.clientId,
             status: normalizedStatus,
-            currentStage: (c.stage_code || c.current_stage || c.currentStage || 'ASSESSMENT').toUpperCase(),
+            currentStage: normalizeStage(c.stage_code || c.current_stage || c.currentStage || 'Assessment'),
             assignedToId,
             assignedToName,
             createdDate: c.created_date || c.created_at || c.createdDate,
