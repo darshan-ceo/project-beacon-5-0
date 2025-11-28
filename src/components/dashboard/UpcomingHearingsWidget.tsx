@@ -14,7 +14,8 @@ export const UpcomingHearingsWidget: React.FC = () => {
   const now = new Date();
   const weekFromNow = addDays(now, 7);
   
-  const upcomingHearings = state.hearings
+  // Calculate all upcoming hearings (without slice) for correct count
+  const allUpcomingHearings = state.hearings
     .filter(h => {
       try {
         const hearingDate = parseISO(h.date);
@@ -23,13 +24,16 @@ export const UpcomingHearingsWidget: React.FC = () => {
         return false;
       }
     })
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .slice(0, 3);
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  
+  // Display only first 3 hearings in widget
+  const upcomingHearings = allUpcomingHearings.slice(0, 3);
   
   const todayHearings = state.hearings.filter(h => {
     try {
       const hearingDate = parseISO(h.date);
-      return format(hearingDate, 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd');
+      const today = new Date();
+      return format(hearingDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd');
     } catch {
       return false;
     }
@@ -43,7 +47,11 @@ export const UpcomingHearingsWidget: React.FC = () => {
           Upcoming Hearings
         </CardTitle>
         {todayHearings.length > 0 && (
-          <Badge variant="default" className="animate-pulse">
+          <Badge 
+            variant="default" 
+            className="animate-pulse cursor-pointer hover:bg-primary/80 transition-colors"
+            onClick={() => navigate('/hearings?dateRange=today')}
+          >
             {todayHearings.length} today
           </Badge>
         )}
@@ -51,7 +59,7 @@ export const UpcomingHearingsWidget: React.FC = () => {
       <CardContent className="flex-1 flex flex-col">
         <div className="space-y-3 flex-1">
           <div className="text-2xl font-bold text-foreground">
-            {upcomingHearings.length}
+            {allUpcomingHearings.length}
           </div>
           <p className="text-xs text-muted-foreground">
             Hearings in the next 7 days
