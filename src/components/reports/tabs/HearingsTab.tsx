@@ -112,9 +112,9 @@ export const HearingsTab: React.FC<HearingsTabProps> = ({ filters }) => {
         <TableRow>
           <TableHead>Date</TableHead>
           <TableHead>Time</TableHead>
-          <TableHead>Case ID</TableHead>
-          <TableHead>Case Title</TableHead>
           <TableHead>Client</TableHead>
+          <TableHead>Owner</TableHead>
+          <TableHead>Case Title</TableHead>
           <TableHead>Legal Forum</TableHead>
           <TableHead>Authority</TableHead>
           <TableHead>Judge</TableHead>
@@ -127,9 +127,9 @@ export const HearingsTab: React.FC<HearingsTabProps> = ({ filters }) => {
           <TableRow key={item.id}>
             <TableCell>{formatDateForDisplay(item.date)}</TableCell>
             <TableCell>{formatTimeForDisplay(item.time)}</TableCell>
-            <TableCell className="font-medium">{item.caseId}</TableCell>
-            <TableCell>{item.caseTitle}</TableCell>
             <TableCell>{item.client}</TableCell>
+            <TableCell>{item.owner}</TableCell>
+            <TableCell>{item.caseTitle}</TableCell>
             <TableCell>{item.court}</TableCell>
             <TableCell>{item.authority || 'N/A'}</TableCell>
             <TableCell>{item.judge}</TableCell>
