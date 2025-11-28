@@ -33,6 +33,14 @@ export const LEGACY_STAGE_MAP: Record<string, CaseStage> = {
   'HC': 'High Court',
   'SC': 'Supreme Court',
   
+  // Uppercase underscore variants (from database)
+  'HIGH_COURT': 'High Court',
+  'SUPREME_COURT': 'Supreme Court',
+  'FIRST_APPEAL': 'First Appeal',
+  'TRIBUNAL': 'Tribunal',
+  'ADJUDICATION': 'Adjudication',
+  'ASSESSMENT': 'Assessment',
+  
   // Workflow sub-step mappings (legacy from pre-migration)
   'NOTICE_RECEIVED': 'Assessment',      // Initial notice → Assessment stage
   'REPLY_FILED': 'Adjudication',         // Reply submitted → Adjudication stage
