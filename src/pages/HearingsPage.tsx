@@ -201,12 +201,18 @@ export const HearingsPage: React.FC = () => {
       newFilters.courtIds = [courtIdParam];
     }
     
-    // Handle dateRange parameter for "next 7 days" filtering
+    // Handle dateRange parameter for "next 7 days" or "today" filtering
     if (dateRangeParam === 'next7days') {
       const now = new Date();
       const sevenDaysFromNow = new Date();
       sevenDaysFromNow.setDate(now.getDate() + 7);
       newFilters.dateRange = { from: now, to: sevenDaysFromNow };
+    } else if (dateRangeParam === 'today') {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const endOfToday = new Date();
+      endOfToday.setHours(23, 59, 59, 999);
+      newFilters.dateRange = { from: today, to: endOfToday };
     }
     
     if (Object.keys(newFilters).length > 0) {
@@ -220,8 +226,8 @@ export const HearingsPage: React.FC = () => {
 
   // Simple filtering
   const filteredHearings = state.hearings.filter(hearing => {
-    // Date range filter (for next7days from URL param OR filters.dateRange)
-    if (dateRangeParam === 'next7days' || filters.dateRange) {
+    // Date range filter (for next7days, today from URL param OR filters.dateRange)
+    if (dateRangeParam === 'next7days' || dateRangeParam === 'today' || filters.dateRange) {
       const hearingDate = new Date(hearing.date);
       
       // Use filters.dateRange if set, otherwise calculate next7days
