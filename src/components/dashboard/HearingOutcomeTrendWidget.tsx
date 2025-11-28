@@ -2,10 +2,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAppState } from '@/contexts/AppStateContext';
 import { Gavel } from 'lucide-react';
 import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
 export const HearingOutcomeTrendWidget = () => {
   const { state } = useAppState();
+  const navigate = useNavigate();
 
   const outcomeData = useMemo(() => {
     const outcomes = {
@@ -25,11 +27,21 @@ export const HearingOutcomeTrendWidget = () => {
     });
 
     return [
-      { name: 'Adjourned', value: outcomes.Adjourned, color: '#f59e0b' },
-      { name: 'Closed', value: outcomes.Closed, color: '#10b981' },
-      { name: 'Pending', value: outcomes.Pending, color: '#6366f1' },
+      { name: 'Adjourned', value: outcomes.Adjourned, color: '#f59e0b', outcomeKey: 'Adjournment' },
+      { name: 'Closed', value: outcomes.Closed, color: '#10b981', outcomeKey: 'Closed' },
+      { name: 'Pending', value: outcomes.Pending, color: '#6366f1', outcomeKey: 'Pending' },
     ];
   }, [state.hearings]);
+
+  const handlePieClick = (data: any) => {
+    if (data && data.outcomeKey) {
+      if (data.outcomeKey === 'Pending') {
+        navigate('/hearings?status=scheduled');
+      } else {
+        navigate(`/hearings?outcome=${data.outcomeKey}`);
+      }
+    }
+  };
 
   return (
     <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-purple-50 to-pink-50">
@@ -51,9 +63,10 @@ export const HearingOutcomeTrendWidget = () => {
                 outerRadius={60}
                 paddingAngle={5}
                 dataKey="value"
+                onClick={handlePieClick}
               >
                 {outcomeData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
+                  <Cell key={`cell-${index}`} fill={entry.color} style={{ cursor: 'pointer' }} />
                 ))}
               </Pie>
               <Tooltip />
