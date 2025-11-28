@@ -369,6 +369,17 @@ export const reportsService = {
         filteredHearings = filteredHearings.filter((h: any) => h.status === filters.status);
       }
 
+      if (filters.ownerId) {
+        filteredHearings = filteredHearings.filter((h: any) => {
+          const relatedCase = caseMap.get(h.case_id || h.caseId);
+          if (!relatedCase) return false;
+          
+          // Compare case's assigned_to with selected ownerId
+          const caseOwnerId = relatedCase.assigned_to || relatedCase.assignedToId;
+          return caseOwnerId === filters.ownerId;
+        });
+      }
+
       const reportData = filteredHearings.map((hearing: any) => {
         const relatedCase = caseMap.get(hearing.case_id || hearing.caseId);
         const clientId = relatedCase?.client_id || relatedCase?.clientId;
