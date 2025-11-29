@@ -274,43 +274,60 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           };
         });
 
-        const documents = (documentsData.data || []).map((d: any) => ({
-          ...d,
-          // Primary UI display fields
-          id: d.id,
-          name: d.file_name || d.name || 'Unnamed Document',
-          type: d.file_type || d.type || 'pdf',
-          size: d.file_size || d.size || 0,
-          path: d.file_path || d.path || '',
+        const documents = (documentsData.data || []).map((d: any) => {
+          const uploadedById = d.uploaded_by || d.uploaded_by_id || d.uploadedById || '';
+          const uploadedByName = uploadedById 
+            ? (employeesMap.get(uploadedById) || 'Unknown')
+            : 'Unknown';
           
-          // Backend persistence fields (camelCase for SupabaseAdapter)
-          fileName: d.file_name,
-          fileType: d.file_type,
-          fileSize: d.file_size,
-          filePath: d.file_path,
-          mimeType: d.mime_type,
-          storageUrl: d.storage_url,
-          
-          // Association fields
-          caseId: d.case_id || d.caseId,
-          clientId: d.client_id || d.clientId,
-          folderId: d.folder_id || d.folderId,
-          hearingId: d.hearing_id || d.hearingId,
-          taskId: d.task_id || d.taskId,
-          
-          // Metadata fields
-          category: d.category,
-          uploadedById: d.uploaded_by || d.uploaded_by_id || d.uploadedById,
-          uploadedByName: d.uploaded_by_name || d.uploadedByName || 'Unknown',
-          uploadedAt: d.upload_timestamp || d.uploaded_at || d.uploadedAt || d.created_at,
-          uploadTimestamp: d.upload_timestamp || d.uploaded_at || d.created_at,
-          createdAt: d.created_at || d.createdAt,
-          updatedAt: d.updated_at || d.updatedAt,
-          
-          // UI state fields
-          tags: d.tags || [],
-          isShared: d.is_shared || d.isShared || false,
-        }));
+          return {
+            // Primary UI display fields (NO spread to avoid snake_case contamination!)
+            id: d.id,
+            name: d.file_name || 'Unnamed Document',
+            type: d.file_type || 'pdf',
+            size: d.file_size || 0,
+            path: d.file_path || '',
+            
+            // Backend persistence fields (camelCase for SupabaseAdapter)
+            fileName: d.file_name,
+            fileType: d.file_type,
+            fileSize: d.file_size,
+            filePath: d.file_path,
+            mimeType: d.mime_type,
+            storageUrl: d.storage_url,
+            
+            // Association fields - MUST use camelCase for UI
+            caseId: d.case_id || '',
+            clientId: d.client_id || '',
+            folderId: d.folder_id || '',
+            hearingId: d.hearing_id || '',
+            taskId: d.task_id || '',
+            
+            // Metadata fields
+            category: d.category,
+            uploadedById,
+            uploadedByName,
+            uploadedAt: d.upload_timestamp || d.created_at || '',
+            uploadTimestamp: d.upload_timestamp || d.created_at,
+            createdAt: d.created_at,
+            updatedAt: d.updated_at,
+            
+            // UI state fields
+            tags: [],
+            isShared: false,
+          };
+        });
+        
+        console.log('[DataInitializer] Documents loaded:', {
+          count: documents.length,
+          sample: documents[0] ? {
+            id: documents[0].id,
+            name: documents[0].name,
+            caseId: documents[0].caseId,
+            size: documents[0].size,
+            uploadedByName: documents[0].uploadedByName
+          } : null
+        });
 
         const employees = (employeesData.data || []).map((e: any) => ({
           ...e,
