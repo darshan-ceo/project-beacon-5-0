@@ -23,6 +23,7 @@ import { Task, TaskFollowUp } from '@/contexts/AppStateContext';
 import { cn } from '@/lib/utils';
 import { ThreeLayerHelp } from '@/components/ui/three-layer-help';
 import { uiHelpService } from '@/services/uiHelpService';
+import { formatDateForStorage, getCurrentDateInput } from '@/utils/dateFormatters';
 
 interface LogFollowUpModalProps {
   isOpen: boolean;
@@ -50,7 +51,7 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
     outcome: 'Progressing' as TaskFollowUp['outcome'],
     status: task.status,
     hoursLogged: undefined as number | undefined,
-    workDate: new Date().toISOString().split('T')[0],
+    workDate: getCurrentDateInput(),
     nextFollowUpDate: undefined as string | undefined,
     nextActions: '',
     blockers: '',
@@ -95,7 +96,7 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
       outcome: 'Progressing',
       status: task.status,
       hoursLogged: undefined,
-      workDate: new Date().toISOString().split('T')[0],
+      workDate: getCurrentDateInput(),
       nextFollowUpDate: undefined,
       nextActions: '',
       blockers: '',
@@ -326,7 +327,7 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
                           mode="single"
                           selected={formData.workDate ? new Date(formData.workDate) : undefined}
                           onSelect={(date) => {
-                            setFormData({ ...formData, workDate: date?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0] });
+                            setFormData({ ...formData, workDate: date ? formatDateForStorage(date) : getCurrentDateInput() });
                             setWorkDateOpen(false);
                           }}
                           disabled={(date) => date > new Date() || date < new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)}
@@ -358,7 +359,7 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
                         mode="single"
                         selected={formData.nextFollowUpDate ? new Date(formData.nextFollowUpDate) : undefined}
                         onSelect={(date) => {
-                          setFormData({ ...formData, nextFollowUpDate: date?.toISOString().split('T')[0] });
+                          setFormData({ ...formData, nextFollowUpDate: date ? formatDateForStorage(date) : undefined });
                           setFollowUpDateOpen(false);
                         }}
                         disabled={(date) => date < new Date()}
@@ -374,7 +375,7 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
                       onClick={() => {
                         const tomorrow = new Date();
                         tomorrow.setDate(tomorrow.getDate() + 1);
-                        setFormData({ ...formData, nextFollowUpDate: tomorrow.toISOString().split('T')[0] });
+                        setFormData({ ...formData, nextFollowUpDate: formatDateForStorage(tomorrow) });
                       }}
                     >
                       Tomorrow
@@ -386,7 +387,7 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
                       onClick={() => {
                         const threeDays = new Date();
                         threeDays.setDate(threeDays.getDate() + 3);
-                        setFormData({ ...formData, nextFollowUpDate: threeDays.toISOString().split('T')[0] });
+                        setFormData({ ...formData, nextFollowUpDate: formatDateForStorage(threeDays) });
                       }}
                     >
                       3 days
@@ -398,7 +399,7 @@ export const LogFollowUpModal: React.FC<LogFollowUpModalProps> = ({
                       onClick={() => {
                         const oneWeek = new Date();
                         oneWeek.setDate(oneWeek.getDate() + 7);
-                        setFormData({ ...formData, nextFollowUpDate: oneWeek.toISOString().split('T')[0] });
+                        setFormData({ ...formData, nextFollowUpDate: formatDateForStorage(oneWeek) });
                       }}
                     >
                       1 week
