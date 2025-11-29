@@ -249,10 +249,8 @@ export const TaskManagement: React.FC = () => {
             payload: updatedTask
           });
           
-          toast({
-            title: "Task Updated",
-            description: `${updatedTask.title} has been modified`,
-          });
+          // Toast removed: Real-time sync should update state silently
+          // User-initiated updates show toast via tasksService.update()
         }
       )
       .on(
