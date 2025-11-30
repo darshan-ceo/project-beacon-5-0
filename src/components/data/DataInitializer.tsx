@@ -175,7 +175,7 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
             amountInDispute: c.amount_in_dispute || c.amountInDispute,
             stateBenchState: c.state_bench_state || c.stateBenchState,
             stateBenchCity: c.state_bench_city || c.stateBenchCity,
-            city: c.city,
+            city: c.city || '',
             // New fields from migration - use parsedComponents as fallback for fields that might be NULL in DB
             caseType: c.case_type || c.caseType || parsedComponents?.caseType,
             caseYear: c.case_year || c.caseYear || parsedComponents?.year,

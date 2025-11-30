@@ -364,13 +364,23 @@ export const CaseModal: React.FC<CaseModalProps> = ({
       return;
     }
     
-    if (!formData.city) {
-      toast({
-        title: "Validation Error",
-        description: "City is required for jurisdiction determination.",
-        variant: "destructive"
-      });
-      return;
+    // City validation with grandfather clause
+    if (mode === 'create') {
+      // New cases: Always require city
+      if (!formData.city) {
+        showValidationError("City is required for jurisdiction determination.");
+        return;
+      }
+    } else if (mode === 'edit') {
+      // Existing cases: Only validate if field was originally populated
+      const originalHadCity = caseData?.city;
+      
+      // If case originally had city but user cleared it, show error (prevent data loss)
+      if (originalHadCity && !formData.city) {
+        showValidationError("City cannot be removed from existing case.");
+        return;
+      }
+      // Legacy cases without city → allow save without forcing new value
     }
     
     if (!formData.authorityId && formData.currentStage !== 'Assessment') {
