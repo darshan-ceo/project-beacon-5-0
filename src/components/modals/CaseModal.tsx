@@ -286,42 +286,52 @@ export const CaseModal: React.FC<CaseModalProps> = ({
       }
     }
 
-    if (!formData.notice_date) {
+    // Helper function for cleaner validation messages
+    const showValidationError = (msg: string) => {
       toast({
         title: "Validation Error",
-        description: "Notice Date is required for compliance tracking.",
+        description: msg,
         variant: "destructive"
       });
-      return;
+    };
+
+    // Grandfather clause for date fields: Only require for new cases
+    if (mode === 'create') {
+      // New cases: Always require compliance date fields
+      if (!formData.notice_date) {
+        showValidationError("Notice Date is required for new cases.");
+        return;
+      }
+      if (!formData.reply_due_date) {
+        showValidationError("Reply Due Date is required for new cases.");
+        return;
+      }
+    } else if (mode === 'edit') {
+      // Existing cases: Only validate if field was originally populated (prevent data loss)
+      const originalHadNoticeDate = caseData?.noticeDate || caseData?.notice_date;
+      const originalHadReplyDueDate = caseData?.replyDueDate || caseData?.reply_due_date;
+      
+      if (originalHadNoticeDate && !formData.notice_date) {
+        showValidationError("Notice Date cannot be removed from existing case.");
+        return;
+      }
+      if (originalHadReplyDueDate && !formData.reply_due_date) {
+        showValidationError("Reply Due Date cannot be removed from existing case.");
+        return;
+      }
+      // Legacy cases without these dates → allow save without forcing new values
     }
 
-    if (!formData.reply_due_date) {
-      toast({
-        title: "Validation Error",
-        description: "Reply Due Date is required for compliance tracking.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Validate Notice Date is not in future
-    if (new Date(formData.notice_date) > new Date()) {
-      toast({
-        title: "Validation Error",
-        description: "Notice Date cannot be in the future.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Validate Reply Due Date is after Notice Date
-    if (new Date(formData.reply_due_date) < new Date(formData.notice_date)) {
-      toast({
-        title: "Validation Error",
-        description: "Reply Due Date must be after Notice Date.",
-        variant: "destructive"
-      });
-      return;
+    // Date relationship validation (only if BOTH dates exist)
+    if (formData.notice_date && formData.reply_due_date) {
+      if (new Date(formData.notice_date) > new Date()) {
+        showValidationError("Notice Date cannot be in the future.");
+        return;
+      }
+      if (new Date(formData.reply_due_date) < new Date(formData.notice_date)) {
+        showValidationError("Reply Due Date must be after Notice Date.");
+        return;
+      }
     }
 
     // Check for approaching deadline
