@@ -81,12 +81,12 @@ All colors MUST be HSL. Professional legal theme with accessibility focus.
     
     /* Sidebar - Professional Dark Theme with Beacon Teal */
     --sidebar-background: 215 28% 17%;     /* Dark professional sidebar */
-    --sidebar-foreground: 265 4% 12.9%;
-    --sidebar-primary: 266 4% 20.8%;        /* Primary teal in sidebar */
-    --sidebar-primary-foreground: 248 0.3% 98.4%;
-    --sidebar-accent: 248 0.7% 96.8%;         /* Slightly lighter than bg */
-    --sidebar-accent-foreground: 266 4% 20.8%;
-    --sidebar-border: 256 1.3% 92.9%;
+    --sidebar-foreground: 0 0% 95%;        /* Light text for visibility */
+    --sidebar-primary: 174 45% 50%;        /* Primary teal in sidebar */
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 28% 24%;         /* Slightly lighter than bg */
+    --sidebar-accent-foreground: 0 0% 95%; /* Light text on accent */
+    --sidebar-border: 0 0% 100% / 10%;
     --sidebar-ring: 257 4% 70.4%;
     
     /* Custom Legal-Specific Variables - Beacon Colors */
@@ -232,6 +232,34 @@ All colors MUST be HSL. Professional legal theme with accessibility focus.
     --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
     --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
     --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+  }
+
+  /* Light Sidebar Theme */
+  .sidebar-light {
+    --sidebar-background: 0 0% 98%;              /* Off-white background */
+    --sidebar-foreground: 215 28% 17%;           /* Dark text */
+    --sidebar-primary: 174 45% 40%;              /* Teal for active items */
+    --sidebar-primary-foreground: 0 0% 100%;     /* White text on teal */
+    --sidebar-accent: 0 0% 94%;                  /* Light gray for hover */
+    --sidebar-accent-foreground: 215 28% 17%;    /* Dark text on hover */
+    --sidebar-border: 0 0% 88%;                  /* Visible light gray border */
+  }
+
+  /* Adjust active sidebar styles for light theme */
+  .sidebar-light .brand-active-sidebar {
+    border-left-color: hsl(174 45% 40%) !important;
+    color: hsl(174 45% 35%) !important;
+    background: linear-gradient(
+      to right, 
+      hsl(174 45% 40% / 0.15),
+      hsl(174 45% 40% / 0.08),
+      hsl(174 45% 40% / 0.02)
+    ) !important;
+  }
+
+  .sidebar-light .brand-active-sidebar svg {
+    color: hsl(174 45% 35%) !important;
+    filter: none;
   }
 }
 
