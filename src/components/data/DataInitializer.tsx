@@ -188,15 +188,20 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
             // Notice and authority fields
             noticeNo: c.notice_no || c.noticeNo || parsedComponents?.noticeNo,
             noticeDate: c.notice_date || c.noticeDate,
+            notice_date: c.notice_date || c.noticeDate,
             noticeType: c.notice_type || c.noticeType,
             replyDueDate: c.reply_due_date || c.replyDueDate,
+            reply_due_date: c.reply_due_date || c.replyDueDate,
             authorityId: c.authority_id || c.authorityId,
             forumId: c.forum_id || c.forumId,
             // Financial fields
             taxDemand: c.tax_demand || c.taxDemand,
             interestAmount: c.interest_amount || c.interestAmount,
+            interest_amount: c.interest_amount || c.interestAmount,
             penaltyAmount: c.penalty_amount || c.penaltyAmount,
+            penalty_amount: c.penalty_amount || c.penaltyAmount,
             totalDemand: c.total_demand || c.totalDemand,
+            total_demand: c.total_demand || c.totalDemand,
             // Hearing fields
             nextHearingDate: c.next_hearing_date || c.nextHearingDate,
           };
