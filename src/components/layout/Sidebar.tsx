@@ -18,7 +18,9 @@ import {
   TestTube,
   CalendarDays,
   ChevronDown,
-  HelpCircle
+  HelpCircle,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -36,6 +38,9 @@ import {
 } from '@/components/ui/sidebar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useUIState } from '@/hooks/useUIState';
 import { envConfig } from '@/utils/envConfig';
 
 interface AppSidebarProps {
@@ -102,6 +107,13 @@ const groupIcons: Record<string, React.ElementType> = {
 };
 
 export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
+  // Sidebar theme state with persistence
+  const [sidebarTheme, setSidebarTheme] = useUIState<'dark' | 'light'>(
+    'ui.layout.sidebar_theme',
+    'dark',
+    { category: 'preferences', description: 'Sidebar theme preference' }
+  );
+
   // State for tracking group expansion
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
     const initialState: Record<string, boolean> = {};
@@ -110,6 +122,11 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
     });
     return initialState;
   });
+
+  // Toggle sidebar theme
+  const toggleSidebarTheme = () => {
+    setSidebarTheme(sidebarTheme === 'dark' ? 'light' : 'dark');
+  };
 
   // Add QA and Debug items to main menu based on environment
   const dynamicMainItems = [...mainMenuItems];
@@ -200,7 +217,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
   };
 
   return (
-    <Sidebar className="border-r border-sidebar-border" collapsible="icon">
+    <TooltipProvider>
+      <Sidebar 
+        className={cn(
+          "border-r border-sidebar-border",
+          sidebarTheme === 'light' && 'sidebar-light'
+        )} 
+        collapsible="icon"
+      >
       {/* Header with Logo */}
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center space-x-2 p-2">
@@ -277,9 +301,31 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
         </ScrollArea>
       </SidebarContent>
 
-      {/* Footer with Environment Status Only */}
+      {/* Footer with Theme Toggle and Environment Status */}
       <SidebarFooter className="border-t border-sidebar-border">
-        <div className="p-2">
+        <div className="p-2 space-y-2">
+          {/* Sidebar Theme Toggle */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleSidebarTheme}
+                className="w-full justify-start gap-2 text-sidebar-foreground hover:bg-sidebar-accent"
+              >
+                {sidebarTheme === 'dark' ? (
+                  <Sun className="h-4 w-4" />
+                ) : (
+                  <Moon className="h-4 w-4" />
+                )}
+                {open && <span>{sidebarTheme === 'dark' ? 'Light Sidebar' : 'Dark Sidebar'}</span>}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              Switch to {sidebarTheme === 'dark' ? 'light' : 'dark'} sidebar
+            </TooltipContent>
+          </Tooltip>
+
           {/* Environment Status */}
           {envConfig.QA_ON && open && (
             <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-2">
@@ -291,6 +337,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
           )}
         </div>
       </SidebarFooter>
-    </Sidebar>
+      </Sidebar>
+    </TooltipProvider>
   );
 };
