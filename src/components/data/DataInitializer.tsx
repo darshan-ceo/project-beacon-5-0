@@ -6,6 +6,7 @@ import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { normalizeStage } from '@/utils/stageUtils';
 import { calculateSLAStatus } from '@/services/slaService';
+import { parseCaseNumber } from '@/utils/caseNumberGenerator';
 
 // Global flags to persist data loaded state across component remounts
 // This prevents the "Loading your data..." screen from appearing when switching tabs
@@ -155,10 +156,14 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
             ? (employeesMap.get(assignedToId) || c.assigned_to_name || c.assignedToName || '')
             : '';
           
+          // Parse case_number to extract missing component fields as fallback
+          const caseNumber = c.case_number || c.caseNumber;
+          const parsedComponents = caseNumber ? parseCaseNumber(caseNumber) : null;
+          
           // Build case object with proper field mapping
           const caseObj = {
             ...c,
-            caseNumber: c.case_number || c.caseNumber,
+            caseNumber,
             clientId: c.client_id || c.clientId,
             status: normalizedStatus,
             currentStage: normalizeStage(c.stage_code || c.current_stage || c.currentStage || 'Assessment'),
@@ -171,17 +176,17 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
             stateBenchState: c.state_bench_state || c.stateBenchState,
             stateBenchCity: c.state_bench_city || c.stateBenchCity,
             city: c.city,
-            // New fields from migration
-            caseType: c.case_type || c.caseType,
-            caseYear: c.case_year || c.caseYear,
-            caseSequence: c.case_sequence || c.caseSequence,
-            officeFileNo: c.office_file_no || c.officeFileNo,
+            // New fields from migration - use parsedComponents as fallback for fields that might be NULL in DB
+            caseType: c.case_type || c.caseType || parsedComponents?.caseType,
+            caseYear: c.case_year || c.caseYear || parsedComponents?.year,
+            caseSequence: c.case_sequence || c.caseSequence || parsedComponents?.sequence,
+            officeFileNo: c.office_file_no || c.officeFileNo || parsedComponents?.officeFileNo,
             issueType: c.issue_type || c.issueType,
             formType: c.form_type || c.formType,
             sectionInvoked: c.section_invoked || c.sectionInvoked,
             financialYear: c.financial_year || c.financialYear,
             // Notice and authority fields
-            noticeNo: c.notice_no || c.noticeNo,
+            noticeNo: c.notice_no || c.noticeNo || parsedComponents?.noticeNo,
             noticeDate: c.notice_date || c.noticeDate,
             noticeType: c.notice_type || c.noticeType,
             replyDueDate: c.reply_due_date || c.replyDueDate,
