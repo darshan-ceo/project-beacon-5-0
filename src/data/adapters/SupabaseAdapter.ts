@@ -1413,6 +1413,14 @@ export class SupabaseAdapter implements StoragePort {
             normalized.forum_id = null;
           }
           
+          // Sanitize date fields - convert empty strings to null for PostgreSQL
+          const dateFields = ['notice_date', 'reply_due_date', 'next_hearing_date'];
+          dateFields.forEach(field => {
+            if (normalized[field] === '' || normalized[field] === undefined) {
+              normalized[field] = null;
+            }
+          });
+          
           // Keep only valid columns
           const validCaseFields = [
             'id', 'tenant_id', 'case_number', 'title', 'description', 
