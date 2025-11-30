@@ -59,6 +59,76 @@ class SampleDataSeeder {
   }
 
   /**
+   * Cleanup ALL cases and related data (complete reset)
+   * WARNING: This deletes ALL cases in tenant, not just sample data!
+   */
+  async cleanupAllCases(): Promise<CleanupResult> {
+    if (!this.tenantId) await this.initialize();
+    
+    const result: CleanupResult = {
+      success: true,
+      casesDeleted: 0,
+      hearingsDeleted: 0,
+      tasksDeleted: 0,
+      transitionsDeleted: 0,
+      timelineEntriesDeleted: 0,
+      documentsDeleted: 0,
+      errors: []
+    };
+
+    try {
+      // Delete in FK dependency order
+      // 1. Timeline entries
+      const { count: timelineCount } = await supabase
+        .from('timeline_entries')
+        .delete({ count: 'exact' })
+        .eq('tenant_id', this.tenantId!);
+      result.timelineEntriesDeleted = timelineCount || 0;
+
+      // 2. Stage transitions
+      const { count: transitionsCount } = await supabase
+        .from('stage_transitions')
+        .delete({ count: 'exact' })
+        .eq('tenant_id', this.tenantId!);
+      result.transitionsDeleted = transitionsCount || 0;
+
+      // 3. Documents
+      const { count: documentsCount } = await supabase
+        .from('documents')
+        .delete({ count: 'exact' })
+        .eq('tenant_id', this.tenantId!);
+      result.documentsDeleted = documentsCount || 0;
+
+      // 4. Tasks
+      const { count: tasksCount } = await supabase
+        .from('tasks')
+        .delete({ count: 'exact' })
+        .eq('tenant_id', this.tenantId!);
+      result.tasksDeleted = tasksCount || 0;
+
+      // 5. Hearings
+      const { count: hearingsCount } = await supabase
+        .from('hearings')
+        .delete({ count: 'exact' })
+        .eq('tenant_id', this.tenantId!);
+      result.hearingsDeleted = hearingsCount || 0;
+
+      // 6. ALL Cases
+      const { count: casesCount } = await supabase
+        .from('cases')
+        .delete({ count: 'exact' })
+        .eq('tenant_id', this.tenantId!);
+      result.casesDeleted = casesCount || 0;
+
+    } catch (error: any) {
+      result.success = false;
+      result.errors.push(error.message);
+    }
+
+    return result;
+  }
+
+  /**
    * Cleanup all sample data in correct FK dependency order
    */
   async cleanupSampleData(): Promise<CleanupResult> {

@@ -33,6 +33,7 @@ import { EmailConfiguration } from './EmailConfiguration';
 import { OutcomeTemplateManager } from './OutcomeTemplateManager';
 import { AuthorityHierarchySettings } from '@/components/settings/AuthorityHierarchySettings';
 import { featureFlagService } from '@/services/featureFlagService';
+import { SampleDataManager } from './SampleDataManager';
 
 interface SystemParameter {
   id: string;
@@ -238,6 +239,7 @@ export const GlobalParameters: React.FC = () => {
                 <TabsTrigger value="address-config" className="min-w-[120px] whitespace-nowrap">Address Config</TabsTrigger>
                 <TabsTrigger value="outcome-templates" className="min-w-[140px] whitespace-nowrap">Outcome Templates</TabsTrigger>
                 <TabsTrigger value="authority-hierarchy" className="min-w-[140px] whitespace-nowrap">Master Data</TabsTrigger>
+                <TabsTrigger value="sample-data" className="min-w-[120px] whitespace-nowrap">Sample Data</TabsTrigger>
               </TabsList>
             </div>
           </div>
@@ -252,6 +254,7 @@ export const GlobalParameters: React.FC = () => {
             <TabsTrigger value="address-config" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Address Configuration</TabsTrigger>
             <TabsTrigger value="outcome-templates" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Outcome Templates</TabsTrigger>
             <TabsTrigger value="authority-hierarchy" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Master Data</TabsTrigger>
+            <TabsTrigger value="sample-data" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Sample Data</TabsTrigger>
           </TabsList>
         )}
 
@@ -624,6 +627,10 @@ export const GlobalParameters: React.FC = () => {
 
         <TabsContent value="authority-hierarchy" className="space-y-6">
           <AuthorityHierarchySettings />
+        </TabsContent>
+
+        <TabsContent value="sample-data" className="space-y-6">
+          <SampleDataManager />
         </TabsContent>
       </Tabs>
     </div>
