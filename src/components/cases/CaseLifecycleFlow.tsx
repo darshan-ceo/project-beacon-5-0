@@ -278,7 +278,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.1 }}
-        className="grid grid-cols-1 lg:grid-cols-7 gap-4"
+        className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4"
       >
         {lifecycleStages.map((stage, index) => {
           const status = getStageStatus(index);
