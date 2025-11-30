@@ -72,10 +72,15 @@ interface Case {
   
   // Phase 3: Compliance & Financial Tracking (Comprehensive Plan Implementation)
   notice_date?: string; // YYYY-MM-DD - Date when notice was issued by the department
+  noticeDate?: string; // CamelCase variant for notice_date
   reply_due_date?: string; // YYYY-MM-DD - Deadline to respond to notice
+  replyDueDate?: string; // CamelCase variant for reply_due_date
   interest_amount?: number; // Interest demanded by the department
+  interestAmount?: number; // CamelCase variant for interest_amount
   penalty_amount?: number; // Penalty amount proposed/imposed
+  penaltyAmount?: number; // CamelCase variant for penalty_amount
   total_demand?: number; // Computed: tax + interest + penalty
+  totalDemand?: number; // CamelCase variant for total_demand
   
   // Phase 4: State Bench Location Enhancement (GSTAT Notification Compliance)
   stateBenchState?: string; // State selection for State Bench cases (e.g., "Gujarat", "Maharashtra")
