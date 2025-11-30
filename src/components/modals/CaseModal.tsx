@@ -252,13 +252,38 @@ export const CaseModal: React.FC<CaseModalProps> = ({
       return;
     }
 
-    if (!formData.officeFileNo || !formData.noticeNo) {
-      toast({
-        title: "Validation Error",
-        description: "Office File No and Notice No are required.",
-        variant: "destructive"
-      });
-      return;
+    // Grandfather clause: Only require these fields for new cases
+    if (mode === 'create') {
+      // New cases: Always require both fields
+      if (!formData.officeFileNo || !formData.noticeNo) {
+        toast({
+          title: "Validation Error",
+          description: "Office File No and Notice No are required for new cases.",
+          variant: "destructive"
+        });
+        return;
+      }
+    } else if (mode === 'edit') {
+      // Existing cases: Only validate if field was originally populated (prevent data loss)
+      const originalHadOfficeFileNo = caseData?.officeFileNo;
+      const originalHadNoticeNo = caseData?.noticeNo;
+      
+      if (originalHadOfficeFileNo && !formData.officeFileNo) {
+        toast({
+          title: "Validation Error",
+          description: "Office File No cannot be removed from existing case.",
+          variant: "destructive"
+        });
+        return;
+      }
+      if (originalHadNoticeNo && !formData.noticeNo) {
+        toast({
+          title: "Validation Error",
+          description: "Notice No cannot be removed from existing case.",
+          variant: "destructive"
+        });
+        return;
+      }
     }
 
     if (!formData.notice_date) {
