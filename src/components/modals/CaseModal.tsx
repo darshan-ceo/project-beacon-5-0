@@ -162,7 +162,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
         caseSequence: caseData.caseSequence || '001',
         officeFileNo: caseData.officeFileNo || '',
         noticeNo: caseData.noticeNo || '',
-        issueType: caseData.issueType || caseData.title,
+        issueType: caseData.issueType || caseData.title || '',
         title: caseData.title,
         clientId: caseData.clientId,
         currentStage: caseData.currentStage,
@@ -242,16 +242,6 @@ export const CaseModal: React.FC<CaseModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate required fields
-    if (!formData.issueType) {
-      toast({
-        title: "Validation Error",
-        description: "Please select an issue type.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     // Grandfather clause: Only require these fields for new cases
     if (mode === 'create') {
       // New cases: Always require both fields
@@ -294,6 +284,20 @@ export const CaseModal: React.FC<CaseModalProps> = ({
         variant: "destructive"
       });
     };
+
+    // issueType validation with grandfather clause
+    if (mode === 'create') {
+      if (!formData.issueType) {
+        showValidationError("Please select an issue type for new cases.");
+        return;
+      }
+    } else if (mode === 'edit') {
+      const originalHadIssueType = caseData?.issueType;
+      if (originalHadIssueType && !formData.issueType) {
+        showValidationError("Issue type cannot be removed from existing case.");
+        return;
+      }
+    }
 
     // Grandfather clause for date fields: Only require for new cases
     if (mode === 'create') {
@@ -383,13 +387,19 @@ export const CaseModal: React.FC<CaseModalProps> = ({
       // Legacy cases without city → allow save without forcing new value
     }
     
-    if (!formData.authorityId && formData.currentStage !== 'Assessment') {
-      toast({
-        title: "Validation Error",
-        description: "Legal Forum / Issuing Authority is required for cases beyond Assessment stage.",
-        variant: "destructive"
-      });
-      return;
+    // authorityId validation with grandfather clause
+    if (mode === 'create') {
+      if (!formData.authorityId && formData.currentStage !== 'Assessment') {
+        showValidationError("Legal Forum / Issuing Authority is required for cases beyond Assessment stage.");
+        return;
+      }
+    } else if (mode === 'edit') {
+      const originalHadAuthority = caseData?.authorityId;
+      // Only require authority if case originally had it AND stage is not Assessment
+      if (originalHadAuthority && !formData.authorityId) {
+        showValidationError("Legal Forum / Issuing Authority cannot be removed from existing case.");
+        return;
+      }
     }
     
     // Validate client relationship
@@ -403,24 +413,29 @@ export const CaseModal: React.FC<CaseModalProps> = ({
       return;
     }
 
-    // Validate employee assignment
-    const assignedEmployee = state.employees.find(emp => emp.id === formData.assignedToId);
-    if (!assignedEmployee) {
-      toast({
-        title: "Validation Error",
-        description: "Please select a valid employee for assignment.",
-        variant: "destructive"
-      });
+    // assignedToId validation with grandfather clause
+    if (formData.assignedToId) {
+      // Only validate if user selected an assignment
+      const assignedEmployee = state.employees.find(emp => emp.id === formData.assignedToId);
+      if (!assignedEmployee) {
+        showValidationError("Please select a valid employee for assignment.");
+        return;
+      }
+      if (assignedEmployee.status !== 'Active') {
+        showValidationError("Cannot assign case to inactive employee.");
+        return;
+      }
+    } else if (mode === 'create') {
+      // New cases must have assignment
+      showValidationError("Please select an employee for assignment.");
       return;
-    }
-
-    if (assignedEmployee.status !== 'Active') {
-      toast({
-        title: "Validation Error",
-        description: "Cannot assign case to inactive employee.",
-        variant: "destructive"
-      });
-      return;
+    } else if (mode === 'edit') {
+      // Existing cases: Only require if originally had assignment
+      const originalHadAssignment = caseData?.assignedToId || caseData?.assignedTo;
+      if (originalHadAssignment) {
+        showValidationError("Employee assignment cannot be removed from existing case.");
+        return;
+      }
     }
     
     if (mode === 'create') {

@@ -181,7 +181,7 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
             caseYear: c.case_year || c.caseYear || parsedComponents?.year,
             caseSequence: c.case_sequence || c.caseSequence || parsedComponents?.sequence,
             officeFileNo: c.office_file_no || c.officeFileNo || parsedComponents?.officeFileNo || '',
-            issueType: c.issue_type || c.issueType,
+            issueType: c.issue_type || c.issueType || '',
             formType: c.form_type || c.formType,
             sectionInvoked: c.section_invoked || c.sectionInvoked,
             financialYear: c.financial_year || c.financialYear,
@@ -192,7 +192,7 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
             noticeType: c.notice_type || c.noticeType,
             replyDueDate: c.reply_due_date || c.replyDueDate || '',
             reply_due_date: c.reply_due_date || c.replyDueDate || '',
-            authorityId: c.authority_id || c.authorityId,
+            authorityId: c.authority_id || c.authorityId || '',
             forumId: c.forum_id || c.forumId,
             // Financial fields - default to 0 if null
             taxDemand: c.tax_demand || c.taxDemand || 0,
