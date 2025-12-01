@@ -150,15 +150,29 @@ export const useRealtimeSync = () => {
             const client = {
               id: payload.new.id,
               name: payload.new.display_name,
+              type: payload.new.type || 'Individual',
               gstin: payload.new.gstin,
               pan: payload.new.pan,
               email: payload.new.email,
               phone: payload.new.phone,
               status: payload.new.status === 'active' ? 'Active' : 'Inactive',
-              address: {
-                city: payload.new.city,
-                state: payload.new.state
-              },
+              // Parse JSONB fields
+              signatories: payload.new.signatories 
+                ? (typeof payload.new.signatories === 'string' 
+                    ? JSON.parse(payload.new.signatories) 
+                    : payload.new.signatories) 
+                : [],
+              address: payload.new.address 
+                ? (typeof payload.new.address === 'string' 
+                    ? JSON.parse(payload.new.address) 
+                    : payload.new.address)
+                : { city: payload.new.city, state: payload.new.state },
+              jurisdiction: payload.new.jurisdiction 
+                ? (typeof payload.new.jurisdiction === 'string' 
+                    ? JSON.parse(payload.new.jurisdiction) 
+                    : payload.new.jurisdiction)
+                : {},
+              clientGroupId: payload.new.client_group_id,
               createdAt: payload.new.created_at,
               updatedAt: payload.new.updated_at
             };
@@ -167,15 +181,30 @@ export const useRealtimeSync = () => {
             const client = {
               id: payload.new.id,
               name: payload.new.display_name,
+              type: payload.new.type || 'Individual',
               gstin: payload.new.gstin,
               pan: payload.new.pan,
               email: payload.new.email,
               phone: payload.new.phone,
               status: payload.new.status === 'active' ? 'Active' : 'Inactive',
-              address: {
-                city: payload.new.city,
-                state: payload.new.state
-              },
+              // Parse JSONB fields
+              signatories: payload.new.signatories 
+                ? (typeof payload.new.signatories === 'string' 
+                    ? JSON.parse(payload.new.signatories) 
+                    : payload.new.signatories) 
+                : [],
+              address: payload.new.address 
+                ? (typeof payload.new.address === 'string' 
+                    ? JSON.parse(payload.new.address) 
+                    : payload.new.address)
+                : { city: payload.new.city, state: payload.new.state },
+              jurisdiction: payload.new.jurisdiction 
+                ? (typeof payload.new.jurisdiction === 'string' 
+                    ? JSON.parse(payload.new.jurisdiction) 
+                    : payload.new.jurisdiction)
+                : {},
+              clientGroupId: payload.new.client_group_id,
+              createdAt: payload.new.created_at,
               updatedAt: payload.new.updated_at
             };
             rawDispatch({ type: 'UPDATE_CLIENT', payload: client as any });
