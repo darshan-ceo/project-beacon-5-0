@@ -444,20 +444,27 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
     try {
       let addressId = formData.addressId;
       
-      // Handle address creation/update for address master
+      // Handle address creation/update for address master (with graceful fallback)
       if (isAddressMasterEnabled && formData.address) {
         const addressData = formData.address as EnhancedAddressData;
         
         if (addressId) {
-          // Update existing address
+          // Try to update existing address
           const updateResult = await addressMasterService.updateAddress(addressId, addressData);
           if (!updateResult.success) {
-            toast({
-              title: "Error",
-              description: "Failed to update address",
-              variant: "destructive"
+            // If update fails (address not found), try to create new address instead
+            console.warn('Address update failed, attempting to create new address');
+            const createResult = await addressMasterService.createAddress({
+              ...addressData,
+              source: addressData.source || 'manual'
             });
-            return;
+            if (createResult.success && createResult.data) {
+              addressId = createResult.data.id!;
+            } else {
+              // If creation also fails, continue without address master (use inline address)
+              console.warn('Address creation failed, using inline address');
+              addressId = undefined;
+            }
           }
         } else {
           // Create new address
@@ -468,12 +475,9 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
           if (createResult.success && createResult.data) {
             addressId = createResult.data.id!;
           } else {
-            toast({
-              title: "Error", 
-              description: "Failed to create address",
-              variant: "destructive"
-            });
-            return;
+            // If creation fails, continue without address master
+            console.warn('Address creation failed, using inline address');
+            addressId = undefined;
           }
         }
       }
