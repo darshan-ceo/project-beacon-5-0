@@ -267,8 +267,8 @@ export const SignatoryModal: React.FC<SignatoryModalProps> = ({
               <SignatoryEmailManager
                 emails={formData.emails}
                 onChange={(emails) => {
-                  setFormData({ ...formData, emails });
-                  setErrors({ ...errors, emails: '' });
+                  setFormData(prev => ({ ...prev, emails }));
+                  setErrors(prev => ({ ...prev, emails: '' }));
                 }}
                 disabled={mode === 'view'}
               />
@@ -281,8 +281,8 @@ export const SignatoryModal: React.FC<SignatoryModalProps> = ({
               <SignatoryPhoneManager
                 phones={formData.phones}
                 onChange={(phones) => {
-                  setFormData({ ...formData, phones });
-                  setErrors({ ...errors, phones: '' });
+                  setFormData(prev => ({ ...prev, phones }));
+                  setErrors(prev => ({ ...prev, phones: '' }));
                 }}
                 disabled={mode === 'view'}
               />
