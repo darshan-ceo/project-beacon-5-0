@@ -111,7 +111,15 @@ export const ClientMasters: React.FC = () => {
       (() => {
         if (client.signatories && client.signatories.length > 0) {
           const primary = client.signatories.find(s => s.isPrimary) || client.signatories[0];
-          return (primary.email || '').toLowerCase().includes(searchTerm.toLowerCase());
+          const primaryEmailObj =
+            primary.emails?.find(e => e.isPrimary) ||
+            primary.emails?.[0];
+          const emailToSearch =
+            primaryEmailObj?.email ||
+            primary.email ||
+            client.email ||
+            '';
+          return emailToSearch.toLowerCase().includes(searchTerm.toLowerCase());
         }
         return (client.email || '').toLowerCase().includes(searchTerm.toLowerCase());
       })();
@@ -161,10 +169,27 @@ export const ClientMasters: React.FC = () => {
     // First, try to get from signatories (new way)
     if (client.signatories && client.signatories.length > 0) {
       const primarySignatory = client.signatories.find(s => s.isPrimary) || client.signatories[0];
-      return {
-        email: primarySignatory.email || 'N/A',
-        phone: primarySignatory.phone || 'N/A'
-      };
+
+      const primaryEmailObj =
+        primarySignatory.emails?.find(e => e.isPrimary) ||
+        primarySignatory.emails?.[0];
+      const email =
+        primaryEmailObj?.email ||
+        primarySignatory.email ||
+        client.email ||
+        'N/A';
+
+      const primaryPhoneObj =
+        primarySignatory.phones?.find(p => p.isPrimary) ||
+        primarySignatory.phones?.[0];
+      const phone =
+        (primaryPhoneObj ? `${primaryPhoneObj.countryCode} ${primaryPhoneObj.number}` : undefined) ||
+        primarySignatory.mobile ||
+        primarySignatory.phone ||
+        client.phone ||
+        'N/A';
+
+      return { email, phone };
     }
     
     // Fallback to legacy fields (old way)
