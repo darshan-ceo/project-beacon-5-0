@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAppState } from '@/contexts/AppStateContext';
 import { RealtimeChannel } from '@supabase/supabase-js';
+import { normalizeStage } from '@/utils/stageUtils';
 
 /**
  * Hook for real-time data synchronization across clients
@@ -67,7 +68,7 @@ export const useRealtimeSync = () => {
                 assignedToName: employee?.full_name || '',
                 caseNumber: caseData.case_number,
                 clientId: caseData.client_id,
-                currentStage: (caseData.stage_code || caseData.current_stage || 'ASSESSMENT').toUpperCase(),
+                currentStage: normalizeStage(caseData.stage_code || caseData.current_stage || 'Assessment'),
                 officeFileNo: caseData.office_file_no || caseData.officeFileNo,
                 noticeNo: caseData.notice_no || caseData.noticeNo,
                 city: caseData.city,
@@ -104,7 +105,7 @@ export const useRealtimeSync = () => {
                 assignedToName: employee?.full_name || '',
                 caseNumber: caseData.case_number,
                 clientId: caseData.client_id,
-                currentStage: (caseData.stage_code || caseData.current_stage || 'ASSESSMENT').toUpperCase(),
+                currentStage: normalizeStage(caseData.stage_code || caseData.current_stage || 'Assessment'),
                 officeFileNo: caseData.office_file_no || caseData.officeFileNo,
                 noticeNo: caseData.notice_no || caseData.noticeNo,
                 city: caseData.city,

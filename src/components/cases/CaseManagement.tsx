@@ -462,7 +462,7 @@ export const CaseManagement: React.FC = () => {
       
       toast({
         title: "Stage Advanced Successfully",
-        description: `Case moved to ${advanceStageModal.nextStage}. ${stageDefaults.suggestedTasks.length} tasks generated.`,
+        description: `Case moved to ${advanceStageModal.nextStage}. Automated tasks will be generated if bundles are configured.`,
       });
 
       setAdvanceStageModal({
