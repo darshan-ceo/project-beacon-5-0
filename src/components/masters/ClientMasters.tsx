@@ -125,6 +125,38 @@ export const ClientMasters: React.FC = () => {
     return matchesSearch && matchesFilter && matchesType;
   });
 
+  // Compute case counts for each client
+  const clientCaseCounts = useMemo(() => {
+    const counts: Record<string, { active: number; total: number }> = {};
+    state.cases.forEach(c => {
+      const clientId = c.clientId;
+      if (clientId) {
+        if (!counts[clientId]) {
+          counts[clientId] = { active: 0, total: 0 };
+        }
+        counts[clientId].total++;
+        if (c.status === 'Active') {
+          counts[clientId].active++;
+        }
+      }
+    });
+    return counts;
+  }, [state.cases]);
+
+  // Compute stats from real data
+  const stats = useMemo(() => {
+    const totalClients = state.clients.length;
+    const activeCasesTotal = state.cases.filter(c => 
+      c.status === 'Active'
+    ).length;
+    const portalAccessCount = state.clients.filter(c => 
+      c.portalAccess?.allowLogin
+    ).length;
+    const pendingReview = 0; // Clients don't have "Pending" status - keep at 0
+    
+    return { totalClients, activeCasesTotal, portalAccessCount, pendingReview };
+  }, [state.clients, state.cases]);
+
   const getPrimaryContact = (client: Client) => {
     // First, try to get from signatories (new way)
     if (client.signatories && client.signatories.length > 0) {
@@ -310,7 +342,7 @@ export const ClientMasters: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Total Clients</p>
-                  <p className="text-2xl font-bold text-foreground">847</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.totalClients}</p>
                 </div>
                 <Building2 className="h-8 w-8 text-primary" />
               </div>
@@ -323,7 +355,7 @@ export const ClientMasters: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Active Cases</p>
-                <p className="text-2xl font-bold text-foreground">156</p>
+                <p className="text-2xl font-bold text-foreground">{stats.activeCasesTotal}</p>
               </div>
               <FileText className="h-8 w-8 text-secondary" />
             </div>
@@ -336,7 +368,7 @@ export const ClientMasters: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Portal Access</p>
-                  <p className="text-2xl font-bold text-foreground">623</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.portalAccessCount}</p>
                 </div>
                 <Eye className="h-8 w-8 text-success" />
               </div>
@@ -349,7 +381,7 @@ export const ClientMasters: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Pending Review</p>
-                <p className="text-2xl font-bold text-foreground">23</p>
+                <p className="text-2xl font-bold text-foreground">{stats.pendingReview}</p>
               </div>
               <FileText className="h-8 w-8 text-warning" />
             </div>
@@ -560,10 +592,10 @@ export const ClientMasters: React.FC = () => {
                     {/* Column 8: Cases */}
                     <TableCell className="text-center">
                       <p className="text-lg font-bold text-foreground">
-                        {client.activeCases || client.totalCases || 0}
+                        {clientCaseCounts[client.id]?.active || 0}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {client.activeCases ? 'active' : 'total'}
+                        of {clientCaseCounts[client.id]?.total || 0} total
                       </p>
                     </TableCell>
                     <TableCell>

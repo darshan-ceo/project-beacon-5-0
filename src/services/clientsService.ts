@@ -188,6 +188,10 @@ export const clientsService = {
         city: normalizedData.city || clientData.address?.city || null,
         state: normalizedData.state || clientData.address?.state || 'Gujarat',
         status: (clientData.status || 'Active').toLowerCase(),
+        type: clientData.type || 'Individual',
+        signatories: clientData.signatories ? JSON.stringify(clientData.signatories) : null,
+        address: clientData.address ? JSON.stringify(clientData.address) : null,
+        jurisdiction: clientData.jurisdiction ? JSON.stringify(clientData.jurisdiction) : null,
       };
 
       // Persist to Supabase first
@@ -278,6 +282,10 @@ export const clientsService = {
       if (updates.address?.city) supabaseUpdates.city = updates.address.city;
       if (updates.address?.state) supabaseUpdates.state = updates.address.state;
       if (updates.status) supabaseUpdates.status = updates.status.toLowerCase();
+      if (updates.type) supabaseUpdates.type = updates.type;
+      if (updates.signatories !== undefined) supabaseUpdates.signatories = JSON.stringify(updates.signatories);
+      if (updates.address !== undefined) supabaseUpdates.address = JSON.stringify(updates.address);
+      if (updates.jurisdiction !== undefined) supabaseUpdates.jurisdiction = JSON.stringify(updates.jurisdiction);
 
       // Persist to Supabase first
       await storage.update('clients', clientId, supabaseUpdates);
