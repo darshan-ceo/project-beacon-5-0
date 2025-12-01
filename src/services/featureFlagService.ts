@@ -59,10 +59,10 @@ class FeatureFlagService {
       version: hearingsFeature === 'on' ? 'v1' : undefined
     });
 
-    // Address Master Feature (UAT enabled)
+    // Address Master Feature (UAT disabled - using inline addresses)
     this.flags.set('address_master_v1', {
       key: 'address_master_v1',
-      isEnabled: true, // ON in UAT
+      isEnabled: false, // OFF - addressMasterService not migrated to Supabase
       version: 'v1'
     });
 
