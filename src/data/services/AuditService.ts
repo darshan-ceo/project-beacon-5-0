@@ -8,14 +8,14 @@ import { changeTrackingService, EntityChange } from '../../services/changeTracki
 
 export interface AuditLog {
   id: string;
+  tenant_id: string;
   entity_type: string;
-  entity_id: string;
-  operation: 'create' | 'update' | 'delete';
+  entity_id: string | null;
+  action_type: string;
   user_id?: string;
   timestamp: string;
-  changes_json?: any;
-  diff_json?: any;
-  version?: number;
+  details?: any;
+  user_agent?: string;
 }
 
 export class AuditService {
@@ -46,33 +46,84 @@ export class AuditService {
     before?: any,
     after?: any
   ): Promise<AuditLog> {
-    // Track the change
-    const change = changeTrackingService.trackChange(
-      entityType,
-      entityId,
-      operation,
-      before,
-      after,
-      userId
-    );
+    try {
+      // Track the change
+      const change = changeTrackingService.trackChange(
+        entityType,
+        entityId,
+        operation,
+        before,
+        after,
+        userId
+      );
 
-    // Create audit log entry
-    const auditLog: AuditLog = {
-      id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      // Get tenant_id from storage adapter
+      const tenantId = (this.storage as any).getTenantId?.() || null;
+      if (!tenantId) {
+        console.warn('⚠️ Audit log skipped: tenant_id not available');
+        return this.createEmptyAuditLog(entityType, entityId, operation);
+      }
+
+      // Validate entity_id is UUID or convert to null
+      const validEntityId = this.isValidUUID(entityId) ? entityId : null;
+      if (!validEntityId) {
+        console.warn(`⚠️ Non-UUID entity_id "${entityId}" converted to null for audit log`);
+      }
+
+      // Create audit log entry matching database schema
+      const auditLog: AuditLog = {
+        id: crypto.randomUUID(), // Generate proper UUID
+        tenant_id: tenantId,
+        entity_type: entityType,
+        entity_id: validEntityId,
+        action_type: operation, // Map operation -> action_type
+        user_id: userId,
+        timestamp: change.timestamp,
+        details: { // Combine changes_json and diff_json into details
+          before,
+          after,
+          diff: change.diff,
+          version: change.version
+        },
+        user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined
+      };
+
+      // Store in audit_log table (mapped from audit_logs)
+      await this.storage.create('audit_logs', auditLog);
+
+      return auditLog;
+    } catch (error) {
+      // Make audit logging fault-tolerant - log warning but don't throw
+      console.warn('⚠️ Audit logging failed (non-fatal):', error);
+      return this.createEmptyAuditLog(entityType, entityId, operation);
+    }
+  }
+
+  /**
+   * Create empty audit log for fallback
+   */
+  private createEmptyAuditLog(
+    entityType: string,
+    entityId: string,
+    operation: 'create' | 'update' | 'delete'
+  ): AuditLog {
+    return {
+      id: crypto.randomUUID(),
+      tenant_id: '',
       entity_type: entityType,
-      entity_id: entityId,
-      operation,
-      user_id: userId,
-      timestamp: change.timestamp,
-      changes_json: { before, after },
-      diff_json: change.diff,
-      version: change.version,
+      entity_id: null,
+      action_type: operation,
+      timestamp: new Date().toISOString(),
+      details: {}
     };
+  }
 
-    // Store in audit_logs table
-    await this.storage.create('audit_logs', auditLog);
-
-    return auditLog;
+  /**
+   * Validate UUID format
+   */
+  private isValidUUID(uuid: string): boolean {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
   }
 
   /**
@@ -132,7 +183,7 @@ export class AuditService {
   ): Promise<AuditLog[]> {
     const logs = await this.storage.query<AuditLog>(
       'audit_logs',
-      (log) => log.operation === operation
+      (log) => (log as any).action_type === operation
     );
 
     const sorted = logs.sort((a, b) => 

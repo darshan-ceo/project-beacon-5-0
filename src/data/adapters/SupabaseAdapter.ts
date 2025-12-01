@@ -40,6 +40,13 @@ export class SupabaseAdapter implements StoragePort {
   }
 
   /**
+   * Get tenant ID for audit logging
+   */
+  getTenantId(): string | null {
+    return this.tenantId;
+  }
+
+  /**
    * Initialize adapter - fetch tenant ID from authenticated user's profile
    * Now with retry logic and auth state listening
    */
