@@ -127,7 +127,8 @@ export const casesService = {
           caseId,
           type: 'Forward',
           toStageKey: nextStage,
-          comments: notes
+          comments: notes,
+          dispatch
         });
       }
       
