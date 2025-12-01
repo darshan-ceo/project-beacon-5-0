@@ -38,6 +38,19 @@ interface ClientModalProps {
   mode: 'create' | 'edit' | 'view';
 }
 
+// Helper functions to extract primary contact info from new array format
+const getPrimaryEmail = (signatory: Signatory): string => {
+  return signatory.emails?.find(e => e.isPrimary)?.email || 
+         signatory.emails?.[0]?.email || 
+         signatory.email || '';
+};
+
+const getPrimaryPhone = (signatory: Signatory): string => {
+  const phone = signatory.phones?.find(p => p.isPrimary) || signatory.phones?.[0];
+  if (phone) return `${phone.countryCode} ${phone.number}`;
+  return signatory.mobile || signatory.phone || '';
+};
+
 export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, client: clientData, mode }) => {
   const { state, dispatch } = useAppState();
   const [isSaving, setIsSaving] = useState(false);
@@ -510,15 +523,28 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
 
   const handleSignatorySubmit = async (signatoryData: Omit<Signatory, 'id'> | Signatory) => {
     try {
+      // Extract primary email/phone for backward compatibility
+      const primaryEmail = signatoryData.emails?.find(e => e.isPrimary)?.email || 
+                          signatoryData.emails?.[0]?.email;
+      const primaryPhone = signatoryData.phones?.find(p => p.isPrimary) || 
+                          signatoryData.phones?.[0];
+      
+      const enrichedData = {
+        ...signatoryData,
+        // Set legacy fields for backward compatibility
+        email: primaryEmail || signatoryData.email,
+        mobile: primaryPhone ? `${primaryPhone.countryCode} ${primaryPhone.number}` : signatoryData.mobile,
+      };
+
       if (signatoryModal.mode === 'create') {
         const newSignatory: Signatory = {
-          ...(signatoryData as Omit<Signatory, 'id'>),
+          ...enrichedData as Omit<Signatory, 'id'>,
           id: Date.now().toString()
         };
         setSignatories(prev => [...prev, newSignatory]);
       } else if (signatoryModal.mode === 'edit') {
         setSignatories(prev => 
-          prev.map(s => s.id === (signatoryData as Signatory).id ? (signatoryData as Signatory) : s)
+          prev.map(s => s.id === (enrichedData as Signatory).id ? (enrichedData as Signatory) : s)
         );
       }
       setSignatoryModal({ isOpen: false, mode: 'create', signatory: null });
@@ -1191,10 +1217,10 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                               </div>
                             </TableCell>
                             <TableCell className="font-mono text-xs">
-                              {signatory.email}
+                              {getPrimaryEmail(signatory) || '-'}
                             </TableCell>
                             <TableCell className="font-mono text-xs">
-                              {signatory.mobile || signatory.phone || '-'}
+                              {getPrimaryPhone(signatory) || '-'}
                             </TableCell>
                             <TableCell>
                               {signatory.dob ? (
