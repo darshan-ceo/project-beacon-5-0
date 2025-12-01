@@ -139,6 +139,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
   const [isAddressMasterEnabled, setIsAddressMasterEnabled] = useState(false);
   const [isLoadingAddress, setIsLoadingAddress] = useState(false);
   const validationErrorsRef = useRef<HTMLDivElement>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     const loadClientData = async () => {
@@ -258,9 +259,18 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
       setErrors({});
       setValidationErrors([]);
     };
-    
-    loadClientData();
-  }, [clientData, mode, isOpen]);
+
+    if (!isOpen) {
+      // Reset initialization flag when modal is closed
+      setIsInitialized(false);
+      return;
+    }
+
+    if (!isInitialized) {
+      loadClientData();
+      setIsInitialized(true);
+    }
+  }, [clientData, mode, isOpen, isInitialized]);
 
   const loadClientAddress = async (clientId: string): Promise<EnhancedAddressData | null> => {
     try {

@@ -290,18 +290,10 @@ export const clientsService = {
       // Persist to Supabase first
       await storage.update('clients', clientId, supabaseUpdates);
 
-      const updatedClient: Client = {
-        ...updates as Client,
-        id: clientId,
-        updatedAt: new Date().toISOString()
-      };
-
-      // Update React context after successful persistence
-      dispatch({ type: 'UPDATE_CLIENT', payload: updatedClient });
-      
+      // Let realtime sync + DataInitializer handle UI state updates
       toast({
         title: "Client Updated Successfully",
-        description: `${updatedClient.name || 'Client'} has been updated.`,
+        description: `${updates.name || 'Client'} has been updated.`,
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update client';
