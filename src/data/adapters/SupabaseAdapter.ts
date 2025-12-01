@@ -1394,8 +1394,8 @@ export class SupabaseAdapter implements StoragePort {
           delete normalized.ownerName;
           delete normalized.timelineBreachStatus;
           
-          // Validate required client_id
-          if (!normalized.client_id || !isValidUUID(normalized.client_id)) {
+          // Conditionally validate client_id only if it's being updated (not for partial updates)
+          if (normalized.client_id !== undefined && (!normalized.client_id || !isValidUUID(normalized.client_id))) {
             throw new Error('Invalid client ID - please select a valid client');
           }
           
