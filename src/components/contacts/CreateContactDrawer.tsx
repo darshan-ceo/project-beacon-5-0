@@ -113,7 +113,7 @@ export const CreateContactDrawer: React.FC<CreateContactDrawerProps> = ({
 
   return (
     <Sheet open={isOpen} onOpenChange={handleClose}>
-      <SheetContent side="right" className="w-[400px] sm:w-[500px]">
+      <SheetContent side="right" className="w-[400px] sm:w-[500px] flex flex-col">
         <SheetHeader>
           <SheetTitle>Add New Contact</SheetTitle>
           <SheetDescription>
@@ -121,7 +121,9 @@ export const CreateContactDrawer: React.FC<CreateContactDrawerProps> = ({
           </SheetDescription>
         </SheetHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 mt-6">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          {/* Scrollable body section */}
+          <div className="flex-1 overflow-y-auto space-y-4 mt-6 pr-2">
           {/* Name */}
           <div className="space-y-2">
             <Label htmlFor="name">Name *</Label>
@@ -203,13 +205,15 @@ export const CreateContactDrawer: React.FC<CreateContactDrawerProps> = ({
             />
           </div>
 
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+          </div>
 
-          <div className="flex justify-end gap-3 pt-4">
+          {/* Fixed footer section */}
+          <div className="flex-shrink-0 flex justify-end gap-3 pt-4 border-t mt-4 bg-background">
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancel
             </Button>
