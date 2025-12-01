@@ -189,7 +189,7 @@ class LifecycleService {
           // Process task bundles automation
           const bundleResult = await taskBundleTriggerService.triggerTaskBundles(
             automationCaseData,
-            'OnStageEnter',
+            'stage_advance',
             request.toStageKey as GSTStage,
             request.dispatch
           );
