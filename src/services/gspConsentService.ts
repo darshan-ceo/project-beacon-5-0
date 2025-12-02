@@ -59,7 +59,7 @@ class GSPConsentService {
   /**
    * Initiate consent flow via Edge Function
    */
-  async initiateConsent(clientId: string, gstin: string): Promise<ApiResponse<ConsentInitResponse>> {
+  async initiateConsent(clientId: string, gstin: string, gstUsername: string): Promise<ApiResponse<ConsentInitResponse>> {
     if (!clientId || !gstin) {
       return {
         success: false,
@@ -68,9 +68,17 @@ class GSPConsentService {
       };
     }
 
+    if (!gstUsername) {
+      return {
+        success: false,
+        error: 'GST Portal Username is required',
+        data: null
+      };
+    }
+
     try {
       const { data, error } = await supabase.functions.invoke('gst-auth', {
-        body: { action: 'initiate', clientId, gstin }
+        body: { action: 'initiate', clientId, gstin, gstUsername }
       });
 
       if (error) throw error;
