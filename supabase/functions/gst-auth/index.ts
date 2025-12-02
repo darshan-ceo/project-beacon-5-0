@@ -35,7 +35,7 @@ serve(async (req) => {
   }
 
   try {
-    const { action, clientId, gstin, txnId, otp, consentId } = await req.json();
+    const { action, clientId, gstin, gstUsername, txnId, otp, consentId } = await req.json();
 
     // Get user from JWT
     const authHeader = req.headers.get('authorization');
@@ -72,6 +72,10 @@ serve(async (req) => {
           throw new Error('clientId and gstin are required');
         }
 
+        if (!gstUsername) {
+          throw new Error('GST Portal Username is required for consent initiation');
+        }
+
         if (isSandbox) {
           // Sandbox mode: return mock response
           const mockResponse = {
@@ -88,10 +92,17 @@ serve(async (req) => {
           });
         }
 
-        // Real MasterGST API call
-        console.log(`[gst-auth] Initiating consent for GSTIN: ${gstin}`);
+        // Real MasterGST API call - include username for authentication
+        console.log(`[gst-auth] Initiating consent for GSTIN: ${gstin}, Username: ${gstUsername}`);
         console.log('[gst-auth] Request URL:', `${config.apiUrl}/consent/initiate`);
-        console.log('[gst-auth] Request body:', JSON.stringify({ gstin, email: config.email, user_gstin: gstin }));
+        
+        const requestBody = { 
+          gstin, 
+          username: gstUsername,  // GST Portal username for authentication
+          email: config.email, 
+          user_gstin: gstin 
+        };
+        console.log('[gst-auth] Request body:', JSON.stringify(requestBody));
         
         const initiateResponse = await fetch(`${config.apiUrl}/consent/initiate`, {
           method: 'POST',
@@ -101,7 +112,7 @@ serve(async (req) => {
             'client_secret': config.clientSecret,
             'email': config.email
           },
-          body: JSON.stringify({ gstin, email: config.email, user_gstin: gstin })
+          body: JSON.stringify(requestBody)
         });
 
         if (!initiateResponse.ok) {

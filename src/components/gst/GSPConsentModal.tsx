@@ -40,15 +40,21 @@ export const GSPConsentModal: React.FC<GSPConsentModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [otp, setOtp] = useState('');
+  const [gstUsername, setGstUsername] = useState('');
   const [consentData, setConsentData] = useState<ConsentInitResponse | null>(null);
   const [successData, setSuccessData] = useState<ConsentVerifyResponse | null>(null);
 
   const handleInitiate = async () => {
+    if (!gstUsername.trim()) {
+      setError('GST Portal Username is required');
+      return;
+    }
+    
     setLoading(true);
     setError(null);
 
     try {
-      const response = await gspConsentService.initiateConsent(clientId, gstin);
+      const response = await gspConsentService.initiateConsent(clientId, gstin, gstUsername.trim());
       
       if (response.success && response.data) {
         setConsentData(response.data);
@@ -109,6 +115,7 @@ export const GSPConsentModal: React.FC<GSPConsentModalProps> = ({
   const handleClose = () => {
     setStep('init');
     setOtp('');
+    setGstUsername('');
     setError(null);
     setConsentData(null);
     setSuccessData(null);
@@ -135,6 +142,22 @@ export const GSPConsentModal: React.FC<GSPConsentModalProps> = ({
             Make sure you have access to the registered mobile number.
           </AlertDescription>
         </Alert>
+
+        <div className="space-y-2">
+          <Label htmlFor="gstUsername">GST Portal Username <span className="text-destructive">*</span></Label>
+          <Input
+            id="gstUsername"
+            placeholder="Enter your GST portal login username"
+            value={gstUsername}
+            onChange={(e) => {
+              setGstUsername(e.target.value);
+              setError(null);
+            }}
+          />
+          <p className="text-xs text-muted-foreground">
+            This is the username you use to login to gst.gov.in
+          </p>
+        </div>
 
         <div className="space-y-3">
           <div className="text-sm">
