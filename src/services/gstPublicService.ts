@@ -1,11 +1,11 @@
 /**
  * GST Public Service for Beacon Essential 5.0
- * Handles public GSTIN lookup without credentials
+ * Handles public GSTIN lookup via MasterGST API
  */
 
-import { apiService, ApiResponse } from './apiService';
+import { ApiResponse } from './apiService';
 import { gstCacheService } from './gstCacheService';
-import { envConfig } from '../utils/envConfig';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface GSTTaxpayerInfo {
   gstin: string;
@@ -51,7 +51,7 @@ export interface EInvoiceStatus {
 
 class GSTPublicService {
   /**
-   * Fetch taxpayer information by GSTIN with caching
+   * Fetch taxpayer information by GSTIN via MasterGST Edge Function
    */
   async fetchTaxpayer(gstin: string, bypassCache: boolean = false): Promise<ApiResponse<GSTTaxpayerInfo>> {
     if (!gstin || gstin.length !== 15) {
@@ -66,6 +66,7 @@ class GSTPublicService {
     if (!bypassCache) {
       const cached = await gstCacheService.get(gstin);
       if (cached) {
+        console.log('Returning cached GST data for:', gstin);
         return {
           success: true,
           data: this.mapApiResponseToInterface(cached.data),
@@ -74,27 +75,51 @@ class GSTPublicService {
       }
     }
 
-    // Check for mock mode or missing API using centralized config
-    if (envConfig.MOCK_ON || !envConfig.API) {
-      return this.getMockTaxpayerData(gstin);
-    }
+    try {
+      console.log('Fetching live GST data for:', gstin);
+      
+      // Call the gst-public-lookup edge function
+      const { data, error } = await supabase.functions.invoke('gst-public-lookup', {
+        body: { gstin }
+      });
 
-    const response = await apiService.get<any>('/api/gst/public/taxpayer', { gstin });
-    
-    if (response.success && response.data) {
+      if (error) {
+        console.error('Edge function error:', error);
+        return {
+          success: false,
+          error: error.message || 'Failed to fetch taxpayer data',
+          data: null
+        };
+      }
+
+      if (!data?.success) {
+        return {
+          success: false,
+          error: data?.error || 'Failed to fetch taxpayer data',
+          data: null
+        };
+      }
+
       // Cache the response
-      gstCacheService.set(gstin, response.data, 'public');
+      gstCacheService.set(gstin, data.data, 'public');
       
       // Map API response to our interface
-      const mappedData = this.mapApiResponseToInterface(response.data);
+      const mappedData = this.mapApiResponseToInterface(data.data);
+      console.log('Successfully fetched GST data for:', mappedData.legalName);
+      
       return {
         success: true,
         data: mappedData,
         error: null
       };
+    } catch (error: any) {
+      console.error('Error fetching taxpayer data:', error);
+      return {
+        success: false,
+        error: error.message || 'Failed to connect to GST service',
+        data: null
+      };
     }
-    
-    return response;
   }
 
   /**
@@ -204,6 +229,7 @@ class GSTPublicService {
 
   /**
    * Fetch E-Invoice status by GSTIN
+   * Note: E-Invoice status is included in taxpayer data from fetchTaxpayer()
    */
   async fetchEInvoiceStatus(gstin: string): Promise<ApiResponse<EInvoiceStatus>> {
     if (!gstin || gstin.length !== 15) {
@@ -214,7 +240,24 @@ class GSTPublicService {
       };
     }
 
-    return apiService.get<EInvoiceStatus>('/api/gst/public/einvoice-status', { gstin });
+    // E-Invoice status is available in the taxpayer info from fetchTaxpayer
+    const taxpayerResponse = await this.fetchTaxpayer(gstin);
+    if (taxpayerResponse.success && taxpayerResponse.data) {
+      return {
+        success: true,
+        data: {
+          gstin,
+          isEnabled: taxpayerResponse.data.isEInvoiceEnabled || false,
+        },
+        error: null
+      };
+    }
+
+    return {
+      success: false,
+      error: taxpayerResponse.error || 'Failed to fetch E-Invoice status',
+      data: null
+    };
   }
 
   /**
