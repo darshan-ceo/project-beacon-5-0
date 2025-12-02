@@ -52,6 +52,26 @@ export const GST_NOTICE_TYPES = [
   'DRC-01'
 ] as const;
 
+// Client Types from GST Portal (16 Types)
+export const CLIENT_TYPES = [
+  'Proprietorship',
+  'Partnership',
+  'Limited Liability Partnership',
+  'Foreign Limited Liability Partnership',
+  'Private Limited Company',
+  'Public Limited Company',
+  'Unlimited Company',
+  'Foreign Company',
+  'Hindu Undivided Family',
+  'Government Department',
+  'Public Sector Undertaking',
+  'Society/ Club/ Trust/ AOP',
+  'Statutory Body',
+  'Local Authority',
+  'Individual',
+  'Others'
+] as const;
+
 export const CLIENT_TIERS = [
   'Tier 1',
   'Tier 2', 
@@ -79,6 +99,7 @@ export type CaseType = typeof CASE_TYPES[number];
 export type MatterType = typeof MATTER_TYPES[number];
 export type GSTStage = typeof GST_STAGES[number];
 export type GSTNoticeType = typeof GST_NOTICE_TYPES[number];
+export type ClientType = typeof CLIENT_TYPES[number];
 export type ClientTier = typeof CLIENT_TIERS[number];
 export type TaskCategory = typeof TASK_CATEGORIES[number];
 export type PriorityLevel = typeof PRIORITY_OPTIONS[number]['value'];
@@ -97,6 +118,7 @@ export const APP_CONFIG = {
   MATTER_TYPES,
   GST_STAGES,
   GST_NOTICE_TYPES,
+  CLIENT_TYPES,
   CLIENT_TIERS,
   TASK_CATEGORIES,
   PRIORITY_OPTIONS,

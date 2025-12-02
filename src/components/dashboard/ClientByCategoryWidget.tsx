@@ -6,7 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Users2, ArrowRight } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
-const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899'];
+const COLORS = [
+  '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899',
+  '#14b8a6', '#f97316', '#ef4444', '#06b6d4', '#84cc16',
+  '#a855f7', '#f43f5e', '#22c55e', '#eab308', '#6366f1',
+  '#d946ef'
+];
 
 export const ClientByCategoryWidget: React.FC = () => {
   const { state } = useAppState();

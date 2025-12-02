@@ -40,7 +40,7 @@ export interface CrudService<T, CreateData, UpdateData> {
 // Client service interface
 export interface CreateClientData {
   name: string;
-  type: 'Individual' | 'Company' | 'Partnership' | 'Trust' | 'Other';
+  type: string; // Uses CLIENT_TYPES from appConfig - 16 GST portal types
   category?: 'Regular Dealer' | 'Composition' | 'Exporter' | 'Service' | 'Other';
   registrationNo?: string;
   gstin?: string;
