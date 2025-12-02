@@ -110,13 +110,23 @@ serve(async (req) => {
         const rawData = await initiateResponse.json();
         console.log('[gst-auth] MasterGST initiate raw response:', JSON.stringify(rawData));
         
+        // Check for API-level errors (status_cd === "0" means error in MasterGST)
+        if (rawData.status_cd === "0" || rawData.error) {
+          const errorMsg = rawData.error?.message || rawData.message || 'MasterGST consent initiation failed';
+          console.error('[gst-auth] MasterGST API error:', errorMsg);
+          throw new Error(`MasterGST error: ${errorMsg}`);
+        }
+        
+        // Extract actual data from nested response
+        const responseData = rawData.data || rawData;
+        
         // Map MasterGST response to expected format (handle various field names)
         const mappedData = {
-          txnId: rawData.txnId || rawData.txn_id || rawData.transactionId || rawData.transaction_id,
-          maskedDestination: rawData.maskedDestination || rawData.masked_destination || 
-                             rawData.masked_mobile || rawData.maskedMobile || 
-                             rawData.destination || rawData.mobile || 'Registered Mobile',
-          expiresAt: rawData.expiresAt || rawData.expires_at || rawData.expiry ||
+          txnId: responseData.txnId || responseData.txn_id || responseData.transactionId || responseData.transaction_id,
+          maskedDestination: responseData.maskedDestination || responseData.masked_destination || 
+                             responseData.masked_mobile || responseData.maskedMobile || 
+                             responseData.destination || responseData.mobile || 'Registered Mobile',
+          expiresAt: responseData.expiresAt || responseData.expires_at || responseData.expiry ||
                      new Date(Date.now() + 5 * 60 * 1000).toISOString()
         };
         

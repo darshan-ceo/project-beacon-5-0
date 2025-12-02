@@ -349,17 +349,44 @@ class GSTPublicService {
   }
 
   /**
+   * Map state name to state ID for dropdown selection
+   */
+  private getStateIdFromName(stateName: string): string {
+    const stateIdMap: Record<string, string> = {
+      'Andhra Pradesh': 'AP', 'Arunachal Pradesh': 'AR', 'Assam': 'AS',
+      'Bihar': 'BR', 'Chhattisgarh': 'CG', 'Goa': 'GA', 'Gujarat': 'GJ',
+      'Haryana': 'HR', 'Himachal Pradesh': 'HP', 'Jharkhand': 'JH',
+      'Karnataka': 'KA', 'Kerala': 'KL', 'Madhya Pradesh': 'MP',
+      'Maharashtra': 'MH', 'Manipur': 'MN', 'Meghalaya': 'ML',
+      'Mizoram': 'MZ', 'Nagaland': 'NL', 'Odisha': 'OD', 'Punjab': 'PB',
+      'Rajasthan': 'RJ', 'Sikkim': 'SK', 'Tamil Nadu': 'TN',
+      'Telangana': 'TS', 'Tripura': 'TR', 'Uttar Pradesh': 'UP',
+      'Uttarakhand': 'UK', 'West Bengal': 'WB', 'Delhi': 'DL',
+      'Jammu and Kashmir': 'JK', 'Ladakh': 'LA', 'Puducherry': 'PY',
+      'Chandigarh': 'CH', 'Andaman and Nicobar Islands': 'AN',
+      'Dadra and Nagar Haveli and Daman and Diu': 'DD', 'Lakshadweep': 'LD'
+    };
+    return stateIdMap[stateName] || '';
+  }
+
+  /**
    * Map API response to internal address format
    */
   mapToAddressFormat(gstAddress: GSTAddress): any {
+    const stateId = this.getStateIdFromName(gstAddress.stateCode);
+    
     return {
       line1: [gstAddress.buildingNumber, gstAddress.buildingName].filter(Boolean).join(' '),
       line2: gstAddress.street,
       line3: gstAddress.location,
       city: gstAddress.district,
-      state: gstAddress.stateCode, // Will need mapping to full names
+      district: gstAddress.district,
+      stateId: stateId,               // ID for dropdown selection
+      stateName: gstAddress.stateCode, // Display name
+      state: gstAddress.stateCode,     // Fallback
       pincode: gstAddress.pincode,
-      country: 'India'
+      country: 'India',
+      countryId: 'IN'
     };
   }
 }
