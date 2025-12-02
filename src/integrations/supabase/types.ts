@@ -1323,6 +1323,220 @@ export type Database = {
           },
         ]
       }
+      gst_credentials: {
+        Row: {
+          aato_band: string | null
+          access_token: string | null
+          authorized_signatories: Json | null
+          client_id: string
+          consent_granted_at: string | null
+          consent_id: string | null
+          consent_revoked_at: string | null
+          consent_status: string | null
+          consent_valid_till: string | null
+          created_at: string | null
+          created_by: string | null
+          e_invoice_enabled: boolean | null
+          e_waybill_enabled: boolean | null
+          filing_frequency: string | null
+          gstin: string
+          id: string
+          last_sync: string | null
+          refresh_token: string | null
+          registered_email: string | null
+          registered_mobile: string | null
+          sync_error: string | null
+          tenant_id: string
+          token_expiry: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          aato_band?: string | null
+          access_token?: string | null
+          authorized_signatories?: Json | null
+          client_id: string
+          consent_granted_at?: string | null
+          consent_id?: string | null
+          consent_revoked_at?: string | null
+          consent_status?: string | null
+          consent_valid_till?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          e_invoice_enabled?: boolean | null
+          e_waybill_enabled?: boolean | null
+          filing_frequency?: string | null
+          gstin: string
+          id?: string
+          last_sync?: string | null
+          refresh_token?: string | null
+          registered_email?: string | null
+          registered_mobile?: string | null
+          sync_error?: string | null
+          tenant_id: string
+          token_expiry?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          aato_band?: string | null
+          access_token?: string | null
+          authorized_signatories?: Json | null
+          client_id?: string
+          consent_granted_at?: string | null
+          consent_id?: string | null
+          consent_revoked_at?: string | null
+          consent_status?: string | null
+          consent_valid_till?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          e_invoice_enabled?: boolean | null
+          e_waybill_enabled?: boolean | null
+          filing_frequency?: string | null
+          gstin?: string
+          id?: string
+          last_sync?: string | null
+          refresh_token?: string | null
+          registered_email?: string | null
+          registered_mobile?: string | null
+          sync_error?: string | null
+          tenant_id?: string
+          token_expiry?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gst_credentials_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gst_credentials_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gst_credentials_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "gst_credentials_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gst_return_status: {
+        Row: {
+          arn: string | null
+          client_id: string
+          created_at: string | null
+          due_date: string | null
+          filing_date: string | null
+          filing_status: string | null
+          financial_year: string | null
+          gstin: string
+          id: string
+          interest: number | null
+          is_overdue: boolean | null
+          last_synced_at: string | null
+          late_fee: number | null
+          reference_id: string | null
+          return_period: string
+          return_type: string
+          sync_error: string | null
+          sync_source: string | null
+          tax_liability: number | null
+          tax_paid: number | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          arn?: string | null
+          client_id: string
+          created_at?: string | null
+          due_date?: string | null
+          filing_date?: string | null
+          filing_status?: string | null
+          financial_year?: string | null
+          gstin: string
+          id?: string
+          interest?: number | null
+          is_overdue?: boolean | null
+          last_synced_at?: string | null
+          late_fee?: number | null
+          reference_id?: string | null
+          return_period: string
+          return_type: string
+          sync_error?: string | null
+          sync_source?: string | null
+          tax_liability?: number | null
+          tax_paid?: number | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          arn?: string | null
+          client_id?: string
+          created_at?: string | null
+          due_date?: string | null
+          filing_date?: string | null
+          filing_status?: string | null
+          financial_year?: string | null
+          gstin?: string
+          id?: string
+          interest?: number | null
+          is_overdue?: boolean | null
+          last_synced_at?: string | null
+          late_fee?: number | null
+          reference_id?: string | null
+          return_period?: string
+          return_type?: string
+          sync_error?: string | null
+          sync_source?: string | null
+          tax_liability?: number | null
+          tax_paid?: number | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gst_return_status_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gst_return_status_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gst_return_status_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "gst_return_status_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hearings: {
         Row: {
           authority_id: string | null

@@ -23,6 +23,8 @@ export class SupabaseAdapter implements StoragePort {
   private readonly tableNameMapping: Record<string, string> = {
     'folders': 'document_folders',
     'audit_logs': 'audit_log',
+    'gstCredentials': 'gst_credentials',
+    'gstReturnStatus': 'gst_return_status',
     // Task automation tables are correctly named, no mapping needed
     // but listed here for documentation purposes
   };
