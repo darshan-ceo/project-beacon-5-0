@@ -15,6 +15,15 @@ let API = (import.meta.env.VITE_API_BASE_URL || '').trim();
 const APP_MODE = 'production';
 const STORAGE_BACKEND = 'supabase'; // LOCKED - Cannot be overridden
 
+// Check if Supabase is configured (for edge function availability)
+const SUPABASE_CONFIGURED = Boolean(
+  import.meta.env.VITE_SUPABASE_URL && 
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+);
+
+// GST uses Supabase edge function (gst-public-lookup), not VITE_API_BASE_URL
+const GST_EDGE_FUNCTION_ENABLED = SUPABASE_CONFIGURED;
+
 // URL parameter overrides (LIMITED - No storage mode override)
 if (typeof window !== 'undefined') {
   const q = new URLSearchParams(window.location.search);
@@ -33,16 +42,18 @@ if (typeof window !== 'undefined') {
   }
 }
 
-// If no API → force mock
-if (!API) MOCK_ON = true;
+// Only force mock if Supabase edge function is NOT available
+if (!API && !GST_EDGE_FUNCTION_ENABLED) MOCK_ON = true;
 
 export const envConfig = {
   GST_ON,
   MOCK_ON,
   QA_ON,
   API,
-  API_SET: Boolean(API),
-  GST_ENABLED: GST_ON || MOCK_ON,
+  API_SET: Boolean(API) || GST_EDGE_FUNCTION_ENABLED,
+  GST_ENABLED: GST_ON || MOCK_ON || GST_EDGE_FUNCTION_ENABLED,
+  GST_EDGE_FUNCTION_ENABLED,
+  SUPABASE_CONFIGURED,
   
   // Production Mode Configuration (LOCKED)
   APP_MODE: 'production' as const,
@@ -78,9 +89,9 @@ export const envConfig = {
   getStatusBadges: () => ({
     MODE: APP_MODE.toUpperCase(),
     STORAGE: STORAGE_BACKEND.toUpperCase(),
-    GST: GST_ON ? 'ON' : 'OFF',
-    API: API ? 'SET' : 'MISSING', 
-    MOCK: MOCK_ON ? 'ON' : 'OFF',
+    GST: GST_ON || GST_EDGE_FUNCTION_ENABLED ? 'ON' : 'OFF',
+    API: GST_EDGE_FUNCTION_ENABLED ? 'LIVE' : (API ? 'SET' : 'MISSING'), 
+    MOCK: (!GST_EDGE_FUNCTION_ENABLED && MOCK_ON) ? 'ON' : 'OFF',
     QA: QA_ON ? 'ON' : 'OFF'
   }),
   

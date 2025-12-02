@@ -67,10 +67,13 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
   const [gspSignatories, setGspSignatories] = useState<any[]>([]);
   
   // Use centralized environment configuration with URL overrides
-  const { GST_ON, MOCK_ON, API, API_SET } = envConfig;
+  const { GST_ON, MOCK_ON, GST_EDGE_FUNCTION_ENABLED } = envConfig;
+  
+  // GST is enabled if edge function is available or explicitly turned on
+  const isGSTEnabled = GST_ON || GST_EDGE_FUNCTION_ENABLED;
   
   // Don't render if feature is disabled (except in development)
-  if (!GST_ON && import.meta.env.MODE !== 'development') {
+  if (!isGSTEnabled && import.meta.env.MODE !== 'development') {
     return null;
   }
 
@@ -357,15 +360,15 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
                       type="button"
                       variant="outline"
                       onClick={() => handleFetchGSTIN(false)}
-                      disabled={loading || !formData.gstin || (!API_SET && !MOCK_ON)}
-                      title={(!API_SET && !MOCK_ON) ? "Set API or turn on mock" : undefined}
+                      disabled={loading || !formData.gstin || (!GST_EDGE_FUNCTION_ENABLED && !MOCK_ON)}
+                      title={(!GST_EDGE_FUNCTION_ENABLED && !MOCK_ON) ? "GST service not configured" : undefined}
                     >
                       {loading ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
                         <Search className="h-4 w-4" />
                       )}
-                      {MOCK_ON || !API_SET ? 'Mock Fetch' : 'Fetch'}
+                      {GST_EDGE_FUNCTION_ENABLED ? 'Fetch' : 'Mock Fetch'}
                     </Button>
                     {needsReVerification && (
                       <Button
@@ -378,9 +381,9 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
                         Re-verify
                       </Button>
                     )}
-                    {!API_SET && (
+                    {!GST_EDGE_FUNCTION_ENABLED && !MOCK_ON && (
                       <div className="text-xs text-destructive">
-                        API URL missing - using mock data
+                        GST service not configured
                       </div>
                     )}
                   </div>
