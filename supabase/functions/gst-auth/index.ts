@@ -89,6 +89,7 @@ serve(async (req) => {
         }
 
         // Real MasterGST API call
+        console.log(`[gst-auth] Initiating consent for GSTIN: ${gstin}`);
         const initiateResponse = await fetch(`${config.apiUrl}/consent/initiate`, {
           method: 'POST',
           headers: {
@@ -101,11 +102,27 @@ serve(async (req) => {
         });
 
         if (!initiateResponse.ok) {
+          const errorText = await initiateResponse.text();
+          console.error(`[gst-auth] MasterGST initiate error: ${initiateResponse.status} - ${errorText}`);
           throw new Error(`MasterGST API error: ${initiateResponse.statusText}`);
         }
 
-        const data = await initiateResponse.json();
-        return new Response(JSON.stringify({ success: true, data }), {
+        const rawData = await initiateResponse.json();
+        console.log('[gst-auth] MasterGST initiate raw response:', JSON.stringify(rawData));
+        
+        // Map MasterGST response to expected format (handle various field names)
+        const mappedData = {
+          txnId: rawData.txnId || rawData.txn_id || rawData.transactionId || rawData.transaction_id,
+          maskedDestination: rawData.maskedDestination || rawData.masked_destination || 
+                             rawData.masked_mobile || rawData.maskedMobile || 
+                             rawData.destination || rawData.mobile || 'Registered Mobile',
+          expiresAt: rawData.expiresAt || rawData.expires_at || rawData.expiry ||
+                     new Date(Date.now() + 5 * 60 * 1000).toISOString()
+        };
+        
+        console.log('[gst-auth] Mapped initiate response:', JSON.stringify(mappedData));
+        
+        return new Response(JSON.stringify({ success: true, data: mappedData }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }

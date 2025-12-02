@@ -5,6 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// MasterGST API base URL - using correct endpoint for public search
 const MASTERGST_API_URL = 'https://api.mastergst.com';
 
 serve(async (req) => {
@@ -15,8 +16,11 @@ serve(async (req) => {
 
   try {
     const { gstin } = await req.json();
+    
+    console.log(`[gst-public-lookup] Received request for GSTIN: ${gstin}`);
 
     if (!gstin || gstin.length !== 15) {
+      console.log(`[gst-public-lookup] Invalid GSTIN format: ${gstin}`);
       return new Response(
         JSON.stringify({ success: false, error: 'Invalid GSTIN format. Must be 15 characters.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -27,18 +31,23 @@ serve(async (req) => {
     const clientSecret = Deno.env.get('MASTERGST_CLIENT_SECRET');
     const email = Deno.env.get('MASTERGST_EMAIL');
 
+    console.log(`[gst-public-lookup] Credentials configured: clientId=${!!clientId}, clientSecret=${!!clientSecret}, email=${!!email}`);
+
     if (!clientId || !clientSecret || !email) {
-      console.error('MasterGST credentials not configured');
+      console.error('[gst-public-lookup] MasterGST credentials not configured');
       return new Response(
-        JSON.stringify({ success: false, error: 'GST service not configured' }),
+        JSON.stringify({ success: false, error: 'GST service not configured - missing credentials' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Fetching taxpayer data for GSTIN: ${gstin}`);
+    console.log(`[gst-public-lookup] Calling MasterGST API for GSTIN: ${gstin}`);
 
     // Call MasterGST Public Search API
-    const response = await fetch(`${MASTERGST_API_URL}/public/search?gstin=${gstin}&email=${email}`, {
+    const apiUrl = `${MASTERGST_API_URL}/public/search?gstin=${gstin}&email=${encodeURIComponent(email)}`;
+    console.log(`[gst-public-lookup] API URL: ${apiUrl}`);
+    
+    const response = await fetch(apiUrl, {
       method: 'GET',
       headers: {
         'client_id': clientId,
@@ -48,7 +57,8 @@ serve(async (req) => {
     });
 
     const data = await response.json();
-    console.log('MasterGST API response status:', response.status);
+    console.log(`[gst-public-lookup] MasterGST API response status: ${response.status}`);
+    console.log(`[gst-public-lookup] MasterGST API response:`, JSON.stringify(data).substring(0, 1000));
 
     if (!response.ok || data.error) {
       console.error('MasterGST API error:', data);

@@ -359,7 +359,7 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => handleFetchGSTIN(false)}
+                      onClick={() => handleFetchGSTIN(true)}
                       disabled={loading || !formData.gstin || (!GST_EDGE_FUNCTION_ENABLED && !MOCK_ON)}
                       title={(!GST_EDGE_FUNCTION_ENABLED && !MOCK_ON) ? "GST service not configured" : undefined}
                     >
