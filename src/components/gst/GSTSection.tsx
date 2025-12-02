@@ -146,20 +146,23 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
           // Map jurisdiction to nested structure expected by ClientModal
           // stj (State Jurisdiction) = Unit/Ghatak level (e.g., "Ghatak 9 (Ahmedabad)")
           // ctj (Centre Jurisdiction) = Range level (e.g., "RANGE I")
-          // State comes from address stateCode (e.g., "Gujarat")
+          // State comes from address stateCode (now mapped to state name e.g., "Gujarat")
           jurisdiction: {
             jurisdictionType: 'both',
             stateJurisdiction: {
+              // State from principal address (now correctly mapped to "Gujarat" not "24")
               state: gstInfo.principalAddress?.stateCode || '',
               division: '',
               range: '',
-              unit: gstInfo.stateJurisdiction || ''  // stj maps to unit
+              // stj (State Jurisdiction) goes to Unit/Ghatak field
+              unit: gstInfo.stateJurisdiction || ''
             },
             centerJurisdiction: {
               zone: '',
               commissionerate: '',
               division: '',
-              range: gstInfo.centreJurisdiction || ''  // ctj maps to range
+              // ctj (Centre Jurisdiction) goes to Range field
+              range: gstInfo.centreJurisdiction || ''
             }
           }
         };

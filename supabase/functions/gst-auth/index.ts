@@ -117,6 +117,24 @@ serve(async (req) => {
         if (rawData.status_cd === "0" || rawData.error) {
           const errorMsg = rawData.error?.message || rawData.message || 'MasterGST consent initiation failed';
           console.error('[gst-auth] MasterGST API error:', errorMsg);
+          
+          // Provide more helpful error message for "Invalid request!" errors
+          if (errorMsg.includes('Invalid request')) {
+            return new Response(JSON.stringify({
+              success: false,
+              error: 'GSP_CONSENT_NOT_CONFIGURED',
+              errorDetails: {
+                message: 'GSP consent API is not configured or available for this account.',
+                action: 'Contact MasterGST support to enable consent/OTP API access for your client credentials.',
+                originalError: errorMsg
+              },
+              data: null
+            }), {
+              status: 200,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+          }
+          
           throw new Error(`MasterGST error: ${errorMsg}`);
         }
         
