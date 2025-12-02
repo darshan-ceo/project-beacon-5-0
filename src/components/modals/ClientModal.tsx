@@ -615,23 +615,25 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                 {mode === 'edit' && <><Edit className="h-5 w-5" /> Edit Client</>}
                 {mode === 'view' && <><Eye className="h-5 w-5" /> Client Details</>}
               </div>
-              {/* Dev environment badges */}
-              {import.meta.env.MODE === 'development' && (
-                <div className="flex gap-2 text-xs">
-                  <Badge variant={envConfig.GST_ON ? "default" : "destructive"}>
-                    GST: {envConfig.GST_ON ? "ON" : "OFF"}
-                    {envConfig.hasUrlOverrides && envConfig.getActiveOverrides().gst && " (URL)"}
-                  </Badge>
-                  <Badge variant={envConfig.API_SET ? "default" : "destructive"}>
-                    API: {envConfig.API_SET ? "SET" : "MISSING"}
-                    {envConfig.hasUrlOverrides && envConfig.getActiveOverrides().api && " (URL)"}
-                  </Badge>
-                  <Badge variant={envConfig.MOCK_ON ? "secondary" : "outline"}>
-                    MOCK: {envConfig.MOCK_ON ? "ON" : "OFF"}
-                    {envConfig.hasUrlOverrides && envConfig.getActiveOverrides().mock && " (URL)"}
-                  </Badge>
-                </div>
-              )}
+              {/* Environment status badges */}
+              <div className="flex gap-2 text-xs">
+                {(() => {
+                  const badges = envConfig.getStatusBadges();
+                  return (
+                    <>
+                      <Badge variant={badges.GST === "ON" ? "default" : "destructive"}>
+                        GST: {badges.GST}
+                      </Badge>
+                      <Badge variant={badges.API === "LIVE" || badges.API === "SET" ? "default" : "destructive"}>
+                        API: {badges.API}
+                      </Badge>
+                      <Badge variant={badges.MOCK === "ON" ? "secondary" : "outline"}>
+                        MOCK: {badges.MOCK}
+                      </Badge>
+                    </>
+                  );
+                })()}
+              </div>
             </DialogTitle>
           </DialogHeader>
 
