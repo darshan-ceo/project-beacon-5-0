@@ -139,12 +139,26 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
           constitution: gstInfo.constitution,
           taxpayerType: gstInfo.taxpayerType,
           natureOfBusiness: gstInfo.natureOfBusiness.join(', '),
-          centreJurisdiction: gstInfo.centreJurisdiction,
-          stateJurisdiction: gstInfo.stateJurisdiction,
           filingFrequency: gstInfo.filingFrequency,
           eInvoiceEnabled: gstInfo.isEInvoiceEnabled,
           eWayBillEnabled: gstInfo.isEWayBillEnabled,
           lastUpdated: gstInfo.lastUpdated,
+          // Map jurisdiction to nested structure expected by ClientModal
+          jurisdiction: {
+            jurisdictionType: 'both',
+            stateJurisdiction: {
+              state: gstInfo.stateJurisdiction || '',
+              division: '',
+              range: '',
+              unit: ''
+            },
+            centerJurisdiction: {
+              zone: '',
+              commissionerate: gstInfo.centreJurisdiction || '',
+              division: '',
+              range: ''
+            }
+          }
         };
 
         // Update addresses if available
@@ -154,7 +168,10 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
             address: {
               ...formData.address,
               ...mappedAddress
-            }
+            },
+            // Also set top-level state and city for easier access
+            state: mappedAddress.stateName || mappedAddress.state,
+            city: mappedAddress.city
           });
         }
 
