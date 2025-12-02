@@ -80,7 +80,7 @@ export const GSPConsentModal: React.FC<GSPConsentModalProps> = ({
     setError(null);
 
     try {
-      const response = await gspConsentService.verifyOTP(consentData.txnId, otp);
+      const response = await gspConsentService.verifyOTP(consentData.txnId, otp, clientId, gstin);
       
       if (response.success && response.data) {
         setSuccessData(response.data);

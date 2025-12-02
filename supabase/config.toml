@@ -1,5 +1,8 @@
 project_id = "myncxddatwvtyiioqekh"
 
+[functions.gst-auth]
+verify_jwt = true
+
 [functions.send-email]
 verify_jwt = false
 
