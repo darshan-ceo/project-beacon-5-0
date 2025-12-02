@@ -3,6 +3,9 @@ project_id = "myncxddatwvtyiioqekh"
 [functions.gst-auth]
 verify_jwt = true
 
+[functions.gst-public-lookup]
+verify_jwt = false
+
 [functions.send-email]
 verify_jwt = false
 
