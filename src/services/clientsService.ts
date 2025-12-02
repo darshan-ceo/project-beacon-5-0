@@ -201,7 +201,7 @@ export const clientsService = {
       const newClient: Client = {
         id: savedClient.id,
         name: savedClient.display_name || clientData.name!.trim(),
-        type: clientData.type || 'Individual',
+        type: clientData.type || 'Proprietorship', // Default to Proprietorship (most common business type)
         category: clientData.category || 'Regular Dealer',
         registrationNo: clientData.registrationNo,
         gstin: savedClient.gstin || clientData.gstin?.toUpperCase(),

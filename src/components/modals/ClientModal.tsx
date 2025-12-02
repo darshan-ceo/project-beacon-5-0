@@ -30,6 +30,7 @@ import { TagInput } from '@/components/ui/TagInput';
 import { toTitleCase, toLowerCase } from '@/utils/formatters';
 import { secureLog } from '@/utils/secureLogger';
 import { format } from 'date-fns';
+import { CLIENT_TYPES } from '@/../config/appConfig';
 
 interface ClientModalProps {
   isOpen: boolean;
@@ -58,7 +59,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
   
   const [formData, setFormData] = useState<{
     name: string;
-    type: 'Individual' | 'Company' | 'Partnership' | 'Trust' | 'Other';
+    type: string; // Uses CLIENT_TYPES from appConfig
     category: 'Regular Dealer' | 'Composition' | 'Exporter' | 'Service' | 'Other';
     registrationNo: string;
     gstin: string;
@@ -76,7 +77,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
     tags?: string[];
   }>({
     name: '',
-    type: 'Individual',
+    type: 'Proprietorship',
     category: 'Regular Dealer',
     registrationNo: '',
     gstin: '',
@@ -205,7 +206,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         // Reset to defaults
         setFormData({
           name: '',
-          type: 'Individual',
+          type: 'Proprietorship',
           category: 'Regular Dealer',
           registrationNo: '',
           gstin: '',
@@ -688,18 +689,16 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                     </div>
                     <Select 
                       value={formData.type} 
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, type: value as any }))}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
                       disabled={mode === 'view'}
                     >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Individual">Individual</SelectItem>
-                        <SelectItem value="Company">Company</SelectItem>
-                        <SelectItem value="Partnership">Partnership</SelectItem>
-                        <SelectItem value="Trust">Trust</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
+                        {CLIENT_TYPES.map(type => (
+                          <SelectItem key={type} value={type}>{type}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
