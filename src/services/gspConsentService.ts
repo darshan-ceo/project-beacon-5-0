@@ -1,10 +1,10 @@
 /**
  * GSP Consent Service for Beacon Essential 5.0
- * Handles GSP authorization and OTP-based consent flow
+ * Handles GSP authorization and OTP-based consent flow via gst-auth Edge Function
  */
 
-import { apiService, ApiResponse } from './apiService';
-import { envConfig } from '../utils/envConfig';
+import { supabase } from '@/integrations/supabase/client';
+import { ApiResponse } from './apiService';
 
 export interface ConsentInitResponse {
   txnId: string;
@@ -57,7 +57,7 @@ export interface ConsentStatus {
 
 class GSPConsentService {
   /**
-   * Initiate consent flow with mock support
+   * Initiate consent flow via Edge Function
    */
   async initiateConsent(clientId: string, gstin: string): Promise<ApiResponse<ConsentInitResponse>> {
     if (!clientId || !gstin) {
@@ -68,40 +68,28 @@ class GSPConsentService {
       };
     }
 
-    // Check for mock mode
-    if (envConfig.MOCK_ON) {
-      return this.getMockConsentInitResponse();
+    try {
+      const { data, error } = await supabase.functions.invoke('gst-auth', {
+        body: { action: 'initiate', clientId, gstin }
+      });
+
+      if (error) throw error;
+      
+      return data;
+    } catch (error) {
+      console.error('[GSPConsentService] Initiate error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to initiate consent',
+        data: null
+      };
     }
-
-    return apiService.post<ConsentInitResponse>('/api/gst/consent/initiate', {
-      clientId,
-      gstin
-    });
   }
 
   /**
-   * Generate mock consent initiate response
+   * Verify OTP via Edge Function (requires clientId and gstin for credential storage)
    */
-  private getMockConsentInitResponse(): Promise<ApiResponse<ConsentInitResponse>> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          success: true,
-          data: {
-            txnId: `mock_txn_${Date.now()}`,
-            maskedDestination: "**98",
-            expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString()
-          },
-          error: null
-        });
-      }, 1500);
-    });
-  }
-
-  /**
-   * Verify OTP with mock support
-   */
-  async verifyOTP(txnId: string, otp: string): Promise<ApiResponse<ConsentVerifyResponse>> {
+  async verifyOTP(txnId: string, otp: string, clientId: string, gstin: string): Promise<ApiResponse<ConsentVerifyResponse>> {
     if (!txnId || !otp) {
       return {
         success: false,
@@ -110,44 +98,35 @@ class GSPConsentService {
       };
     }
 
-    // Check for mock mode
-    if (envConfig.MOCK_ON) {
-      return this.getMockConsentVerifyResponse();
+    if (!clientId || !gstin) {
+      return {
+        success: false,
+        error: 'Client ID and GSTIN are required for credential storage',
+        data: null
+      };
     }
 
-    const response = await apiService.post<any>('/api/gst/consent/verify', {
-      txnId,
-      otp
-    });
+    try {
+      const { data, error } = await supabase.functions.invoke('gst-auth', {
+        body: { action: 'verify', txnId, otp, clientId, gstin }
+      });
 
-    if (response.success && response.data) {
-      const mappedData = this.mapGSPResponseToInterface(response.data);
-      return { success: true, data: mappedData, error: null };
+      if (error) throw error;
+
+      if (data.success && data.data) {
+        const mappedData = this.mapGSPResponseToInterface(data.data);
+        return { success: true, data: mappedData, error: null };
+      }
+
+      return data;
+    } catch (error) {
+      console.error('[GSPConsentService] Verify error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to verify OTP',
+        data: null
+      };
     }
-    
-    return response;
-  }
-
-  /**
-   * Generate mock consent verify response
-   */
-  private getMockConsentVerifyResponse(): Promise<ApiResponse<ConsentVerifyResponse>> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const mockResponse = {
-          gstin: "24AAACB5343E1Z2",
-          registeredEmail: "accounts@abcindustries.com", 
-          registeredMobile: "+91-9876543210",
-          filingFreq: "Monthly",
-          signatories: [
-            { name: "Rakesh Shah", email: "rakesh.shah@abcindustries.com", mobile: "+91-9898989898", role: "Authorized Signatory", signatoryType: "Primary" },
-            { name: "Meera Patel", email: "meera.patel@abcindustries.com", mobile: "+91-9090909090", role: "Billing", signatoryType: "Secondary" }
-          ],
-          eInvoiceEnabled: true, eWayBillEnabled: true, aatoBand: "1B"
-        };
-        resolve({ success: true, data: this.mapGSPResponseToInterface(mockResponse), error: null });
-      }, 2000);
-    });
   }
 
   /**
@@ -179,7 +158,7 @@ class GSPConsentService {
   }
 
   /**
-   * Revoke existing consent
+   * Revoke existing consent via Edge Function
    */
   async revokeConsent(clientId: string, gstin: string): Promise<ApiResponse<void>> {
     if (!clientId || !gstin) {
@@ -190,16 +169,28 @@ class GSPConsentService {
       };
     }
 
-    return apiService.post<void>('/api/gst/consent/revoke', {
-      clientId,
-      gstin
-    });
+    try {
+      const { data, error } = await supabase.functions.invoke('gst-auth', {
+        body: { action: 'revoke', gstin }
+      });
+
+      if (error) throw error;
+
+      return data;
+    } catch (error) {
+      console.error('[GSPConsentService] Revoke error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to revoke consent',
+        data: null
+      };
+    }
   }
 
   /**
-   * Get GSP profile data
+   * Refresh access token via Edge Function
    */
-  async getProfile(gstin: string): Promise<ApiResponse<GSPProfile>> {
+  async refreshToken(gstin: string): Promise<ApiResponse<{ accessToken: string; tokenExpiry: string }>> {
     if (!gstin) {
       return {
         success: false,
@@ -208,11 +199,26 @@ class GSPConsentService {
       };
     }
 
-    return apiService.get<GSPProfile>('/api/gst/profile', { gstin });
+    try {
+      const { data, error } = await supabase.functions.invoke('gst-auth', {
+        body: { action: 'refresh', gstin }
+      });
+
+      if (error) throw error;
+
+      return data;
+    } catch (error) {
+      console.error('[GSPConsentService] Refresh error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to refresh token',
+        data: null
+      };
+    }
   }
 
   /**
-   * Get consent status for client
+   * Get consent status for client via Edge Function
    */
   async getConsentStatus(clientId: string): Promise<ApiResponse<ConsentStatus[]>> {
     if (!clientId) {
@@ -223,7 +229,22 @@ class GSPConsentService {
       };
     }
 
-    return apiService.get<ConsentStatus[]>(`/api/clients/${clientId}/gst/consent-status`);
+    try {
+      const { data, error } = await supabase.functions.invoke('gst-auth', {
+        body: { action: 'status', clientId }
+      });
+
+      if (error) throw error;
+
+      return data;
+    } catch (error) {
+      console.error('[GSPConsentService] Status error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to get consent status',
+        data: null
+      };
+    }
   }
 
   /**
