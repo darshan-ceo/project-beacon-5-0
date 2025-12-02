@@ -75,6 +75,16 @@ class GSPConsentService {
 
       if (error) throw error;
       
+      // Return the full response including errorDetails if present
+      if (!data.success && data.errorDetails) {
+        return {
+          success: false,
+          error: data.error,
+          errorDetails: data.errorDetails,
+          data: null
+        };
+      }
+      
       return data;
     } catch (error) {
       console.error('[GSPConsentService] Initiate error:', error);

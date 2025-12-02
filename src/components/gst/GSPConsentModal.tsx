@@ -58,7 +58,13 @@ export const GSPConsentModal: React.FC<GSPConsentModalProps> = ({
           description: `OTP sent to ${response.data.maskedDestination}`,
         });
       } else {
-        setError(response.error || 'Failed to initiate consent');
+        // Handle specific error types
+        if (response.error === 'GSP_CONSENT_NOT_CONFIGURED' || (response as any).errorDetails) {
+          const details = (response as any).errorDetails;
+          setError(details?.message || 'GSP consent API is not available. Contact MasterGST support to enable this feature.');
+        } else {
+          setError(response.error || 'Failed to initiate consent');
+        }
       }
     } catch (err) {
       setError('Network error. Please try again.');
