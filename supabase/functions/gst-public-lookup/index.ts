@@ -71,16 +71,20 @@ serve(async (req) => {
       },
     });
 
-    const data = await response.json();
+    const apiResponse = await response.json();
     console.log(`[gst-public-lookup] MasterGST API response status: ${response.status}`);
-    console.log(`[gst-public-lookup] MasterGST API response:`, JSON.stringify(data).substring(0, 1000));
+    console.log(`[gst-public-lookup] MasterGST API raw response:`, JSON.stringify(apiResponse).substring(0, 1500));
+
+    // Extract nested data - MasterGST wraps taxpayer data inside 'data' property
+    const data = apiResponse.data || apiResponse;
+    console.log(`[gst-public-lookup] Extracted taxpayer data:`, JSON.stringify(data).substring(0, 1500));
 
     // Handle API errors with detailed sandbox detection
-    if (!response.ok || data.error || data.status_cd === '0') {
-      console.error('MasterGST API error:', data);
+    if (!response.ok || apiResponse.error || apiResponse.status_cd === '0') {
+      console.error('MasterGST API error:', apiResponse);
       
-      const errorMessage = data.error?.message || data.message || data.status_desc || 'Failed to fetch taxpayer data';
-      const errorCode = data.error?.error_cd;
+      const errorMessage = apiResponse.error?.message || apiResponse.message || apiResponse.status_desc || 'Failed to fetch taxpayer data';
+      const errorCode = apiResponse.error?.error_cd;
       
       // Detect sandbox mode errors
       const isSandbox = detectSandboxError(errorMessage);
@@ -112,41 +116,54 @@ serve(async (req) => {
       );
     }
 
-    // Map MasterGST response to our interface
+    // Extract address details from nested structure
+    const pradr = data.pradr || {};
+    const addr = pradr.addr || {};
+    
+    console.log(`[gst-public-lookup] Address data:`, JSON.stringify(addr));
+    console.log(`[gst-public-lookup] Legal Name: ${data.lgnm}, Trade Name: ${data.tradeNam}, Constitution: ${data.ctb}`);
+    console.log(`[gst-public-lookup] E-Invoice Status: ${data.einvoiceStatus}, State Jurisdiction: ${data.stj}, Centre Jurisdiction: ${data.ctj}`);
+
+    // Map MasterGST response to our interface with correct field extraction
     const taxpayerInfo = {
       gstin: data.gstin || gstin,
-      lgnm: data.lgnm || data.legal_name || '',
-      tradeNam: data.tradeNam || data.trade_name || '',
-      sts: data.sts || data.status || 'Active',
-      rgdt: data.rgdt || data.registration_date || '',
-      cnldt: data.cnldt || data.cancellation_date || null,
-      lstupdt: data.lstupdt || data.last_updated || new Date().toISOString().split('T')[0],
-      ctb: data.ctb || data.constitution || '',
-      dty: data.dty || data.dealer_type || 'Regular',
-      nba: data.nba || data.nature_of_business || [],
-      pradr: data.pradr || {
+      lgnm: data.lgnm || '',
+      tradeNam: data.tradeNam || '',
+      sts: data.sts || 'Active',
+      rgdt: data.rgdt || '',
+      cnldt: data.cnldt || data.cxdt || null,
+      lstupdt: data.lstupdt || new Date().toISOString().split('T')[0],
+      ctb: data.ctb || '',
+      dty: data.dty || 'Regular',
+      nba: data.nba || [],
+      pradr: {
         addr: {
-          bno: data.principal_address?.building_number || '',
-          bnm: data.principal_address?.building_name || '',
-          st: data.principal_address?.street || '',
-          loc: data.principal_address?.location || '',
-          dst: data.principal_address?.district || '',
-          stcd: data.principal_address?.state_code || gstin.substring(0, 2),
-          pncd: data.principal_address?.pincode || '',
-        }
+          bno: addr.bno || '',
+          bnm: addr.bnm || '',
+          flno: addr.flno || '',
+          st: addr.st || '',
+          loc: addr.loc || '',
+          dst: addr.dst || '',
+          stcd: addr.stcd || '',
+          pncd: addr.pncd || '',
+          landMark: addr.landMark || '',
+          locality: addr.locality || '',
+        },
+        ntr: pradr.ntr || ''
       },
-      adadr: data.adadr || data.additional_addresses || [],
-      ctj: data.ctj || data.centre_jurisdiction || '',
-      ctjCd: data.ctjCd || data.centre_jurisdiction_code || '',
-      stj: data.stj || data.state_jurisdiction || '',
-      stjCd: data.stjCd || data.state_jurisdiction_code || '',
-      einv: data.einvoiceStatus === 'Yes' || data.einv || false,
-      ewb: data.ewbStatus === 'Yes' || data.ewb || false,
+      adadr: data.adadr || [],
+      ctj: data.ctj || '',
+      ctjCd: data.ctjCd || '',
+      stj: data.stj || '',
+      stjCd: data.stjCd || '',
+      einv: data.einvoiceStatus === 'Yes',
+      ewb: data.ewbStatus === 'Yes' || false,
       freq: data.filingFrequency || data.freq || 'Monthly',
-      aato: data.aato || data.aggregate_turnover || null,
+      aato: data.aato || null,
     };
 
-    console.log('Successfully fetched taxpayer data for:', taxpayerInfo.lgnm);
+    console.log(`[gst-public-lookup] Mapped taxpayer info:`, JSON.stringify(taxpayerInfo));
+    console.log(`[gst-public-lookup] Successfully fetched taxpayer data for: ${taxpayerInfo.lgnm}`);
 
     return new Response(
       JSON.stringify({ success: true, data: taxpayerInfo }),
