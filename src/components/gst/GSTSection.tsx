@@ -57,6 +57,7 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
   const [hasGSTIN, setHasGSTIN] = useState(!!formData.gstin);
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [errorDetails, setErrorDetails] = useState<any>(null);
   const [gstData, setGstData] = useState<GSTTaxpayerInfo | null>(null);
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [consentData, setConsentData] = useState<ConsentVerifyResponse | null>(null);
@@ -65,6 +66,7 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
   const [lastSnapShotTime, setLastSnapShotTime] = useState<Date | null>(null);
   const [showSignatoryModal, setShowSignatoryModal] = useState(false);
   const [gspSignatories, setGspSignatories] = useState<any[]>([]);
+  const [apiMode, setApiMode] = useState<'production' | 'sandbox' | 'unknown'>('unknown');
   
   // Use centralized environment configuration with URL overrides
   const { GST_ON, MOCK_ON, GST_EDGE_FUNCTION_ENABLED } = envConfig;
@@ -114,15 +116,17 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
 
     setLoading(true);
     setFetchError(null);
+    setErrorDetails(null);
 
     try {
-      const response = await gstPublicService.fetchTaxpayer(formData.gstin, bypassCache);
+      const response = await gstPublicService.fetchTaxpayer(formData.gstin, bypassCache) as any;
       
       if (response.success && response.data) {
         const gstInfo = response.data;
         setGstData(gstInfo);
         setLastSnapShotTime(new Date());
         setNeedsReVerification(false);
+        setApiMode('production');
         
         // Auto-fill form fields with source tracking - complete mapping
         const updates: any = {
@@ -175,7 +179,17 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
           description: `Public taxpayer information imported${bypassCache ? ' (fresh data)' : ''} | Snapshot saved`,
         });
       } else {
-        setFetchError(response.error || 'Failed to fetch GSTIN data');
+        // Handle specific error types
+        if (response.error === 'SANDBOX_MODE_ERROR') {
+          setApiMode('sandbox');
+          setErrorDetails(response.errorDetails);
+          setFetchError('MasterGST is in sandbox mode');
+        } else if (response.error === 'INVALID_CREDENTIALS') {
+          setErrorDetails(response.errorDetails);
+          setFetchError('Invalid API credentials');
+        } else {
+          setFetchError(response.error || 'Failed to fetch GSTIN data');
+        }
       }
     } catch (error) {
       setFetchError('Network error. Please try again.');
@@ -390,7 +404,51 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
                 )}
               </div>
 
-              {fetchError && (
+              {/* API Mode Indicator */}
+              {apiMode !== 'unknown' && (
+                <div className="flex items-center gap-2">
+                  <Badge variant={apiMode === 'production' ? 'default' : 'destructive'}>
+                    MasterGST: {apiMode === 'production' ? 'PRODUCTION' : 'SANDBOX MODE'}
+                  </Badge>
+                  {apiMode === 'sandbox' && (
+                    <span className="text-xs text-muted-foreground">
+                      (Sandbox API cannot fetch live data)
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Sandbox Mode Error Alert */}
+              {errorDetails?.isSandbox && (
+                <Alert variant="destructive" className="border-amber-500 bg-amber-50 dark:bg-amber-950/20">
+                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                  <AlertDescription className="space-y-2">
+                    <p className="font-medium text-amber-800 dark:text-amber-200">
+                      {errorDetails.message}
+                    </p>
+                    <p className="text-sm text-amber-700 dark:text-amber-300">
+                      <strong>Action Required:</strong> {errorDetails.action}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Technical details: {errorDetails.originalError}
+                    </p>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Invalid Credentials Error Alert */}
+              {errorDetails && !errorDetails.isSandbox && fetchError === 'Invalid API credentials' && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription className="space-y-2">
+                    <p className="font-medium">{errorDetails.message}</p>
+                    <p className="text-sm">{errorDetails.action}</p>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Generic Error Alert */}
+              {fetchError && !errorDetails && (
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>{fetchError}</AlertDescription>

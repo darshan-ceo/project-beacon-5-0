@@ -5,8 +5,23 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// MasterGST API base URL - using correct endpoint for public search
+// MasterGST API base URL
 const MASTERGST_API_URL = 'https://api.mastergst.com';
+
+// Helper to detect sandbox mode errors
+function detectSandboxError(errorMessage: string): boolean {
+  const sandboxIndicators = [
+    'devapi.gst.gov.in',
+    'sandbox.gst.gov.in',
+    'UnknownHostException',
+    'Name or service not known',
+    'development mode',
+    'sandbox mode'
+  ];
+  return sandboxIndicators.some(indicator => 
+    errorMessage.toLowerCase().includes(indicator.toLowerCase())
+  );
+}
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -60,14 +75,40 @@ serve(async (req) => {
     console.log(`[gst-public-lookup] MasterGST API response status: ${response.status}`);
     console.log(`[gst-public-lookup] MasterGST API response:`, JSON.stringify(data).substring(0, 1000));
 
-    if (!response.ok || data.error) {
+    // Handle API errors with detailed sandbox detection
+    if (!response.ok || data.error || data.status_cd === '0') {
       console.error('MasterGST API error:', data);
+      
+      const errorMessage = data.error?.message || data.message || data.status_desc || 'Failed to fetch taxpayer data';
+      const errorCode = data.error?.error_cd;
+      
+      // Detect sandbox mode errors
+      const isSandbox = detectSandboxError(errorMessage);
+      
+      // Detect invalid credentials
+      const isInvalidCredentials = errorCode === 'AUT4033' || errorMessage.includes('Invalid Client ID');
+      
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: data.error?.message || data.message || 'Failed to fetch taxpayer data' 
+          error: isSandbox ? 'SANDBOX_MODE_ERROR' : (isInvalidCredentials ? 'INVALID_CREDENTIALS' : errorMessage),
+          errorDetails: {
+            isSandbox,
+            isInvalidCredentials,
+            message: isSandbox 
+              ? 'MasterGST credentials are configured for sandbox/development mode. Production API access is required to fetch live GST data.'
+              : (isInvalidCredentials 
+                ? 'MasterGST API credentials are invalid or expired.'
+                : errorMessage),
+            action: isSandbox 
+              ? 'Contact MasterGST support to enable production API access for your client credentials.'
+              : (isInvalidCredentials 
+                ? 'Verify your MasterGST client ID and secret are correct.'
+                : 'Check MasterGST API status or contact support.'),
+            originalError: errorMessage
+          }
         }),
-        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -114,8 +155,21 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in gst-public-lookup:', error);
+    
+    const errorMsg = error.message || 'Internal server error';
+    const isSandbox = detectSandboxError(errorMsg);
+    
     return new Response(
-      JSON.stringify({ success: false, error: error.message || 'Internal server error' }),
+      JSON.stringify({ 
+        success: false, 
+        error: isSandbox ? 'SANDBOX_MODE_ERROR' : errorMsg,
+        errorDetails: isSandbox ? {
+          isSandbox: true,
+          message: 'MasterGST is routing to sandbox GST server which is unavailable.',
+          action: 'Contact MasterGST support to enable production API access.',
+          originalError: errorMsg
+        } : undefined
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

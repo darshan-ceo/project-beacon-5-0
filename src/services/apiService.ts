@@ -4,10 +4,17 @@
  */
 
 export interface ApiResponse<T = any> {
-  data?: T;
+  data?: T | null;
   error?: string;
   message?: string;
   success: boolean;
+  errorDetails?: {
+    isSandbox?: boolean;
+    isInvalidCredentials?: boolean;
+    message?: string;
+    action?: string;
+    originalError?: string;
+  };
 }
 
 export interface ApiError {

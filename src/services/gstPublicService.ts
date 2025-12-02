@@ -93,6 +93,38 @@ class GSTPublicService {
       }
 
       if (!data?.success) {
+        // Detect sandbox mode errors
+        const errorMessage = data?.error || '';
+        const isSandboxError = this.detectSandboxError(errorMessage);
+        
+        if (isSandboxError) {
+          return {
+            success: false,
+            error: 'SANDBOX_MODE_ERROR',
+            errorDetails: {
+              isSandbox: true,
+              message: 'MasterGST credentials are configured for sandbox/development mode. Production API access is required to fetch live GST data.',
+              action: 'Contact MasterGST support to enable production API access for your client credentials.',
+              originalError: errorMessage
+            },
+            data: null
+          };
+        }
+
+        // Detect invalid credentials
+        if (errorMessage.includes('Invalid Client ID') || errorMessage.includes('AUT4033')) {
+          return {
+            success: false,
+            error: 'INVALID_CREDENTIALS',
+            errorDetails: {
+              message: 'MasterGST API credentials are invalid or expired.',
+              action: 'Verify your MasterGST client ID and secret are correct.',
+              originalError: errorMessage
+            },
+            data: null
+          };
+        }
+
         return {
           success: false,
           error: data?.error || 'Failed to fetch taxpayer data',
@@ -114,6 +146,23 @@ class GSTPublicService {
       };
     } catch (error: any) {
       console.error('Error fetching taxpayer data:', error);
+      
+      // Check for sandbox errors in exception
+      const errorMsg = error.message || '';
+      if (this.detectSandboxError(errorMsg)) {
+        return {
+          success: false,
+          error: 'SANDBOX_MODE_ERROR',
+          errorDetails: {
+            isSandbox: true,
+            message: 'MasterGST is routing to sandbox GST server which is unavailable.',
+            action: 'Contact MasterGST support to enable production API access.',
+            originalError: errorMsg
+          },
+          data: null
+        };
+      }
+      
       return {
         success: false,
         error: error.message || 'Failed to connect to GST service',
@@ -258,6 +307,24 @@ class GSTPublicService {
       error: taxpayerResponse.error || 'Failed to fetch E-Invoice status',
       data: null
     };
+  }
+
+  /**
+   * Detect sandbox mode errors from MasterGST API
+   */
+  private detectSandboxError(errorMessage: string): boolean {
+    const sandboxIndicators = [
+      'devapi.gst.gov.in',
+      'sandbox.gst.gov.in',
+      'UnknownHostException',
+      'Name or service not known',
+      'development mode',
+      'sandbox mode'
+    ];
+    
+    return sandboxIndicators.some(indicator => 
+      errorMessage.toLowerCase().includes(indicator.toLowerCase())
+    );
   }
 
   /**
