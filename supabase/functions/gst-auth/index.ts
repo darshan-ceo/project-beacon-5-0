@@ -90,15 +90,18 @@ serve(async (req) => {
 
         // Real MasterGST API call
         console.log(`[gst-auth] Initiating consent for GSTIN: ${gstin}`);
+        console.log('[gst-auth] Request URL:', `${config.apiUrl}/consent/initiate`);
+        console.log('[gst-auth] Request body:', JSON.stringify({ gstin, email: config.email, user_gstin: gstin }));
+        
         const initiateResponse = await fetch(`${config.apiUrl}/consent/initiate`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'client-id': config.clientId,
-            'client-secret': config.clientSecret,
+            'client_id': config.clientId,
+            'client_secret': config.clientSecret,
             'email': config.email
           },
-          body: JSON.stringify({ gstin })
+          body: JSON.stringify({ gstin, email: config.email, user_gstin: gstin })
         });
 
         if (!initiateResponse.ok) {
@@ -208,8 +211,8 @@ serve(async (req) => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'client-id': config.clientId,
-            'client-secret': config.clientSecret,
+            'client_id': config.clientId,
+            'client_secret': config.clientSecret,
             'email': config.email
           },
           body: JSON.stringify({ txnId, otp })
@@ -301,8 +304,8 @@ serve(async (req) => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'client-id': config.clientId,
-            'client-secret': config.clientSecret,
+            'client_id': config.clientId,
+            'client_secret': config.clientSecret,
             'email': config.email
           },
           body: JSON.stringify({ refreshToken: credential.refresh_token })
@@ -352,8 +355,8 @@ serve(async (req) => {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'client-id': config.clientId,
-              'client-secret': config.clientSecret,
+              'client_id': config.clientId,
+              'client_secret': config.clientSecret,
               'email': config.email
             },
             body: JSON.stringify({ consentId: credential.consent_id })

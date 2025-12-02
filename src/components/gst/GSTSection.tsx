@@ -144,19 +144,22 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
           eWayBillEnabled: gstInfo.isEWayBillEnabled,
           lastUpdated: gstInfo.lastUpdated,
           // Map jurisdiction to nested structure expected by ClientModal
+          // stj (State Jurisdiction) = Unit/Ghatak level (e.g., "Ghatak 9 (Ahmedabad)")
+          // ctj (Centre Jurisdiction) = Range level (e.g., "RANGE I")
+          // State comes from address stateCode (e.g., "Gujarat")
           jurisdiction: {
             jurisdictionType: 'both',
             stateJurisdiction: {
-              state: gstInfo.stateJurisdiction || '',
+              state: gstInfo.principalAddress?.stateCode || '',
               division: '',
               range: '',
-              unit: ''
+              unit: gstInfo.stateJurisdiction || ''  // stj maps to unit
             },
             centerJurisdiction: {
               zone: '',
-              commissionerate: gstInfo.centreJurisdiction || '',
+              commissionerate: '',
               division: '',
-              range: ''
+              range: gstInfo.centreJurisdiction || ''  // ctj maps to range
             }
           }
         };
