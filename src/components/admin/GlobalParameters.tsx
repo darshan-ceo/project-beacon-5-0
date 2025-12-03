@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import { 
   Settings, 
   Clock, 
@@ -10,21 +9,16 @@ import {
   Shield, 
   Bell,
   Globe,
-  Save,
-  RefreshCw,
-  AlertTriangle,
   MapPin,
-  ListChecks,
-  Loader2
+  HelpCircle,
+  Info
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
 import { CalendarIntegrationPanel } from './CalendarIntegrationPanel';
@@ -32,8 +26,15 @@ import { AddressSettings } from './AddressSettings';
 import { EmailConfiguration } from './EmailConfiguration';
 import { OutcomeTemplateManager } from './OutcomeTemplateManager';
 import { AuthorityHierarchySettings } from '@/components/settings/AuthorityHierarchySettings';
-import { featureFlagService } from '@/services/featureFlagService';
 import { SampleDataManager } from './SampleDataManager';
+import { SystemSettingsLayout, SettingsSection } from './SystemSettingsLayout';
+import { InlineHelp } from '@/components/help/InlineHelp';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface SystemParameter {
   id: string;
@@ -42,6 +43,7 @@ interface SystemParameter {
   type: 'text' | 'number' | 'boolean' | 'select';
   options?: string[];
   description: string;
+  tooltip: string;
   category: string;
 }
 
@@ -52,6 +54,7 @@ const systemParameters: SystemParameter[] = [
     value: '30',
     type: 'number',
     description: 'Automatic logout time for inactive users',
+    tooltip: 'Sets idle timeout period',
     category: 'security'
   },
   {
@@ -60,6 +63,7 @@ const systemParameters: SystemParameter[] = [
     value: '50',
     type: 'number',
     description: 'Maximum allowed file size for document uploads',
+    tooltip: 'Limits upload file sizes',
     category: 'system'
   },
   {
@@ -68,6 +72,7 @@ const systemParameters: SystemParameter[] = [
     value: 'true',
     type: 'boolean',
     description: 'Enable email notifications for system events',
+    tooltip: 'Controls email alerts',
     category: 'notifications'
   },
   {
@@ -77,6 +82,7 @@ const systemParameters: SystemParameter[] = [
     type: 'select',
     options: ['hourly', 'daily', 'weekly'],
     description: 'Frequency of automatic system backups',
+    tooltip: 'Sets backup schedule',
     category: 'system'
   },
   {
@@ -85,11 +91,39 @@ const systemParameters: SystemParameter[] = [
     value: 'CASE-{YYYY}-{####}',
     type: 'text',
     description: 'Format for generating case numbers',
+    tooltip: 'Defines case ID pattern',
     category: 'legal'
   }
 ];
 
+// Field with tooltip wrapper component
+const FieldWithTooltip: React.FC<{
+  label: string;
+  tooltip: string;
+  description: string;
+  children: React.ReactNode;
+}> = ({ label, tooltip, description, children }) => (
+  <TooltipProvider>
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <Label className="text-sm font-medium">{label}</Label>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="max-w-xs">{tooltip}</p>
+          </TooltipContent>
+        </Tooltip>
+      </div>
+      {children}
+      <p className="text-xs text-muted-foreground">{description}</p>
+    </div>
+  </TooltipProvider>
+);
+
 export const GlobalParameters: React.FC = () => {
+  const [activeSection, setActiveSection] = useState<SettingsSection>('general');
   const [parameters, setParameters] = useState(systemParameters);
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -104,17 +138,16 @@ export const GlobalParameters: React.FC = () => {
   const saveChanges = async () => {
     setIsSaving(true);
     try {
-      // Simulate save operation (or actual backend call when implemented)
       await new Promise(resolve => setTimeout(resolve, 500));
       toast({
         title: "Settings Saved",
-        description: "Global parameters have been updated successfully.",
+        description: "System settings have been updated successfully.",
       });
       setHasChanges(false);
     } catch (error) {
       toast({
         title: "Save Failed",
-        description: "Failed to save global parameters.",
+        description: "Failed to save system settings.",
         variant: "destructive"
       });
     } finally {
@@ -177,156 +210,97 @@ export const GlobalParameters: React.FC = () => {
   const getParametersByCategory = (category: string) => 
     parameters.filter(param => param.category === category);
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:justify-between">
-        <div className="w-full sm:w-auto">
-          <h1 className="text-2xl sm:text-3xl font-bold">Global Parameters</h1>
-          <p className="text-sm text-muted-foreground mt-2">Configure system-wide settings and parameters</p>
-        </div>
-        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-          <Button 
-            variant="outline" 
-            onClick={resetToDefaults}
-            className="text-destructive hover:text-destructive flex-1 sm:flex-none"
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">Reset to Defaults</span>
-            <span className="sm:hidden">Reset</span>
-          </Button>
-          <Button onClick={saveChanges} disabled={!hasChanges || isSaving} className="flex-1 sm:flex-none">
-            {isSaving ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                <span className="hidden sm:inline">Saving...</span>
-                <span className="sm:hidden">Saving</span>
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Save Changes</span>
-                <span className="sm:hidden">Save</span>
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
-
-      {hasChanges && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-orange-50 border border-orange-200 rounded-lg p-4"
-        >
-          <div className="flex items-center">
-            <AlertTriangle className="h-5 w-5 text-orange-600 mr-2" />
-            <p className="text-orange-800">You have unsaved changes. Click "Save Changes" to apply them.</p>
-          </div>
-        </motion.div>
-      )}
-
-      <Tabs defaultValue="system" className="space-y-6">
-        {featureFlagService.isEnabled('tabs_overflow_fix_v1') ? (
-          <div className="border-b border-border bg-background">
-            <div className="overflow-x-auto scrollbar-thin">
-              <TabsList className="inline-flex w-max min-w-full h-auto p-1">
-                <TabsTrigger value="system" className="min-w-[100px] whitespace-nowrap">System</TabsTrigger>
-                <TabsTrigger value="security" className="min-w-[100px] whitespace-nowrap">Security</TabsTrigger>
-                <TabsTrigger value="notifications" className="min-w-[120px] whitespace-nowrap">Notifications</TabsTrigger>
-                <TabsTrigger value="legal" className="min-w-[100px] whitespace-nowrap">Legal</TabsTrigger>
-                <TabsTrigger value="integrations" className="min-w-[120px] whitespace-nowrap">Integrations</TabsTrigger>
-                <TabsTrigger value="ai-communications" className="min-w-[140px] whitespace-nowrap">AI & Communications</TabsTrigger>
-                <TabsTrigger value="address-config" className="min-w-[120px] whitespace-nowrap">Address Config</TabsTrigger>
-                <TabsTrigger value="outcome-templates" className="min-w-[140px] whitespace-nowrap">Outcome Templates</TabsTrigger>
-                <TabsTrigger value="authority-hierarchy" className="min-w-[140px] whitespace-nowrap">Master Data</TabsTrigger>
-                <TabsTrigger value="sample-data" className="min-w-[120px] whitespace-nowrap">Sample Data</TabsTrigger>
-              </TabsList>
-            </div>
-          </div>
-        ) : (
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 gap-1 p-1 h-auto">
-            <TabsTrigger value="system" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">System</TabsTrigger>
-            <TabsTrigger value="security" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Security</TabsTrigger>
-            <TabsTrigger value="notifications" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Notifications</TabsTrigger>
-            <TabsTrigger value="legal" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Legal</TabsTrigger>
-            <TabsTrigger value="integrations" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Integrations</TabsTrigger>
-            <TabsTrigger value="ai-communications" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">AI & Communications</TabsTrigger>
-            <TabsTrigger value="address-config" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Address Configuration</TabsTrigger>
-            <TabsTrigger value="outcome-templates" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Outcome Templates</TabsTrigger>
-            <TabsTrigger value="authority-hierarchy" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Master Data</TabsTrigger>
-            <TabsTrigger value="sample-data" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Sample Data</TabsTrigger>
-          </TabsList>
-        )}
-
-        <TabsContent value="system" className="space-y-6">
+  const renderSection = () => {
+    switch (activeSection) {
+      case 'general':
+        return (
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Database className="h-5 w-5 mr-2" />
+                <CardTitle className="flex items-center gap-2">
+                  <Database className="h-5 w-5 text-primary" />
                   System Configuration
                 </CardTitle>
+                <CardDescription>Core system parameters and limits</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {getParametersByCategory('system').map((param) => (
-                  <div key={param.id} className="space-y-2">
-                    <Label>{param.name}</Label>
+                  <FieldWithTooltip
+                    key={param.id}
+                    label={param.name}
+                    tooltip={param.tooltip}
+                    description={param.description}
+                  >
                     {renderParameterInput(param)}
-                    <p className="text-xs text-muted-foreground">{param.description}</p>
-                  </div>
+                  </FieldWithTooltip>
                 ))}
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Clock className="h-5 w-5 mr-2" />
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-primary" />
                   Performance Settings
                 </CardTitle>
+                <CardDescription>Caching and optimization options</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Cache Duration (hours)</Label>
-                  <Input type="number" defaultValue="24" />
-                  <p className="text-xs text-muted-foreground">How long to cache static resources</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>Query Timeout (seconds)</Label>
-                  <Input type="number" defaultValue="30" />
-                  <p className="text-xs text-muted-foreground">Maximum time for database queries</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>Enable Compression</Label>
-                  <Switch defaultChecked />
-                  <p className="text-xs text-muted-foreground">Compress responses to reduce bandwidth</p>
-                </div>
+                <FieldWithTooltip
+                  label="Cache Duration (hours)"
+                  tooltip="Controls static resource caching"
+                  description="How long to cache static resources"
+                >
+                  <Input type="number" defaultValue="24" onChange={() => setHasChanges(true)} />
+                </FieldWithTooltip>
+                <FieldWithTooltip
+                  label="Query Timeout (seconds)"
+                  tooltip="Database query time limit"
+                  description="Maximum time for database queries"
+                >
+                  <Input type="number" defaultValue="30" onChange={() => setHasChanges(true)} />
+                </FieldWithTooltip>
+                <FieldWithTooltip
+                  label="Enable Compression"
+                  tooltip="Reduces data transfer size"
+                  description="Compress responses to reduce bandwidth"
+                >
+                  <Switch defaultChecked onCheckedChange={() => setHasChanges(true)} />
+                </FieldWithTooltip>
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
+        );
 
-        <TabsContent value="security" className="space-y-6">
+      case 'security':
+        return (
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Shield className="h-5 w-5 mr-2" />
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-primary" />
                   Authentication Settings
                 </CardTitle>
+                <CardDescription>Login and session security</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {getParametersByCategory('security').map((param) => (
-                  <div key={param.id} className="space-y-2">
-                    <Label>{param.name}</Label>
+                  <FieldWithTooltip
+                    key={param.id}
+                    label={param.name}
+                    tooltip={param.tooltip}
+                    description={param.description}
+                  >
                     {renderParameterInput(param)}
-                    <p className="text-xs text-muted-foreground">{param.description}</p>
-                  </div>
+                  </FieldWithTooltip>
                 ))}
                 <Separator />
-                <div className="space-y-2">
-                  <Label>Password Policy</Label>
-                  <Select defaultValue="medium">
+                <FieldWithTooltip
+                  label="Password Policy"
+                  tooltip="Sets password requirements"
+                  description="Password complexity requirements"
+                >
+                  <Select defaultValue="medium" onValueChange={() => setHasChanges(true)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -336,62 +310,75 @@ export const GlobalParameters: React.FC = () => {
                       <SelectItem value="high">High (12 chars + mixed case)</SelectItem>
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground">Password complexity requirements</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>Two-Factor Authentication</Label>
-                  <Switch defaultChecked />
-                  <p className="text-xs text-muted-foreground">Require 2FA for all admin users</p>
-                </div>
+                </FieldWithTooltip>
+                <FieldWithTooltip
+                  label="Two-Factor Authentication"
+                  tooltip="Adds extra security layer"
+                  description="Require 2FA for all admin users"
+                >
+                  <Switch defaultChecked onCheckedChange={() => setHasChanges(true)} />
+                </FieldWithTooltip>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Globe className="h-5 w-5 mr-2" />
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="h-5 w-5 text-primary" />
                   Access Control
                 </CardTitle>
+                <CardDescription>IP restrictions and lockout settings</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>IP Whitelist</Label>
+                <FieldWithTooltip
+                  label="IP Whitelist"
+                  tooltip="Restricts access by IP"
+                  description="Restrict access to specific IP addresses"
+                >
                   <Textarea 
                     placeholder="Enter IP addresses (one per line)"
                     className="min-h-[100px]"
+                    onChange={() => setHasChanges(true)}
                   />
-                  <p className="text-xs text-muted-foreground">Restrict access to specific IP addresses</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>Login Attempt Limit</Label>
-                  <Input type="number" defaultValue="5" />
-                  <p className="text-xs text-muted-foreground">Maximum failed login attempts before lockout</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>Lockout Duration (minutes)</Label>
-                  <Input type="number" defaultValue="15" />
-                  <p className="text-xs text-muted-foreground">How long to lock accounts after failed attempts</p>
-                </div>
+                </FieldWithTooltip>
+                <FieldWithTooltip
+                  label="Login Attempt Limit"
+                  tooltip="Failed login threshold"
+                  description="Maximum failed login attempts before lockout"
+                >
+                  <Input type="number" defaultValue="5" onChange={() => setHasChanges(true)} />
+                </FieldWithTooltip>
+                <FieldWithTooltip
+                  label="Lockout Duration (minutes)"
+                  tooltip="Account lockout period"
+                  description="How long to lock accounts after failed attempts"
+                >
+                  <Input type="number" defaultValue="15" onChange={() => setHasChanges(true)} />
+                </FieldWithTooltip>
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
+        );
 
-        <TabsContent value="notifications" className="space-y-6">
+      case 'notifications':
+        return (
           <div className="grid gap-6">
             <EmailConfiguration />
-
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <MessageSquare className="h-5 w-5 mr-2" />
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5 text-primary" />
                   SMS & Push Notifications
                 </CardTitle>
+                <CardDescription>Configure mobile and browser notifications</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>SMS Provider</Label>
-                  <Select defaultValue="twilio">
+                <FieldWithTooltip
+                  label="SMS Provider"
+                  tooltip="SMS service selection"
+                  description="SMS service provider"
+                >
+                  <Select defaultValue="twilio" onValueChange={() => setHasChanges(true)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -401,44 +388,55 @@ export const GlobalParameters: React.FC = () => {
                       <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground">SMS service provider</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>API Key</Label>
-                  <Input type="password" placeholder="Enter API key" />
-                  <p className="text-xs text-muted-foreground">SMS provider API key</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>Push Notifications</Label>
-                  <Switch defaultChecked />
-                  <p className="text-xs text-muted-foreground">Enable browser push notifications</p>
-                </div>
+                </FieldWithTooltip>
+                <FieldWithTooltip
+                  label="API Key"
+                  tooltip="Provider authentication key"
+                  description="SMS provider API key"
+                >
+                  <Input type="password" placeholder="Enter API key" onChange={() => setHasChanges(true)} />
+                </FieldWithTooltip>
+                <FieldWithTooltip
+                  label="Push Notifications"
+                  tooltip="Browser push alerts"
+                  description="Enable browser push notifications"
+                >
+                  <Switch defaultChecked onCheckedChange={() => setHasChanges(true)} />
+                </FieldWithTooltip>
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
+        );
 
-        <TabsContent value="legal" className="space-y-6">
+      case 'legal':
+        return (
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Settings className="h-5 w-5 mr-2" />
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5 text-primary" />
                   Case Management
                 </CardTitle>
+                <CardDescription>Case numbering and workflow settings</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {getParametersByCategory('legal').map((param) => (
-                  <div key={param.id} className="space-y-2">
-                    <Label>{param.name}</Label>
+                  <FieldWithTooltip
+                    key={param.id}
+                    label={param.name}
+                    tooltip={param.tooltip}
+                    description={param.description}
+                  >
                     {renderParameterInput(param)}
-                    <p className="text-xs text-muted-foreground">{param.description}</p>
-                  </div>
+                  </FieldWithTooltip>
                 ))}
                 <Separator />
-                <div className="space-y-2">
-                  <Label>Default Case Status</Label>
-                  <Select defaultValue="open">
+                <FieldWithTooltip
+                  label="Default Case Status"
+                  tooltip="Initial case status"
+                  description="Default status for new cases"
+                >
+                  <Select defaultValue="open" onValueChange={() => setHasChanges(true)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -448,108 +446,70 @@ export const GlobalParameters: React.FC = () => {
                       <SelectItem value="draft">Draft</SelectItem>
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground">Default status for new cases</p>
-                </div>
+                </FieldWithTooltip>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Clock className="h-5 w-5 mr-2" />
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-primary" />
                   SLA/TAT Configuration
                 </CardTitle>
+                <CardDescription>Service level agreement settings</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Default Response Time (hours)</Label>
-                  <Input type="number" defaultValue="24" />
-                  <p className="text-xs text-muted-foreground">Standard response time for client queries</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>Urgent Case TAT (hours)</Label>
-                  <Input type="number" defaultValue="4" />
-                  <p className="text-xs text-muted-foreground">Turnaround time for urgent cases</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>Document Review Time (days)</Label>
-                  <Input type="number" defaultValue="3" />
-                  <p className="text-xs text-muted-foreground">Standard time for document review</p>
-                </div>
+                <FieldWithTooltip
+                  label="Default Response Time (hours)"
+                  tooltip="Standard reply deadline"
+                  description="Standard response time for client queries"
+                >
+                  <Input type="number" defaultValue="24" onChange={() => setHasChanges(true)} />
+                </FieldWithTooltip>
+                <FieldWithTooltip
+                  label="Urgent Case TAT (hours)"
+                  tooltip="Priority case deadline"
+                  description="Turnaround time for urgent cases"
+                >
+                  <Input type="number" defaultValue="4" onChange={() => setHasChanges(true)} />
+                </FieldWithTooltip>
+                <FieldWithTooltip
+                  label="Document Review Time (days)"
+                  tooltip="Review period limit"
+                  description="Standard time for document review"
+                >
+                  <Input type="number" defaultValue="3" onChange={() => setHasChanges(true)} />
+                </FieldWithTooltip>
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
+        );
 
-        <TabsContent value="integrations" className="space-y-6">
+      case 'ai-communications':
+        return (
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Calendar className="h-5 w-5 mr-2" />
-                  Calendar Integration
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <CalendarIntegrationPanel />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Globe className="h-5 w-5 mr-2" />
-                  External APIs
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Legal Forum Records API</Label>
-                  <Input placeholder="API endpoint URL" />
-                  <p className="text-xs text-muted-foreground">Integration with legal forum record systems</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>Document Storage</Label>
-                  <Select defaultValue="local">
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="local">Local Storage</SelectItem>
-                      <SelectItem value="aws">AWS S3</SelectItem>
-                      <SelectItem value="azure">Azure Blob</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">Document storage provider</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>Enable API Logging</Label>
-                  <Switch defaultChecked />
-                  <p className="text-xs text-muted-foreground">Log all external API calls for debugging</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="ai-communications" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Settings className="h-5 w-5 mr-2" />
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5 text-primary" />
                   AI Features
                 </CardTitle>
+                <CardDescription>AI assistant configuration</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Enable AI Assistant</Label>
-                  <Switch defaultChecked />
-                  <p className="text-xs text-muted-foreground">Enable AI-powered draft generation and document summarization</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>AI Provider</Label>
-                  <Select defaultValue="openai">
+                <FieldWithTooltip
+                  label="Enable AI Assistant"
+                  tooltip="Activates AI features"
+                  description="Enable AI-powered draft generation and document summarization"
+                >
+                  <Switch defaultChecked onCheckedChange={() => setHasChanges(true)} />
+                </FieldWithTooltip>
+                <FieldWithTooltip
+                  label="AI Provider"
+                  tooltip="AI service selection"
+                  description="AI service provider for content generation"
+                >
+                  <Select defaultValue="openai" onValueChange={() => setHasChanges(true)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -559,80 +519,166 @@ export const GlobalParameters: React.FC = () => {
                       <SelectItem value="mock">Mock Service</SelectItem>
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground">AI service provider for content generation</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>Response Time Limit (seconds)</Label>
-                  <Input type="number" defaultValue="30" />
-                  <p className="text-xs text-muted-foreground">Maximum time to wait for AI responses</p>
-                </div>
+                </FieldWithTooltip>
+                <FieldWithTooltip
+                  label="Response Time Limit (seconds)"
+                  tooltip="AI timeout setting"
+                  description="Maximum time to wait for AI responses"
+                >
+                  <Input type="number" defaultValue="30" onChange={() => setHasChanges(true)} />
+                </FieldWithTooltip>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <MessageSquare className="h-5 w-5 mr-2" />
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5 text-primary" />
                   Communication Settings
                 </CardTitle>
+                <CardDescription>Messaging channel configuration</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Enable Email</Label>
-                  <Switch defaultChecked />
-                  <p className="text-xs text-muted-foreground">Allow sending emails to clients</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>Enable SMS</Label>
-                  <Switch defaultChecked />
-                  <p className="text-xs text-muted-foreground">Allow sending SMS messages</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>Enable WhatsApp</Label>
-                  <Switch />
-                  <p className="text-xs text-muted-foreground">Allow sending WhatsApp messages</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>Auto Hearing Reminders</Label>
-                  <Switch defaultChecked />
-                  <p className="text-xs text-muted-foreground">Automatically send hearing reminders</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>Reminder Days</Label>
-                  <Input defaultValue="1,3,7" />
-                  <p className="text-xs text-muted-foreground">Days before hearing to send reminders (comma-separated)</p>
-                </div>
+                <FieldWithTooltip
+                  label="Enable Email"
+                  tooltip="Email communication toggle"
+                  description="Allow sending emails to clients"
+                >
+                  <Switch defaultChecked onCheckedChange={() => setHasChanges(true)} />
+                </FieldWithTooltip>
+                <FieldWithTooltip
+                  label="Enable SMS"
+                  tooltip="SMS communication toggle"
+                  description="Allow sending SMS messages"
+                >
+                  <Switch defaultChecked onCheckedChange={() => setHasChanges(true)} />
+                </FieldWithTooltip>
+                <FieldWithTooltip
+                  label="Enable WhatsApp"
+                  tooltip="WhatsApp integration"
+                  description="Allow sending WhatsApp messages"
+                >
+                  <Switch onCheckedChange={() => setHasChanges(true)} />
+                </FieldWithTooltip>
+                <FieldWithTooltip
+                  label="Auto Hearing Reminders"
+                  tooltip="Automated reminder system"
+                  description="Automatically send hearing reminders"
+                >
+                  <Switch defaultChecked onCheckedChange={() => setHasChanges(true)} />
+                </FieldWithTooltip>
+                <FieldWithTooltip
+                  label="Reminder Days"
+                  tooltip="Reminder schedule"
+                  description="Days before hearing to send reminders (comma-separated)"
+                >
+                  <Input defaultValue="1,3,7" onChange={() => setHasChanges(true)} />
+                </FieldWithTooltip>
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
+        );
 
-        <TabsContent value="address-config" className="space-y-6">
+      case 'integrations':
+        return (
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-primary" />
+                  Calendar Integration
+                </CardTitle>
+                <CardDescription>Sync with external calendars</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <CalendarIntegrationPanel />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="h-5 w-5 text-primary" />
+                  External APIs
+                </CardTitle>
+                <CardDescription>Third-party service connections</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FieldWithTooltip
+                  label="Legal Forum Records API"
+                  tooltip="Court records integration"
+                  description="Integration with legal forum record systems"
+                >
+                  <Input placeholder="API endpoint URL" onChange={() => setHasChanges(true)} />
+                </FieldWithTooltip>
+                <FieldWithTooltip
+                  label="Document Storage"
+                  tooltip="File storage provider"
+                  description="Document storage provider"
+                >
+                  <Select defaultValue="local" onValueChange={() => setHasChanges(true)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="local">Local Storage</SelectItem>
+                      <SelectItem value="aws">AWS S3</SelectItem>
+                      <SelectItem value="azure">Azure Blob</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FieldWithTooltip>
+                <FieldWithTooltip
+                  label="Enable API Logging"
+                  tooltip="Debug external calls"
+                  description="Log all external API calls for debugging"
+                >
+                  <Switch defaultChecked onCheckedChange={() => setHasChanges(true)} />
+                </FieldWithTooltip>
+              </CardContent>
+            </Card>
+          </div>
+        );
+
+      case 'address':
+        return (
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <MapPin className="h-5 w-5 mr-2" />
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-primary" />
                 Address Configuration
               </CardTitle>
+              <CardDescription>State, city, and address format settings</CardDescription>
             </CardHeader>
             <CardContent>
               <AddressSettings />
             </CardContent>
           </Card>
-        </TabsContent>
+        );
 
-        <TabsContent value="outcome-templates" className="space-y-6">
-          <OutcomeTemplateManager />
-        </TabsContent>
+      case 'templates':
+        return <OutcomeTemplateManager />;
 
-        <TabsContent value="authority-hierarchy" className="space-y-6">
-          <AuthorityHierarchySettings />
-        </TabsContent>
+      case 'legal-hierarchy':
+        return <AuthorityHierarchySettings />;
 
-        <TabsContent value="sample-data" className="space-y-6">
-          <SampleDataManager />
-        </TabsContent>
-      </Tabs>
-    </div>
+      case 'sample-data':
+        return <SampleDataManager />;
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <SystemSettingsLayout
+      activeSection={activeSection}
+      onSectionChange={setActiveSection}
+      hasChanges={hasChanges}
+      isSaving={isSaving}
+      onSave={saveChanges}
+      onReset={resetToDefaults}
+    >
+      {renderSection()}
+    </SystemSettingsLayout>
   );
 };

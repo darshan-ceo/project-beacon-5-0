@@ -1,0 +1,135 @@
+{
+  "settings": {
+    "general": {
+      "title": "General Settings",
+      "content": "Configure basic system parameters including file upload limits, caching, and performance optimization settings that affect the entire application.",
+      "quickTips": [
+        "Set appropriate file size limits based on your storage capacity",
+        "Enable compression to reduce bandwidth usage",
+        "Adjust cache duration based on how frequently your data changes"
+      ],
+      "relatedArticles": [
+        { "title": "Performance Optimization Guide", "url": "#" },
+        { "title": "System Requirements", "url": "#" }
+      ]
+    },
+    "security": {
+      "title": "Security & Roles",
+      "content": "Manage authentication settings, password policies, and access control rules. These settings are critical for protecting sensitive legal data and ensuring compliance.",
+      "quickTips": [
+        "Enable two-factor authentication for admin accounts",
+        "Set session timeout based on security requirements",
+        "Use IP whitelisting for sensitive environments"
+      ],
+      "relatedArticles": [
+        { "title": "Security Best Practices", "url": "#" },
+        { "title": "Role-Based Access Control", "url": "#" }
+      ]
+    },
+    "notifications": {
+      "title": "Notification Settings",
+      "content": "Configure email, SMS, and push notification preferences. Set up notification triggers for case updates, task assignments, and deadline reminders.",
+      "quickTips": [
+        "Test email configuration before going live",
+        "Set up notification templates for consistent messaging",
+        "Configure notification frequency to avoid overwhelming users"
+      ],
+      "relatedArticles": [
+        { "title": "Email Configuration Guide", "url": "#" },
+        { "title": "Notification Templates", "url": "#" }
+      ]
+    },
+    "legal": {
+      "title": "Legal Configuration",
+      "content": "Configure case management parameters including case number formats, financial year settings, and workflow rules specific to legal practice.",
+      "quickTips": [
+        "Use consistent case number formats across your organization",
+        "Set financial year based on your jurisdiction",
+        "Configure deadlines according to statutory requirements"
+      ],
+      "relatedArticles": [
+        { "title": "Case Numbering Standards", "url": "#" },
+        { "title": "Legal Workflow Configuration", "url": "#" }
+      ]
+    },
+    "ai-communications": {
+      "title": "AI & Communications",
+      "content": "Configure AI assistant settings and communication templates. Enable AI-powered features for document analysis, case research, and automated responses.",
+      "quickTips": [
+        "Review AI suggestions before sending to clients",
+        "Customize communication templates for your firm's tone",
+        "Set up default response templates for common queries"
+      ],
+      "relatedArticles": [
+        { "title": "AI Features Overview", "url": "#" },
+        { "title": "Communication Best Practices", "url": "#" }
+      ]
+    },
+    "integrations": {
+      "title": "Integrations",
+      "content": "Connect external services like Google Calendar and Microsoft Outlook. Sync hearings and deadlines with your preferred calendar application.",
+      "quickTips": [
+        "Use OAuth for secure calendar connections",
+        "Test sync functionality before enabling for all users",
+        "Configure sync frequency based on your needs"
+      ],
+      "relatedArticles": [
+        { "title": "Calendar Integration Setup", "url": "#" },
+        { "title": "Third-Party Integrations", "url": "#" }
+      ]
+    },
+    "address": {
+      "title": "Address & Location",
+      "content": "Configure address formats, state/city databases, and location settings used throughout the application for client addresses and court locations.",
+      "quickTips": [
+        "Keep state and city lists updated",
+        "Use standardized address formats for consistency",
+        "Configure GST jurisdiction mappings"
+      ],
+      "relatedArticles": [
+        { "title": "Address Configuration", "url": "#" },
+        { "title": "Location Management", "url": "#" }
+      ]
+    },
+    "templates": {
+      "title": "Templates & Outcomes",
+      "content": "Manage document templates and outcome configurations. Define standard outcomes for hearings and cases to ensure consistent reporting.",
+      "quickTips": [
+        "Create templates for common document types",
+        "Define outcome categories for better reporting",
+        "Use consistent naming conventions"
+      ],
+      "relatedArticles": [
+        { "title": "Template Management", "url": "#" },
+        { "title": "Outcome Configuration", "url": "#" }
+      ]
+    },
+    "legal-hierarchy": {
+      "title": "Legal Hierarchy",
+      "content": "Define the hierarchical structure of legal authorities and their sub-categories (matter types). This configuration affects case categorization and legal workflow across the entire application.",
+      "quickTips": [
+        "Follow the standard legal hierarchy: Assessment → Adjudication → Tribunal → High Court → Supreme Court",
+        "Add matter types for authorities that have sub-categories (e.g., Tribunal has State Bench, Principal Bench)",
+        "Deactivating a level hides it from forms but preserves existing data"
+      ],
+      "relatedArticles": [
+        { "title": "Legal Authority Structure", "url": "#" },
+        { "title": "Matter Type Configuration", "url": "#" },
+        { "title": "Case Filing Guide", "url": "#" }
+      ]
+    },
+    "sample-data": {
+      "title": "Sample Data",
+      "content": "Generate sample data for testing and demonstration purposes. Use this feature in development or training environments only.",
+      "quickTips": [
+        "Never use sample data in production",
+        "Clear sample data before going live",
+        "Use realistic data for effective testing"
+      ],
+      "relatedArticles": [
+        { "title": "Testing Guide", "url": "#" },
+        { "title": "Data Management", "url": "#" }
+      ]
+    }
+  }
+}

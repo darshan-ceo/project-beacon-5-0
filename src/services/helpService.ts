@@ -484,7 +484,7 @@ Regular maintenance tasks include user access reviews, system backups, and perfo
     );
   }
 
-  private getFallbackInlineHelp(module: string, context?: string): { title: string; content: string; learnMoreUrl?: string } | null {
+  private getFallbackInlineHelp(module: string, context?: string): { title: string; content: string; learnMoreUrl?: string; quickTips?: string[]; relatedArticles?: { title: string; url: string }[] } | null {
     const helpMap: Record<string, Record<string, any>> = {
       'client-master': {
         default: {
@@ -520,13 +520,81 @@ Regular maintenance tasks include user access reviews, system backups, and perfo
           content: 'Create comprehensive reports on case progress, billing, and performance metrics.',
           learnMoreUrl: '/help#reporting'
         }
+      },
+      'settings': {
+        'general': {
+          title: 'General Settings',
+          content: 'Configure basic system parameters including file upload limits, caching, and performance optimization settings.',
+          quickTips: ['Set appropriate file size limits based on storage capacity', 'Enable compression to reduce bandwidth', 'Adjust cache duration based on data change frequency'],
+          relatedArticles: [{ title: 'Performance Optimization Guide', url: '#' }]
+        },
+        'security': {
+          title: 'Security & Roles',
+          content: 'Manage authentication settings, password policies, and access control rules to protect sensitive legal data.',
+          quickTips: ['Enable 2FA for admin accounts', 'Set session timeout based on security requirements', 'Use IP whitelisting for sensitive environments'],
+          relatedArticles: [{ title: 'Security Best Practices', url: '#' }]
+        },
+        'notifications': {
+          title: 'Notification Settings',
+          content: 'Configure email, SMS, and push notification preferences for case updates and deadline reminders.',
+          quickTips: ['Test email configuration before going live', 'Set up templates for consistent messaging'],
+          relatedArticles: [{ title: 'Email Configuration Guide', url: '#' }]
+        },
+        'legal': {
+          title: 'Legal Configuration',
+          content: 'Configure case management parameters including case number formats, financial year settings, and SLA rules.',
+          quickTips: ['Use consistent case number formats', 'Set financial year based on jurisdiction'],
+          relatedArticles: [{ title: 'Case Numbering Standards', url: '#' }]
+        },
+        'ai-communications': {
+          title: 'AI & Communications',
+          content: 'Configure AI assistant settings and communication templates for automated responses and document analysis.',
+          quickTips: ['Review AI suggestions before sending to clients', 'Customize communication templates for your firm'],
+          relatedArticles: [{ title: 'AI Features Overview', url: '#' }]
+        },
+        'integrations': {
+          title: 'Integrations',
+          content: 'Connect external services like Google Calendar and Microsoft Outlook for hearing and deadline synchronization.',
+          quickTips: ['Use OAuth for secure calendar connections', 'Test sync functionality before enabling for all users'],
+          relatedArticles: [{ title: 'Calendar Integration Setup', url: '#' }]
+        },
+        'address': {
+          title: 'Address & Location',
+          content: 'Configure address formats, state/city databases, and location settings for client and court addresses.',
+          quickTips: ['Keep state and city lists updated', 'Use standardized address formats'],
+          relatedArticles: [{ title: 'Address Configuration', url: '#' }]
+        },
+        'templates': {
+          title: 'Templates & Outcomes',
+          content: 'Manage document templates and outcome configurations for standardized reporting.',
+          quickTips: ['Create templates for common document types', 'Define outcome categories for better reporting'],
+          relatedArticles: [{ title: 'Template Management', url: '#' }]
+        },
+        'legal-hierarchy': {
+          title: 'Legal Hierarchy',
+          content: 'Define the hierarchical structure of legal authorities (Assessment → Adjudication → Tribunal → High Court → Supreme Court) and their sub-categories (matter types).',
+          quickTips: ['Follow standard legal hierarchy structure', 'Add matter types for authorities with sub-categories', 'Deactivating a level hides it from forms but preserves data'],
+          relatedArticles: [{ title: 'Legal Authority Structure', url: '#' }, { title: 'Case Filing Guide', url: '#' }]
+        },
+        'sample-data': {
+          title: 'Sample Data',
+          content: 'Generate sample data for testing and demonstration purposes. Use only in development or training environments.',
+          quickTips: ['Never use sample data in production', 'Clear sample data before going live'],
+          relatedArticles: [{ title: 'Testing Guide', url: '#' }]
+        },
+        'default': {
+          title: 'System Settings',
+          content: 'Configure system-wide settings and parameters for your legal practice management system.',
+          quickTips: ['Review settings regularly', 'Test changes in a safe environment first'],
+          relatedArticles: [{ title: 'System Administration Guide', url: '#' }]
+        }
       }
     };
 
     const moduleHelp = helpMap[module];
     if (!moduleHelp) return null;
 
-    return moduleHelp[context || 'default'] || null;
+    return moduleHelp[context || 'default'] || moduleHelp['default'] || null;
   }
 }
 
