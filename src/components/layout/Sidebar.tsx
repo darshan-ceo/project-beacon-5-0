@@ -20,7 +20,8 @@ import {
   ChevronDown,
   HelpCircle,
   Sun,
-  Moon
+  Moon,
+  ShieldCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -70,6 +71,7 @@ const mainMenuItems: MenuItem[] = [
   { icon: CalendarDays, label: 'Hearings', href: '/hearings/calendar', roles: ['Admin', 'Partner/CA', 'Staff'], tourId: 'hearings-nav' },
   { icon: CheckSquare, label: 'Task Management', href: '/tasks', roles: ['Admin', 'Partner/CA', 'Staff'], tourId: 'tasks-nav' },
   { icon: FolderOpen, label: 'Document Management', href: '/documents', roles: ['Admin', 'Partner/CA', 'Staff', 'Client'], tourId: 'documents-nav' },
+  { icon: ShieldCheck, label: 'Compliance Dashboard', href: '/compliance', roles: ['Admin', 'Partner/CA', 'Staff'], tourId: 'compliance-nav' },
   { icon: BarChart3, label: 'Reports', href: '/reports', roles: ['Admin', 'Partner/CA', 'Staff'], tourId: 'reports-nav' },
   { icon: HelpCircle, label: 'Help & Knowledge Base', href: '/help', roles: ['Admin', 'Partner/CA', 'Staff', 'Client'], tourId: 'help-nav' },
   { icon: UserCircle, label: 'User Profile', href: '/profile', roles: ['Admin', 'Partner/CA', 'Staff', 'Client'], tourId: 'profile-nav' },
