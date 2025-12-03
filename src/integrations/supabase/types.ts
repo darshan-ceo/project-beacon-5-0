@@ -284,6 +284,100 @@ export type Database = {
           },
         ]
       }
+      case_statutory_deadlines: {
+        Row: {
+          base_date: string
+          calculated_deadline: string
+          case_id: string
+          completed_date: string | null
+          created_at: string | null
+          event_type_id: string
+          extension_count: number | null
+          extension_deadline: string | null
+          id: string
+          remarks: string | null
+          status: string | null
+          task_id: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          base_date: string
+          calculated_deadline: string
+          case_id: string
+          completed_date?: string | null
+          created_at?: string | null
+          event_type_id: string
+          extension_count?: number | null
+          extension_deadline?: string | null
+          id?: string
+          remarks?: string | null
+          status?: string | null
+          task_id?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          base_date?: string
+          calculated_deadline?: string
+          case_id?: string
+          completed_date?: string | null
+          created_at?: string | null
+          event_type_id?: string
+          extension_count?: number | null
+          extension_deadline?: string | null
+          id?: string
+          remarks?: string | null
+          status?: string | null
+          task_id?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_statutory_deadlines_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "case_activity_summary"
+            referencedColumns: ["case_id"]
+          },
+          {
+            foreignKeyName: "case_statutory_deadlines_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_statutory_deadlines_event_type_id_fkey"
+            columns: ["event_type_id"]
+            isOneToOne: false
+            referencedRelation: "statutory_event_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_statutory_deadlines_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_statutory_deadlines_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "case_statutory_deadlines_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cases: {
         Row: {
           assigned_to: string | null
@@ -1647,6 +1741,57 @@ export type Database = {
           },
         ]
       }
+      holidays: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          date: string
+          id: string
+          is_active: boolean | null
+          name: string
+          state: string | null
+          tenant_id: string
+          type: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          date: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          state?: string | null
+          tenant_id: string
+          type?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          date?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          state?: string | null
+          tenant_id?: string
+          type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "holidays_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "holidays_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       issue_types: {
         Row: {
           category: string | null
@@ -2126,6 +2271,139 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      statutory_acts: {
+        Row: {
+          code: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "statutory_acts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "statutory_acts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      statutory_event_types: {
+        Row: {
+          act_id: string
+          base_date_type: string
+          code: string
+          created_at: string | null
+          created_by: string | null
+          deadline_count: number
+          deadline_type: string
+          description: string | null
+          extension_allowed: boolean | null
+          extension_days: number | null
+          id: string
+          is_active: boolean | null
+          legal_reference: string | null
+          max_extension_count: number | null
+          name: string
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          act_id: string
+          base_date_type?: string
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          deadline_count?: number
+          deadline_type?: string
+          description?: string | null
+          extension_allowed?: boolean | null
+          extension_days?: number | null
+          id?: string
+          is_active?: boolean | null
+          legal_reference?: string | null
+          max_extension_count?: number | null
+          name: string
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          act_id?: string
+          base_date_type?: string
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          deadline_count?: number
+          deadline_type?: string
+          description?: string | null
+          extension_allowed?: boolean | null
+          extension_days?: number | null
+          id?: string
+          is_active?: boolean | null
+          legal_reference?: string | null
+          max_extension_count?: number | null
+          name?: string
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "statutory_event_types_act_id_fkey"
+            columns: ["act_id"]
+            isOneToOne: false
+            referencedRelation: "statutory_acts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "statutory_event_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "statutory_event_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]

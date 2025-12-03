@@ -87,6 +87,7 @@ const menuGroups: MenuGroup[] = [
       { icon: Building2, label: 'Legal Authorities', href: '/courts', roles: ['Admin', 'Partner/CA'] },
       { icon: Gavel, label: 'Judge Masters', href: '/judges', roles: ['Admin', 'Partner/CA'] },
       { icon: UserCheck, label: 'Employee Masters', href: '/employees', roles: ['Admin'] },
+      { icon: Scale, label: 'Statutory Deadlines', href: '/statutory-acts', roles: ['Admin', 'Partner/CA'] },
     ]
   },
   {
