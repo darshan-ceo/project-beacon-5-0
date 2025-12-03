@@ -275,7 +275,23 @@ export class OAuthManager {
     });
 
     if (!response.ok) {
-      throw new Error(`Token exchange failed: ${response.status} ${response.statusText}`);
+      // Parse error response for detailed error information
+      let errorBody: any = null;
+      try {
+        errorBody = await response.json();
+      } catch {
+        // If JSON parsing fails, use status text
+      }
+
+      const errorCode = errorBody?.error || 'token_exchange_failed';
+      const errorDescription = errorBody?.error_description || response.statusText;
+      
+      // Throw error with structured information
+      const error = new Error(`${errorCode}: ${errorDescription}`);
+      (error as any).code = errorCode;
+      (error as any).statusCode = response.status;
+      (error as any).errorDescription = errorDescription;
+      throw error;
     }
 
     const tokens = await response.json();

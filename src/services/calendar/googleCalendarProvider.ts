@@ -59,11 +59,69 @@ class GoogleCalendarProvider implements CalendarProvider {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Google Calendar API error: ${response.status} - ${error}`);
+      let errorBody: any = null;
+      try {
+        errorBody = await response.json();
+      } catch {
+        // If JSON parsing fails, use response text
+        const errorText = await response.text().catch(() => 'Unknown error');
+        throw new Error(`Google Calendar API error (${response.status}): ${errorText}`);
+      }
+
+      // Parse Google API error format
+      const errorMessage = this.parseGoogleApiError(response.status, errorBody);
+      const error = new Error(errorMessage);
+      (error as any).statusCode = response.status;
+      (error as any).errorCode = errorBody?.error?.code;
+      throw error;
     }
 
-    return response.json();
+    // Handle empty responses (e.g., DELETE)
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      return response.json();
+    }
+    return {};
+  }
+
+  // Parse Google API error responses
+  private parseGoogleApiError(status: number, errorBody: any): string {
+    const errorCode = errorBody?.error?.code || status;
+    const errorMessage = errorBody?.error?.message || 'Unknown error';
+    const errorReason = errorBody?.error?.errors?.[0]?.reason;
+
+    // Map common error codes to user-friendly messages
+    switch (status) {
+      case 401:
+        if (errorMessage.includes('invalid_token') || errorMessage.includes('expired')) {
+          return 'Your calendar access has expired. Please reconnect your Google account.';
+        }
+        return 'Authentication failed. Please reconnect your Google Calendar.';
+      case 403:
+        if (errorReason === 'forbidden') {
+          return 'You don\'t have permission to access this calendar. Check your account permissions.';
+        }
+        if (errorReason === 'rateLimitExceeded' || errorReason === 'userRateLimitExceeded') {
+          return 'Too many requests. Please wait a moment and try again.';
+        }
+        if (errorReason === 'calendarLimitsExceeded') {
+          return 'Calendar limits exceeded. Please try again later.';
+        }
+        return `Permission denied: ${errorMessage}`;
+      case 404:
+        return 'Calendar or event not found. It may have been deleted.';
+      case 409:
+        return 'Conflict: The event may have been modified by another user.';
+      case 410:
+        return 'The calendar resource has been deleted.';
+      case 429:
+        return 'Rate limit exceeded. Please wait a few minutes before trying again.';
+      case 500:
+      case 503:
+        return 'Google Calendar is temporarily unavailable. Please try again later.';
+      default:
+        return `Google Calendar error (${errorCode}): ${errorMessage}`;
+    }
   }
 
   // List available calendars
