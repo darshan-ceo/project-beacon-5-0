@@ -16,7 +16,10 @@ export interface GSTIntegrationStatus {
   };
   activeConsents: number;
   expiredConsents: number;
-  apiHealth: 'healthy' | 'degraded' | 'unavailable' | 'unknown';
+  apiHealth: {
+    publicApi: 'healthy' | 'degraded' | 'unavailable' | 'unknown';
+    consentApi: 'healthy' | 'degraded' | 'unavailable' | 'unknown' | 'not_subscribed';
+  };
   lastSyncTime?: string;
 }
 
@@ -33,11 +36,15 @@ export interface TestConnectionResult {
   };
   errorCode?: string;
   errorDetails?: string;
+  apiType?: 'public' | 'consent';
+  recommendation?: string;
+  consentApiEndpoint?: string;
 }
 
 export interface GSTIntegrationService {
   checkIntegrationStatus: () => Promise<GSTIntegrationStatus>;
   testConnection: (gstin: string) => Promise<TestConnectionResult>;
+  testConsentApi: (gstin: string, gstUsername: string) => Promise<TestConnectionResult>;
   getActiveConsentsCount: () => Promise<{ active: number; expired: number; lastSync?: string }>;
 }
 
@@ -71,7 +78,10 @@ class GSTIntegrationServiceImpl implements GSTIntegrationService {
         lastApiCall: data?.lastApiCall,
         activeConsents: consentCounts.active,
         expiredConsents: consentCounts.expired,
-        apiHealth: data?.apiHealth ?? 'unknown',
+        apiHealth: data?.apiHealth ?? {
+          publicApi: 'unknown',
+          consentApi: 'unknown'
+        },
         lastSyncTime: consentCounts.lastSync
       };
     } catch (error) {
@@ -81,7 +91,7 @@ class GSTIntegrationServiceImpl implements GSTIntegrationService {
   }
 
   /**
-   * Test the GST API connection with a sample GSTIN lookup
+   * Test the GST Public API connection with a sample GSTIN lookup
    */
   async testConnection(gstin: string): Promise<TestConnectionResult> {
     const startTime = Date.now();
@@ -101,7 +111,8 @@ class GSTIntegrationServiceImpl implements GSTIntegrationService {
           latencyMs,
           message: error.message || 'Failed to connect to MasterGST API',
           errorCode: 'EDGE_FUNCTION_ERROR',
-          errorDetails: error.message
+          errorDetails: error.message,
+          apiType: 'public'
         };
       }
 
@@ -109,19 +120,21 @@ class GSTIntegrationServiceImpl implements GSTIntegrationService {
         return {
           success: false,
           mode: data?.mode ?? 'sandbox',
-          latencyMs,
+          latencyMs: data?.latencyMs ?? latencyMs,
           message: data?.message ?? 'API returned an error',
           errorCode: data?.errorCode,
-          errorDetails: data?.errorDetails
+          errorDetails: data?.errorDetails,
+          apiType: 'public'
         };
       }
 
       return {
         success: true,
         mode: data.mode ?? 'production',
-        latencyMs,
+        latencyMs: data.latencyMs ?? latencyMs,
         message: data.message ?? 'Connection successful',
-        taxpayerPreview: data.taxpayerPreview
+        taxpayerPreview: data.taxpayerPreview,
+        apiType: 'public'
       };
     } catch (error) {
       const latencyMs = Date.now() - startTime;
@@ -130,7 +143,57 @@ class GSTIntegrationServiceImpl implements GSTIntegrationService {
         mode: 'sandbox',
         latencyMs,
         message: error instanceof Error ? error.message : 'Unknown error occurred',
-        errorCode: 'NETWORK_ERROR'
+        errorCode: 'NETWORK_ERROR',
+        apiType: 'public'
+      };
+    }
+  }
+
+  /**
+   * Test the GSP Consent/OTP API specifically
+   */
+  async testConsentApi(gstin: string, gstUsername: string): Promise<TestConnectionResult> {
+    const startTime = Date.now();
+
+    try {
+      const { data, error } = await supabase.functions.invoke('gst-status', {
+        body: { action: 'test_consent_api', gstin, gstUsername }
+      });
+
+      const latencyMs = Date.now() - startTime;
+
+      if (error) {
+        return {
+          success: false,
+          mode: 'sandbox',
+          latencyMs,
+          message: error.message || 'Failed to test GSP Consent API',
+          errorCode: 'EDGE_FUNCTION_ERROR',
+          errorDetails: error.message,
+          apiType: 'consent'
+        };
+      }
+
+      return {
+        success: data?.success ?? false,
+        mode: data?.mode ?? 'sandbox',
+        latencyMs: data?.latencyMs ?? latencyMs,
+        message: data?.message ?? 'Test completed',
+        errorCode: data?.errorCode,
+        errorDetails: data?.errorDetails,
+        apiType: 'consent',
+        recommendation: data?.recommendation,
+        consentApiEndpoint: data?.consentApiEndpoint
+      };
+    } catch (error) {
+      const latencyMs = Date.now() - startTime;
+      return {
+        success: false,
+        mode: 'sandbox',
+        latencyMs,
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
+        errorCode: 'NETWORK_ERROR',
+        apiType: 'consent'
       };
     }
   }
@@ -177,7 +240,10 @@ class GSTIntegrationServiceImpl implements GSTIntegrationService {
       },
       activeConsents: 0,
       expiredConsents: 0,
-      apiHealth: 'unknown'
+      apiHealth: {
+        publicApi: 'unknown',
+        consentApi: 'unknown'
+      }
     };
   }
 }
