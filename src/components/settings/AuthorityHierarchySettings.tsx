@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Scale, Plus, Edit, Trash2, GripVertical, ChevronDown, ChevronRight, Download, Upload, RotateCcw, AlertCircle, MapPin } from 'lucide-react';
+import { Scale, Plus, Edit, Trash2, GripVertical, ChevronDown, ChevronRight, Download, Upload, RotateCcw, AlertCircle, MapPin, MoreVertical, Copy, Power, HelpCircle, Info } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,11 +8,19 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { authorityHierarchyService } from '@/services/authorityHierarchyService';
 import { AuthorityLevelConfig, MatterTypeConfig } from '@/types/authority-matter-hierarchy';
 import { AuthorityLevelForm } from './AuthorityLevelForm';
 import { MatterTypeForm } from './MatterTypeForm';
+import { InlineHelpDrawer } from '@/components/help/InlineHelpDrawer';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +31,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export const AuthorityHierarchySettings: React.FC = () => {
   const [levels, setLevels] = useState<AuthorityLevelConfig[]>([]);
@@ -198,17 +212,22 @@ export const AuthorityHierarchySettings: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-lg bg-primary/10">
             <Scale className="h-6 w-6 text-primary" />
-            Authority Level & Matter Type Configuration
-          </h2>
-          <p className="text-muted-foreground mt-1">
-            Manage authority levels and their sub-categories (matter types) to customize your legal hierarchy
-          </p>
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+              Legal Hierarchy Configuration
+              <InlineHelpDrawer module="settings" context="legal-hierarchy" size="sm" />
+            </h2>
+            <p className="text-muted-foreground mt-1">
+              Define authority levels and matter types for your legal taxonomy
+            </p>
+          </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={handleImport}>
             <Upload className="h-4 w-4 mr-2" />
             Import
@@ -219,21 +238,27 @@ export const AuthorityHierarchySettings: React.FC = () => {
           </Button>
           <Button variant="outline" size="sm" onClick={handleReset}>
             <RotateCcw className="h-4 w-4 mr-2" />
-            Reset to Default
+            Reset
           </Button>
           <Button onClick={handleAddLevel}>
             <Plus className="h-4 w-4 mr-2" />
-            Add Authority Level
+            Add Level
           </Button>
         </div>
       </div>
 
-      {/* Info Alert */}
-      <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          Changes made here will immediately reflect in Legal Authorities and Case Management forms. 
-          Deactivating a level or matter type will hide it from dropdown selections but preserve existing data.
+      {/* Help Info Card */}
+      <Alert className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+        <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+        <AlertTitle className="text-blue-800 dark:text-blue-200">Understanding Legal Hierarchy</AlertTitle>
+        <AlertDescription className="text-blue-700 dark:text-blue-300">
+          <p className="mb-2">
+            The legal hierarchy defines the progression of case stages: <strong>Assessment → Adjudication → First Appeal → Tribunal → High Court → Supreme Court</strong>
+          </p>
+          <p className="text-sm">
+            Each level can have matter types (sub-categories). For example, Tribunal has State Bench and Principal Bench options. 
+            Changes here affect case filing dropdowns across the application.
+          </p>
         </AlertDescription>
       </Alert>
 
@@ -258,23 +283,33 @@ export const AuthorityHierarchySettings: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
             >
-              <Card className={!level.isActive ? 'opacity-60' : ''}>
+              <Card className={!level.isActive ? 'opacity-60 border-dashed' : 'border-solid'}>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3 flex-1">
-                      <GripVertical className="h-5 w-5 text-muted-foreground cursor-move" />
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <GripVertical className="h-5 w-5 text-muted-foreground cursor-move hover:text-foreground transition-colors" />
+                          </TooltipTrigger>
+                          <TooltipContent>Drag to reorder</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                       <Badge variant="outline" className="font-mono text-xs">
                         {index + 1}
                       </Badge>
                       <div className="flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <CardTitle className="text-lg">{level.name}</CardTitle>
-                          {!level.isActive && (
-                            <Badge variant="secondary" className="text-xs">Inactive</Badge>
-                          )}
+                          <Badge 
+                            variant={level.isActive ? "default" : "secondary"} 
+                            className={`text-xs ${level.isActive ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : ''}`}
+                          >
+                            {level.isActive ? 'Active' : 'Inactive'}
+                          </Badge>
                           {level.allowsMatterTypes && (
-                            <Badge variant="outline" className="text-xs">
-                              Has Sub-Levels
+                            <Badge variant="outline" className="text-xs bg-blue-50 dark:bg-blue-950/20">
+                              {level.matterTypes.length} Sub-Levels
                             </Badge>
                           )}
                         </div>
@@ -283,43 +318,55 @@ export const AuthorityHierarchySettings: React.FC = () => {
                         )}
                       </div>
                       <div 
-                        className={`w-12 h-12 rounded-lg ${level.color || 'bg-gray-100'} flex items-center justify-center`}
+                        className={`w-12 h-12 rounded-lg ${level.color || 'bg-gray-100'} flex items-center justify-center shadow-sm`}
                         title={level.name}
                       >
                         <Scale className="h-6 w-6 text-white" />
                       </div>
                     </div>
                     <div className="flex items-center gap-2 ml-4">
-                      <div className="flex items-center gap-2">
-                        <Label htmlFor={`active-${level.id}`} className="text-sm text-muted-foreground">
-                          Active
-                        </Label>
-                        <Switch
-                          id={`active-${level.id}`}
-                          checked={level.isActive}
-                          onCheckedChange={() => handleToggleActive(level)}
-                        />
-                      </div>
-                      <Separator orientation="vertical" className="h-8" />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEditLevel(level)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteLevel(level.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      {/* Quick Actions Dropdown */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem onClick={() => handleEditLevel(level)}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit Level
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => {
+                            // Duplicate logic
+                            const newLevel = { ...level, id: '', name: `${level.name} (Copy)` };
+                            setEditingLevel(newLevel as any);
+                            setLevelFormOpen(true);
+                          }}>
+                            <Copy className="h-4 w-4 mr-2" />
+                            Duplicate
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleToggleActive(level)}>
+                            <Power className="h-4 w-4 mr-2" />
+                            {level.isActive ? 'Deactivate' : 'Activate'}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            onClick={() => handleDeleteLevel(level.id)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      
                       {level.allowsMatterTypes && (
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => toggleExpanded(level.id)}
+                          className="h-8 w-8 p-0"
                         >
                           {expandedLevels.has(level.id) ? (
                             <ChevronDown className="h-4 w-4" />

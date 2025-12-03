@@ -97,7 +97,7 @@ const menuGroups: MenuGroup[] = [
     defaultOpen: false,
     roles: ['Admin'],
     items: [
-      { icon: Settings, label: 'Global Parameters', href: '/settings', roles: ['Admin', 'Partner/CA'] },
+      { icon: Settings, label: 'System Settings', href: '/settings', roles: ['Admin', 'Partner/CA'] },
       { icon: Shield, label: 'Access & Roles', href: '/rbac', roles: ['Admin'] },
     ]
   }
