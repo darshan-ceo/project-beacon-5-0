@@ -216,6 +216,41 @@ class StatutoryMasterDataSeeder {
       return result;
     }
   }
+
+  async seedHolidaysOnly(skipDuplicateCheck = false): Promise<SeedResult> {
+    const result: SeedResult = {
+      success: false,
+      actsSeeded: 0,
+      eventTypesSeeded: 0,
+      holidaysSeeded: 0,
+      errors: []
+    };
+
+    try {
+      const initialized = await this.initialize();
+      if (!initialized) {
+        result.errors.push('Failed to initialize seeder. Please ensure you are logged in.');
+        return result;
+      }
+
+      // Check only for existing holidays
+      if (!skipDuplicateCheck) {
+        const existing = await this.checkExistingData();
+        if (existing.holidays > 0) {
+          result.errors.push(`${existing.holidays} holidays already exist. Use "Force Seed" to override.`);
+          return result;
+        }
+      }
+
+      toast.info('Seeding holidays...');
+      result.holidaysSeeded = await this.seedHolidays();
+      result.success = true;
+      return result;
+    } catch (error: any) {
+      result.errors.push(error.message || 'Unknown error occurred');
+      return result;
+    }
+  }
 }
 
 export const statutoryMasterDataSeeder = new StatutoryMasterDataSeeder();
