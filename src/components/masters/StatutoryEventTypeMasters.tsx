@@ -13,6 +13,7 @@ import { StatutoryEventType, StatutoryAct, BASE_DATE_TYPES, DEADLINE_TYPES } fro
 import { statutoryEventTypesService } from '@/services/statutoryEventTypesService';
 import { statutoryActsService } from '@/services/statutoryActsService';
 import { StatutoryEventTypeModal } from '@/components/modals/StatutoryEventTypeModal';
+import { StatutoryMastersTabs } from './StatutoryMastersTabs';
 import { useRBAC } from '@/hooks/useAdvancedRBAC';
 import {
   AlertDialog,
@@ -173,6 +174,9 @@ export const StatutoryEventTypeMasters: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Tab Navigation */}
+      <StatutoryMastersTabs />
+      
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
