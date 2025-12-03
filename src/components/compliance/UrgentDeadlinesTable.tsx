@@ -1,16 +1,26 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Filter } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { UrgentDeadline } from '@/services/complianceDashboardService';
 
 interface UrgentDeadlinesTableProps {
   data: UrgentDeadline[];
 }
+
+type FilterType = 'all' | 'overdue' | 'today' | 'thisWeek' | 'upcoming';
+
+const filterOptions: { value: FilterType; label: string; count?: number }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'overdue', label: 'Overdue' },
+  { value: 'today', label: 'Today' },
+  { value: 'thisWeek', label: 'This Week' },
+  { value: 'upcoming', label: 'Upcoming' },
+];
 
 const statusConfig = {
   overdue: { label: 'Overdue', variant: 'destructive' as const, className: 'bg-destructive text-destructive-foreground' },
@@ -22,6 +32,25 @@ const statusConfig = {
 
 export const UrgentDeadlinesTable: React.FC<UrgentDeadlinesTableProps> = ({ data }) => {
   const navigate = useNavigate();
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+
+  const filteredData = useMemo(() => {
+    if (activeFilter === 'all') return data;
+    if (activeFilter === 'thisWeek') {
+      return data.filter((d) => d.status === 'thisWeek' || d.status === 'tomorrow');
+    }
+    return data.filter((d) => d.status === activeFilter);
+  }, [data, activeFilter]);
+
+  const filterCounts = useMemo(() => {
+    return {
+      all: data.length,
+      overdue: data.filter((d) => d.status === 'overdue').length,
+      today: data.filter((d) => d.status === 'today').length,
+      thisWeek: data.filter((d) => d.status === 'thisWeek' || d.status === 'tomorrow').length,
+      upcoming: data.filter((d) => d.status === 'upcoming').length,
+    };
+  }, [data]);
 
   const getRowClassName = (status: UrgentDeadline['status']) => {
     switch (status) {
@@ -40,8 +69,44 @@ export const UrgentDeadlinesTable: React.FC<UrgentDeadlinesTableProps> = ({ data
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Urgent Deadlines</CardTitle>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Filter className="h-4 w-4" />
+            Urgent Deadlines
+          </CardTitle>
+          <span className="text-sm text-muted-foreground">
+            {filteredData.length} of {data.length} deadlines
+          </span>
+        </div>
+        {/* Filter Tabs */}
+        <div className="flex items-center gap-1 mt-3 flex-wrap">
+          {filterOptions.map((filter) => (
+            <Button
+              key={filter.value}
+              variant={activeFilter === filter.value ? 'default' : 'outline'}
+              size="sm"
+              className={cn(
+                'h-7 text-xs gap-1',
+                activeFilter === filter.value && 'shadow-sm'
+              )}
+              onClick={() => setActiveFilter(filter.value)}
+            >
+              {filter.label}
+              <Badge 
+                variant="secondary" 
+                className={cn(
+                  'ml-1 h-4 px-1 text-[10px]',
+                  activeFilter === filter.value 
+                    ? 'bg-primary-foreground/20 text-primary-foreground' 
+                    : 'bg-muted'
+                )}
+              >
+                {filterCounts[filter.value]}
+              </Badge>
+            </Button>
+          ))}
+        </div>
       </CardHeader>
       <CardContent>
         <div className="rounded-md border overflow-hidden">
@@ -59,14 +124,17 @@ export const UrgentDeadlinesTable: React.FC<UrgentDeadlinesTableProps> = ({ data
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.length === 0 ? (
+              {filteredData.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                    No urgent deadlines found
+                    {activeFilter === 'all' 
+                      ? 'No urgent deadlines found. All caught up!' 
+                      : `No ${filterOptions.find(f => f.value === activeFilter)?.label.toLowerCase()} deadlines`
+                    }
                   </TableCell>
                 </TableRow>
               ) : (
-                data.map((deadline) => {
+                filteredData.map((deadline) => {
                   const config = statusConfig[deadline.status];
                   return (
                     <TableRow 
