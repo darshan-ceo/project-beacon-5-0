@@ -16,6 +16,7 @@ import {
   CLIENT_SUMMARY_COLUMNS,
   COMMUNICATION_REPORT_COLUMNS,
   FORM_TIMELINE_COLUMNS,
+  STATUTORY_DEADLINE_COLUMNS,
 } from '@/config/reportColumns';
 
 /**
@@ -433,5 +434,22 @@ export async function exportFormTimelineReport(
     await exportReportToPDF(data, FORM_TIMELINE_COLUMNS, filename, title);
   } else {
     await exportReportToExcel(data, FORM_TIMELINE_COLUMNS, filename, 'Form Timeline');
+  }
+}
+
+/**
+ * Export Statutory Deadline Report
+ */
+export async function exportStatutoryDeadlineReport(
+  data: any[],
+  format: 'xlsx' | 'pdf'
+): Promise<void> {
+  const filename = generateFilename('Statutory-Deadlines-Report', format);
+  const title = 'Statutory Deadlines Report';
+  
+  if (format === 'pdf') {
+    await exportReportToPDF(data, STATUTORY_DEADLINE_COLUMNS, filename, title);
+  } else {
+    await exportReportToExcel(data, STATUTORY_DEADLINE_COLUMNS, filename, 'Statutory Deadlines');
   }
 }

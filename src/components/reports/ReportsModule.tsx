@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Calendar, AlertTriangle, CheckSquare, Users, MessageSquare, Settings, Save, HelpCircle, FileCheck2 } from 'lucide-react';
+import { FileText, Calendar, AlertTriangle, CheckSquare, Users, MessageSquare, Settings, Save, HelpCircle, FileCheck2, Clock } from 'lucide-react';
 import { ContextualPageHelp } from '@/components/help/ContextualPageHelp';
 import { usePermission } from '@/hooks/useAdvancedRBAC';
 
@@ -16,6 +16,7 @@ import { TasksTab } from './tabs/TasksTab';
 import { ClientSummaryTab } from './tabs/ClientSummaryTab';
 import { CommunicationsTab } from './tabs/CommunicationsTab';
 import { FormTimelineTab } from './tabs/FormTimelineTab';
+import { StatutoryDeadlinesTab } from './tabs/StatutoryDeadlinesTab';
 import { ReportsFilterToolbar } from './ReportsFilterToolbar';
 import { SavedViewsManager } from './SavedViewsManager';
 
@@ -73,6 +74,13 @@ const reportTabs = [
     label: 'Form Timeline',
     icon: FileCheck2,
     description: 'Track form submission timelines and compliance',
+    roles: ['Admin', 'Partner/CA', 'Staff']
+  },
+  {
+    id: 'statutory-deadlines' as ReportType,
+    label: 'Statutory Deadlines',
+    icon: Clock,
+    description: 'Track statutory deadlines and compliance status',
     roles: ['Admin', 'Partner/CA', 'Staff']
   }
 ];
@@ -148,6 +156,8 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({ userRole }) => {
         return <CommunicationsTab {...commonProps} />;
       case 'form-timeline':
         return <FormTimelineTab {...commonProps} />;
+      case 'statutory-deadlines':
+        return <StatutoryDeadlinesTab {...commonProps} />;
       default:
         return <div>Report not found</div>;
     }

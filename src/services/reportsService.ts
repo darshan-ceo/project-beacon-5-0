@@ -795,6 +795,126 @@ export const reportsService = {
     }
   },
 
+  // Get statutory deadline reports with filters
+  getStatutoryDeadlineReport: async (filters: any): Promise<{ data: any[] }> => {
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { storageManager } = await import('@/data/StorageManager');
+      const storage = storageManager.getStorage();
+
+      const cases = await storage.getAll('cases');
+      const clients = await storage.getAll('clients');
+      const employees = await storage.getAll('employees');
+
+      const clientMap = new Map(clients.map((c: any) => [c.id, c.display_name || c.name || 'Unknown']));
+      const employeeMap = new Map(employees.map((e: any) => [e.id, e.full_name || e.name || 'Unknown']));
+      const caseMap = new Map(cases.map((c: any) => [c.id, c]));
+
+      // Fetch statutory deadlines from Supabase
+      const { data: deadlines, error } = await supabase
+        .from('case_statutory_deadlines')
+        .select(`
+          *,
+          statutory_event_types!inner(name, code, statutory_acts!inner(name, code))
+        `)
+        .order('calculated_deadline', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching statutory deadlines:', error);
+        return { data: [] };
+      }
+
+      let filteredDeadlines = deadlines || [];
+
+      // Apply filters
+      if (filters.clientId) {
+        filteredDeadlines = filteredDeadlines.filter((d: any) => {
+          const relatedCase = caseMap.get(d.case_id);
+          return relatedCase && (relatedCase.client_id || relatedCase.clientId) === filters.clientId;
+        });
+      }
+
+      if (filters.caseId) {
+        filteredDeadlines = filteredDeadlines.filter((d: any) => d.case_id === filters.caseId);
+      }
+
+      if (filters.status) {
+        filteredDeadlines = filteredDeadlines.filter((d: any) => d.status === filters.status);
+      }
+
+      if (filters.ragStatus) {
+        filteredDeadlines = filteredDeadlines.filter((d: any) => {
+          const dueDate = new Date(d.extension_deadline || d.calculated_deadline);
+          const today = new Date();
+          const daysRemaining = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+          
+          let ragStatus = 'Green';
+          if (daysRemaining < 0 || d.status === 'breached') ragStatus = 'Red';
+          else if (daysRemaining <= 7) ragStatus = 'Amber';
+          
+          return ragStatus === filters.ragStatus;
+        });
+      }
+
+      if (filters.dateRange) {
+        const { start, end } = filters.dateRange;
+        filteredDeadlines = filteredDeadlines.filter((d: any) => {
+          const dueDate = new Date(d.extension_deadline || d.calculated_deadline);
+          return dueDate >= new Date(start) && dueDate <= new Date(end);
+        });
+      }
+
+      if (filters.ownerId) {
+        filteredDeadlines = filteredDeadlines.filter((d: any) => {
+          const relatedCase = caseMap.get(d.case_id);
+          return relatedCase && (relatedCase.assigned_to || relatedCase.assignedToId) === filters.ownerId;
+        });
+      }
+
+      const reportData = filteredDeadlines.map((deadline: any) => {
+        const relatedCase = caseMap.get(deadline.case_id);
+        const clientId = relatedCase?.client_id || relatedCase?.clientId;
+        const ownerId = relatedCase?.assigned_to || relatedCase?.assignedToId;
+
+        const dueDate = new Date(deadline.extension_deadline || deadline.calculated_deadline);
+        const today = new Date();
+        const daysRemaining = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+        let ragStatus = 'Green';
+        if (daysRemaining < 0 || deadline.status === 'breached') ragStatus = 'Red';
+        else if (daysRemaining <= 7) ragStatus = 'Amber';
+
+        const eventType = deadline.statutory_event_types;
+        const act = eventType?.statutory_acts;
+
+        return {
+          id: deadline.id,
+          caseId: deadline.case_id,
+          caseNumber: relatedCase?.case_number || relatedCase?.caseNumber || 'N/A',
+          caseTitle: relatedCase?.title || 'Unknown',
+          client: clientId ? (clientMap.get(clientId) || 'Unknown') : 'Unknown',
+          eventType: eventType?.name || 'Unknown',
+          actName: act?.name || 'Unknown',
+          baseDate: deadline.base_date,
+          dueDate: deadline.extension_deadline || deadline.calculated_deadline,
+          daysRemaining,
+          status: deadline.status === 'completed' ? 'Completed' : 
+                  deadline.status === 'breached' ? 'Breached' :
+                  deadline.extension_count > 0 ? 'Extended' : 'Pending',
+          ragStatus,
+          owner: ownerId ? (employeeMap.get(ownerId) || 'Unassigned') : 'Unassigned',
+          extensionCount: deadline.extension_count || 0,
+          completedDate: deadline.completed_date,
+        };
+      });
+
+      return { data: reportData };
+    } catch (error) {
+      console.error('Error fetching statutory deadline report:', error);
+      return { data: [] };
+    }
+  },
+
   /**
    * Renders a form template to PDF with user data
    * @param formCode - The form template code (e.g., 'GSTAT', 'ASMT10_REPLY')
@@ -863,6 +983,7 @@ export const getTaskReport = reportsService.getTaskReport;
 export const getClientReport = reportsService.getClientReport;
 export const getCommunicationReport = reportsService.getCommunicationReport;
 export const getFormTimelineReport = reportsService.getFormTimelineReport;
+export const getStatutoryDeadlineReport = reportsService.getStatutoryDeadlineReport;
 
 /**
  * Generates structured PDF content from form template and data
