@@ -6,12 +6,14 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
   Plus, Search, Edit2, Trash2, ToggleLeft, ToggleRight, 
-  Scale, Info, RefreshCw, Loader2
+  Scale, Info, RefreshCw, Loader2, Database
 } from 'lucide-react';
 import { StatutoryAct } from '@/types/statutory';
 import { statutoryActsService } from '@/services/statutoryActsService';
 import { StatutoryActModal } from '@/components/modals/StatutoryActModal';
 import { StatutoryMastersTabs } from './StatutoryMastersTabs';
+import { statutoryMasterDataSeeder } from '@/services/statutoryMasterDataSeeder';
+import { toast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,6 +34,7 @@ import {
 export const StatutoryActMasters: React.FC = () => {
   const [acts, setActs] = useState<StatutoryAct[]>([]);
   const [loading, setLoading] = useState(true);
+  const [seeding, setSeeding] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
   
@@ -138,6 +141,26 @@ export const StatutoryActMasters: React.FC = () => {
     setSelectedAct(null);
   };
 
+  const handleSeedDefaultData = async () => {
+    setSeeding(true);
+    try {
+      const result = await statutoryMasterDataSeeder.seedAll();
+      
+      if (result.success) {
+        toast.success(
+          `Seeded ${result.actsSeeded} acts, ${result.eventTypesSeeded} event types, ${result.holidaysSeeded} holidays`
+        );
+        loadActs(); // Refresh the list
+      } else {
+        toast.error(result.errors.join('. '));
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to seed data');
+    } finally {
+      setSeeding(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Tab Navigation */}
@@ -164,10 +187,40 @@ export const StatutoryActMasters: React.FC = () => {
             </Tooltip>
           </TooltipProvider>
         </div>
-        <Button onClick={handleAdd}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add New Act
-        </Button>
+        <div className="flex items-center gap-2">
+          {acts.length === 0 && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleSeedDefaultData}
+                    disabled={seeding}
+                  >
+                    {seeding ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Seeding...
+                      </>
+                    ) : (
+                      <>
+                        <Database className="h-4 w-4 mr-2" />
+                        Seed Default Data
+                      </>
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p>Load default statutory acts, event types, and holidays for 2024-2025</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          <Button onClick={handleAdd}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add New Act
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
