@@ -158,7 +158,7 @@ class DeadlineNotificationService {
   async sendDeadlineNotification(
     deadline: PendingDeadline,
     userId: string
-  ): Promise<boolean> {
+  ): Promise<{ success: boolean; emailSkipped: boolean; emailReason?: string }> {
     try {
       // Determine template based on status
       let templateKey: string;
@@ -226,14 +226,23 @@ class DeadlineNotificationService {
           deadlineType: 'statutory',
           templateKey,
           daysRemaining: deadline.daysRemaining,
+          emailSkipped: emailResult.skipped,
+          emailSkipReason: emailResult.reason,
         },
       });
 
-      log('success', 'sendDeadlineNotification', { caseNumber: deadline.caseNumber, status: deadline.status });
-      return true;
+      log('success', 'sendDeadlineNotification', { 
+        caseNumber: deadline.caseNumber, 
+        status: deadline.status,
+        emailSent: emailResult.success,
+        emailSkipped: emailResult.skipped,
+      });
+      
+      // Return detailed result for aggregation
+      return { success: true, emailSkipped: emailResult.skipped, emailReason: emailResult.reason };
     } catch (error) {
       log('error', 'sendDeadlineNotification', error);
-      return false;
+      return { success: false, emailSkipped: true, emailReason: 'Notification failed' };
     }
   }
 
@@ -393,8 +402,14 @@ class DeadlineNotificationService {
 
     for (const deadline of deadlines) {
       const result = await this.sendDeadlineNotification(deadline, userId);
-      if (result) {
+      if (result.success) {
         success++;
+        if (result.emailSkipped) {
+          emailsSkipped++;
+          if (result.emailReason?.includes('domain not verified') || result.emailReason?.includes('Resend')) {
+            domainNotVerified = true;
+          }
+        }
       } else {
         failed++;
       }
@@ -403,9 +418,19 @@ class DeadlineNotificationService {
     log('success', 'processDeadlineNotifications', { processed: deadlines.length, success, failed, emailsSkipped });
 
     if (deadlines.length > 0) {
+      // Build description based on what happened
+      let description = `${success} in-app notification(s) created.`;
+      if (emailsSkipped > 0) {
+        if (domainNotVerified) {
+          description += ` Emails skipped (verify domain at resend.com/domains to enable).`;
+        } else {
+          description += ` ${emailsSkipped} email(s) skipped.`;
+        }
+      }
+      
       toast({
         title: 'Deadline Reminders Processed',
-        description: `${success} in-app notification(s) created.${emailsSkipped > 0 ? ` ${emailsSkipped} email(s) skipped (domain not verified).` : ''}`,
+        description,
       });
     } else {
       toast({
