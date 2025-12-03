@@ -9,6 +9,15 @@
 - [ ] Verify `VITE_FEATURE_GST_CLIENT_AUTOFILL=on` if GST integration is ready
 - [ ] Remove any dev-only URL parameters (`?gst=`, `?mock=`, `?qa=`, `?api=`)
 
+### 2. Statutory Deadline Module
+- [ ] Statutory Acts master data populated
+- [ ] Statutory Event Types configured with correct deadline rules
+- [ ] Holiday calendar populated for current and next year
+- [ ] State-wise holidays configured for relevant states
+- [ ] Notification schedules configured (30/15/7/3/1/0 days)
+- [ ] Dashboard widgets added for deadline monitoring
+- [ ] Reports tab accessible and functional
+
 ### 2. API Readiness
 - [ ] Production API endpoints are live and accessible
 - [ ] GST Public API integration tested with real credentials
