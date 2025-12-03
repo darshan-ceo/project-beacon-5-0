@@ -17,12 +17,13 @@ import {
   exportClientSummaryReport,
   exportCommunicationReport,
   exportFormTimelineReport,
+  exportStatutoryDeadlineReport,
 } from '@/utils/reportExporter';
 
 interface ExportButtonProps {
   data: any[];
   filename: string;
-  type: 'cases' | 'timeline' | 'hearings' | 'dashboard' | 'case-reports' | 'client-summary' | 'communications' | 'sla-compliance' | 'tasks' | 'form-timeline';
+  type: 'cases' | 'timeline' | 'hearings' | 'dashboard' | 'case-reports' | 'client-summary' | 'communications' | 'sla-compliance' | 'tasks' | 'form-timeline' | 'statutory-deadlines';
   variant?: 'default' | 'outline' | 'ghost';
   size?: 'default' | 'sm' | 'lg';
 }
@@ -83,6 +84,9 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
           break;
         case 'form-timeline':
           await exportFormTimelineReport(data, exportFormat);
+          break;
+        case 'statutory-deadlines':
+          await exportStatutoryDeadlineReport(data, exportFormat);
           break;
         case 'dashboard':
           // For dashboard, use case export as fallback

@@ -140,3 +140,18 @@ export const FORM_TIMELINE_COLUMNS: ReportColumn[] = [
   { key: 'daysElapsed', header: 'Days Elapsed', type: 'number' },
   { key: 'ragStatus', header: 'RAG Status', type: 'string' },
 ];
+
+export const STATUTORY_DEADLINE_COLUMNS: ReportColumn[] = [
+  { key: 'caseNumber', header: 'Case Number', type: 'string', get: (row) => row.caseNumber || row.case_number || '' },
+  { key: 'caseTitle', header: 'Case Title', type: 'string', get: (row) => row.caseTitle || row.case_title || '' },
+  { key: 'client', header: 'Client', type: 'string', get: (row) => row.client || row.clientName || '' },
+  { key: 'eventType', header: 'Event Type', type: 'string', get: (row) => row.eventType || row.event_type || '' },
+  { key: 'actName', header: 'Act', type: 'string', get: (row) => row.actName || row.act_name || '' },
+  { key: 'baseDate', header: 'Base Date', type: 'date', format: 'dd-MM-yyyy', get: (row) => row.baseDate || row.base_date || '' },
+  { key: 'dueDate', header: 'Due Date', type: 'date', format: 'dd-MM-yyyy', get: (row) => row.dueDate || row.due_date || row.calculated_deadline || '' },
+  { key: 'daysRemaining', header: 'Days Remaining', type: 'number', get: (row) => row.daysRemaining || row.days_remaining || 0 },
+  { key: 'status', header: 'Status', type: 'string', get: (row) => row.status || 'Pending' },
+  { key: 'ragStatus', header: 'RAG Status', type: 'string', get: (row) => row.ragStatus || row.rag_status || '' },
+  { key: 'owner', header: 'Owner', type: 'string', get: (row) => row.owner || row.caseOwner || '' },
+  { key: 'extensionCount', header: 'Extensions', type: 'number', get: (row) => row.extensionCount || row.extension_count || 0 },
+];

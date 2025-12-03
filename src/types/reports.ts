@@ -36,7 +36,8 @@ export type ReportType =
   | 'tasks'
   | 'client-summary'
   | 'communications'
-  | 'form-timeline';
+  | 'form-timeline'
+  | 'statutory-deadlines';
 
 export interface CaseReportData {
   id: string;
@@ -155,6 +156,24 @@ export interface FormTimelineReportData {
   status: 'On Time' | 'Delayed' | 'Pending';
   daysElapsed: number;
   ragStatus: 'Green' | 'Amber' | 'Red';
+}
+
+export interface StatutoryDeadlineReportData {
+  id: string;
+  caseId: string;
+  caseNumber: string;
+  caseTitle: string;
+  client: string;
+  eventType: string;
+  actName: string;
+  baseDate: string;
+  dueDate: string;
+  daysRemaining: number;
+  status: 'Pending' | 'Completed' | 'Breached' | 'Extended';
+  ragStatus: 'Green' | 'Amber' | 'Red';
+  owner: string;
+  extensionCount: number;
+  completedDate?: string;
 }
 
 export interface ScheduleConfig {
