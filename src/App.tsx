@@ -54,6 +54,7 @@ import { MigrationHealth } from "@/components/qa/MigrationHealth";
 import { TooltipDiagnostics } from "@/pages/TooltipDiagnostics";
 import { OAuthCallback } from "@/pages/OAuthCallback";
 import { DocViewerPage } from "@/pages/DocViewerPage";
+import { ComplianceDashboard } from "@/pages/ComplianceDashboard";
 import { LoginPage } from "@/pages/auth/LoginPage";
 import { SignupPage } from "@/pages/auth/SignupPage";
 import ForgotPassword from "@/pages/ForgotPassword";
@@ -254,6 +255,13 @@ const AppContent = () => {
                 <ProtectedRoute>
                   <AdminLayout currentUser={currentUser}>
                     <AnalyticsDashboard />
+                  </AdminLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/compliance" element={
+                <ProtectedRoute>
+                  <AdminLayout currentUser={currentUser}>
+                    <ComplianceDashboard />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
