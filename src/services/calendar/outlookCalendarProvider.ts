@@ -60,11 +60,79 @@ class OutlookCalendarProvider implements CalendarProvider {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Microsoft Graph API error: ${response.status} - ${error}`);
+      let errorBody: any = null;
+      try {
+        errorBody = await response.json();
+      } catch {
+        const errorText = await response.text().catch(() => 'Unknown error');
+        throw new Error(`Microsoft Graph API error (${response.status}): ${errorText}`);
+      }
+
+      // Parse Microsoft Graph API error format
+      const errorMessage = this.parseMicrosoftApiError(response.status, errorBody);
+      const error = new Error(errorMessage);
+      (error as any).statusCode = response.status;
+      (error as any).errorCode = errorBody?.error?.code;
+      throw error;
     }
 
-    return response.json();
+    // Handle empty responses (e.g., DELETE returns 204)
+    if (response.status === 204) {
+      return {};
+    }
+    
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      return response.json();
+    }
+    return {};
+  }
+
+  // Parse Microsoft Graph API error responses
+  private parseMicrosoftApiError(status: number, errorBody: any): string {
+    const errorCode = errorBody?.error?.code || 'UnknownError';
+    const errorMessage = errorBody?.error?.message || 'Unknown error';
+
+    // Map common Microsoft error codes to user-friendly messages
+    switch (status) {
+      case 401:
+        if (errorCode === 'InvalidAuthenticationToken') {
+          return 'Your Outlook access has expired. Please reconnect your Microsoft account.';
+        }
+        return 'Authentication failed. Please reconnect your Outlook Calendar.';
+      case 403:
+        if (errorCode === 'AccessDenied') {
+          return 'You don\'t have permission to access this calendar. Check your account permissions.';
+        }
+        return `Permission denied: ${errorMessage}`;
+      case 404:
+        if (errorCode === 'ResourceNotFound') {
+          return 'Calendar or event not found. It may have been deleted.';
+        }
+        return 'The requested resource was not found.';
+      case 409:
+        return 'Conflict: The event may have been modified by another user.';
+      case 429:
+        return 'Rate limit exceeded. Please wait a few minutes before trying again.';
+      case 500:
+      case 502:
+      case 503:
+        return 'Microsoft Outlook is temporarily unavailable. Please try again later.';
+      default:
+        // Handle specific Microsoft error codes
+        switch (errorCode) {
+          case 'ErrorCalendarIsCancelledForAccept':
+            return 'This meeting has been cancelled.';
+          case 'ErrorCalendarIsDelegatedForAccept':
+            return 'This is a delegated calendar. Use the primary calendar instead.';
+          case 'ErrorCalendarViewRangeTooBig':
+            return 'The requested date range is too large.';
+          case 'ErrorMailboxMoveInProgress':
+            return 'Mailbox migration in progress. Please try again later.';
+          default:
+            return `Microsoft Calendar error (${errorCode}): ${errorMessage}`;
+        }
+    }
   }
 
   // List available calendars

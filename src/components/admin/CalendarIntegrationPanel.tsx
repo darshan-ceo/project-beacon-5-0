@@ -518,6 +518,80 @@ export const CalendarIntegrationPanel: React.FC = () => {
         </>
       )}
 
+      {/* Troubleshooting Section */}
+      {settings.provider !== 'none' && (
+        <>
+          <Separator />
+          <div className="space-y-3">
+            <h4 className="text-sm font-medium flex items-center gap-2">
+              <Info className="h-4 w-4" />
+              Configuration Help
+            </h4>
+            
+            <div className="space-y-2 text-xs">
+              <div className="p-3 rounded-md bg-muted/50 space-y-2">
+                <p className="font-medium">Required OAuth Configuration:</p>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-muted-foreground">Redirect URI:</span>
+                    <code className="bg-background px-2 py-0.5 rounded text-[10px]">
+                      {window.location.origin}/oauth/callback
+                    </code>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-muted-foreground">JavaScript Origin:</span>
+                    <code className="bg-background px-2 py-0.5 rounded text-[10px]">
+                      {window.location.origin}
+                    </code>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                {settings.provider === 'google' && (
+                  <a
+                    href="https://console.cloud.google.com/apis/credentials"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1"
+                  >
+                    <Button variant="outline" size="sm" className="w-full text-xs">
+                      <ExternalLink className="h-3 w-3 mr-1" />
+                      Google Cloud Console
+                    </Button>
+                  </a>
+                )}
+                {settings.provider === 'outlook' && (
+                  <a
+                    href="https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1"
+                  >
+                    <Button variant="outline" size="sm" className="w-full text-xs">
+                      <ExternalLink className="h-3 w-3 mr-1" />
+                      Azure Portal
+                    </Button>
+                  </a>
+                )}
+              </div>
+
+              {connectionStatus.error && (
+                <div className="p-2 rounded-md bg-destructive/10 border border-destructive/20">
+                  <p className="font-medium text-destructive">Common Issues:</p>
+                  <ul className="mt-1 space-y-1 text-muted-foreground list-disc list-inside">
+                    <li>Redirect URI not matching exactly</li>
+                    <li>OAuth client deleted in cloud console</li>
+                    <li>API not enabled (Calendar API / Microsoft Graph)</li>
+                    <li>OAuth consent screen not configured</li>
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Save Button */}
       <Button onClick={saveSettings} className="w-full">
         Save Settings
