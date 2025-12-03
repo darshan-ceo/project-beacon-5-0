@@ -11,7 +11,13 @@ export type NotificationType =
   | 'task_due'
   | 'document_shared'
   | 'case_update'
-  | 'system';
+  | 'system'
+  | 'statutory_deadline_approaching'
+  | 'statutory_deadline_tomorrow'
+  | 'statutory_deadline_today'
+  | 'statutory_deadline_breached'
+  | 'statutory_deadline_extended'
+  | 'statutory_deadline_completed';
 
 export type NotificationChannel = 'email' | 'sms' | 'whatsapp' | 'in_app';
 
