@@ -12,6 +12,7 @@ import {
 import { Holiday, HOLIDAY_TYPES } from '@/types/statutory';
 import { holidayService } from '@/services/holidayService';
 import { HolidayModal } from '@/components/modals/HolidayModal';
+import { StatutoryMastersTabs } from './StatutoryMastersTabs';
 import { useRBAC } from '@/hooks/useAdvancedRBAC';
 import { format, parseISO, getYear } from 'date-fns';
 import {
@@ -231,6 +232,9 @@ export const HolidayMasters: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Tab Navigation */}
+      <StatutoryMastersTabs />
+      
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
