@@ -571,9 +571,9 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
                 <Separator />
                 <div className="space-y-4">
                   <div>
-                    <h4 className="font-medium mb-2">GSP Authorization (Optional)</h4>
+                    <h4 className="font-medium mb-2">GSP Authorization / Signatories</h4>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Link with GST Service Provider to access detailed profile information including authorized signatories.
+                      Link with GST Service Provider to access authorized signatories, or add them manually.
                     </p>
                     
                     {!consentData ? (
@@ -583,7 +583,7 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
                         onClick={() => setShowConsentModal(true)}
                       >
                         <Shield className="h-4 w-4 mr-2" />
-                        Link via GSP (OTP Consent)
+                        Link via GSP / Add Signatories
                       </Button>
                     ) : (
                       <div className="space-y-3">
@@ -639,6 +639,29 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
           clientId={clientId}
           gstin={formData.gstin || ''}
           onSuccess={handleGSPConsentSuccess}
+          onManualSignatories={(signatories) => {
+            // Convert manual signatories to contact format
+            const contacts = signatories.map(s => ({
+              id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              clientId: clientId,
+              name: s.name,
+              email: s.email || undefined,
+              phone: s.mobile || undefined,
+              designation: s.designation,
+              roles: ['authorized_signatory' as const],
+              isPrimary: false,
+              source: 'manual' as const,
+              isActive: true,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            }));
+            
+            onFormDataChange({ manualSignatories: contacts });
+            
+            if (onSignatoriesImport) {
+              onSignatoriesImport(contacts);
+            }
+          }}
         />
 
         <SignatorySelectionModal
