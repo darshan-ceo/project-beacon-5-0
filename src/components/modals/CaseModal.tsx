@@ -30,6 +30,10 @@ import { format, addDays } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { authorityHierarchyService } from '@/services/authorityHierarchyService';
 import { getAllStates, getCitiesForState } from '@/data/gstat-state-benches';
+import { useStatutoryDeadlines } from '@/hooks/useStatutoryDeadlines';
+import { DeadlineStatusBadge } from '@/components/ui/DeadlineStatusBadge';
+import { Info } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface CaseModalProps {
   isOpen: boolean;
@@ -69,6 +73,12 @@ export const CaseModal: React.FC<CaseModalProps> = ({
   const { context, updateContext, getAvailableClients, getContextDetails } = useContextualForms({
     clientId: contextClientId
   });
+  
+  // Statutory deadline calculation hook
+  const { calculateReplyDeadline, formatDeadlineForForm, isCalculating } = useStatutoryDeadlines({
+    autoCalculate: false // We'll calculate manually on notice date change
+  });
+  const [isStatutoryDeadline, setIsStatutoryDeadline] = useState(false);
   
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [clientCountBeforeAdd, setClientCountBeforeAdd] = useState(0);
@@ -780,10 +790,25 @@ export const CaseModal: React.FC<CaseModalProps> = ({
                           <Calendar 
                             mode="single"
                             selected={formData.notice_date ? new Date(formData.notice_date) : undefined}
-                            onSelect={(date) => {
+                            onSelect={async (date) => {
                               const noticeDate = date ? format(date, 'yyyy-MM-dd') : '';
-                              // Auto-suggest reply due date (15 days later)
-                              const replyDue = date ? format(addDays(date, 15), 'yyyy-MM-dd') : '';
+                              
+                              // Calculate statutory deadline instead of fixed 15 days
+                              let replyDue = '';
+                              if (date) {
+                                const result = await calculateReplyDeadline(noticeDate, formData.issueType);
+                                if (result) {
+                                  replyDue = formatDeadlineForForm(result);
+                                  setIsStatutoryDeadline(true);
+                                } else {
+                                  // Fallback to 30 days if no statutory rule found
+                                  replyDue = format(addDays(date, 30), 'yyyy-MM-dd');
+                                  setIsStatutoryDeadline(false);
+                                }
+                              } else {
+                                setIsStatutoryDeadline(false);
+                              }
+                              
                               setFormData(prev => ({ 
                                 ...prev, 
                                 notice_date: noticeDate,
@@ -806,7 +831,32 @@ export const CaseModal: React.FC<CaseModalProps> = ({
                           formId="create-case"
                           fieldId="reply_due_date"
                         />
+                        {isStatutoryDeadline && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge variant="outline" className="ml-2 text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-200">
+                                  <Info className="h-3 w-3 mr-1" />
+                                  Statutory
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <p>This deadline is auto-generated based on statutory rules. Please verify notice date to ensure correct calculation.</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
                       </div>
+                      {formData.reply_due_date && (
+                        <div className="mb-2">
+                          <DeadlineStatusBadge 
+                            deadline={formData.reply_due_date} 
+                            showDays 
+                            isStatutory={isStatutoryDeadline}
+                            size="sm"
+                          />
+                        </div>
+                      )}
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button 
@@ -820,20 +870,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
                           >
                             <span className="flex items-center gap-2 flex-1">
                               {formData.reply_due_date ? (
-                                <>
-                                  {format(new Date(formData.reply_due_date), "PPP")}
-                                  {formData.reply_due_date && getDaysUntilDue(formData.reply_due_date) < 7 && (
-                                    <Badge 
-                                      variant={getDaysUntilDue(formData.reply_due_date) < 3 ? "destructive" : "default"}
-                                      className="ml-auto"
-                                    >
-                                      {getDaysUntilDue(formData.reply_due_date) < 0 
-                                        ? "OVERDUE" 
-                                        : `${getDaysUntilDue(formData.reply_due_date)}d left`
-                                      }
-                                    </Badge>
-                                  )}
-                                </>
+                                format(new Date(formData.reply_due_date), "PPP")
                               ) : (
                                 "Select date"
                               )}
@@ -850,6 +887,8 @@ export const CaseModal: React.FC<CaseModalProps> = ({
                                 ...prev, 
                                 reply_due_date: date ? format(date, 'yyyy-MM-dd') : '' 
                               }));
+                              // If manually changed, mark as not statutory
+                              if (date) setIsStatutoryDeadline(false);
                             }}
                             className="pointer-events-auto"
                           />
