@@ -21,6 +21,8 @@ import { CourtMasters } from "@/components/masters/CourtMasters";
 import JudgeMasters from "@/components/masters/JudgeMasters";
 import { EmployeeMasters } from "@/components/masters/EmployeeMasters";
 import { StatutoryActMasters } from "@/components/masters/StatutoryActMasters";
+import { StatutoryEventTypeMasters } from "@/components/masters/StatutoryEventTypeMasters";
+import { HolidayMasters } from "@/components/masters/HolidayMasters";
 import { CaseManagement } from "@/components/cases/CaseManagement";
 import { TaskManagement } from "@/components/tasks/TaskManagement";
 import { DocumentManagement } from "@/components/documents/DocumentManagement";
@@ -173,6 +175,20 @@ const AppContent = () => {
                 <ProtectedRoute>
                   <AdminLayout currentUser={currentUser}>
                     <StatutoryActMasters />
+                  </AdminLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/statutory-event-types" element={
+                <ProtectedRoute>
+                  <AdminLayout currentUser={currentUser}>
+                    <StatutoryEventTypeMasters />
+                  </AdminLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/holidays" element={
+                <ProtectedRoute>
+                  <AdminLayout currentUser={currentUser}>
+                    <HolidayMasters />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
