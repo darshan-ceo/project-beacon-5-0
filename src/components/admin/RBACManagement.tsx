@@ -1,97 +1,46 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { 
   Shield, 
   Users, 
   Plus, 
   Edit, 
-  Trash2, 
-  Eye, 
-  Check, 
-  X,
-  UserCheck,
-  Settings,
-  Key,
-  History,
-  BarChart3,
-  ToggleLeft,
-  ToggleRight,
+  Eye,
   RefreshCw,
-  Loader2
+  Loader2,
+  Key,
+  BarChart3,
+  History
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Search } from 'lucide-react';
 import { toast } from 'sonner';
-import { advancedRbacService, type CreateRoleData } from '@/services/advancedRbacService';
-import { permissionsResolver } from '@/services/permissionsResolver';
-import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
-import { type RoleEntity, type PermissionEntity, type PolicyAuditEntry, unifiedStore } from '@/persistence/unifiedStore';
-import { RoleBuilder } from './RoleBuilder';
-import { UserRoleAssignment } from './UserRoleAssignment';
-import { PermissionsMatrix } from './PermissionsMatrix';
-import { OrganizationHierarchy } from './OrganizationHierarchy';
-import { useAppState } from '@/contexts/AppStateContext';
-import type { Employee } from '@/contexts/AppStateContext';
-
-interface EnhancedUser {
-  id: string;
-  name: string;
-  email: string;
-  roles: string[];
-  status: 'Active' | 'Inactive' | 'Pending';
-  lastLogin: string;
-}
-
-interface RoleFormData {
-  name: string;
-  description: string;
-  permissions: string[];
-}
-
-// Transform Employee to EnhancedUser
-const transformEmployeeToEnhancedUser = (employee: Employee): EnhancedUser => ({
-  id: employee.id,
-  name: employee.full_name,
-  email: employee.email,
-  roles: [], // Will be populated with actual RBAC role assignments
-  status: employee.status === 'Active' ? 'Active' : 'Inactive',
-  lastLogin: 'Never' // TODO: Implement actual last login tracking
-});
+import { supabaseRbacService, type RoleDefinition, type UserWithRoles, type Permission, type AppRole } from '@/services/supabaseRbacService';
 
 export const RBACManagement: React.FC = () => {
-  // Ensure hooks are called at the top level
-  const rbacHook = useAdvancedRBAC();
-  const { state } = useAppState();
-  
-  // Safely destructure after ensuring hooks are called
-  const { enforcementEnabled, toggleEnforcement, refreshPermissions } = rbacHook || {
-    enforcementEnabled: false,
-    toggleEnforcement: () => {},
-    refreshPermissions: () => {}
-  };
-  
   // State
-  const [selectedRole, setSelectedRole] = useState<RoleEntity | null>(null);
-  const [isCreateRoleOpen, setIsCreateRoleOpen] = useState(false);
-  const [isEditRoleOpen, setIsEditRoleOpen] = useState(false);
-  const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
-  const [isAuditOpen, setIsAuditOpen] = useState(false);
-  const [roles, setRoles] = useState<RoleEntity[]>([]);
-  const [permissions, setPermissions] = useState<PermissionEntity[]>([]);
-  const [users, setUsers] = useState<EnhancedUser[]>([]);
-  const [auditLog, setAuditLog] = useState<PolicyAuditEntry[]>([]);
+  const [roles, setRoles] = useState<RoleDefinition[]>([]);
+  const [users, setUsers] = useState<UserWithRoles[]>([]);
+  const [permissions, setPermissions] = useState<Permission[]>([]);
   const [analytics, setAnalytics] = useState<any>(null);
+  const [auditLog, setAuditLog] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [roleForm, setRoleForm] = useState<RoleFormData>({ name: '', description: '', permissions: [] });
-  const [isCreatingRole, setIsCreatingRole] = useState(false);
+  const [activeTab, setActiveTab] = useState('users');
+  
+  // User assignment state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [selectedUser, setSelectedUser] = useState<UserWithRoles | null>(null);
+  const [isAssignRoleOpen, setIsAssignRoleOpen] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewPermissions, setPreviewPermissions] = useState<string[]>([]);
 
   // Load data on mount
   useEffect(() => {
@@ -101,327 +50,495 @@ export const RBACManagement: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      console.log('🔄 Loading RBAC data...');
+      console.log('🔄 Loading RBAC data from Supabase...');
       
-      const [rolesData, permissionsData, auditData, analyticsData] = await Promise.all([
-        advancedRbacService.getAllRoles(),
-        advancedRbacService.getAllPermissions(),
-        advancedRbacService.getAuditLog(50),
-        advancedRbacService.getRoleAnalytics()
+      const [rolesData, usersData, permissionsData, analyticsData, auditData] = await Promise.all([
+        supabaseRbacService.getAllRoles(),
+        supabaseRbacService.getAllUsersWithRoles(),
+        supabaseRbacService.getAllPermissions(),
+        supabaseRbacService.getAnalytics(),
+        supabaseRbacService.getAuditLog(50),
       ]);
       
       console.log('📊 RBAC Data loaded:', {
         roles: rolesData.length,
+        users: usersData.length,
         permissions: permissionsData.length,
-        auditEntries: auditData.length,
-        employees: state.employees.length
       });
       
-      // Transform employees to enhanced users and load their RBAC role assignments
-      const enhancedUsers = await Promise.all(
-        state.employees.map(async (employee) => {
-          const user = transformEmployeeToEnhancedUser(employee);
-          
-          // Fetch actual RBAC role assignments
-          try {
-            const userRoleEntities = await advancedRbacService.getUserRoles(employee.id);
-            user.roles = userRoleEntities.map(role => role.name);
-          } catch (error) {
-            console.warn(`Failed to load roles for user ${employee.id}:`, error);
-            user.roles = [];
-          }
-          
-          return user;
-        })
-      );
-      
       setRoles(rolesData);
+      setUsers(usersData);
       setPermissions(permissionsData);
-      setAuditLog(auditData);
       setAnalytics(analyticsData);
-      setUsers(enhancedUsers);
-      
-      console.log('👥 Users synchronized:', enhancedUsers.length);
-    } catch (error) {
-      console.error('Failed to load RBAC data:', error);
-      toast.error(`Failed to load RBAC data: ${error.message || error}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleForceReseed = async () => {
-    if (!confirm('This will reset all RBAC permissions to defaults and recreate system roles. Continue?')) return;
-    
-    try {
-      setLoading(true);
-      
-      // Clear only system roles and all permissions for fresh start
-      const allRoles = await unifiedStore.roles.getAll();
-      const allPerms = await unifiedStore.permissions.getAll();
-      
-      // Delete system roles
-      for (const role of allRoles) {
-        if (role.isSystemRole) {
-          await unifiedStore.roles.delete(role.id);
-        }
-      }
-      
-      // Delete all permissions (they'll be recreated)
-      for (const perm of allPerms) {
-        await unifiedStore.permissions.delete(perm.id);
-      }
-      
-      console.log('🔄 Cleared existing RBAC data, triggering re-seed...');
-      
-      // Force reload the page to trigger re-initialization
-      window.location.reload();
+      setAuditLog(auditData);
       
     } catch (error: any) {
-      toast.error(`Failed to re-seed RBAC data: ${error.message}`);
-      console.error(error);
+      console.error('Failed to load RBAC data:', error);
+      toast.error(`Failed to load data: ${error.message || error}`);
+    } finally {
       setLoading(false);
     }
   };
 
-  const handleTogglePermission = (permissionId: string) => {
-    setRoleForm(prev => ({
-      ...prev,
-      permissions: prev.permissions.includes(permissionId)
-        ? prev.permissions.filter(p => p !== permissionId)
-        : [...prev.permissions, permissionId]
-    }));
-  };
-
-  const handleCreateRole = async () => {
-    setIsCreatingRole(true);
+  const handleAssignRole = async (userId: string, role: AppRole) => {
     try {
-      const newRole = await advancedRbacService.createRole(roleForm);
-      setRoles([...roles, newRole]);
-      toast.success(`Role "${roleForm.name}" created successfully`);
-      setIsCreateRoleOpen(false);
-      setRoleForm({ name: '', description: '', permissions: [] });
-    } catch (error) {
-      toast.error(error.message || "Failed to create role");
-    } finally {
-      setIsCreatingRole(false);
+      await supabaseRbacService.assignRole(userId, role);
+      toast.success('Role assigned successfully');
+      setIsAssignRoleOpen(false);
+      await loadData(); // Refresh data
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to assign role');
     }
   };
 
+  const handleRevokeRole = async (userId: string, role: AppRole) => {
+    try {
+      await supabaseRbacService.revokeRole(userId, role);
+      toast.success('Role revoked successfully');
+      await loadData(); // Refresh data
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to revoke role');
+    }
+  };
+
+  const handlePreviewPermissions = (user: UserWithRoles) => {
+    setSelectedUser(user);
+    // Get all permissions for user's roles
+    const userRoleDefs = roles.filter(r => user.roles.includes(r.name));
+    const allPermissions = new Set<string>();
+    userRoleDefs.forEach(role => {
+      role.permissions.forEach(p => allPermissions.add(p));
+    });
+    setPreviewPermissions(Array.from(allPermissions));
+    setIsPreviewOpen(true);
+  };
+
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = user.full_name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
+    const matchesRole = roleFilter === 'all' || user.roles.includes(roleFilter as AppRole);
+    return matchesSearch && matchesStatus && matchesRole;
+  });
+
+  const getAvailableRoles = (user: UserWithRoles): RoleDefinition[] => {
+    return roles.filter(role => !user.roles.includes(role.name));
+  };
+
+  // Group permissions by module for display
+  const permissionsByModule = permissions.reduce((acc, perm) => {
+    if (!acc[perm.module]) acc[perm.module] = [];
+    acc[perm.module].push(perm);
+    return acc;
+  }, {} as Record<string, Permission[]>);
+
   if (loading) {
-    return <div className="flex items-center justify-center h-64">Loading RBAC data...</div>;
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin mr-2" />
+        <span>Loading access management data...</span>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Advanced RBAC Management</h1>
-          <p className="text-muted-foreground mt-2">Manage roles, permissions, and user access control</p>
+          <h1 className="text-3xl font-bold">Access & Roles</h1>
+          <p className="text-muted-foreground mt-2">Manage user roles and system permissions</p>
         </div>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" onClick={toggleEnforcement}>
-            {enforcementEnabled ? <ToggleRight className="h-4 w-4 mr-2" /> : <ToggleLeft className="h-4 w-4 mr-2" />}
-            {enforcementEnabled ? 'Enforcement ON' : 'DEMO Mode'}
-          </Button>
-          <Button variant="outline" onClick={refreshPermissions}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
-          <Button variant="destructive" onClick={handleForceReseed} disabled={loading}>
-            <Shield className="h-4 w-4 mr-2" />
-            Force Re-seed RBAC
-          </Button>
-        </div>
+        <Button variant="outline" onClick={loadData}>
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh
+        </Button>
       </div>
 
-      <Tabs defaultValue="roles" className="space-y-6">
+      {/* Analytics Summary */}
+      {analytics && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Users</p>
+                  <p className="text-2xl font-bold">{analytics.totalUsers}</p>
+                </div>
+                <Users className="h-8 w-8 text-primary opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Users with Roles</p>
+                  <p className="text-2xl font-bold">{analytics.usersWithRoles}</p>
+                </div>
+                <Shield className="h-8 w-8 text-primary opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Available Roles</p>
+                  <p className="text-2xl font-bold">{analytics.totalRoles}</p>
+                </div>
+                <Key className="h-8 w-8 text-primary opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Permissions</p>
+                  <p className="text-2xl font-bold">{analytics.totalPermissions}</p>
+                </div>
+                <BarChart3 className="h-8 w-8 text-primary opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList>
-          <TabsTrigger value="roles">Roles Management</TabsTrigger>
-          <TabsTrigger value="users">User Assignment</TabsTrigger>
+          <TabsTrigger value="users">User Assignments</TabsTrigger>
+          <TabsTrigger value="roles">Role Definitions</TabsTrigger>
           <TabsTrigger value="permissions">Permissions Matrix</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="audit">Audit Log</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="roles">
-          <Tabs defaultValue="roles" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 gap-1 p-1 h-auto">
-              <TabsTrigger value="roles" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Role Management</TabsTrigger>
-              <TabsTrigger value="hierarchy" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Organization Hierarchy</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="roles">
-              {isCreateRoleOpen || isEditRoleOpen ? (
-                <RoleBuilder
-                  role={selectedRole}
-                  permissions={permissions}
-                  onSave={(role) => {
-                    setRoles(prev => 
-                      selectedRole 
-                        ? prev.map(r => r.id === role.id ? role : r)
-                        : [...prev, role]
-                    );
-                    setIsCreateRoleOpen(false);
-                    setIsEditRoleOpen(false);
-                    setSelectedRole(null);
-                  }}
-                  onCancel={() => {
-                    setIsCreateRoleOpen(false);
-                    setIsEditRoleOpen(false);
-                    setSelectedRole(null);
-                  }}
-                />
-              ) : (
-            <div className="space-y-4">
-              <div className="flex justify-end">
-                <Button onClick={() => setIsCreateRoleOpen(true)} disabled={isCreatingRole}>
-                  {isCreatingRole ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create Role
-                    </>
-                  )}
-                </Button>
-              </div>
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {roles.map((role) => (
-                  <Card key={role.id} className="h-full">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg flex items-center">
-                          <Shield className="h-5 w-5 mr-2 text-primary" />
-                          {role.name}
-                        </CardTitle>
-                        <Badge variant={role.isActive ? "default" : "secondary"}>
-                          {role.isActive ? "Active" : "Inactive"}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <p className="text-sm text-muted-foreground">{role.description}</p>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Permissions:</span>
-                        <span className="font-medium">{role.permissions.length}</span>
-                      </div>
-                      <div className="flex space-x-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="flex-1"
-                          onClick={() => {
-                            setSelectedRole(role);
-                            setIsEditRoleOpen(true);
-                          }}
-                        >
-                          <Edit className="h-4 w-4 mr-1" />
-                          Edit
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-            </TabsContent>
-            
-            <TabsContent value="hierarchy">
-              <OrganizationHierarchy
-                onEmployeeSelect={(employee) => {
-                  console.log('Selected employee for hierarchy:', employee);
-                }}
-              />
-            </TabsContent>
-          </Tabs>
-        </TabsContent>
-
+        {/* User Assignments Tab */}
         <TabsContent value="users">
-          <UserRoleAssignment
-            users={users}
-            roles={roles}
-            onUserUpdate={setUsers}
-          />
-        </TabsContent>
-
-        <TabsContent value="permissions">
-          <PermissionsMatrix
-            roles={roles}
-            permissions={permissions}
-            onRoleUpdate={(updatedRole) => {
-              setRoles(prev => prev.map(r => r.id === updatedRole.id ? updatedRole : r));
-            }}
-            onRefresh={loadData}
-          />
-        </TabsContent>
-
-        <TabsContent value="analytics">
           <Card>
             <CardHeader>
-              <CardTitle>Role Analytics</CardTitle>
+              <CardTitle className="flex items-center">
+                <Users className="h-5 w-5 mr-2" />
+                User Role Assignments
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              {analytics ? (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold">{analytics.totalRoles}</div>
-                    <div className="text-sm text-muted-foreground">Total Roles</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold">{analytics.activeRoles}</div>
-                    <div className="text-sm text-muted-foreground">Active Roles</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold">{analytics.systemRoles}</div>
-                    <div className="text-sm text-muted-foreground">System Roles</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold">{analytics.totalAssignments}</div>
-                    <div className="text-sm text-muted-foreground">Assignments</div>
-                  </div>
+              {/* Filters */}
+              <div className="flex flex-col md:flex-row gap-4 mb-6">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search users..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
                 </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">Loading analytics...</div>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="Active">Active</SelectItem>
+                    <SelectItem value="Inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={roleFilter} onValueChange={setRoleFilter}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Roles</SelectItem>
+                    {roles.map(role => (
+                      <SelectItem key={role.id} value={role.name}>
+                        {role.displayName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Users Table */}
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Designation</TableHead>
+                    <TableHead>Assigned Roles</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredUsers.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell>
+                        <div className="font-medium">{user.full_name}</div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {user.designation || '-'}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {user.roles.length > 0 ? (
+                            user.roles.map((role) => {
+                              const roleDef = roles.find(r => r.name === role);
+                              return (
+                                <Badge key={role} variant="outline" className="text-xs">
+                                  {roleDef?.displayName || role}
+                                  <button
+                                    onClick={() => handleRevokeRole(user.id, role)}
+                                    className="ml-1 hover:text-destructive"
+                                  >
+                                    ×
+                                  </button>
+                                </Badge>
+                              );
+                            })
+                          ) : (
+                            <span className="text-muted-foreground text-sm">No roles</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={user.status === 'Active' ? 'default' : 'secondary'}>
+                          {user.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex space-x-1">
+                          <Dialog open={isAssignRoleOpen && selectedUser?.id === user.id} onOpenChange={setIsAssignRoleOpen}>
+                            <DialogTrigger asChild>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => setSelectedUser(user)}
+                                disabled={getAvailableRoles(user).length === 0}
+                              >
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Assign Role to {user.full_name}</DialogTitle>
+                              </DialogHeader>
+                              <div className="space-y-4">
+                                <p className="text-sm text-muted-foreground">
+                                  Select a role to assign. Users can have multiple roles.
+                                </p>
+                                <div className="space-y-2">
+                                  {getAvailableRoles(user).map(role => (
+                                    <div key={role.id} className="flex items-center justify-between p-3 border rounded">
+                                      <div>
+                                        <p className="font-medium">{role.displayName}</p>
+                                        <p className="text-sm text-muted-foreground">{role.description}</p>
+                                      </div>
+                                      <Button 
+                                        size="sm"
+                                        onClick={() => handleAssignRole(user.id, role.name)}
+                                      >
+                                        Assign
+                                      </Button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handlePreviewPermissions(user)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              {filteredUsers.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  No users found matching the filters.
+                </div>
               )}
             </CardContent>
           </Card>
         </TabsContent>
 
+        {/* Role Definitions Tab */}
+        <TabsContent value="roles">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {roles.map((role) => {
+              const userCount = analytics?.roleDistribution?.[role.name] || 0;
+              return (
+                <Card key={role.id} className="h-full">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg flex items-center">
+                        <Shield className="h-5 w-5 mr-2 text-primary" />
+                        {role.displayName}
+                      </CardTitle>
+                      <Badge variant={role.isActive ? "default" : "secondary"}>
+                        {role.isSystemRole ? "System" : "Custom"}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground">{role.description}</p>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Permissions:</span>
+                      <span className="font-medium">{role.permissions.length}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Users:</span>
+                      <span className="font-medium">{userCount}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </TabsContent>
+
+        {/* Permissions Matrix Tab */}
+        <TabsContent value="permissions">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Key className="h-5 w-5 mr-2" />
+                Permissions by Module
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {Object.entries(permissionsByModule).map(([module, perms]) => (
+                  <div key={module} className="border rounded-lg p-4">
+                    <h3 className="font-semibold capitalize mb-3">{module}</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      {perms.map((perm) => (
+                        <div key={perm.key} className="flex items-center space-x-2">
+                          <Badge variant="outline" className="text-xs">
+                            {perm.action}
+                          </Badge>
+                          <span className="text-sm text-muted-foreground truncate">
+                            {perm.description || perm.key}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Audit Log Tab */}
         <TabsContent value="audit">
           <Card>
             <CardHeader>
-              <CardTitle>Audit Log</CardTitle>
+              <CardTitle className="flex items-center">
+                <History className="h-5 w-5 mr-2" />
+                Audit Log
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Action</TableHead>
-                    <TableHead>Actor</TableHead>
-                    <TableHead>Entity</TableHead>
-                    <TableHead>Timestamp</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {auditLog.map((entry) => (
-                    <TableRow key={entry.id}>
-                      <TableCell>{entry.action}</TableCell>
-                      <TableCell>{entry.actorId}</TableCell>
-                      <TableCell>{entry.entityType}</TableCell>
-                      <TableCell>{new Date(entry.timestamp).toLocaleString()}</TableCell>
+              {auditLog.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Action</TableHead>
+                      <TableHead>Entity Type</TableHead>
+                      <TableHead>User</TableHead>
+                      <TableHead>Timestamp</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {auditLog.map((entry) => (
+                      <TableRow key={entry.id}>
+                        <TableCell>{entry.action_type}</TableCell>
+                        <TableCell>{entry.entity_type}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {entry.user_id?.slice(0, 8) || 'System'}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {entry.timestamp ? new Date(entry.timestamp).toLocaleString() : '-'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  No RBAC-related audit entries found.
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Permissions Preview Dialog */}
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>
+              Effective Permissions - {selectedUser?.full_name}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Roles Summary */}
+            <div>
+              <h4 className="font-medium mb-2">Assigned Roles</h4>
+              <div className="flex flex-wrap gap-2">
+                {selectedUser?.roles.map((role) => {
+                  const roleDef = roles.find(r => r.name === role);
+                  return (
+                    <Badge key={role} variant="outline">
+                      {roleDef?.displayName || role}
+                    </Badge>
+                  );
+                })}
+                {(!selectedUser?.roles || selectedUser.roles.length === 0) && (
+                  <span className="text-muted-foreground">No roles assigned</span>
+                )}
+              </div>
+            </div>
+
+            {/* Permissions by Module */}
+            <div>
+              <h4 className="font-medium mb-4">Effective Permissions ({previewPermissions.length})</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
+                {Object.entries(
+                  previewPermissions.reduce((acc, key) => {
+                    const [module] = key.split('.');
+                    if (!acc[module]) acc[module] = [];
+                    acc[module].push(key);
+                    return acc;
+                  }, {} as Record<string, string[]>)
+                ).map(([module, perms]) => (
+                  <Card key={module} className="p-4">
+                    <h5 className="font-medium capitalize mb-2">{module}</h5>
+                    <div className="space-y-1">
+                      {perms.map((perm) => (
+                        <div key={perm} className="flex items-center">
+                          <Badge variant="default" className="text-xs">
+                            {perm.split('.')[1]}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
