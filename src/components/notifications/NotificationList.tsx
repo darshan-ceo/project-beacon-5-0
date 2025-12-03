@@ -5,7 +5,10 @@
 
 import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { Bell, CheckCheck, Trash2, FileText, Calendar, CheckSquare, FolderOpen, AlertCircle } from 'lucide-react';
+import { 
+  Bell, CheckCheck, Trash2, FileText, Calendar, CheckSquare, FolderOpen, AlertCircle,
+  Clock, AlertTriangle, XCircle, CalendarPlus, CheckCircle2, Timer
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -36,6 +39,19 @@ const getNotificationIcon = (type: NotificationType) => {
       return <FolderOpen className="h-4 w-4" />;
     case 'system':
       return <AlertCircle className="h-4 w-4" />;
+    // Statutory deadline notification types
+    case 'statutory_deadline_approaching':
+      return <Clock className="h-4 w-4" />;
+    case 'statutory_deadline_tomorrow':
+      return <Timer className="h-4 w-4" />;
+    case 'statutory_deadline_today':
+      return <AlertTriangle className="h-4 w-4" />;
+    case 'statutory_deadline_breached':
+      return <XCircle className="h-4 w-4" />;
+    case 'statutory_deadline_extended':
+      return <CalendarPlus className="h-4 w-4" />;
+    case 'statutory_deadline_completed':
+      return <CheckCircle2 className="h-4 w-4" />;
     default:
       return <Bell className="h-4 w-4" />;
   }
@@ -56,6 +72,19 @@ const getNotificationColor = (type: NotificationType): string => {
       return 'text-cyan-500';
     case 'system':
       return 'text-yellow-500';
+    // Statutory deadline notification colors
+    case 'statutory_deadline_approaching':
+      return 'text-blue-500';
+    case 'statutory_deadline_tomorrow':
+      return 'text-amber-500';
+    case 'statutory_deadline_today':
+      return 'text-orange-500';
+    case 'statutory_deadline_breached':
+      return 'text-destructive';
+    case 'statutory_deadline_extended':
+      return 'text-green-500';
+    case 'statutory_deadline_completed':
+      return 'text-green-600';
     default:
       return 'text-muted-foreground';
   }
