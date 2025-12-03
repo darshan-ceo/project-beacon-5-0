@@ -1,16 +1,18 @@
-import React from 'react';
-import { RefreshCw, AlertTriangle, Clock, CalendarClock, TrendingUp, CheckCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { RefreshCw, AlertTriangle, Clock, CalendarClock, TrendingUp, CheckCircle2, Send, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { useComplianceDashboard } from '@/hooks/useComplianceDashboard';
+import { useDeadlineNotifications } from '@/hooks/useDeadlineNotifications';
 import { DeadlineDistributionChart } from '@/components/compliance/DeadlineDistributionChart';
 import { DeadlinesByAuthorityChart } from '@/components/compliance/DeadlinesByAuthorityChart';
 import { ComplianceTrendChart } from '@/components/compliance/ComplianceTrendChart';
 import { UrgentDeadlinesTable } from '@/components/compliance/UrgentDeadlinesTable';
 import { RecentBreachesCard } from '@/components/compliance/RecentBreachesCard';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 export const ComplianceDashboard: React.FC = () => {
   const {
@@ -24,10 +26,29 @@ export const ComplianceDashboard: React.FC = () => {
     refetchAll,
   } = useComplianceDashboard();
 
+  const { processNotifications, isProcessing, stats } = useDeadlineNotifications();
+  const [isSendingReminders, setIsSendingReminders] = useState(false);
+
   const lastUpdated = new Date().toLocaleTimeString('en-IN', {
     hour: '2-digit',
     minute: '2-digit',
   });
+
+  const handleSendReminders = async () => {
+    setIsSendingReminders(true);
+    try {
+      await processNotifications();
+      toast.success('Deadline reminders sent successfully', {
+        description: `Processed ${stats.total} deadlines`,
+      });
+    } catch (error) {
+      toast.error('Failed to send reminders', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+    } finally {
+      setIsSendingReminders(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -104,6 +125,20 @@ export const ComplianceDashboard: React.FC = () => {
           <span className="text-xs text-muted-foreground">
             Last updated: {lastUpdated}
           </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSendReminders}
+            disabled={isSendingReminders || isProcessing}
+            className="gap-2"
+          >
+            {isSendingReminders || isProcessing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+            Send Reminders
+          </Button>
           <Button
             variant="outline"
             size="sm"
