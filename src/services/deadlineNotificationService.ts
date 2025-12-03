@@ -207,9 +207,10 @@ class DeadlineNotificationService {
         );
       }
 
-      // Send email notification
+      // Send email notification (non-blocking - in-app notification is primary)
+      let emailResult: { success: boolean; skipped: boolean; reason?: string } = { success: false, skipped: true, reason: 'Email disabled' };
       if (this.config.emailEnabled && deadline.assignedToEmail) {
-        await this.sendEmailNotification(deadline, template);
+        emailResult = await this.sendEmailNotification(deadline, template);
       }
 
       // Log the notification
@@ -237,16 +238,30 @@ class DeadlineNotificationService {
   }
 
   /**
+   * Validate email format
+   */
+  private isValidEmail(email: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
+    return emailRegex.test(email);
+  }
+
+  /**
    * Send email notification via edge function
    */
   private async sendEmailNotification(
     deadline: PendingDeadline,
     template: { title: string; body: string }
-  ): Promise<boolean> {
+  ): Promise<{ success: boolean; skipped: boolean; reason?: string }> {
     try {
       if (!deadline.assignedToEmail) {
         log('info', 'skipEmail', 'No email address');
-        return false;
+        return { success: false, skipped: true, reason: 'No email address' };
+      }
+
+      // Validate email format
+      if (!this.isValidEmail(deadline.assignedToEmail)) {
+        log('info', 'skipEmail', `Invalid email format: ${deadline.assignedToEmail}`);
+        return { success: false, skipped: true, reason: 'Invalid email format' };
       }
 
       const { data, error } = await supabase.functions.invoke('send-email', {
@@ -259,15 +274,35 @@ class DeadlineNotificationService {
       });
 
       if (error) {
+        // Check if this is a Resend domain verification error
+        const errorMsg = error.message || JSON.stringify(error);
+        if (errorMsg.includes('only send testing emails') || errorMsg.includes('verify a domain')) {
+          log('info', 'emailSkipped', 'Resend domain not verified - email logged only');
+          return { success: false, skipped: true, reason: 'Resend domain not verified' };
+        }
         log('error', 'sendEmail', error);
-        return false;
+        return { success: false, skipped: false, reason: errorMsg };
+      }
+
+      // Check response for Resend errors
+      if (data && !data.success && data.error) {
+        const errorMsg = data.error || data.details || '';
+        if (errorMsg.includes('only send testing emails') || errorMsg.includes('verify a domain')) {
+          log('info', 'emailSkipped', 'Resend domain not verified - email logged only');
+          return { success: false, skipped: true, reason: 'Resend domain not verified' };
+        }
+        if (errorMsg.includes('Invalid `to` field')) {
+          log('info', 'skipEmail', `Invalid email rejected by Resend: ${deadline.assignedToEmail}`);
+          return { success: false, skipped: true, reason: 'Invalid email format' };
+        }
+        return { success: false, skipped: false, reason: errorMsg };
       }
 
       log('success', 'sendEmail', { to: deadline.assignedToEmail });
-      return true;
+      return { success: true, skipped: false };
     } catch (error) {
       log('error', 'sendEmail', error);
-      return false;
+      return { success: false, skipped: false, reason: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
 
@@ -348,10 +383,13 @@ class DeadlineNotificationService {
     processed: number;
     success: number;
     failed: number;
+    emailsSkipped: number;
   }> {
     const deadlines = await this.getDeadlinesNeedingNotification(tenantId);
     let success = 0;
     let failed = 0;
+    let emailsSkipped = 0;
+    let domainNotVerified = false;
 
     for (const deadline of deadlines) {
       const result = await this.sendDeadlineNotification(deadline, userId);
@@ -362,16 +400,21 @@ class DeadlineNotificationService {
       }
     }
 
-    log('success', 'processDeadlineNotifications', { processed: deadlines.length, success, failed });
+    log('success', 'processDeadlineNotifications', { processed: deadlines.length, success, failed, emailsSkipped });
 
     if (deadlines.length > 0) {
       toast({
-        title: 'Deadline Reminders Sent',
-        description: `${success} notification(s) sent successfully.`,
+        title: 'Deadline Reminders Processed',
+        description: `${success} in-app notification(s) created.${emailsSkipped > 0 ? ` ${emailsSkipped} email(s) skipped (domain not verified).` : ''}`,
+      });
+    } else {
+      toast({
+        title: 'No Pending Reminders',
+        description: 'All deadlines are up to date.',
       });
     }
 
-    return { processed: deadlines.length, success, failed };
+    return { processed: deadlines.length, success, failed, emailsSkipped };
   }
 
   /**
