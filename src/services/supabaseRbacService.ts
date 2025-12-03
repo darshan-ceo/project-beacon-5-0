@@ -282,6 +282,87 @@ class SupabaseRbacService {
   }
 
   /**
+   * Update permissions for a role
+   */
+  async updateRolePermissions(role: AppRole, permissionKeys: string[]): Promise<void> {
+    const currentUserId = await this.getCurrentUserId();
+    
+    // Get tenant_id from current user's profile
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('tenant_id')
+      .eq('id', currentUserId)
+      .single();
+
+    if (!profile?.tenant_id) {
+      throw new Error('Could not determine tenant');
+    }
+
+    // Delete existing role permissions for this role
+    const { error: deleteError } = await supabase
+      .from('role_permissions')
+      .delete()
+      .eq('role', role);
+
+    if (deleteError) {
+      console.error('Error deleting existing permissions:', deleteError);
+      throw new Error('Failed to update permissions');
+    }
+
+    // Insert new permissions
+    if (permissionKeys.length > 0) {
+      const inserts = permissionKeys.map(key => ({
+        role,
+        permission_key: key,
+      }));
+
+      const { error: insertError } = await supabase
+        .from('role_permissions')
+        .insert(inserts);
+
+      if (insertError) {
+        console.error('Error inserting permissions:', insertError);
+        throw new Error('Failed to update permissions');
+      }
+    }
+
+    // Log to audit
+    await supabase.from('audit_log').insert({
+      tenant_id: profile.tenant_id,
+      user_id: currentUserId,
+      action_type: 'update_role_permissions',
+      entity_type: 'role',
+      entity_id: role,
+      details: { role, permissions_count: permissionKeys.length },
+    });
+  }
+
+  /**
+   * Get permissions for a specific role from role_permissions table
+   */
+  async getRolePermissions(role: AppRole): Promise<string[]> {
+    const { data, error } = await supabase
+      .from('role_permissions')
+      .select('permission_key')
+      .eq('role', role);
+
+    if (error) {
+      console.error('Error fetching role permissions:', error);
+      // Fall back to default permissions if table query fails
+      const allPerms = await this.getAllPermissions();
+      return this.getDefaultPermissionsForRole(role, allPerms);
+    }
+
+    // If no custom permissions set, return defaults
+    if (!data || data.length === 0) {
+      const allPerms = await this.getAllPermissions();
+      return this.getDefaultPermissionsForRole(role, allPerms);
+    }
+
+    return data.map(r => r.permission_key);
+  }
+
+  /**
    * Check if a user has a specific permission
    */
   async hasPermission(userId: string, module: string, action: string): Promise<boolean> {

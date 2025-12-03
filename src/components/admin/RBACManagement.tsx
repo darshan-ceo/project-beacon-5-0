@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabaseRbacService, type RoleDefinition, type UserWithRoles, type Permission, type AppRole } from '@/services/supabaseRbacService';
+import { RolePermissionEditor } from './RolePermissionEditor';
 
 export const RBACManagement: React.FC = () => {
   // State
@@ -41,6 +42,10 @@ export const RBACManagement: React.FC = () => {
   const [isAssignRoleOpen, setIsAssignRoleOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewPermissions, setPreviewPermissions] = useState<string[]>([]);
+  
+  // Role editor state
+  const [editingRole, setEditingRole] = useState<RoleDefinition | null>(null);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
 
   // Load data on mount
   useEffect(() => {
@@ -396,11 +401,37 @@ export const RBACManagement: React.FC = () => {
                       <span className="text-muted-foreground">Users:</span>
                       <span className="font-medium">{userCount}</span>
                     </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => {
+                        setEditingRole(role);
+                        setIsEditorOpen(true);
+                      }}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit Permissions
+                    </Button>
                   </CardContent>
                 </Card>
               );
             })}
           </div>
+          
+          {/* Role Permission Editor Modal */}
+          {editingRole && (
+            <RolePermissionEditor
+              role={editingRole}
+              allPermissions={permissions}
+              isOpen={isEditorOpen}
+              onClose={() => {
+                setIsEditorOpen(false);
+                setEditingRole(null);
+              }}
+              onSaved={loadData}
+            />
+          )}
         </TabsContent>
 
         {/* Permissions Matrix Tab */}
