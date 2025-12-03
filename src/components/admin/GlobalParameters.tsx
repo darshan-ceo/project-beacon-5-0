@@ -22,6 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
 import { CalendarIntegrationPanel } from './CalendarIntegrationPanel';
+import { GSTIntegrationPanel } from './GSTIntegrationPanel';
 import { AddressSettings } from './AddressSettings';
 import { EmailConfiguration } from './EmailConfiguration';
 import { OutcomeTemplateManager } from './OutcomeTemplateManager';
@@ -581,61 +582,77 @@ export const GlobalParameters: React.FC = () => {
 
       case 'integrations':
         return (
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-primary" />
-                  Calendar Integration
-                </CardTitle>
-                <CardDescription>Sync with external calendars</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <CalendarIntegrationPanel />
-              </CardContent>
-            </Card>
-
+          <div className="grid gap-6">
+            {/* GST Integration - Full Width */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Globe className="h-5 w-5 text-primary" />
-                  External APIs
+                  GST Portal Integration (MasterGST)
                 </CardTitle>
-                <CardDescription>Third-party service connections</CardDescription>
+                <CardDescription>GST Service Provider connection for taxpayer data and compliance</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <FieldWithTooltip
-                  label="Legal Forum Records API"
-                  tooltip="Court records integration"
-                  description="Integration with legal forum record systems"
-                >
-                  <Input placeholder="API endpoint URL" onChange={() => setHasChanges(true)} />
-                </FieldWithTooltip>
-                <FieldWithTooltip
-                  label="Document Storage"
-                  tooltip="File storage provider"
-                  description="Document storage provider"
-                >
-                  <Select defaultValue="local" onValueChange={() => setHasChanges(true)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="local">Local Storage</SelectItem>
-                      <SelectItem value="aws">AWS S3</SelectItem>
-                      <SelectItem value="azure">Azure Blob</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </FieldWithTooltip>
-                <FieldWithTooltip
-                  label="Enable API Logging"
-                  tooltip="Debug external calls"
-                  description="Log all external API calls for debugging"
-                >
-                  <Switch defaultChecked onCheckedChange={() => setHasChanges(true)} />
-                </FieldWithTooltip>
+              <CardContent>
+                <GSTIntegrationPanel />
               </CardContent>
             </Card>
+
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-primary" />
+                    Calendar Integration
+                  </CardTitle>
+                  <CardDescription>Sync with external calendars</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <CalendarIntegrationPanel />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Database className="h-5 w-5 text-primary" />
+                    External APIs
+                  </CardTitle>
+                  <CardDescription>Third-party service connections</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <FieldWithTooltip
+                    label="Legal Forum Records API"
+                    tooltip="Court records integration"
+                    description="Integration with legal forum record systems"
+                  >
+                    <Input placeholder="API endpoint URL" onChange={() => setHasChanges(true)} />
+                  </FieldWithTooltip>
+                  <FieldWithTooltip
+                    label="Document Storage"
+                    tooltip="File storage provider"
+                    description="Document storage provider"
+                  >
+                    <Select defaultValue="local" onValueChange={() => setHasChanges(true)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="local">Local Storage</SelectItem>
+                        <SelectItem value="aws">AWS S3</SelectItem>
+                        <SelectItem value="azure">Azure Blob</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FieldWithTooltip>
+                  <FieldWithTooltip
+                    label="Enable API Logging"
+                    tooltip="Debug external calls"
+                    description="Log all external API calls for debugging"
+                  >
+                    <Switch defaultChecked onCheckedChange={() => setHasChanges(true)} />
+                  </FieldWithTooltip>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         );
 
