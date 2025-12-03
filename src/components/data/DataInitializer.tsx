@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useAppState } from '@/contexts/AppStateContext';
+import { useAppStateSafe } from '@/contexts/AppStateContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -22,7 +22,15 @@ let globalLoadedTenantId: string | null = null;
  */
 export const DataInitializer = ({ children }: { children: React.ReactNode }) => {
   const { user, tenantId } = useAuth();
-  const { dispatch } = useAppState();
+  const appStateContext = useAppStateSafe();
+  
+  // Handle hot reload gracefully - if context is not available, just render children
+  if (!appStateContext) {
+    console.warn('[DataInitializer] AppState context not available (likely during hot reload)');
+    return <>{children}</>;
+  }
+  
+  const { dispatch } = appStateContext;
   
   // Only show loading if data hasn't been loaded for this tenant yet
   const [isLoading, setIsLoading] = useState(

@@ -2899,6 +2899,11 @@ export const useAppState = () => {
   return context; // Now returns { state, dispatch, rawDispatch }
 };
 
+// Safe hook that returns null instead of throwing (for hot reload resilience)
+export const useAppStateSafe = () => {
+  return useContext(AppStateContext);
+};
+
 // Helper functions for court case calculations
 export const getActiveCourtCases = (courtId: string, cases: Case[]): number => {
   return cases.filter(c => 
