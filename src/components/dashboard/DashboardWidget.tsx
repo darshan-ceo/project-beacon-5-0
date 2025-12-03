@@ -30,6 +30,9 @@ import { RecentFollowupsWidget } from './RecentFollowupsWidget';
 import { TimeLoggedThisWeekWidget } from './TimeLoggedThisWeekWidget';
 import { FollowupsAddedTodayWidget } from './FollowupsAddedTodayWidget';
 import { SystemHealthWidget } from './SystemHealthWidget';
+import { StatutoryDeadlinesWidget } from './StatutoryDeadlinesWidget';
+import { DeadlineBreachesWidget } from './DeadlineBreachesWidget';
+import { DeadlineCalendarWidget } from './DeadlineCalendarWidget';
 
 interface DashboardWidgetProps {
   tile: DashboardTile;
@@ -58,6 +61,9 @@ const WIDGET_COMPONENT_MAP: Record<string, React.ComponentType<any>> = {
   'timeLoggedThisWeek': TimeLoggedThisWeekWidget,
   'followupsAddedToday': FollowupsAddedTodayWidget,
   'systemHealth': SystemHealthWidget,
+  'statutoryDeadlines': StatutoryDeadlinesWidget,
+  'deadlineBreaches': DeadlineBreachesWidget,
+  'deadlineCalendar': DeadlineCalendarWidget,
 };
 
 export const DashboardWidget: React.FC<DashboardWidgetProps> = ({ tile }) => {

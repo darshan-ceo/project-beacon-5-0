@@ -389,6 +389,69 @@
         "tooltip": "View all pending follow-ups",
         "requiresPermission": "tasks_read"
       }
+    },
+    {
+      "id": "statutoryDeadlines",
+      "module": "Case Management",
+      "title": "Statutory Deadlines",
+      "type": "list",
+      "icon": "Calendar",
+      "colorTheme": "vibrant-red",
+      "rbacTag": ["cases"],
+      "mockDataSource": "/mock/dashboard/statutoryDeadlines.json",
+      "description": "Upcoming statutory deadlines with urgency indicators",
+      "defaultEnabled": true,
+      "order": 21,
+      "showDetails": true,
+      "heightClass": "medium",
+      "colSpan": 1,
+      "clickAction": {
+        "navigateTo": "/statutory-acts",
+        "tooltip": "View all statutory deadlines",
+        "requiresPermission": "cases_read"
+      }
+    },
+    {
+      "id": "deadlineBreaches",
+      "module": "Case Management",
+      "title": "Deadline Breaches",
+      "type": "metric",
+      "icon": "AlertTriangle",
+      "colorTheme": "vibrant-red",
+      "rbacTag": ["cases"],
+      "mockDataSource": "/mock/dashboard/deadlineBreaches.json",
+      "description": "Count of statutory deadline breaches requiring action",
+      "defaultEnabled": true,
+      "order": 22,
+      "showDetails": true,
+      "heightClass": "medium",
+      "colSpan": 1,
+      "clickAction": {
+        "navigateTo": "/statutory-acts?filter=breached",
+        "tooltip": "View deadline breaches",
+        "requiresPermission": "cases_read"
+      }
+    },
+    {
+      "id": "deadlineCalendar",
+      "module": "Case Management",
+      "title": "Deadline Calendar",
+      "type": "calendarMini",
+      "icon": "CalendarDays",
+      "colorTheme": "vibrant-blue",
+      "rbacTag": ["cases"],
+      "mockDataSource": "/mock/dashboard/deadlineCalendar.json",
+      "description": "Mini calendar view of upcoming statutory deadlines",
+      "defaultEnabled": false,
+      "order": 23,
+      "showDetails": false,
+      "heightClass": "medium",
+      "colSpan": 1,
+      "clickAction": {
+        "navigateTo": "/statutory-acts",
+        "tooltip": "Open deadline calendar",
+        "requiresPermission": "cases_read"
+      }
     }
   ]
 }
