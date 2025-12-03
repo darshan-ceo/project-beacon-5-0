@@ -1,20 +1,32 @@
 import React, { useState } from 'react';
-import { RefreshCw, AlertTriangle, Clock, CalendarClock, TrendingUp, CheckCircle2, Send, Loader2 } from 'lucide-react';
+import { RefreshCw, AlertTriangle, Clock, CalendarClock, TrendingUp, CheckCircle2, Send, Loader2, FileDown, Settings } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useComplianceDashboard } from '@/hooks/useComplianceDashboard';
 import { useDeadlineNotifications } from '@/hooks/useDeadlineNotifications';
+import { useAppState } from '@/contexts/AppStateContext';
 import { DeadlineDistributionChart } from '@/components/compliance/DeadlineDistributionChart';
 import { DeadlinesByAuthorityChart } from '@/components/compliance/DeadlinesByAuthorityChart';
 import { ComplianceTrendChart } from '@/components/compliance/ComplianceTrendChart';
 import { UrgentDeadlinesTable } from '@/components/compliance/UrgentDeadlinesTable';
 import { RecentBreachesCard } from '@/components/compliance/RecentBreachesCard';
+import { ComplianceQuickActions } from '@/components/compliance/ComplianceQuickActions';
+import { ComplianceCalendarMini } from '@/components/compliance/ComplianceCalendarMini';
+import { ComplianceStatsBar } from '@/components/compliance/ComplianceStatsBar';
+import { NotificationSettingsModal } from '@/components/compliance/NotificationSettingsModal';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
+type DateRange = '7d' | '30d' | '90d' | 'all';
+
 export const ComplianceDashboard: React.FC = () => {
+  const { state } = useAppState();
+  const [dateRange, setDateRange] = useState<DateRange>('30d');
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  
   const {
     summary,
     deadlinesByStatus,
@@ -50,6 +62,12 @@ export const ComplianceDashboard: React.FC = () => {
     }
   };
 
+  const handleExportReport = () => {
+    toast.info('Export feature coming soon', {
+      description: 'PDF and Excel export will be available in the next update',
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="p-6 space-y-6">
@@ -77,7 +95,7 @@ export const ComplianceDashboard: React.FC = () => {
       icon: Clock,
       color: 'text-blue-600',
       bgColor: 'bg-blue-50 dark:bg-blue-950/30',
-      borderColor: 'border-blue-200 dark:border-blue-900',
+      borderColor: 'border-l-4 border-l-blue-500',
     },
     {
       title: 'Overdue',
@@ -85,7 +103,7 @@ export const ComplianceDashboard: React.FC = () => {
       icon: AlertTriangle,
       color: 'text-destructive',
       bgColor: 'bg-destructive/10',
-      borderColor: 'border-destructive/30',
+      borderColor: 'border-l-4 border-l-destructive',
       urgent: (summary?.overdue || 0) > 0,
     },
     {
@@ -94,7 +112,7 @@ export const ComplianceDashboard: React.FC = () => {
       icon: CalendarClock,
       color: 'text-amber-600',
       bgColor: 'bg-amber-50 dark:bg-amber-950/30',
-      borderColor: 'border-amber-200 dark:border-amber-900',
+      borderColor: 'border-l-4 border-l-amber-500',
     },
     {
       title: 'Compliance Rate',
@@ -105,8 +123,8 @@ export const ComplianceDashboard: React.FC = () => {
         ? 'bg-green-50 dark:bg-green-950/30' 
         : 'bg-amber-50 dark:bg-amber-950/30',
       borderColor: (summary?.complianceRate || 0) >= 80 
-        ? 'border-green-200 dark:border-green-900'
-        : 'border-amber-200 dark:border-amber-900',
+        ? 'border-l-4 border-l-green-500'
+        : 'border-l-4 border-l-amber-500',
       progress: summary?.complianceRate || 0,
     },
   ];
@@ -121,24 +139,34 @@ export const ComplianceDashboard: React.FC = () => {
             Monitor statutory deadlines and compliance status across all cases
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-muted-foreground">
-            Last updated: {lastUpdated}
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Date Range Selector */}
+          <Select value={dateRange} onValueChange={(v) => setDateRange(v as DateRange)}>
+            <SelectTrigger className="w-[140px] h-9">
+              <SelectValue placeholder="Date range" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7d">Last 7 Days</SelectItem>
+              <SelectItem value="30d">Last 30 Days</SelectItem>
+              <SelectItem value="90d">Last 90 Days</SelectItem>
+              <SelectItem value="all">All Time</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          <span className="text-xs text-muted-foreground hidden sm:inline">
+            Updated: {lastUpdated}
           </span>
+          
           <Button
             variant="outline"
             size="sm"
-            onClick={handleSendReminders}
-            disabled={isSendingReminders || isProcessing}
+            onClick={handleExportReport}
             className="gap-2"
           >
-            {isSendingReminders || isProcessing ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-            Send Reminders
+            <FileDown className="h-4 w-4" />
+            Export
           </Button>
+          
           <Button
             variant="outline"
             size="sm"
@@ -151,13 +179,16 @@ export const ComplianceDashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* Stats Bar */}
+      <ComplianceStatsBar summary={summary} totalCases={state.cases.length} />
+
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {kpiCards.map((kpi) => (
           <Card 
             key={kpi.title}
             className={cn(
-              'border transition-all hover:shadow-md',
+              'transition-all hover:shadow-md overflow-hidden',
               kpi.borderColor,
               kpi.urgent && 'animate-pulse'
             )}
@@ -194,16 +225,26 @@ export const ComplianceDashboard: React.FC = () => {
       {/* Compliance Trend */}
       <ComplianceTrendChart data={trend} />
 
+      {/* Quick Actions + Calendar + Recent Breaches Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <ComplianceQuickActions 
+          onSendReminders={handleSendReminders}
+          onExportReport={handleExportReport}
+          onOpenSettings={() => setSettingsOpen(true)}
+          isSendingReminders={isSendingReminders || isProcessing}
+        />
+        <ComplianceCalendarMini deadlines={urgentDeadlines} />
+        <RecentBreachesCard data={recentBreaches} />
+      </div>
+
       {/* Urgent Deadlines Table */}
       <UrgentDeadlinesTable data={urgentDeadlines} />
 
-      {/* Recent Breaches */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          {/* Space for additional content if needed */}
-        </div>
-        <RecentBreachesCard data={recentBreaches} />
-      </div>
+      {/* Notification Settings Modal */}
+      <NotificationSettingsModal 
+        open={settingsOpen} 
+        onOpenChange={setSettingsOpen} 
+      />
     </div>
   );
 };
