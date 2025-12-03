@@ -5,7 +5,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, X, Clock, Filter, Globe } from 'lucide-react';
+import { Search, X, Filter, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { searchService, SearchScope, SearchSuggestion } from '@/services/searchService';
 import { featureFlagService } from '@/services/featureFlagService';
@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { SearchSuggestions } from './SearchSuggestions';
-import { SearchTypeIndicator } from './SearchTypeIndicator';
+import { cn } from '@/lib/utils';
 
 const scopeOptions: { value: SearchScope; label: string; color: string }[] = [
   { value: 'all', label: 'All', color: 'bg-primary text-primary-foreground' },
@@ -38,6 +38,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ onResultsOpen }) => 
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [mobileExpanded, setMobileExpanded] = useState(false);
   
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
@@ -57,6 +58,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ onResultsOpen }) => 
       if (e.key === '/' && !e.ctrlKey && !e.altKey && !e.metaKey) {
         e.preventDefault();
         inputRef.current?.focus();
+        setMobileExpanded(true);
         return;
       }
 
@@ -64,6 +66,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ onResultsOpen }) => 
       if (e.key === 'Escape' && isFocused) {
         inputRef.current?.blur();
         setIsFocused(false);
+        setMobileExpanded(false);
         return;
       }
 
@@ -107,6 +110,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ onResultsOpen }) => 
     if (!trimmedQuery) return;
 
     setIsFocused(false);
+    setMobileExpanded(false);
     inputRef.current?.blur();
 
     // Open search results
@@ -183,119 +187,237 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ onResultsOpen }) => 
   const activeScopeOption = scopeOptions.find(option => option.value === scope);
 
   return (
-    <div className="relative max-w-md w-full">
-      {/* Global Search Label */}
-      <div className="flex items-center gap-2 mb-1.5">
-        <SearchTypeIndicator 
-          type="global" 
-          tooltip="Search across all modules: Cases, Clients, Documents, Tasks, Hearings"
+    <>
+      {/* Desktop View */}
+      <div className="hidden md:block relative w-full max-w-lg">
+        {/* Gradient Background Glow */}
+        <div 
+          className={cn(
+            "absolute -inset-1 rounded-2xl opacity-40 blur-lg transition-all duration-300",
+            "bg-gradient-to-r from-primary/30 via-accent/20 to-primary/30",
+            isFocused && "opacity-70 blur-xl"
+          )} 
         />
-        <span className="text-[10px] text-muted-foreground">Press / from anywhere</span>
+        
+        {/* Main Search Container */}
+        <div 
+          className={cn(
+            "relative rounded-xl overflow-hidden transition-all duration-300",
+            "bg-gradient-to-r from-background/95 via-background to-background/95",
+            "border-2 backdrop-blur-sm",
+            isFocused 
+              ? "border-primary/50 shadow-lg shadow-primary/20" 
+              : "border-primary/20 hover:border-primary/30 shadow-md"
+          )}
+        >
+          {/* Header Row with Badge and Hint */}
+          <div className="flex items-center justify-between px-3 py-1.5 bg-gradient-to-r from-primary/5 to-accent/5 border-b border-primary/10">
+            <div className="flex items-center gap-2">
+              <Badge 
+                variant="secondary" 
+                className="bg-primary/10 text-primary border-primary/20 text-[10px] font-semibold px-2 py-0"
+              >
+                <Sparkles className="h-3 w-3 mr-1" />
+                Global Search
+              </Badge>
+            </div>
+            <span className="text-[10px] text-muted-foreground font-medium">
+              Press <kbd className="px-1.5 py-0.5 bg-muted rounded text-[9px] font-mono border">/</kbd> anywhere
+            </span>
+          </div>
+
+          {/* Search Input Row */}
+          <div className="relative flex items-center">
+            <Search className="absolute left-4 h-4 w-4 text-muted-foreground z-10" />
+            
+            <Input
+              ref={inputRef}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setTimeout(() => setIsFocused(false), 200)}
+              placeholder="Search cases, clients, tasks, documents..."
+              className={cn(
+                "h-11 pl-11 bg-transparent border-0 rounded-none",
+                "focus-visible:ring-0 focus-visible:ring-offset-0",
+                "placeholder:text-muted-foreground/50",
+                query ? "pr-28" : "pr-20"
+              )}
+            />
+
+            {/* Clear button */}
+            {query && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearQuery}
+                className="absolute right-20 h-7 w-7 p-0 hover:bg-muted/50 z-20"
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            )}
+
+            {/* Scope Filter */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-2 h-8 px-2.5 hover:bg-primary/10 rounded-lg"
+                      >
+                        <Filter className="h-3.5 w-3.5 mr-1.5 text-primary" />
+                        <span className="text-xs font-medium">{activeScopeOption?.label}</span>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="end" className="w-52 p-2 z-[9999]">
+                      <div className="space-y-1">
+                        <div className="text-xs font-semibold text-muted-foreground mb-2 px-2">
+                          Search Scope
+                        </div>
+                        {scopeOptions.map((option) => (
+                          <button
+                            key={option.value}
+                            onClick={() => setScope(option.value)}
+                            className={cn(
+                              "w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-2",
+                              scope === option.value
+                                ? "bg-primary text-primary-foreground"
+                                : "hover:bg-muted"
+                            )}
+                          >
+                            <Badge variant="secondary" className={cn("text-[10px]", option.color)}>
+                              {option.label}
+                            </Badge>
+                            <span className="text-xs">
+                              {option.value === 'all' ? 'All content' : `${option.label} only`}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Filter search by module</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        </div>
+
+        {/* Suggestions Dropdown */}
+        <AnimatePresence>
+          {showSuggestions && (
+            <motion.div
+              initial={{ opacity: 0, y: -10, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.98 }}
+              transition={{ duration: 0.15 }}
+              className="absolute top-full left-0 right-0 mt-2 z-50"
+            >
+              <div className="rounded-xl border-2 border-primary/20 bg-background/95 backdrop-blur-sm shadow-xl overflow-hidden">
+                <SearchSuggestions
+                  query={query}
+                  suggestions={suggestions}
+                  recentSearches={recentSearches}
+                  isLoading={isLoading}
+                  onSuggestionSelect={handleSuggestionSelect}
+                  onRecentSearchSelect={handleRecentSearch}
+                  scope={scope}
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Search Input Container */}
-      <div className="relative shadow-sm">
-        <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-primary z-10" />
-        <Search className="absolute left-8 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground z-10" />
-        
-        <Input
-          ref={inputRef}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setTimeout(() => setIsFocused(false), 200)}
-          placeholder="🔍 Search across all modules..."
-          className={`h-11 pl-14 ${query ? 'pr-32' : 'pr-20'} bg-background border border-border focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary transition-all duration-200`}
-        />
-
-        {/* Clear button */}
-        {query && (
+      {/* Mobile View */}
+      <div className="md:hidden relative">
+        {/* Collapsed Mobile Search Button */}
+        {!mobileExpanded && (
           <Button
             variant="ghost"
-            size="sm"
-            onClick={clearQuery}
-            className="absolute right-20 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-muted z-20"
+            size="icon"
+            onClick={() => {
+              setMobileExpanded(true);
+              setTimeout(() => inputRef.current?.focus(), 100);
+            }}
+            className="relative h-10 w-10 rounded-full bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/20"
           >
-            <X className="h-3 w-3" />
+            <Search className="h-5 w-5 text-primary" />
+            <span className="absolute -top-1 -right-1 h-4 w-4 bg-primary rounded-full flex items-center justify-center">
+              <span className="text-[8px] text-primary-foreground font-bold">/</span>
+            </span>
           </Button>
         )}
 
-        {/* Scope Filter */}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-9 px-2 hover:bg-muted/50 min-w-fit whitespace-nowrap"
-                  >
-                    <Filter className="h-3 w-3 mr-1" />
-                    <span className="text-xs">{activeScopeOption?.label}</span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent align="end" className="w-48 p-2 z-[9999]">
-                  <div className="space-y-1">
-                    <div className="text-xs font-medium text-muted-foreground mb-2">Search Scope: Choose modules</div>
-                    {scopeOptions.map((option) => (
-                      <button
-                        key={option.value}
-                        onClick={() => setScope(option.value)}
-                        className={`w-full text-left px-2 py-1.5 rounded text-sm transition-colors ${
-                          scope === option.value
-                            ? 'bg-primary text-primary-foreground'
-                            : 'hover:bg-muted'
-                        }`}
-                      >
-                        <Badge variant="secondary" className={`mr-2 text-xs ${option.color}`}>
-                          {option.label}
-                        </Badge>
-                        {option.value === 'all' ? 'All content' : `${option.label} only`}
-                      </button>
-                    ))}
-                  </div>
-                </PopoverContent>
-              </Popover>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Filter search by module type</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        {/* Expanded Mobile Search */}
+        <AnimatePresence>
+          {mobileExpanded && (
+            <motion.div
+              initial={{ opacity: 0, width: 40 }}
+              animate={{ opacity: 1, width: "100%" }}
+              exit={{ opacity: 0, width: 40 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-x-0 top-0 z-50 p-3 bg-background/95 backdrop-blur-md border-b shadow-lg"
+            >
+              <div className="flex items-center gap-2">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    ref={inputRef}
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => setTimeout(() => setIsFocused(false), 200)}
+                    placeholder="Search everything..."
+                    className="pl-10 pr-10 h-11 bg-muted/50 border-primary/20 focus-visible:ring-primary/50"
+                  />
+                  {query && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearQuery}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setMobileExpanded(false);
+                    setIsFocused(false);
+                  }}
+                  className="shrink-0"
+                >
+                  Cancel
+                </Button>
+              </div>
+
+              {/* Mobile Suggestions */}
+              {showSuggestions && (
+                <div className="mt-2 rounded-lg border bg-background shadow-lg max-h-[60vh] overflow-y-auto">
+                  <SearchSuggestions
+                    query={query}
+                    suggestions={suggestions}
+                    recentSearches={recentSearches}
+                    isLoading={isLoading}
+                    onSuggestionSelect={handleSuggestionSelect}
+                    onRecentSearchSelect={handleRecentSearch}
+                    scope={scope}
+                  />
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-
-      {/* Suggestions Dropdown */}
-      <AnimatePresence>
-        {showSuggestions && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.15 }}
-            className="absolute top-full left-0 right-0 mt-1 z-50"
-          >
-            <SearchSuggestions
-              query={query}
-              suggestions={suggestions}
-              recentSearches={recentSearches}
-              isLoading={isLoading}
-              onSuggestionSelect={handleSuggestionSelect}
-              onRecentSearchSelect={handleRecentSearch}
-              scope={scope}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Keyboard Hint */}
-      {!isFocused && !query && (
-        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-          <Badge variant="outline" className="text-xs text-muted-foreground border-muted">
-            /
-          </Badge>
-        </div>
-      )}
-    </div>
+    </>
   );
 };
