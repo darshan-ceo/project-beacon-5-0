@@ -61,7 +61,7 @@
     { "date": "2025-08-16", "name": "Janmashtami", "type": "national", "state": "ALL" },
     { "date": "2025-09-05", "name": "Milad-un-Nabi", "type": "national", "state": "ALL" },
     { "date": "2025-10-02", "name": "Mahatma Gandhi Jayanti", "type": "national", "state": "ALL" },
-    { "date": "2025-10-02", "name": "Dussehra", "type": "national", "state": "ALL" },
+    { "date": "2025-10-01", "name": "Dussehra", "type": "national", "state": "ALL" },
     { "date": "2025-10-20", "name": "Diwali", "type": "national", "state": "ALL" },
     { "date": "2025-11-05", "name": "Guru Nanak Jayanti", "type": "national", "state": "ALL" },
     { "date": "2025-12-25", "name": "Christmas", "type": "national", "state": "ALL" }
