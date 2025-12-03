@@ -7,10 +7,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Plus, Search, Edit2, Trash2, ToggleLeft, ToggleRight, 
-  CalendarDays, Info, RefreshCw, Loader2, ShieldAlert
+  CalendarDays, Info, RefreshCw, Loader2, ShieldAlert, Database
 } from 'lucide-react';
 import { Holiday, HOLIDAY_TYPES } from '@/types/statutory';
 import { holidayService } from '@/services/holidayService';
+import { statutoryMasterDataSeeder } from '@/services/statutoryMasterDataSeeder';
+import { toast } from 'sonner';
 import { HolidayModal } from '@/components/modals/HolidayModal';
 import { StatutoryMastersTabs } from './StatutoryMastersTabs';
 import { useRBAC } from '@/hooks/useAdvancedRBAC';
@@ -96,6 +98,9 @@ export const HolidayMasters: React.FC = () => {
   // Delete confirmation
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [holidayToDelete, setHolidayToDelete] = useState<Holiday | null>(null);
+  
+  // Seeding state
+  const [seeding, setSeeding] = useState(false);
 
   // Load holidays
   const loadHolidays = async () => {
@@ -230,6 +235,23 @@ export const HolidayMasters: React.FC = () => {
     }
   };
 
+  const handleSeedHolidays = async () => {
+    setSeeding(true);
+    try {
+      const result = await statutoryMasterDataSeeder.seedHolidaysOnly();
+      if (result.success) {
+        toast.success(`Successfully seeded ${result.holidaysSeeded} holidays`);
+        await loadHolidays();
+      } else {
+        toast.error(result.errors.join(', ') || 'Failed to seed holidays');
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to seed holidays');
+    } finally {
+      setSeeding(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Tab Navigation */}
@@ -256,12 +278,32 @@ export const HolidayMasters: React.FC = () => {
             </Tooltip>
           </TooltipProvider>
         </div>
-        {canCreate ? (
-          <Button onClick={handleAdd}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Holiday
-          </Button>
-        ) : (
+        <div className="flex gap-2">
+          {canCreate && holidays.length === 0 && (
+            <Button 
+              variant="outline" 
+              onClick={handleSeedHolidays}
+              disabled={seeding}
+            >
+              {seeding ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Seeding...
+                </>
+              ) : (
+                <>
+                  <Database className="h-4 w-4 mr-2" />
+                  Seed Default Holidays
+                </>
+              )}
+            </Button>
+          )}
+          {canCreate ? (
+            <Button onClick={handleAdd}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Holiday
+            </Button>
+          ) : (
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -273,9 +315,10 @@ export const HolidayMasters: React.FC = () => {
                 </span>
               </TooltipTrigger>
               <TooltipContent>Admin access required</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
       </div>
 
       {/* RBAC Notice */}
