@@ -20,6 +20,7 @@ import { ClientGroupMasters } from "@/components/masters/ClientGroupMasters";
 import { CourtMasters } from "@/components/masters/CourtMasters";
 import JudgeMasters from "@/components/masters/JudgeMasters";
 import { EmployeeMasters } from "@/components/masters/EmployeeMasters";
+import { StatutoryActMasters } from "@/components/masters/StatutoryActMasters";
 import { CaseManagement } from "@/components/cases/CaseManagement";
 import { TaskManagement } from "@/components/tasks/TaskManagement";
 import { DocumentManagement } from "@/components/documents/DocumentManagement";
@@ -165,6 +166,13 @@ const AppContent = () => {
                 <ProtectedRoute>
                   <AdminLayout currentUser={currentUser}>
                     <EmployeeMasters />
+                  </AdminLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/statutory-acts" element={
+                <ProtectedRoute>
+                  <AdminLayout currentUser={currentUser}>
+                    <StatutoryActMasters />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
