@@ -120,15 +120,22 @@ const SMSConfigPanel: React.FC = () => {
     if (result.success) {
       toast({
         title: "Test Successful",
-        description: `SMS sent! Message ID: ${result.messageId}`
+        description: `SMS sent successfully! Message ID: ${result.messageId}`
       });
       loadData(); // Refresh logs
     } else {
+      // Show detailed error message from SMS24
+      const errorMsg = result.error || "Failed to send test SMS";
+      const errorCode = result.errorCode ? ` (Error Code: ${result.errorCode})` : '';
+      
       toast({
-        title: "Test Failed",
-        description: result.error || "Failed to send test SMS",
+        title: "SMS Failed",
+        description: `${errorMsg}${errorCode}`,
         variant: "destructive"
       });
+      
+      // Also refresh logs to show the failed attempt
+      loadData();
     }
     setIsTesting(false);
   };
