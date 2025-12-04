@@ -1,3 +1,4 @@
+// Force cache invalidation - UIStateService.ts (canonical filename) v2
 /**
  * UI State Service
  * Manages user preferences, filters, and view settings in Supabase
