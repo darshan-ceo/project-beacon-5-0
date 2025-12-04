@@ -533,10 +533,57 @@ export const smsService = {
   },
 
   /**
-   * Test SMS configuration
+   * Test SMS configuration - uses first active DLT template
    */
   testConnection: async (phone: string): Promise<SendSMSResponse> => {
-    const testMessage = "HOFFIC: This is a test message from H-Office Legal Management System. -H-Office";
-    return smsService.sendSMS({ phone, message: testMessage });
+    try {
+      const tenantId = await getTenantId();
+      if (!tenantId) {
+        return { success: false, error: 'User not authenticated' };
+      }
+
+      // Fetch first active DLT template for testing
+      const { data: templates, error: templateError } = await supabase
+        .from('sms_templates')
+        .select('*')
+        .eq('is_active', true)
+        .not('dlt_template_id', 'is', null)
+        .limit(1);
+
+      if (templateError) {
+        return { success: false, error: 'Failed to fetch templates' };
+      }
+
+      if (!templates || templates.length === 0) {
+        return { 
+          success: false, 
+          error: 'No DLT templates configured. Please add a template with a valid DLT Template ID in SMS Template Manager first. TRAI requires all promotional/transactional SMS to use pre-registered DLT templates.'
+        };
+      }
+
+      const template = templates[0];
+      
+      // For test, replace variables with sample values
+      let testMessage = template.template_text;
+      const variables = extractVariables(testMessage);
+      variables.forEach(v => {
+        testMessage = testMessage.replace(new RegExp(`\\{#${v}#\\}`, 'g'), `[${v}]`);
+      });
+
+      console.log('[smsService] Testing with DLT template:', template.name, template.dlt_template_id);
+
+      return smsService.sendSMS({ 
+        phone, 
+        message: testMessage,
+        dltTemplateId: template.dlt_template_id,
+        templateId: template.id
+      });
+    } catch (error) {
+      console.error('[smsService] Test connection error:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Test failed' 
+      };
+    }
   }
 };

@@ -142,9 +142,10 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Determine success based on SMS24 response
-    const isSuccess = sms24Data.ErrorCode === '000' || smsResponse.ok;
-    const messageId = sms24Data.JobId || sms24Data.MessageData?.[0]?.MessageId || `sms24-${Date.now()}`;
+    // Determine success based on SMS24 response - ONLY check ErrorCode, not HTTP status
+    // SMS24 returns HTTP 200 even for API errors like "Invalid template text"
+    const isSuccess = sms24Data.ErrorCode === '000';
+    const messageId = sms24Data.JobId || sms24Data.MessageData?.[0]?.MessageId || null;
 
     // Log delivery attempt
     const logEntry = {
