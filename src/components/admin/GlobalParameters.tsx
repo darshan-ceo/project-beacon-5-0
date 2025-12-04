@@ -24,6 +24,7 @@ import { toast } from '@/hooks/use-toast';
 import { CalendarIntegrationPanel } from './CalendarIntegrationPanel';
 import { GSTIntegrationPanel } from './GSTIntegrationPanel';
 import SMSConfigPanel from './SMSConfigPanel';
+import SMSTemplateManager from './SMSTemplateManager';
 import { AddressSettings } from './AddressSettings';
 import { EmailConfiguration } from './EmailConfiguration';
 import { OutcomeTemplateManager } from './OutcomeTemplateManager';
@@ -366,6 +367,7 @@ export const GlobalParameters: React.FC = () => {
         return (
           <div className="grid gap-6">
             <EmailConfiguration />
+            <SMSTemplateManager />
             <SMSConfigPanel />
           </div>
         );
