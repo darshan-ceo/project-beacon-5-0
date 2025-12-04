@@ -152,9 +152,9 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
               <Settings className="mr-2 h-4 w-4" />
               Settings
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate('/rbac')}>
+            <DropdownMenuItem onClick={() => navigate('/access-roles')}>
               <Shield className="mr-2 h-4 w-4" />
-              RBAC
+              Access & Roles
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="text-destructive">

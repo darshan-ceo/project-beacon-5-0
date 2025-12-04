@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { CheckCircle, FolderOpen, FileText, Shield, Tag, ChevronDown, ChevronRight } from 'lucide-react';
-import { uiStateService } from '@/services/uiStateService';
+import { uiStateService } from '@/services/UIStateService';
 
 export const OrganizationGuide: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(false);

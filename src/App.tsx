@@ -221,7 +221,7 @@ const AppContent = () => {
                   </AdminLayout>
                 </ProtectedRoute>
               } />
-              <Route path="/rbac" element={
+              <Route path="/access-roles" element={
                 <ProtectedRoute>
                   <AdminLayout currentUser={currentUser}>
                     <RBACManagement />

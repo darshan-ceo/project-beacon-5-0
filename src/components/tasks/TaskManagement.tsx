@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { navigationContextService } from '@/services/navigationContextService';
-import { uiStateService } from '@/services/uiStateService';
+import { uiStateService } from '@/services/UIStateService';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   CheckSquare, 

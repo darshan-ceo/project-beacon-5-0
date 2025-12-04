@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { uiStateService } from '@/services/uiStateService';
+import { uiStateService } from '@/services/UIStateService';
 import { 
   Select, 
   SelectContent, 
