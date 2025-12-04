@@ -2231,6 +2231,200 @@ export type Database = {
           },
         ]
       }
+      sms_config: {
+        Row: {
+          created_at: string | null
+          daily_limit: number | null
+          dlt_entity_id: string | null
+          id: string
+          is_active: boolean | null
+          monthly_limit: number | null
+          provider: string
+          sender_id: string
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          daily_limit?: number | null
+          dlt_entity_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          monthly_limit?: number | null
+          provider?: string
+          sender_id: string
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          daily_limit?: number | null
+          dlt_entity_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          monthly_limit?: number | null
+          provider?: string
+          sender_id?: string
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "sms_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sms_delivery_logs: {
+        Row: {
+          created_at: string | null
+          credits_used: number | null
+          delivery_timestamp: string | null
+          dlt_template_id: string | null
+          error_message: string | null
+          id: string
+          message_text: string
+          provider_message_id: string | null
+          recipient_phone: string
+          related_entity_id: string | null
+          related_entity_type: string | null
+          status: string
+          template_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          credits_used?: number | null
+          delivery_timestamp?: string | null
+          dlt_template_id?: string | null
+          error_message?: string | null
+          id?: string
+          message_text: string
+          provider_message_id?: string | null
+          recipient_phone: string
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          status?: string
+          template_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string | null
+          credits_used?: number | null
+          delivery_timestamp?: string | null
+          dlt_template_id?: string | null
+          error_message?: string | null
+          id?: string
+          message_text?: string
+          provider_message_id?: string | null
+          recipient_phone?: string
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          status?: string
+          template_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_delivery_logs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "sms_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sms_delivery_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "sms_delivery_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sms_templates: {
+        Row: {
+          category: string
+          character_count: number | null
+          created_at: string | null
+          created_by: string | null
+          dlt_template_id: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          template_text: string
+          tenant_id: string
+          updated_at: string | null
+          variables: Json | null
+        }
+        Insert: {
+          category?: string
+          character_count?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          dlt_template_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          template_text: string
+          tenant_id: string
+          updated_at?: string | null
+          variables?: Json | null
+        }
+        Update: {
+          category?: string
+          character_count?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          dlt_template_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          template_text?: string
+          tenant_id?: string
+          updated_at?: string | null
+          variables?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sms_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "sms_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stage_transitions: {
         Row: {
           case_id: string
