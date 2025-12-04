@@ -23,6 +23,7 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
 import { CalendarIntegrationPanel } from './CalendarIntegrationPanel';
 import { GSTIntegrationPanel } from './GSTIntegrationPanel';
+import SMSConfigPanel from './SMSConfigPanel';
 import { AddressSettings } from './AddressSettings';
 import { EmailConfiguration } from './EmailConfiguration';
 import { OutcomeTemplateManager } from './OutcomeTemplateManager';
@@ -365,47 +366,7 @@ export const GlobalParameters: React.FC = () => {
         return (
           <div className="grid gap-6">
             <EmailConfiguration />
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5 text-primary" />
-                  SMS & Push Notifications
-                </CardTitle>
-                <CardDescription>Configure mobile and browser notifications</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <FieldWithTooltip
-                  label="SMS Provider"
-                  tooltip="SMS service selection"
-                  description="SMS service provider"
-                >
-                  <Select defaultValue="twilio" onValueChange={() => setHasChanges(true)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="twilio">Twilio</SelectItem>
-                      <SelectItem value="aws">AWS SNS</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </FieldWithTooltip>
-                <FieldWithTooltip
-                  label="API Key"
-                  tooltip="Provider authentication key"
-                  description="SMS provider API key"
-                >
-                  <Input type="password" placeholder="Enter API key" onChange={() => setHasChanges(true)} />
-                </FieldWithTooltip>
-                <FieldWithTooltip
-                  label="Push Notifications"
-                  tooltip="Browser push alerts"
-                  description="Enable browser push notifications"
-                >
-                  <Switch defaultChecked onCheckedChange={() => setHasChanges(true)} />
-                </FieldWithTooltip>
-              </CardContent>
-            </Card>
+            <SMSConfigPanel />
           </div>
         );
 
