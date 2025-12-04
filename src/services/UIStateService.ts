@@ -357,6 +357,53 @@ class UIStateService {
   clearCache(): void {
     this.cache.clear();
   }
+
+  // ===== Helper methods for common UI patterns =====
+
+  /**
+   * Save view mode for a component
+   */
+  async saveViewMode(component: string, mode: string): Promise<void> {
+    await this.set(`${component}-view-mode`, mode, { category: 'view_settings' });
+  }
+
+  /**
+   * Get view mode for a component
+   */
+  async getViewMode(component: string, defaultMode: string = 'list'): Promise<string> {
+    const mode = await this.get<string>(`${component}-view-mode`);
+    return mode || defaultMode;
+  }
+
+  /**
+   * Save expanded state for a component
+   */
+  async saveExpandedState(component: string, expanded: boolean): Promise<void> {
+    await this.set(`${component}-expanded`, expanded, { category: 'layout' });
+  }
+
+  /**
+   * Get expanded state for a component
+   */
+  async getExpandedState(component: string, defaultExpanded: boolean = true): Promise<boolean> {
+    const state = await this.get<boolean>(`${component}-expanded`);
+    return state !== null ? state : defaultExpanded;
+  }
+
+  /**
+   * Save saved views for a component
+   */
+  async saveSavedViews(component: string, views: any[]): Promise<void> {
+    await this.set(`${component}-saved-views`, views, { category: 'preferences' });
+  }
+
+  /**
+   * Get saved views for a component
+   */
+  async getSavedViews(component: string): Promise<any[]> {
+    const views = await this.get<any[]>(`${component}-saved-views`);
+    return views || [];
+  }
 }
 
 export const uiStateService = new UIStateService();

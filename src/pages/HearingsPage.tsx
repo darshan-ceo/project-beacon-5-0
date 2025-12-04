@@ -533,7 +533,7 @@ export const HearingsPage: React.FC = () => {
         failedHearings={getFailedHearingsWithDetails()}
         onRetry={handleRetrySync}
         onRetryAll={handleRetryAllFailed}
-        onOpenSettings={() => navigate('/rbac')}
+        onOpenSettings={() => navigate('/access-roles')}
       />
 
       {/* Mobile: Floating Schedule Button */}

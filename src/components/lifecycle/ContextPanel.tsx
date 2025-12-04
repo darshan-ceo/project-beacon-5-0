@@ -13,7 +13,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from '@/hooks/use-toast';
 import { navigationContextService } from '@/services/navigationContextService';
-import { uiStateService } from '@/services/uiStateService';
+import { uiStateService } from '@/services/UIStateService';
 import { 
   ChevronDown, 
   ChevronRight, 
