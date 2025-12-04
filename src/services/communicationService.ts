@@ -255,32 +255,40 @@ export const communicationService = {
     }
   },
 
-  // Send SMS
+  // Send SMS via SMS24 gateway
   sendSMS: async (
     phoneNumber: string,
     message: string,
     caseId: string,
     clientId: string,
-    clientName: string
+    clientName: string,
+    dltTemplateId?: string
   ): Promise<CommunicationLog> => {
-    // Note: Real SMS delivery requires Twilio or similar SMS provider setup
-    await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 400));
-
     try {
-      // Mock SMS validation
-      if (!/^\+?[\d\s-()]+$/.test(phoneNumber)) {
-        throw new Error('Invalid phone number format');
-      }
-
-      if (message.length > 160) {
-        toast({
-          title: "SMS Length Warning",
-          description: "SMS will be sent as multiple parts",
-        });
-      }
-
       // Get user context
       const { userId, tenantId, userName } = await getTenantAndUser();
+
+      // Call SMS edge function
+      const { data, error } = await supabase.functions.invoke('send-sms', {
+        body: {
+          phone: phoneNumber,
+          message: message,
+          dltTemplateId: dltTemplateId,
+          tenantId: tenantId,
+          relatedEntityType: 'case',
+          relatedEntityId: caseId
+        }
+      });
+
+      if (error) {
+        console.error('[Communication Service] SMS edge function error:', error);
+        throw new Error(error.message || 'Failed to send SMS');
+      }
+
+      if (!data.success) {
+        console.error('[Communication Service] SMS send failed:', data.error);
+        throw new Error(data.error || 'Failed to send SMS');
+      }
 
       // Persist communication log to Supabase
       const storage = storageManager.getStorage();
@@ -296,8 +304,8 @@ export const communicationService = {
         sent_to: phoneNumber,
         sent_to_name: clientName,
         status: 'sent' as const,
-        message_id: `sms-${Date.now()}`,
-        delivered_at: new Date(Date.now() + 2000).toISOString(),
+        message_id: data.messageId || `sms-${Date.now()}`,
+        delivered_at: new Date().toISOString(),
         attachments: []
       };
 
@@ -317,8 +325,8 @@ export const communicationService = {
         timestamp: savedLog.created_at || new Date().toISOString(),
         status: 'sent',
         metadata: {
-          messageId: `sms-${Date.now()}`,
-          deliveredAt: new Date(Date.now() + 2000).toISOString()
+          messageId: data.messageId,
+          deliveredAt: new Date().toISOString()
         }
       };
 
@@ -329,6 +337,14 @@ export const communicationService = {
 
       return communicationLog;
     } catch (error) {
+      console.error('[Communication Service] SMS sending failed:', error);
+      
+      toast({
+        title: "SMS Failed",
+        description: error instanceof Error ? error.message : 'Failed to send SMS',
+        variant: 'destructive'
+      });
+      
       throw new Error(`SMS sending failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   },
