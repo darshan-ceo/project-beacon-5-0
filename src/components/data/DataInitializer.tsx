@@ -67,8 +67,11 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
 
   useEffect(() => {
     const loadData = async () => {
+      // Reset global flags when user logs out to ensure fresh data load on next login
       if (!user || !tenantId) {
-        console.log('[DataInitializer] Waiting for authentication...', { user: !!user, tenantId });
+        console.log('[DataInitializer] User logged out or not authenticated - resetting global flags', { user: !!user, tenantId });
+        globalDataLoaded = false;
+        globalLoadedTenantId = null;
         setIsLoading(false);
         return;
       }
