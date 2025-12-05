@@ -50,14 +50,17 @@ export const CourtMasters: React.FC = () => {
 
   // Filter courts based on search and filters
   const filteredCourts = (state.courts || []).filter(court => {
-    // Handle both string and object addresses for search
-    const addressText = typeof court.address === 'string' 
-      ? court.address 
-      : `${court.address.line1} ${court.address.line2} ${court.address.locality} ${court.address.district}`.trim();
+    // Handle null/undefined and both string and object addresses for search
+    const addressText = !court.address 
+      ? ''
+      : typeof court.address === 'string' 
+        ? court.address 
+        : `${court.address.line1 || ''} ${court.address.line2 || ''} ${court.address.locality || ''} ${court.address.district || ''}`.trim();
     
-    const matchesSearch = court.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         court.jurisdiction.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         addressText.toLowerCase().includes(searchTerm.toLowerCase());
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch = (court.name || '').toLowerCase().includes(searchLower) ||
+                         (court.jurisdiction || '').toLowerCase().includes(searchLower) ||
+                         addressText.toLowerCase().includes(searchLower);
     
     const matchesType = !activeFilters.type || activeFilters.type === 'all' || court.type === activeFilters.type;
     const matchesAuthorityLevel = !activeFilters.authorityLevel || activeFilters.authorityLevel === 'all' || court.authorityLevel === activeFilters.authorityLevel;
@@ -81,7 +84,7 @@ export const CourtMasters: React.FC = () => {
     }
   };
 
-  const uniqueJurisdictions = [...new Set((state.courts || []).map(court => court.jurisdiction))];
+  const uniqueJurisdictions = [...new Set((state.courts || []).map(court => court.jurisdiction).filter(Boolean))];
 
   const migrateCityData = () => {
     let updated = 0;
