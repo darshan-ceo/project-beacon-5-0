@@ -47,6 +47,7 @@ import { Progress } from '@/components/ui/progress';
 import { Task, useAppState, TaskFollowUp } from '@/contexts/AppStateContext';
 import { TaskDrawer } from './TaskDrawer';
 import { LogFollowUpModal } from './LogFollowUpModal';
+import { TasksBulkActions } from './TasksBulkActions';
 import { formatDateForDisplay } from '@/utils/dateFormatters';
 import { v4 as uuid } from 'uuid';
 import { toast } from '@/hooks/use-toast';
@@ -332,16 +333,12 @@ export const TaskList: React.FC<TaskListProps> = ({
           </Select>
           
           {selectedTasks.size > 0 && (
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => {
-                // TODO: Implement bulk actions
-                console.log('Bulk actions for:', Array.from(selectedTasks));
-              }}
-            >
-              Actions ({selectedTasks.size})
-            </Button>
+            <TasksBulkActions
+              selectedTaskIds={Array.from(selectedTasks)}
+              tasks={filteredAndSortedTasks.filter(t => selectedTasks.has(t.id))}
+              onComplete={() => setSelectedTasks(new Set())}
+              userRole={state.userProfile?.role}
+            />
           )}
           
           <DropdownMenu>
