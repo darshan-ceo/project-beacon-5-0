@@ -258,14 +258,16 @@ class ClientSideImportExportService {
         if (rowErrors.length === 0) {
           validRecords.push({ ...record, _rowIndex: rowIndex });
         } else {
-          invalidRecords.push({ ...record, _rowIndex: rowIndex + 2 });
+          const errorMessage = rowErrors.join('; ');
+          // Store validation error on record for getPendingRecords to use
+          invalidRecords.push({ ...record, _rowIndex: rowIndex + 2, _validationError: errorMessage });
           errors.push({
             id: `error_${rowIndex}`,
             jobId,
             row: rowIndex + 2,
             column: '',
             value: '',
-            error: rowErrors.join('; '),
+            error: errorMessage,
             severity: 'error' as const,
             canAutoFix: false
           });
@@ -335,6 +337,8 @@ class ClientSideImportExportService {
               const failedIndex = validRecords.findIndex(r => r === err.record);
               if (failedIndex !== -1) {
                 const failedRecord = validRecords.splice(failedIndex, 1)[0];
+                // Store the actual error message with the record for getPendingRecords to use
+                failedRecord._errorMessage = `Database error: ${err.error}`;
                 invalidRecords.push(failedRecord);
                 errors.push({
                   id: `insert_error_${invalidRecords.length}`,
@@ -425,7 +429,8 @@ class ClientSideImportExportService {
               row: record._rowIndex || index + 2,
               column: '',
               value: '',
-              error: 'Validation failed - missing required fields',
+              // Use actual error message if stored, otherwise fallback to generic message
+              error: record._errorMessage || record._validationError || 'Validation failed - check required fields',
               severity: 'error' as const,
               canAutoFix: false
             }
