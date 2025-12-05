@@ -315,24 +315,30 @@ class ImportIntegrationService {
       ].filter(Boolean);
       const fullAddress = addressParts.join(', ') || record.address || null;
       
+      // Debug logging to trace incoming record data
+      console.log('[ImportIntegrationService] insertCourt - Record keys:', Object.keys(record));
+      console.log('[ImportIntegrationService] insertCourt - Full record:', JSON.stringify(record, null, 2));
+      
       const courtPayload = {
         tenant_id: tenantId,
-        name: record.court_name || record.name,
-        type: record.court_type || record.type || null,
-        level: record.court_level || record.level || null,
-        code: record.court_code || record.code || null,
-        city: record.city || null,
-        state: record.state_name || record.state_code || record.state || null,
+        name: record.court_name || record['Court Name'] || record.name || record.Name,
+        type: record.court_type || record['Court Type'] || record.type || null,
+        level: record.court_level || record['Court Level'] || record.level || null,
+        code: record.court_code || record['Court Code'] || record.code || null,
+        city: record.city || record.City || null,
+        state: record.state_name || record['State Name'] || record.state_code || record['State Code'] || record.state || null,
         address: fullAddress,
-        bench_location: record.bench || record.bench_location || null,
-        jurisdiction: record.jurisdiction || record.district || null,
+        bench_location: record.bench || record.Bench || record.bench_location || record['Bench Location'] || null,
+        jurisdiction: record.jurisdiction || record.Jurisdiction || record.district || record.District || null,
         established_year: record.established_year ? parseInt(record.established_year) : null,
-        phone: record.phone || record.phone_number || record['Phone Number'] || record['Phone'] || null,
-        email: record.email || record.Email || record.email_address || record['Email'] || null,
-        status: record.status || 'Active',
+        phone: record.phone || record.Phone || record.phone_number || record['Phone Number'] || null,
+        email: record.email || record.Email || record.email_address || record['Email Address'] || null,
+        status: record.status || record.Status || 'Active',
         created_by: userId,
         // Don't include id - let Supabase generate UUID
       };
+      
+      console.log('[ImportIntegrationService] insertCourt - Final payload:', JSON.stringify(courtPayload, null, 2));
 
       const storage = StorageManager.getInstance().getStorage();
       await storage.create('courts', courtPayload as any);
@@ -369,28 +375,34 @@ class ImportIntegrationService {
       
       // Build chambers/address from multiple fields
       const chambersParts = [
-        record.address_line1,
-        record.address_line2,
-        record.landmark
+        record.address_line1 || record['Address Line 1'],
+        record.address_line2 || record['Address Line 2'],
+        record.landmark || record.Landmark
       ].filter(Boolean);
       const chambers = chambersParts.join(', ') || null;
       
+      // Debug logging to trace incoming record data
+      console.log('[ImportIntegrationService] insertJudge - Record keys:', Object.keys(record));
+      console.log('[ImportIntegrationService] insertJudge - Full record:', JSON.stringify(record, null, 2));
+      
       const judgePayload = {
         tenant_id: tenantId,
-        name: record.judge_name || record.name,
-        designation: record.designation || null,
+        name: record.judge_name || record['Judge Name'] || record.name || record.Name,
+        designation: record.designation || record.Designation || null,
         court_id: courtId,
-        bench: record.bench || null,
-        city: record.city || null,
-        state: record.state_name || record.state_code || record.state || null,
-        jurisdiction: record.district || record.jurisdiction || null,
+        bench: record.bench || record.Bench || record.bench_location || record['Bench Location'] || null,
+        city: record.city || record.City || null,
+        state: record.state_name || record['State Name'] || record.state_code || record['State Code'] || record.state || null,
+        jurisdiction: record.district || record.District || record.jurisdiction || record.Jurisdiction || null,
         chambers: chambers,
-        email: record.email || record.Email || record.email_address || record['Email'] || null,
-        phone: record.phone || record.phone_number || record['Phone Number'] || record['Phone'] || null,
-        status: record.status || 'Active',
+        email: record.email || record.Email || record.email_address || record['Email Address'] || null,
+        phone: record.phone || record.Phone || record.phone_number || record['Phone Number'] || null,
+        status: record.status || record.Status || 'Active',
         created_by: userId,
         // Don't include id - let Supabase generate UUID
       };
+      
+      console.log('[ImportIntegrationService] insertJudge - Final payload:', JSON.stringify(judgePayload, null, 2));
 
       const storage = StorageManager.getInstance().getStorage();
       await storage.create('judges', judgePayload as any);

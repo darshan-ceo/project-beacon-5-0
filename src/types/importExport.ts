@@ -204,6 +204,7 @@ export const COLUMN_SYNONYMS: ColumnSynonyms = {
   'court_name': ['court', 'court_name', 'court name', 'courtname', 'tribunal', 'tribunal name'],
   'court_code': ['court_code', 'court code', 'courtcode', 'code'],
   'court_type': ['court_type', 'court type', 'courttype', 'type'],
+  'bench': ['bench', 'bench_location', 'bench location', 'benchlocation', 'division', 'circuit', 'branch'],
   'judge_name': ['judge', 'judge_name', 'judge name', 'judgename', 'justice', 'hon judge', 'honourable'],
   'judge_code': ['judge_code', 'judge code', 'judgecode', 'code'],
   
