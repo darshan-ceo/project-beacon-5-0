@@ -1334,7 +1334,7 @@ export type Database = {
           graduation_year?: number | null
           gst_practitioner_id?: string | null
           icai_no?: string | null
-          id: string
+          id?: string
           incentive_eligible?: boolean | null
           manager_id?: string | null
           mobile?: string | null
