@@ -440,6 +440,25 @@ Use 'Inactive' for merged Commissioner Appeals offices or abolished authorities 
       title: 'Reason for Reversal',
       content: 'Select why this case is returning to an earlier stage. Helps track quality and process improvements.',
     },
+  },
+  'sms-template': {
+    'template-name': {
+      title: 'Template Name',
+      content: 'Internal identifier for this template. Use descriptive names like "Hearing Reminder T-1" or "Deadline Alert" for easy recognition.',
+    },
+    'category': {
+      title: 'Template Category',
+      content: 'Classification for organizing templates. Helps filter and apply the correct template for different notification types (hearing reminders, deadline alerts, etc.).',
+    },
+    'dlt-template-id': {
+      title: 'DLT Template ID',
+      content: 'Unique identifier from your TRAI DLT registration portal (Jio DLT, Airtel DLT, Vi DLT, etc.). Required for TRAI compliance in India. Format: 1107XXXXXXXXXXX (19 digits).',
+      learnMoreUrl: 'https://traidlt.gov.in/'
+    },
+    'template-text': {
+      title: 'Template Text',
+      content: 'Message content registered with DLT platform. Use {#var#} placeholders for dynamic values like names, dates, and case numbers. Must match DLT-registered template exactly - character for character.',
+    }
   }
 };
 
