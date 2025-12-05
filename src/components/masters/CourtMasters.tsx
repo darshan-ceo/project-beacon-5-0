@@ -325,57 +325,73 @@ export const CourtMasters: React.FC = () => {
                          </div>
                        </div>
                      </TableCell>
-                     <TableCell>
-                       {typeof court.address === 'object' && court.address.pincode ? (
-                         <div className="flex items-center gap-2">
-                           <MapPin className="h-4 w-4 text-blue-600 opacity-80" aria-hidden="true" />
-                           
-                           <DropdownMenu>
-                             <DropdownMenuTrigger asChild>
-                               <button
-                                 className="text-blue-600 hover:underline font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-1"
-                                 aria-label={`Open mapping service for PIN ${court.address.pincode}`}
-                               >
-                                 {court.address.pincode}
-                               </button>
-                             </DropdownMenuTrigger>
-                             
-                             <DropdownMenuContent 
-                               align="start" 
-                               className="w-56 bg-popover dark:bg-popover border shadow-lg z-50"
-                             >
-                               <DropdownMenuLabel className="text-xs text-muted-foreground">
-                                 Choose Mapping Service
-                               </DropdownMenuLabel>
-                               <DropdownMenuSeparator />
-                               
-                                {MAPPING_SERVICES.map((service) => {
-                                  const IconComponent = service.icon === 'Map' ? Map : service.icon === 'Globe' ? Globe : service.icon === 'MapPin' ? MapPin : Navigation;
-                                  return (
-                                    <DropdownMenuItem key={service.id} asChild>
-                                      <a
-                                        href={service.urlTemplate(court.address)}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex items-start gap-3 cursor-pointer"
-                                      >
-                                        <IconComponent className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                                        <div className="flex flex-col">
-                                          <span className="font-medium">{service.name}</span>
-                                          <span className="text-xs text-muted-foreground">
-                                            {service.description}
-                                          </span>
-                                        </div>
-                                      </a>
-                                    </DropdownMenuItem>
-                                  );
-                                })}
-                             </DropdownMenuContent>
-                           </DropdownMenu>
-                         </div>
-                       ) : (
-                         <span className="text-muted-foreground text-sm">N/A</span>
-                       )}
+                      <TableCell>
+                        {(() => {
+                          // Extract pincode from address - handle both object and string formats
+                          let pincode: string | null = null;
+                          if (typeof court.address === 'object' && court.address?.pincode) {
+                            pincode = court.address.pincode;
+                          } else if (typeof court.address === 'string') {
+                            // Extract 6-digit pincode from address string
+                            const match = court.address.match(/\b\d{6}\b/);
+                            pincode = match ? match[0] : null;
+                          }
+                          
+                          if (pincode) {
+                            return (
+                              <div className="flex items-center gap-2">
+                                <MapPin className="h-4 w-4 text-blue-600 opacity-80" aria-hidden="true" />
+                                
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <button
+                                      className="text-blue-600 hover:underline font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-1"
+                                      aria-label={`Open mapping service for PIN ${pincode}`}
+                                    >
+                                      {pincode}
+                                    </button>
+                                  </DropdownMenuTrigger>
+                                  
+                                  <DropdownMenuContent 
+                                    align="start" 
+                                    className="w-56 bg-popover dark:bg-popover border shadow-lg z-50"
+                                  >
+                                    <DropdownMenuLabel className="text-xs text-muted-foreground">
+                                      Choose Mapping Service
+                                    </DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    
+                                     {MAPPING_SERVICES.map((service) => {
+                                       const IconComponent = service.icon === 'Map' ? Map : service.icon === 'Globe' ? Globe : service.icon === 'MapPin' ? MapPin : Navigation;
+                                       const addressForService = typeof court.address === 'string' 
+                                         ? { line1: court.address, pincode } 
+                                         : court.address;
+                                       return (
+                                         <DropdownMenuItem key={service.id} asChild>
+                                           <a
+                                             href={service.urlTemplate(addressForService)}
+                                             target="_blank"
+                                             rel="noopener noreferrer"
+                                             className="flex items-start gap-3 cursor-pointer"
+                                           >
+                                             <IconComponent className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                                             <div className="flex flex-col">
+                                               <span className="font-medium">{service.name}</span>
+                                               <span className="text-xs text-muted-foreground">
+                                                 {service.description}
+                                               </span>
+                                             </div>
+                                           </a>
+                                         </DropdownMenuItem>
+                                       );
+                                     })}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            );
+                          }
+                          return <span className="text-muted-foreground text-sm">N/A</span>;
+                        })()}
                      </TableCell>
                      <TableCell>
                        <Badge 
