@@ -88,6 +88,33 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // State name to code mapping for imported data
+  const STATE_NAME_TO_CODE: Record<string, string> = {
+    'andaman and nicobar islands': 'AN', 'andaman and nicobar': 'AN', 'andaman': 'AN',
+    'andhra pradesh': 'AP', 'arunachal pradesh': 'AR', 'assam': 'AS', 'bihar': 'BR',
+    'chhattisgarh': 'CG', 'chandigarh': 'CH', 'dadra and nagar haveli': 'DH',
+    'daman and diu': 'DH', 'delhi': 'DL', 'goa': 'GA', 'gujarat': 'GJ',
+    'haryana': 'HR', 'himachal pradesh': 'HP', 'jammu and kashmir': 'JK', 'jammu': 'JK',
+    'jharkhand': 'JH', 'karnataka': 'KA', 'kerala': 'KL', 'ladakh': 'LA',
+    'lakshadweep': 'LD', 'madhya pradesh': 'MP', 'maharashtra': 'MH', 'manipur': 'MN',
+    'meghalaya': 'ML', 'mizoram': 'MZ', 'nagaland': 'NL', 'odisha': 'OR', 'orissa': 'OR',
+    'punjab': 'PB', 'puducherry': 'PY', 'pondicherry': 'PY', 'rajasthan': 'RJ',
+    'sikkim': 'SK', 'tamil nadu': 'TN', 'tripura': 'TR', 'telangana': 'TS',
+    'uttarakhand': 'UK', 'uttar pradesh': 'UP', 'west bengal': 'WB'
+  };
+
+  // Convert state name or code to standard state code
+  const normalizeStateId = (stateValue: string): string => {
+    if (!stateValue) return '';
+    const normalized = stateValue.toLowerCase().trim();
+    // If it's already a 2-letter code and in our mapping values, return uppercase
+    if (normalized.length === 2 && Object.values(STATE_NAME_TO_CODE).includes(normalized.toUpperCase())) {
+      return normalized.toUpperCase();
+    }
+    // Otherwise, look up by name
+    return STATE_NAME_TO_CODE[normalized] || stateValue;
+  };
+
   // Parse address string to extract pincode, state, city for imported data
   const parseCourtAddress = (addressStr: string, court: any): EnhancedAddressData => {
     // Extract 6-digit pincode using regex
@@ -95,8 +122,8 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     const pincode = pincodeMatch ? pincodeMatch[0] : '';
     
     // Use court-level fields if available (from database columns)
-    const state = (court as any)?.state || '';
-    const city = court?.city || '';
+    const rawState = (court as any)?.state || '';
+    const stateId = normalizeStateId(rawState);
     
     return {
       line1: addressStr,
@@ -104,7 +131,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
       locality: '',
       district: '',
       cityId: '',
-      stateId: state,
+      stateId: stateId,
       pincode: pincode,
       countryId: 'IN',
       source: 'manual'

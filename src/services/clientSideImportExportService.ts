@@ -109,11 +109,24 @@ class ClientSideImportExportService {
         throw new Error('File appears to be empty');
       }
       
-      const headers = jsonData[0] as string[];
+      const headers = (jsonData[0] as string[]).map(h => String(h || '').trim());
+      console.log('[Import] Headers extracted:', headers);
+      
       // Filter out blank rows
-      const rows = jsonData.slice(1).filter((row: any) => 
+      const rawRows = jsonData.slice(1).filter((row: any) => 
         Array.isArray(row) && row.some(cell => String(cell || '').trim() !== '')
       );
+      
+      // CRITICAL FIX: Pad all rows to match header length
+      // XLSX truncates trailing empty cells, causing index misalignment for later columns
+      const rows = rawRows.map((row: any[], rowIndex: number) => {
+        const paddedRow = [...row];
+        while (paddedRow.length < headers.length) {
+          paddedRow.push('');
+        }
+        console.log(`[Import] Row ${rowIndex + 2} padded: ${row.length} -> ${paddedRow.length} cells`);
+        return paddedRow;
+      });
       
       // Create import job
       const job: ImportJob = {
@@ -217,12 +230,19 @@ class ClientSideImportExportService {
         const record: Record<string, any> = {};
         const rowErrors: string[] = [];
 
-        // Map columns
+        // Map columns with case-insensitive header matching
         Object.entries(mapping).forEach(([templateKey, mapConfig]) => {
           if (mapConfig.sourceColumn) {
-            const sourceIndex = headers.indexOf(mapConfig.sourceColumn);
-            if (sourceIndex !== -1) {
+            // Case-insensitive header matching to handle variations
+            const sourceColumn = mapConfig.sourceColumn.toLowerCase().trim();
+            const sourceIndex = headers.findIndex(h => 
+              String(h || '').toLowerCase().trim() === sourceColumn
+            );
+            if (sourceIndex !== -1 && sourceIndex < row.length) {
               record[templateKey] = row[sourceIndex];
+              console.log(`[Import] Row ${rowIndex + 2}: Mapped "${templateKey}" from column "${headers[sourceIndex]}" (index ${sourceIndex}) = "${row[sourceIndex]}"`);
+            } else {
+              console.log(`[Import] Row ${rowIndex + 2}: Column "${mapConfig.sourceColumn}" not found in headers or index ${sourceIndex} out of bounds`);
             }
           }
         });

@@ -2,6 +2,33 @@ import { useCallback } from 'react';
 import { useAppState, Court, Judge, Client, Employee } from '@/contexts/AppStateContext';
 import { supabase } from '@/integrations/supabase/client';
 
+// State name to code mapping for imported data
+const STATE_NAME_TO_CODE: Record<string, string> = {
+  'andaman and nicobar islands': 'AN', 'andaman and nicobar': 'AN', 'andaman': 'AN',
+  'andhra pradesh': 'AP', 'arunachal pradesh': 'AR', 'assam': 'AS', 'bihar': 'BR',
+  'chhattisgarh': 'CG', 'chandigarh': 'CH', 'dadra and nagar haveli': 'DH',
+  'daman and diu': 'DH', 'delhi': 'DL', 'goa': 'GA', 'gujarat': 'GJ',
+  'haryana': 'HR', 'himachal pradesh': 'HP', 'jammu and kashmir': 'JK', 'jammu': 'JK',
+  'jharkhand': 'JH', 'karnataka': 'KA', 'kerala': 'KL', 'ladakh': 'LA',
+  'lakshadweep': 'LD', 'madhya pradesh': 'MP', 'maharashtra': 'MH', 'manipur': 'MN',
+  'meghalaya': 'ML', 'mizoram': 'MZ', 'nagaland': 'NL', 'odisha': 'OR', 'orissa': 'OR',
+  'punjab': 'PB', 'puducherry': 'PY', 'pondicherry': 'PY', 'rajasthan': 'RJ',
+  'sikkim': 'SK', 'tamil nadu': 'TN', 'tripura': 'TR', 'telangana': 'TS',
+  'uttarakhand': 'UK', 'uttar pradesh': 'UP', 'west bengal': 'WB'
+};
+
+// Convert state name or code to standard state code
+const normalizeStateId = (stateValue: string): string => {
+  if (!stateValue) return '';
+  const normalized = stateValue.toLowerCase().trim();
+  // If it's already a 2-letter code and in our mapping values, return uppercase
+  if (normalized.length === 2 && Object.values(STATE_NAME_TO_CODE).includes(normalized.toUpperCase())) {
+    return normalized.toUpperCase();
+  }
+  // Otherwise, look up by name
+  return STATE_NAME_TO_CODE[normalized] || stateValue;
+};
+
 /**
  * Hook to reload entity data from Supabase after import
  * This ensures imported data appears immediately without page refresh
@@ -29,12 +56,15 @@ export function useImportRefresh() {
 
       if (error) throw error;
 
+      console.log('[useImportRefresh] Courts loaded from DB:', courts?.length);
+
       // Get existing court IDs to avoid duplicates
       const existingIds = new Set(state.courts.map(c => c.id));
 
       // Add only new courts
       courts?.forEach(court => {
         if (!existingIds.has(court.id)) {
+          console.log('[useImportRefresh] Adding court:', court.name, 'phone:', court.phone, 'email:', court.email, 'city:', court.city, 'state:', court.state);
           dispatch({
             type: 'ADD_COURT',
             payload: {
@@ -47,7 +77,7 @@ export function useImportRefresh() {
               email: court.email || '',
               benchLocation: court.bench_location || '',
               city: court.city || '',
-              state: court.state || '',
+              state: normalizeStateId(court.state || ''),
               status: court.status || 'Active',
               authorityLevel: court.level || '',
               code: court.code || '',
@@ -89,6 +119,7 @@ export function useImportRefresh() {
 
       judges?.forEach(judge => {
         if (!existingIds.has(judge.id)) {
+          console.log('[useImportRefresh] Adding judge:', judge.name, 'phone:', judge.phone, 'email:', judge.email);
           dispatch({
             type: 'ADD_JUDGE',
             payload: {
@@ -106,7 +137,7 @@ export function useImportRefresh() {
               notes: judge.notes || '',
               bench: judge.bench || '',
               city: judge.city || '',
-              state: judge.state || '',
+              state: normalizeStateId(judge.state || ''),
               jurisdiction: judge.jurisdiction || '',
             } as unknown as Judge
           });
