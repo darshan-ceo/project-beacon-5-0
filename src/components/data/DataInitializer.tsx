@@ -8,6 +8,33 @@ import { normalizeStage } from '@/utils/stageUtils';
 import { calculateSLAStatus } from '@/services/slaService';
 import { parseCaseNumber } from '@/utils/caseNumberGenerator';
 
+// State name to code mapping for imported data
+const STATE_NAME_TO_CODE: Record<string, string> = {
+  'andaman and nicobar islands': 'AN', 'andaman and nicobar': 'AN', 'andaman': 'AN',
+  'andhra pradesh': 'AP', 'arunachal pradesh': 'AR', 'assam': 'AS', 'bihar': 'BR',
+  'chhattisgarh': 'CG', 'chandigarh': 'CH', 'dadra and nagar haveli': 'DH',
+  'daman and diu': 'DH', 'delhi': 'DL', 'goa': 'GA', 'gujarat': 'GJ',
+  'haryana': 'HR', 'himachal pradesh': 'HP', 'jammu and kashmir': 'JK', 'jammu': 'JK',
+  'jharkhand': 'JH', 'karnataka': 'KA', 'kerala': 'KL', 'ladakh': 'LA',
+  'lakshadweep': 'LD', 'madhya pradesh': 'MP', 'maharashtra': 'MH', 'manipur': 'MN',
+  'meghalaya': 'ML', 'mizoram': 'MZ', 'nagaland': 'NL', 'odisha': 'OR', 'orissa': 'OR',
+  'punjab': 'PB', 'puducherry': 'PY', 'pondicherry': 'PY', 'rajasthan': 'RJ',
+  'sikkim': 'SK', 'tamil nadu': 'TN', 'tripura': 'TR', 'telangana': 'TS',
+  'uttarakhand': 'UK', 'uttar pradesh': 'UP', 'west bengal': 'WB'
+};
+
+// Convert state name or code to standard state code
+const normalizeStateId = (stateValue: string): string => {
+  if (!stateValue) return '';
+  const normalized = stateValue.toLowerCase().trim();
+  // If it's already a 2-letter code and in our mapping values, return uppercase
+  if (normalized.length === 2 && Object.values(STATE_NAME_TO_CODE).includes(normalized.toUpperCase())) {
+    return normalized.toUpperCase();
+  }
+  // Otherwise, look up by name
+  return STATE_NAME_TO_CODE[normalized] || stateValue;
+};
+
 // Global flags to persist data loaded state across component remounts
 // This prevents the "Loading your data..." screen from appearing when switching tabs
 let globalDataLoaded = false;
@@ -373,7 +400,7 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           phone: c.phone || '',
           email: c.email || '',
           city: c.city || '',
-          state: c.state || '',
+          state: normalizeStateId(c.state || ''),
           jurisdiction: c.jurisdiction || '',
           status: c.status || 'Active',
           code: c.code || '',
@@ -399,7 +426,7 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           phone: j.phone || '',
           email: j.email || '',
           city: j.city || '',
-          state: j.state || '',
+          state: normalizeStateId(j.state || ''),
           jurisdiction: j.jurisdiction || '',
           chambers: j.chambers || '',
           bench: j.bench || '',
