@@ -178,6 +178,135 @@ class TasksService {
   }
 
   /**
+   * Bulk update status for multiple tasks
+   */
+  async bulkUpdateStatus(taskIds: string[], status: string, dispatch: any): Promise<{ success: number; failed: number }> {
+    let success = 0;
+    let failed = 0;
+
+    for (const taskId of taskIds) {
+      try {
+        await this.update(taskId, { status: status as any }, dispatch);
+        success++;
+      } catch (error) {
+        console.error(`Failed to update status for task ${taskId}:`, error);
+        failed++;
+      }
+    }
+
+    return { success, failed };
+  }
+
+  /**
+   * Bulk update priority for multiple tasks
+   */
+  async bulkUpdatePriority(taskIds: string[], priority: string, dispatch: any): Promise<{ success: number; failed: number }> {
+    let success = 0;
+    let failed = 0;
+
+    for (const taskId of taskIds) {
+      try {
+        await this.update(taskId, { priority: priority as any }, dispatch);
+        success++;
+      } catch (error) {
+        console.error(`Failed to update priority for task ${taskId}:`, error);
+        failed++;
+      }
+    }
+
+    return { success, failed };
+  }
+
+  /**
+   * Bulk reassign tasks to a new employee
+   */
+  async bulkReassign(taskIds: string[], assigneeId: string, assigneeName: string, dispatch: any): Promise<{ success: number; failed: number }> {
+    let success = 0;
+    let failed = 0;
+
+    for (const taskId of taskIds) {
+      try {
+        await this.update(taskId, { assignedToId: assigneeId, assignedToName: assigneeName }, dispatch);
+        success++;
+      } catch (error) {
+        console.error(`Failed to reassign task ${taskId}:`, error);
+        failed++;
+      }
+    }
+
+    return { success, failed };
+  }
+
+  /**
+   * Bulk update due date for multiple tasks
+   */
+  async bulkUpdateDueDate(taskIds: string[], dueDate: string, dispatch: any): Promise<{ success: number; failed: number }> {
+    let success = 0;
+    let failed = 0;
+
+    for (const taskId of taskIds) {
+      try {
+        await this.update(taskId, { dueDate }, dispatch);
+        success++;
+      } catch (error) {
+        console.error(`Failed to update due date for task ${taskId}:`, error);
+        failed++;
+      }
+    }
+
+    return { success, failed };
+  }
+
+  /**
+   * Bulk add comment to multiple tasks (stores in description or notes)
+   */
+  async bulkAddComment(taskIds: string[], comment: string, userName: string, dispatch: any): Promise<{ success: number; failed: number }> {
+    let success = 0;
+    let failed = 0;
+    const timestamp = new Date().toISOString();
+    const formattedComment = `\n\n[${userName} - ${timestamp.split('T')[0]}]: ${comment}`;
+    const storage = storageManager.getStorage();
+
+    for (const taskId of taskIds) {
+      try {
+        const task = await storage.getById('tasks', taskId) as any;
+        if (task) {
+          const newDescription = (task.description || '') + formattedComment;
+          await this.update(taskId, { description: newDescription }, dispatch);
+          success++;
+        } else {
+          failed++;
+        }
+      } catch (error) {
+        console.error(`Failed to add comment to task ${taskId}:`, error);
+        failed++;
+      }
+    }
+
+    return { success, failed };
+  }
+
+  /**
+   * Bulk delete multiple tasks
+   */
+  async bulkDelete(taskIds: string[], dispatch: any): Promise<{ success: number; failed: number }> {
+    let success = 0;
+    let failed = 0;
+
+    for (const taskId of taskIds) {
+      try {
+        await this.delete(taskId, dispatch);
+        success++;
+      } catch (error) {
+        console.error(`Failed to delete task ${taskId}:`, error);
+        failed++;
+      }
+    }
+
+    return { success, failed };
+  }
+
+  /**
    * List all tasks from Supabase
    */
   async list(): Promise<Task[]> {
@@ -206,43 +335,6 @@ class TasksService {
         createdDate: t.created_at,
         lastModified: t.updated_at,
       } as unknown as Task));
-    } catch (error) {
-      console.error('Failed to list tasks:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get single task by ID
-   */
-  async getById(taskId: string): Promise<Task | null> {
-    try {
-      const storage = storageManager.getStorage();
-      const task = await storage.getById('tasks', taskId) as any;
-      
-      if (!task) return null;
-      
-      // Basic mapping - display-only fields will be populated by UI layer
-      return {
-        id: task.id,
-        title: task.title,
-        description: task.description,
-        status: task.status,
-        priority: task.priority,
-        caseId: task.case_id,
-        clientId: task.client_id,
-        assignedToId: task.assigned_to,
-        assignedById: task.assigned_by,
-        dueDate: task.due_date,
-        completedDate: task.completed_at,
-        estimatedHours: task.estimated_hours,
-        actualHours: task.actual_hours,
-        stage: task.stage,
-        isAutoGenerated: task.is_auto_generated,
-        bundleId: task.bundle_id,
-        createdDate: task.created_at,
-        lastModified: task.updated_at,
-      } as unknown as Task;
     } catch (error) {
       console.error('Failed to get task:', error);
       throw error;
