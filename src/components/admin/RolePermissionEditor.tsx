@@ -115,7 +115,8 @@ export const RolePermissionEditor: React.FC<RolePermissionEditorProps> = ({
   const handleSave = async () => {
     try {
       setIsSaving(true);
-      await supabaseRbacService.updateRolePermissions(role.name, Array.from(selectedPermissions));
+      // Pass role.name as string - service handles both system and custom roles
+      await supabaseRbacService.updateRolePermissions(String(role.name), Array.from(selectedPermissions));
       toast.success(`Permissions updated for ${role.displayName}`);
       onSaved();
       onClose();

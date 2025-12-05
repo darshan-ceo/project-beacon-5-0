@@ -23,7 +23,7 @@ export interface UserWithRoles {
   full_name: string;
   email?: string;
   designation?: string;
-  roles: AppRole[];
+  roles: string[]; // Can be AppRole or custom role names
   status: 'Active' | 'Inactive';
   last_login?: string;
 }
@@ -37,12 +37,31 @@ export interface Permission {
 
 export interface RoleDefinition {
   id: string;
-  name: AppRole;
+  name: AppRole | string;
   displayName: string;
   description: string;
   isSystemRole: boolean;
   isActive: boolean;
   permissions: string[];
+}
+
+export interface CustomRole {
+  id: string;
+  tenant_id: string;
+  name: string;
+  display_name: string;
+  description: string | null;
+  is_system: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+}
+
+export interface CreateCustomRoleInput {
+  name: string;
+  displayName: string;
+  description?: string;
 }
 
 // Role display names and descriptions
@@ -72,7 +91,7 @@ class SupabaseRbacService {
   // ==================== ROLE MANAGEMENT ====================
 
   /**
-   * Get all available roles with their metadata
+   * Get all available roles with their metadata (system + custom)
    */
   async getAllRoles(): Promise<RoleDefinition[]> {
     // Get all permissions to build role-permission mappings
@@ -86,8 +105,8 @@ class SupabaseRbacService {
       .select('role')
       .eq('is_active', true);
 
-    // Build role definitions from metadata
-    const roles: RoleDefinition[] = Object.entries(ROLE_METADATA).map(([role, meta]) => ({
+    // Build system role definitions from metadata
+    const systemRoles: RoleDefinition[] = Object.entries(ROLE_METADATA).map(([role, meta]) => ({
       id: role,
       name: role as AppRole,
       displayName: meta.displayName,
@@ -97,7 +116,131 @@ class SupabaseRbacService {
       permissions: this.getDefaultPermissionsForRole(role as AppRole, (permissions || []) as Permission[]),
     }));
 
-    return roles;
+    // Get custom roles from database
+    const { data: customRolesData } = await supabase
+      .from('custom_roles')
+      .select('*')
+      .eq('is_active', true);
+
+    const customRoles: RoleDefinition[] = (customRolesData || []).map((cr: CustomRole) => ({
+      id: cr.id,
+      name: cr.name,
+      displayName: cr.display_name,
+      description: cr.description || '',
+      isSystemRole: false,
+      isActive: cr.is_active,
+      permissions: [], // Custom roles get permissions from role_permissions table
+    }));
+
+    return [...systemRoles, ...customRoles];
+  }
+
+  // ==================== CUSTOM ROLE MANAGEMENT ====================
+
+  /**
+   * Create a new custom role
+   */
+  async createCustomRole(input: CreateCustomRoleInput): Promise<CustomRole> {
+    const currentUserId = await this.getCurrentUserId();
+    
+    // Get tenant_id
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('tenant_id')
+      .eq('id', currentUserId)
+      .single();
+
+    if (!profile?.tenant_id) {
+      throw new Error('Could not determine tenant');
+    }
+
+    // Validate name format (lowercase, no spaces)
+    const normalizedName = input.name.toLowerCase().replace(/\s+/g, '_');
+
+    const { data, error } = await supabase
+      .from('custom_roles')
+      .insert({
+        tenant_id: profile.tenant_id,
+        name: normalizedName,
+        display_name: input.displayName,
+        description: input.description || null,
+        is_system: false,
+        is_active: true,
+        created_by: currentUserId,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === '23505') {
+        throw new Error('A role with this name already exists');
+      }
+      console.error('Error creating custom role:', error);
+      throw new Error('Failed to create role');
+    }
+
+    // Log to audit
+    await supabase.from('audit_log').insert({
+      tenant_id: profile.tenant_id,
+      user_id: currentUserId,
+      action_type: 'create_custom_role',
+      entity_type: 'role',
+      entity_id: data.id,
+      details: { name: normalizedName, display_name: input.displayName },
+    });
+
+    return data as CustomRole;
+  }
+
+  /**
+   * Update a custom role
+   */
+  async updateCustomRole(roleId: string, updates: Partial<CreateCustomRoleInput>): Promise<void> {
+    const updateData: Record<string, any> = {};
+    if (updates.displayName) updateData.display_name = updates.displayName;
+    if (updates.description !== undefined) updateData.description = updates.description;
+
+    const { error } = await supabase
+      .from('custom_roles')
+      .update(updateData)
+      .eq('id', roleId);
+
+    if (error) {
+      console.error('Error updating custom role:', error);
+      throw new Error('Failed to update role');
+    }
+  }
+
+  /**
+   * Delete a custom role (soft delete by setting is_active = false)
+   */
+  async deleteCustomRole(roleId: string): Promise<void> {
+    const { error } = await supabase
+      .from('custom_roles')
+      .update({ is_active: false })
+      .eq('id', roleId);
+
+    if (error) {
+      console.error('Error deleting custom role:', error);
+      throw new Error('Failed to delete role');
+    }
+  }
+
+  /**
+   * Get all custom roles for current tenant
+   */
+  async getCustomRoles(): Promise<CustomRole[]> {
+    const { data, error } = await supabase
+      .from('custom_roles')
+      .select('*')
+      .order('display_name');
+
+    if (error) {
+      console.error('Error fetching custom roles:', error);
+      return [];
+    }
+
+    return (data || []) as CustomRole[];
   }
 
   /**
@@ -233,7 +376,7 @@ class SupabaseRbacService {
   /**
    * Get roles for a specific user
    */
-  async getUserRoles(userId: string): Promise<AppRole[]> {
+  async getUserRoles(userId: string): Promise<string[]> {
     const { data, error } = await supabase
       .from('user_roles')
       .select('role')
@@ -245,7 +388,7 @@ class SupabaseRbacService {
       return [];
     }
 
-    return (data || []).map(r => r.role as AppRole);
+    return (data || []).map(r => r.role as string);
   }
 
   // ==================== PERMISSIONS ====================
@@ -282,9 +425,9 @@ class SupabaseRbacService {
   }
 
   /**
-   * Update permissions for a role
+   * Update permissions for a role (system or custom)
    */
-  async updateRolePermissions(role: AppRole, permissionKeys: string[]): Promise<void> {
+  async updateRolePermissions(roleName: string, permissionKeys: string[]): Promise<void> {
     const currentUserId = await this.getCurrentUserId();
     
     // Get tenant_id from current user's profile
@@ -302,7 +445,7 @@ class SupabaseRbacService {
     const { error: deleteError } = await supabase
       .from('role_permissions')
       .delete()
-      .eq('role', role);
+      .eq('role', roleName as AppRole);
 
     if (deleteError) {
       console.error('Error deleting existing permissions:', deleteError);
@@ -312,7 +455,7 @@ class SupabaseRbacService {
     // Insert new permissions
     if (permissionKeys.length > 0) {
       const inserts = permissionKeys.map(key => ({
-        role,
+        role: roleName as AppRole,
         permission_key: key,
       }));
 
@@ -332,31 +475,37 @@ class SupabaseRbacService {
       user_id: currentUserId,
       action_type: 'update_role_permissions',
       entity_type: 'role',
-      entity_id: role,
-      details: { role, permissions_count: permissionKeys.length },
+      entity_id: roleName,
+      details: { role: roleName, permissions_count: permissionKeys.length },
     });
   }
 
   /**
    * Get permissions for a specific role from role_permissions table
    */
-  async getRolePermissions(role: AppRole): Promise<string[]> {
+  async getRolePermissions(roleName: string): Promise<string[]> {
     const { data, error } = await supabase
       .from('role_permissions')
       .select('permission_key')
-      .eq('role', role);
+      .eq('role', roleName as AppRole);
 
     if (error) {
       console.error('Error fetching role permissions:', error);
-      // Fall back to default permissions if table query fails
-      const allPerms = await this.getAllPermissions();
-      return this.getDefaultPermissionsForRole(role, allPerms);
+      // Fall back to default permissions if table query fails (only for system roles)
+      if (Object.keys(ROLE_METADATA).includes(roleName)) {
+        const allPerms = await this.getAllPermissions();
+        return this.getDefaultPermissionsForRole(roleName as AppRole, allPerms);
+      }
+      return [];
     }
 
-    // If no custom permissions set, return defaults
+    // If no custom permissions set, return defaults (only for system roles)
     if (!data || data.length === 0) {
-      const allPerms = await this.getAllPermissions();
-      return this.getDefaultPermissionsForRole(role, allPerms);
+      if (Object.keys(ROLE_METADATA).includes(roleName)) {
+        const allPerms = await this.getAllPermissions();
+        return this.getDefaultPermissionsForRole(roleName as AppRole, allPerms);
+      }
+      return [];
     }
 
     return data.map(r => r.permission_key);
@@ -373,7 +522,7 @@ class SupabaseRbacService {
 
     // Get permissions for all user roles
     const allRoles = await this.getAllRoles();
-    const userRoleDefs = allRoles.filter(r => roles.includes(r.name));
+    const userRoleDefs = allRoles.filter(r => roles.includes(String(r.name)));
     
     const permissionKey = `${module}.${action}`;
     return userRoleDefs.some(role => role.permissions.includes(permissionKey));

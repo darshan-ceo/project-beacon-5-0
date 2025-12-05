@@ -23,6 +23,7 @@ import { Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabaseRbacService, type RoleDefinition, type UserWithRoles, type Permission, type AppRole } from '@/services/supabaseRbacService';
 import { RolePermissionEditor } from './RolePermissionEditor';
+import { CreateRoleModal } from './CreateRoleModal';
 
 export const RBACManagement: React.FC = () => {
   // State
@@ -46,6 +47,7 @@ export const RBACManagement: React.FC = () => {
   // Role editor state
   const [editingRole, setEditingRole] = useState<RoleDefinition | null>(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [isCreateRoleOpen, setIsCreateRoleOpen] = useState(false);
 
   // Load data on mount
   useEffect(() => {
@@ -85,9 +87,9 @@ export const RBACManagement: React.FC = () => {
     }
   };
 
-  const handleAssignRole = async (userId: string, role: AppRole) => {
+  const handleAssignRole = async (userId: string, roleName: string) => {
     try {
-      await supabaseRbacService.assignRole(userId, role);
+      await supabaseRbacService.assignRole(userId, roleName as AppRole);
       toast.success('Role assigned successfully');
       setIsAssignRoleOpen(false);
       await loadData(); // Refresh data
@@ -96,9 +98,9 @@ export const RBACManagement: React.FC = () => {
     }
   };
 
-  const handleRevokeRole = async (userId: string, role: AppRole) => {
+  const handleRevokeRole = async (userId: string, roleName: string) => {
     try {
-      await supabaseRbacService.revokeRole(userId, role);
+      await supabaseRbacService.revokeRole(userId, roleName as AppRole);
       toast.success('Role revoked successfully');
       await loadData(); // Refresh data
     } catch (error: any) {
@@ -109,7 +111,7 @@ export const RBACManagement: React.FC = () => {
   const handlePreviewPermissions = (user: UserWithRoles) => {
     setSelectedUser(user);
     // Get all permissions for user's roles
-    const userRoleDefs = roles.filter(r => user.roles.includes(r.name));
+    const userRoleDefs = roles.filter(r => user.roles.includes(String(r.name)));
     const allPermissions = new Set<string>();
     userRoleDefs.forEach(role => {
       role.permissions.forEach(p => allPermissions.add(p));
@@ -121,12 +123,12 @@ export const RBACManagement: React.FC = () => {
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.full_name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
-    const matchesRole = roleFilter === 'all' || user.roles.includes(roleFilter as AppRole);
+    const matchesRole = roleFilter === 'all' || user.roles.includes(roleFilter);
     return matchesSearch && matchesStatus && matchesRole;
   });
 
   const getAvailableRoles = (user: UserWithRoles): RoleDefinition[] => {
-    return roles.filter(role => !user.roles.includes(role.name));
+    return roles.filter(role => !user.roles.includes(String(role.name)));
   };
 
   // Group permissions by module for display
@@ -339,7 +341,7 @@ export const RBACManagement: React.FC = () => {
                                       </div>
                                       <Button 
                                         size="sm"
-                                        onClick={() => handleAssignRole(user.id, role.name)}
+                                        onClick={() => handleAssignRole(user.id, String(role.name))}
                                       >
                                         Assign
                                       </Button>
@@ -375,6 +377,17 @@ export const RBACManagement: React.FC = () => {
 
         {/* Role Definitions Tab */}
         <TabsContent value="roles">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h3 className="text-lg font-semibold">Role Definitions</h3>
+              <p className="text-sm text-muted-foreground">System and custom roles with their permissions</p>
+            </div>
+            <Button onClick={() => setIsCreateRoleOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Role
+            </Button>
+          </div>
+          
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {roles.map((role) => {
               const userCount = analytics?.roleDistribution?.[role.name] || 0;
@@ -418,6 +431,13 @@ export const RBACManagement: React.FC = () => {
               );
             })}
           </div>
+          
+          {/* Create Role Modal */}
+          <CreateRoleModal
+            open={isCreateRoleOpen}
+            onOpenChange={setIsCreateRoleOpen}
+            onSuccess={loadData}
+          />
           
           {/* Role Permission Editor Modal */}
           {editingRole && (
