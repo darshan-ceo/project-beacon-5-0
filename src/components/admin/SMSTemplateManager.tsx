@@ -10,12 +10,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogBody } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FieldTooltipWrapper } from '@/components/help/FieldTooltipWrapper';
 import { 
   Plus, 
   Edit2, 
@@ -396,129 +397,158 @@ const SMSTemplateManager: React.FC = () => {
 
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh]">
+        <DialogContent className="max-w-2xl max-h-[85vh] mx-4 md:mx-auto">
           <DialogHeader>
             <DialogTitle>
               {selectedTemplate ? 'Edit Template' : 'Create SMS Template'}
             </DialogTitle>
           </DialogHeader>
           
-          <Tabs defaultValue="editor" className="mt-4">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="editor">Template Editor</TabsTrigger>
-              <TabsTrigger value="samples">Sample Templates</TabsTrigger>
-            </TabsList>
+          <DialogBody>
+            <Tabs defaultValue="editor" className="mt-2">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="editor">Template Editor</TabsTrigger>
+                <TabsTrigger value="samples">Sample Templates</TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="editor" className="space-y-4 mt-4">
-              <div className="grid gap-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Template Name *</Label>
-                    <Input
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="e.g., Hearing Reminder T-1"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Category</Label>
-                    <Select
-                      value={formData.category}
-                      onValueChange={(value) => setFormData({ ...formData, category: value })}
+              <TabsContent value="editor" className="mt-4">
+                <Card className="border shadow-sm">
+                  <CardContent className="pt-6 space-y-5">
+                    {/* Row 1: Name & Category */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <FieldTooltipWrapper 
+                        formId="sms-template" 
+                        fieldId="template-name" 
+                        label="Template Name"
+                        required
+                      >
+                        <Input
+                          value={formData.name}
+                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                          placeholder="e.g., Hearing Reminder T-1"
+                        />
+                      </FieldTooltipWrapper>
+
+                      <FieldTooltipWrapper 
+                        formId="sms-template" 
+                        fieldId="category" 
+                        label="Category"
+                      >
+                        <Select
+                          value={formData.category}
+                          onValueChange={(value) => setFormData({ ...formData, category: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="z-[200]">
+                            {TEMPLATE_CATEGORIES.map((cat) => (
+                              <SelectItem key={cat.value} value={cat.value}>
+                                {cat.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FieldTooltipWrapper>
+                    </div>
+
+                    {/* DLT Template ID */}
+                    <FieldTooltipWrapper 
+                      formId="sms-template" 
+                      fieldId="dlt-template-id" 
+                      label="DLT Template ID"
                     >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {TEMPLATE_CATEGORIES.map((cat) => (
-                          <SelectItem key={cat.value} value={cat.value}>
-                            {cat.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+                      <Input
+                        value={formData.dltTemplateId}
+                        onChange={(e) => setFormData({ ...formData, dltTemplateId: e.target.value })}
+                        placeholder="e.g., 1107171234567890123"
+                        className="font-mono"
+                      />
+                    </FieldTooltipWrapper>
 
-                <div className="space-y-2">
-                  <Label>DLT Template ID</Label>
-                  <Input
-                    value={formData.dltTemplateId}
-                    onChange={(e) => setFormData({ ...formData, dltTemplateId: e.target.value })}
-                    placeholder="e.g., 1107171234567890"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Required for TRAI compliance. Get this from your DLT portal.
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label>Template Text *</Label>
-                    <span className={`text-xs ${charInfo.length > 160 ? 'text-amber-500' : 'text-muted-foreground'}`}>
-                      {charInfo.length}/160 ({charInfo.smsCount} SMS)
-                    </span>
-                  </div>
-                  <Textarea
-                    value={formData.templateText}
-                    onChange={(e) => setFormData({ ...formData, templateText: e.target.value })}
-                    placeholder="HOFFIC: Your message with {#var#} placeholders. -H-Office"
-                    rows={4}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Use <code className="bg-muted px-1 rounded">{'{#var#}'}</code> for dynamic values. Must match TRAI-registered template exactly.
-                  </p>
-                </div>
-
-                {charInfo.length > 160 && (
-                  <Alert variant="default" className="border-amber-500/50 bg-amber-500/10">
-                    <AlertTriangle className="h-4 w-4 text-amber-500" />
-                    <AlertDescription>
-                      Message exceeds 160 characters. Will be sent as {charInfo.smsCount} SMS parts.
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={formData.isActive}
-                    onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
-                  />
-                  <Label>Active</Label>
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="samples" className="mt-4">
-              <ScrollArea className="h-[400px]">
-                <div className="space-y-3">
-                  {SAMPLE_TEMPLATES.map((sample, idx) => (
-                    <Card key={idx} className="cursor-pointer hover:border-primary/50 transition-colors"
-                      onClick={() => handleUseSample(sample)}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="font-medium">{sample.name}</span>
-                              <Badge variant="outline" className="text-xs">
-                                {TEMPLATE_CATEGORIES.find(c => c.value === sample.category)?.label}
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground font-mono">
-                              {sample.templateText}
-                            </p>
-                          </div>
-                          <Button variant="ghost" size="sm">
-                            Use
-                          </Button>
+                    {/* Template Text */}
+                    <FieldTooltipWrapper 
+                      formId="sms-template" 
+                      fieldId="template-text" 
+                      label="Template Text"
+                      required
+                    >
+                      <div className="space-y-2">
+                        <Textarea
+                          value={formData.templateText}
+                          onChange={(e) => setFormData({ ...formData, templateText: e.target.value })}
+                          placeholder="HOFFIC: Your message with {#var#} placeholders. -H-Office"
+                          className="font-mono text-sm leading-relaxed min-h-[120px]"
+                        />
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs text-muted-foreground">
+                            Use <code className="bg-muted px-1.5 py-0.5 rounded text-xs">{'{#var#}'}</code> for dynamic values
+                          </p>
+                          <Badge 
+                            variant={charInfo.length > 160 ? "destructive" : "secondary"}
+                            className="font-mono text-xs"
+                          >
+                            {charInfo.length}/160 • {charInfo.smsCount} SMS
+                          </Badge>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </ScrollArea>
-            </TabsContent>
-          </Tabs>
+                      </div>
+                    </FieldTooltipWrapper>
+
+                    {charInfo.length > 160 && (
+                      <Alert variant="default" className="border-amber-500/50 bg-amber-500/10">
+                        <AlertTriangle className="h-4 w-4 text-amber-500" />
+                        <AlertDescription>
+                          Message exceeds 160 characters. Will be sent as {charInfo.smsCount} SMS parts.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    {/* Active Switch */}
+                    <div className="flex items-center gap-3 pt-2">
+                      <Switch
+                        checked={formData.isActive}
+                        onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+                      />
+                      <span className="text-sm font-medium">Active</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="samples" className="mt-4">
+                <ScrollArea className="h-[350px] pr-4">
+                  <div className="space-y-3">
+                    {SAMPLE_TEMPLATES.map((sample, idx) => (
+                      <Card key={idx} className="cursor-pointer hover:border-primary/50 transition-colors">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="font-medium">{sample.name}</span>
+                                <Badge variant="outline" className="text-xs">
+                                  {TEMPLATE_CATEGORIES.find(c => c.value === sample.category)?.label}
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-muted-foreground font-mono line-clamp-2">
+                                {sample.templateText}
+                              </p>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleUseSample(sample)}
+                            >
+                              Use
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </TabsContent>
+            </Tabs>
+          </DialogBody>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
@@ -526,7 +556,7 @@ const SMSTemplateManager: React.FC = () => {
             </Button>
             <Button onClick={handleSave} disabled={isSending}>
               {isSending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {selectedTemplate ? 'Update' : 'Create'} Template
+              {selectedTemplate ? 'Update Template' : 'Create Template'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -534,7 +564,7 @@ const SMSTemplateManager: React.FC = () => {
 
       {/* Test SMS Dialog */}
       <Dialog open={isTestDialogOpen} onOpenChange={setIsTestDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md mx-4 md:mx-auto">
           <DialogHeader>
             <DialogTitle>Test SMS</DialogTitle>
           </DialogHeader>
