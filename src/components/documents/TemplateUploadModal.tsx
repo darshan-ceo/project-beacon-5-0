@@ -11,6 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Upload, FileText, CheckCircle, AlertCircle, ArrowRight, X } from 'lucide-react';
 import { docxTemplateService, DetectedVariable, VariableMapping } from '@/services/docxTemplateService';
 import { cn } from '@/lib/utils';
+import { CASE_STAGES } from '@/utils/stageUtils';
 
 interface TemplateUploadModalProps {
   isOpen: boolean;
@@ -24,9 +25,7 @@ interface TemplateUploadModalProps {
   }) => void;
 }
 
-const STAGES = [
-  'Scrutiny', 'Adjudication', 'Demand', 'Appeals', 'GSTAT', 'HC', 'SC'
-];
+// Using canonical CASE_STAGES from stageUtils
 
 type UploadStep = 'upload' | 'mapping' | 'review';
 
@@ -365,7 +364,7 @@ export const TemplateUploadModal: React.FC<TemplateUploadModalProps> = ({
                       <SelectValue placeholder="Select stage" />
                     </SelectTrigger>
                     <SelectContent>
-                      {STAGES.map(stage => (
+                      {CASE_STAGES.map(stage => (
                         <SelectItem key={stage} value={stage}>{stage}</SelectItem>
                       ))}
                     </SelectContent>

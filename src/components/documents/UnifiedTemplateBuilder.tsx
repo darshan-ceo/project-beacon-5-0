@@ -32,6 +32,7 @@ import {
   FileType, Sparkles, Save, Shield
 } from 'lucide-react';
 import { FormField } from '@/services/formTemplatesService';
+import { CASE_STAGES } from '@/utils/stageUtils';
 import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 import { getMockData } from '@/services/seedTemplatesService';
 import { ThreeLayerHelp } from '@/components/ui/three-layer-help';
@@ -136,7 +137,7 @@ const FIELD_LIBRARY: FieldLibraryItem[] = [
   { key: 'financial_year', label: 'Financial Year', type: 'string', category: 'system', prefillPath: 'system.financialYear', description: 'Current FY', icon: Calendar },
 ];
 
-const STAGES = ['Scrutiny', 'Demand', 'Adjudication', 'Appeals', 'GSTAT', 'HC', 'SC'];
+// Using canonical CASE_STAGES from stageUtils
 const FONTS = ['Inter', 'Roboto', 'Open Sans', 'Lato', 'Poppins'];
 
 const createDefaultTemplate = (): UnifiedTemplate => ({
@@ -568,7 +569,7 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {STAGES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    {CASE_STAGES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>

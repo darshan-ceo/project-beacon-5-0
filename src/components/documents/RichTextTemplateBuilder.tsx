@@ -24,6 +24,7 @@ import {
   Code, Quote, Minus, Eye, FileText, Plus, HelpCircle, ChevronDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { CASE_STAGES } from '@/utils/stageUtils';
 
 interface RichTextTemplateBuilderProps {
   isOpen: boolean;
@@ -85,9 +86,7 @@ const VARIABLE_OPTIONS: VariableOption[] = [
   { category: 'System', label: 'Financial Year', value: '{{system.financialYear}}', description: 'Current FY' },
 ];
 
-const STAGES = [
-  'Scrutiny', 'Adjudication', 'Demand', 'Appeals', 'GSTAT', 'HC', 'SC'
-];
+// Using canonical CASE_STAGES from stageUtils
 
 export const RichTextTemplateBuilder: React.FC<RichTextTemplateBuilderProps> = ({
   isOpen,
@@ -284,7 +283,7 @@ export const RichTextTemplateBuilder: React.FC<RichTextTemplateBuilderProps> = (
                     <SelectValue placeholder="Select stage" />
                   </SelectTrigger>
                   <SelectContent>
-                    {STAGES.map(stage => (
+                    {CASE_STAGES.map(stage => (
                       <SelectItem key={stage} value={stage}>{stage}</SelectItem>
                     ))}
                   </SelectContent>
