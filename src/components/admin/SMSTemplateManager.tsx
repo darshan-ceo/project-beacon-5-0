@@ -442,14 +442,14 @@ const SMSTemplateManager: React.FC = () => {
           style={{
             backgroundColor: '#F8FAFC',
             border: '1px solid #E2E8F0',
-            boxShadow: '0 25px 50px -12px rgba(0, 71, 255, 0.15), 0 0 0 1px rgba(0, 71, 255, 0.05)'
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05)'
           }}
         >
           {/* Modal Header - Beacon 5.0 Style */}
           <DialogHeader className="px-6 py-5 border-b shrink-0" style={{ borderColor: '#E2E8F0', backgroundColor: '#FFFFFF' }}>
             <DialogTitle className="text-lg font-semibold flex items-center gap-2" style={{ color: '#1E293B' }}>
-              <div className="p-1.5 rounded-lg" style={{ backgroundColor: 'rgba(0, 71, 255, 0.1)' }}>
-                <MessageSquare className="h-5 w-5" style={{ color: '#0047FF' }} />
+              <div className="p-1.5 rounded-lg" style={{ backgroundColor: 'rgba(0, 0, 0, 0.05)' }}>
+                <MessageSquare className="h-5 w-5" style={{ color: '#000000' }} />
               </div>
               {selectedTemplate ? 'Edit Template' : 'Create SMS Template'}
               <Tooltip>
@@ -667,8 +667,8 @@ const SMSTemplateManager: React.FC = () => {
                             border: '1px solid #E2E8F0'
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = 'rgba(0, 71, 255, 0.3)';
-                            e.currentTarget.style.boxShadow = '0 10px 25px -5px rgba(0, 71, 255, 0.08)';
+                            e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.3)';
+                            e.currentTarget.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.08)';
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.borderColor = '#E2E8F0';
@@ -682,9 +682,9 @@ const SMSTemplateManager: React.FC = () => {
                                   {/* Category Icon */}
                                   <div 
                                     className="p-1.5 rounded-lg"
-                                    style={{ backgroundColor: 'rgba(0, 71, 255, 0.1)' }}
+                                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.05)' }}
                                   >
-                                    <CategoryIcon className="h-4 w-4" style={{ color: '#0047FF' }} />
+                                    <CategoryIcon className="h-4 w-4" style={{ color: '#000000' }} />
                                   </div>
                                   <span className="font-semibold" style={{ color: '#1E293B' }}>{sample.name}</span>
                                   
@@ -728,13 +728,13 @@ const SMSTemplateManager: React.FC = () => {
                                     onClick={() => handleUseSample(sample)}
                                     className="shrink-0 rounded-lg shadow-sm text-white transition-all"
                                     style={{ 
-                                      backgroundColor: '#0047FF'
+                                      backgroundColor: '#000000'
                                     }}
                                     onMouseEnter={(e) => {
-                                      e.currentTarget.style.backgroundColor = '#0036CC';
+                                      e.currentTarget.style.backgroundColor = '#262626';
                                     }}
                                     onMouseLeave={(e) => {
-                                      e.currentTarget.style.backgroundColor = '#0047FF';
+                                      e.currentTarget.style.backgroundColor = '#000000';
                                     }}
                                   >
                                     Use
@@ -778,12 +778,12 @@ const SMSTemplateManager: React.FC = () => {
                   onClick={handleSave} 
                   disabled={isSending}
                   className="h-10 px-5 rounded-lg shadow-sm text-white transition-all"
-                  style={{ backgroundColor: '#0047FF' }}
+                  style={{ backgroundColor: '#000000' }}
                   onMouseEnter={(e) => {
-                    if (!isSending) e.currentTarget.style.backgroundColor = '#0036CC';
+                    if (!isSending) e.currentTarget.style.backgroundColor = '#262626';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = '#0047FF';
+                    e.currentTarget.style.backgroundColor = '#000000';
                   }}
                 >
                   {isSending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
