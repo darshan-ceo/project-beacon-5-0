@@ -381,6 +381,25 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
           // Refresh employee list from database
           secureLog.debug('Invalidating employee queries');
           await queryClient.invalidateQueries({ queryKey: ['employees'] });
+          
+          // Sync to AppStateContext for components using state.employees (Task Modal, Case Modal dropdowns)
+          dispatch({
+            type: 'ADD_EMPLOYEE',
+            payload: {
+              id: data.employee.id,
+              employeeCode: data.employee.employeeCode,
+              full_name: data.employee.fullName,
+              email: data.employee.email,
+              mobile: formData.mobile,
+              role: formData.role,
+              department: formData.department,
+              designation: formData.designation,
+              status: 'Active',
+              date_of_joining: formData.date_of_joining,
+              workloadCapacity: formData.workloadCapacity || 40,
+            }
+          });
+          
           secureLog.info('Employee creation complete');
           onClose();
         } else {
