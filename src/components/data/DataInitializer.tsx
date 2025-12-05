@@ -76,11 +76,20 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
         return;
       }
 
-      // Skip reload if data was already loaded for this tenant
+      // Skip reload if data was already loaded for this tenant AND state has data
+      const currentEmployees = appStateContext?.state?.employees || [];
+      
       if (globalDataLoaded && globalLoadedTenantId === tenantId) {
-        console.log('[DataInitializer] Data already loaded for tenant, skipping reload');
-        setIsLoading(false);
-        return;
+        // Additional validation: check if state actually has employees loaded
+        if (currentEmployees.length > 0) {
+          console.log('[DataInitializer] Data already loaded for tenant AND state has employees, skipping reload');
+          setIsLoading(false);
+          return;
+        } else {
+          // Flags say loaded but state is empty - force reload
+          console.log('[DataInitializer] Flags indicate loaded but state.employees is empty - forcing reload');
+          globalDataLoaded = false;
+        }
       }
 
       console.log('[DataInitializer] Loading data for tenant:', tenantId);
