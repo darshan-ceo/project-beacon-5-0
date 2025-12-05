@@ -369,6 +369,15 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           addressId: c.address_id || c.addressId,
           benchLocation: c.bench_location || c.benchLocation,
           authorityLevel: c.level || c.authority_level || c.authorityLevel,
+          // Additional fields for complete mapping
+          phone: c.phone || '',
+          email: c.email || '',
+          city: c.city || '',
+          state: c.state || '',
+          jurisdiction: c.jurisdiction || '',
+          status: c.status || 'Active',
+          code: c.code || '',
+          establishedYear: c.established_year || c.establishedYear,
         }));
 
         const judges = (judgesData.data || []).map((j: any) => ({
@@ -386,6 +395,16 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           updatedAt: j.updated_at || j.updatedAt,
           createdBy: j.created_by || j.createdBy,
           updatedBy: j.updated_by || j.updatedBy,
+          // Additional fields for complete mapping
+          phone: j.phone || '',
+          email: j.email || '',
+          city: j.city || '',
+          state: j.state || '',
+          jurisdiction: j.jurisdiction || '',
+          chambers: j.chambers || '',
+          bench: j.bench || '',
+          status: j.status || 'Active',
+          notes: j.notes || '',
         }));
 
         // Transform folders data

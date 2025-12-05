@@ -327,8 +327,8 @@ class ImportIntegrationService {
         bench_location: record.bench || record.bench_location || null,
         jurisdiction: record.jurisdiction || record.district || null,
         established_year: record.established_year ? parseInt(record.established_year) : null,
-        phone: record.phone || null,
-        email: record.email || null,
+        phone: record.phone || record.phone_number || record['Phone Number'] || record['Phone'] || null,
+        email: record.email || record.Email || record.email_address || record['Email'] || null,
         status: record.status || 'Active',
         created_by: userId,
         // Don't include id - let Supabase generate UUID
@@ -385,8 +385,8 @@ class ImportIntegrationService {
         state: record.state_name || record.state_code || record.state || null,
         jurisdiction: record.district || record.jurisdiction || null,
         chambers: chambers,
-        email: record.email || null,
-        phone: record.phone || null,
+        email: record.email || record.Email || record.email_address || record['Email'] || null,
+        phone: record.phone || record.phone_number || record['Phone Number'] || record['Phone'] || null,
         status: record.status || 'Active',
         created_by: userId,
         // Don't include id - let Supabase generate UUID
