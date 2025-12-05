@@ -56,6 +56,31 @@ class ImportIntegrationService {
   }
 
   /**
+   * Map designation to valid role value
+   * Valid roles: Partner, CA, Advocate, Manager, Staff, RM, Finance, Admin
+   */
+  private mapDesignationToRole(designation: string | undefined, role: string | undefined): string {
+    // If a valid role is already provided, use it
+    const validRoles = ['Partner', 'CA', 'Advocate', 'Manager', 'Staff', 'RM', 'Finance', 'Admin'];
+    if (role && validRoles.some(r => r.toLowerCase() === role.toLowerCase())) {
+      return validRoles.find(r => r.toLowerCase() === role.toLowerCase()) || 'Staff';
+    }
+    
+    // Map designation to role
+    const designationLower = (designation || '').toLowerCase();
+    
+    if (designationLower.includes('partner')) return 'Partner';
+    if (designationLower.includes('ca') || designationLower.includes('chartered')) return 'CA';
+    if (designationLower.includes('advocate') || designationLower.includes('lawyer') || designationLower.includes('counsel')) return 'Advocate';
+    if (designationLower.includes('manager') || designationLower.includes('head') || designationLower.includes('lead')) return 'Manager';
+    if (designationLower.includes('admin')) return 'Admin';
+    if (designationLower.includes('finance') || designationLower.includes('accounts') || designationLower.includes('accountant')) return 'Finance';
+    if (designationLower.includes('rm') || designationLower.includes('relationship')) return 'RM';
+    
+    return 'Staff'; // Valid default
+  }
+
+  /**
    * Lookup client group by name or code
    */
   private async lookupClientGroup(
@@ -265,17 +290,29 @@ class ImportIntegrationService {
       const tenantId = await this.getTenantId();
       const userId = await this.getUserId();
       
+      // Extract fields with template column name fallbacks
+      const email = record.work_email || record.email || record.Email || record['Work Email'] || null;
+      const mobile = record.work_mobile || record.mobile || record.phone || record.Phone || record['Work Mobile'] || null;
+      const state = record.state_code || record.state || record.State || record['State Code'] || null;
+      const city = record.city || record.City || null;
+      const designation = record.designation || record.Designation || 'Staff';
+      
+      // Map designation to valid role
+      const role = this.mapDesignationToRole(designation, record.role);
+      
       const employeePayload = {
         tenant_id: tenantId,
-        full_name: record.full_name || record.name,
-        employee_code: record.employee_code || `EMP-${Date.now()}`,
-        email: record.email,
-        mobile: record.phone || record.mobile || null,
-        designation: record.designation || 'Staff',
-        department: record.department || 'General',
-        role: record.role || 'user',
-        status: record.status || 'Active',
-        date_of_joining: record.joining_date || record.date_of_joining || null,
+        full_name: record.full_name || record.name || record['Full Name'] || record.Name,
+        employee_code: record.employee_code || record['Employee Code'] || `EMP-${Date.now()}`,
+        email: email,
+        mobile: mobile,
+        designation: designation,
+        department: record.department || record.Department || 'General',
+        role: role,
+        status: record.status || record.Status || 'Active',
+        state: state,
+        city: city,
+        date_of_joining: record.joining_date || record.date_of_joining || record['Joining Date'] || null,
         created_by: userId,
         // Don't include id - let Supabase generate UUID
       };
@@ -291,6 +328,10 @@ class ImportIntegrationService {
           throw new Error(`Employee with email ${record.email} already exists`);
         }
         throw new Error('Duplicate employee record');
+      }
+      // Enhanced error message for CHECK constraint violations
+      if (error.code === '23514') {
+        throw new Error(`Invalid value for role, status, or employment_type. Valid roles: Partner, CA, Advocate, Manager, Staff, RM, Finance, Admin`);
       }
       throw new Error(error.message || 'Failed to insert employee');
     }
