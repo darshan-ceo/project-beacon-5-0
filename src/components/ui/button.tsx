@@ -18,6 +18,9 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground hover:bg-secondary-hover shadow-beacon-sm hover:shadow-beacon-md",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        // Beacon 5.0 ESS Black Accent Theme variants
+        beaconPrimary: "bg-[hsl(0,0%,0%)] text-white hover:bg-[hsl(0,0%,15%)] shadow-sm hover:shadow-md",
+        beaconGhost: "border border-[hsl(214,32%,91%)] bg-white text-[hsl(215,16%,27%)] hover:bg-[hsl(210,40%,98%)]",
       },
       size: {
         default: "h-10 px-4 py-2",
