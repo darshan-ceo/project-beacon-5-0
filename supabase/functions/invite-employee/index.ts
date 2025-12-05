@@ -247,7 +247,7 @@ serve(async (req) => {
 
     console.log('[invite-employee] Validated input');
 
-    // Check for existing user with this email in tenant
+    // Check for existing employee with this email in THIS tenant
     const { data: existingEmployee, error: checkError } = await supabaseAdmin
       .from('employees')
       .select('id')
@@ -256,19 +256,105 @@ serve(async (req) => {
       .maybeSingle();
 
     if (existingEmployee) {
-      throw new Error('Email already exists in this organization');
+      throw new Error('This employee already exists in your organization');
     }
 
-    console.log('[invite-employee] Email is unique');
+    console.log('[invite-employee] Email not in employees table for this tenant');
+
+    // Check if auth user already exists with this email
+    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+    const existingAuthUser = existingUsers?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
+
+    let authUserId: string;
+    let isExistingUser = false;
+
+    if (existingAuthUser) {
+      console.log('[invite-employee] Auth user already exists:', existingAuthUser.id);
+      
+      // Check if this auth user belongs to a different tenant
+      const { data: existingProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', existingAuthUser.id)
+        .maybeSingle();
+
+      if (existingProfile && existingProfile.tenant_id !== tenantId) {
+        throw new Error('This email is registered with a different organization');
+      }
+
+      // Use existing auth user
+      authUserId = existingAuthUser.id;
+      isExistingUser = true;
+
+      // Update profile if it exists but has different tenant (shouldn't happen after above check)
+      // Or create profile if it doesn't exist
+      const { data: profileExists } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('id', authUserId)
+        .maybeSingle();
+
+      if (!profileExists) {
+        console.log('[invite-employee] Creating profile for existing auth user');
+        await supabaseAdmin
+          .from('profiles')
+          .insert({
+            id: authUserId,
+            tenant_id: tenantId,
+            full_name: fullName,
+            phone: mobile,
+          });
+      }
+
+    } else {
+      // Generate employee code first
+      const { data: existingEmployees } = await supabaseAdmin
+        .from('employees')
+        .select('employee_code')
+        .eq('tenant_id', tenantId)
+        .like('employee_code', 'GSTE%');
+
+      const existingCodes = (existingEmployees || [])
+        .map(e => parseInt(e.employee_code.substring(4) || '0'))
+        .filter(num => !isNaN(num));
+
+      // Generate password if not provided
+      const password = providedPassword || generatePassword();
+
+      console.log('[invite-employee] Creating new auth user');
+
+      // Create auth user with Admin API
+      const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: {
+          full_name: fullName,
+          phone: mobile,
+          tenant_id: tenantId,
+        }
+      });
+
+      if (authError || !authUser.user) {
+        console.error('[invite-employee] Auth error:', authError);
+        throw new Error(`Failed to create user: ${authError?.message}`);
+      }
+
+      authUserId = authUser.user.id;
+      console.log('[invite-employee] Auth user created:', authUserId);
+
+      // Wait a moment for the trigger to create profile
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
 
     // Generate employee code
-    const { data: existingEmployees } = await supabaseAdmin
+    const { data: existingEmployeesForCode } = await supabaseAdmin
       .from('employees')
       .select('employee_code')
       .eq('tenant_id', tenantId)
       .like('employee_code', 'GSTE%');
 
-    const existingCodes = (existingEmployees || [])
+    const existingCodes = (existingEmployeesForCode || [])
       .map(e => parseInt(e.employee_code.substring(4) || '0'))
       .filter(num => !isNaN(num));
 
@@ -277,36 +363,9 @@ serve(async (req) => {
 
     console.log('[invite-employee] Generated employee code:', employeeCode);
 
-    // Generate password if not provided
-    const password = providedPassword || generatePassword();
-
-    console.log('[invite-employee] Creating auth user');
-
-    // Create auth user with Admin API
-    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true, // Auto-confirm email
-      user_metadata: {
-        full_name: fullName,
-        phone: mobile,
-        tenant_id: tenantId,
-      }
-    });
-
-    if (authError || !authUser.user) {
-      console.error('[invite-employee] Auth error:', authError);
-      throw new Error(`Failed to create user: ${authError?.message}`);
-    }
-
-    console.log('[invite-employee] Auth user created:', authUser.user.id);
-
-    // Wait a moment for the trigger to create profile
-    await new Promise(resolve => setTimeout(resolve, 500));
-
     // Create employee record
     const employeeData = {
-      id: authUser.user.id,
+      id: authUserId,
       employee_code: employeeCode,
       full_name: fullName,
       email,
@@ -336,8 +395,10 @@ serve(async (req) => {
         details: employeeError.details,
         hint: employeeError.hint
       });
-      // Rollback auth user
-      await supabaseAdmin.auth.admin.deleteUser(authUser.user.id);
+      // Only rollback auth user if we created it (not existing)
+      if (!isExistingUser) {
+        await supabaseAdmin.auth.admin.deleteUser(authUserId);
+      }
       throw new Error('Failed to create employee record. Please check all required fields are provided.');
     }
 
@@ -347,7 +408,7 @@ serve(async (req) => {
     await supabaseAdmin
       .from('user_roles')
       .delete()
-      .eq('user_id', authUser.user.id)
+      .eq('user_id', authUserId)
       .eq('role', 'user');
 
     // Assign RBAC roles based on employee role
@@ -357,10 +418,13 @@ serve(async (req) => {
     for (const rbacRole of rbacRoles) {
       const { error: roleError } = await supabaseAdmin
         .from('user_roles')
-        .insert({
-          user_id: authUser.user.id,
+        .upsert({
+          user_id: authUserId,
           role: rbacRole,
           granted_by: user.id,
+          is_active: true,
+        }, {
+          onConflict: 'user_id,role'
         });
 
       if (roleError) {
@@ -374,7 +438,7 @@ serve(async (req) => {
     await supabaseAdmin
       .from('audit_log')
       .insert({
-        action_type: 'create_employee',
+        action_type: isExistingUser ? 'link_employee' : 'create_employee',
         entity_type: 'employee',
         entity_id: employee.id,
         user_id: user.id,
@@ -384,16 +448,15 @@ serve(async (req) => {
           employee_name: fullName,
           employee_role: role,
           employee_code: employee.employee_code,
+          linked_existing_user: isExistingUser,
         },
       });
 
     console.log('[invite-employee] Audit log created');
 
     // TODO: Send welcome email if sendWelcomeEmail is true
-    // This would require email service integration (Resend, SendGrid, etc.)
     if (sendWelcomeEmail) {
       console.log('[invite-employee] Welcome email would be sent here');
-      // Future implementation: Send email with credentials
     }
 
     const response = {
@@ -405,10 +468,13 @@ serve(async (req) => {
         email: employee.email,
         role: employee.role,
       },
-      credentials: sendWelcomeEmail ? null : { email, password },
-      message: sendWelcomeEmail 
-        ? 'Employee created successfully. Welcome email sent.' 
-        : 'Employee created successfully.',
+      linkedExistingUser: isExistingUser,
+      credentials: (sendWelcomeEmail || isExistingUser) ? null : { email, password: providedPassword || 'auto-generated' },
+      message: isExistingUser 
+        ? 'Existing user linked as employee successfully.' 
+        : (sendWelcomeEmail 
+            ? 'Employee created successfully. Welcome email sent.' 
+            : 'Employee created successfully.'),
     };
 
     console.log('[invite-employee] Success');
