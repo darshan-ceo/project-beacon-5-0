@@ -304,6 +304,17 @@ class ImportIntegrationService {
       const tenantId = await this.getTenantId();
       const userId = await this.getUserId();
       
+      // Build full address string from multiple fields
+      const addressParts = [
+        record.address_line1,
+        record.address_line2,
+        record.landmark,
+        record.courtroom,
+        record.district,
+        record.pincode
+      ].filter(Boolean);
+      const fullAddress = addressParts.join(', ') || record.address || null;
+      
       const courtPayload = {
         tenant_id: tenantId,
         name: record.court_name || record.name,
@@ -311,10 +322,14 @@ class ImportIntegrationService {
         level: record.court_level || record.level || null,
         code: record.court_code || record.code || null,
         city: record.city || null,
-        state: record.state_code || record.state || null,
-        address: [record.address_line1, record.address_line2].filter(Boolean).join(', ') || record.address || null,
-        jurisdiction: record.jurisdiction || null,
+        state: record.state_name || record.state_code || record.state || null,
+        address: fullAddress,
+        bench_location: record.bench || record.bench_location || null,
+        jurisdiction: record.jurisdiction || record.district || null,
         established_year: record.established_year ? parseInt(record.established_year) : null,
+        phone: record.phone || null,
+        email: record.email || null,
+        status: record.status || 'Active',
         created_by: userId,
         // Don't include id - let Supabase generate UUID
       };
@@ -352,13 +367,27 @@ class ImportIntegrationService {
         }
       }
       
+      // Build chambers/address from multiple fields
+      const chambersParts = [
+        record.address_line1,
+        record.address_line2,
+        record.landmark
+      ].filter(Boolean);
+      const chambers = chambersParts.join(', ') || null;
+      
       const judgePayload = {
         tenant_id: tenantId,
         name: record.judge_name || record.name,
         designation: record.designation || null,
         court_id: courtId,
+        bench: record.bench || null,
+        city: record.city || null,
+        state: record.state_name || record.state_code || record.state || null,
+        jurisdiction: record.district || record.jurisdiction || null,
+        chambers: chambers,
         email: record.email || null,
         phone: record.phone || null,
+        status: record.status || 'Active',
         created_by: userId,
         // Don't include id - let Supabase generate UUID
       };
