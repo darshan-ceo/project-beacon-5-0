@@ -1,5 +1,6 @@
 /**
- * SMS Template Manager - TRAI DLT Compliant Template Management
+ * SMS Template Manager - Beacon 5.0 ESS Design
+ * TRAI DLT Compliant Template Management
  */
 
 import React, { useState, useEffect } from 'react';
@@ -15,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { FieldTooltipWrapper } from '@/components/help/FieldTooltipWrapper';
 import { 
   Plus, 
@@ -28,7 +30,14 @@ import {
   CheckCircle2,
   Loader2,
   Copy,
-  Eye
+  Eye,
+  Bell,
+  Clock,
+  CheckSquare,
+  FileUp,
+  Shield,
+  Sparkles,
+  type LucideIcon
 } from 'lucide-react';
 import { smsService, SMSTemplate } from '@/services/smsService';
 import { toast } from '@/hooks/use-toast';
@@ -43,6 +52,31 @@ const TEMPLATE_CATEGORIES = [
   { value: 'welcome', label: 'Welcome Message' },
   { value: 'general', label: 'General' }
 ];
+
+// Category icons mapping
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  hearing_reminder: Bell,
+  deadline_alert: Clock,
+  case_update: FileText,
+  task_assigned: CheckSquare,
+  document_request: FileUp,
+  otp_verification: Shield,
+  welcome: Sparkles,
+  general: MessageSquare
+};
+
+// Help text mapping for sample templates
+const SAMPLE_HELP_TEXT: Record<string, string> = {
+  'Hearing Reminder T-1': 'Auto-fills on hearing date updates',
+  'Hearing Same Day': 'Triggered morning of hearing date',
+  'Statutory Deadline Approaching': 'Sent 7, 3, 1 days before deadline',
+  'Statutory Deadline Today': 'Urgent reminder on deadline day',
+  'Case Update': 'Manual trigger for case status changes',
+  'Task Assignment': 'Automatic on task creation',
+  'Document Request': 'Triggered when documents are requested',
+  'OTP Verification': 'Used for authentication flows',
+  'Welcome Message': 'Sent on client registration'
+};
 
 // Pre-defined TRAI-compliant template examples
 const SAMPLE_TEMPLATES = [
@@ -257,6 +291,12 @@ const SMSTemplateManager: React.FC = () => {
 
   const charInfo = getCharacterInfo(formData.templateText);
 
+  // Get category icon component
+  const getCategoryIcon = (category: string) => {
+    const IconComponent = CATEGORY_ICONS[category] || MessageSquare;
+    return IconComponent;
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -394,16 +434,39 @@ const SMSTemplateManager: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Create/Edit Dialog - SMS Template Modal */}
+      {/* ============================================
+          BEACON 5.0 ESS SMS TEMPLATE MODAL
+          ============================================ */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sms-template-modal max-w-2xl h-[80vh] flex flex-col mx-6 md:mx-auto p-0 gap-0 rounded-xl shadow-2xl border-border/50 bg-background overflow-hidden">
-          {/* Modal Header */}
-          <DialogHeader className="px-6 py-5 border-b border-border/50 bg-muted/30 shrink-0">
-            <DialogTitle className="text-xl font-semibold tracking-tight text-foreground flex items-center gap-2">
-              <MessageSquare className="h-5 w-5 text-primary" />
+        <DialogContent className="beacon-modal max-w-2xl h-[80vh] flex flex-col mx-6 md:mx-auto p-0 gap-0 rounded-xl overflow-hidden"
+          style={{
+            backgroundColor: '#F8FAFC',
+            border: '1px solid #E2E8F0',
+            boxShadow: '0 25px 50px -12px rgba(0, 71, 255, 0.15), 0 0 0 1px rgba(0, 71, 255, 0.05)'
+          }}
+        >
+          {/* Modal Header - Beacon 5.0 Style */}
+          <DialogHeader className="px-6 py-5 border-b shrink-0" style={{ borderColor: '#E2E8F0', backgroundColor: '#FFFFFF' }}>
+            <DialogTitle className="text-lg font-semibold flex items-center gap-2" style={{ color: '#1E293B' }}>
+              <div className="p-1.5 rounded-lg" style={{ backgroundColor: 'rgba(0, 71, 255, 0.1)' }}>
+                <MessageSquare className="h-5 w-5" style={{ color: '#0047FF' }} />
+              </div>
               {selectedTemplate ? 'Edit Template' : 'Create SMS Template'}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 cursor-help ml-1" style={{ color: '#64748B' }} />
+                </TooltipTrigger>
+                <TooltipContent 
+                  className="max-w-[280px] p-3 rounded-lg shadow-lg"
+                  style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0' }}
+                >
+                  <p className="text-sm" style={{ color: '#334155' }}>
+                    <strong>TRAI DLT Compliance:</strong> All SMS templates must be registered with the Telecom Regulatory Authority of India (TRAI) DLT platform before use.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
             </DialogTitle>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm mt-1" style={{ color: '#64748B' }}>
               Configure TRAI DLT-compliant message template
             </p>
           </DialogHeader>
@@ -411,23 +474,49 @@ const SMSTemplateManager: React.FC = () => {
           {/* Modal Body - Fixed Height with Internal Scroll */}
           <div className="flex-1 overflow-hidden px-6 py-4">
             <Tabs defaultValue="editor" className="h-full flex flex-col">
-              {/* Tab Navigation Bar */}
-              <TabsList className="grid w-full grid-cols-2 h-11 p-1 bg-muted/50 rounded-lg shrink-0 mb-4">
+              {/* Tab Navigation Bar - Beacon 5.0 Style */}
+              <TabsList 
+                className="grid w-full grid-cols-2 h-12 p-1 rounded-lg shrink-0 mb-4"
+                style={{ backgroundColor: '#F1F5F9' }}
+              >
                 <TabsTrigger 
                   value="editor" 
-                  className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground font-medium text-sm transition-all duration-200"
+                  className="rounded-md font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2 data-[state=active]:shadow-sm"
+                  style={{
+                    color: '#64748B'
+                  }}
                 >
-                  <FileText className="h-4 w-4 mr-2" />
+                  <FileText className="h-4 w-4" />
                   Template Editor
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3.5 w-3.5" style={{ color: '#94A3B8' }} />
+                    </TooltipTrigger>
+                    <TooltipContent>Create or edit your SMS template</TooltipContent>
+                  </Tooltip>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="samples"
-                  className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground font-medium text-sm transition-all duration-200"
+                  className="rounded-md font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2 data-[state=active]:shadow-sm"
+                  style={{
+                    color: '#64748B'
+                  }}
                 >
-                  <Eye className="h-4 w-4 mr-2" />
+                  <Eye className="h-4 w-4" />
                   Sample Templates
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3.5 w-3.5" style={{ color: '#94A3B8' }} />
+                    </TooltipTrigger>
+                    <TooltipContent>Browse pre-built TRAI-compliant templates</TooltipContent>
+                  </Tooltip>
                 </TabsTrigger>
               </TabsList>
+
+              {/* Single-line Help Text */}
+              <p className="text-sm px-1 mb-4" style={{ color: '#64748B' }}>
+                Select a template to auto-fill variables based on case details.
+              </p>
 
               {/* Tab Content Container - Fixed Height */}
               <div className="flex-1 overflow-hidden relative">
@@ -436,7 +525,10 @@ const SMSTemplateManager: React.FC = () => {
                   value="editor" 
                   className="absolute inset-0 m-0 data-[state=inactive]:opacity-0 data-[state=active]:opacity-100 transition-opacity duration-200 overflow-y-auto"
                 >
-                  <Card className="border border-border/60 shadow-sm rounded-xl bg-card">
+                  <Card 
+                    className="rounded-xl shadow-sm"
+                    style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0' }}
+                  >
                     <CardContent className="p-6 space-y-6">
                       {/* Row 1: Name & Category */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -450,7 +542,11 @@ const SMSTemplateManager: React.FC = () => {
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                             placeholder="e.g., Hearing Reminder T-1"
-                            className="h-10 rounded-lg border-border/60 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                            className="h-10 rounded-lg transition-all"
+                            style={{ 
+                              borderColor: '#E2E8F0',
+                              color: '#334155'
+                            }}
                           />
                         </FieldTooltipWrapper>
 
@@ -463,7 +559,10 @@ const SMSTemplateManager: React.FC = () => {
                             value={formData.category}
                             onValueChange={(value) => setFormData({ ...formData, category: value })}
                           >
-                            <SelectTrigger className="h-10 rounded-lg border-border/60 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all">
+                            <SelectTrigger 
+                              className="h-10 rounded-lg transition-all"
+                              style={{ borderColor: '#E2E8F0' }}
+                            >
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="z-[300] rounded-lg shadow-lg">
@@ -487,7 +586,8 @@ const SMSTemplateManager: React.FC = () => {
                           value={formData.dltTemplateId}
                           onChange={(e) => setFormData({ ...formData, dltTemplateId: e.target.value })}
                           placeholder="e.g., 1107171234567890123"
-                          className="h-10 font-mono text-sm rounded-lg border-border/60 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                          className="h-10 font-mono text-sm rounded-lg transition-all"
+                          style={{ borderColor: '#E2E8F0', color: '#334155' }}
                         />
                       </FieldTooltipWrapper>
 
@@ -503,12 +603,13 @@ const SMSTemplateManager: React.FC = () => {
                             value={formData.templateText}
                             onChange={(e) => setFormData({ ...formData, templateText: e.target.value })}
                             placeholder="HOFFIC: Your message with {#var#} placeholders. -H-Office"
-                            className="font-mono text-sm leading-relaxed min-h-[140px] rounded-lg border-border/60 focus:border-primary focus:ring-2 focus:ring-primary/20 resize-none transition-all"
+                            className="font-mono text-sm leading-relaxed min-h-[140px] rounded-lg resize-none transition-all"
+                            style={{ borderColor: '#E2E8F0', color: '#334155' }}
                           />
                           <div className="flex items-center justify-between px-1">
-                            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                            <p className="text-xs flex items-center gap-1.5" style={{ color: '#64748B' }}>
                               <Info className="h-3.5 w-3.5" />
-                              Use <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">{'{#var#}'}</code> for dynamic values
+                              Use <code className="px-1.5 py-0.5 rounded text-xs font-mono" style={{ backgroundColor: '#F1F5F9' }}>{'{#var#}'}</code> for dynamic values
                             </p>
                             <Badge 
                               variant={charInfo.length > 160 ? "destructive" : "secondary"}
@@ -521,8 +622,12 @@ const SMSTemplateManager: React.FC = () => {
                       </FieldTooltipWrapper>
 
                       {charInfo.length > 160 && (
-                        <Alert variant="default" className="border-amber-500/50 bg-amber-500/10 rounded-lg">
-                          <AlertTriangle className="h-4 w-4 text-amber-500" />
+                        <Alert 
+                          variant="default" 
+                          className="rounded-lg"
+                          style={{ borderColor: '#F59E0B', backgroundColor: 'rgba(245, 158, 11, 0.1)' }}
+                        >
+                          <AlertTriangle className="h-4 w-4" style={{ color: '#F59E0B' }} />
                           <AlertDescription className="text-sm">
                             Message exceeds 160 characters. Will be sent as {charInfo.smsCount} SMS parts.
                           </AlertDescription>
@@ -534,74 +639,164 @@ const SMSTemplateManager: React.FC = () => {
                         <Switch
                           checked={formData.isActive}
                           onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
-                          className="data-[state=checked]:bg-primary"
                         />
-                        <span className="text-sm font-medium text-foreground">Active</span>
-                        <span className="text-xs text-muted-foreground">Enable this template for sending</span>
+                        <span className="text-sm font-medium" style={{ color: '#1E293B' }}>Active</span>
+                        <span className="text-xs" style={{ color: '#64748B' }}>Enable this template for sending</span>
                       </div>
                     </CardContent>
                   </Card>
                 </TabsContent>
 
-                {/* Samples Tab */}
+                {/* Samples Tab - Beacon 5.0 Card-Based Layout */}
                 <TabsContent 
                   value="samples" 
                   className="absolute inset-0 m-0 data-[state=inactive]:opacity-0 data-[state=active]:opacity-100 transition-opacity duration-200 overflow-y-auto"
                 >
                   <div className="space-y-3 pr-2">
-                    {SAMPLE_TEMPLATES.map((sample, idx) => (
-                      <Card 
-                        key={idx} 
-                        className="cursor-pointer border border-border/60 hover:border-primary/50 hover:shadow-md transition-all duration-200 rounded-xl bg-card group"
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-2">
-                                <span className="font-medium text-foreground">{sample.name}</span>
-                                <Badge variant="outline" className="text-xs rounded-md border-border/60">
-                                  {TEMPLATE_CATEGORIES.find(c => c.value === sample.category)?.label}
-                                </Badge>
+                    {SAMPLE_TEMPLATES.map((sample, idx) => {
+                      const CategoryIcon = getCategoryIcon(sample.category);
+                      const categoryLabel = TEMPLATE_CATEGORIES.find(c => c.value === sample.category)?.label || sample.category;
+                      const helpText = SAMPLE_HELP_TEXT[sample.name] || 'Click Use to apply this template';
+                      
+                      return (
+                        <Card 
+                          key={idx} 
+                          className="cursor-pointer rounded-xl transition-all duration-200 group"
+                          style={{ 
+                            backgroundColor: '#FFFFFF', 
+                            border: '1px solid #E2E8F0'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = 'rgba(0, 71, 255, 0.3)';
+                            e.currentTarget.style.boxShadow = '0 10px 25px -5px rgba(0, 71, 255, 0.08)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = '#E2E8F0';
+                            e.currentTarget.style.boxShadow = 'none';
+                          }}
+                        >
+                          <CardContent className="p-5">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2.5 mb-2">
+                                  {/* Category Icon */}
+                                  <div 
+                                    className="p-1.5 rounded-lg"
+                                    style={{ backgroundColor: 'rgba(0, 71, 255, 0.1)' }}
+                                  >
+                                    <CategoryIcon className="h-4 w-4" style={{ color: '#0047FF' }} />
+                                  </div>
+                                  <span className="font-semibold" style={{ color: '#1E293B' }}>{sample.name}</span>
+                                  
+                                  {/* Category Badge with Tooltip */}
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Badge 
+                                        className="text-xs rounded-full px-2.5 py-0.5 cursor-help"
+                                        style={{ 
+                                          backgroundColor: '#F1F5F9', 
+                                          color: '#334155', 
+                                          border: '1px solid #E2E8F0' 
+                                        }}
+                                      >
+                                        {categoryLabel}
+                                      </Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      Templates for {categoryLabel.toLowerCase()} notifications
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </div>
+                                
+                                <p 
+                                  className="text-sm font-mono line-clamp-2 break-all mb-2"
+                                  style={{ color: '#334155' }}
+                                >
+                                  {sample.templateText}
+                                </p>
+                                
+                                {/* One-line help text */}
+                                <p className="text-xs italic" style={{ color: '#64748B' }}>
+                                  {helpText}
+                                </p>
                               </div>
-                              <p className="text-sm text-muted-foreground font-mono line-clamp-2 break-all">
-                                {sample.templateText}
-                              </p>
+                              
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleUseSample(sample)}
+                                    className="shrink-0 rounded-lg shadow-sm text-white transition-all"
+                                    style={{ 
+                                      backgroundColor: '#0047FF'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.backgroundColor = '#0036CC';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.backgroundColor = '#0047FF';
+                                    }}
+                                  >
+                                    Use
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Apply this template to the editor</TooltipContent>
+                              </Tooltip>
                             </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleUseSample(sample)}
-                              className="shrink-0 rounded-lg border-border/60 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all"
-                            >
-                              Use
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                 </TabsContent>
               </div>
             </Tabs>
           </div>
 
-          {/* Modal Footer */}
-          <DialogFooter className="px-6 py-4 border-t border-border/50 bg-muted/20 shrink-0 flex-row justify-end gap-3">
-            <Button 
-              variant="outline" 
-              onClick={() => setIsDialogOpen(false)}
-              className="h-10 px-5 rounded-lg border-border/60 hover:bg-muted transition-all"
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleSave} 
-              disabled={isSending}
-              className="h-10 px-5 rounded-lg shadow-sm hover:shadow-md transition-all"
-            >
-              {isSending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {selectedTemplate ? 'Update Template' : 'Create Template'}
-            </Button>
+          {/* Modal Footer - Beacon 5.0 Style */}
+          <DialogFooter 
+            className="px-6 py-4 border-t shrink-0 flex-row justify-end gap-3"
+            style={{ borderColor: '#E2E8F0', backgroundColor: '#FFFFFF' }}
+          >
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsDialogOpen(false)}
+                  className="h-10 px-5 rounded-lg transition-all"
+                  style={{ borderColor: '#E2E8F0', color: '#334155' }}
+                >
+                  Cancel
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Close without saving</TooltipContent>
+            </Tooltip>
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  onClick={handleSave} 
+                  disabled={isSending}
+                  className="h-10 px-5 rounded-lg shadow-sm text-white transition-all"
+                  style={{ backgroundColor: '#0047FF' }}
+                  onMouseEnter={(e) => {
+                    if (!isSending) e.currentTarget.style.backgroundColor = '#0036CC';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#0047FF';
+                  }}
+                >
+                  {isSending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  {selectedTemplate ? 'Update Template' : 'Create Template'}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <span className="flex items-center gap-1.5">
+                  <Info className="h-3.5 w-3.5" />
+                  Saves selected template for notifications
+                </span>
+              </TooltipContent>
+            </Tooltip>
           </DialogFooter>
         </DialogContent>
       </Dialog>
