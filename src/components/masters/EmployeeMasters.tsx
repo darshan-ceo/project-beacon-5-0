@@ -49,11 +49,13 @@ import {
   Download
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useImportRefresh } from '@/hooks/useImportRefresh';
 
 export const EmployeeMasters: React.FC = () => {
   const { state, dispatch } = useAppState();
   const { hasPermission } = useRBAC();
   const queryClient = useQueryClient();
+  const { reloadEmployees } = useImportRefresh();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
@@ -642,31 +644,16 @@ export const EmployeeMasters: React.FC = () => {
         isOpen={isImportOpen}
         onClose={() => setIsImportOpen(false)}
         entityType="employee"
-        onImportComplete={(job) => {
-          // Generate mock employees and add them to state
-          const mockEmployees: Employee[] = Array.from({ length: job.counts.processed }, (_, i) => ({
-            id: `imported_${Date.now()}_${i}`,
-            full_name: `Imported Employee ${i + 1}`,
-            role: 'Staff' as const,
-            email: `imported.employee${i + 1}@company.com`,
-            mobile: `+91 98765 4321${i}`,
-            status: 'Active' as const,
-            date_of_joining: new Date().toISOString().split('T')[0],
-            notes: `Imported via Excel on ${new Date().toLocaleDateString()}`,
-            department: 'General',
-            workloadCapacity: 40,
-            specialization: []
-          }));
-
-          // Add imported employees to state
-          mockEmployees.forEach(employee => {
-            dispatch({ type: 'ADD_EMPLOYEE', payload: employee });
-          });
-
-          toast({
-            title: "Import Complete",
-            description: `${job.counts.processed} employees imported successfully and added to the system`
-          });
+        onImportComplete={async (job) => {
+          console.log('Employee import completed:', job);
+          if (job.counts.processed > 0) {
+            await reloadEmployees();
+            queryClient.invalidateQueries({ queryKey: ['employees'] });
+            toast({
+              title: "Import Complete",
+              description: `${job.counts.processed} employees imported successfully`
+            });
+          }
         }}
       />
 

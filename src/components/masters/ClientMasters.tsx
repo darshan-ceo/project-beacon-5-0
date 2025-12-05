@@ -46,11 +46,13 @@ import { featureFlagService } from '@/services/featureFlagService';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { HelpButton } from '@/components/ui/help-button';
 import { ThreeLayerHelp } from '@/components/ui/three-layer-help';
+import { useImportRefresh } from '@/hooks/useImportRefresh';
 
 export const ClientMasters: React.FC = () => {
   const { state, dispatch } = useAppState();
   const { hasPermission } = useRBAC();
   const { checkDependencies, safeDelete } = useRelationships();
+  const { reloadClients } = useImportRefresh();
   const [searchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'Active' | 'Inactive' | 'Pending'>('all');
@@ -782,9 +784,15 @@ export const ClientMasters: React.FC = () => {
         isOpen={isImportOpen}
         onClose={() => setIsImportOpen(false)}
         entityType="client"
-        onImportComplete={(job) => {
+        onImportComplete={async (job) => {
           console.log('Client import completed:', job);
-          // Refresh client data if needed
+          if (job.counts.processed > 0) {
+            await reloadClients();
+            toast({
+              title: 'Import Complete',
+              description: `${job.counts.processed} clients imported successfully`,
+            });
+          }
         }}
       />
 

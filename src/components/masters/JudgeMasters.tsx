@@ -21,10 +21,12 @@ import { useRBAC } from '@/hooks/useAdvancedRBAC';
 import { featureFlagService } from '@/services/featureFlagService';
 import { JudgeForm } from '@/components/masters/judges/JudgeForm';
 import { FilterDropdown } from '@/components/ui/filter-dropdown';
+import { useImportRefresh } from '@/hooks/useImportRefresh';
 
 const JudgeMasters: React.FC = () => {
   const { state, dispatch } = useAppState();
   const { hasPermission } = useRBAC();
+  const { reloadJudges } = useImportRefresh();
   const [searchTerm, setSearchTerm] = useState('');
   const [judgeModal, setJudgeModal] = useState<{ isOpen: boolean; mode: 'create' | 'edit' | 'view'; judge?: Judge | null }>({
     isOpen: false,
@@ -296,9 +298,15 @@ const JudgeMasters: React.FC = () => {
         isOpen={importWizardOpen}
         onClose={() => setImportWizardOpen(false)}
         entityType="judge"
-        onImportComplete={(job) => {
+        onImportComplete={async (job) => {
           console.log('Judge import completed:', job);
-          // Refresh data if needed
+          if (job.counts.processed > 0) {
+            await reloadJudges();
+            toast({
+              title: 'Import Complete',
+              description: `${job.counts.processed} judges imported successfully`,
+            });
+          }
         }}
       />
 
