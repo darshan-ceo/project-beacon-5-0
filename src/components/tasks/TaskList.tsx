@@ -90,6 +90,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [selectedTask, setSelectedTask] = useState<TaskDisplay | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [drawerMode, setDrawerMode] = useState<'view' | 'edit'>('view');
   const [density, setDensity] = useState<'compact' | 'comfortable'>('comfortable');
   const [clientFilter, setClientFilter] = useState<string>('all');
   const [lockFilter, setLockFilter] = useState<'all' | 'locked' | 'unlocked'>('all');
@@ -171,6 +172,7 @@ export const TaskList: React.FC<TaskListProps> = ({
       onTaskClick(task);
     } else {
       setSelectedTask(task);
+      setDrawerMode('view');
       setIsDrawerOpen(true);
     }
   };
@@ -556,6 +558,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => {
                           setSelectedTask(task);
+                          setDrawerMode('edit');
                           setIsDrawerOpen(true);
                         }}>
                           <Edit className="mr-2 h-4 w-4" />
@@ -595,8 +598,10 @@ export const TaskList: React.FC<TaskListProps> = ({
         onClose={() => {
           setIsDrawerOpen(false);
           setSelectedTask(null);
+          setDrawerMode('view');
         }}
         task={selectedTask}
+        mode={drawerMode}
         onUpdateTask={onTaskUpdate}
         onDeleteTask={onTaskDelete}
       />

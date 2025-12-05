@@ -57,6 +57,7 @@ interface TaskDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   task: Task | null;
+  mode?: 'view' | 'edit';
   onUpdateTask?: (taskId: string, updates: Partial<Task>) => void;
   onDeleteTask?: (taskId: string) => void;
 }
@@ -80,13 +81,19 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
   isOpen,
   onClose,
   task,
+  mode = 'view',
   onUpdateTask,
   onDeleteTask
 }) => {
   const { state, dispatch } = useAppState();
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(mode === 'edit');
   const [editedTask, setEditedTask] = useState<Partial<Task>>({});
   const [followUpModalOpen, setFollowUpModalOpen] = useState(false);
+
+  // Sync isEditing with mode prop when it changes
+  useEffect(() => {
+    setIsEditing(mode === 'edit');
+  }, [mode, task]);
 
   // Get task notes for this task
   const taskNotes = useMemo(() => {
@@ -446,8 +453,8 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
                 </Button>
               )}
               
-              {/* Edit button */}
-              {permissions.canEdit && !isEditing && (
+              {/* Edit button - only show in edit mode or when mode allows editing */}
+              {mode === 'edit' && permissions.canEdit && !isEditing && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -472,7 +479,7 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
                   )}
                 </Button>
               )}
-              {!permissions.canEdit && !isEditing && (
+              {mode === 'edit' && !permissions.canEdit && !isEditing && (
                 <Button
                   variant="outline"
                   size="sm"
