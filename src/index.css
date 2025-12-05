@@ -2,6 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================
+   Beacon 5.0 ESS Brand Colors - Scoped Modal
+   ============================================ */
+.beacon-modal {
+  --beacon-primary: 221 100% 50%;     /* #0047FF */
+  --beacon-primary-hover: 221 100% 40%; /* #0036CC */
+  --beacon-secondary: 168 100% 39%;   /* #00C4A7 */
+  --beacon-bg: 210 40% 98%;           /* #F8FAFC */
+  --beacon-surface: 0 0% 100%;        /* #FFFFFF */
+  --beacon-border: 214 32% 91%;       /* #E2E8F0 */
+  --beacon-heading: 215 25% 17%;      /* #1E293B */
+  --beacon-body: 215 16% 27%;         /* #334155 */
+  --beacon-muted: 215 16% 47%;        /* #64748B */
+  --beacon-subtle: 214 32% 96%;       /* #F1F5F9 */
+  --beacon-success: 142 76% 36%;      /* #16A34A */
+  --beacon-warning: 38 92% 50%;       /* #F59E0B */
+  --beacon-error: 0 84% 50%;          /* #DC2626 */
+}
+
 /* Thin scrollbars for horizontal scroll containers */
 .scrollbar-thin::-webkit-scrollbar {
   height: 6px;
