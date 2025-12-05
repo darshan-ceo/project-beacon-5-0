@@ -49,7 +49,8 @@ class MappingService {
     console.log(`[MappingService] Source headers:`, sourceHeaders);
 
     for (const templateColumn of template.columns) {
-      const bestMatch = this.findBestMatch(templateColumn.key, sourceHeaders, used);
+      // Pass both key and label to findBestMatch for better matching
+      const bestMatch = this.findBestMatch(templateColumn.key, sourceHeaders, used, templateColumn.label);
       
       console.log(`[MappingService] Template: "${templateColumn.key}" (${templateColumn.label}) → Best match:`, {
         sourceColumn: bestMatch?.header || 'NONE',
@@ -100,13 +101,23 @@ class MappingService {
   private findBestMatch(
     templateColumn: string,
     sourceHeaders: string[],
-    used: Set<string>
+    used: Set<string>,
+    templateLabel?: string
   ): { header: string; confidence: number; reason: string } | null {
     let bestMatch = null;
     let highestConfidence = 0;
 
     for (const header of sourceHeaders) {
       if (used.has(header)) continue;
+
+      // First check if source header exactly matches template label (e.g., "Phone Number" matches "Phone Number")
+      if (templateLabel && this.normalizeHeader(header) === this.normalizeHeader(templateLabel)) {
+        return {
+          header,
+          confidence: 0.98,
+          reason: 'Template label exact match'
+        };
+      }
 
       const confidence = this.calculateSimilarity(templateColumn, header);
       if (confidence > highestConfidence && confidence > 0.4) {

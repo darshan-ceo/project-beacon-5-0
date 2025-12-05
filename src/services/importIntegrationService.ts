@@ -319,25 +319,40 @@ class ImportIntegrationService {
       console.log('[ImportIntegrationService] insertCourt - Record keys:', Object.keys(record));
       console.log('[ImportIntegrationService] insertCourt - Full record:', JSON.stringify(record, null, 2));
       
+      // Enhanced field extraction with all possible column name variations
+      const phone = record.phone || record.Phone || record.phone_number || record['Phone Number'] || 
+                    record.phoneNumber || record.PhoneNumber || record.telephone || record.Telephone ||
+                    record.tel || record.Tel || record.contact || record.Contact || record['phone number'] || null;
+      
+      const email = record.email || record.Email || record.email_address || record['Email Address'] ||
+                    record.emailAddress || record.EmailAddress || record['email address'] ||
+                    record.e_mail || record['E-mail'] || record['e-mail'] || null;
+      
+      const city = record.city || record.City || record['City'] || record.district || record.District || null;
+      
+      const pincode = record.pincode || record.Pincode || record['Pincode'] || record.pin || record.Pin ||
+                      record.postal_code || record['Postal Code'] || record.zip || record.Zip || null;
+      
       const courtPayload = {
         tenant_id: tenantId,
         name: record.court_name || record['Court Name'] || record.name || record.Name,
         type: record.court_type || record['Court Type'] || record.type || null,
         level: record.court_level || record['Court Level'] || record.level || null,
         code: record.court_code || record['Court Code'] || record.code || null,
-        city: record.city || record.City || null,
+        city: city,
         state: record.state_name || record['State Name'] || record.state_code || record['State Code'] || record.state || null,
         address: fullAddress,
-        bench_location: record.bench || record.Bench || record.bench_location || record['Bench Location'] || null,
+        bench_location: record.bench || record.Bench || record.bench_location || record['Bench Location'] || record['Bench'] || null,
         jurisdiction: record.jurisdiction || record.Jurisdiction || record.district || record.District || null,
         established_year: record.established_year ? parseInt(record.established_year) : null,
-        phone: record.phone || record.Phone || record.phone_number || record['Phone Number'] || null,
-        email: record.email || record.Email || record.email_address || record['Email Address'] || null,
+        phone: phone,
+        email: email,
         status: record.status || record.Status || 'Active',
         created_by: userId,
         // Don't include id - let Supabase generate UUID
       };
       
+      console.log('[ImportIntegrationService] insertCourt - Extracted phone:', phone, 'email:', email, 'city:', city);
       console.log('[ImportIntegrationService] insertCourt - Final payload:', JSON.stringify(courtPayload, null, 2));
 
       const storage = StorageManager.getInstance().getStorage();

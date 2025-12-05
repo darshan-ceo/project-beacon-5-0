@@ -188,9 +188,9 @@ export const COLUMN_SYNONYMS: ColumnSynonyms = {
   
   // Common fields
   'name': ['name', 'full_name', 'contact_name'],
-  'email': ['email', 'email_address', 'e-mail', 'email_id', 'mail'],
-  'phone': ['phone', 'mobile', 'contact_number', 'phone_number', 'mobile_no'],
-  'mobile': ['phone', 'mobile_no', 'contact', 'cell', 'mobile', 'phone_number'],
+  'email': ['email', 'email_address', 'e-mail', 'email_id', 'mail', 'e_mail', 'electronic_mail', 'email address', 'emailaddress', 'Email', 'Email Address'],
+  'phone': ['phone', 'mobile', 'contact_number', 'phone_number', 'mobile_no', 'telephone', 'tel', 'contact', 'phone number', 'phonenumber', 'Phone', 'Phone Number'],
+  'mobile': ['phone', 'mobile_no', 'contact', 'cell', 'mobile', 'phone_number', 'mobile number', 'mobilenumber', 'Mobile', 'Mobile Number'],
   'address': ['address', 'location', 'street_address', 'street address'],
   'line1': ['address', 'address_line1', 'addr1', 'street', 'line1', 'address line 1', 'address_line_1', 'addressline1'],
   'line2': ['address_line2', 'addr2', 'street2', 'line2', 'address line 2', 'address_line_2', 'addressline2'],
