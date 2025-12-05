@@ -2,13 +2,12 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-api-key",
 };
 
 // Simple filename-based fallback categorization
 function fallbackCategorize(filename: string) {
   const name = filename.toLowerCase();
-  const match = (r: RegExp) => r.test(name);
 
   if (/(notice|notification|intimation|scn|show[\s-]?cause)/i.test(name)) {
     return { category: 'Notice', confidence: 0.75, reasoning: 'Matched notice pattern (fallback)' };
@@ -34,17 +33,19 @@ serve(async (req) => {
   }
 
   try {
-    const { filename } = await req.json();
+    // Verify API key for security
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-
-    // If no key is configured, fallback gracefully (do not block uploads)
-    if (!LOVABLE_API_KEY) {
-      const fb = fallbackCategorize(filename || 'document');
+    const authHeader = req.headers.get('x-api-key') || req.headers.get('authorization')?.replace('Bearer ', '');
+    
+    if (!LOVABLE_API_KEY || authHeader !== LOVABLE_API_KEY) {
+      console.log('[Categorize Document] Unauthorized access attempt');
       return new Response(
-        JSON.stringify({ ...fb, usedFallback: true }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: 'Unauthorized - Invalid API key' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    const { filename } = await req.json();
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -80,7 +81,7 @@ serve(async (req) => {
       }
 
       if (response.status === 401) {
-        // Fallback categorization when unauthorized, so UX is not blocked
+        // Fallback categorization when AI unauthorized
         const fb = fallbackCategorize(filename || 'document');
         return new Response(
           JSON.stringify({ ...fb, usedFallback: true, warning: "AI unauthorized, used fallback" }),
@@ -88,7 +89,7 @@ serve(async (req) => {
         );
       }
 
-      // Unknown error -> fallback to safe default to avoid blocking
+      // Unknown error -> fallback to safe default
       const fb = fallbackCategorize(filename || 'document');
       return new Response(
         JSON.stringify({ ...fb, usedFallback: true, warning: `AI error ${response.status}` }),
@@ -104,6 +105,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
+    console.error('[Categorize Document] Error:', error);
     // Last-resort fallback
     const fb = fallbackCategorize('document');
     return new Response(

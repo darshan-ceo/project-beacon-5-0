@@ -6,8 +6,10 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
+};
 
 interface TenantMetrics {
   case_count: number;
@@ -19,7 +21,28 @@ interface TenantMetrics {
 }
 
 Deno.serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   try {
+    console.log('[Analytics Snapshot] Starting analytics snapshot');
+
+    // Verify API key for security
+    const apiKey = Deno.env.get('LOVABLE_API_KEY');
+    const authHeader = req.headers.get('x-api-key') || req.headers.get('authorization')?.replace('Bearer ', '');
+    
+    if (!apiKey || authHeader !== apiKey) {
+      console.log('[Analytics Snapshot] Unauthorized access attempt');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - Invalid API key' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
     // Fetch all active tenants
@@ -96,6 +119,8 @@ Deno.serve(async (req) => {
       }
     }
 
+    console.log('[Analytics Snapshot] Completed successfully');
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -104,7 +129,7 @@ Deno.serve(async (req) => {
         results,
       }),
       {
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       }
     );
@@ -116,7 +141,7 @@ Deno.serve(async (req) => {
         error: error instanceof Error ? error.message : 'Unknown error',
       }),
       {
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
       }
     );
