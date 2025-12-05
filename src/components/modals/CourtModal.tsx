@@ -88,19 +88,52 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Parse address string to extract pincode, state, city for imported data
+  const parseCourtAddress = (addressStr: string, court: any): EnhancedAddressData => {
+    // Extract 6-digit pincode using regex
+    const pincodeMatch = addressStr.match(/\b\d{6}\b/);
+    const pincode = pincodeMatch ? pincodeMatch[0] : '';
+    
+    // Use court-level fields if available (from database columns)
+    const state = (court as any)?.state || '';
+    const city = court?.city || '';
+    
+    return {
+      line1: addressStr,
+      line2: '',
+      locality: '',
+      district: '',
+      cityId: '',
+      stateId: state,
+      pincode: pincode,
+      countryId: 'IN',
+      source: 'manual'
+    } as EnhancedAddressData;
+  };
+
   useEffect(() => {
     setIsAddressMasterEnabled(featureFlagService.isEnabled('address_master_v1'));
     
     if (courtData && (mode === 'edit' || mode === 'view')) {
+      // Parse address - handle both string (imported) and object formats
+      const parsedAddress = typeof courtData.address === 'string' 
+        ? parseCourtAddress(courtData.address, courtData)
+        : (courtData.address as EnhancedAddressData) || {
+            line1: '', line2: '', locality: '', district: '', 
+            cityId: '', stateId: '', pincode: '', countryId: 'IN', source: 'manual'
+          };
+      
+      // Extract city from address string if not in court record
+      const cityValue = courtData.city || 
+        (typeof courtData.address === 'string' ? extractCityFromAddress(courtData.address) : '') || '';
+      
       setFormData({
         name: courtData.name,
         type: courtData.type,
         authorityLevel: courtData.authorityLevel,
         matterTypes: courtData.matterTypes || [],
         jurisdiction: courtData.jurisdiction,
-        address: typeof courtData.address === 'string' 
-          ? { line1: courtData.address, line2: '', locality: '', district: '', cityId: '', stateId: '', pincode: '', countryId: 'IN', source: 'manual' } as EnhancedAddressData
-          : courtData.address as EnhancedAddressData,
+        address: parsedAddress,
         digitalFiling: courtData.digitalFiling,
         digitalFilingPortal: courtData.digitalFilingPortal || '',
         digitalFilingPortalUrl: courtData.digitalFilingPortalUrl || '',
@@ -109,7 +142,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         phone: courtData.phone || '',
         email: courtData.email || '',
         benchLocation: courtData.benchLocation || '',
-        city: courtData.city || '',
+        city: cityValue,
         status: courtData.status || 'Active'
       });
     } else if (mode === 'create') {
