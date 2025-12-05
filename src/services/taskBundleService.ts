@@ -6,7 +6,7 @@
 import { Task } from '@/contexts/AppStateContext';
 import { StageInstance, TransitionType } from '@/types/lifecycle';
 import { featureFlagService } from '@/services/featureFlagService';
-import { generateStageDefaults } from '@/utils/stageUtils';
+import { generateStageDefaults, CASE_STAGES } from '@/utils/stageUtils';
 import { tasksService } from '@/services/tasksService';
 import type { AppAction } from '@/contexts/AppStateContext';
 import { persistenceService } from '@/services/persistenceService';
@@ -106,7 +106,7 @@ class TaskBundleService {
    * Initialize default task bundles for all stages
    */
   private initializeDefaultBundles() {
-    const stages = ['Scrutiny', 'Demand', 'Adjudication', 'Appeals', 'GSTAT', 'HC', 'SC'];
+    const stages = CASE_STAGES;
     
     stages.forEach(stage => {
       const stageDefaults = generateStageDefaults(stage);
@@ -128,7 +128,7 @@ class TaskBundleService {
       });
 
       // OnRemand bundle (for handling remands)
-      if (stage !== 'Scrutiny') { // Scrutiny can't be remanded from
+      if (stage !== 'Assessment') { // Assessment can't be remanded from
         this.bundles.push({
           id: `bundle_${stage.toLowerCase()}_remand`,
           name: `${stage} - Remand Tasks`,
@@ -204,7 +204,7 @@ class TaskBundleService {
       id: 'bundle_asmt10_notice_intake',
       name: 'ASMT-10 Notice Intake Tasks',
       trigger: 'OnStageEnter',
-      stageKey: 'Scrutiny',
+      stageKey: 'Assessment',
       tasks: [
         {
           title: 'Acknowledge Receipt of ASMT-10',
