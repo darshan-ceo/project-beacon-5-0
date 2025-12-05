@@ -33,11 +33,13 @@ import { UnifiedCourtSearch } from '@/components/masters/UnifiedCourtSearch';
 import { GlossaryTooltip } from '@/components/help/GlossaryTooltip';
 import { extractCityFromAddress } from '@/utils/cityExtractor';
 import { authorityHierarchyService } from '@/services/authorityHierarchyService';
+import { useImportRefresh } from '@/hooks/useImportRefresh';
 
 
 export const CourtMasters: React.FC = () => {
   const { state, dispatch } = useAppState();
   const { hasPermission } = useRBAC();
+  const { reloadCourts } = useImportRefresh();
   const [searchTerm, setSearchTerm] = useState('');
   const [courtModal, setCourtModal] = useState<{ isOpen: boolean; mode: 'create' | 'edit' | 'view'; court?: Court | null }>({
     isOpen: false,
@@ -469,9 +471,15 @@ export const CourtMasters: React.FC = () => {
         isOpen={importWizardOpen}
         onClose={() => setImportWizardOpen(false)}
         entityType="court"
-        onImportComplete={(job) => {
+        onImportComplete={async (job) => {
           console.log('Court import completed:', job);
-          // Refresh data if needed
+          if (job.counts.processed > 0) {
+            await reloadCourts();
+            toast({
+              title: 'Import Complete',
+              description: `${job.counts.processed} legal forums imported successfully`,
+            });
+          }
         }}
       />
 
