@@ -2544,7 +2544,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'UPDATE_TASK':
       return {
         ...state,
-        tasks: state.tasks.map(t => t.id === action.payload.id ? action.payload : t)
+        tasks: state.tasks.map(t => t.id === action.payload.id ? { ...t, ...action.payload } : t)
       };
     case 'DELETE_TASK':
       return {
