@@ -165,8 +165,8 @@ export const RolePermissionEditor: React.FC<RolePermissionEditorProps> = ({
           </Button>
         </div>
 
-        <ScrollArea className="flex-1 pr-4">
-          <div className="space-y-4">
+        <ScrollArea className="flex-1 min-h-0 max-h-[50vh] pr-4">
+          <div className="space-y-4 pb-4">
             {Object.entries(permissionsByModule).map(([module, perms]) => (
               <div key={module} className="border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
