@@ -306,11 +306,13 @@ export const TaskList: React.FC<TaskListProps> = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Clients</SelectItem>
-              {state.clients.map(client => (
-                <SelectItem key={client.id} value={client.id}>
-                  {client.name}
-                </SelectItem>
-              ))}
+              {state.clients
+                .filter(client => client.id)
+                .map(client => (
+                  <SelectItem key={client.id} value={client.id}>
+                    {client.name || 'Unknown Client'}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
 
