@@ -268,10 +268,10 @@ export const CreateTask: React.FC = () => {
               </SelectTrigger>
               <SelectContent>
                 {state.employees
-                  .filter((e) => e.status === 'Active')
+                  .filter((e) => e.status === 'Active' && e.id)
                   .map((emp) => (
                     <SelectItem key={emp.id} value={emp.id}>
-                      {emp.full_name}
+                      {emp.full_name || emp.email || 'Unknown'}
                     </SelectItem>
                   ))}
               </SelectContent>
