@@ -168,14 +168,14 @@ export const ComposeMessage: React.FC<ComposeMessageProps> = ({
           </Button>
 
           <Select
-            value={statusUpdate || ''}
-            onValueChange={(val) => setStatusUpdate(val ? val as TaskStatusUpdate : undefined)}
+            value={statusUpdate || 'none'}
+            onValueChange={(val) => setStatusUpdate(val === 'none' ? undefined : val as TaskStatusUpdate)}
           >
             <SelectTrigger className="w-[140px] h-9">
               <SelectValue placeholder="Update status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">No status change</SelectItem>
+              <SelectItem value="none">No status change</SelectItem>
               {TASK_STATUS_OPTIONS.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>
                   {opt.label}
