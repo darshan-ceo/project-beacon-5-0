@@ -663,7 +663,7 @@ export const TaskManagement: React.FC = () => {
           <HelpButton 
             helpId="button-create-task"
             className="bg-primary hover:bg-primary-hover"
-            onClick={() => setTaskModal({ isOpen: true, mode: 'create', task: null })}
+            onClick={() => navigate('/tasks/new')}
             data-tour="create-task-button"
           >
             <Plus className="mr-2 h-4 w-4" />
