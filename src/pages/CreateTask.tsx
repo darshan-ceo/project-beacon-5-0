@@ -130,6 +130,11 @@ export const CreateTask: React.FC = () => {
       const tenantId = profile?.tenantId || '';
       const userName = profile?.full_name || user.email || 'User';
 
+      if (!tenantId) {
+        toast.error('Unable to determine your tenant. Please refresh and try again.');
+        return;
+      }
+
       const assignee = state.employees.find((e) => e.id === formData.assignedTo);
 
       // Create task in Supabase
@@ -139,6 +144,8 @@ export const CreateTask: React.FC = () => {
           title: formData.title.trim(),
           description: formData.description.trim(),
           assigned_to: formData.assignedTo || null,
+          assigned_by: user.id,
+          tenant_id: tenantId,
           priority: formData.priority,
           due_date: formData.dueDate ? format(formData.dueDate, 'yyyy-MM-dd') : null,
           status: 'Not Started',
