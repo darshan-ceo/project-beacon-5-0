@@ -36,7 +36,7 @@ import { TaskAnalytics } from './TaskAnalytics';
 import { TaskInsights } from './TaskInsights';
 import { AITaskAssistant } from './AITaskAssistant';
 import { TaskCollaboration } from './TaskCollaboration';
-
+import { TaskModal } from '@/components/modals/TaskModal';
 import { UnifiedTaskSearch } from './UnifiedTaskSearch';
 import { Task, Client, useAppState } from '@/contexts/AppStateContext';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
@@ -113,6 +113,11 @@ export const TaskManagement: React.FC = () => {
       setViewMode(mode as 'board' | 'list');
     });
   }, []);
+  const [taskModal, setTaskModal] = useState<{ isOpen: boolean; mode: 'create' | 'edit' | 'view'; task?: Task | null }>({
+    isOpen: false,
+    mode: 'create',
+    task: null
+  });
 
   // Handle URL parameters for highlighting tasks and return context
   useEffect(() => {
@@ -185,9 +190,12 @@ export const TaskManagement: React.FC = () => {
   // Auto-open task drawer when highlighted task is loaded
   useEffect(() => {
     if (shouldAutoOpenTask && state.tasks) {
-      // Wait for scroll to complete, then navigate to task
+      // Wait for scroll to complete, then open drawer
       setTimeout(() => {
-        navigate(`/tasks/${shouldAutoOpenTask}`);
+        const task = state.tasks.find(t => t.id === shouldAutoOpenTask);
+        if (task) {
+          setTaskModal({ isOpen: true, mode: 'view', task });
+        }
         setShouldAutoOpenTask(null);
       }, 800);
     }
@@ -655,7 +663,7 @@ export const TaskManagement: React.FC = () => {
           <HelpButton 
             helpId="button-create-task"
             className="bg-primary hover:bg-primary-hover"
-            onClick={() => navigate('/tasks/new')}
+            onClick={() => setTaskModal({ isOpen: true, mode: 'create', task: null })}
             data-tour="create-task-button"
           >
             <Plus className="mr-2 h-4 w-4" />
@@ -949,6 +957,12 @@ export const TaskManagement: React.FC = () => {
         </TabsContent>
       </Tabs>
 
+      <TaskModal
+        isOpen={taskModal.isOpen}
+        onClose={() => setTaskModal({ isOpen: false, mode: 'create', task: null })}
+        task={taskModal.task}
+        mode={taskModal.mode}
+      />
 
       <ContextualPageHelp 
         pageId="task-automation"

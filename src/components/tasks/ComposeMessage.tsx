@@ -79,12 +79,8 @@ export const ComposeMessage: React.FC<ComposeMessageProps> = ({
   };
 
   const handleSend = async () => {
-    const hasMessage = message.trim().length > 0;
-    const hasAttachments = attachments.length > 0;
-    const hasStatusUpdate = !!statusUpdate;
-    
-    if (!hasMessage && !hasAttachments && !hasStatusUpdate) {
-      toast.error('Please enter a message, attach a file, or select a status update');
+    if (!message.trim() && attachments.length === 0) {
+      toast.error('Please enter a message or attach a file');
       return;
     }
 
@@ -168,14 +164,14 @@ export const ComposeMessage: React.FC<ComposeMessageProps> = ({
           </Button>
 
           <Select
-            value={statusUpdate || 'none'}
-            onValueChange={(val) => setStatusUpdate(val === 'none' ? undefined : val as TaskStatusUpdate)}
+            value={statusUpdate || ''}
+            onValueChange={(val) => setStatusUpdate(val as TaskStatusUpdate || undefined)}
           >
             <SelectTrigger className="w-[140px] h-9">
               <SelectValue placeholder="Update status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="none">No status change</SelectItem>
+              <SelectItem value="">No status change</SelectItem>
               {TASK_STATUS_OPTIONS.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>
                   {opt.label}
@@ -187,7 +183,7 @@ export const ComposeMessage: React.FC<ComposeMessageProps> = ({
 
         <Button
           onClick={handleSend}
-          disabled={disabled || isSending || (!message.trim() && attachments.length === 0 && !statusUpdate)}
+          disabled={disabled || isSending || (!message.trim() && attachments.length === 0)}
           className="gap-2"
         >
           {isSending ? (

@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   ArrowUpDown,
@@ -46,6 +45,7 @@ import {
 } from '@/components/ui/tooltip';
 import { Progress } from '@/components/ui/progress';
 import { Task, useAppState, TaskFollowUp } from '@/contexts/AppStateContext';
+import { TaskDrawer } from './TaskDrawer';
 import { LogFollowUpModal } from './LogFollowUpModal';
 import { TasksBulkActions } from './TasksBulkActions';
 import { formatDateForDisplay } from '@/utils/dateFormatters';
@@ -88,6 +88,9 @@ export const TaskList: React.FC<TaskListProps> = ({
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
   const [sortField, setSortField] = useState<SortField>('dueDate');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [selectedTask, setSelectedTask] = useState<TaskDisplay | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [drawerMode, setDrawerMode] = useState<'view' | 'edit'>('view');
   const [density, setDensity] = useState<'compact' | 'comfortable'>('comfortable');
   const [clientFilter, setClientFilter] = useState<string>('all');
   const [lockFilter, setLockFilter] = useState<'all' | 'locked' | 'unlocked'>('all');
@@ -164,13 +167,13 @@ export const TaskList: React.FC<TaskListProps> = ({
     }
   };
 
-  const navigate = useNavigate();
-
   const handleTaskClick = (task: TaskDisplay) => {
     if (onTaskClick) {
       onTaskClick(task);
     } else {
-      navigate(`/tasks/${task.id}`);
+      setSelectedTask(task);
+      setDrawerMode('view');
+      setIsDrawerOpen(true);
     }
   };
 
@@ -306,13 +309,11 @@ export const TaskList: React.FC<TaskListProps> = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Clients</SelectItem>
-              {state.clients
-                .filter(client => client.id)
-                .map(client => (
-                  <SelectItem key={client.id} value={client.id}>
-                    {client.name || 'Unknown Client'}
-                  </SelectItem>
-                ))}
+              {state.clients.map(client => (
+                <SelectItem key={client.id} value={client.id}>
+                  {client.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
 
@@ -555,7 +556,11 @@ export const TaskList: React.FC<TaskListProps> = ({
                           <Plus className="mr-2 h-4 w-4" />
                           Add Follow-Up
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate(`/tasks/${task.id}?edit=true`)}>
+                        <DropdownMenuItem onClick={() => {
+                          setSelectedTask(task);
+                          setDrawerMode('edit');
+                          setIsDrawerOpen(true);
+                        }}>
                           <Edit className="mr-2 h-4 w-4" />
                           Edit Task
                         </DropdownMenuItem>
@@ -586,6 +591,20 @@ export const TaskList: React.FC<TaskListProps> = ({
           </div>
         )}
       </motion.div>
+
+      {/* Task Drawer */}
+      <TaskDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => {
+          setIsDrawerOpen(false);
+          setSelectedTask(null);
+          setDrawerMode('view');
+        }}
+        task={selectedTask}
+        mode={drawerMode}
+        onUpdateTask={onTaskUpdate}
+        onDeleteTask={onTaskDelete}
+      />
 
       {/* Log Follow-Up Modal */}
       {followUpTask && (

@@ -393,10 +393,10 @@ export const TasksBulkActions: React.FC<TasksBulkActionsProps> = ({
               </SelectTrigger>
               <SelectContent>
                 {state.employees
-                  .filter(e => e.status === 'Active' && e.id)
+                  .filter(e => e.status === 'Active')
                   .map(employee => (
                     <SelectItem key={employee.id} value={employee.id}>
-                      {employee.full_name || (employee as any).name || 'Unknown'} - {employee.designation || 'N/A'}
+                      {employee.full_name || (employee as any).name} - {employee.designation}
                     </SelectItem>
                   ))}
               </SelectContent>

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Circle,
@@ -17,6 +16,7 @@ import {
   Building2,
   Lock
 } from 'lucide-react';
+import { TaskDrawer } from './TaskDrawer';
 import { LogFollowUpModal } from './LogFollowUpModal';
 import { Task, TaskFollowUp, useAppState } from '@/contexts/AppStateContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -65,6 +65,8 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
   const { state, dispatch } = useAppState();
   const [draggedTask, setDraggedTask] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
+  const [selectedTask, setSelectedTask] = useState<TaskDisplay | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [followUpModalOpen, setFollowUpModalOpen] = useState(false);
   const [followUpTask, setFollowUpTask] = useState<TaskDisplay | null>(null);
 
@@ -101,13 +103,12 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
     return diffDays;
   };
 
-  const navigate = useNavigate();
-
   const handleTaskClick = (task: TaskDisplay) => {
     if (onTaskClick) {
       onTaskClick(task);
     } else {
-      navigate(`/tasks/${task.id}`);
+      setSelectedTask(task);
+      setIsDrawerOpen(true);
     }
   };
 
@@ -229,7 +230,8 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={(e) => {
                   e.stopPropagation();
-                  navigate(`/tasks/${task.id}?edit=true`);
+                  setSelectedTask(task);
+                  setIsDrawerOpen(true);
                 }}>
                   <Edit className="mr-2 h-4 w-4" />
                   Edit Task
@@ -477,6 +479,18 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Task Drawer */}
+      <TaskDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => {
+          setIsDrawerOpen(false);
+          setSelectedTask(null);
+        }}
+        task={selectedTask}
+        onUpdateTask={onTaskUpdate}
+        onDeleteTask={onTaskDelete}
+      />
 
       {/* Log Follow-Up Modal */}
       {followUpTask && (

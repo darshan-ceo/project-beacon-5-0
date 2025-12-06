@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Plus, PlayCircle, CheckCircle, Clock, AlertCircle, Trash2, Edit, Bell, Eye } from 'lucide-react';
+import { Plus, PlayCircle, CheckCircle, Clock, AlertCircle, Trash2, Edit, Bell } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAppState, Task, Case } from '@/contexts/AppStateContext';
+import { TaskModal } from '@/components/modals/TaskModal';
+import { TaskDrawer } from '@/components/tasks/TaskDrawer';
 import { BundleRunModal } from './BundleRunModal';
 import { format } from 'date-fns';
 import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
@@ -27,7 +28,16 @@ interface CaseTasksTabProps {
 export const CaseTasksTab: React.FC<CaseTasksTabProps> = ({ caseData }) => {
   const { state, dispatch, rawDispatch } = useAppState();
   const { hasPermission } = useAdvancedRBAC();
-  const navigate = useNavigate();
+  const [taskModal, setTaskModal] = useState<{
+    isOpen: boolean;
+    mode: 'create' | 'edit' | 'view';
+    task?: Task | null;
+  }>({
+    isOpen: false,
+    mode: 'create',
+    task: null,
+  });
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [bundleModal, setBundleModal] = useState(false);
 
   // Filter tasks for this case
@@ -186,7 +196,11 @@ export const CaseTasksTab: React.FC<CaseTasksTabProps> = ({ caseData }) => {
       return;
     }
 
-    navigate(`/tasks/new?caseId=${caseData.id}&clientId=${caseData.clientId}`);
+    setTaskModal({
+      isOpen: true,
+      mode: 'create',
+      task: null,
+    });
   };
 
   const handleEditTask = (task: Task) => {
@@ -199,11 +213,7 @@ export const CaseTasksTab: React.FC<CaseTasksTabProps> = ({ caseData }) => {
       return;
     }
 
-    navigate(`/tasks/${task.id}?edit=true`);
-  };
-
-  const handleViewTask = (task: Task) => {
-    navigate(`/tasks/${task.id}`);
+    setSelectedTask(task);
   };
 
   const handleUpdateTask = (taskId: string, updates: Partial<Task>) => {
@@ -409,13 +419,6 @@ export const CaseTasksTab: React.FC<CaseTasksTabProps> = ({ caseData }) => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleViewTask(task)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
                             onClick={() => handleEditTask(task)}
                           >
                             <Edit className="h-4 w-4" />
@@ -437,6 +440,25 @@ export const CaseTasksTab: React.FC<CaseTasksTabProps> = ({ caseData }) => {
           )}
         </CardContent>
       </Card>
+
+      {/* Task Modal (for creating new tasks) */}
+      <TaskModal
+        isOpen={taskModal.isOpen}
+        onClose={() => setTaskModal({ isOpen: false, mode: 'create', task: null })}
+        task={taskModal.task}
+        mode={taskModal.mode}
+        contextCaseId={caseData.id}
+        contextClientId={caseData.clientId}
+      />
+
+      {/* Task Drawer (for editing existing tasks) */}
+      <TaskDrawer
+        isOpen={selectedTask !== null}
+        onClose={() => setSelectedTask(null)}
+        task={selectedTask}
+        onUpdateTask={handleUpdateTask}
+        onDeleteTask={handleDeleteTask}
+      />
 
       {/* Bundle Run Modal */}
       <BundleRunModal

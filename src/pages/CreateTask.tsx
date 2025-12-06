@@ -126,21 +126,9 @@ export const CreateTask: React.FC = () => {
         return;
       }
 
-      // Fetch tenant_id from profiles table directly
-      const { data: userProfile, error: profileError } = await supabase
-        .from('profiles')
-        .select('tenant_id, full_name')
-        .eq('id', user.id)
-        .single();
-
-      if (profileError || !userProfile?.tenant_id) {
-        console.error('Failed to fetch user profile:', profileError);
-        toast.error('Unable to determine your tenant. Please refresh and try again.');
-        return;
-      }
-
-      const tenantId = userProfile.tenant_id;
-      const userName = userProfile.full_name || user.email || 'User';
+      const profile = state.employees.find((e) => e.id === user.id);
+      const tenantId = profile?.tenantId || '';
+      const userName = profile?.full_name || user.email || 'User';
 
       const assignee = state.employees.find((e) => e.id === formData.assignedTo);
 
@@ -151,8 +139,6 @@ export const CreateTask: React.FC = () => {
           title: formData.title.trim(),
           description: formData.description.trim(),
           assigned_to: formData.assignedTo || null,
-          assigned_by: user.id,
-          tenant_id: tenantId,
           priority: formData.priority,
           due_date: formData.dueDate ? format(formData.dueDate, 'yyyy-MM-dd') : null,
           status: 'Not Started',
@@ -268,10 +254,10 @@ export const CreateTask: React.FC = () => {
               </SelectTrigger>
               <SelectContent>
                 {state.employees
-                  .filter((e) => e.status === 'Active' && e.id)
+                  .filter((e) => e.status === 'Active')
                   .map((emp) => (
                     <SelectItem key={emp.id} value={emp.id}>
-                      {emp.full_name || emp.email || 'Unknown'}
+                      {emp.full_name}
                     </SelectItem>
                   ))}
               </SelectContent>
