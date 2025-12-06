@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Circle,
@@ -103,12 +104,13 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
     return diffDays;
   };
 
+  const navigate = useNavigate();
+
   const handleTaskClick = (task: TaskDisplay) => {
     if (onTaskClick) {
       onTaskClick(task);
     } else {
-      setSelectedTask(task);
-      setIsDrawerOpen(true);
+      navigate(`/tasks/${task.id}`);
     }
   };
 

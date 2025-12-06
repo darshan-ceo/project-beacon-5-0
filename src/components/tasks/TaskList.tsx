@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   ArrowUpDown,
@@ -167,13 +168,13 @@ export const TaskList: React.FC<TaskListProps> = ({
     }
   };
 
+  const navigate = useNavigate();
+
   const handleTaskClick = (task: TaskDisplay) => {
     if (onTaskClick) {
       onTaskClick(task);
     } else {
-      setSelectedTask(task);
-      setDrawerMode('view');
-      setIsDrawerOpen(true);
+      navigate(`/tasks/${task.id}`);
     }
   };
 
