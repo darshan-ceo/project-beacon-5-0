@@ -207,6 +207,20 @@ const AppContent = () => {
                   </AdminLayout>
                 </ProtectedRoute>
               } />
+              <Route path="/tasks/new" element={
+                <ProtectedRoute>
+                  <AdminLayout currentUser={currentUser}>
+                    <CreateTask />
+                  </AdminLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/tasks/:taskId" element={
+                <ProtectedRoute>
+                  <AdminLayout currentUser={currentUser}>
+                    <TaskConversation />
+                  </AdminLayout>
+                </ProtectedRoute>
+              } />
               <Route path="/documents" element={
                 <ProtectedRoute>
                   <AdminLayout currentUser={currentUser}>

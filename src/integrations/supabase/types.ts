@@ -2954,6 +2954,70 @@ export type Database = {
           },
         ]
       }
+      task_messages: {
+        Row: {
+          attachments: Json | null
+          created_at: string
+          created_by: string | null
+          created_by_name: string
+          id: string
+          is_system_message: boolean | null
+          message: string
+          status_update: string | null
+          task_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          attachments?: Json | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name: string
+          id?: string
+          is_system_message?: boolean | null
+          message: string
+          status_update?: string | null
+          task_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          attachments?: Json | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string
+          id?: string
+          is_system_message?: boolean | null
+          message?: string
+          status_update?: string | null
+          task_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_messages_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_messages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "task_messages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_notes: {
         Row: {
           created_at: string
@@ -3024,6 +3088,7 @@ export type Database = {
           actual_hours: number | null
           assigned_by: string | null
           assigned_to: string | null
+          attachments: Json | null
           bundle_id: string | null
           case_id: string | null
           case_number: string | null
@@ -3051,6 +3116,7 @@ export type Database = {
           actual_hours?: number | null
           assigned_by?: string | null
           assigned_to?: string | null
+          attachments?: Json | null
           bundle_id?: string | null
           case_id?: string | null
           case_number?: string | null
@@ -3078,6 +3144,7 @@ export type Database = {
           actual_hours?: number | null
           assigned_by?: string | null
           assigned_to?: string | null
+          attachments?: Json | null
           bundle_id?: string | null
           case_id?: string | null
           case_number?: string | null
