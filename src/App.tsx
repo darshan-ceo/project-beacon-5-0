@@ -25,6 +25,8 @@ import { StatutoryEventTypeMasters } from "@/components/masters/StatutoryEventTy
 import { HolidayMasters } from "@/components/masters/HolidayMasters";
 import { CaseManagement } from "@/components/cases/CaseManagement";
 import { TaskManagement } from "@/components/tasks/TaskManagement";
+import { TaskConversation } from "@/components/tasks/TaskConversation";
+import CreateTask from "@/pages/CreateTask";
 import { DocumentManagement } from "@/components/documents/DocumentManagement";
 import { RBACManagementWrapper as RBACManagement } from "@/components/admin/RBACManagementWrapper";
 import { GlobalParameters } from "@/components/admin/GlobalParameters";
