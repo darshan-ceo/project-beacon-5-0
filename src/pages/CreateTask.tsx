@@ -126,14 +126,21 @@ export const CreateTask: React.FC = () => {
         return;
       }
 
-      const profile = state.employees.find((e) => e.id === user.id);
-      const tenantId = profile?.tenantId || '';
-      const userName = profile?.full_name || user.email || 'User';
+      // Fetch tenant_id from profiles table directly
+      const { data: userProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('tenant_id, full_name')
+        .eq('id', user.id)
+        .single();
 
-      if (!tenantId) {
+      if (profileError || !userProfile?.tenant_id) {
+        console.error('Failed to fetch user profile:', profileError);
         toast.error('Unable to determine your tenant. Please refresh and try again.');
         return;
       }
+
+      const tenantId = userProfile.tenant_id;
+      const userName = userProfile.full_name || user.email || 'User';
 
       const assignee = state.employees.find((e) => e.id === formData.assignedTo);
 
