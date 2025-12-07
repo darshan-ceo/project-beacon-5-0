@@ -221,32 +221,42 @@ export const CreateTask: React.FC = () => {
       </div>
 
       {/* Form - Clean Linear Layout */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto bg-muted/20">
         <div className="max-w-2xl mx-auto p-6 space-y-6">
-          {/* Title - Primary Focus */}
-          <div className="space-y-2">
-            <Input
-              id="title"
-              value={formData.title}
-              onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
-              placeholder="What needs to be done?"
-              className="text-xl font-medium border-0 border-b rounded-none px-0 focus-visible:ring-0 focus-visible:border-primary"
-            />
+          {/* Main Form Card */}
+          <div className="bg-card rounded-xl border border-border shadow-sm p-6 space-y-6">
+            {/* Title - Primary Focus */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-foreground">Task Title</Label>
+              <Input
+                id="title"
+                value={formData.title}
+                onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
+                placeholder="What needs to be done?"
+                className="text-lg font-medium h-12 bg-muted/30 border-border focus-visible:ring-2 focus-visible:ring-primary"
+              />
+            </div>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-foreground">Description</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+                placeholder="Add more details about this task..."
+                className="min-h-[120px] resize-none bg-muted/20 border-border focus-visible:ring-2 focus-visible:ring-primary"
+              />
+            </div>
           </div>
 
-          {/* Description */}
-          <div className="space-y-2">
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-              placeholder="Add more details..."
-              className="min-h-[120px] resize-none border-muted"
-            />
-          </div>
-
-          {/* Quick Settings Row */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {/* Quick Settings Card */}
+          <div className="bg-muted/30 rounded-xl border border-border p-5 space-y-4">
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <Flag className="h-4 w-4" />
+              Task Settings
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {/* Assignee */}
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
@@ -325,12 +335,13 @@ export const CreateTask: React.FC = () => {
                 </PopoverContent>
               </Popover>
             </div>
+            </div>
           </div>
 
-          {/* Tags */}
-          <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <Tag className="h-3.5 w-3.5" />
+          {/* Tags Card */}
+          <div className="bg-muted/20 rounded-xl border border-border p-5 space-y-3">
+            <Label className="text-sm font-medium text-foreground flex items-center gap-2">
+              <Tag className="h-4 w-4 text-primary" />
               Tags
             </Label>
             <div className="flex flex-wrap gap-2">
@@ -338,7 +349,7 @@ export const CreateTask: React.FC = () => {
                 <Badge
                   key={tag}
                   variant={formData.tags.includes(tag) ? 'default' : 'outline'}
-                  className="cursor-pointer transition-all hover:scale-105"
+                  className="cursor-pointer transition-all hover:scale-105 px-3 py-1"
                   onClick={() => toggleTag(tag)}
                 >
                   {tag}
@@ -347,8 +358,8 @@ export const CreateTask: React.FC = () => {
             </div>
           </div>
 
-          {/* Attachments */}
-          <div className="space-y-2">
+          {/* Attachments Card */}
+          <div className="bg-muted/10 rounded-xl border-2 border-dashed border-border hover:border-primary/50 transition-colors p-5 space-y-3">
             <input
               ref={fileInputRef}
               type="file"
@@ -363,15 +374,15 @@ export const CreateTask: React.FC = () => {
                 {attachments.map((att) => (
                   <div
                     key={att.id}
-                    className="flex items-center gap-2 bg-muted px-3 py-1.5 rounded-lg text-sm group"
+                    className="flex items-center gap-2 bg-card border border-border px-3 py-2 rounded-lg text-sm group shadow-sm"
                   >
-                    <Paperclip className="h-3 w-3" />
+                    <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
                     <span className="truncate max-w-[150px]">{att.name}</span>
                     <button
                       onClick={() => removeAttachment(att.id)}
-                      className="text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="text-muted-foreground hover:text-destructive transition-colors"
                     >
-                      <X className="h-3 w-3" />
+                      <X className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 ))}
@@ -379,17 +390,17 @@ export const CreateTask: React.FC = () => {
             )}
 
             <Button
-              variant="outline"
+              variant="ghost"
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploading}
-              className="w-full border-dashed h-12"
+              className="w-full h-14 text-muted-foreground hover:text-foreground hover:bg-muted/50"
             >
               {isUploading ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Loader2 className="h-5 w-5 animate-spin mr-2" />
               ) : (
-                <Paperclip className="h-4 w-4 mr-2" />
+                <Paperclip className="h-5 w-5 mr-2" />
               )}
-              {attachments.length > 0 ? 'Add More Files' : 'Attach Files'}
+              {attachments.length > 0 ? 'Add More Files' : 'Click to attach files'}
             </Button>
           </div>
         </div>

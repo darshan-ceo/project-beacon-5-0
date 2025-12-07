@@ -212,9 +212,9 @@ export const TaskConversation: React.FC = () => {
   }
 
   return (
-    <div className="h-full flex flex-col bg-background">
-      {/* Compact Header */}
-      <div className="border-b bg-card">
+    <div className="h-full flex flex-col bg-muted/30">
+      {/* Compact Header with Gradient */}
+      <div className="border-b bg-gradient-to-r from-card via-card to-muted/50 shadow-sm">
         <div className="px-4 py-3 flex items-center gap-3">
           <Button
             variant="ghost"
@@ -262,7 +262,7 @@ export const TaskConversation: React.FC = () => {
         </div>
 
         {/* Task Meta Info */}
-        <div className="px-4 pb-3 border-t pt-3">
+        <div className="px-4 pb-3 border-t border-border/50 pt-3 bg-muted/20">
           <TaskHeader task={task} compact />
         </div>
       </div>
@@ -271,8 +271,8 @@ export const TaskConversation: React.FC = () => {
       <CollapsibleDescription description={task.description || ''} />
 
       {/* Messages - Chat Style */}
-      <ScrollArea className="flex-1">
-        <div className="divide-y">
+      <ScrollArea className="flex-1 bg-background">
+        <div className="divide-y divide-border/50 px-4 py-2 space-y-2">
           {isLoading ? (
             <div className="flex items-center justify-center py-16">
               <div className="text-center space-y-3">
@@ -294,14 +294,15 @@ export const TaskConversation: React.FC = () => {
             </div>
           ) : (
             messages.map((msg) => (
-              <MessageBubble
-                key={msg.id}
-                message={msg}
-                isOwnMessage={msg.createdBy === currentUserId}
-              />
+              <div key={msg.id} className="py-1">
+                <MessageBubble
+                  message={msg}
+                  isOwnMessage={msg.createdBy === currentUserId}
+                />
+              </div>
             ))
           )}
-          <div ref={messagesEndRef} />
+          <div ref={messagesEndRef} className="h-4" />
         </div>
       </ScrollArea>
 
