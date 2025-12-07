@@ -39,6 +39,7 @@ export const TaskConversation: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [currentUserName, setCurrentUserName] = useState<string>('');
+  const [tenantId, setTenantId] = useState<string>('');
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -49,8 +50,11 @@ export const TaskConversation: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setCurrentUserId(user.id);
+        // Get tenantId from user metadata (primary) or profile (fallback)
+        const userTenantId = user.user_metadata?.tenant_id;
         const profile = state.employees.find((e) => e.id === user.id);
         setCurrentUserName(profile?.full_name || user.email || 'User');
+        setTenantId(userTenantId || profile?.tenantId || '');
       }
     };
     getUser();
@@ -131,8 +135,11 @@ export const TaskConversation: React.FC = () => {
   ) => {
     if (!taskId || !task) return;
 
-    const profile = state.employees.find((e) => e.id === currentUserId);
-    const tenantId = profile?.tenantId || '';
+    // Validate tenantId before sending
+    if (!tenantId) {
+      toast.error('Unable to send message. Please refresh and try again.');
+      return;
+    }
     
     await taskMessagesService.createMessage(
       taskId,
@@ -146,14 +153,17 @@ export const TaskConversation: React.FC = () => {
   const handleQuickStatusChange = async (newStatus: string) => {
     if (!task || !taskId) return;
     
+    // Validate tenantId before updating
+    if (!tenantId) {
+      toast.error('Unable to update status. Please refresh and try again.');
+      return;
+    }
+    
     setIsUpdatingStatus(true);
     try {
       await tasksService.update(taskId, { status: newStatus as any }, dispatch);
       
       // Create a system message for the status change
-      const profile = state.employees.find((e) => e.id === currentUserId);
-      const tenantId = profile?.tenantId || '';
-      
       await taskMessagesService.createMessage(
         taskId,
         tenantId,

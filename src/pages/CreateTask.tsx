@@ -126,19 +126,27 @@ export const CreateTask: React.FC = () => {
         return;
       }
 
+      // Get tenantId from user metadata (primary) or profile (fallback)
       const profile = state.employees.find((e) => e.id === user.id);
-      const tenantId = profile?.tenantId || '';
+      const tenantId = user.user_metadata?.tenant_id || profile?.tenantId;
       const userName = profile?.full_name || user.email || 'User';
+
+      if (!tenantId) {
+        toast.error('Unable to determine tenant. Please refresh and try again.');
+        return;
+      }
 
       const assignee = state.employees.find((e) => e.id === formData.assignedTo);
 
-      // Create task in Supabase
+      // Create task in Supabase with required tenant_id and assigned_by
       const { data: taskData, error: taskError } = await supabase
         .from('tasks')
         .insert([{
+          tenant_id: tenantId,
           title: formData.title.trim(),
           description: formData.description.trim(),
           assigned_to: formData.assignedTo || null,
+          assigned_by: user.id,
           priority: formData.priority,
           due_date: formData.dueDate ? format(formData.dueDate, 'yyyy-MM-dd') : null,
           status: 'Not Started',
