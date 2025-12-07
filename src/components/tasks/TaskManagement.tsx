@@ -36,7 +36,7 @@ import { TaskAnalytics } from './TaskAnalytics';
 import { TaskInsights } from './TaskInsights';
 import { AITaskAssistant } from './AITaskAssistant';
 import { TaskCollaboration } from './TaskCollaboration';
-import { TaskModal } from '@/components/modals/TaskModal';
+// TaskModal removed - now using route-based navigation to /tasks/new and /tasks/:taskId
 import { UnifiedTaskSearch } from './UnifiedTaskSearch';
 import { Task, Client, useAppState } from '@/contexts/AppStateContext';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
@@ -113,11 +113,7 @@ export const TaskManagement: React.FC = () => {
       setViewMode(mode as 'board' | 'list');
     });
   }, []);
-  const [taskModal, setTaskModal] = useState<{ isOpen: boolean; mode: 'create' | 'edit' | 'view'; task?: Task | null }>({
-    isOpen: false,
-    mode: 'create',
-    task: null
-  });
+  // TaskModal state removed - using route-based navigation instead
 
   // Handle URL parameters for highlighting tasks and return context
   useEffect(() => {
@@ -187,19 +183,19 @@ export const TaskManagement: React.FC = () => {
     }
   }, [searchParams]);
 
-  // Auto-open task drawer when highlighted task is loaded
+  // Auto-navigate to task conversation when highlighted task is loaded
   useEffect(() => {
     if (shouldAutoOpenTask && state.tasks) {
-      // Wait for scroll to complete, then open drawer
+      // Wait for scroll to complete, then navigate to conversation view
       setTimeout(() => {
         const task = state.tasks.find(t => t.id === shouldAutoOpenTask);
         if (task) {
-          setTaskModal({ isOpen: true, mode: 'view', task });
+          navigate(`/tasks/${task.id}`);
         }
         setShouldAutoOpenTask(null);
       }, 800);
     }
-  }, [shouldAutoOpenTask, state.tasks]);
+  }, [shouldAutoOpenTask, state.tasks, navigate]);
 
   // Set up real-time subscription for tasks
   useEffect(() => {
@@ -663,7 +659,7 @@ export const TaskManagement: React.FC = () => {
           <HelpButton 
             helpId="button-create-task"
             className="bg-primary hover:bg-primary-hover"
-            onClick={() => setTaskModal({ isOpen: true, mode: 'create', task: null })}
+            onClick={() => navigate('/tasks/new')}
             data-tour="create-task-button"
           >
             <Plus className="mr-2 h-4 w-4" />
@@ -957,12 +953,7 @@ export const TaskManagement: React.FC = () => {
         </TabsContent>
       </Tabs>
 
-      <TaskModal
-        isOpen={taskModal.isOpen}
-        onClose={() => setTaskModal({ isOpen: false, mode: 'create', task: null })}
-        task={taskModal.task}
-        mode={taskModal.mode}
-      />
+      {/* TaskModal removed - now using route-based navigation */}
 
       <ContextualPageHelp 
         pageId="task-automation"
