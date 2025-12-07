@@ -201,7 +201,7 @@ export const CreateTask: React.FC = () => {
   return (
     <div className="h-full flex flex-col bg-background">
       {/* Header */}
-      <div className="border-b px-4 py-3 flex items-center gap-3">
+      <div className="border-b bg-card px-4 py-3 flex items-center gap-3">
         <Button
           variant="ghost"
           size="icon"
@@ -212,186 +212,187 @@ export const CreateTask: React.FC = () => {
         <h1 className="text-lg font-semibold">Create New Task</h1>
       </div>
 
-      {/* Form */}
-      <div className="flex-1 overflow-auto p-4 space-y-6 max-w-2xl mx-auto w-full">
-        {/* Title */}
-        <div className="space-y-2">
-          <Label htmlFor="title">Task Title *</Label>
-          <Input
-            id="title"
-            value={formData.title}
-            onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
-            placeholder="Enter task title..."
-            className="text-lg"
-          />
-        </div>
-
-        {/* Description */}
-        <div className="space-y-2">
-          <Label htmlFor="description">Description</Label>
-          <Textarea
-            id="description"
-            value={formData.description}
-            onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-            placeholder="Add a detailed description..."
-            className="min-h-[150px] resize-none"
-          />
-        </div>
-
-        {/* Assignee & Priority Row */}
-        <div className="grid grid-cols-2 gap-4">
+      {/* Form - Clean Linear Layout */}
+      <div className="flex-1 overflow-auto">
+        <div className="max-w-2xl mx-auto p-6 space-y-6">
+          {/* Title - Primary Focus */}
           <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <User className="h-4 w-4 text-muted-foreground" />
-              Assigned To
-            </Label>
-            <Select
-              value={formData.assignedTo}
-              onValueChange={(val) => setFormData((prev) => ({ ...prev, assignedTo: val }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select assignee" />
-              </SelectTrigger>
-              <SelectContent>
-                {state.employees
-                  .filter((e) => e.status === 'Active')
-                  .map((emp) => (
-                    <SelectItem key={emp.id} value={emp.id}>
-                      {emp.full_name}
+            <Input
+              id="title"
+              value={formData.title}
+              onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
+              placeholder="What needs to be done?"
+              className="text-xl font-medium border-0 border-b rounded-none px-0 focus-visible:ring-0 focus-visible:border-primary"
+            />
+          </div>
+
+          {/* Description */}
+          <div className="space-y-2">
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+              placeholder="Add more details..."
+              className="min-h-[120px] resize-none border-muted"
+            />
+          </div>
+
+          {/* Quick Settings Row */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {/* Assignee */}
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <User className="h-3.5 w-3.5" />
+                Assignee
+              </Label>
+              <Select
+                value={formData.assignedTo}
+                onValueChange={(val) => setFormData((prev) => ({ ...prev, assignedTo: val }))}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Unassigned" />
+                </SelectTrigger>
+                <SelectContent>
+                  {state.employees
+                    .filter((e) => e.status === 'Active')
+                    .map((emp) => (
+                      <SelectItem key={emp.id} value={emp.id}>
+                        {emp.full_name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Priority */}
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <Flag className="h-3.5 w-3.5" />
+                Priority
+              </Label>
+              <Select
+                value={formData.priority}
+                onValueChange={(val) => setFormData((prev) => ({ ...prev, priority: val }))}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PRIORITY_OPTIONS.map((p) => (
+                    <SelectItem key={p} value={p}>
+                      {p}
                     </SelectItem>
                   ))}
-              </SelectContent>
-            </Select>
-          </div>
+                </SelectContent>
+              </Select>
+            </div>
 
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <Flag className="h-4 w-4 text-muted-foreground" />
-              Priority
-            </Label>
-            <Select
-              value={formData.priority}
-              onValueChange={(val) => setFormData((prev) => ({ ...prev, priority: val }))}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PRIORITY_OPTIONS.map((p) => (
-                  <SelectItem key={p} value={p}>
-                    {p}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* Due Date */}
-        <div className="space-y-2">
-          <Label className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            Due Date
-          </Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  'w-full justify-start text-left font-normal',
-                  !formData.dueDate && 'text-muted-foreground'
-                )}
-              >
-                {formData.dueDate
-                  ? format(formData.dueDate, 'PPP')
-                  : 'Select due date'}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <CalendarComponent
-                mode="single"
-                selected={formData.dueDate}
-                onSelect={(date) => setFormData((prev) => ({ ...prev, dueDate: date }))}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-
-        {/* Tags */}
-        <div className="space-y-2">
-          <Label className="flex items-center gap-2">
-            <Tag className="h-4 w-4 text-muted-foreground" />
-            Tags
-          </Label>
-          <div className="flex flex-wrap gap-2">
-            {DEFAULT_TAGS.map((tag) => (
-              <Badge
-                key={tag}
-                variant={formData.tags.includes(tag) ? 'default' : 'outline'}
-                className="cursor-pointer transition-colors"
-                onClick={() => toggleTag(tag)}
-              >
-                {tag}
-              </Badge>
-            ))}
-          </div>
-        </div>
-
-        {/* Attachments */}
-        <div className="space-y-2">
-          <Label>Attachments</Label>
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            onChange={handleFileSelect}
-            className="hidden"
-            id="task-attachments"
-          />
-          
-          {attachments.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-2">
-              {attachments.map((att) => (
-                <div
-                  key={att.id}
-                  className="flex items-center gap-2 bg-muted px-3 py-1.5 rounded-lg text-sm"
-                >
-                  <Paperclip className="h-3 w-3" />
-                  <span className="truncate max-w-[150px]">{att.name}</span>
-                  <button
-                    onClick={() => removeAttachment(att.id)}
-                    className="text-muted-foreground hover:text-foreground"
+            {/* Due Date */}
+            <div className="space-y-1.5 col-span-2 sm:col-span-2">
+              <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5" />
+                Due Date
+              </Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      'w-full justify-start text-left font-normal h-9',
+                      !formData.dueDate && 'text-muted-foreground'
+                    )}
                   >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
+                    {formData.dueDate
+                      ? format(formData.dueDate, 'MMM d, yyyy')
+                      : 'Select date'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={formData.dueDate}
+                    onSelect={(date) => setFormData((prev) => ({ ...prev, dueDate: date }))}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+
+          {/* Tags */}
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Tag className="h-3.5 w-3.5" />
+              Tags
+            </Label>
+            <div className="flex flex-wrap gap-2">
+              {DEFAULT_TAGS.map((tag) => (
+                <Badge
+                  key={tag}
+                  variant={formData.tags.includes(tag) ? 'default' : 'outline'}
+                  className="cursor-pointer transition-all hover:scale-105"
+                  onClick={() => toggleTag(tag)}
+                >
+                  {tag}
+                </Badge>
               ))}
             </div>
-          )}
+          </div>
 
-          <Button
-            variant="outline"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
-            className="w-full border-dashed"
-          >
-            {isUploading ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : (
-              <Paperclip className="h-4 w-4 mr-2" />
+          {/* Attachments */}
+          <div className="space-y-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              onChange={handleFileSelect}
+              className="hidden"
+              id="task-attachments"
+            />
+            
+            {attachments.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-2">
+                {attachments.map((att) => (
+                  <div
+                    key={att.id}
+                    className="flex items-center gap-2 bg-muted px-3 py-1.5 rounded-lg text-sm group"
+                  >
+                    <Paperclip className="h-3 w-3" />
+                    <span className="truncate max-w-[150px]">{att.name}</span>
+                    <button
+                      onClick={() => removeAttachment(att.id)}
+                      className="text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
             )}
-            Add Attachments
-          </Button>
+
+            <Button
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              className="w-full border-dashed h-12"
+            >
+              {isUploading ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Paperclip className="h-4 w-4 mr-2" />
+              )}
+              {attachments.length > 0 ? 'Add More Files' : 'Attach Files'}
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="border-t p-4 flex justify-end gap-2">
-        <Button variant="outline" onClick={() => navigate('/tasks')}>
+      {/* Footer - Sticky */}
+      <div className="border-t bg-card p-4 flex justify-end gap-3">
+        <Button variant="ghost" onClick={() => navigate('/tasks')}>
           Cancel
         </Button>
-        <Button onClick={handleSubmit} disabled={isSubmitting}>
+        <Button onClick={handleSubmit} disabled={isSubmitting || !formData.title.trim()}>
           {isSubmitting ? (
             <Loader2 className="h-4 w-4 animate-spin mr-2" />
           ) : null}

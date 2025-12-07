@@ -2,7 +2,7 @@ import React from 'react';
 import { format } from 'date-fns';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { FileIcon, ImageIcon, Download, Bot } from 'lucide-react';
+import { FileIcon, Download, Bot, ArrowRight } from 'lucide-react';
 import { TaskMessage, TASK_STATUS_OPTIONS } from '@/types/taskMessages';
 import { cn } from '@/lib/utils';
 
@@ -38,14 +38,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         href={attachment.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center gap-2 p-2 rounded-lg bg-background border hover:bg-muted/50 transition-colors group"
+        className="flex items-center gap-2 p-2.5 rounded-lg bg-background border hover:bg-muted/50 transition-colors group"
       >
         {isImage ? (
           <div className="relative">
             <img
               src={attachment.url}
               alt={attachment.name}
-              className="h-12 w-12 object-cover rounded"
+              className="h-14 w-14 object-cover rounded"
             />
           </div>
         ) : (
@@ -64,14 +64,33 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     );
   };
 
+  // Status change message
+  if (message.statusUpdate && !message.message) {
+    return (
+      <div className="flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground">
+        <ArrowRight className="h-3.5 w-3.5" />
+        <span>{message.createdByName} changed status to</span>
+        <Badge variant="secondary" className={cn('text-xs', getStatusStyle(message.statusUpdate))}>
+          {message.statusUpdate}
+        </Badge>
+        <span className="text-xs">
+          {format(new Date(message.createdAt), 'MMM d, h:mm a')}
+        </span>
+      </div>
+    );
+  }
+
   return (
-    <div className={cn('flex gap-3 px-4 py-3', isOwnMessage && 'bg-muted/20')}>
-      <Avatar className="h-8 w-8 shrink-0">
+    <div className={cn(
+      'flex gap-3 px-4 py-4',
+      isOwnMessage && 'bg-muted/30'
+    )}>
+      <Avatar className="h-8 w-8 shrink-0 mt-0.5">
         <AvatarFallback className={cn(
-          'text-xs',
+          'text-xs font-medium',
           message.isSystemMessage 
             ? 'bg-primary/10 text-primary' 
-            : 'bg-muted'
+            : 'bg-secondary'
         )}>
           {message.isSystemMessage ? (
             <Bot className="h-4 w-4" />
@@ -81,7 +100,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         </AvatarFallback>
       </Avatar>
       
-      <div className="flex-1 min-w-0 space-y-1">
+      <div className="flex-1 min-w-0 space-y-1.5">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-medium text-sm">
             {message.isSystemMessage ? 'System' : message.createdByName}
@@ -91,18 +110,20 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           </span>
           {message.statusUpdate && (
             <Badge variant="secondary" className={cn('text-xs', getStatusStyle(message.statusUpdate))}>
-              {message.statusUpdate}
+              → {message.statusUpdate}
             </Badge>
           )}
         </div>
         
-        <div 
-          className="prose prose-sm dark:prose-invert max-w-none"
-          dangerouslySetInnerHTML={{ __html: message.message }}
-        />
+        {message.message && (
+          <div 
+            className="prose prose-sm dark:prose-invert max-w-none text-foreground"
+            dangerouslySetInnerHTML={{ __html: message.message }}
+          />
+        )}
         
         {message.attachments && message.attachments.length > 0 && (
-          <div className="grid gap-2 mt-2 max-w-md">
+          <div className="grid gap-2 mt-3 max-w-md">
             {message.attachments.map((att, idx) => renderAttachment(att, idx))}
           </div>
         )}
