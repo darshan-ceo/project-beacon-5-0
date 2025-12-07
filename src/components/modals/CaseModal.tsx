@@ -165,44 +165,59 @@ export const CaseModal: React.FC<CaseModalProps> = ({
 
   useEffect(() => {
     if (caseData && (mode === 'edit' || mode === 'view')) {
-      setFormData({
-        caseNumber: caseData.caseNumber,
-        caseType: caseData.caseType || 'GST',
-        caseYear: caseData.caseYear || new Date().getFullYear().toString(),
-        caseSequence: caseData.caseSequence || '001',
-        officeFileNo: caseData.officeFileNo || '',
-        noticeNo: caseData.noticeNo || '',
-        issueType: caseData.issueType || caseData.title || '',
-        title: caseData.title,
-        clientId: caseData.clientId,
-        currentStage: caseData.currentStage,
-        priority: caseData.priority,
-        assignedToId: caseData.assignedToId,
-        assignedToName: caseData.assignedToName,
-        description: caseData.description || '',
-        notice_date: caseData.noticeDate || caseData.notice_date || '',
-        reply_due_date: caseData.replyDueDate || caseData.reply_due_date || '',
-        period: caseData.period || '',
-        taxDemand: caseData.taxDemand?.toString() || '',
-        interest_amount: caseData.interestAmount?.toString() || caseData.interest_amount?.toString() || '',
-        penalty_amount: caseData.penaltyAmount?.toString() || caseData.penalty_amount?.toString() || '',
-        total_demand: caseData.totalDemand || caseData.total_demand || 0,
-        authorityLevel: caseData.authorityLevel || '',
-        specificOfficer: caseData.specificOfficer || '',
-        jurisdictionalCommissionerate: caseData.jurisdictionalCommissionerate || '',
-        departmentLocation: caseData.departmentLocation || '',
-        matterType: caseData.matterType || 'Scrutiny',
-        tribunalBench: caseData.tribunalBench || 'State Bench',
-        stateBenchState: caseData.stateBenchState || '',
-        stateBenchCity: caseData.stateBenchCity || '',
-        notice_no: (caseData as any).noticeNo || caseData.notice_no || '',
-        form_type: (caseData as any).formType || caseData.form_type || '',
-        section_invoked: (caseData as any).sectionInvoked || caseData.section_invoked || '',
-        financial_year: (caseData as any).financialYear || caseData.financial_year || '',
-        authorityId: caseData.authorityId || '',
-        city: caseData.city || ''
+      // Cast to any to access both camelCase and snake_case fields
+      const c = caseData as any;
+      
+      // Debug logging for field binding investigation
+      console.log('[CaseModal] Initializing form with caseData:', {
+        id: c.id,
+        officeFileNo: c.officeFileNo || c.office_file_no,
+        noticeNo: c.noticeNo || c.notice_no,
+        caseType: c.caseType || c.case_type,
+        city: c.city,
+        noticeDate: c.noticeDate || c.notice_date,
+        replyDueDate: c.replyDueDate || c.reply_due_date,
+        rawCaseData: caseData
       });
-      updateContext({ clientId: caseData.clientId });
+      
+      setFormData({
+        caseNumber: c.caseNumber || c.case_number || '',
+        caseType: c.caseType || c.case_type || 'GST',
+        caseYear: c.caseYear || c.case_year || new Date().getFullYear().toString(),
+        caseSequence: c.caseSequence || c.case_sequence || '001',
+        officeFileNo: c.officeFileNo || c.office_file_no || '',
+        noticeNo: c.noticeNo || c.notice_no || '',
+        issueType: c.issueType || c.issue_type || c.title || '',
+        title: c.title || '',
+        clientId: c.clientId || c.client_id || '',
+        currentStage: c.currentStage || c.stage_code || c.current_stage || 'Assessment',
+        priority: c.priority || 'Medium',
+        assignedToId: c.assignedToId || c.assigned_to || '',
+        assignedToName: c.assignedToName || c.assigned_to_name || '',
+        description: c.description || '',
+        notice_date: c.noticeDate || c.notice_date || '',
+        reply_due_date: c.replyDueDate || c.reply_due_date || '',
+        period: c.period || '',
+        taxDemand: (c.taxDemand || c.tax_demand)?.toString() || '',
+        interest_amount: (c.interestAmount || c.interest_amount)?.toString() || '',
+        penalty_amount: (c.penaltyAmount || c.penalty_amount)?.toString() || '',
+        total_demand: c.totalDemand || c.total_demand || 0,
+        authorityLevel: c.authorityLevel || c.authority_level || '',
+        specificOfficer: c.specificOfficer || c.specific_officer || '',
+        jurisdictionalCommissionerate: c.jurisdictionalCommissionerate || '',
+        departmentLocation: c.departmentLocation || '',
+        matterType: c.matterType || c.matter_type || 'Scrutiny',
+        tribunalBench: c.tribunalBench || c.tribunal_bench || 'State Bench',
+        stateBenchState: c.stateBenchState || c.state_bench_state || '',
+        stateBenchCity: c.stateBenchCity || c.state_bench_city || '',
+        notice_no: c.noticeNo || c.notice_no || '',
+        form_type: c.formType || c.form_type || '',
+        section_invoked: c.sectionInvoked || c.section_invoked || '',
+        financial_year: c.financialYear || c.financial_year || '',
+        authorityId: c.authorityId || c.authority_id || '',
+        city: c.city || ''
+      });
+      updateContext({ clientId: c.clientId || c.client_id });
     } else if (mode === 'create') {
       const year = new Date().getFullYear().toString();
       const sequence = getNextSequence(state.cases, 'GST', year);
