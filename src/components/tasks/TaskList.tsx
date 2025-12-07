@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   ArrowUpDown,
@@ -16,7 +17,8 @@ import {
   Building2,
   Filter,
   Lock,
-  Plus
+  Plus,
+  MessageSquare
 } from 'lucide-react';
 import {
   Table,
@@ -45,8 +47,7 @@ import {
 } from '@/components/ui/tooltip';
 import { Progress } from '@/components/ui/progress';
 import { Task, useAppState, TaskFollowUp } from '@/contexts/AppStateContext';
-import { TaskDrawer } from './TaskDrawer';
-import { LogFollowUpModal } from './LogFollowUpModal';
+// TaskDrawer and LogFollowUpModal removed - using route-based navigation
 import { TasksBulkActions } from './TasksBulkActions';
 import { formatDateForDisplay } from '@/utils/dateFormatters';
 import { v4 as uuid } from 'uuid';
@@ -85,17 +86,13 @@ export const TaskList: React.FC<TaskListProps> = ({
   onTaskClick
 }) => {
   const { state, dispatch } = useAppState();
+  const navigate = useNavigate();
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
   const [sortField, setSortField] = useState<SortField>('dueDate');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
-  const [selectedTask, setSelectedTask] = useState<TaskDisplay | null>(null);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [drawerMode, setDrawerMode] = useState<'view' | 'edit'>('view');
   const [density, setDensity] = useState<'compact' | 'comfortable'>('comfortable');
   const [clientFilter, setClientFilter] = useState<string>('all');
   const [lockFilter, setLockFilter] = useState<'all' | 'locked' | 'unlocked'>('all');
-  const [followUpModalOpen, setFollowUpModalOpen] = useState(false);
-  const [followUpTask, setFollowUpTask] = useState<TaskDisplay | null>(null);
 
   // Filter and sort tasks
   const filteredAndSortedTasks = useMemo(() => {
@@ -171,9 +168,8 @@ export const TaskList: React.FC<TaskListProps> = ({
     if (onTaskClick) {
       onTaskClick(task);
     } else {
-      setSelectedTask(task);
-      setDrawerMode('view');
-      setIsDrawerOpen(true);
+      // Navigate to conversation view
+      navigate(`/tasks/${task.id}`);
     }
   };
 
@@ -206,50 +202,7 @@ export const TaskList: React.FC<TaskListProps> = ({
     return diffDays;
   };
 
-  const handleFollowUpSubmit = (followUp: Omit<TaskFollowUp, 'id' | 'createdAt' | 'createdBy' | 'createdByName'>) => {
-    if (!followUpTask) return;
-    
-    const newFollowUp: TaskFollowUp = {
-      ...followUp,
-      id: uuid(),
-      createdAt: new Date().toISOString(),
-      createdBy: state.userProfile.id,
-      createdByName: state.userProfile.name
-    };
-
-    // Task updates
-    const taskUpdates: Partial<Task> = {
-      status: followUp.status,
-      isLocked: true,
-      lockedAt: followUpTask.isLocked ? followUpTask.lockedAt : new Date().toISOString(),
-      lockedBy: followUpTask.lockedBy || state.userProfile.id,
-      currentFollowUpDate: followUp.nextFollowUpDate
-    };
-
-    // Update actual hours if logged
-    if (followUp.hoursLogged) {
-      taskUpdates.actualHours = (followUpTask.actualHours || 0) + followUp.hoursLogged;
-    }
-
-    // Set completed date if status is Completed
-    if (followUp.status === 'Completed') {
-      taskUpdates.completedDate = new Date().toISOString().split('T')[0];
-    }
-
-    // Dispatch follow-up to state
-    dispatch({ type: 'ADD_TASK_FOLLOWUP', payload: newFollowUp });
-
-    // Update task
-    onTaskUpdate?.(followUpTask.id, taskUpdates);
-
-    setFollowUpModalOpen(false);
-    setFollowUpTask(null);
-
-    toast({
-      title: "Follow-up Added",
-      description: "Task progress has been logged successfully."
-    });
-  };
+  // handleFollowUpSubmit removed - follow-ups now handled in TaskConversation view
 
   const getSortIcon = (field: SortField) => {
     if (sortField !== field) {
@@ -545,22 +498,15 @@ export const TaskList: React.FC<TaskListProps> = ({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleTaskClick(task)}>
+                        <DropdownMenuItem onClick={() => navigate(`/tasks/${task.id}`)}>
                           <Eye className="mr-2 h-4 w-4" />
                           View Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => {
-                          setFollowUpTask(task);
-                          setFollowUpModalOpen(true);
-                        }}>
-                          <Plus className="mr-2 h-4 w-4" />
+                        <DropdownMenuItem onClick={() => navigate(`/tasks/${task.id}`)}>
+                          <MessageSquare className="mr-2 h-4 w-4" />
                           Add Follow-Up
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => {
-                          setSelectedTask(task);
-                          setDrawerMode('edit');
-                          setIsDrawerOpen(true);
-                        }}>
+                        <DropdownMenuItem onClick={() => navigate(`/tasks/${task.id}?edit=true`)}>
                           <Edit className="mr-2 h-4 w-4" />
                           Edit Task
                         </DropdownMenuItem>
@@ -592,32 +538,7 @@ export const TaskList: React.FC<TaskListProps> = ({
         )}
       </motion.div>
 
-      {/* Task Drawer */}
-      <TaskDrawer
-        isOpen={isDrawerOpen}
-        onClose={() => {
-          setIsDrawerOpen(false);
-          setSelectedTask(null);
-          setDrawerMode('view');
-        }}
-        task={selectedTask}
-        mode={drawerMode}
-        onUpdateTask={onTaskUpdate}
-        onDeleteTask={onTaskDelete}
-      />
-
-      {/* Log Follow-Up Modal */}
-      {followUpTask && (
-        <LogFollowUpModal
-          isOpen={followUpModalOpen}
-          onClose={() => {
-            setFollowUpModalOpen(false);
-            setFollowUpTask(null);
-          }}
-          task={followUpTask}
-          onSubmit={handleFollowUpSubmit}
-        />
-      )}
+      {/* Drawer and Modal removed - now using route-based navigation */}
     </div>
   );
 };
