@@ -116,22 +116,22 @@ export const ComposeMessage: React.FC<ComposeMessageProps> = ({
   };
 
   return (
-    <div className="border-t bg-card">
+    <div className="border-t-2 border-border bg-gradient-to-t from-muted/50 to-card shadow-lg">
       {/* Attachments Preview */}
       {attachments.length > 0 && (
         <div className="px-4 pt-3 flex flex-wrap gap-2">
           {attachments.map((att) => (
             <div
               key={att.id}
-              className="flex items-center gap-2 bg-muted px-2.5 py-1.5 rounded-lg text-sm group"
+              className="flex items-center gap-2 bg-card border border-border px-3 py-2 rounded-lg text-sm group shadow-sm"
             >
-              <Paperclip className="h-3 w-3 text-muted-foreground" />
+              <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="truncate max-w-[120px]">{att.name}</span>
               <button
                 onClick={() => removeAttachment(att.id)}
-                className="text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                className="text-muted-foreground hover:text-destructive transition-colors"
               >
-                <X className="h-3 w-3" />
+                <X className="h-3.5 w-3.5" />
               </button>
             </div>
           ))}
@@ -139,7 +139,7 @@ export const ComposeMessage: React.FC<ComposeMessageProps> = ({
       )}
 
       {/* Main Input Row */}
-      <div className="p-3 flex items-center gap-2">
+      <div className="p-4 flex items-center gap-3">
         <input
           ref={fileInputRef}
           type="file"
@@ -150,11 +150,11 @@ export const ComposeMessage: React.FC<ComposeMessageProps> = ({
         />
         
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon"
           onClick={() => fileInputRef.current?.click()}
           disabled={disabled || isUploading}
-          className="shrink-0"
+          className="shrink-0 border-border hover:bg-muted"
         >
           {isUploading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -171,16 +171,16 @@ export const ComposeMessage: React.FC<ComposeMessageProps> = ({
             onKeyDown={handleKeyDown}
             placeholder="Type a quick update..."
             disabled={disabled || isSending}
-            className="pr-10"
+            className="pr-10 h-11 bg-background border-border focus-visible:ring-2 focus-visible:ring-primary"
           />
         </div>
 
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon"
           onClick={() => setShowOptions(!showOptions)}
           className={cn(
-            'shrink-0 transition-transform',
+            'shrink-0 transition-transform border-border hover:bg-muted',
             showOptions && 'rotate-180'
           )}
         >
@@ -191,7 +191,7 @@ export const ComposeMessage: React.FC<ComposeMessageProps> = ({
           onClick={handleSend}
           disabled={disabled || isSending || (!message.trim() && attachments.length === 0)}
           size="icon"
-          className="shrink-0"
+          className="shrink-0 h-11 w-11"
         >
           {isSending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -204,14 +204,14 @@ export const ComposeMessage: React.FC<ComposeMessageProps> = ({
       {/* Expandable Options */}
       <Collapsible open={showOptions} onOpenChange={setShowOptions}>
         <CollapsibleContent>
-          <div className="px-3 pb-3 pt-1 flex items-center gap-3 border-t">
+          <div className="px-4 pb-4 pt-2 flex items-center gap-4 border-t border-border/50 bg-muted/30">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Status:</span>
+              <span className="text-xs font-medium text-muted-foreground">Status:</span>
               <Select
                 value={statusUpdate || ''}
                 onValueChange={(val) => setStatusUpdate(val as TaskStatusUpdate || undefined)}
               >
-                <SelectTrigger className="w-[130px] h-8 text-xs">
+                <SelectTrigger className="w-[140px] h-9 text-sm border-border">
                   <SelectValue placeholder="No change" />
                 </SelectTrigger>
                 <SelectContent>
@@ -226,7 +226,7 @@ export const ComposeMessage: React.FC<ComposeMessageProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
-              <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+              <Clock className="h-4 w-4 text-muted-foreground" />
               <Input
                 type="number"
                 step="0.5"
@@ -234,9 +234,9 @@ export const ComposeMessage: React.FC<ComposeMessageProps> = ({
                 value={hoursLogged}
                 onChange={(e) => setHoursLogged(e.target.value)}
                 placeholder="Hours"
-                className="w-20 h-8 text-xs"
+                className="w-20 h-9 text-sm border-border"
               />
-              <span className="text-xs text-muted-foreground">logged</span>
+              <span className="text-xs font-medium text-muted-foreground">logged</span>
             </div>
           </div>
         </CollapsibleContent>
