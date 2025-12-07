@@ -97,37 +97,74 @@ export const useRealtimeSync = () => {
             const caseData = payload.new as any;
             // Derive assignedToName from employees state
             const employee = state.employees.find(e => e.id === caseData.assigned_to);
+            
+            // Build complete payload with ALL fields mapped consistently
+            // This ensures UPDATE doesn't overwrite camelCase fields with undefined
             rawDispatch({ 
               type: 'UPDATE_CASE', 
               payload: {
-                ...caseData,
-                assignedToId: caseData.assigned_to,
-                assignedToName: employee?.full_name || '',
-                caseNumber: caseData.case_number,
-                clientId: caseData.client_id,
+                id: caseData.id, // Critical for merge pattern
+                // Core fields
+                caseNumber: caseData.case_number || caseData.caseNumber || '',
+                title: caseData.title || '',
+                description: caseData.description || '',
+                status: caseData.status || 'Active',
+                priority: caseData.priority || 'Medium',
+                
+                // Assignment fields
+                assignedToId: caseData.assigned_to || caseData.assignedToId || '',
+                assignedToName: employee?.full_name || caseData.assigned_to_name || '',
+                clientId: caseData.client_id || caseData.clientId || '',
+                
+                // Stage
                 currentStage: normalizeStage(caseData.stage_code || caseData.current_stage || 'Assessment'),
-                officeFileNo: caseData.office_file_no || caseData.officeFileNo,
-                noticeNo: caseData.notice_no || caseData.noticeNo,
-                city: caseData.city,
-                authorityId: caseData.authority_id || caseData.authorityId,
-                forumId: caseData.forum_id || caseData.forumId,
-                caseType: caseData.case_type || caseData.caseType,
-                caseYear: caseData.case_year || caseData.caseYear,
-                caseSequence: caseData.case_sequence || caseData.caseSequence,
-                issueType: caseData.issue_type || caseData.issueType,
-                formType: caseData.form_type || caseData.formType,
-                sectionInvoked: caseData.section_invoked || caseData.sectionInvoked,
-                financialYear: caseData.financial_year || caseData.financialYear,
-                noticeDate: caseData.notice_date || caseData.noticeDate,
-                noticeType: caseData.notice_type || caseData.noticeType,
-                replyDueDate: caseData.reply_due_date || caseData.replyDueDate,
-                taxDemand: caseData.tax_demand || caseData.taxDemand,
-                interestAmount: caseData.interest_amount || caseData.interestAmount,
-                penaltyAmount: caseData.penalty_amount || caseData.penaltyAmount,
-                totalDemand: caseData.total_demand || caseData.totalDemand,
-                stateBenchState: caseData.state_bench_state || caseData.stateBenchState,
-                stateBenchCity: caseData.state_bench_city || caseData.stateBenchCity,
-                nextHearingDate: caseData.next_hearing_date || caseData.nextHearingDate
+                
+                // Critical fields that were missing - WITH FALLBACKS TO EMPTY STRING
+                officeFileNo: caseData.office_file_no || caseData.officeFileNo || '',
+                noticeNo: caseData.notice_no || caseData.noticeNo || '',
+                city: caseData.city || '',
+                
+                // Authority and forum
+                authorityId: caseData.authority_id || caseData.authorityId || '',
+                forumId: caseData.forum_id || caseData.forumId || '',
+                
+                // Case type and sequence
+                caseType: caseData.case_type || caseData.caseType || 'GST',
+                caseYear: caseData.case_year || caseData.caseYear || '',
+                caseSequence: caseData.case_sequence || caseData.caseSequence || '',
+                
+                // Issue and form
+                issueType: caseData.issue_type || caseData.issueType || '',
+                formType: caseData.form_type || caseData.formType || '',
+                sectionInvoked: caseData.section_invoked || caseData.sectionInvoked || '',
+                financialYear: caseData.financial_year || caseData.financialYear || '',
+                
+                // Date fields - provide both formats for backward compatibility
+                noticeDate: caseData.notice_date || caseData.noticeDate || '',
+                notice_date: caseData.notice_date || caseData.noticeDate || '',
+                noticeType: caseData.notice_type || caseData.noticeType || '',
+                replyDueDate: caseData.reply_due_date || caseData.replyDueDate || '',
+                reply_due_date: caseData.reply_due_date || caseData.replyDueDate || '',
+                
+                // Financial fields - default to 0
+                taxDemand: caseData.tax_demand || caseData.taxDemand || 0,
+                interestAmount: caseData.interest_amount || caseData.interestAmount || 0,
+                interest_amount: caseData.interest_amount || caseData.interestAmount || 0,
+                penaltyAmount: caseData.penalty_amount || caseData.penaltyAmount || 0,
+                penalty_amount: caseData.penalty_amount || caseData.penaltyAmount || 0,
+                totalDemand: caseData.total_demand || caseData.totalDemand || 0,
+                total_demand: caseData.total_demand || caseData.totalDemand || 0,
+                
+                // State bench fields
+                stateBenchState: caseData.state_bench_state || caseData.stateBenchState || '',
+                stateBenchCity: caseData.state_bench_city || caseData.stateBenchCity || '',
+                
+                // Next hearing
+                nextHearingDate: caseData.next_hearing_date || caseData.nextHearingDate || '',
+                
+                // Timestamps
+                createdDate: caseData.created_at || caseData.createdDate || '',
+                lastUpdated: caseData.updated_at || caseData.lastUpdated || ''
               } as any
             });
           } else if (payload.eventType === 'DELETE' && payload.old) {
