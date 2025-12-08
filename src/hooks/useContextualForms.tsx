@@ -41,7 +41,7 @@ export const useContextualForms = (initialContext?: FormContext) => {
 
   // Get available clients for dropdowns
   const getAvailableClients = () => {
-    return state.clients.filter(c => c.status === 'Active');
+    return state.clients.filter(c => c.status?.toLowerCase() === 'active');
   };
 
   // Get available cases (optionally filtered by client)
@@ -63,7 +63,7 @@ export const useContextualForms = (initialContext?: FormContext) => {
     if (targetCourtId) {
       return getJudgesForCourt(targetCourtId);
     }
-    return state.judges.filter(j => j.status === 'Active');
+    return state.judges.filter(j => j.status?.toLowerCase() === 'active');
   };
 
   // Get current context details with extended metadata
