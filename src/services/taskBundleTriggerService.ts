@@ -191,12 +191,24 @@ class TaskBundleTriggerService {
   }
 
   private evaluateBundleConditions(bundle: TaskBundleWithItems, caseData: CaseData): boolean {
-    // Normalize both stage codes for comparison
-    const normalizeStage = (stage: string | undefined) => 
-      stage?.trim().toLowerCase().replace(/\s+/g, '-') || '';
+    // Normalize stage for comparison - maps various formats to canonical names
+    const normalizeStageForComparison = (stage: string | undefined): string => {
+      if (!stage) return '';
+      const normalized = stage.trim().toLowerCase();
+      
+      // Map common variants to canonical names
+      if (normalized.includes('assessment') || normalized.includes('drc-01')) return 'assessment';
+      if (normalized.includes('adjudication') || normalized.includes('scn')) return 'adjudication';
+      if (normalized.includes('first') && normalized.includes('appeal')) return 'first appeal';
+      if (normalized.includes('tribunal')) return 'tribunal';
+      if (normalized.includes('high') && normalized.includes('court')) return 'high court';
+      if (normalized.includes('supreme')) return 'supreme court';
+      
+      return normalized.replace(/\s+/g, '-');
+    };
     
-    const bundleStage = normalizeStage(bundle.stage_code);
-    const caseStage = normalizeStage(caseData.currentStage);
+    const bundleStage = normalizeStageForComparison(bundle.stage_code);
+    const caseStage = normalizeStageForComparison(caseData.currentStage);
     
     console.log(`[BundleTrigger] Evaluating conditions for "${bundle.name}":`, {
       bundleStage,
@@ -205,19 +217,26 @@ class TaskBundleTriggerService {
       caseStageRaw: caseData.currentStage
     });
     
-    // If bundle has stage_code specified, check if it matches
-    if (bundle.stage_code && 
-        bundle.stage_code !== 'Any Stage' && 
-        bundleStage !== caseStage &&
-        bundle.stage_code !== caseData.currentStage) {
-      console.log(`[BundleTrigger] Stage mismatch - bundle: ${bundleStage}, case: ${caseStage}`);
-      return false;
+    // If bundle has no stage_code or "Any Stage", it applies to all stages
+    if (!bundle.stage_code || bundle.stage_code === 'Any Stage' || bundle.stage_code.trim() === '') {
+      console.log(`[BundleTrigger] Bundle applies to any stage`);
+      return true;
+    }
+    
+    // Check if normalized stages match
+    if (bundleStage === caseStage) {
+      console.log(`[BundleTrigger] Stage match - bundle: ${bundleStage}, case: ${caseStage}`);
+      return true;
+    }
+    
+    // Check if raw stage_code matches (exact match)
+    if (bundle.stage_code === caseData.currentStage) {
+      console.log(`[BundleTrigger] Exact stage match`);
+      return true;
     }
 
-    // Add more condition evaluation logic here as needed
-    // For example: client tier, notice type, etc.
-    
-    return true;
+    console.log(`[BundleTrigger] Stage mismatch - bundle: ${bundleStage}, case: ${caseStage}`);
+    return false;
   }
 
   private calculateDueDate(estimatedHours: number): string {
