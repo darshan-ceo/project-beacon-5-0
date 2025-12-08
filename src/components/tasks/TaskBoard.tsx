@@ -177,7 +177,7 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={(e) => {
                   e.stopPropagation();
-                  navigate(`/tasks/${task.id}`);
+                  navigate(`/tasks/${task.id}?edit=true`);
                 }}>
                   <MessageSquare className="mr-2 h-4 w-4" />
                   Add Follow-Up
