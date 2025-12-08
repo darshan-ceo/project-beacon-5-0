@@ -45,6 +45,9 @@ export const TaskConversation: React.FC = () => {
   const [isTaskLoading, setIsTaskLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
+  // Determine if we're in edit mode (view mode is read-only)
+  const isEditMode = searchParams.get('edit') === 'true';
+  
   // Use task from state if available, otherwise use fetched task
   const stateTask = state.tasks.find((t) => t.id === taskId);
   const task = stateTask || fetchedTask;
@@ -302,34 +305,42 @@ export const TaskConversation: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <QuickStatusButton
-              currentStatus={task.status || 'Not Started'}
-              onStatusChange={handleQuickStatusChange}
-              disabled={isUpdatingStatus}
-              size="sm"
-            />
+            {isEditMode && (
+              <QuickStatusButton
+                currentStatus={task.status || 'Not Started'}
+                onStatusChange={handleQuickStatusChange}
+                disabled={isUpdatingStatus}
+                size="sm"
+              />
+            )}
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => navigate(`/tasks/${taskId}?edit=true`)}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit Task
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  className="text-destructive"
-                  onClick={handleDeleteTask}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Task
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {isEditMode ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem 
+                    className="text-destructive"
+                    onClick={handleDeleteTask}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Task
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => navigate(`/tasks/${taskId}?edit=true`)}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+            )}
           </div>
         </div>
 
@@ -359,7 +370,10 @@ export const TaskConversation: React.FC = () => {
                 <div>
                   <p className="font-medium text-foreground">No messages yet</p>
                   <p className="text-sm text-muted-foreground">
-                    Start the conversation by adding an update below
+                    {isEditMode 
+                      ? 'Start the conversation by adding an update below'
+                      : 'No updates have been added to this task yet'
+                    }
                   </p>
                 </div>
               </div>
@@ -378,12 +392,14 @@ export const TaskConversation: React.FC = () => {
         </div>
       </ScrollArea>
 
-      {/* Quick Compose Bar */}
-      <ComposeMessage
-        onSend={handleSendMessage}
-        currentStatus={task.status}
-        taskId={taskId}
-      />
+      {/* Quick Compose Bar - Only show in edit mode */}
+      {isEditMode && (
+        <ComposeMessage
+          onSend={handleSendMessage}
+          currentStatus={task.status}
+          taskId={taskId}
+        />
+      )}
     </div>
   );
 };
