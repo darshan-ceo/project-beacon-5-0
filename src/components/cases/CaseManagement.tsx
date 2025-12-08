@@ -388,7 +388,7 @@ export const CaseManagement: React.FC = () => {
       console.log('[CaseManagement] Cleaning up real-time subscription');
       supabase.removeChannel(channel);
     };
-  }, [rawDispatch, selectedCase, state.cases]);
+  }, [rawDispatch, selectedCase, state.cases, state.employees]);
 
   const getTimelineBreachColor = (status: string) => {
     switch (status) {
