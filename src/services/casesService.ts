@@ -164,7 +164,32 @@ export const casesService = {
         // Don't block stage advancement if timeline fails
       }
       
-      // Generate task bundle for new stage
+      // Always trigger task bundles on stage advancement
+      try {
+        const { taskBundleTriggerService } = await import('./taskBundleTriggerService');
+        
+        // Get case details for bundle triggering
+        const result = await taskBundleTriggerService.triggerTaskBundles(
+          { 
+            id: caseId, 
+            caseNumber: '', 
+            clientId: '', 
+            assignedToId: '', 
+            assignedToName: assignedTo || '', 
+            currentStage: nextStage 
+          },
+          'stage_advance',
+          nextStage as any,
+          dispatch
+        );
+        
+        console.log('[casesService] Task bundles triggered:', result);
+      } catch (bundleError) {
+        console.error('[casesService] Failed to trigger task bundles:', bundleError);
+        // Don't block stage advancement if bundle triggering fails
+      }
+      
+      // Generate task bundle for new stage (legacy fallback)
       if (nextStage === 'Assessment') {
         dispatch({
           type: 'ADD_TASK', 
