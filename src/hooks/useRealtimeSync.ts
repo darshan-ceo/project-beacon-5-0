@@ -317,6 +317,8 @@ export const useRealtimeSync = () => {
           console.log('[Realtime] Tasks change:', payload.eventType, payload);
           if (payload.eventType === 'INSERT' && payload.new) {
             const taskData = payload.new as any;
+            // Derive assignedToName from employees state
+            const employee = state.employees.find(e => e.id === taskData.assigned_to);
             rawDispatch({ 
               type: 'ADD_TASK', 
               payload: {
@@ -324,6 +326,7 @@ export const useRealtimeSync = () => {
                 caseId: taskData.case_id,
                 clientId: taskData.client_id,
                 assignedToId: taskData.assigned_to,
+                assignedToName: employee?.full_name || '',
                 assignedById: taskData.assigned_by,
                 hearingId: taskData.hearing_id,
                 bundleId: taskData.bundle_id,
@@ -341,6 +344,8 @@ export const useRealtimeSync = () => {
             });
           } else if (payload.eventType === 'UPDATE' && payload.new) {
             const taskData = payload.new as any;
+            // Derive assignedToName from employees state
+            const employee = state.employees.find(e => e.id === taskData.assigned_to);
             rawDispatch({ 
               type: 'UPDATE_TASK', 
               payload: {
@@ -348,6 +353,7 @@ export const useRealtimeSync = () => {
                 caseId: taskData.case_id,
                 clientId: taskData.client_id,
                 assignedToId: taskData.assigned_to,
+                assignedToName: employee?.full_name || '',
                 assignedById: taskData.assigned_by,
                 hearingId: taskData.hearing_id,
                 bundleId: taskData.bundle_id,
