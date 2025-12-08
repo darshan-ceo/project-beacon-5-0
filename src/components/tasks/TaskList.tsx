@@ -502,7 +502,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                           <Eye className="mr-2 h-4 w-4" />
                           View Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate(`/tasks/${task.id}`)}>
+                        <DropdownMenuItem onClick={() => navigate(`/tasks/${task.id}?edit=true`)}>
                           <MessageSquare className="mr-2 h-4 w-4" />
                           Add Follow-Up
                         </DropdownMenuItem>
