@@ -314,7 +314,7 @@ export const TaskConversation: React.FC = () => {
               />
             )}
 
-            {isEditMode ? (
+            {isEditMode && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon">
@@ -331,15 +331,6 @@ export const TaskConversation: React.FC = () => {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            ) : (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => navigate(`/tasks/${taskId}?edit=true`)}
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
             )}
           </div>
         </div>
