@@ -551,7 +551,7 @@ export const useRealtimeSync = () => {
       console.log('[Realtime] Unsubscribing from real-time sync');
       channel.unsubscribe();
     };
-  }, [tenantId, rawDispatch]);
+  }, [tenantId, rawDispatch, state.employees]);
 
   return null;
 };
