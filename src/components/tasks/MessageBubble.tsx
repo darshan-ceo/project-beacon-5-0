@@ -2,8 +2,10 @@ import React from 'react';
 import { format } from 'date-fns';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { FileIcon, Download, Bot, ArrowRight } from 'lucide-react';
+import { FileIcon, Download, Bot, ArrowRight, Loader2 } from 'lucide-react';
 import { TaskMessage, TASK_STATUS_OPTIONS } from '@/types/taskMessages';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 interface MessageBubbleProps {
@@ -15,6 +17,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
   isOwnMessage = false,
 }) => {
+  const [downloadingId, setDownloadingId] = React.useState<string | null>(null);
+
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -29,24 +33,53 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     return option?.color || 'bg-muted text-muted-foreground';
   };
 
+  const handleAttachmentClick = async (e: React.MouseEvent, attachment: any) => {
+    e.preventDefault();
+    
+    // The attachment.id contains the file path
+    const filePath = attachment.id;
+    if (!filePath) {
+      toast.error('File path not found');
+      return;
+    }
+
+    setDownloadingId(attachment.id);
+    
+    try {
+      // Generate fresh signed URL for download
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .createSignedUrl(filePath, 3600); // 1 hour expiry
+
+      if (error) throw error;
+
+      if (data?.signedUrl) {
+        window.open(data.signedUrl, '_blank');
+      }
+    } catch (error) {
+      console.error('Error accessing file:', error);
+      toast.error('Failed to access file. Please try again.');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   const renderAttachment = (attachment: any, index: number) => {
     const isImage = attachment.type?.startsWith('image/');
+    const isDownloading = downloadingId === attachment.id;
     
     return (
-      <a
+      <button
         key={attachment.id || index}
-        href={attachment.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center gap-2 p-2.5 rounded-lg bg-background border hover:bg-muted/50 transition-colors group"
+        onClick={(e) => handleAttachmentClick(e, attachment)}
+        disabled={isDownloading}
+        className="flex items-center gap-2 p-2.5 rounded-lg bg-background border hover:bg-muted/50 transition-colors group text-left w-full"
       >
         {isImage ? (
           <div className="relative">
-            <img
-              src={attachment.url}
-              alt={attachment.name}
-              className="h-14 w-14 object-cover rounded"
-            />
+            <div className="h-14 w-14 flex items-center justify-center bg-muted rounded">
+              <FileIcon className="h-5 w-5 text-muted-foreground" />
+            </div>
           </div>
         ) : (
           <div className="h-10 w-10 flex items-center justify-center bg-muted rounded">
@@ -59,8 +92,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             {attachment.size ? `${(attachment.size / 1024).toFixed(1)} KB` : 'File'}
           </p>
         </div>
-        <Download className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-      </a>
+        {isDownloading ? (
+          <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
+        ) : (
+          <Download className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+        )}
+      </button>
     );
   };
 

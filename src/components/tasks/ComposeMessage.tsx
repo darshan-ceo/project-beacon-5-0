@@ -47,10 +47,21 @@ export const ComposeMessage: React.FC<ComposeMessageProps> = ({
     setIsUploading(true);
     const newAttachments: TaskAttachment[] = [];
 
+    // Get tenant ID for file path prefix
+    const { data: { user } } = await supabase.auth.getUser();
+    const tenantId = user?.user_metadata?.tenant_id;
+
+    if (!tenantId) {
+      toast.error('Unable to determine tenant. Please refresh and try again.');
+      setIsUploading(false);
+      return;
+    }
+
     for (const file of Array.from(files)) {
       try {
         const fileName = `${Date.now()}-${file.name}`;
-        const filePath = `task-attachments/${fileName}`;
+        // Include tenant_id prefix for RLS compliance
+        const filePath = `${tenantId}/task-attachments/${fileName}`;
 
         const { data, error } = await supabase.storage
           .from('documents')
@@ -58,14 +69,15 @@ export const ComposeMessage: React.FC<ComposeMessageProps> = ({
 
         if (error) throw error;
 
-        const { data: urlData } = supabase.storage
+        // Use signed URL for private bucket
+        const { data: urlData } = await supabase.storage
           .from('documents')
-          .getPublicUrl(filePath);
+          .createSignedUrl(filePath, 3600); // 1 hour expiry
 
         newAttachments.push({
           id: data.path,
           name: file.name,
-          url: urlData.publicUrl,
+          url: urlData?.signedUrl || '',
           type: file.type,
           size: file.size,
         });
