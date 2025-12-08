@@ -23,12 +23,14 @@ interface ComposeMessageProps {
   onSend: (message: string, attachments: TaskAttachment[], statusUpdate?: TaskStatusUpdate) => Promise<void>;
   currentStatus?: string;
   disabled?: boolean;
+  taskId?: string;
 }
 
 export const ComposeMessage: React.FC<ComposeMessageProps> = ({
   onSend,
   currentStatus,
   disabled = false,
+  taskId,
 }) => {
   const [message, setMessage] = useState('');
   const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
@@ -81,6 +83,31 @@ export const ComposeMessage: React.FC<ComposeMessageProps> = ({
           type: file.type,
           size: file.size,
         });
+
+        // Sync to documents table so it appears in Document Management
+        if (taskId) {
+          const { error: docError } = await supabase
+            .from('documents')
+            .insert({
+              tenant_id: tenantId,
+              file_name: file.name,
+              file_path: filePath,
+              file_type: file.type.split('/').pop() || 'bin',
+              mime_type: file.type,
+              file_size: file.size,
+              storage_url: urlData?.signedUrl || '',
+              task_id: taskId,
+              uploaded_by: user.id,
+              category: 'Miscellaneous',
+              document_status: 'Pending',
+              version: 1,
+              is_latest_version: true,
+            });
+
+          if (docError) {
+            console.error('Failed to create document record:', docError);
+          }
+        }
       } catch (error) {
         console.error('Error uploading file:', error);
         toast.error(`Failed to upload ${file.name}`);

@@ -310,6 +310,7 @@ export const TaskConversation: React.FC = () => {
       <ComposeMessage
         onSend={handleSendMessage}
         currentStatus={task.status}
+        taskId={taskId}
       />
     </div>
   );
