@@ -41,9 +41,69 @@ export const TaskConversation: React.FC = () => {
   const [currentUserName, setCurrentUserName] = useState<string>('');
   const [tenantId, setTenantId] = useState<string>('');
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [fetchedTask, setFetchedTask] = useState<any>(null);
+  const [isTaskLoading, setIsTaskLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  const task = state.tasks.find((t) => t.id === taskId);
+  // Use task from state if available, otherwise use fetched task
+  const stateTask = state.tasks.find((t) => t.id === taskId);
+  const task = stateTask || fetchedTask;
+
+  // Fetch task from Supabase if not found in local state
+  useEffect(() => {
+    if (!taskId) {
+      setIsTaskLoading(false);
+      return;
+    }
+    
+    // If task exists in state, no need to fetch
+    if (stateTask) {
+      setIsTaskLoading(false);
+      setFetchedTask(null);
+      return;
+    }
+    
+    // Fetch directly from Supabase
+    const fetchTask = async () => {
+      setIsTaskLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('tasks')
+          .select('*')
+          .eq('id', taskId)
+          .maybeSingle();
+          
+        if (!error && data) {
+          // Map snake_case to camelCase
+          setFetchedTask({
+            id: data.id,
+            title: data.title,
+            description: data.description,
+            status: data.status,
+            priority: data.priority,
+            dueDate: data.due_date,
+            assignedToId: data.assigned_to,
+            assignedById: data.assigned_by,
+            caseId: data.case_id,
+            clientId: data.client_id,
+            tenantId: data.tenant_id,
+            tags: data.tags || [],
+            attachments: data.attachments || [],
+            estimatedHours: data.estimated_hours,
+            actualHours: data.actual_hours,
+            createdAt: data.created_at,
+            updatedAt: data.updated_at,
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching task:', error);
+      } finally {
+        setIsTaskLoading(false);
+      }
+    };
+    
+    fetchTask();
+  }, [taskId, stateTask]);
 
   useEffect(() => {
     const getUser = async () => {
@@ -196,6 +256,18 @@ export const TaskConversation: React.FC = () => {
       }
     }
   };
+
+  // Show loading while task is being fetched
+  if (isTaskLoading) {
+    return (
+      <div className="h-full flex items-center justify-center bg-background">
+        <div className="text-center space-y-3">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto" />
+          <p className="text-muted-foreground">Loading task...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!task) {
     return (
