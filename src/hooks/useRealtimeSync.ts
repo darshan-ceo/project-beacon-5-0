@@ -386,9 +386,49 @@ export const useRealtimeSync = () => {
         (payload) => {
           console.log('[Realtime] Documents change:', payload.eventType, payload);
           if (payload.eventType === 'INSERT' && payload.new) {
-            rawDispatch({ type: 'ADD_DOCUMENT', payload: payload.new as any });
+            const docData = payload.new as any;
+            // Derive uploadedByName from employees state
+            const uploader = state.employees.find(e => e.id === docData.uploaded_by);
+            rawDispatch({ 
+              type: 'ADD_DOCUMENT', 
+              payload: {
+                id: docData.id,
+                name: docData.file_name || 'Unknown',
+                type: docData.file_type || 'pdf',
+                size: docData.file_size || 0,
+                path: docData.file_path || '',
+                caseId: docData.case_id || '',
+                clientId: docData.client_id || '',
+                folderId: docData.folder_id || '',
+                category: docData.category,
+                uploadedById: docData.uploaded_by,
+                uploadedByName: uploader?.full_name || 'Unknown',
+                uploadedAt: docData.upload_timestamp || docData.created_at,
+                tags: [],
+                isShared: false,
+              }
+            });
           } else if (payload.eventType === 'UPDATE' && payload.new) {
-            rawDispatch({ type: 'UPDATE_DOCUMENT', payload: payload.new as any });
+            const docData = payload.new as any;
+            // Derive uploadedByName from employees state
+            const uploader = state.employees.find(e => e.id === docData.uploaded_by);
+            rawDispatch({ 
+              type: 'UPDATE_DOCUMENT', 
+              payload: {
+                id: docData.id,
+                name: docData.file_name || 'Unknown',
+                type: docData.file_type || 'pdf',
+                size: docData.file_size || 0,
+                path: docData.file_path || '',
+                caseId: docData.case_id || '',
+                clientId: docData.client_id || '',
+                folderId: docData.folder_id || '',
+                category: docData.category,
+                uploadedById: docData.uploaded_by,
+                uploadedByName: uploader?.full_name || 'Unknown',
+                uploadedAt: docData.upload_timestamp || docData.created_at,
+              }
+            });
           } else if (payload.eventType === 'DELETE' && payload.old) {
             rawDispatch({ type: 'DELETE_DOCUMENT', payload: (payload.old as any).id });
           }
