@@ -3862,6 +3862,18 @@ export type Database = {
       }
     }
     Functions: {
+      can_view_case_by_hierarchy: {
+        Args: {
+          _case_assigned_to: string
+          _case_owner_id: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      can_view_subordinate_tasks: {
+        Args: { _assignee_id: string; _viewer_id: string }
+        Returns: boolean
+      }
       check_tenant_limits: {
         Args: { _limit_type: string; _tenant_id: string }
         Returns: boolean
@@ -3879,6 +3891,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_in_same_team: {
+        Args: { _other_user_id: string; _user_id: string }
         Returns: boolean
       }
     }
