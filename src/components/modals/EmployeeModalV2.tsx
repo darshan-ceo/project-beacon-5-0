@@ -472,6 +472,17 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
 
         if (updateError) throw updateError;
 
+        // Also update the profiles table to keep full_name in sync
+        const { error: profileUpdateError } = await supabase
+          .from('profiles')
+          .update({ full_name: formData.full_name })
+          .eq('id', employee.id);
+
+        if (profileUpdateError) {
+          console.error('Profile update error:', profileUpdateError);
+          // Non-blocking - continue since main employee update succeeded
+        }
+
         // Dispatch UPDATE_EMPLOYEE to update UI state immediately
         dispatch({
           type: 'UPDATE_EMPLOYEE',
