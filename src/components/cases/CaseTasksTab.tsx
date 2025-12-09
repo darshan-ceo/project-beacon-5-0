@@ -1,11 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Plus, PlayCircle, CheckCircle, Clock, AlertCircle, Trash2, Edit, Bell } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, PlayCircle, CheckCircle, Clock, AlertCircle, Trash2, Edit, Bell, Eye, MessageSquarePlus } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAppState, Task, Case } from '@/contexts/AppStateContext';
-import { TaskModal } from '@/components/modals/TaskModal';
-import { TaskDrawer } from '@/components/tasks/TaskDrawer';
 import { BundleRunModal } from './BundleRunModal';
 import { format } from 'date-fns';
 import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
@@ -20,24 +19,22 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { MoreHorizontal } from 'lucide-react';
 
 interface CaseTasksTabProps {
   caseData: Case;
 }
 
 export const CaseTasksTab: React.FC<CaseTasksTabProps> = ({ caseData }) => {
+  const navigate = useNavigate();
   const { state, dispatch, rawDispatch } = useAppState();
   const { hasPermission } = useAdvancedRBAC();
-  const [taskModal, setTaskModal] = useState<{
-    isOpen: boolean;
-    mode: 'create' | 'edit' | 'view';
-    task?: Task | null;
-  }>({
-    isOpen: false,
-    mode: 'create',
-    task: null,
-  });
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [bundleModal, setBundleModal] = useState(false);
 
   // Filter tasks for this case
@@ -64,9 +61,6 @@ export const CaseTasksTab: React.FC<CaseTasksTabProps> = ({ caseData }) => {
           
           const taskData = payload.new as any;
           
-          // ⚠️ IMPORTANT: Use rawDispatch for real-time events!
-          // Real-time events indicate data is ALREADY in the database.
-          // Using persistent dispatch would re-persist and trigger infinite loops.
           rawDispatch({
             type: 'ADD_TASK',
             payload: {
@@ -109,7 +103,6 @@ export const CaseTasksTab: React.FC<CaseTasksTabProps> = ({ caseData }) => {
           
           const taskData = payload.new as any;
           
-          // ⚠️ IMPORTANT: Use rawDispatch for real-time events!
           rawDispatch({
             type: 'UPDATE_TASK',
             payload: {
@@ -132,9 +125,6 @@ export const CaseTasksTab: React.FC<CaseTasksTabProps> = ({ caseData }) => {
               updatedAt: taskData.updated_at
             }
           });
-          
-          // Toast removed: Real-time sync should update state silently
-          // User-initiated updates show toast via tasksService.update()
         }
       )
       .on(
@@ -150,7 +140,6 @@ export const CaseTasksTab: React.FC<CaseTasksTabProps> = ({ caseData }) => {
           
           const deletedTask = payload.old as Task;
           
-          // ⚠️ IMPORTANT: Use rawDispatch for real-time events!
           rawDispatch({
             type: 'DELETE_TASK',
             payload: deletedTask.id
@@ -186,6 +175,7 @@ export const CaseTasksTab: React.FC<CaseTasksTabProps> = ({ caseData }) => {
     return { total, completed, pending, inProgress, overdue };
   }, [caseTasks]);
 
+  // Navigate to create task with case context
   const handleAddTask = () => {
     if (!hasPermission('tasks', 'write')) {
       toast({
@@ -196,14 +186,21 @@ export const CaseTasksTab: React.FC<CaseTasksTabProps> = ({ caseData }) => {
       return;
     }
 
-    setTaskModal({
-      isOpen: true,
-      mode: 'create',
-      task: null,
+    const params = new URLSearchParams({
+      caseId: caseData.id,
+      clientId: caseData.clientId || '',
+      caseNumber: caseData.caseNumber || '',
     });
+    navigate(`/tasks/new?${params.toString()}`);
   };
 
-  const handleEditTask = (task: Task) => {
+  // Navigate to view task
+  const handleViewTask = (taskId: string) => {
+    navigate(`/tasks/${taskId}`);
+  };
+
+  // Navigate to edit task
+  const handleEditTask = (taskId: string) => {
     if (!hasPermission('tasks', 'write')) {
       toast({
         title: 'Permission Denied',
@@ -212,25 +209,12 @@ export const CaseTasksTab: React.FC<CaseTasksTabProps> = ({ caseData }) => {
       });
       return;
     }
-
-    setSelectedTask(task);
+    navigate(`/tasks/${taskId}?edit=true`);
   };
 
-  const handleUpdateTask = (taskId: string, updates: Partial<Task>) => {
-    const existingTask = state.tasks.find(t => t.id === taskId);
-    if (existingTask) {
-      dispatch({ 
-        type: 'UPDATE_TASK', 
-        payload: { 
-          ...existingTask,
-          ...updates
-        } 
-      });
-      toast({
-        title: 'Task Updated',
-        description: 'The task has been successfully updated.',
-      });
-    }
+  // Navigate to add follow-up
+  const handleAddFollowUp = (taskId: string) => {
+    navigate(`/tasks/${taskId}?edit=true`);
   };
 
   const handleDeleteTask = (taskId: string) => {
@@ -382,7 +366,11 @@ export const CaseTasksTab: React.FC<CaseTasksTabProps> = ({ caseData }) => {
                     new Date(task.dueDate) < new Date();
 
                   return (
-                    <TableRow key={task.id} className={isOverdue ? 'bg-destructive/5' : ''}>
+                    <TableRow 
+                      key={task.id} 
+                      className={`cursor-pointer hover:bg-muted/50 ${isOverdue ? 'bg-destructive/5' : ''}`}
+                      onClick={() => handleViewTask(task.id)}
+                    >
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {getStatusIcon(task.status)}
@@ -414,23 +402,35 @@ export const CaseTasksTab: React.FC<CaseTasksTabProps> = ({ caseData }) => {
                           </Badge>
                         )}
                       </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditTask(task)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteTask(task.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleViewTask(task.id)}>
+                              <Eye className="mr-2 h-4 w-4" />
+                              View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEditTask(task.id)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit Task
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleAddFollowUp(task.id)}>
+                              <MessageSquarePlus className="mr-2 h-4 w-4" />
+                              Add Follow-up
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => handleDeleteTask(task.id)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   );
@@ -440,25 +440,6 @@ export const CaseTasksTab: React.FC<CaseTasksTabProps> = ({ caseData }) => {
           )}
         </CardContent>
       </Card>
-
-      {/* Task Modal (for creating new tasks) */}
-      <TaskModal
-        isOpen={taskModal.isOpen}
-        onClose={() => setTaskModal({ isOpen: false, mode: 'create', task: null })}
-        task={taskModal.task}
-        mode={taskModal.mode}
-        contextCaseId={caseData.id}
-        contextClientId={caseData.clientId}
-      />
-
-      {/* Task Drawer (for editing existing tasks) */}
-      <TaskDrawer
-        isOpen={selectedTask !== null}
-        onClose={() => setSelectedTask(null)}
-        task={selectedTask}
-        onUpdateTask={handleUpdateTask}
-        onDeleteTask={handleDeleteTask}
-      />
 
       {/* Bundle Run Modal */}
       <BundleRunModal

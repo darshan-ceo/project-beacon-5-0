@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   ArrowLeft, 
   Paperclip, 
@@ -11,7 +11,8 @@ import {
   Tag,
   FileText,
   Clock,
-  Sparkles
+  Sparkles,
+  Briefcase
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,8 +41,18 @@ const DEFAULT_TAGS = ['Urgent', 'Review', 'Follow-up', 'Documentation', 'Client'
 
 export const CreateTask: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { state, dispatch } = useAppState();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Read case context from URL params
+  const caseId = searchParams.get('caseId') || '';
+  const clientId = searchParams.get('clientId') || '';
+  const caseNumber = searchParams.get('caseNumber') || '';
+
+  // Find case and client details for display
+  const linkedCase = caseId ? state.cases.find(c => c.id === caseId) : null;
+  const linkedClient = clientId ? state.clients.find(c => c.id === clientId) : null;
 
   // Default due date to tomorrow (current date + 1)
   const tomorrow = new Date();
@@ -190,6 +201,9 @@ export const CreateTask: React.FC = () => {
           priority: formData.priority,
           due_date: formData.dueDate ? format(formData.dueDate, 'yyyy-MM-dd') : null,
           status: 'Not Started',
+          case_id: caseId || null,
+          client_id: clientId || null,
+          case_number: caseNumber || null,
         }] as any)
         .select()
         .single();
@@ -215,9 +229,9 @@ export const CreateTask: React.FC = () => {
           id: taskData.id,
           title: taskData.title,
           description: taskData.description || '',
-          caseId: '',
-          clientId: '',
-          caseNumber: '',
+          caseId: caseId,
+          clientId: clientId,
+          caseNumber: caseNumber,
           stage: '',
           assignedToId: taskData.assigned_to || '',
           assignedToName: assignee?.full_name || '',
@@ -254,11 +268,18 @@ export const CreateTask: React.FC = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate('/tasks')}
+            onClick={() => caseId ? navigate(`/cases?caseId=${caseId}`) : navigate('/tasks')}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h1 className="text-lg font-semibold">Create New Task</h1>
+          <div>
+            <h1 className="text-lg font-semibold">Create New Task</h1>
+            {linkedCase && (
+              <p className="text-xs text-muted-foreground">
+                For case: {linkedCase.caseNumber || linkedCase.title}
+              </p>
+            )}
+          </div>
         </div>
         <Button
           variant="outline"
@@ -281,6 +302,23 @@ export const CreateTask: React.FC = () => {
       {/* Form - Clean Linear Layout */}
       <div className="flex-1 overflow-auto bg-muted/20">
         <div className="max-w-2xl mx-auto p-6 space-y-6">
+          {/* Case Context Card - Show when creating from case */}
+          {linkedCase && (
+            <div className="bg-primary/5 rounded-xl border border-primary/20 p-4 flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Briefcase className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground">
+                  Linked to Case
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {linkedCase.caseNumber} • {linkedClient?.name || 'Unknown Client'}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Main Form Card */}
           <div className="bg-card rounded-xl border border-border shadow-sm p-6 space-y-6">
             {/* Title - Primary Focus */}
