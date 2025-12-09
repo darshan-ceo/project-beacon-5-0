@@ -57,7 +57,37 @@ class HierarchyService {
    * Build hierarchy tree from flat employee list
    */
   buildHierarchy(employees: Employee[]): HierarchyNode[] {
-    const activeEmployees = employees.filter(emp => emp.status === 'Active');
+    console.log('[HierarchyService] Building hierarchy with employees:', {
+      total: employees.length,
+      statuses: employees.reduce((acc, e) => {
+        acc[e.status] = (acc[e.status] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>),
+      sample: employees.slice(0, 3).map(e => ({
+        id: e.id,
+        name: e.full_name,
+        status: e.status,
+        role: e.role,
+        reportingTo: e.reportingTo,
+        managerId: e.managerId
+      }))
+    });
+    
+    // Filter for active employees - case-insensitive status check
+    const activeEmployees = employees.filter(emp => 
+      emp.status?.toLowerCase() === 'active' || emp.status === 'Active'
+    );
+    
+    console.log('[HierarchyService] Active employees after filter:', {
+      count: activeEmployees.length,
+      employees: activeEmployees.map(e => ({
+        name: e.full_name,
+        role: e.role,
+        reportingTo: e.reportingTo,
+        managerId: e.managerId
+      }))
+    });
+    
     const employeeMap = new Map<string, Employee>();
     
     activeEmployees.forEach(emp => employeeMap.set(emp.id, emp));
@@ -88,6 +118,20 @@ class HierarchyService {
         if (aOrder !== bOrder) return aOrder - bOrder;
         return a.full_name.localeCompare(b.full_name);
       });
+
+    console.log('[HierarchyService] Root employees (no manager):', {
+      count: rootEmployees.length,
+      names: rootEmployees.map(e => e.full_name)
+    });
+    
+    console.log('[HierarchyService] Employees with managers:', {
+      count: activeEmployees.filter(e => e.managerId || e.reportingTo).length,
+      employees: activeEmployees.filter(e => e.managerId || e.reportingTo).map(e => ({
+        name: e.full_name,
+        reportingTo: e.reportingTo,
+        managerId: e.managerId
+      }))
+    });
 
     return rootEmployees.map(emp => buildNode(emp));
   }

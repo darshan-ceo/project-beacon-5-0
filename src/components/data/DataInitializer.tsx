@@ -395,7 +395,19 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           reportingTo: e.reporting_to || e.reportingTo, // Critical for hierarchy display
           tenantId: e.tenant_id || e.tenantId,
           addressId: e.address_id || e.addressId,
+          status: e.status || 'Active', // Ensure status is always set
         }));
+        
+        console.log('[DataInitializer] Employees loaded with hierarchy info:', {
+          count: employees.length,
+          withReportingTo: employees.filter((e: any) => e.reportingTo).length,
+          sample: employees.slice(0, 5).map((e: any) => ({
+            name: e.full_name,
+            status: e.status,
+            reportingTo: e.reportingTo,
+            managerId: e.managerId,
+          }))
+        });
 
         const courts = (courtsData.data || []).map((c: any) => ({
           ...c,
