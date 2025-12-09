@@ -263,14 +263,14 @@ export const ComposeMessage: React.FC<ComposeMessageProps> = ({
             <div className="flex items-center gap-2">
               <span className="text-xs font-medium text-muted-foreground">Status:</span>
               <Select
-                value={statusUpdate || ''}
-                onValueChange={(val) => setStatusUpdate(val as TaskStatusUpdate || undefined)}
+                value={statusUpdate || '__none__'}
+                onValueChange={(val) => setStatusUpdate(val === '__none__' ? undefined : val as TaskStatusUpdate)}
               >
                 <SelectTrigger className="w-[140px] h-9 text-sm border-border">
                   <SelectValue placeholder="No change" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No change</SelectItem>
+                  <SelectItem value="__none__">No change</SelectItem>
                   {TASK_STATUS_OPTIONS.map((opt) => (
                     <SelectItem key={opt.value} value={opt.value}>
                       {opt.label}
