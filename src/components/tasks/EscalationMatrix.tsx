@@ -105,8 +105,31 @@ export const EscalationMatrix: React.FC<EscalationMatrixProps> = ({ tasks }) => 
         escalationService.getEvents()
       ]);
       setEscalationRules(rules);
-      // Use mock data if service events don't have the required fields
-      setActiveEscalations(mockActiveEscalations);
+      
+      // Transform events to display format
+      const displayEvents = events
+        .filter(e => e.status === 'pending' || e.status === 'contacted')
+        .map(event => {
+          const dueDate = event.task?.dueDate ? new Date(event.task.dueDate) : null;
+          const overdueDays = dueDate ? Math.max(0, Math.floor((Date.now() - dueDate.getTime()) / (1000 * 60 * 60 * 24))) : 0;
+          
+          return {
+            id: event.id,
+            taskId: event.taskId,
+            title: event.task?.title || 'Unknown Task',
+            caseNumber: event.task?.caseNumber || 'N/A',
+            currentLevel: event.currentLevel || 1,
+            escalatedTo: event.escalatedTo || event.rule?.name || 'Manager',
+            escalatedAt: event.triggeredAt,
+            overdueDays,
+            priority: (event.task?.priority as 'Critical' | 'High' | 'Medium' | 'Low') || 'Medium',
+            nextAction: event.status === 'contacted' ? 'Follow-up pending' : 'Awaiting response',
+            timeToNextEscalation: event.currentLevel === 1 ? '24 hours' : event.currentLevel === 2 ? '12 hours' : '6 hours'
+          };
+        });
+      
+      // Use real events if available, otherwise fall back to mock
+      setActiveEscalations(displayEvents.length > 0 ? displayEvents : mockActiveEscalations);
     } catch (error) {
       console.error('Failed to load escalation data:', error);
       // Fallback to mock data
@@ -115,7 +138,14 @@ export const EscalationMatrix: React.FC<EscalationMatrixProps> = ({ tasks }) => 
   };
 
   const getEscalationStats = () => {
-    const overdueTasks = tasks.filter(t => t.status === 'Overdue');
+    // Calculate overdue based on due date, not status field
+    const now = new Date();
+    const overdueTasks = tasks.filter(t => {
+      if (t.status === 'Completed' || t.status === 'Cancelled') return false;
+      if (!t.dueDate) return false;
+      const dueDate = new Date(t.dueDate);
+      return dueDate < now;
+    });
     const escalatedTasks = tasks.filter(t => t.escalationLevel > 0);
     const criticalEscalations = escalatedTasks.filter(t => t.priority === 'Critical');
     
