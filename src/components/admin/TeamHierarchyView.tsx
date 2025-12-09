@@ -26,19 +26,44 @@ export const TeamHierarchyView: React.FC = () => {
   const [loadingChain, setLoadingChain] = useState(false);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
-  // Build hierarchy from employees
+  // Build hierarchy from employees - use employee count as key to force re-render on data change
+  const employeeDataKey = `${state.employees.length}-${state.employees.filter(e => e.reportingTo).length}`;
+  
   const hierarchy = useMemo(() => {
-    console.log('[TeamHierarchyView] state.employees:', {
-      count: state.employees.length,
-      sample: state.employees.slice(0, 5).map(e => ({
+    // Comprehensive debug logging
+    const employeesWithReportingTo = state.employees.filter(e => e.reportingTo);
+    const employeesWithManagerId = state.employees.filter(e => e.managerId);
+    const activeEmployees = state.employees.filter(e => e.status?.toLowerCase() === 'active');
+    
+    console.log('[TeamHierarchyView] Building hierarchy with complete data:', {
+      totalEmployees: state.employees.length,
+      activeEmployees: activeEmployees.length,
+      withReportingTo: employeesWithReportingTo.length,
+      withManagerId: employeesWithManagerId.length,
+      dataKey: employeeDataKey,
+      employeesWithManagers: employeesWithReportingTo.map(e => ({
         name: e.full_name,
-        status: e.status,
         reportingTo: e.reportingTo,
-        managerId: e.managerId
+        managerName: state.employees.find(m => m.id === e.reportingTo)?.full_name || 'MANAGER NOT FOUND'
       }))
     });
-    return hierarchyService.buildHierarchy(state.employees);
-  }, [state.employees]);
+    
+    const result = hierarchyService.buildHierarchy(state.employees);
+    
+    // Log what hierarchy actually contains after building
+    console.log('[TeamHierarchyView] Hierarchy built result:', {
+      rootNodes: result.length,
+      roots: result.map(n => ({
+        name: n.employee.full_name,
+        role: n.employee.role,
+        directReports: n.directReports.length,
+        directReportNames: n.directReports.map(r => r.employee.full_name),
+        totalReports: n.totalReports
+      }))
+    });
+    
+    return result;
+  }, [state.employees, employeeDataKey]);
 
   // Calculate statistics
   const stats: TeamStatistics = useMemo(() => {
@@ -301,7 +326,8 @@ export const TeamHierarchyView: React.FC = () => {
             </p>
           </CardHeader>
           <CardContent>
-            <div className="space-y-1 max-h-[500px] overflow-y-auto pr-2">
+            {/* Key forces re-render when employee data changes */}
+            <div key={employeeDataKey} className="space-y-1 max-h-[500px] overflow-y-auto pr-2">
               {hierarchy.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />

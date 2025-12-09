@@ -38,7 +38,8 @@ const normalizeStateId = (stateValue: string): string => {
 // Data schema version - increment this when field mappings change to force fresh reload
 // Version 1: Initial schema
 // Version 2: Added reportingTo field mapping for employee hierarchy
-const DATA_SCHEMA_VERSION = 2;
+// Version 3: Force reload to fix stale closure issues with hierarchy building
+const DATA_SCHEMA_VERSION = 3;
 
 // Global flags to persist data loaded state across component remounts
 // This prevents the "Loading your data..." screen from appearing when switching tabs
@@ -420,15 +421,26 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           status: e.status || 'Active', // Ensure status is always set
         }));
         
-        console.log('[DataInitializer] Employees loaded with hierarchy info:', {
-          count: employees.length,
-          withReportingTo: employees.filter((e: any) => e.reportingTo).length,
-          sample: employees.slice(0, 5).map((e: any) => ({
-            name: e.full_name,
-            status: e.status,
-            reportingTo: e.reportingTo,
-            managerId: e.managerId,
-          }))
+        // Data integrity verification for hierarchy
+        const employeesWithReportingTo = employees.filter((e: any) => e.reportingTo);
+        const employeeIds = new Set(employees.map((e: any) => e.id));
+        const managersReferenced = new Set(employeesWithReportingTo.map((e: any) => e.reportingTo));
+        const missingManagers = [...managersReferenced].filter(id => !employeeIds.has(id));
+        
+        console.log('[DataInitializer] Employees loaded with COMPLETE hierarchy verification:', {
+          totalCount: employees.length,
+          activeCount: employees.filter((e: any) => e.status?.toLowerCase() === 'active').length,
+          withReportingTo: employeesWithReportingTo.length,
+          uniqueManagersReferenced: managersReferenced.size,
+          missingManagers: missingManagers.length > 0 ? missingManagers : 'None - all managers present',
+          hierarchyRelationships: employeesWithReportingTo.map((e: any) => {
+            const manager = employees.find((m: any) => m.id === e.reportingTo);
+            return {
+              employee: e.full_name,
+              reportsTo: manager?.full_name || `MISSING MANAGER: ${e.reportingTo}`,
+              managerId: e.reportingTo
+            };
+          })
         });
 
         const courts = (courtsData.data || []).map((c: any) => ({
