@@ -446,9 +446,34 @@ export const useRealtimeSync = () => {
         (payload) => {
           console.log('[Realtime] Employees change:', payload.eventType, payload);
           if (payload.eventType === 'INSERT' && payload.new) {
-            rawDispatch({ type: 'ADD_EMPLOYEE', payload: payload.new as any });
+            const empData = payload.new as any;
+            rawDispatch({ 
+              type: 'ADD_EMPLOYEE', 
+              payload: {
+                ...empData,
+                full_name: empData.full_name || empData.name,
+                managerId: empData.manager_id || empData.managerId,
+                reportingTo: empData.reporting_to || empData.reportingTo,
+                workloadCapacity: empData.workload_capacity || empData.workloadCapacity || 40,
+                tenantId: empData.tenant_id || empData.tenantId,
+              } as any 
+            });
           } else if (payload.eventType === 'UPDATE' && payload.new) {
-            rawDispatch({ type: 'UPDATE_EMPLOYEE', payload: { id: (payload.new as any).id, updates: payload.new } as any });
+            const empData = payload.new as any;
+            rawDispatch({ 
+              type: 'UPDATE_EMPLOYEE', 
+              payload: { 
+                id: empData.id, 
+                updates: {
+                  ...empData,
+                  full_name: empData.full_name || empData.name,
+                  managerId: empData.manager_id || empData.managerId,
+                  reportingTo: empData.reporting_to || empData.reportingTo,
+                  workloadCapacity: empData.workload_capacity || empData.workloadCapacity || 40,
+                  tenantId: empData.tenant_id || empData.tenantId,
+                }
+              } as any 
+            });
           } else if (payload.eventType === 'DELETE' && payload.old) {
             rawDispatch({ type: 'DELETE_EMPLOYEE', payload: (payload.old as any).id });
           }

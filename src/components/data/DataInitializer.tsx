@@ -392,6 +392,7 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           date_of_joining: e.date_of_joining || e.dateOfJoining,
           workloadCapacity: e.workload_capacity || e.workloadCapacity || 40,
           managerId: e.manager_id || e.managerId,
+          reportingTo: e.reporting_to || e.reportingTo, // Critical for hierarchy display
           tenantId: e.tenant_id || e.tenantId,
           addressId: e.address_id || e.addressId,
         }));
