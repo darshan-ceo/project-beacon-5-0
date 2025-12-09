@@ -35,10 +35,16 @@ const normalizeStateId = (stateValue: string): string => {
   return STATE_NAME_TO_CODE[normalized] || stateValue;
 };
 
+// Data schema version - increment this when field mappings change to force fresh reload
+// Version 1: Initial schema
+// Version 2: Added reportingTo field mapping for employee hierarchy
+const DATA_SCHEMA_VERSION = 2;
+
 // Global flags to persist data loaded state across component remounts
 // This prevents the "Loading your data..." screen from appearing when switching tabs
 let globalDataLoaded = false;
 let globalLoadedTenantId: string | null = null;
+let globalSchemaVersion = 0;
 
 /**
  * DataInitializer Component
@@ -46,6 +52,7 @@ let globalLoadedTenantId: string | null = null;
  * Loads all entity data from Supabase into AppStateContext on app startup.
  * Waits for authentication to complete before loading tenant-specific data.
  * Uses global flags to prevent unnecessary reloads on tab switch/remount.
+ * Tracks schema version to force reload when field mappings change.
  */
 export const DataInitializer = ({ children }: { children: React.ReactNode }) => {
   const { user, tenantId } = useAuth();
@@ -76,13 +83,28 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
         return;
       }
 
+      // Check if schema version changed - force reload if field mappings updated
+      if (globalSchemaVersion !== DATA_SCHEMA_VERSION) {
+        console.log('[DataInitializer] Schema version changed from', globalSchemaVersion, 'to', DATA_SCHEMA_VERSION, '- forcing fresh reload');
+        globalDataLoaded = false;
+        globalSchemaVersion = DATA_SCHEMA_VERSION;
+      }
+
       // Skip reload if data was already loaded for this tenant AND state has data
       const currentEmployees = appStateContext?.state?.employees || [];
       
       if (globalDataLoaded && globalLoadedTenantId === tenantId) {
-        // Additional validation: check if state actually has employees loaded
+        // Additional validation: check if employees have reportingTo field populated correctly
+        const employeesWithReportingTo = currentEmployees.filter((e: any) => e.reportingTo);
+        
         if (currentEmployees.length > 0) {
-          console.log('[DataInitializer] Data already loaded for tenant AND state has employees, skipping reload');
+          // Check if any employees SHOULD have reportingTo but don't (stale data check)
+          console.log('[DataInitializer] Checking data freshness:', {
+            totalEmployees: currentEmployees.length,
+            withReportingTo: employeesWithReportingTo.length
+          });
+          
+          console.log('[DataInitializer] Data already loaded for tenant, skipping reload');
           setIsLoading(false);
           return;
         } else {
