@@ -210,6 +210,27 @@ export const TaskTemplates: React.FC<TaskTemplatesProps> = ({ bundles }) => {
     }
   };
 
+  const handleDeleteTemplate = async (template: TaskTemplate) => {
+    if (!window.confirm(`Are you sure you want to delete "${template.title}"?`)) {
+      return;
+    }
+    
+    try {
+      await taskTemplatesService.delete(template.id);
+      await loadTemplates();
+      toast({
+        title: 'Template Deleted',
+        description: `"${template.title}" has been deleted successfully`,
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete template',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const openEditDialog = (template: TaskTemplate) => {
     setSelectedTemplate(template);
     setFormData({
@@ -381,6 +402,17 @@ export const TaskTemplates: React.FC<TaskTemplatesProps> = ({ bundles }) => {
               >
                 <Copy className="mr-2 h-3 w-3" />
                 Clone
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteTemplate(template);
+                }}
+              >
+                <Trash2 className="h-3 w-3" />
               </Button>
             </div>
           </div>

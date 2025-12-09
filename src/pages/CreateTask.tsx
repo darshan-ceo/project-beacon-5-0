@@ -8,20 +8,16 @@ import {
   Calendar,
   User,
   Flag,
-  Tag
+  Tag,
+  FileText,
+  Clock,
+  Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   Popover,
   PopoverContent,
@@ -35,6 +31,9 @@ import { taskMessagesService } from '@/services/taskMessagesService';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { EmployeeCombobox } from '@/components/ui/employee-combobox';
+import { TemplatePickerDialog } from '@/components/tasks/TemplatePickerDialog';
+import { TaskTemplate } from '@/types/taskTemplate';
 
 const PRIORITY_OPTIONS = ['Critical', 'High', 'Medium', 'Low'];
 const DEFAULT_TAGS = ['Urgent', 'Review', 'Follow-up', 'Documentation', 'Client'];
@@ -51,10 +50,12 @@ export const CreateTask: React.FC = () => {
     priority: 'Medium',
     dueDate: undefined as Date | undefined,
     tags: [] as string[],
+    estimatedHours: '',
   });
   const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -122,6 +123,27 @@ export const CreateTask: React.FC = () => {
         ? prev.tags.filter((t) => t !== tag)
         : [...prev.tags, tag],
     }));
+  };
+
+  const handleTemplateSelect = (template: TaskTemplate) => {
+    setFormData((prev) => ({
+      ...prev,
+      title: template.title,
+      description: template.description,
+      priority: template.priority,
+      estimatedHours: template.estimatedHours.toString(),
+    }));
+    toast.success('Template applied');
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'Critical': return 'bg-destructive text-destructive-foreground';
+      case 'High': return 'bg-warning text-warning-foreground';
+      case 'Medium': return 'bg-primary text-primary-foreground';
+      case 'Low': return 'bg-success text-success-foreground';
+      default: return 'bg-muted text-muted-foreground';
+    }
   };
 
   const handleSubmit = async () => {
@@ -222,16 +244,34 @@ export const CreateTask: React.FC = () => {
   return (
     <div className="h-full flex flex-col bg-background">
       {/* Header */}
-      <div className="border-b bg-card px-4 py-3 flex items-center gap-3">
+      <div className="border-b bg-card px-4 py-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate('/tasks')}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h1 className="text-lg font-semibold">Create New Task</h1>
+        </div>
         <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate('/tasks')}
+          variant="outline"
+          size="sm"
+          onClick={() => setShowTemplatePicker(true)}
+          className="gap-2"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <FileText className="h-4 w-4" />
+          Use Template
         </Button>
-        <h1 className="text-lg font-semibold">Create New Task</h1>
       </div>
+
+      {/* Template Picker Dialog */}
+      <TemplatePickerDialog
+        open={showTemplatePicker}
+        onOpenChange={setShowTemplatePicker}
+        onSelectTemplate={handleTemplateSelect}
+      />
 
       {/* Form - Clean Linear Layout */}
       <div className="flex-1 overflow-auto bg-muted/20">
@@ -270,56 +310,63 @@ export const CreateTask: React.FC = () => {
               Task Settings
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {/* Assignee */}
-            <div className="space-y-1.5">
+            {/* Assignee with Combobox */}
+            <div className="space-y-1.5 col-span-2 sm:col-span-1">
               <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
                 <User className="h-3.5 w-3.5" />
                 Assignee
               </Label>
-              <Select
+              <EmployeeCombobox
+                employees={state.employees}
                 value={formData.assignedTo}
                 onValueChange={(val) => setFormData((prev) => ({ ...prev, assignedTo: val }))}
-              >
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Unassigned" />
-                </SelectTrigger>
-                <SelectContent>
-                  {state.employees
-                    .filter((e) => e.status === 'Active')
-                    .map((emp) => (
-                      <SelectItem key={emp.id} value={emp.id}>
-                        {emp.full_name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
+                placeholder="Select assignee..."
+                className="h-9"
+              />
             </div>
 
-            {/* Priority */}
+            {/* Priority with visual badges */}
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
                 <Flag className="h-3.5 w-3.5" />
                 Priority
               </Label>
-              <Select
-                value={formData.priority}
-                onValueChange={(val) => setFormData((prev) => ({ ...prev, priority: val }))}
-              >
-                <SelectTrigger className="h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PRIORITY_OPTIONS.map((p) => (
-                    <SelectItem key={p} value={p}>
-                      {p}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex flex-wrap gap-1.5">
+                {PRIORITY_OPTIONS.map((p) => (
+                  <Badge
+                    key={p}
+                    variant={formData.priority === p ? 'default' : 'outline'}
+                    className={cn(
+                      'cursor-pointer transition-all text-xs px-2 py-1',
+                      formData.priority === p ? getPriorityColor(p) : 'hover:bg-muted'
+                    )}
+                    onClick={() => setFormData((prev) => ({ ...prev, priority: p }))}
+                  >
+                    {p}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            {/* Estimated Hours */}
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5" />
+                Est. Hours
+              </Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.5"
+                value={formData.estimatedHours}
+                onChange={(e) => setFormData((prev) => ({ ...prev, estimatedHours: e.target.value }))}
+                placeholder="0"
+                className="h-9"
+              />
             </div>
 
             {/* Due Date */}
-            <div className="space-y-1.5 col-span-2 sm:col-span-2">
+            <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
                 <Calendar className="h-3.5 w-3.5" />
                 Due Date
@@ -344,6 +391,7 @@ export const CreateTask: React.FC = () => {
                     selected={formData.dueDate}
                     onSelect={(date) => setFormData((prev) => ({ ...prev, dueDate: date }))}
                     initialFocus
+                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
