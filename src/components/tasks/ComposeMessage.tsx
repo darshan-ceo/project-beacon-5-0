@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Send, Paperclip, X, Loader2, ChevronUp, Clock } from 'lucide-react';
+import { Send, Paperclip, X, Loader2, ChevronUp, Clock, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -18,10 +18,13 @@ import { TaskStatusUpdate, TaskAttachment, TASK_STATUS_OPTIONS } from '@/types/t
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { EmployeeCombobox } from '@/components/ui/employee-combobox';
+import { useAppState } from '@/contexts/AppStateContext';
 
 interface ComposeMessageProps {
-  onSend: (message: string, attachments: TaskAttachment[], statusUpdate?: TaskStatusUpdate) => Promise<void>;
+  onSend: (message: string, attachments: TaskAttachment[], statusUpdate?: TaskStatusUpdate, assigneeChange?: { id: string; name: string }) => Promise<void>;
   currentStatus?: string;
+  currentAssigneeId?: string;
   disabled?: boolean;
   taskId?: string;
 }
@@ -29,12 +32,15 @@ interface ComposeMessageProps {
 export const ComposeMessage: React.FC<ComposeMessageProps> = ({
   onSend,
   currentStatus,
+  currentAssigneeId,
   disabled = false,
   taskId,
 }) => {
+  const { state } = useAppState();
   const [message, setMessage] = useState('');
   const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
   const [statusUpdate, setStatusUpdate] = useState<TaskStatusUpdate | undefined>(undefined);
+  const [newAssigneeId, setNewAssigneeId] = useState<string>('');
   const [isSending, setIsSending] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
@@ -126,17 +132,26 @@ export const ComposeMessage: React.FC<ComposeMessageProps> = ({
   };
 
   const handleSend = async () => {
-    if (!message.trim() && attachments.length === 0) {
-      toast.error('Please enter a message or attach a file');
+    if (!message.trim() && attachments.length === 0 && !statusUpdate && !newAssigneeId) {
+      toast.error('Please enter a message, attach a file, or make a change');
       return;
     }
 
     setIsSending(true);
     try {
-      await onSend(message.trim(), attachments, statusUpdate);
+      // Prepare assignee change data if changed
+      const assigneeChange = newAssigneeId && newAssigneeId !== currentAssigneeId
+        ? { 
+            id: newAssigneeId, 
+            name: state.employees.find((e) => e.id === newAssigneeId)?.full_name || '' 
+          }
+        : undefined;
+
+      await onSend(message.trim(), attachments, statusUpdate, assigneeChange);
       setMessage('');
       setAttachments([]);
       setStatusUpdate(undefined);
+      setNewAssigneeId('');
       setHoursLogged('');
       setShowOptions(false);
       inputRef.current?.focus();
@@ -243,7 +258,8 @@ export const ComposeMessage: React.FC<ComposeMessageProps> = ({
       {/* Expandable Options */}
       <Collapsible open={showOptions} onOpenChange={setShowOptions}>
         <CollapsibleContent>
-          <div className="px-4 pb-4 pt-2 flex items-center gap-4 border-t border-border/50 bg-muted/30">
+          <div className="px-4 pb-4 pt-2 flex flex-wrap items-center gap-4 border-t border-border/50 bg-muted/30">
+            {/* Status */}
             <div className="flex items-center gap-2">
               <span className="text-xs font-medium text-muted-foreground">Status:</span>
               <Select
@@ -264,6 +280,19 @@ export const ComposeMessage: React.FC<ComposeMessageProps> = ({
               </Select>
             </div>
 
+            {/* Reassign */}
+            <div className="flex items-center gap-2">
+              <User className="h-4 w-4 text-muted-foreground" />
+              <EmployeeCombobox
+                employees={state.employees}
+                value={newAssigneeId || currentAssigneeId || ''}
+                onValueChange={setNewAssigneeId}
+                placeholder="Reassign..."
+                className="w-[180px] h-9 text-sm"
+              />
+            </div>
+
+            {/* Hours Logged */}
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-muted-foreground" />
               <Input

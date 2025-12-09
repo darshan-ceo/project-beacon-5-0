@@ -7,7 +7,8 @@ import {
   Edit,
   Trash2,
   Loader2,
-  MessageSquare
+  MessageSquare,
+  Plus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -194,7 +195,8 @@ export const TaskConversation: React.FC = () => {
   const handleSendMessage = async (
     message: string,
     attachments: TaskAttachment[],
-    statusUpdate?: TaskStatusUpdate
+    statusUpdate?: TaskStatusUpdate,
+    assigneeChange?: { id: string; name: string }
   ) => {
     if (!taskId || !task) return;
 
@@ -203,14 +205,43 @@ export const TaskConversation: React.FC = () => {
       toast.error('Unable to send message. Please refresh and try again.');
       return;
     }
+
+    // Handle assignee change if provided
+    if (assigneeChange && assigneeChange.id) {
+      try {
+        await tasksService.update(taskId, { 
+          assignedToId: assigneeChange.id,
+          assignedToName: assigneeChange.name 
+        }, dispatch);
+        
+        // Create system message for reassignment
+        await taskMessagesService.createMessage(
+          taskId,
+          tenantId,
+          currentUserId,
+          currentUserName,
+          { 
+            message: `Task reassigned to ${assigneeChange.name}`, 
+            attachments: [], 
+            isSystemMessage: true 
+          }
+        );
+      } catch (error) {
+        console.error('Error reassigning task:', error);
+        toast.error('Failed to reassign task');
+      }
+    }
     
-    await taskMessagesService.createMessage(
-      taskId,
-      tenantId,
-      currentUserId,
-      currentUserName,
-      { message, attachments, statusUpdate }
-    );
+    // Send the regular message
+    if (message || attachments.length > 0 || statusUpdate) {
+      await taskMessagesService.createMessage(
+        taskId,
+        tenantId,
+        currentUserId,
+        currentUserName,
+        { message, attachments, statusUpdate }
+      );
+    }
   };
 
   const handleQuickStatusChange = async (newStatus: string) => {
@@ -384,12 +415,24 @@ export const TaskConversation: React.FC = () => {
       </ScrollArea>
 
       {/* Quick Compose Bar - Only show in edit mode */}
-      {isEditMode && (
+      {isEditMode ? (
         <ComposeMessage
           onSend={handleSendMessage}
           currentStatus={task.status}
+          currentAssigneeId={task.assignedToId}
           taskId={taskId}
         />
+      ) : (
+        /* Floating Add Follow-up Button in View Mode */
+        <div className="border-t bg-card p-4">
+          <Button
+            onClick={() => navigate(`/tasks/${taskId}?edit=true`)}
+            className="w-full gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Add Follow-up
+          </Button>
+        </div>
       )}
     </div>
   );
