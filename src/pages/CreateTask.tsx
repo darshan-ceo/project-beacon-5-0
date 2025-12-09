@@ -43,12 +43,17 @@ export const CreateTask: React.FC = () => {
   const { state, dispatch } = useAppState();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Default due date to tomorrow (current date + 1)
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     assignedTo: '',
     priority: 'Medium',
-    dueDate: undefined as Date | undefined,
+    dueDate: tomorrow as Date | undefined,
     tags: [] as string[],
     estimatedHours: '',
   });
