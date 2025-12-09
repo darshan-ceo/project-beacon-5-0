@@ -416,6 +416,9 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
         const { error: updateError } = await supabase
           .from('employees')
           .update({
+            full_name: formData.full_name,
+            email: formData.email || formData.officialEmail,
+            employee_code: formData.employeeCode,
             mobile: formData.mobile,
             role: formData.role,
             department: formData.department,
@@ -463,10 +466,29 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
             documents: formData.documents,
             notes: formData.notes,
             status: formData.status,
+            updated_at: new Date().toISOString(),
           })
           .eq('id', employee.id);
 
         if (updateError) throw updateError;
+
+        // Dispatch UPDATE_EMPLOYEE to update UI state immediately
+        dispatch({
+          type: 'UPDATE_EMPLOYEE',
+          payload: {
+            id: employee.id,
+            updates: {
+              full_name: formData.full_name,
+              email: formData.email || formData.officialEmail,
+              employeeCode: formData.employeeCode,
+              mobile: formData.mobile,
+              role: formData.role,
+              department: formData.department,
+              designation: formData.designation,
+              status: formData.status,
+            }
+          }
+        });
 
         // If role changed, sync RBAC roles
         if (formData.role !== employee.role) {
