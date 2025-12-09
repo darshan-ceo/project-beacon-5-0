@@ -240,7 +240,7 @@ export const usePersistentDispatch = (
           await storage.create('employees', action.payload);
           break;
         case 'UPDATE_EMPLOYEE':
-          await storage.update('employees', action.payload.id, action.payload);
+          await storage.update('employees', action.payload.id, action.payload.updates);
           break;
         case 'DELETE_EMPLOYEE':
           await storage.delete('employees', action.payload);
