@@ -28,6 +28,15 @@ export const TeamHierarchyView: React.FC = () => {
 
   // Build hierarchy from employees
   const hierarchy = useMemo(() => {
+    console.log('[TeamHierarchyView] state.employees:', {
+      count: state.employees.length,
+      sample: state.employees.slice(0, 5).map(e => ({
+        name: e.full_name,
+        status: e.status,
+        reportingTo: e.reportingTo,
+        managerId: e.managerId
+      }))
+    });
     return hierarchyService.buildHierarchy(state.employees);
   }, [state.employees]);
 
