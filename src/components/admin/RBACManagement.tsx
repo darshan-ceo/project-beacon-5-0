@@ -9,7 +9,8 @@ import {
   Loader2,
   Key,
   BarChart3,
-  History
+  History,
+  GitBranch
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,7 @@ import { toast } from 'sonner';
 import { supabaseRbacService, type RoleDefinition, type UserWithRoles, type Permission, type AppRole } from '@/services/supabaseRbacService';
 import { RolePermissionEditor } from './RolePermissionEditor';
 import { CreateRoleModal } from './CreateRoleModal';
+import { TeamHierarchyView } from './TeamHierarchyView';
 
 export const RBACManagement: React.FC = () => {
   // State
@@ -214,6 +216,10 @@ export const RBACManagement: React.FC = () => {
         <TabsList>
           <TabsTrigger value="users">User Assignments</TabsTrigger>
           <TabsTrigger value="roles">Role Definitions</TabsTrigger>
+          <TabsTrigger value="hierarchy" className="flex items-center gap-1">
+            <GitBranch className="h-4 w-4" />
+            Team Hierarchy
+          </TabsTrigger>
           <TabsTrigger value="permissions">Permissions Matrix</TabsTrigger>
           <TabsTrigger value="audit">Audit Log</TabsTrigger>
         </TabsList>
@@ -452,6 +458,11 @@ export const RBACManagement: React.FC = () => {
               onSaved={loadData}
             />
           )}
+        </TabsContent>
+
+        {/* Team Hierarchy Tab */}
+        <TabsContent value="hierarchy">
+          <TeamHierarchyView />
         </TabsContent>
 
         {/* Permissions Matrix Tab */}
