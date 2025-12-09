@@ -1,5 +1,6 @@
-import { Task } from '@/contexts/AppStateContext';
+import { supabase } from '@/integrations/supabase/client';
 import { automationEventEmitter } from './automationEventEmitter';
+import { escalationService } from './escalationService';
 import { differenceInHours, differenceInDays, parseISO } from 'date-fns';
 
 export interface SLAThreshold {
@@ -14,6 +15,28 @@ const DEFAULT_SLA_THRESHOLDS: SLAThreshold[] = [
   { priority: 'Medium', warningHours: 72, criticalHours: 120 },
   { priority: 'Low', warningHours: 168, criticalHours: 240 }
 ];
+
+interface DBTask {
+  id: string;
+  title: string;
+  due_date: string | null;
+  priority: string | null;
+  status: string | null;
+  case_id: string | null;
+  assigned_to: string | null;
+  case_number: string | null;
+}
+
+// Minimal task info for automation events
+interface TaskEventData {
+  id: string;
+  title: string;
+  status: string;
+  priority: string;
+  dueDate: string;
+  caseId?: string;
+  caseNumber?: string;
+}
 
 class SLAMonitor {
   private monitoringInterval: NodeJS.Timeout | null = null;
@@ -52,9 +75,15 @@ class SLAMonitor {
     try {
       const tasks = await this.getInProgressTasks();
       const now = new Date();
+      
+      console.log(`[SLAMonitor] Checking ${tasks.length} tasks for SLA compliance`);
+
+      let overdueCount = 0;
+      let warningCount = 0;
+      let criticalCount = 0;
 
       for (const task of tasks) {
-        const dueDate = this.parseDueDate(task.dueDate);
+        const dueDate = this.parseDueDate(task.due_date);
         if (!dueDate) continue;
 
         const hoursUntilDue = differenceInHours(dueDate, now);
@@ -62,48 +91,100 @@ class SLAMonitor {
 
         // Check if task is overdue
         if (hoursUntilDue < 0 && task.status !== 'Overdue') {
-          console.log(`[SLAMonitor] Task ${task.id} is overdue by ${daysOverdue} days`);
+          overdueCount++;
+          console.log(`[SLAMonitor] Task ${task.id} "${task.title}" is overdue by ${daysOverdue} days`);
+          
           await automationEventEmitter.emitTaskOverdue(
             task.id,
-            task.caseId || '',
+            task.case_id || '',
             daysOverdue,
-            task
+            this.mapDBTaskToEventData(task) as any
           );
+
+          // Trigger escalation for overdue tasks
+          try {
+            await escalationService.checkAndEscalateOverdueTasks();
+          } catch (err) {
+            console.error('[SLAMonitor] Escalation check failed:', err);
+          }
         }
 
         // Check SLA thresholds
-        const threshold = this.getSLAThreshold(task.priority);
-        if (threshold) {
+        const threshold = this.getSLAThreshold(task.priority || 'Medium');
+        if (threshold && hoursUntilDue > 0) {
           // Warning threshold
-          if (hoursUntilDue > 0 && hoursUntilDue <= threshold.warningHours) {
-            console.log(`[SLAMonitor] Task ${task.id} approaching SLA warning threshold`);
-            // Could emit a warning event here
+          if (hoursUntilDue <= threshold.warningHours) {
+            warningCount++;
+            console.log(`[SLAMonitor] Task ${task.id} "${task.title}" approaching SLA warning (${hoursUntilDue.toFixed(1)}h remaining)`);
           }
 
           // Critical threshold
-          if (hoursUntilDue > 0 && hoursUntilDue <= threshold.criticalHours) {
-            console.log(`[SLAMonitor] Task ${task.id} approaching SLA critical threshold`);
-            // Could emit a critical event here
+          if (hoursUntilDue <= threshold.criticalHours * 0.25) {
+            criticalCount++;
+            console.log(`[SLAMonitor] Task ${task.id} "${task.title}" at SLA critical threshold (${hoursUntilDue.toFixed(1)}h remaining)`);
           }
         }
       }
+
+      console.log(`[SLAMonitor] Compliance check complete: ${overdueCount} overdue, ${warningCount} warnings, ${criticalCount} critical`);
     } catch (error) {
       console.error('[SLAMonitor] Error checking SLA compliance:', error);
     }
   }
 
-  private async getInProgressTasks(): Promise<Task[]> {
+  private async getInProgressTasks(): Promise<DBTask[]> {
     try {
-      // In a real implementation, this would query the database
-      // For now, return empty array as placeholder
-      return [];
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.log('[SLAMonitor] No authenticated user');
+        return [];
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (!profile?.tenant_id) {
+        console.log('[SLAMonitor] No tenant found');
+        return [];
+      }
+
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('id, title, due_date, priority, status, case_id, assigned_to, case_number')
+        .eq('tenant_id', profile.tenant_id)
+        .not('status', 'in', '(Completed,Cancelled)')
+        .not('due_date', 'is', null)
+        .order('due_date', { ascending: true });
+
+      if (error) {
+        console.error('[SLAMonitor] Error fetching tasks:', error);
+        return [];
+      }
+
+      console.log(`[SLAMonitor] Fetched ${data?.length || 0} tasks to monitor`);
+      return data || [];
     } catch (error) {
       console.error('[SLAMonitor] Error fetching tasks:', error);
       return [];
     }
   }
 
-  private parseDueDate(dueDate: string | Date | undefined): Date | null {
+  private mapDBTaskToEventData(dbTask: DBTask): TaskEventData {
+    return {
+      id: dbTask.id,
+      title: dbTask.title,
+      status: dbTask.status || 'Not Started',
+      priority: dbTask.priority || 'Medium',
+      dueDate: dbTask.due_date || '',
+      caseId: dbTask.case_id || undefined,
+      caseNumber: dbTask.case_number || undefined
+    };
+  }
+
+  private parseDueDate(dueDate: string | Date | null | undefined): Date | null {
     if (!dueDate) return null;
 
     try {
@@ -114,7 +195,7 @@ class SLAMonitor {
       // Try parsing DD-MM-YYYY format
       if (typeof dueDate === 'string') {
         const parts = dueDate.split('-');
-        if (parts.length === 3) {
+        if (parts.length === 3 && parts[0].length <= 2) {
           const [day, month, year] = parts;
           return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
         }
