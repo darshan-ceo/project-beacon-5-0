@@ -1,7 +1,8 @@
 import React from 'react';
-import { Scale, MapPin, Tag, Building, Wifi } from 'lucide-react';
+import { Scale, MapPin, Tag, Building, Wifi, Landmark, UserCheck } from 'lucide-react';
 import { UnifiedModuleSearch, FilterConfig } from '@/components/search/UnifiedModuleSearch';
 import { AUTHORITY_LEVEL_OPTIONS } from '@/types/authority-level';
+import { TAX_JURISDICTION_OPTIONS, CGST_OFFICERS, SGST_OFFICERS } from '@/types/officer-designation';
 
 interface UnifiedCourtSearchProps {
   searchTerm: string;
@@ -22,7 +23,42 @@ export const UnifiedCourtSearch: React.FC<UnifiedCourtSearchProps> = ({
   states = [],
   types = ['Income Tax Appellate Tribunal', 'High Court', 'Supreme Court', 'Commissioner Appeals', 'Settlement Commission']
 }) => {
+  // Get officer options based on selected tax jurisdiction
+  const getOfficerOptions = () => {
+    const selectedJurisdiction = activeFilters.taxJurisdiction;
+    if (selectedJurisdiction === 'CGST') {
+      return CGST_OFFICERS.map(o => ({ label: o.label, value: o.value }));
+    } else if (selectedJurisdiction === 'SGST') {
+      return SGST_OFFICERS.map(o => ({ label: o.label, value: o.value }));
+    }
+    // Show all officers if no jurisdiction selected
+    return [
+      ...CGST_OFFICERS.map(o => ({ label: `${o.label} (CGST)`, value: o.value })),
+      ...SGST_OFFICERS.map(o => ({ label: `${o.label} (SGST)`, value: o.value }))
+    ];
+  };
+
   const filterConfig: FilterConfig[] = [
+    {
+      id: 'taxJurisdiction',
+      label: 'Tax Jurisdiction',
+      type: 'dropdown',
+      icon: Landmark,
+      options: [
+        { label: 'All Jurisdictions', value: 'all' },
+        ...TAX_JURISDICTION_OPTIONS.map(j => ({ label: j.label, value: j.value }))
+      ]
+    },
+    {
+      id: 'officerDesignation',
+      label: 'Officer Designation',
+      type: 'dropdown',
+      icon: UserCheck,
+      options: [
+        { label: 'All Designations', value: 'all' },
+        ...getOfficerOptions()
+      ]
+    },
     {
       id: 'authorityLevel',
       label: 'Authority Level',
