@@ -22,6 +22,13 @@ import { clientsService } from '@/services/clientsService';
 import { autoCapitalizeFirst } from '@/utils/textFormatters';
 import { extractCityFromAddress } from '@/utils/cityExtractor';
 import { authorityHierarchyService } from '@/services/authorityHierarchyService';
+import { 
+  TaxJurisdiction, 
+  OfficerDesignation, 
+  TAX_JURISDICTION_OPTIONS, 
+  getOfficersByJurisdiction,
+  getOfficerLabel 
+} from '@/types/officer-designation';
 
 interface CourtModalProps {
   isOpen: boolean;
@@ -54,6 +61,9 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     addressId?: string;
     city?: string;
     status: 'Active' | 'Inactive';
+    // NEW: CGST/SGST fields
+    taxJurisdiction?: TaxJurisdiction;
+    officerDesignation?: OfficerDesignation;
   }>({
     name: '',
     type: 'District Court',
@@ -80,7 +90,9 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     email: '',
     benchLocation: '',
     city: '',
-    status: 'Active'
+    status: 'Active',
+    taxJurisdiction: undefined,
+    officerDesignation: undefined
   });
   const [isAddressMasterEnabled, setIsAddressMasterEnabled] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -170,7 +182,9 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         email: courtData.email || '',
         benchLocation: courtData.benchLocation || '',
         city: cityValue,
-        status: courtData.status || 'Active'
+        status: courtData.status || 'Active',
+        taxJurisdiction: courtData.taxJurisdiction as TaxJurisdiction | undefined,
+        officerDesignation: courtData.officerDesignation as OfficerDesignation | undefined
       });
     } else if (mode === 'create') {
       setFormData({
@@ -197,7 +211,9 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         email: '',
         benchLocation: '',
         city: '',
-        status: 'Active'
+        status: 'Active',
+        taxJurisdiction: undefined,
+        officerDesignation: undefined
       });
     }
   }, [courtData, mode]);
@@ -289,7 +305,9 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
           benchLocation: formData.benchLocation,
           addressId: addressId,
           city: formData.city,
-          status: formData.status
+          status: formData.status,
+          taxJurisdiction: formData.taxJurisdiction,
+          officerDesignation: formData.officerDesignation
         };
 
         const created = await courtsService.create(courtToCreate, dispatch);
@@ -325,7 +343,9 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
           email: formData.email,
           benchLocation: formData.benchLocation,
           city: formData.city,
-          status: formData.status
+          status: formData.status,
+          taxJurisdiction: formData.taxJurisdiction,
+          officerDesignation: formData.officerDesignation
         };
 
         await courtsService.update(courtData.id, updates, dispatch);
@@ -398,9 +418,77 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
               </p>
             </div>
 
+            {/* Tax Jurisdiction and Officer Designation - New CGST/SGST fields */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="taxJurisdiction">Tax Jurisdiction <span className="text-destructive">*</span></Label>
+                  <FieldTooltip formId="create-court" fieldId="taxJurisdiction" />
+                </div>
+                <Select
+                  value={formData.taxJurisdiction || ''}
+                  onValueChange={(value) => setFormData(prev => ({ 
+                    ...prev, 
+                    taxJurisdiction: value as TaxJurisdiction || undefined,
+                    officerDesignation: undefined // Reset officer when jurisdiction changes
+                  }))}
+                  disabled={mode === 'view'}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select CGST or SGST" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TAX_JURISDICTION_OPTIONS.map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        <div className="flex flex-col py-1">
+                          <span className="font-medium">{option.label}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {option.description}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Central or State GST authority
+                </p>
+              </div>
+
+              <div>
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="officerDesignation">Officer Designation <span className="text-destructive">*</span></Label>
+                  <FieldTooltip formId="create-court" fieldId="officerDesignation" />
+                </div>
+                <Select
+                  value={formData.officerDesignation || ''}
+                  onValueChange={(value) => setFormData(prev => ({ 
+                    ...prev, 
+                    officerDesignation: value as OfficerDesignation || undefined
+                  }))}
+                  disabled={mode === 'view' || !formData.taxJurisdiction}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={formData.taxJurisdiction ? "Select officer designation" : "Select tax jurisdiction first"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getOfficersByJurisdiction(formData.taxJurisdiction).map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        <span className="font-medium">{option.label}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {formData.taxJurisdiction ? `${formData.taxJurisdiction} officer hierarchy` : 'Officer rank in GST hierarchy'}
+                </p>
+              </div>
+            </div>
+
+            {/* Legacy Authority Level - For case lifecycle tracking (hidden/optional) */}
             <div>
               <div className="flex items-center gap-1">
-                <Label htmlFor="authorityLevel">Authority Level <span className="text-destructive">*</span></Label>
+                <Label htmlFor="authorityLevel">Authority Level (Case Lifecycle)</Label>
                 <FieldTooltip formId="create-court" fieldId="authorityLevel" />
               </div>
               <Select
@@ -411,10 +499,9 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                   matterTypes: [] // Reset matter types when authority level changes
                 }))}
                 disabled={mode === 'view'}
-                required
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select authority level" />
+                  <SelectValue placeholder="Select authority level (optional)" />
                 </SelectTrigger>
                 <SelectContent className="max-h-[400px]">
                   {AUTHORITY_LEVEL_OPTIONS.filter(opt => opt.value !== 'all').map(option => {
@@ -435,6 +522,9 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                   })}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Used for case lifecycle tracking (Assessment → Appeal → Tribunal flow)
+              </p>
             </div>
 
             {/* Matter Types - Conditional based on authority level */}
