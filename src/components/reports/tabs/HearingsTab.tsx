@@ -10,6 +10,7 @@ import { getHearingReport } from '@/services/reportsService';
 import { ReportFilter, HearingReportData } from '@/types/reports';
 import { formatDateForDisplay, formatTimeForDisplay } from '@/utils/dateFormatters';
 import { format } from 'date-fns';
+import { getOfficerLabel } from '@/types/officer-designation';
 
 interface HearingsTabProps {
   filters: ReportFilter;
@@ -17,8 +18,8 @@ interface HearingsTabProps {
   onFiltersChange: (filters: ReportFilter) => void;
 }
 
-type GroupByOption = 'none' | 'authority' | 'forum' | 'advocate' | 'month';
-type SortByOption = 'date' | 'case' | 'authority' | 'outcome';
+type GroupByOption = 'none' | 'authority' | 'forum' | 'advocate' | 'month' | 'taxJurisdiction';
+type SortByOption = 'date' | 'case' | 'authority' | 'outcome' | 'taxJurisdiction';
 
 export const HearingsTab: React.FC<HearingsTabProps> = ({ filters }) => {
   const [data, setData] = useState<HearingReportData[]>([]);
@@ -54,6 +55,8 @@ export const HearingsTab: React.FC<HearingsTabProps> = ({ filters }) => {
           return (a.authority || '').localeCompare(b.authority || '');
         case 'outcome':
           return (a.outcome || '').localeCompare(b.outcome || '');
+        case 'taxJurisdiction':
+          return (a.taxJurisdiction || '').localeCompare(b.taxJurisdiction || '');
         default:
           return 0;
       }
@@ -85,6 +88,9 @@ export const HearingsTab: React.FC<HearingsTabProps> = ({ filters }) => {
         case 'month':
           groupKey = format(new Date(item.date), 'MMMM yyyy');
           break;
+        case 'taxJurisdiction':
+          groupKey = item.taxJurisdiction || 'No Jurisdiction';
+          break;
       }
 
       if (!groups[groupKey]) {
@@ -107,7 +113,7 @@ export const HearingsTab: React.FC<HearingsTabProps> = ({ filters }) => {
   }
 
   const renderTable = (items: HearingReportData[]) => (
-    <Table className="min-w-[900px]">
+    <Table className="min-w-[1100px]">
       <TableHeader>
         <TableRow>
           <TableHead>Date</TableHead>
@@ -116,7 +122,8 @@ export const HearingsTab: React.FC<HearingsTabProps> = ({ filters }) => {
           <TableHead>Owner</TableHead>
           <TableHead>Case Title</TableHead>
           <TableHead>Legal Forum</TableHead>
-          <TableHead>Authority</TableHead>
+          <TableHead>Tax Jurisdiction</TableHead>
+          <TableHead>Officer Designation</TableHead>
           <TableHead>Judge</TableHead>
           <TableHead>Outcome</TableHead>
           <TableHead>Status</TableHead>
@@ -131,7 +138,16 @@ export const HearingsTab: React.FC<HearingsTabProps> = ({ filters }) => {
             <TableCell>{item.owner}</TableCell>
             <TableCell>{item.caseTitle}</TableCell>
             <TableCell>{item.court}</TableCell>
-            <TableCell>{item.authority || 'N/A'}</TableCell>
+            <TableCell>
+              {item.taxJurisdiction && (
+                <Badge variant={item.taxJurisdiction === 'CGST' ? 'default' : 'secondary'}>
+                  {item.taxJurisdiction}
+                </Badge>
+              )}
+            </TableCell>
+            <TableCell>
+              {item.officerDesignation ? getOfficerLabel(item.officerDesignation as any) : 'N/A'}
+            </TableCell>
             <TableCell>{item.judge}</TableCell>
             <TableCell>
               {item.outcome && (
@@ -176,6 +192,7 @@ export const HearingsTab: React.FC<HearingsTabProps> = ({ filters }) => {
                 <SelectItem value="forum">Legal Forum</SelectItem>
                 <SelectItem value="advocate">Advocate</SelectItem>
                 <SelectItem value="month">Month</SelectItem>
+                <SelectItem value="taxJurisdiction">Tax Jurisdiction</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -191,6 +208,7 @@ export const HearingsTab: React.FC<HearingsTabProps> = ({ filters }) => {
                 <SelectItem value="case">Case Number</SelectItem>
                 <SelectItem value="authority">Authority</SelectItem>
                 <SelectItem value="outcome">Outcome</SelectItem>
+                <SelectItem value="taxJurisdiction">Tax Jurisdiction</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -48,6 +48,8 @@ export const HEARING_REPORT_COLUMNS: ReportColumn[] = [
   { key: 'caseTitle', header: 'Case Title', type: 'string', get: (row) => row.caseTitle || row.case_title || row.title || '' },
   { key: 'client', header: 'Client', type: 'string', get: (row) => row.client || row.clientName || '' },
   { key: 'court', header: 'Legal Forum', type: 'string', get: (row) => row.court || row.legalForum || row.forum || '' },
+  { key: 'taxJurisdiction', header: 'Tax Jurisdiction', type: 'string', get: (row) => row.taxJurisdiction || '' },
+  { key: 'officerDesignation', header: 'Officer Designation', type: 'string', get: (row) => row.officerDesignation || '' },
   { key: 'judge', header: 'Judge', type: 'string', get: (row) => row.judge || row.judgeName || '' },
   { key: 'status', header: 'Status', type: 'string', get: (row) => row.status || row.hearingStatus || '' },
 ];
