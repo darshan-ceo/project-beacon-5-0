@@ -15,6 +15,8 @@ export interface ReportFilter {
   assigneeId?: string;
   status?: string;
   channel?: 'Email' | 'SMS' | 'WhatsApp';
+  taxJurisdiction?: 'CGST' | 'SGST';
+  officerDesignation?: string;
 }
 
 export interface SavedView {
@@ -79,6 +81,8 @@ export interface HearingReportData {
   authority?: string;
   advocate?: string;
   outcome?: string;
+  taxJurisdiction?: 'CGST' | 'SGST';
+  officerDesignation?: string;
 }
 
 export interface TimelineBreachReportData {

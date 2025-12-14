@@ -328,7 +328,11 @@ export const reportsService = {
 
       const caseMap = new Map(cases.map((c: any) => [c.id, c]));
       const clientMap = new Map(clients.map((c: any) => [c.id, c.display_name || c.name || 'Unknown']));
-      const courtMap = new Map(courts.map((c: any) => [c.id, c.name]));
+      const courtMap = new Map(courts.map((c: any) => [c.id, {
+        name: c.name,
+        taxJurisdiction: c.tax_jurisdiction || c.taxJurisdiction,
+        officerDesignation: c.officer_designation || c.officerDesignation
+      }]));
       const judgeMap = new Map(judges.map((j: any) => [j.id, j.name]));
       const employeeMap = new Map(employees.map((e: any) => [e.id, e.full_name || e.name || 'Unknown']));
 
@@ -380,9 +384,26 @@ export const reportsService = {
         });
       }
 
+      // Filter by Tax Jurisdiction
+      if (filters.taxJurisdiction) {
+        filteredHearings = filteredHearings.filter((h: any) => {
+          const courtData = courtMap.get(h.court_id || h.courtId);
+          return courtData?.taxJurisdiction === filters.taxJurisdiction;
+        });
+      }
+
+      // Filter by Officer Designation
+      if (filters.officerDesignation) {
+        filteredHearings = filteredHearings.filter((h: any) => {
+          const courtData = courtMap.get(h.court_id || h.courtId);
+          return courtData?.officerDesignation === filters.officerDesignation;
+        });
+      }
+
       const reportData = filteredHearings.map((hearing: any) => {
         const relatedCase = caseMap.get(hearing.case_id || hearing.caseId);
         const clientId = relatedCase?.client_id || relatedCase?.clientId;
+        const courtData = courtMap.get(hearing.court_id || hearing.courtId);
 
         return {
           id: hearing.id,
@@ -392,7 +413,7 @@ export const reportsService = {
           owner: relatedCase?.assigned_to ? (employeeMap.get(relatedCase.assigned_to) || 'Unassigned') : 'Unassigned',
           date: hearing.hearing_date || hearing.date,
           time: hearing.time || hearing.start_time || '10:00',
-          court: courtMap.get(hearing.court_id || hearing.courtId) || 'Unknown',
+          court: courtData?.name || 'Unknown',
           bench: hearing.bench || 'N/A',
           judge: (() => {
             const judgeName = hearing.judge_name;
@@ -404,6 +425,8 @@ export const reportsService = {
           })(),
           type: hearing.purpose || 'Scheduled',
           status: hearing.status || 'Scheduled',
+          taxJurisdiction: courtData?.taxJurisdiction,
+          officerDesignation: courtData?.officerDesignation,
         };
       });
 
