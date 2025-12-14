@@ -789,9 +789,11 @@ export type Database = {
           jurisdiction: string | null
           level: string | null
           name: string
+          officer_designation: string | null
           phone: string | null
           state: string | null
           status: string | null
+          tax_jurisdiction: string | null
           tenant_id: string
           type: string | null
           updated_at: string
@@ -809,9 +811,11 @@ export type Database = {
           jurisdiction?: string | null
           level?: string | null
           name: string
+          officer_designation?: string | null
           phone?: string | null
           state?: string | null
           status?: string | null
+          tax_jurisdiction?: string | null
           tenant_id: string
           type?: string | null
           updated_at?: string
@@ -829,9 +833,11 @@ export type Database = {
           jurisdiction?: string | null
           level?: string | null
           name?: string
+          officer_designation?: string | null
           phone?: string | null
           state?: string | null
           status?: string | null
+          tax_jurisdiction?: string | null
           tenant_id?: string
           type?: string | null
           updated_at?: string

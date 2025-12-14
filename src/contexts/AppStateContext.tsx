@@ -268,6 +268,9 @@ interface Court {
   benchLocation?: string;
   city: string; // Mandatory for data quality - Phase 2
   status: 'Active' | 'Inactive';
+  // NEW: CGST/SGST Officer Designation fields
+  taxJurisdiction?: 'CGST' | 'SGST'; // Tax jurisdiction (Central or State)
+  officerDesignation?: string; // Officer rank (e.g., DEPUTY_COMMISSIONER, JOINT_COMMISSIONER)
 }
 
 interface Judge {

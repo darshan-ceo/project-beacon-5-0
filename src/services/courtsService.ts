@@ -67,6 +67,8 @@ class CourtsService {
         email: newCourt.email,
         status: newCourt.status,
         bench_location: newCourt.benchLocation,
+        tax_jurisdiction: normalizedData.taxJurisdiction,
+        officer_designation: normalizedData.officerDesignation,
       } as any);
 
       // Get server-generated UUID
@@ -114,6 +116,8 @@ class CourtsService {
         ...(updates.email && { email: updates.email }),
         ...(updates.status && { status: updates.status }),
         ...(updates.benchLocation && { bench_location: updates.benchLocation }),
+        ...(updates.taxJurisdiction !== undefined && { tax_jurisdiction: updates.taxJurisdiction }),
+        ...(updates.officerDesignation !== undefined && { officer_designation: updates.officerDesignation }),
         updated_at: new Date().toISOString(),
       } as any);
 
@@ -189,6 +193,8 @@ class CourtsService {
         email: c.email,
         status: c.status,
         benchLocation: c.bench_location,
+        taxJurisdiction: c.tax_jurisdiction,
+        officerDesignation: c.officer_designation,
         activeCases: 0,
         avgHearingTime: '30 mins',
         digitalFiling: false,
@@ -221,6 +227,8 @@ class CourtsService {
         email: court.email,
         status: court.status,
         benchLocation: court.bench_location,
+        taxJurisdiction: court.tax_jurisdiction,
+        officerDesignation: court.officer_designation,
         activeCases: 0,
         avgHearingTime: '30 mins',
         digitalFiling: false,
