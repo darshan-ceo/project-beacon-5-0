@@ -476,18 +476,14 @@ export const ClientMasters: React.FC = () => {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.3, delay: index * 0.05 }}
-                    className="hover:bg-muted/50"
+                    className="hover:bg-muted/50 cursor-pointer"
+                    onClick={() => setClientModal({ isOpen: true, mode: 'view', client })}
                   >
                     {/* Column 1: Client Name */}
                     <TableCell>
-                      <button
-                        onClick={() => setClientModal({ isOpen: true, mode: 'edit', client })}
-                        className="text-left hover:underline focus:outline-none"
-                      >
-                        <p className="font-medium text-foreground hover:text-primary transition-colors">
-                          {client.name}
-                        </p>
-                      </button>
+                      <p className="font-medium text-foreground hover:text-primary transition-colors">
+                        {client.name}
+                      </p>
                     </TableCell>
 
                     {/* Column 3: GSTN / PAN / State */}
@@ -625,7 +621,7 @@ export const ClientMasters: React.FC = () => {
                         of {clientCaseCounts[client.id]?.total || 0} total
                       </p>
                     </TableCell>
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm">
