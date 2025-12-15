@@ -465,17 +465,18 @@ export const HolidayMasters: React.FC = () => {
               </TableHeader>
               <TableBody>
                 {filteredHolidays.map((holiday) => (
-                  <TableRow key={holiday.id} className="cursor-pointer hover:bg-muted/50">
+                  <TableRow 
+                    key={holiday.id} 
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleView(holiday)}
+                  >
                     <TableCell className="font-medium">
                       {format(parseISO(holiday.date), 'dd MMM yyyy')}
                       <span className="block text-xs text-muted-foreground">
                         {format(parseISO(holiday.date), 'EEEE')}
                       </span>
                     </TableCell>
-                    <TableCell 
-                      className="cursor-pointer"
-                      onClick={() => handleView(holiday)}
-                    >
+                    <TableCell>
                       {holiday.name}
                     </TableCell>
                     <TableCell>
@@ -491,7 +492,7 @@ export const HolidayMasters: React.FC = () => {
                         {holiday.isActive ? 'Active' : 'Inactive'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1">
                         <TooltipProvider>
                           <Tooltip>

@@ -511,7 +511,11 @@ export const EmployeeMasters: React.FC = () => {
             </TableHeader>
             <TableBody>
               {filteredEmployees.map((employee) => (
-                <TableRow key={employee.id}>
+                <TableRow 
+                  key={employee.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => handleViewEmployee(employee)}
+                >
                   <TableCell>
                     <span className="font-mono text-sm">{employee.employeeCode || '-'}</span>
                   </TableCell>
@@ -572,7 +576,7 @@ export const EmployeeMasters: React.FC = () => {
                       {employee.date_of_joining ? new Date(employee.date_of_joining).toLocaleDateString('en-GB') : '-'}
                     </span>
                   </TableCell>
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0">

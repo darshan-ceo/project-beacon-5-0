@@ -253,7 +253,8 @@ export const CourtMasters: React.FC = () => {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}
-                    className="hover:bg-muted/50"
+                    className="hover:bg-muted/50 cursor-pointer"
+                    onClick={() => setCourtModal({ isOpen: true, mode: 'view', court })}
                   >
                     <TableCell className="max-w-md">
                       <div className="space-y-0.5">
@@ -425,7 +426,7 @@ export const CourtMasters: React.FC = () => {
                          )}
                        </div>
                      </TableCell>
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-2">
                         <Button 
                           variant="ghost" 

@@ -322,14 +322,15 @@ export const StatutoryActMasters: React.FC = () => {
               </TableHeader>
               <TableBody>
                 {filteredActs.map((act) => (
-                  <TableRow key={act.id} className="cursor-pointer hover:bg-muted/50">
+                  <TableRow 
+                    key={act.id} 
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleView(act)}
+                  >
                     <TableCell className="font-mono font-medium">
                       {act.code}
                     </TableCell>
-                    <TableCell 
-                      className="font-medium cursor-pointer"
-                      onClick={() => handleView(act)}
-                    >
+                    <TableCell className="font-medium">
                       {act.name}
                     </TableCell>
                     <TableCell className="max-w-xs truncate text-muted-foreground">
@@ -340,7 +341,7 @@ export const StatutoryActMasters: React.FC = () => {
                         {act.isActive ? 'Active' : 'Inactive'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1">
                         <TooltipProvider>
                           <Tooltip>
