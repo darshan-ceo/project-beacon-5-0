@@ -220,116 +220,107 @@ export const UnifiedModuleSearch: React.FC<UnifiedModuleSearchProps> = ({
             )}
           </div>
           
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Popover open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="relative">
-                      <Filter className="mr-2 h-4 w-4" />
-                      Filters
-                      {getActiveFilterCount() > 0 && (
-                        <Badge variant="secondary" className="ml-2 h-5 min-w-5 text-xs">
-                          {getActiveFilterCount()}
-                        </Badge>
-                      )}
+          <Popover open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="relative">
+                <Filter className="mr-2 h-4 w-4" />
+                Filters
+                {getActiveFilterCount() > 0 && (
+                  <Badge variant="secondary" className="ml-2 h-5 min-w-5 text-xs">
+                    {getActiveFilterCount()}
+                  </Badge>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-96 p-4 z-[9998]" align="end">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">{moduleName} Filters</h4>
+                  {getActiveFilterCount() > 0 && (
+                    <Button variant="ghost" size="sm" onClick={clearAllFilters}>
+                      Clear All
                     </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-96 p-4 z-[9998]" align="end">
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-medium">{moduleName} Filters</h4>
-                        {getActiveFilterCount() > 0 && (
-                          <Button variant="ghost" size="sm" onClick={clearAllFilters}>
-                            Clear All
-                          </Button>
-                        )}
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-2">
-                        {filterConfig.map((config) => {
-                          if (config.type === 'dropdown' && config.options) {
-                            const IconComponent = config.icon;
-                            return (
-                              <FilterDropdown
-                                key={config.id}
-                                label={config.label}
-                                value={activeFilters[config.id] || 'all'}
-                                options={config.options}
-                                onChange={(value) => handleFilterChange(config.id, value)}
-                                icon={IconComponent ? <IconComponent className="mr-2 h-4 w-4" /> : undefined}
-                              />
-                            );
-                          }
-                          return null;
-                        })}
-                      </div>
-                      
-                      {/* Tags Section */}
-                      {filterConfig.filter(c => c.type === 'tags').map((config) => (
-                        <div key={config.id}>
-                          <label className="text-sm font-medium mb-2 block">{config.label}</label>
-                          <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
-                            {config.tags?.map((tag) => (
-                              <Badge
-                                key={tag.name}
-                                variant={activeFilters[config.id]?.includes(tag.name) ? "default" : "outline"}
-                                className="cursor-pointer text-xs"
-                                onClick={() => handleTagFilter(config.id, tag.name)}
-                              >
-                                {tag.name}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                      
-                      {/* Date Range Section */}
-                      {filterConfig.filter(c => c.type === 'dateRange').map((config) => (
-                        <div key={config.id}>
-                          <label className="text-sm font-medium mb-2 block">{config.label}</label>
-                          <div className="flex gap-2">
-                            <input
-                              type="date"
-                              className="px-3 py-2 border rounded-md text-sm bg-background"
-                              value={dateRange.from ? dateRange.from.toISOString().split('T')[0] : ''}
-                              onChange={(e) => setDateRange(prev => ({ 
-                                ...prev, 
-                                from: e.target.value ? new Date(e.target.value) : undefined 
-                              }))}
-                              placeholder="From"
-                            />
-                            <input
-                              type="date"
-                              className="px-3 py-2 border rounded-md text-sm bg-background"
-                              value={dateRange.to ? dateRange.to.toISOString().split('T')[0] : ''}
-                              onChange={(e) => setDateRange(prev => ({ 
-                                ...prev, 
-                                to: e.target.value ? new Date(e.target.value) : undefined 
-                              }))}
-                              placeholder="To"
-                            />
-                          </div>
-                          {(dateRange.from || dateRange.to) && (
-                            <Button 
-                              size="sm" 
-                              className="mt-2 w-full" 
-                              onClick={() => handleDateRangeFilter(config.id)}
-                            >
-                              Apply Date Filter
-                            </Button>
-                          )}
-                        </div>
+                  )}
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  {filterConfig.map((config) => {
+                    if (config.type === 'dropdown' && config.options) {
+                      const IconComponent = config.icon;
+                      return (
+                        <FilterDropdown
+                          key={config.id}
+                          label={config.label}
+                          value={activeFilters[config.id] || 'all'}
+                          options={config.options}
+                          onChange={(value) => handleFilterChange(config.id, value)}
+                          icon={IconComponent ? <IconComponent className="mr-2 h-4 w-4" /> : undefined}
+                        />
+                      );
+                    }
+                    return null;
+                  })}
+                </div>
+                
+                {/* Tags Section */}
+                {filterConfig.filter(c => c.type === 'tags').map((config) => (
+                  <div key={config.id}>
+                    <label className="text-sm font-medium mb-2 block">{config.label}</label>
+                    <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
+                      {config.tags?.map((tag) => (
+                        <Badge
+                          key={tag.name}
+                          variant={activeFilters[config.id]?.includes(tag.name) ? "default" : "outline"}
+                          className="cursor-pointer text-xs"
+                          onClick={() => handleTagFilter(config.id, tag.name)}
+                        >
+                          {tag.name}
+                        </Badge>
                       ))}
                     </div>
-                  </PopoverContent>
-                </Popover>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Filter {moduleName.toLowerCase()} by various criteria</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+                  </div>
+                ))}
+                
+                {/* Date Range Section */}
+                {filterConfig.filter(c => c.type === 'dateRange').map((config) => (
+                  <div key={config.id}>
+                    <label className="text-sm font-medium mb-2 block">{config.label}</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="date"
+                        className="px-3 py-2 border rounded-md text-sm bg-background"
+                        value={dateRange.from ? dateRange.from.toISOString().split('T')[0] : ''}
+                        onChange={(e) => setDateRange(prev => ({ 
+                          ...prev, 
+                          from: e.target.value ? new Date(e.target.value) : undefined 
+                        }))}
+                        placeholder="From"
+                      />
+                      <input
+                        type="date"
+                        className="px-3 py-2 border rounded-md text-sm bg-background"
+                        value={dateRange.to ? dateRange.to.toISOString().split('T')[0] : ''}
+                        onChange={(e) => setDateRange(prev => ({ 
+                          ...prev, 
+                          to: e.target.value ? new Date(e.target.value) : undefined 
+                        }))}
+                        placeholder="To"
+                      />
+                    </div>
+                    {(dateRange.from || dateRange.to) && (
+                      <Button 
+                        size="sm" 
+                        className="mt-2 w-full" 
+                        onClick={() => handleDateRangeFilter(config.id)}
+                      >
+                        Apply Date Filter
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
 
         {/* Active Filter Chips */}
