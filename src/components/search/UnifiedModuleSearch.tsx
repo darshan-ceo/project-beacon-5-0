@@ -130,8 +130,10 @@ export const UnifiedModuleSearch: React.FC<UnifiedModuleSearchProps> = ({
   const getActiveFilterCount = () => {
     let count = 0;
     Object.keys(activeFilters).forEach(key => {
-      if (Array.isArray(activeFilters[key])) {
-        count += activeFilters[key].length;
+      const value = activeFilters[key];
+      if (value === undefined || value === null) return; // Skip undefined/null
+      if (Array.isArray(value)) {
+        count += value.length;
       } else {
         count += 1;
       }
@@ -328,10 +330,11 @@ export const UnifiedModuleSearch: React.FC<UnifiedModuleSearchProps> = ({
           <div className="space-y-2">
             <div className="flex flex-wrap gap-2">
               {Object.keys(activeFilters).map((filterKey) => {
+                const filterValue = activeFilters[filterKey];
+                if (filterValue === undefined || filterValue === null) return null; // Skip undefined/null
+                
                 const config = filterConfig.find(c => c.id === filterKey);
                 if (!config) return null;
-
-                const filterValue = activeFilters[filterKey];
 
                 if (Array.isArray(filterValue)) {
                   return filterValue.map((value: string) => (
