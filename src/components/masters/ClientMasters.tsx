@@ -429,7 +429,7 @@ export const ClientMasters: React.FC = () => {
           searchTerm={searchTerm}
           onSearchTermChange={setSearchTerm}
           activeFilters={{
-            status: filterStatus !== 'all' ? filterStatus : undefined
+            ...(filterStatus !== 'all' && { status: filterStatus })
           }}
           onFiltersChange={(filters) => {
             setFilterStatus(filters.status || 'all');

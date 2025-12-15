@@ -475,9 +475,9 @@ export const EmployeeMasters: React.FC = () => {
             searchTerm={searchTerm}
             onSearchTermChange={setSearchTerm}
             activeFilters={{
-              role: roleFilter !== 'all' ? roleFilter : undefined,
-              department: departmentFilter !== 'all' ? departmentFilter : undefined,
-              status: statusFilter !== 'all' ? statusFilter : undefined
+              ...(roleFilter !== 'all' && { role: roleFilter }),
+              ...(departmentFilter !== 'all' && { department: departmentFilter }),
+              ...(statusFilter !== 'all' && { status: statusFilter })
             }}
             onFiltersChange={(filters) => {
               setRoleFilter(filters.role || 'all');

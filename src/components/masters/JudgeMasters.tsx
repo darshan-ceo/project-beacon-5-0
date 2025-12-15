@@ -161,9 +161,9 @@ const JudgeMasters: React.FC = () => {
               searchTerm={searchTerm}
               onSearchTermChange={setSearchTerm}
               activeFilters={{
-                legalForum: filterCourt !== 'all' ? filterCourt : undefined,
-                status: filterStatus !== 'all' ? filterStatus : undefined,
-                designation: filterDesignation !== 'all' ? filterDesignation : undefined
+                ...(filterCourt !== 'all' && { legalForum: filterCourt }),
+                ...(filterStatus !== 'all' && { status: filterStatus }),
+                ...(filterDesignation !== 'all' && { designation: filterDesignation })
               }}
               onFiltersChange={(filters) => {
                 setFilterCourt(filters.legalForum || 'all');
