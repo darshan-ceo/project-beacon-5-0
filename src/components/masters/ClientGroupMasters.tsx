@@ -225,7 +225,11 @@ export const ClientGroupMasters: React.FC = () => {
               </TableRow>
             ) : (
               filteredGroups.map((group) => (
-                <TableRow key={group.id}>
+                <TableRow 
+                  key={group.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => handleView(group)}
+                >
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
                       <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -241,7 +245,7 @@ export const ClientGroupMasters: React.FC = () => {
                   <TableCell>
                     <Badge variant="outline">{group.totalClients} clients</Badge>
                   </TableCell>
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -261,7 +265,7 @@ export const ClientGroupMasters: React.FC = () => {
                       )}
                     </Button>
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-end gap-2">
                       <Button
                         variant="ghost"

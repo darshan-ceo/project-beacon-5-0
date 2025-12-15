@@ -345,14 +345,15 @@ export const StatutoryEventTypeMasters: React.FC = () => {
               </TableHeader>
               <TableBody>
                 {filteredEventTypes.map((eventType) => (
-                  <TableRow key={eventType.id} className="cursor-pointer hover:bg-muted/50">
+                  <TableRow 
+                    key={eventType.id} 
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleView(eventType)}
+                  >
                     <TableCell className="font-mono font-medium">
                       {eventType.code}
                     </TableCell>
-                    <TableCell 
-                      className="font-medium cursor-pointer"
-                      onClick={() => handleView(eventType)}
-                    >
+                    <TableCell className="font-medium">
                       {eventType.name}
                     </TableCell>
                     <TableCell>
@@ -381,7 +382,7 @@ export const StatutoryEventTypeMasters: React.FC = () => {
                         {eventType.isActive ? 'Active' : 'Inactive'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1">
                         <TooltipProvider>
                           <Tooltip>
