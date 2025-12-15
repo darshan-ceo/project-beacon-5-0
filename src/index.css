@@ -103,13 +103,13 @@ All colors MUST be HSL. Professional legal theme with accessibility focus.
     --radius-xl: 1.5rem;             /* 24px - for modals */
 
     /* Sidebar - Professional Dark Theme with Beacon Teal */
-    --sidebar-background: 215 28% 17%;     /* Dark professional sidebar */
-    --sidebar-foreground: 0 0% 9%;        /* Light text for visibility */
-    --sidebar-primary: 20 90% 48%;        /* Primary teal in sidebar */
+    --sidebar-background: 215 28% 17%;           /* Dark professional sidebar */
+    --sidebar-foreground: 0 0% 98%;              /* Light text for visibility on dark bg */
+    --sidebar-primary: 20 90% 48%;               /* Primary teal in sidebar */
     --sidebar-primary-foreground: 33 100% 96%;
-    --sidebar-accent: 0 0% 32%;         /* Slightly lighter than bg */
-    --sidebar-accent-foreground: 0 0% 98%; /* Light text on accent */
-    --sidebar-border: 0 0% 83%;
+    --sidebar-accent: 215 28% 22%;               /* Slightly lighter than bg for hover */
+    --sidebar-accent-foreground: 0 0% 98%;       /* Light text on accent */
+    --sidebar-border: 215 28% 25%;               /* Visible border on dark bg */
     --sidebar-ring: 20 90% 48%;
 
     /* Custom Legal-Specific Variables - Beacon Colors */
