@@ -13,7 +13,8 @@ import {
   Clock,
   Sparkles,
   Briefcase,
-  Link2
+  Link2,
+  ChevronDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +26,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { useAppState } from '@/contexts/AppStateContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -94,6 +100,14 @@ export const CreateTask: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+  const [isLinkageExpanded, setIsLinkageExpanded] = useState(true);
+
+  // Summary text for collapsed linkage state
+  const linkageSummary = selectedClient 
+    ? selectedCase 
+      ? `${selectedClient.name || (selectedClient as any).display_name} • ${selectedCase.caseNumber}${selectedCase.currentStage ? ` (${selectedCase.currentStage})` : ''}`
+      : selectedClient.name || (selectedClient as any).display_name
+    : 'No linkage selected';
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -348,79 +362,98 @@ export const CreateTask: React.FC = () => {
 
           {/* Task Linkage Card - Optional Client/Case Selection (show when NOT from case context) */}
           {!linkedCase && (
-            <div className="bg-muted/20 rounded-xl border border-border p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <Link2 className="h-4 w-4" />
-                  Link to Case (Optional)
-                </div>
-                {(selectedClientId || selectedCaseId) && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => { setSelectedClientId(''); setSelectedCaseId(''); }}
-                    className="h-7 px-2 text-xs"
-                  >
-                    <X className="h-3 w-3 mr-1" /> Clear
-                  </Button>
-                )}
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Client Selector */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-                    <User className="h-3.5 w-3.5" />
-                    Client
-                  </Label>
-                  <SearchableClientSelector
-                    clients={state.clients.map(c => ({
-                      id: c.id,
-                      name: c.name || (c as any).display_name || '',
-                      display_name: c.name || (c as any).display_name,
-                      email: c.email,
-                      phone: c.phone,
-                      gstin: c.gstin,
-                    }))}
-                    value={selectedClientId}
-                    onValueChange={handleClientChange}
-                  />
+            <Collapsible open={isLinkageExpanded} onOpenChange={setIsLinkageExpanded}>
+              <div className="bg-muted/20 rounded-xl border border-border p-4">
+                <div className="flex items-center justify-between">
+                  <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                    <Link2 className="h-4 w-4" />
+                    Link to Case (Optional)
+                    <ChevronDown className={cn("h-4 w-4 transition-transform", isLinkageExpanded && "rotate-180")} />
+                  </CollapsibleTrigger>
+                  
+                  <div className="flex items-center gap-2">
+                    {/* Collapsed Summary */}
+                    {!isLinkageExpanded && (selectedClientId || selectedCaseId) && (
+                      <span className="text-xs text-muted-foreground">{linkageSummary}</span>
+                    )}
+                    
+                    {/* Clear Button */}
+                    {(selectedClientId || selectedCaseId) && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={(e) => { 
+                          e.stopPropagation();
+                          setSelectedClientId(''); 
+                          setSelectedCaseId(''); 
+                        }}
+                        className="h-7 px-2 text-xs"
+                      >
+                        <X className="h-3 w-3 mr-1" /> Clear
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 
-                {/* Case Selector - Filters based on selected client */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-                    <Briefcase className="h-3.5 w-3.5" />
-                    Case {selectedClientId && availableCases.length === 0 && (
-                      <span className="text-xs text-muted-foreground/70">(No cases for this client)</span>
-                    )}
-                  </Label>
-                  <CaseSelector
-                    cases={availableCases}
-                    value={selectedCaseId}
-                    onValueChange={setSelectedCaseId}
-                    disabled={availableCases.length === 0}
-                  />
-                </div>
-              </div>
-              
-              {/* Selected Case Context Badge */}
-              {selectedCase && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground bg-primary/5 rounded-lg p-2.5">
-                  <Briefcase className="h-3.5 w-3.5 text-primary" />
-                  <span>Linked to:</span>
-                  <Badge variant="outline" className="text-xs font-medium">
-                    {selectedCase.caseNumber}
-                  </Badge>
-                  {selectedCase.currentStage && (
-                    <>
-                      <span className="text-muted-foreground">•</span>
-                      <span>{selectedCase.currentStage}</span>
-                    </>
+                <CollapsibleContent className="pt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                    {/* Client Selector */}
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <User className="h-3.5 w-3.5" />
+                        Client
+                      </Label>
+                      <SearchableClientSelector
+                        clients={state.clients.map(c => ({
+                          id: c.id,
+                          name: c.name || (c as any).display_name || '',
+                          display_name: c.name || (c as any).display_name,
+                          email: c.email,
+                          phone: c.phone,
+                          gstin: c.gstin,
+                        }))}
+                        value={selectedClientId}
+                        onValueChange={handleClientChange}
+                      />
+                    </div>
+                    
+                    {/* Case Selector - Filters based on selected client */}
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <Briefcase className="h-3.5 w-3.5" />
+                        Case {selectedClientId && availableCases.length === 0 && (
+                          <span className="text-xs text-muted-foreground/70">(No cases)</span>
+                        )}
+                      </Label>
+                      <CaseSelector
+                        cases={availableCases}
+                        value={selectedCaseId}
+                        onValueChange={setSelectedCaseId}
+                        disabled={availableCases.length === 0}
+                        hideLabel
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Selected Case Context Badge */}
+                  {selectedCase && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground bg-primary/5 rounded-lg p-2.5 mt-4">
+                      <Briefcase className="h-3.5 w-3.5 text-primary" />
+                      <span>Linked to:</span>
+                      <Badge variant="outline" className="text-xs font-medium">
+                        {selectedCase.caseNumber}
+                      </Badge>
+                      {selectedCase.currentStage && (
+                        <>
+                          <span className="text-muted-foreground">•</span>
+                          <span>{selectedCase.currentStage}</span>
+                        </>
+                      )}
+                    </div>
                   )}
-                </div>
-              )}
-            </div>
+                </CollapsibleContent>
+              </div>
+            </Collapsible>
           )}
 
           {/* Main Form Card */}
