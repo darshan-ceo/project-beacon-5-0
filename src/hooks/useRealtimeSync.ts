@@ -250,16 +250,36 @@ export const useRealtimeSync = () => {
                     ? JSON.parse(payload.new.signatories) 
                     : payload.new.signatories) 
                 : [],
+              // Preserve existing address fields when payload.new.address is missing
               address: payload.new.address 
-                ? (typeof payload.new.address === 'string' 
-                    ? JSON.parse(payload.new.address) 
-                    : payload.new.address)
-                : { 
-                    cityName: payload.new.city || '', 
-                    stateName: payload.new.state || '',
-                    countryId: 'IN',
-                    source: 'manual'
-                  },
+                ? (() => {
+                    const parsed = typeof payload.new.address === 'string' 
+                      ? JSON.parse(payload.new.address) 
+                      : payload.new.address;
+                    // Ensure cityName/stateName are populated from top-level if missing
+                    return {
+                      ...parsed,
+                      cityName: parsed.cityName || parsed.city || payload.new.city || '',
+                      stateName: parsed.stateName || parsed.state || payload.new.state || '',
+                    };
+                  })()
+                : (() => {
+                    // Get existing client's address to preserve all fields
+                    const existingClient = state.clients.find(c => c.id === payload.new.id);
+                    if (existingClient?.address) {
+                      return {
+                        ...existingClient.address,
+                        cityName: existingClient.address.cityName || payload.new.city || '',
+                        stateName: existingClient.address.stateName || payload.new.state || '',
+                      };
+                    }
+                    return { 
+                      cityName: payload.new.city || '', 
+                      stateName: payload.new.state || '',
+                      countryId: 'IN',
+                      source: 'manual'
+                    };
+                  })(),
               jurisdiction: payload.new.jurisdiction 
                 ? (typeof payload.new.jurisdiction === 'string' 
                     ? JSON.parse(payload.new.jurisdiction) 
