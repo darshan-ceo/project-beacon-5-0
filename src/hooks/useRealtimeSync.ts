@@ -527,9 +527,47 @@ export const useRealtimeSync = () => {
         (payload) => {
           console.log('[Realtime] Courts change:', payload.eventType, payload);
           if (payload.eventType === 'INSERT' && payload.new) {
-            rawDispatch({ type: 'ADD_COURT', payload: payload.new as any });
+            const courtData = payload.new as any;
+            rawDispatch({ 
+              type: 'ADD_COURT', 
+              payload: {
+                id: courtData.id,
+                name: courtData.name,
+                type: courtData.type,
+                jurisdiction: courtData.jurisdiction,
+                address: courtData.address,
+                city: courtData.city,
+                phone: courtData.phone,
+                email: courtData.email,
+                status: courtData.status || 'Active',
+                benchLocation: courtData.bench_location,
+                taxJurisdiction: courtData.tax_jurisdiction,
+                officerDesignation: courtData.officer_designation,
+                activeCases: 0,
+                avgHearingTime: '30 mins',
+                digitalFiling: false,
+                workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+              } as any 
+            });
           } else if (payload.eventType === 'UPDATE' && payload.new) {
-            rawDispatch({ type: 'UPDATE_COURT', payload: payload.new as any });
+            const courtData = payload.new as any;
+            rawDispatch({ 
+              type: 'UPDATE_COURT', 
+              payload: {
+                id: courtData.id,
+                name: courtData.name,
+                type: courtData.type,
+                jurisdiction: courtData.jurisdiction,
+                address: courtData.address,
+                city: courtData.city,
+                phone: courtData.phone,
+                email: courtData.email,
+                status: courtData.status || 'Active',
+                benchLocation: courtData.bench_location,
+                taxJurisdiction: courtData.tax_jurisdiction,
+                officerDesignation: courtData.officer_designation,
+              } as any 
+            });
           } else if (payload.eventType === 'DELETE' && payload.old) {
             rawDispatch({ type: 'DELETE_COURT', payload: (payload.old as any).id });
           }
@@ -547,11 +585,108 @@ export const useRealtimeSync = () => {
         (payload) => {
           console.log('[Realtime] Judges change:', payload.eventType, payload);
           if (payload.eventType === 'INSERT' && payload.new) {
-            rawDispatch({ type: 'ADD_JUDGE', payload: payload.new as any });
+            const judgeData = payload.new as any;
+            rawDispatch({ 
+              type: 'ADD_JUDGE', 
+              payload: {
+                id: judgeData.id,
+                name: judgeData.name,
+                designation: judgeData.designation,
+                courtId: judgeData.court_id,
+                email: judgeData.email,
+                phone: judgeData.phone,
+                status: judgeData.status || 'Active',
+                bench: judgeData.bench,
+                jurisdiction: judgeData.jurisdiction,
+                city: judgeData.city,
+                state: judgeData.state,
+                appointmentDate: judgeData.appointment_date,
+                retirementDate: judgeData.retirement_date,
+                yearsOfService: judgeData.years_of_service || 0,
+                specialization: judgeData.specialization || [],
+                chambers: judgeData.chambers,
+                assistant: judgeData.assistant || {},
+                availability: judgeData.availability || {},
+                tags: judgeData.tags || [],
+                notes: judgeData.notes,
+                photoUrl: judgeData.photo_url,
+              } as any 
+            });
           } else if (payload.eventType === 'UPDATE' && payload.new) {
-            rawDispatch({ type: 'UPDATE_JUDGE', payload: payload.new as any });
+            const judgeData = payload.new as any;
+            rawDispatch({ 
+              type: 'UPDATE_JUDGE', 
+              payload: {
+                id: judgeData.id,
+                name: judgeData.name,
+                designation: judgeData.designation,
+                courtId: judgeData.court_id,
+                email: judgeData.email,
+                phone: judgeData.phone,
+                status: judgeData.status || 'Active',
+                bench: judgeData.bench,
+                jurisdiction: judgeData.jurisdiction,
+                city: judgeData.city,
+                state: judgeData.state,
+                appointmentDate: judgeData.appointment_date,
+                retirementDate: judgeData.retirement_date,
+                yearsOfService: judgeData.years_of_service || 0,
+                specialization: judgeData.specialization || [],
+                chambers: judgeData.chambers,
+                assistant: judgeData.assistant || {},
+                availability: judgeData.availability || {},
+                tags: judgeData.tags || [],
+                notes: judgeData.notes,
+                photoUrl: judgeData.photo_url,
+              } as any 
+            });
           } else if (payload.eventType === 'DELETE' && payload.old) {
             rawDispatch({ type: 'DELETE_JUDGE', payload: (payload.old as any).id });
+          }
+        }
+      )
+      // Client Groups
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'client_groups',
+          filter: `tenant_id=eq.${tenantId}`
+        },
+        (payload) => {
+          console.log('[Realtime] Client Groups change:', payload.eventType, payload);
+          if (payload.eventType === 'INSERT' && payload.new) {
+            const groupData = payload.new as any;
+            rawDispatch({ 
+              type: 'ADD_CLIENT_GROUP', 
+              payload: {
+                id: groupData.id,
+                name: groupData.name,
+                code: groupData.code,
+                description: groupData.description,
+                totalClients: groupData.total_clients || 0,
+                status: 'Active',
+                createdAt: groupData.created_at,
+                updatedAt: groupData.updated_at,
+              } as any 
+            });
+          } else if (payload.eventType === 'UPDATE' && payload.new) {
+            const groupData = payload.new as any;
+            rawDispatch({ 
+              type: 'UPDATE_CLIENT_GROUP', 
+              payload: {
+                id: groupData.id,
+                name: groupData.name,
+                code: groupData.code,
+                description: groupData.description,
+                totalClients: groupData.total_clients || 0,
+                createdAt: groupData.created_at,
+                updatedAt: groupData.updated_at,
+              } as any 
+            });
+          } else if (payload.eventType === 'DELETE' && payload.old) {
+            rawDispatch({ type: 'DELETE_CLIENT_GROUP', payload: (payload.old as any).id });
           }
         }
       )
