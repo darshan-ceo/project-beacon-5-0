@@ -170,11 +170,42 @@ class JudgesService {
         updated_at: new Date().toISOString(),
       } as any);
 
-      // Build updated judge
-      const updatedJudge = { ...updates, id: judgeId, yearsOfService } as Judge;
+      // Fetch the full updated judge from database
+      const existingJudge = await storage.getById<any>('judges', judgeId);
+      const fullJudge: Judge = {
+        id: judgeId,
+        name: existingJudge?.name || updates.name || '',
+        designation: existingJudge?.designation || updates.designation || '',
+        status: existingJudge?.status || updates.status || 'Active',
+        courtId: existingJudge?.court_id || updates.courtId || '',
+        bench: existingJudge?.bench || updates.bench,
+        jurisdiction: existingJudge?.jurisdiction || updates.jurisdiction,
+        city: existingJudge?.city || updates.city,
+        state: existingJudge?.state || updates.state,
+        appointmentDate: existingJudge?.appointment_date || updates.appointmentDate || '',
+        retirementDate: existingJudge?.retirement_date || updates.retirementDate,
+        yearsOfService: yearsOfService ?? existingJudge?.years_of_service ?? 0,
+        specialization: existingJudge?.specialization || updates.specialization || [],
+        chambers: existingJudge?.chambers || updates.chambers,
+        email: existingJudge?.email || updates.email,
+        phone: existingJudge?.phone || updates.phone,
+        assistant: existingJudge?.assistant || updates.assistant || {},
+        availability: existingJudge?.availability || updates.availability || {},
+        tags: existingJudge?.tags || updates.tags || [],
+        notes: existingJudge?.notes ?? updates.notes,
+        photoUrl: existingJudge?.photo_url || updates.photoUrl,
+        totalCases: 0,
+        avgDisposalTime: '0 days',
+        contactInfo: {
+          chambers: existingJudge?.chambers || updates.chambers || '',
+          phone: existingJudge?.phone || updates.phone,
+          email: existingJudge?.email || updates.email
+        },
+        ...updates // Apply updates on top
+      };
 
-      // Dispatch to context
-      dispatch({ type: 'UPDATE_JUDGE', payload: updatedJudge });
+      // Dispatch full judge object to context
+      dispatch({ type: 'UPDATE_JUDGE', payload: fullJudge });
 
       // Show success toast
       toast({
@@ -182,7 +213,7 @@ class JudgesService {
         description: `Judge "${updates.name || judgeId}" has been updated successfully.`,
       });
 
-      return updatedJudge;
+      return fullJudge;
     } catch (error) {
       console.error('Failed to update judge:', error);
       toast({
