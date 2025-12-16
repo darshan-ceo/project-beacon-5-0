@@ -2692,7 +2692,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'UPDATE_COURT':
       return {
         ...state,
-        courts: state.courts.map(c => c.id === action.payload.id ? action.payload : c)
+        courts: state.courts.map(c => c.id === action.payload.id ? { ...c, ...action.payload } : c)
       };
     case 'DELETE_COURT':
       return {
@@ -2708,7 +2708,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'UPDATE_JUDGE':
       return {
         ...state,
-        judges: state.judges.map(j => j.id === action.payload.id ? action.payload : j)
+        judges: state.judges.map(j => j.id === action.payload.id ? { ...j, ...action.payload } : j)
       };
     case 'DELETE_JUDGE':
       return {

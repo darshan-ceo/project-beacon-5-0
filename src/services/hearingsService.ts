@@ -262,9 +262,25 @@ export const hearingsService = {
       // Persist to Supabase
       await storage.update('hearings', id, updateData);
 
-      // Update Redux state with the original updates object for UI
-      const updatedHearing = { id, ...updates };
-      dispatch({ type: 'UPDATE_HEARING', payload: updatedHearing });
+      // Fetch the existing hearing and merge with updates for full data dispatch
+      const existingHearing = await storage.getById<any>('hearings', id);
+      const fullHearing = {
+        id,
+        case_id: existingHearing?.case_id || updates.case_id,
+        date: updates.date || existingHearing?.hearing_date?.split('T')[0],
+        start_time: updates.start_time || updates.time || '10:00',
+        time: updates.start_time || updates.time || '10:00',
+        status: existingHearing?.status,
+        notes: existingHearing?.notes,
+        outcome: existingHearing?.outcome,
+        court_id: existingHearing?.court_id,
+        authority_id: existingHearing?.authority_id,
+        forum_id: existingHearing?.forum_id,
+        judge_name: existingHearing?.judge_name,
+        next_hearing_date: existingHearing?.next_hearing_date,
+        ...updates // Apply the updates on top
+      };
+      dispatch({ type: 'UPDATE_HEARING', payload: fullHearing });
       
       // Add timeline entry for hearing updated with proper user UUID
       try {
@@ -300,25 +316,25 @@ export const hearingsService = {
           if (connectionStatus.connected) {
             // Get the full hearing object from state
             const appState = await loadAppState();
-            const fullHearing = appState.hearings.find(h => h.id === id) as any;
+            const fullHearingState = appState.hearings.find(h => h.id === id) as any;
             
-            if (fullHearing && fullHearing.externalEventId) {
+            if (fullHearingState && fullHearingState.externalEventId) {
               // Update existing event
-              await calendarService.updateEvent(fullHearing as any, settings);
-              (updatedHearing as any).syncStatus = 'synced';
-            } else if (fullHearing && !fullHearing.externalEventId) {
+              await calendarService.updateEvent(fullHearingState as any, settings);
+              // Dispatch sync status update
+              dispatch({ type: 'UPDATE_HEARING', payload: { id, syncStatus: 'synced' } });
+            } else if (fullHearingState && !fullHearingState.externalEventId) {
               // Create event if it doesn't exist yet
-              const eventId = await calendarService.createEvent(fullHearing as any, settings);
+              const eventId = await calendarService.createEvent(fullHearingState as any, settings);
               if (eventId) {
-                (updatedHearing as any).externalEventId = eventId;
-                (updatedHearing as any).syncStatus = 'synced';
+                dispatch({ type: 'UPDATE_HEARING', payload: { id, externalEventId: eventId, syncStatus: 'synced' } });
               }
             }
           }
         }
       } catch (syncError) {
         console.error('Failed to auto-sync hearing update to calendar:', syncError);
-        (updatedHearing as any).syncStatus = 'sync_failed';
+        dispatch({ type: 'UPDATE_HEARING', payload: { id, syncStatus: 'sync_failed' } });
       }
       
       toast({

@@ -121,11 +121,30 @@ class CourtsService {
         updated_at: new Date().toISOString(),
       } as any);
 
-      // Build updated court
-      const updatedCourt = { ...updates, id: courtId } as Court;
+      // Fetch the full updated court from database
+      const existingCourt = await storage.getById<any>('courts', courtId);
+      const fullCourt: Court = {
+        id: courtId,
+        name: existingCourt?.name || updates.name || '',
+        type: existingCourt?.type || updates.type || 'District Court',
+        jurisdiction: existingCourt?.jurisdiction || updates.jurisdiction || '',
+        address: existingCourt?.address || updates.address || '',
+        city: existingCourt?.city || updates.city || '',
+        phone: existingCourt?.phone || updates.phone,
+        email: existingCourt?.email || updates.email,
+        status: existingCourt?.status || updates.status || 'Active',
+        benchLocation: existingCourt?.bench_location || updates.benchLocation,
+        taxJurisdiction: existingCourt?.tax_jurisdiction || updates.taxJurisdiction,
+        officerDesignation: existingCourt?.officer_designation || updates.officerDesignation,
+        activeCases: 0,
+        avgHearingTime: '30 mins',
+        digitalFiling: false,
+        workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+        ...updates // Apply updates on top
+      };
 
-      // Dispatch to context
-      dispatch({ type: 'UPDATE_COURT', payload: updatedCourt });
+      // Dispatch full court object to context
+      dispatch({ type: 'UPDATE_COURT', payload: fullCourt });
 
       // Show success toast
       toast({
@@ -133,7 +152,7 @@ class CourtsService {
         description: `Legal Forum "${updates.name || courtId}" has been updated successfully.`,
       });
 
-      return updatedCourt;
+      return fullCourt;
     } catch (error) {
       console.error('Failed to update court:', error);
       toast({
