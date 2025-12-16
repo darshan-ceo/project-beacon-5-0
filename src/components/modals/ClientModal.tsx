@@ -22,7 +22,7 @@ import { ContactsDrawer } from '@/components/contacts/ContactsDrawer';
 import { ClientContactsSection } from '@/components/contacts/ClientContactsSection';
 import { featureFlagService } from '@/services/featureFlagService';
 import { envConfig } from '../../utils/envConfig';
-import { AddressForm } from '@/components/ui/AddressForm';
+import { SimpleAddressForm, SimpleAddressData } from '@/components/ui/SimpleAddressForm';
 import { AddressView } from '@/components/ui/AddressView';
 import { EnhancedAddressData, addressMasterService } from '@/services/addressMasterService';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
@@ -874,21 +874,28 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                     />
                   )
                 ) : (
-                  <AddressForm
-                    value={formData.address}
-                    onChange={(address) => setFormData(prev => ({ ...prev, address }))}
-                    disabled={mode === 'view'}
-                    required={true}
-                    module="client"
-                    showGSTIntegration={!!formData.gstin}
-                    gstin={formData.gstin}
-                    onGSTAddressSelect={(address) => {
-                      setFormData(prev => ({ ...prev, address }));
-                      toast({
-                        title: "Success",
-                        description: "GST address populated successfully"
-                      });
+                  <SimpleAddressForm
+                    value={{
+                      line1: formData.address?.line1 || '',
+                      line2: formData.address?.line2 || '',
+                      cityName: (formData.address as any)?.cityName || '',
+                      stateName: (formData.address as any)?.stateName || '',
+                      pincode: formData.address?.pincode || '',
+                      countryName: 'India'
                     }}
+                    onChange={(address) => setFormData(prev => ({ 
+                      ...prev, 
+                      address: {
+                        ...prev.address,
+                        line1: address.line1 || '',
+                        line2: address.line2 || '',
+                        cityName: address.cityName || '',
+                        stateName: address.stateName || '',
+                        pincode: address.pincode || '',
+                        countryName: address.countryName || 'India'
+                      }
+                    }))}
+                    disabled={mode === 'view'}
                   />
                 )}
               </CardContent>
