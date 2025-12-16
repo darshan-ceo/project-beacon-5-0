@@ -76,10 +76,17 @@ export const CreateTask: React.FC = () => {
   const selectedCase = selectedCaseId ? state.cases.find(c => c.id === selectedCaseId) : null;
   const selectedClient = selectedClientId ? state.clients.find(c => c.id === selectedClientId) : null;
 
-  // Handle client change - reset case when client changes
+  // Handle client change - auto-select if single case, reset otherwise
   const handleClientChange = (newClientId: string) => {
     setSelectedClientId(newClientId);
-    setSelectedCaseId(''); // Reset case when client changes
+    
+    // Auto-select case if client has exactly one case
+    const clientCases = state.cases.filter(c => c.clientId === newClientId);
+    if (clientCases.length === 1) {
+      setSelectedCaseId(clientCases[0].id);
+    } else {
+      setSelectedCaseId(''); // Reset case when client changes (multiple or no cases)
+    }
   };
 
   // Default due date to tomorrow (current date + 1)
@@ -373,14 +380,28 @@ export const CreateTask: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                     <Link2 className="h-4 w-4" />
-                    Link to Case (Optional)
+                    {selectedClientId || selectedCaseId ? 'Link to Case' : 'Link to Case (Optional)'}
                     <ChevronDown className={cn("h-4 w-4 transition-transform", isLinkageExpanded && "rotate-180")} />
                   </CollapsibleTrigger>
                   
                   <div className="flex items-center gap-2">
-                    {/* Collapsed Summary */}
+                    {/* Collapsed Summary - Bold client name with icon */}
                     {!isLinkageExpanded && (selectedClientId || selectedCaseId) && (
-                      <span className="text-xs text-muted-foreground">{linkageSummary}</span>
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <User className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="font-semibold text-foreground">
+                          {selectedClient?.name || (selectedClient as any)?.display_name}
+                        </span>
+                        {selectedCase && (
+                          <>
+                            <span className="text-muted-foreground">•</span>
+                            <span className="text-muted-foreground">
+                              {selectedCase.caseNumber}
+                              {selectedCase.currentStage ? ` (${selectedCase.currentStage})` : ''}
+                            </span>
+                          </>
+                        )}
+                      </div>
                     )}
                     
                     {/* Clear Button */}
