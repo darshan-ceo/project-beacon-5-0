@@ -2603,7 +2603,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         clientGroups: state.clientGroups.map(g =>
-          g.id === action.payload.id ? action.payload : g
+          g.id === action.payload.id ? { ...g, ...action.payload } : g
         )
       };
 
