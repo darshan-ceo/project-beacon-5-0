@@ -646,15 +646,23 @@ export const AddressForm: React.FC<AddressFormProps> = ({
                 <Select
                   value={value.cityId || ''}
                   onValueChange={(val) => {
+                    // CRITICAL GUARD: Don't process empty/undefined value when cities haven't loaded yet
+                    // This prevents the Select from clearing cityId during async loading
+                    const currentValue = latestValueRef.current;
+                    if (!val && cities.length === 0 && currentValue.cityId) {
+                      console.log('🛡️ [AddressForm] City Select guard: Preventing spurious clear while cities loading. Preserving cityId:', currentValue.cityId);
+                      return; // Preserve existing cityId
+                    }
+                    
                     if (val === '__ADD_NEW__') {
                       setManualCityMode(true);
                     } else {
                       const selectedCity = cities.find(c => c.id === val);
                       const enhancedValue = {
-                        ...value,
+                        ...currentValue,
                         cityId: val,
-                        cityName: selectedCity?.name || '',
-                        source: (value as any).source || 'manual'
+                        cityName: selectedCity?.name || val, // Fallback to val if city not found
+                        source: (currentValue as any).source || 'manual'
                       };
                       onChange(enhancedValue);
                     }
@@ -663,12 +671,13 @@ export const AddressForm: React.FC<AddressFormProps> = ({
                   required={isFieldRequired('cityId')}
                 >
                   <SelectTrigger>
+                    {/* Show stored cityName directly - don't rely on finding in cities array */}
                     <SelectValue placeholder={
                       !value.stateId 
                         ? "Select state first" 
                         : citiesLoading 
                           ? "Loading cities..." 
-                          : "Select city"
+                          : (value as any).cityName || "Select city"
                     } />
                   </SelectTrigger>
                   <SelectContent className="z-[200] bg-popover">
