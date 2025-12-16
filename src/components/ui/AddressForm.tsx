@@ -583,18 +583,34 @@ export const AddressForm: React.FC<AddressFormProps> = ({
               </div>
               <Select
                 value={value.stateId || ''}
-                onValueChange={(stateId) => {
-                  const selectedState = states.find(s => s.id === stateId);
+                onValueChange={(newStateId) => {
+                  // Use latestValueRef to avoid stale closure issues
+                  const currentValue = latestValueRef.current;
+                  
+                  // Don't clear city if state hasn't actually changed - prevents spurious resets
+                  // from dynamic states array loading or race conditions
+                  if (newStateId === currentValue.stateId) {
+                    // Still load cities if not already loaded
+                    if (cities.length === 0) {
+                      loadCities(newStateId);
+                    }
+                    return;
+                  }
+                  
+                  console.log('📍 [AddressForm] State ACTUALLY changed from', currentValue.stateId, 'to', newStateId, '- clearing city');
+                  
+                  const selectedState = states.find(s => s.id === newStateId);
                   const enhancedValue = {
-                    ...value,
-                    stateId,
+                    ...currentValue,
+                    stateId: newStateId,
                     stateName: selectedState?.name || '',
+                    // Only clear city when state ACTUALLY changes
                     cityId: '',
                     cityName: '',
-                    source: (value as any).source || 'manual'
+                    source: (currentValue as any).source || 'manual'
                   };
                   onChange(enhancedValue);
-                  loadCities(stateId);
+                  loadCities(newStateId);
                 }}
                 disabled={disabled || !value.countryId || !isFieldEditable('stateId')}
                 required={isFieldRequired('stateId')}
