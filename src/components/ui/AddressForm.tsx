@@ -126,22 +126,11 @@ export const AddressForm: React.FC<AddressFormProps> = ({
       ]);
       
       setCountries(countriesData);
-
-      const latestValue = latestValueRef.current;
-
-      // Set India as default if no country selected.
-      // Use latestValueRef to avoid stale-closure overwrites when navigating between modules.
-      if (!latestValue.countryId && countriesData.length > 0 && !hasMeaningfulAddressRef.current) {
-        const india = countriesData.find(c => c.id === 'IN');
-        if (india) {
-          const enhancedValue = {
-            ...latestValue,
-            countryId: india.id,
-            source: (latestValue as any).source || 'manual'
-          };
-          onChange(enhancedValue);
-        }
-      }
+      
+      // REMOVED: Don't call onChange here to set default country
+      // Parent component (ClientModal) is responsible for setting initial values
+      // Calling onChange here causes race conditions that clear address fields
+      console.log('📍 [AddressForm] loadInitialData complete. Countries loaded:', countriesData.length);
     } catch (error) {
       console.error('Failed to load address data:', error);
     } finally {
@@ -538,20 +527,31 @@ export const AddressForm: React.FC<AddressFormProps> = ({
               </div>
               <Select
                 value={value.countryId || ''}
-                onValueChange={(countryId) => {
-                  // Reset dependent fields ONLY when user changes country
+                onValueChange={(newCountryId) => {
+                  // CRITICAL: Use latestValueRef to avoid stale closure issues
+                  const currentValue = latestValueRef.current;
+                  
+                  // Guard: Don't process if country hasn't actually changed
+                  if (newCountryId === currentValue.countryId) {
+                    console.log('🛡️ [AddressForm] Country unchanged, skipping reset');
+                    return;
+                  }
+                  
+                  console.log('🌍 [AddressForm] Country changed from', currentValue.countryId, 'to', newCountryId);
+                  
+                  // Reset dependent fields when user explicitly changes country
                   const enhancedValue = {
-                    ...value,
-                    countryId,
+                    ...currentValue,  // Use ref instead of stale value prop
+                    countryId: newCountryId,
                     stateId: '',
                     stateName: '',
                     cityId: '',
                     cityName: '',
-                    source: (value as any).source || 'manual'
+                    source: (currentValue as any).source || 'manual'
                   };
                   onChange(enhancedValue);
                   setCities([]);
-                  loadStates(countryId);
+                  loadStates(newCountryId);
                 }}
                 disabled={disabled || !isFieldEditable('countryId')}
                 required={isFieldRequired('countryId')}
