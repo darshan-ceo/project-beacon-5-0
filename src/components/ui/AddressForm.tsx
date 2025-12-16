@@ -52,6 +52,17 @@ export const AddressForm: React.FC<AddressFormProps> = ({
   const [manualCityMode, setManualCityMode] = useState(false);
   const [manualCityInput, setManualCityInput] = useState('');
 
+  // Debug: Log whenever value changes
+  useEffect(() => {
+    console.log('📍 [AddressForm] Value received:', JSON.stringify({
+      cityId: value.cityId,
+      cityName: (value as any).cityName,
+      stateId: value.stateId,
+      stateName: (value as any).stateName,
+      countryId: value.countryId
+    }));
+  }, [value]);
+
   useEffect(() => {
     loadInitialData();
   }, []);

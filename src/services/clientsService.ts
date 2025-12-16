@@ -232,9 +232,10 @@ export const clientsService = {
         updatedAt: savedClient.updated_at || new Date().toISOString()
       };
 
-      // DON'T dispatch here - real-time sync will handle UI update
-      // This prevents duplicate records
-      console.log('✅ Client persisted to Supabase, real-time sync will update UI');
+      // ✅ Dispatch immediately for instant UI update
+      // The duplicate check in reducer handles if real-time sync also fires
+      dispatch({ type: 'ADD_CLIENT', payload: newClient });
+      console.log('✅ Client created and dispatched to UI:', newClient.id);
       
       toast({
         title: "Client Created Successfully",
