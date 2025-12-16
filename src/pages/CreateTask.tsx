@@ -12,7 +12,8 @@ import {
   FileText,
   Clock,
   Sparkles,
-  Briefcase
+  Briefcase,
+  Link2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,6 +36,8 @@ import { cn } from '@/lib/utils';
 import { EmployeeCombobox } from '@/components/ui/employee-combobox';
 import { TemplatePickerDialog } from '@/components/tasks/TemplatePickerDialog';
 import { TaskTemplate } from '@/types/taskTemplate';
+import { SearchableClientSelector } from '@/components/ui/searchable-client-selector';
+import { CaseSelector } from '@/components/ui/relationship-selector';
 
 const PRIORITY_OPTIONS = ['Critical', 'High', 'Medium', 'Low'];
 const DEFAULT_TAGS = ['Urgent', 'Review', 'Follow-up', 'Documentation', 'Client'];
@@ -53,6 +56,25 @@ export const CreateTask: React.FC = () => {
   // Find case and client details for display
   const linkedCase = caseId ? state.cases.find(c => c.id === caseId) : null;
   const linkedClient = clientId ? state.clients.find(c => c.id === clientId) : null;
+
+  // Optional client/case selection state (when not creating from case context)
+  const [selectedClientId, setSelectedClientId] = useState(clientId || '');
+  const [selectedCaseId, setSelectedCaseId] = useState(caseId || '');
+
+  // Filter cases by selected client
+  const availableCases = selectedClientId 
+    ? state.cases.filter(c => c.clientId === selectedClientId)
+    : state.cases;
+
+  // Find selected case and client for display
+  const selectedCase = selectedCaseId ? state.cases.find(c => c.id === selectedCaseId) : null;
+  const selectedClient = selectedClientId ? state.clients.find(c => c.id === selectedClientId) : null;
+
+  // Handle client change - reset case when client changes
+  const handleClientChange = (newClientId: string) => {
+    setSelectedClientId(newClientId);
+    setSelectedCaseId(''); // Reset case when client changes
+  };
 
   // Default due date to tomorrow (current date + 1)
   const tomorrow = new Date();
@@ -189,6 +211,11 @@ export const CreateTask: React.FC = () => {
 
       const assignee = state.employees.find((e) => e.id === formData.assignedTo);
 
+      // Use selected values or URL params
+      const effectiveCaseId = selectedCaseId || caseId || null;
+      const effectiveClientId = selectedClientId || clientId || null;
+      const effectiveCaseNumber = selectedCase?.caseNumber || caseNumber || null;
+
       // Create task in Supabase with required tenant_id and assigned_by
       const { data: taskData, error: taskError } = await supabase
         .from('tasks')
@@ -201,9 +228,9 @@ export const CreateTask: React.FC = () => {
           priority: formData.priority,
           due_date: formData.dueDate ? format(formData.dueDate, 'yyyy-MM-dd') : null,
           status: 'Not Started',
-          case_id: caseId || null,
-          client_id: clientId || null,
-          case_number: caseNumber || null,
+          case_id: effectiveCaseId,
+          client_id: effectiveClientId,
+          case_number: effectiveCaseNumber,
         }] as any)
         .select()
         .single();
@@ -229,9 +256,9 @@ export const CreateTask: React.FC = () => {
           id: taskData.id,
           title: taskData.title,
           description: taskData.description || '',
-          caseId: caseId,
-          clientId: clientId,
-          caseNumber: caseNumber,
+          caseId: effectiveCaseId || '',
+          clientId: effectiveClientId || '',
+          caseNumber: effectiveCaseNumber || '',
           stage: '',
           assignedToId: taskData.assigned_to || '',
           assignedToName: assignee?.full_name || '',
@@ -316,6 +343,83 @@ export const CreateTask: React.FC = () => {
                   {linkedCase.caseNumber} • {linkedClient?.name || 'Unknown Client'}
                 </p>
               </div>
+            </div>
+          )}
+
+          {/* Task Linkage Card - Optional Client/Case Selection (show when NOT from case context) */}
+          {!linkedCase && (
+            <div className="bg-muted/20 rounded-xl border border-border p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <Link2 className="h-4 w-4" />
+                  Link to Case (Optional)
+                </div>
+                {(selectedClientId || selectedCaseId) && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => { setSelectedClientId(''); setSelectedCaseId(''); }}
+                    className="h-7 px-2 text-xs"
+                  >
+                    <X className="h-3 w-3 mr-1" /> Clear
+                  </Button>
+                )}
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Client Selector */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <User className="h-3.5 w-3.5" />
+                    Client
+                  </Label>
+                  <SearchableClientSelector
+                    clients={state.clients.map(c => ({
+                      id: c.id,
+                      name: c.name || (c as any).display_name || '',
+                      display_name: c.name || (c as any).display_name,
+                      email: c.email,
+                      phone: c.phone,
+                      gstin: c.gstin,
+                    }))}
+                    value={selectedClientId}
+                    onValueChange={handleClientChange}
+                  />
+                </div>
+                
+                {/* Case Selector - Filters based on selected client */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <Briefcase className="h-3.5 w-3.5" />
+                    Case {selectedClientId && availableCases.length === 0 && (
+                      <span className="text-xs text-muted-foreground/70">(No cases for this client)</span>
+                    )}
+                  </Label>
+                  <CaseSelector
+                    cases={availableCases}
+                    value={selectedCaseId}
+                    onValueChange={setSelectedCaseId}
+                    disabled={availableCases.length === 0}
+                  />
+                </div>
+              </div>
+              
+              {/* Selected Case Context Badge */}
+              {selectedCase && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground bg-primary/5 rounded-lg p-2.5">
+                  <Briefcase className="h-3.5 w-3.5 text-primary" />
+                  <span>Linked to:</span>
+                  <Badge variant="outline" className="text-xs font-medium">
+                    {selectedCase.caseNumber}
+                  </Badge>
+                  {selectedCase.currentStage && (
+                    <>
+                      <span className="text-muted-foreground">•</span>
+                      <span>{selectedCase.currentStage}</span>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
