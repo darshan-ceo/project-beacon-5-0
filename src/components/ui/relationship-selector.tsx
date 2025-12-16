@@ -15,6 +15,7 @@ interface RelationshipSelectorProps {
   placeholder?: string;
   disabled?: boolean;
   required?: boolean;
+  hideLabel?: boolean;
   showAsContext?: boolean;
   contextValue?: string;
   onViewContext?: () => void;
@@ -29,6 +30,7 @@ export const RelationshipSelector: React.FC<RelationshipSelectorProps> = ({
   placeholder = `Select ${label.toLowerCase()}`,
   disabled = false,
   required = false,
+  hideLabel = false,
   showAsContext = false,
   contextValue,
   onViewContext,
@@ -37,7 +39,7 @@ export const RelationshipSelector: React.FC<RelationshipSelectorProps> = ({
   if (showAsContext && contextValue) {
     return (
       <div className="space-y-2">
-        <Label>{label}</Label>
+        {!hideLabel && <Label>{label}</Label>}
         <ContextBadge
           label={label}
           value={contextValue}
@@ -51,10 +53,12 @@ export const RelationshipSelector: React.FC<RelationshipSelectorProps> = ({
 
   return (
     <div className="space-y-2">
-      <Label htmlFor={label.toLowerCase().replace(' ', '-')}>
-        {label}
-        {required && <span className="text-destructive ml-1">*</span>}
-      </Label>
+      {!hideLabel && (
+        <Label htmlFor={label.toLowerCase().replace(' ', '-')}>
+          {label}
+          {required && <span className="text-destructive ml-1">*</span>}
+        </Label>
+      )}
       <Select value={value} onValueChange={onValueChange} disabled={disabled}>
         <SelectTrigger className="bg-background">
           <SelectValue placeholder={placeholder} />
@@ -124,11 +128,12 @@ export const CaseSelector: React.FC<{
   value?: string;
   onValueChange: (value: string) => void;
   disabled?: boolean;
+  hideLabel?: boolean;
   showAsContext?: boolean;
   contextValue?: string;
   onViewContext?: () => void;
   onClearContext?: () => void;
-}> = ({ cases, ...props }) => {
+}> = ({ cases, hideLabel, ...props }) => {
   const options = cases.map(case_ => ({
     id: case_.id,
     label: case_.caseNumber,
@@ -141,6 +146,7 @@ export const CaseSelector: React.FC<{
       options={options}
       placeholder="Select case"
       required
+      hideLabel={hideLabel}
       {...props}
     />
   );
