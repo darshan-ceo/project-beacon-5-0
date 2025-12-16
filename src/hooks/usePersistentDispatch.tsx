@@ -90,7 +90,9 @@ export const usePersistentDispatch = (
           
         // Clients
         case 'ADD_CLIENT':
-          await storage.create('clients', action.payload);
+          // SKIP - clientsService.create() already persists to Supabase
+          // Real-time sync handles UI state update
+          console.log('⏭️ Skipping ADD_CLIENT persistence - handled by clientsService');
           break;
         case 'UPDATE_CLIENT':
           await storage.update('clients', action.payload.id, action.payload);
