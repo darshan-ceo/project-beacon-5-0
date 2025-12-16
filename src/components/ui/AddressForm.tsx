@@ -143,19 +143,8 @@ export const AddressForm: React.FC<AddressFormProps> = ({
     try {
       const statesData = await addressLookupService.getStates(countryId);
       setStates(statesData);
-      
-      // Reset state and city if country changes
-      if (value.countryId !== countryId) {
-        const enhancedValue = {
-          ...value,
-          countryId, 
-          stateId: '', 
-          cityId: '',
-          source: (value as any).source || 'manual'
-        };
-        onChange(enhancedValue);
-        setCities([]);
-      }
+      // Country/state/city reset is handled in Country dropdown onValueChange handler
+      // Do NOT reset here - avoids stale closure issues on initial load
     } catch (error) {
       console.error('Failed to load states:', error);
     }
@@ -512,7 +501,21 @@ export const AddressForm: React.FC<AddressFormProps> = ({
               </div>
               <Select
                 value={value.countryId || ''}
-                onValueChange={(countryId) => loadStates(countryId)}
+                onValueChange={(countryId) => {
+                  // Reset dependent fields ONLY when user changes country
+                  const enhancedValue = {
+                    ...value,
+                    countryId,
+                    stateId: '',
+                    stateName: '',
+                    cityId: '',
+                    cityName: '',
+                    source: (value as any).source || 'manual'
+                  };
+                  onChange(enhancedValue);
+                  setCities([]);
+                  loadStates(countryId);
+                }}
                 disabled={disabled || !isFieldEditable('countryId')}
                 required={isFieldRequired('countryId')}
               >
