@@ -39,7 +39,9 @@ const normalizeStateId = (stateValue: string): string => {
 // Version 1: Initial schema
 // Version 2: Added reportingTo field mapping for employee hierarchy
 // Version 3: Force reload to fix stale closure issues with hierarchy building
-const DATA_SCHEMA_VERSION = 4;
+// Version 4: Fixed assignedCAId mapping and UPDATE_CLIENT merge pattern
+// Version 5: Fixed address parsing to preserve city/state/locality fields
+const DATA_SCHEMA_VERSION = 5;
 
 // Global flags to persist data loaded state across component remounts
 // This prevents the "Loading your data..." screen from appearing when switching tabs
