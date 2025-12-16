@@ -109,6 +109,12 @@ export const CreateTask: React.FC = () => {
       : selectedClient.name || (selectedClient as any).display_name
     : 'No linkage selected';
 
+  // Auto-collapse when both client and case are selected
+  useEffect(() => {
+    if (selectedClientId && selectedCaseId) {
+      setIsLinkageExpanded(false);
+    }
+  }, [selectedClientId, selectedCaseId]);
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -385,7 +391,8 @@ export const CreateTask: React.FC = () => {
                         onClick={(e) => { 
                           e.stopPropagation();
                           setSelectedClientId(''); 
-                          setSelectedCaseId(''); 
+                          setSelectedCaseId('');
+                          setIsLinkageExpanded(true);
                         }}
                         className="h-7 px-2 text-xs"
                       >
