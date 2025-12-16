@@ -1144,6 +1144,19 @@ export class SupabaseAdapter implements StoragePort {
             normalized.owner_id = null;
           }
           
+          // Stringify JSONB fields before sending to Supabase
+          // This ensures consistency between CREATE and UPDATE operations
+          if (normalized.address && typeof normalized.address === 'object') {
+            console.log('📍 [SupabaseAdapter] Stringifying address:', JSON.stringify(normalized.address));
+            normalized.address = JSON.stringify(normalized.address);
+          }
+          if (normalized.signatories && typeof normalized.signatories === 'object') {
+            normalized.signatories = JSON.stringify(normalized.signatories);
+          }
+          if (normalized.jurisdiction && typeof normalized.jurisdiction === 'object') {
+            normalized.jurisdiction = JSON.stringify(normalized.jurisdiction);
+          }
+          
           // Keep only valid DB columns (now including jurisdiction)
           const validClientFields = ['id', 'tenant_id', 'display_name', 'email', 'phone', 'pan', 'gstin', 'state', 'city', 'status', 'client_group_id', 'owner_id', 'created_at', 'updated_at', 'address', 'signatories', 'type', 'jurisdiction'];
           Object.keys(normalized).forEach(key => {
