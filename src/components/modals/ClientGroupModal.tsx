@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { clientGroupsService } from '@/services/clientGroupsService';
 import { autoCapitalizeFirst } from '@/utils/textFormatters';
 import { Building2, Code, FileText, User } from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid';
 
 interface ClientGroupModalProps {
   isOpen: boolean;
@@ -95,11 +96,10 @@ export const ClientGroupModal: React.FC<ClientGroupModalProps> = ({
   const handleSubmit = () => {
     if (!validate()) return;
 
-    const now = new Date().toISOString();
-
     if (mode === 'add') {
+      const now = new Date().toISOString();
       const newGroup = {
-        id: `cg-${Date.now()}`,
+        id: uuidv4(),
         ...formData,
         totalClients: 0,
         createdAt: now,
@@ -117,6 +117,7 @@ export const ClientGroupModal: React.FC<ClientGroupModalProps> = ({
         onSuccess(newGroup);
       }
     } else if (mode === 'edit') {
+      const now = new Date().toISOString();
       const updatedGroup = {
         ...group,
         ...formData,
