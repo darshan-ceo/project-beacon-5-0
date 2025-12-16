@@ -1150,6 +1150,42 @@ export class SupabaseAdapter implements StoragePort {
             if (!validClientFields.includes(key)) delete normalized[key];
           });
           break;
+        
+        case 'client_groups':
+          // Map camelCase to snake_case
+          if (normalized.createdAt && !normalized.created_at) {
+            normalized.created_at = normalized.createdAt;
+          }
+          if (normalized.updatedAt && !normalized.updated_at) {
+            normalized.updated_at = normalized.updatedAt;
+          }
+          if (normalized.totalClients !== undefined && normalized.total_clients === undefined) {
+            normalized.total_clients = normalized.totalClients;
+          }
+          if (normalized.createdBy && !normalized.created_by) {
+            normalized.created_by = normalized.createdBy;
+          }
+          
+          // Delete camelCase versions
+          delete normalized.createdAt;
+          delete normalized.updatedAt;
+          delete normalized.totalClients;
+          delete normalized.createdBy;
+          
+          // Delete UI-only fields not in DB schema
+          delete normalized.headClientId;
+          
+          // Validate ID format - if not valid UUID, let DB generate
+          if (normalized.id && !isValidUUID(normalized.id)) {
+            delete normalized.id;
+          }
+          
+          // Keep only valid DB columns
+          const validClientGroupFields = ['id', 'tenant_id', 'name', 'code', 'description', 'total_clients', 'created_at', 'updated_at', 'created_by'];
+          Object.keys(normalized).forEach(key => {
+            if (!validClientGroupFields.includes(key)) delete normalized[key];
+          });
+          break;
           
         case 'automation_rules':
           // Map nested trigger to flat columns
