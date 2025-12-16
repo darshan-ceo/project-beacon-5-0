@@ -78,7 +78,7 @@ All colors MUST be HSL. Professional legal theme with accessibility focus.
 
     /* UI Elements */
     --muted: 0 0% 63%;            /* #F5F6FA - Neutral Light (backgrounds, card surfaces) */
-    --muted-foreground: 0 0% 9%; /* #6C757D - Neutral Medium (labels, hints, muted text) */
+    --muted-foreground: 210 7% 46%; /* #6C757D - Neutral Medium (labels, hints, muted text, placeholders) */
 
     --accent: 47 100% 96%;           /* #FF7A45 - Orange (alerts and highlights) */
     --accent-foreground: 37 92% 50%;
@@ -222,7 +222,7 @@ All colors MUST be HSL. Professional legal theme with accessibility focus.
     --secondary-foreground: 0 0% 98%;
 
     --muted: 0 0% 45%;
-    --muted-foreground: 0 0% 98%;
+    --muted-foreground: 210 7% 65%; /* Lighter gray for dark mode placeholders */
 
     --accent: 20 91% 14%;
     --accent-foreground: 43 96% 56%;
