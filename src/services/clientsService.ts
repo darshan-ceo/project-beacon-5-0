@@ -185,8 +185,8 @@ export const clientsService = {
         pan: normalizedData.pan,
         email: normalizedData.email || null,
         phone: clientData.phone || null,
-        city: normalizedData.city || clientData.address?.city || null,
-        state: normalizedData.state || clientData.address?.state || 'Gujarat',
+        city: normalizedData.city || clientData.address?.cityName || clientData.address?.city || null,
+        state: normalizedData.state || clientData.address?.stateName || clientData.address?.state || 'Gujarat',
         status: (clientData.status || 'Active').toLowerCase(),
         type: clientData.type || 'Individual',
         // ADD MISSING FIELDS for client group and assigned CA
@@ -285,8 +285,11 @@ export const clientsService = {
       if (updates.pan) supabaseUpdates.pan = updates.pan.toUpperCase();
       if (updates.email !== undefined) supabaseUpdates.email = updates.email;
       if (updates.phone !== undefined) supabaseUpdates.phone = updates.phone;
-      if (updates.address?.city) supabaseUpdates.city = updates.address.city;
-      if (updates.address?.state) supabaseUpdates.state = updates.address.state;
+      // Handle both EnhancedAddressData (cityName/stateName) and legacy (city/state) formats
+      const cityValue = updates.address?.cityName || updates.address?.city;
+      const stateValue = updates.address?.stateName || updates.address?.state;
+      if (cityValue) supabaseUpdates.city = cityValue;
+      if (stateValue) supabaseUpdates.state = stateValue;
       if (updates.status) supabaseUpdates.status = updates.status.toLowerCase();
       if (updates.type) supabaseUpdates.type = updates.type;
       // ADD MISSING FIELDS for client group and assigned CA
