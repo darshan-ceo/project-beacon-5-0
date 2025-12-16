@@ -166,17 +166,8 @@ export const AddressForm: React.FC<AddressFormProps> = ({
     try {
       const citiesData = await addressLookupService.getCities(stateId);
       setCities(citiesData);
-      
-      // Reset city if state changes
-      if (value.stateId !== stateId) {
-        const enhancedValue = {
-          ...value,
-          stateId,
-          cityId: '',
-          source: (value as any).source || 'manual'
-        };
-        onChange(enhancedValue);
-      }
+      // City reset is handled in State dropdown onValueChange handler
+      // Do NOT reset city here - causes stale closure issues on initial load
     } catch (error) {
       console.error('Failed to load cities:', error);
       setCities([]);
