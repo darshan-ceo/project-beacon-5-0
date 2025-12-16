@@ -221,11 +221,14 @@ export const useRealtimeSync = () => {
             const client = {
               id: payload.new.id,
               name: payload.new.display_name,
+              display_name: payload.new.display_name,
               type: payload.new.type || 'Individual',
               gstin: payload.new.gstin,
               pan: payload.new.pan,
               email: payload.new.email,
               phone: payload.new.phone,
+              city: payload.new.city,
+              state: payload.new.state,
               status: payload.new.status === 'active' ? 'Active' : 'Inactive',
               // Parse JSONB fields
               signatories: payload.new.signatories 
@@ -243,9 +246,10 @@ export const useRealtimeSync = () => {
                     ? JSON.parse(payload.new.jurisdiction) 
                     : payload.new.jurisdiction)
                 : {},
-              // ADD MISSING FIELDS
+              // All additional fields
               clientGroupId: payload.new.client_group_id,
               assignedCAId: payload.new.owner_id || '',
+              tenantId: payload.new.tenant_id,
               createdAt: payload.new.created_at,
               updatedAt: payload.new.updated_at
             };

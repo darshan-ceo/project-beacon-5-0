@@ -39,7 +39,7 @@ const normalizeStateId = (stateValue: string): string => {
 // Version 1: Initial schema
 // Version 2: Added reportingTo field mapping for employee hierarchy
 // Version 3: Force reload to fix stale closure issues with hierarchy building
-const DATA_SCHEMA_VERSION = 3;
+const DATA_SCHEMA_VERSION = 4;
 
 // Global flags to persist data loaded state across component remounts
 // This prevents the "Loading your data..." screen from appearing when switching tabs
@@ -172,7 +172,7 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           name: c.display_name, // Map display_name to name for UI compatibility
           display_name: c.display_name,
           status: c.status === 'active' ? 'Active' : 'Inactive', // Convert lowercase to uppercase
-          assignedCAId: c.assigned_ca_id || c.assignedCAId,
+          assignedCAId: c.owner_id || c.assigned_ca_id || c.assignedCAId || '',
           assignedCAName: c.assigned_ca_name || c.assignedCAName,
           clientGroupId: c.client_group_id || c.clientGroupId,
           createdAt: c.created_at || c.createdAt,
