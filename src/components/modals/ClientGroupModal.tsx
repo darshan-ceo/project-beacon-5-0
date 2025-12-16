@@ -7,11 +7,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAppState } from '@/contexts/AppStateContext';
-import { useToast } from '@/hooks/use-toast';
 import { clientGroupsService } from '@/services/clientGroupsService';
 import { autoCapitalizeFirst } from '@/utils/textFormatters';
 import { Building2, Code, FileText, User } from 'lucide-react';
-import { v4 as uuidv4 } from 'uuid';
 
 interface ClientGroupModalProps {
   isOpen: boolean;
@@ -29,7 +27,6 @@ export const ClientGroupModal: React.FC<ClientGroupModalProps> = ({
   onSuccess
 }) => {
   const { state, dispatch } = useAppState();
-  const { toast } = useToast();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -93,50 +90,31 @@ export const ClientGroupModal: React.FC<ClientGroupModalProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validate()) return;
 
-    if (mode === 'add') {
-      const now = new Date().toISOString();
-      const newGroup = {
-        id: uuidv4(),
-        ...formData,
-        totalClients: 0,
-        createdAt: now,
-        updatedAt: now,
-      };
-
-      dispatch({ type: 'ADD_CLIENT_GROUP', payload: newGroup });
-      toast({
-        title: 'Success',
-        description: 'Client group created successfully.',
-      });
-      
-      // Call onSuccess callback if provided
-      if (onSuccess) {
-        onSuccess(newGroup);
+    try {
+      if (mode === 'add') {
+        const newGroup = await clientGroupsService.create(formData, dispatch);
+        
+        // Call onSuccess callback if provided
+        if (onSuccess) {
+          onSuccess(newGroup);
+        }
+      } else if (mode === 'edit' && group?.id) {
+        const updatedGroup = await clientGroupsService.update(group.id, formData, dispatch);
+        
+        // Call onSuccess callback if provided
+        if (onSuccess) {
+          onSuccess(updatedGroup);
+        }
       }
-    } else if (mode === 'edit') {
-      const now = new Date().toISOString();
-      const updatedGroup = {
-        ...group,
-        ...formData,
-        updatedAt: now,
-      };
 
-      dispatch({ type: 'UPDATE_CLIENT_GROUP', payload: updatedGroup });
-      toast({
-        title: 'Success',
-        description: 'Client group updated successfully.',
-      });
-      
-      // Call onSuccess callback if provided
-      if (onSuccess) {
-        onSuccess(updatedGroup);
-      }
+      onClose();
+    } catch (error) {
+      // Error toast is handled by the service
+      console.error('Failed to save client group:', error);
     }
-
-    onClose();
   };
 
   const isViewMode = mode === 'view';

@@ -316,15 +316,11 @@ export const usePersistentDispatch = (
           await storage.delete('judges', action.payload);
           break;
           
-        // Client Groups
+        // Client Groups - SKIP persistence, handled by clientGroupsService
         case 'ADD_CLIENT_GROUP':
-          await storage.create('client_groups', action.payload);
-          break;
         case 'UPDATE_CLIENT_GROUP':
-          await storage.update('client_groups', action.payload.id, action.payload);
-          break;
         case 'DELETE_CLIENT_GROUP':
-          await storage.delete('client_groups', action.payload);
+          console.log('⏭️ Skipping CLIENT_GROUP persistence - handled by clientGroupsService');
           break;
           
         // Folders

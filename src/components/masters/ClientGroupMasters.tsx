@@ -102,29 +102,29 @@ export const ClientGroupMasters: React.FC = () => {
     setDeleteConfirmId(groupId);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deleteConfirmId) {
-      dispatch({ type: 'DELETE_CLIENT_GROUP', payload: deleteConfirmId });
-      toast({
-        title: 'Success',
-        description: 'Client group deleted successfully.',
-      });
+      try {
+        await clientGroupsService.delete(deleteConfirmId, state.clients, dispatch);
+        // Toast is handled by the service
+      } catch (error) {
+        // Error toast is handled by the service
+        console.error('Failed to delete client group:', error);
+      }
       setDeleteConfirmId(null);
     }
   };
 
-  const handleToggleStatus = (group: any) => {
-    const updatedGroup = {
-      ...group,
-      status: group.status === 'Active' ? 'Inactive' : 'Active',
-      updatedAt: new Date().toISOString(),
-    };
+  const handleToggleStatus = async (group: any) => {
+    const newStatus = group.status === 'Active' ? 'Inactive' : 'Active';
     
-    dispatch({ type: 'UPDATE_CLIENT_GROUP', payload: updatedGroup });
-    toast({
-      title: 'Status Updated',
-      description: `Group ${group.status === 'Active' ? 'deactivated' : 'activated'} successfully.`,
-    });
+    try {
+      await clientGroupsService.update(group.id, { status: newStatus }, dispatch);
+      // Toast is handled by the service
+    } catch (error) {
+      // Error toast is handled by the service
+      console.error('Failed to toggle status:', error);
+    }
   };
 
   return (
