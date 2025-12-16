@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, Scale, Clock, Phone, Mail, Search, Filter, Plus, Edit, Eye, Calendar, Upload, Download } from 'lucide-react';
+import { User, Scale, Clock, Phone, Mail, Search, Filter, Plus, Edit, Eye, Calendar, Upload, Download, List, LayoutGrid } from 'lucide-react';
 import { JudgeModal } from '@/components/modals/JudgeModal';
 import { UnifiedJudgeSearch } from '@/components/masters/UnifiedJudgeSearch';
 import { ImportWizard } from '@/components/importExport/ImportWizard';
@@ -22,12 +22,14 @@ import { featureFlagService } from '@/services/featureFlagService';
 import { JudgeForm } from '@/components/masters/judges/JudgeForm';
 import { FilterDropdown } from '@/components/ui/filter-dropdown';
 import { useImportRefresh } from '@/hooks/useImportRefresh';
+import { uiStateService } from '@/services/UIStateService';
 
 const JudgeMasters: React.FC = () => {
   const { state, dispatch } = useAppState();
   const { hasPermission } = useRBAC();
   const { reloadJudges } = useImportRefresh();
   const [searchTerm, setSearchTerm] = useState('');
+  const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
   const [judgeModal, setJudgeModal] = useState<{ isOpen: boolean; mode: 'create' | 'edit' | 'view'; judge?: Judge | null }>({
     isOpen: false,
     mode: 'create',
@@ -38,6 +40,18 @@ const JudgeMasters: React.FC = () => {
   const [filterDesignation, setFilterDesignation] = useState<string>('all');
   const [importWizardOpen, setImportWizardOpen] = useState(false);
   const [exportWizardOpen, setExportWizardOpen] = useState(false);
+
+  // Load persisted view mode
+  useEffect(() => {
+    uiStateService.getViewMode('judge-masters', 'list').then(mode => {
+      setViewMode(mode as 'list' | 'card');
+    });
+  }, []);
+
+  const handleViewModeChange = (mode: 'list' | 'card') => {
+    setViewMode(mode);
+    uiStateService.saveViewMode('judge-masters', mode);
+  };
 
   const getCourtName = (courtId: string) => {
     return state.courts.find(c => c.id === courtId)?.name || 'Unknown Court';
@@ -176,114 +190,233 @@ const JudgeMasters: React.FC = () => {
             />
           </div>
 
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredJudges.map((judge, index) => (
-                <motion.div
-                  key={judge.id}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="bg-card border rounded-lg p-4 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src="" alt={judge.name} />
-                        <AvatarFallback>
-                          <User className="h-4 w-4" />
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <h3 className="font-medium text-sm">{judge.name}</h3>
-                        <p className="text-xs text-muted-foreground">{judge.designation}</p>
-                      </div>
-                    </div>
-                    <Badge variant="secondary" className={getStatusColor(judge.status)}>
-                      {judge.status}
-                    </Badge>
-                  </div>
+          {/* View Toggle */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => handleViewModeChange('list')}
+                className="flex items-center gap-2"
+              >
+                <List className="h-4 w-4" />
+                List View
+              </Button>
+              <Button
+                variant={viewMode === 'card' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => handleViewModeChange('card')}
+                className="flex items-center gap-2"
+              >
+                <LayoutGrid className="h-4 w-4" />
+                Card View
+              </Button>
+            </div>
+            <span className="text-sm text-muted-foreground">
+              {filteredJudges.length} judges
+            </span>
+          </div>
 
-                  <div className="space-y-2 text-xs">
-                    <div className="flex items-center gap-2">
-                      <Scale className="h-3 w-3 text-muted-foreground" />
-                      <span className="truncate">{getCourtName(judge.courtId)}</span>
-                    </div>
-                    {judge.bench && (
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-3 w-3 text-muted-foreground" />
-                        <span className="truncate">{judge.bench}</span>
-                      </div>
-                    )}
-                    {judge.email && (
-                      <div className="flex items-center gap-2">
-                        <Mail className="h-3 w-3 text-muted-foreground" />
-                        <span className="truncate">{judge.email}</span>
-                      </div>
-                    )}
-                    {judge.phone && (
-                      <div className="flex items-center gap-2">
-                        <Phone className="h-3 w-3 text-muted-foreground" />
-                        <span className="truncate">{judge.phone}</span>
-                      </div>
-                    )}
-                    {judge.specialization && judge.specialization.length > 0 && (
-                      <div>
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {judge.specialization.slice(0, 2).map(spec => (
-                            <Badge key={spec} variant="outline" className="text-xs">
-                              {spec}
-                            </Badge>
-                          ))}
-                          {judge.specialization.length > 2 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{judge.specialization.length - 2} more
-                            </Badge>
-                          )}
+          <div className="space-y-4">
+            {/* List View */}
+            {viewMode === 'list' && (
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name & Designation</TableHead>
+                      <TableHead>Legal Forum</TableHead>
+                      <TableHead className="hidden md:table-cell">Bench</TableHead>
+                      <TableHead className="hidden lg:table-cell">Contact</TableHead>
+                      <TableHead className="hidden lg:table-cell">Specializations</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredJudges.map((judge) => (
+                      <TableRow key={judge.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback>
+                                <User className="h-4 w-4" />
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium">{judge.name}</p>
+                              <p className="text-xs text-muted-foreground">{judge.designation}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>{getCourtName(judge.courtId)}</TableCell>
+                        <TableCell className="hidden md:table-cell">{judge.bench || '-'}</TableCell>
+                        <TableCell className="hidden lg:table-cell">
+                          <div className="text-sm space-y-1">
+                            {judge.email && (
+                              <div className="flex items-center gap-1 text-muted-foreground">
+                                <Mail className="h-3 w-3" />
+                                <span className="truncate max-w-[150px]">{judge.email}</span>
+                              </div>
+                            )}
+                            {judge.phone && (
+                              <div className="flex items-center gap-1 text-muted-foreground">
+                                <Phone className="h-3 w-3" />
+                                <span>{judge.phone}</span>
+                              </div>
+                            )}
+                            {!judge.email && !judge.phone && <span className="text-muted-foreground">-</span>}
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell">
+                          <div className="flex flex-wrap gap-1">
+                            {judge.specialization?.slice(0, 2).map(spec => (
+                              <Badge key={spec} variant="outline" className="text-xs">
+                                {spec}
+                              </Badge>
+                            ))}
+                            {(judge.specialization?.length || 0) > 2 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{judge.specialization!.length - 2}
+                              </Badge>
+                            )}
+                            {(!judge.specialization || judge.specialization.length === 0) && (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getStatusColor(judge.status)}>{judge.status}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="sm" onClick={() => handleJudgeAction(judge, 'view')}>
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            {hasPermission('judges', 'write') && (
+                              <Button variant="ghost" size="sm" onClick={() => handleJudgeAction(judge, 'edit')}>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+
+            {/* Card View */}
+            {viewMode === 'card' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {filteredJudges.map((judge, index) => (
+                  <motion.div
+                    key={judge.id}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="bg-card border rounded-lg p-4 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src="" alt={judge.name} />
+                          <AvatarFallback>
+                            <User className="h-4 w-4" />
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <h3 className="font-medium text-sm">{judge.name}</h3>
+                          <p className="text-xs text-muted-foreground">{judge.designation}</p>
                         </div>
                       </div>
-                    )}
-                  </div>
+                      <Badge variant="secondary" className={getStatusColor(judge.status)}>
+                        {judge.status}
+                      </Badge>
+                    </div>
 
-                  <div className="flex gap-2 mt-4 pt-3 border-t">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => handleJudgeAction(judge, 'view')}
-                    >
-                      <Eye className="h-3 w-3 mr-1" />
-                      View
-                    </Button>
-                    {hasPermission('judges', 'write') && (
+                    <div className="space-y-2 text-xs">
+                      <div className="flex items-center gap-2">
+                        <Scale className="h-3 w-3 text-muted-foreground" />
+                        <span className="truncate">{getCourtName(judge.courtId)}</span>
+                      </div>
+                      {judge.bench && (
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-3 w-3 text-muted-foreground" />
+                          <span className="truncate">{judge.bench}</span>
+                        </div>
+                      )}
+                      {judge.email && (
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-3 w-3 text-muted-foreground" />
+                          <span className="truncate">{judge.email}</span>
+                        </div>
+                      )}
+                      {judge.phone && (
+                        <div className="flex items-center gap-2">
+                          <Phone className="h-3 w-3 text-muted-foreground" />
+                          <span className="truncate">{judge.phone}</span>
+                        </div>
+                      )}
+                      {judge.specialization && judge.specialization.length > 0 && (
+                        <div>
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {judge.specialization.slice(0, 2).map(spec => (
+                              <Badge key={spec} variant="outline" className="text-xs">
+                                {spec}
+                              </Badge>
+                            ))}
+                            {judge.specialization.length > 2 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{judge.specialization.length - 2} more
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex gap-2 mt-4 pt-3 border-t">
                       <Button
                         variant="outline"
                         size="sm"
                         className="flex-1"
-                        onClick={() => handleJudgeAction(judge, 'edit')}
+                        onClick={() => handleJudgeAction(judge, 'view')}
                       >
-                        <Edit className="h-3 w-3 mr-1" />
-                        Edit
+                        <Eye className="h-3 w-3 mr-1" />
+                        View
                       </Button>
-                    )}
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+                      {hasPermission('judges', 'write') && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => handleJudgeAction(judge, 'edit')}
+                        >
+                          <Edit className="h-3 w-3 mr-1" />
+                          Edit
+                        </Button>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
           </div>
 
-              {filteredJudges.length === 0 && (
-                <div className="text-center py-8">
-                  <Scale className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-muted-foreground mb-2">No judges found</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {searchTerm || filterCourt !== 'all' || filterStatus !== 'all' || filterDesignation !== 'all'
-                      ? 'Try adjusting your search criteria'
-                      : 'Get started by adding your first judge'
-                    }
-                  </p>
-                </div>
-              )}
+          {filteredJudges.length === 0 && (
+            <div className="text-center py-8">
+              <Scale className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-muted-foreground mb-2">No judges found</h3>
+              <p className="text-sm text-muted-foreground">
+                {searchTerm || filterCourt !== 'all' || filterStatus !== 'all' || filterDesignation !== 'all'
+                  ? 'Try adjusting your search criteria'
+                  : 'Get started by adding your first judge'
+                }
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
