@@ -287,8 +287,12 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
   };
 
   const parseClientAddress = (address: any): EnhancedAddressData => {
+    console.log('📍 [parseClientAddress] Raw input:', JSON.stringify(address));
+    
+    let result: EnhancedAddressData;
+    
     if (typeof address === 'string') {
-      return {
+      result = {
         line1: address,
         line2: '',
         locality: '',
@@ -303,7 +307,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
       };
     } else if (address && ('city' in address || 'cityName' in address)) {
       // Legacy Address format or mixed format - preserve all city/state fields
-      return {
+      result = {
         line1: address.line1 || '',
         line2: address.line2 || '',
         locality: address.locality || '',
@@ -323,7 +327,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
       };
     } else {
       // Already EnhancedAddressData format or null
-      return address ? {
+      result = address ? {
         ...address,
         // Ensure all fields have defaults
         line1: address.line1 || '',
@@ -351,6 +355,9 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         source: 'manual'
       };
     }
+    
+    console.log('📍 [parseClientAddress] Parsed result:', JSON.stringify(result));
+    return result;
   };
 
   const validateForm = (): boolean => {
