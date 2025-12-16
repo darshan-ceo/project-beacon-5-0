@@ -380,6 +380,18 @@ export const UserProfile: React.FC = () => {
                           >
                             <Camera className="h-4 w-4" />
                           </Button>
+                          {/* Hidden file input for camera button - always rendered */}
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleAvatarFileSelect(file);
+                              e.target.value = ''; // Reset to allow same file selection
+                            }}
+                            className="hidden"
+                            id="avatar-upload"
+                          />
                         </div>
 
                         {featureFlagService.isEnabled('profile_avatar_v1') ? (
@@ -404,18 +416,7 @@ export const UserProfile: React.FC = () => {
                               </Button>
                             )}
                           </div>
-                        ) : (
-                          <input
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) handleBasicAvatarUpload(file);
-                            }}
-                            className="hidden"
-                            id="avatar-upload"
-                          />
-                        )}
+                        ) : null}
                       </>
                     )}
                     <div className="text-center">
