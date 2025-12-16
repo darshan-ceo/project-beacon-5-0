@@ -178,7 +178,7 @@ export const clientsService = {
       // Normalize payload before persistence
       const normalizedData = normalizeClientPayload(clientData);
 
-      // Prepare client data for Supabase
+      // Prepare client data for Supabase - include ALL fields
       const supabaseClient = {
         display_name: normalizedData.name || normalizedData.displayName || clientData.name!.trim(),
         gstin: normalizedData.gstin,
@@ -189,6 +189,9 @@ export const clientsService = {
         state: normalizedData.state || clientData.address?.state || 'Gujarat',
         status: (clientData.status || 'Active').toLowerCase(),
         type: clientData.type || 'Individual',
+        // ADD MISSING FIELDS for client group and assigned CA
+        client_group_id: clientData.clientGroupId || null,
+        owner_id: clientData.assignedCAId || null,
         signatories: clientData.signatories ? JSON.stringify(clientData.signatories) : null,
         address: clientData.address ? JSON.stringify(clientData.address) : null,
         jurisdiction: clientData.jurisdiction ? JSON.stringify(clientData.jurisdiction) : null,
@@ -201,7 +204,7 @@ export const clientsService = {
       const newClient: Client = {
         id: savedClient.id,
         name: savedClient.display_name || clientData.name!.trim(),
-        type: clientData.type || 'Proprietorship', // Default to Proprietorship (most common business type)
+        type: clientData.type || 'Proprietorship',
         category: clientData.category || 'Regular Dealer',
         registrationNo: clientData.registrationNo,
         gstin: savedClient.gstin || clientData.gstin?.toUpperCase(),
@@ -221,15 +224,17 @@ export const clientsService = {
         },
         signatories: clientData.signatories || [],
         status: savedClient.status === 'active' ? 'Active' : 'Inactive',
-        assignedCAId: clientData.assignedCAId || '',
+        // Map from saved data to ensure consistency
+        assignedCAId: savedClient.owner_id || clientData.assignedCAId || '',
         assignedCAName: clientData.assignedCAName || '',
-        clientGroupId: clientData.clientGroupId,
+        clientGroupId: savedClient.client_group_id || clientData.clientGroupId,
         createdAt: savedClient.created_at || new Date().toISOString(),
         updatedAt: savedClient.updated_at || new Date().toISOString()
       };
 
-      // Update React context after successful persistence
-      dispatch({ type: 'ADD_CLIENT', payload: newClient });
+      // DON'T dispatch here - real-time sync will handle UI update
+      // This prevents duplicate records
+      console.log('✅ Client persisted to Supabase, real-time sync will update UI');
       
       toast({
         title: "Client Created Successfully",
@@ -272,7 +277,7 @@ export const clientsService = {
       // Normalize payload before persistence
       const normalizedUpdates = normalizeClientPayload(updates);
 
-      // Prepare updates for Supabase
+      // Prepare updates for Supabase - include ALL fields
       const supabaseUpdates: any = {};
       if (updates.name) supabaseUpdates.display_name = updates.name.trim();
       if (updates.gstin) supabaseUpdates.gstin = updates.gstin.toUpperCase();
@@ -283,6 +288,9 @@ export const clientsService = {
       if (updates.address?.state) supabaseUpdates.state = updates.address.state;
       if (updates.status) supabaseUpdates.status = updates.status.toLowerCase();
       if (updates.type) supabaseUpdates.type = updates.type;
+      // ADD MISSING FIELDS for client group and assigned CA
+      if (updates.clientGroupId !== undefined) supabaseUpdates.client_group_id = updates.clientGroupId || null;
+      if (updates.assignedCAId !== undefined) supabaseUpdates.owner_id = updates.assignedCAId || null;
       if (updates.signatories !== undefined) supabaseUpdates.signatories = JSON.stringify(updates.signatories);
       if (updates.address !== undefined) supabaseUpdates.address = JSON.stringify(updates.address);
       if (updates.jurisdiction !== undefined) supabaseUpdates.jurisdiction = JSON.stringify(updates.jurisdiction);

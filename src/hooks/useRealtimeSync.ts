@@ -184,7 +184,7 @@ export const useRealtimeSync = () => {
         (payload) => {
           console.log('[Realtime] Clients change:', payload.eventType, payload);
           if (payload.eventType === 'INSERT' && payload.new) {
-            // Convert Supabase format to app format
+            // Convert Supabase format to app format - include ALL fields
             const client = {
               id: payload.new.id,
               name: payload.new.display_name,
@@ -210,7 +210,9 @@ export const useRealtimeSync = () => {
                     ? JSON.parse(payload.new.jurisdiction) 
                     : payload.new.jurisdiction)
                 : {},
+              // ADD MISSING FIELDS
               clientGroupId: payload.new.client_group_id,
+              assignedCAId: payload.new.owner_id || '',
               createdAt: payload.new.created_at,
               updatedAt: payload.new.updated_at
             };
@@ -241,7 +243,9 @@ export const useRealtimeSync = () => {
                     ? JSON.parse(payload.new.jurisdiction) 
                     : payload.new.jurisdiction)
                 : {},
+              // ADD MISSING FIELDS
               clientGroupId: payload.new.client_group_id,
+              assignedCAId: payload.new.owner_id || '',
               createdAt: payload.new.created_at,
               updatedAt: payload.new.updated_at
             };
