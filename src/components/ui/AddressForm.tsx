@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -52,6 +52,29 @@ export const AddressForm: React.FC<AddressFormProps> = ({
   const [manualCityMode, setManualCityMode] = useState(false);
   const [manualCityInput, setManualCityInput] = useState('');
 
+  // Prevent async initial-load logic from using stale `value` and overwriting a newer address
+  const latestValueRef = useRef(value);
+  const hasMeaningfulAddressRef = useRef(false);
+
+  useEffect(() => {
+    latestValueRef.current = value;
+
+    const cityName = (value as any).cityName as string | undefined;
+    const stateName = (value as any).stateName as string | undefined;
+
+    // Mark as "meaningful" once we have anything beyond just a default country
+    if (
+      value.stateId ||
+      value.cityId ||
+      (cityName && cityName.trim()) ||
+      (stateName && stateName.trim()) ||
+      (value.line1 && value.line1.trim()) ||
+      (value.pincode && value.pincode.trim())
+    ) {
+      hasMeaningfulAddressRef.current = true;
+    }
+  }, [value]);
+
   // Debug: Log whenever value changes
   useEffect(() => {
     console.log('📍 [AddressForm] Value received:', JSON.stringify({
@@ -103,16 +126,19 @@ export const AddressForm: React.FC<AddressFormProps> = ({
       ]);
       
       setCountries(countriesData);
-      
-      // Set India as default if no country selected
-      if (!value.countryId && countriesData.length > 0) {
+
+      const latestValue = latestValueRef.current;
+
+      // Set India as default if no country selected.
+      // Use latestValueRef to avoid stale-closure overwrites when navigating between modules.
+      if (!latestValue.countryId && countriesData.length > 0 && !hasMeaningfulAddressRef.current) {
         const india = countriesData.find(c => c.id === 'IN');
         if (india) {
-        const enhancedValue = {
-          ...value,
-          countryId: india.id,
-          source: (value as any).source || 'manual'
-        };
+          const enhancedValue = {
+            ...latestValue,
+            countryId: india.id,
+            source: (latestValue as any).source || 'manual'
+          };
           onChange(enhancedValue);
         }
       }
