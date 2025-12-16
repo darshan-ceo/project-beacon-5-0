@@ -299,7 +299,17 @@ export const clientsService = {
       // Persist to Supabase first
       await storage.update('clients', clientId, supabaseUpdates);
 
-      // Let realtime sync + DataInitializer handle UI state updates
+      // ✅ Dispatch immediately for instant UI update (no waiting for realtime)
+      // Note: caller can pass rawDispatch to avoid double persistence.
+      dispatch({
+        type: 'UPDATE_CLIENT',
+        payload: {
+          id: clientId,
+          ...updates,
+          updatedAt: new Date().toISOString(),
+        } as any,
+      });
+
       toast({
         title: "Client Updated Successfully",
         description: `${updates.name || 'Client'} has been updated.`,

@@ -53,7 +53,7 @@ const getPrimaryPhone = (signatory: Signatory): string => {
 };
 
 export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, client: clientData, mode }) => {
-  const { state, dispatch } = useAppState();
+  const { state, dispatch, rawDispatch } = useAppState();
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   
@@ -532,7 +532,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         }
         // Toast already shown by service
       } else if (mode === 'edit' && clientData) {
-        await clientsService.update(clientData.id, { ...clientData, ...clientToSave }, dispatch);
+        // Use rawDispatch so UI updates instantly without triggering persistence twice
+        await clientsService.update(clientData.id, { ...clientData, ...clientToSave }, rawDispatch);
         
         // Link address for existing client if not already linked
         if (isAddressMasterEnabled && addressId && !formData.addressId) {
