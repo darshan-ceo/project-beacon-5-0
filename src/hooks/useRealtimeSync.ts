@@ -204,15 +204,29 @@ export const useRealtimeSync = () => {
                 ? (typeof payload.new.address === 'string' 
                     ? JSON.parse(payload.new.address) 
                     : payload.new.address)
-                : { city: payload.new.city, state: payload.new.state },
+                : { 
+                    cityName: payload.new.city || '', 
+                    stateName: payload.new.state || '',
+                    countryId: 'IN',
+                    source: 'manual'
+                  },
               jurisdiction: payload.new.jurisdiction 
                 ? (typeof payload.new.jurisdiction === 'string' 
                     ? JSON.parse(payload.new.jurisdiction) 
                     : payload.new.jurisdiction)
                 : {},
-              // ADD MISSING FIELDS
+              // All additional fields
               clientGroupId: payload.new.client_group_id,
               assignedCAId: payload.new.owner_id || '',
+              category: payload.new.category,
+              registrationNo: payload.new.registration_no,
+              portalAccess: payload.new.portal_access 
+                ? (typeof payload.new.portal_access === 'string'
+                    ? JSON.parse(payload.new.portal_access)
+                    : payload.new.portal_access)
+                : {},
+              addressId: payload.new.address_id,
+              tags: payload.new.tags || [],
               createdAt: payload.new.created_at,
               updatedAt: payload.new.updated_at
             };
@@ -240,7 +254,12 @@ export const useRealtimeSync = () => {
                 ? (typeof payload.new.address === 'string' 
                     ? JSON.parse(payload.new.address) 
                     : payload.new.address)
-                : { city: payload.new.city, state: payload.new.state },
+                : { 
+                    cityName: payload.new.city || '', 
+                    stateName: payload.new.state || '',
+                    countryId: 'IN',
+                    source: 'manual'
+                  },
               jurisdiction: payload.new.jurisdiction 
                 ? (typeof payload.new.jurisdiction === 'string' 
                     ? JSON.parse(payload.new.jurisdiction) 
@@ -249,6 +268,15 @@ export const useRealtimeSync = () => {
               // All additional fields
               clientGroupId: payload.new.client_group_id,
               assignedCAId: payload.new.owner_id || '',
+              category: payload.new.category,
+              registrationNo: payload.new.registration_no,
+              portalAccess: payload.new.portal_access 
+                ? (typeof payload.new.portal_access === 'string'
+                    ? JSON.parse(payload.new.portal_access)
+                    : payload.new.portal_access)
+                : {},
+              addressId: payload.new.address_id,
+              tags: payload.new.tags || [],
               tenantId: payload.new.tenant_id,
               createdAt: payload.new.created_at,
               updatedAt: payload.new.updated_at

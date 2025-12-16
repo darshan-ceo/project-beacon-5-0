@@ -294,33 +294,58 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         locality: '',
         district: '',
         cityId: '',
+        cityName: '',
         stateId: '',
+        stateName: '',
         pincode: '',
         countryId: 'IN',
         source: 'manual'
       };
-    } else if (address && 'city' in address) {
-      // Legacy Address format
+    } else if (address && ('city' in address || 'cityName' in address)) {
+      // Legacy Address format or mixed format - preserve all city/state fields
       return {
         line1: address.line1 || '',
         line2: address.line2 || '',
-        locality: '',
-        district: '',
-        cityId: '',
-        stateId: '',
+        locality: address.locality || '',
+        district: address.district || '',
+        // Preserve city info - map legacy 'city' to 'cityName'
+        cityId: address.cityId || '',
+        cityName: address.cityName || address.city || '',
+        // Preserve state info - map legacy 'state' to 'stateName'
+        stateId: address.stateId || '',
+        stateName: address.stateName || address.state || '',
         pincode: address.pincode || '',
-        countryId: 'IN',
-        source: 'manual'
+        countryId: address.countryId || 'IN',
+        source: address.source || 'manual',
+        // Preserve any lat/lng if present
+        ...(address.lat && { lat: address.lat }),
+        ...(address.lng && { lng: address.lng })
       };
     } else {
-      // Already EnhancedAddressData format
-      return address as EnhancedAddressData || {
+      // Already EnhancedAddressData format or null
+      return address ? {
+        ...address,
+        // Ensure all fields have defaults
+        line1: address.line1 || '',
+        line2: address.line2 || '',
+        locality: address.locality || '',
+        district: address.district || '',
+        cityId: address.cityId || '',
+        cityName: address.cityName || '',
+        stateId: address.stateId || '',
+        stateName: address.stateName || '',
+        pincode: address.pincode || '',
+        countryId: address.countryId || 'IN',
+        source: address.source || 'manual'
+      } : {
         line1: '',
         line2: '',
         locality: '',
         district: '',
         cityId: '',
+        cityName: '',
         stateId: '',
+        stateName: '',
         pincode: '',
         countryId: 'IN',
         source: 'manual'

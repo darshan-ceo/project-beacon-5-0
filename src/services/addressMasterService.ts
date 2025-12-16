@@ -15,6 +15,7 @@ export interface EnhancedAddressData {
   locality?: string;
   district?: string;
   cityId?: string;
+  cityName?: string;  // Display name for city (to preserve legacy 'city' data)
   stateId?: string;
   stateCode?: string;
   stateName?: string;
