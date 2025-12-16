@@ -181,8 +181,23 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           updatedAt: c.updated_at || c.updatedAt,
           // Parse signatories from JSON string
           signatories: c.signatories ? (typeof c.signatories === 'string' ? JSON.parse(c.signatories) : c.signatories) : [],
-          // Parse address from JSON string
-          address: c.address ? (typeof c.address === 'string' ? JSON.parse(c.address) : c.address) : undefined,
+          // Parse address from JSON string with fallback to top-level city/state
+          address: c.address 
+            ? (() => {
+                const parsed = typeof c.address === 'string' ? JSON.parse(c.address) : c.address;
+                // Ensure cityName/stateName are populated from top-level if missing
+                return {
+                  ...parsed,
+                  cityName: parsed.cityName || parsed.city || c.city || '',
+                  stateName: parsed.stateName || parsed.state || c.state || '',
+                };
+              })()
+            : {
+                cityName: c.city || '',
+                stateName: c.state || '',
+                countryId: 'IN',
+                source: 'manual'
+              },
           // Parse jurisdiction from JSON with backward compatibility
           jurisdiction: c.jurisdiction ? (typeof c.jurisdiction === 'string' ? JSON.parse(c.jurisdiction) : c.jurisdiction) : {
             // Provide default structure
