@@ -1,22 +1,23 @@
 /**
  * Role Mapper Service
- * Maps Employee operational roles to RBAC permission roles
+ * Maps Employee operational roles to RBAC permission roles (app_role enum)
  */
 
-import { advancedRbacService } from './advancedRbacService';
+import { supabaseRbacService, AppRole } from './supabaseRbacService';
 import { Employee } from './employeesService';
 import { toast } from '@/hooks/use-toast';
 
-// Mapping configuration: Employee Role → RBAC Role Names
-export const EMPLOYEE_TO_RBAC_MAPPING: Record<Employee['role'], string[]> = {
-  'Partner': ['SuperAdmin'],      // Full system access
-  'CA': ['Admin'],                 // Administrative access
-  'Advocate': ['Manager'],         // Team management
-  'Manager': ['Manager'],          // Team management
-  'Staff': ['Staff'],              // Own work scope
-  'RM': ['Manager'],               // Relationship managers need team visibility
-  'Finance': ['Manager'],          // Finance needs team visibility
-  'Admin': ['Admin']               // Admin role maps to RBAC Admin
+// Mapping configuration: Employee Role → app_role enum values
+// These must match the app_role enum in Supabase exactly
+export const EMPLOYEE_TO_RBAC_MAPPING: Record<Employee['role'], AppRole[]> = {
+  'Partner': ['partner'],           // Partner-level access
+  'CA': ['ca'],                     // Chartered Accountant access
+  'Advocate': ['advocate'],         // Legal professional access
+  'Manager': ['manager'],           // Team management
+  'Staff': ['staff'],               // Basic staff access
+  'RM': ['manager'],                // Relationship managers need team visibility
+  'Finance': ['manager'],           // Finance needs team visibility
+  'Admin': ['admin']                // Full administrative access
 };
 
 // Role descriptions for UI display
@@ -32,26 +33,10 @@ export const ROLE_DESCRIPTIONS: Record<Employee['role'], string> = {
 };
 
 /**
- * Get RBAC role IDs for a given employee role
+ * Get RBAC role names for a given employee role
  */
-export async function getRBACRolesForEmployee(employeeRole: Employee['role']): Promise<string[]> {
-  try {
-    const rbacRoleNames = EMPLOYEE_TO_RBAC_MAPPING[employeeRole] || [];
-    const allRoles = await advancedRbacService.getAllRoles();
-    
-    // Map role names to role IDs
-    const roleIds = rbacRoleNames
-      .map(roleName => {
-        const role = allRoles.find(r => r.name === roleName);
-        return role?.id;
-      })
-      .filter((id): id is string => id !== undefined);
-    
-    return roleIds;
-  } catch (error) {
-    console.error('Failed to get RBAC roles for employee:', error);
-    return [];
-  }
+export function getRBACRoleNamesForEmployee(employeeRole: Employee['role']): AppRole[] {
+  return EMPLOYEE_TO_RBAC_MAPPING[employeeRole] || ['user'];
 }
 
 /**
@@ -62,15 +47,9 @@ export function getRoleDescription(employeeRole: Employee['role']): string {
 }
 
 /**
- * Get RBAC role names for display
- */
-export function getRBACRoleNamesForEmployee(employeeRole: Employee['role']): string[] {
-  return EMPLOYEE_TO_RBAC_MAPPING[employeeRole] || [];
-}
-
-/**
  * Sync employee to RBAC system
  * This assigns appropriate RBAC roles based on the employee's operational role
+ * Uses supabaseRbacService to write directly to user_roles table
  */
 export async function syncEmployeeToRBAC(employee: Employee): Promise<void> {
   try {
@@ -80,41 +59,51 @@ export async function syncEmployeeToRBAC(employee: Employee): Promise<void> {
       return;
     }
 
-    // Get current RBAC role assignments
-    const currentUserRoles = await advancedRbacService.getUserRoles(employee.id);
-    const currentRoleIds = currentUserRoles.map(ur => (ur as any).roleId);
-    
     // Get target RBAC roles based on employee role
-    const targetRoleIds = await getRBACRolesForEmployee(employee.role);
+    const targetRoles = getRBACRoleNamesForEmployee(employee.role);
     
-    if (targetRoleIds.length === 0) {
+    if (targetRoles.length === 0) {
       console.warn(`No RBAC roles mapped for employee role: ${employee.role}`);
       return;
     }
 
-    // Remove roles that should no longer be assigned (auto-assigned roles only)
-    const allRoles = await advancedRbacService.getAllRoles();
-    const autoAssignedRoleIds = allRoles
-      .filter(role => Object.values(EMPLOYEE_TO_RBAC_MAPPING).flat().includes(role.name))
-      .map(role => role.id);
+    // Get current RBAC role assignments from database
+    const currentRoles = await supabaseRbacService.getUserRoles(employee.id);
+    
+    // Get all auto-assignable roles (ones that come from employee role mapping)
+    const allAutoAssignableRoles = new Set(
+      Object.values(EMPLOYEE_TO_RBAC_MAPPING).flat()
+    );
 
-    for (const roleId of currentRoleIds) {
-      if (!targetRoleIds.includes(roleId) && autoAssignedRoleIds.includes(roleId)) {
-        await advancedRbacService.revokeRole(employee.id, roleId);
+    // Remove roles that should no longer be assigned (only auto-assigned roles)
+    for (const currentRole of currentRoles) {
+      // Only revoke if it's an auto-assignable role and not in target roles
+      if (allAutoAssignableRoles.has(currentRole as AppRole) && !targetRoles.includes(currentRole as AppRole)) {
+        try {
+          await supabaseRbacService.revokeRole(employee.id, currentRole as AppRole);
+          console.log(`Revoked role '${currentRole}' from employee: ${employee.full_name}`);
+        } catch (err) {
+          console.warn(`Failed to revoke role '${currentRole}':`, err);
+        }
       }
     }
     
-    // Assign new roles
-    for (const roleId of targetRoleIds) {
-      if (!currentRoleIds.includes(roleId)) {
-        await advancedRbacService.assignRole({
-          userId: employee.id,
-          roleId: roleId
-        });
+    // Assign new roles that aren't already assigned
+    for (const targetRole of targetRoles) {
+      if (!currentRoles.includes(targetRole)) {
+        try {
+          await supabaseRbacService.assignRole(employee.id, targetRole);
+          console.log(`Assigned role '${targetRole}' to employee: ${employee.full_name}`);
+        } catch (err: any) {
+          // Ignore "already has role" errors
+          if (!err.message?.includes('already has this role')) {
+            console.warn(`Failed to assign role '${targetRole}':`, err);
+          }
+        }
       }
     }
     
-    console.log(`Successfully synced RBAC roles for employee: ${employee.full_name}`);
+    console.log(`Successfully synced RBAC roles for employee: ${employee.full_name} -> [${targetRoles.join(', ')}]`);
   } catch (error) {
     console.error(`Failed to sync RBAC for employee ${employee.id}:`, error);
     // Don't throw - we don't want RBAC sync failures to block employee operations
@@ -126,25 +115,38 @@ export async function syncEmployeeToRBAC(employee: Employee): Promise<void> {
  */
 export async function getCurrentRBACRoles(employeeId: string): Promise<string[]> {
   try {
-    const userRoles = await advancedRbacService.getUserRoles(employeeId);
-    const allRoles = await advancedRbacService.getAllRoles();
-    
-    return userRoles
-      .map(ur => {
-        const role = allRoles.find(r => r.id === (ur as any).roleId);
-        return role?.name;
-      })
-      .filter((name): name is string => name !== undefined);
+    return await supabaseRbacService.getUserRoles(employeeId);
   } catch (error) {
     console.error('Failed to get current RBAC roles:', error);
     return [];
   }
 }
 
+/**
+ * Bulk sync all employees to RBAC system
+ * Useful for migration or fixing role assignments
+ */
+export async function bulkSyncEmployeesToRBAC(employees: Employee[]): Promise<{ success: number; failed: number }> {
+  let success = 0;
+  let failed = 0;
+
+  for (const employee of employees) {
+    try {
+      await syncEmployeeToRBAC(employee);
+      success++;
+    } catch (error) {
+      console.error(`Failed to sync employee ${employee.id}:`, error);
+      failed++;
+    }
+  }
+
+  return { success, failed };
+}
+
 export const roleMapperService = {
-  getRBACRolesForEmployee,
-  getRoleDescription,
   getRBACRoleNamesForEmployee,
+  getRoleDescription,
   syncEmployeeToRBAC,
-  getCurrentRBACRoles
+  getCurrentRBACRoles,
+  bulkSyncEmployeesToRBAC
 };
