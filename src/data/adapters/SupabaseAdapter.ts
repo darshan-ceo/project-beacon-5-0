@@ -1344,16 +1344,11 @@ export class SupabaseAdapter implements StoragePort {
             normalized.assigned_to = normalized.assignedTo;
           }
           // Map assignedToId to assigned_to (frontend uses assignedToId)
-          if (normalized.assignedToId && !normalized.assigned_to) {
+          // ALWAYS map assignedToId to assigned_to when present
+          // Frontend uses assignedToId - this MUST take precedence over stale assigned_to from spread
+          if (normalized.assignedToId) {
             normalized.assigned_to = normalized.assignedToId;
           }
-          
-          // DEBUG: Log assignee mapping for cases
-          console.log('🔍 [SupabaseAdapter] Case normalization - assignee mapping:', {
-            inputAssignedToId: (item as any).assignedToId,
-            inputAssignedTo: (item as any).assignedTo,
-            mappedAssignedTo: normalized.assigned_to
-          });
           if (normalized.ownerId && !normalized.owner_id) {
             normalized.owner_id = normalized.ownerId;
           }
