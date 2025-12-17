@@ -57,24 +57,10 @@ export const usePersistentDispatch = (
           break;
         }
         case 'UPDATE_CASE': {
-          // DEBUG: Log payload before storage update
-          console.log('🔍 [usePersistentDispatch] UPDATE_CASE payload:', {
-            id: action.payload.id,
-            assignedToId: action.payload.assignedToId,
-            assignedTo: action.payload.assignedTo,
-            allKeys: Object.keys(action.payload)
-          });
-          
           // Check if assignee changed
           const previousCase = await storage.getById('cases', action.payload.id) as any;
           const newAssignee = action.payload.assignedToId || action.payload.assignedTo;
           const oldAssignee = previousCase?.assigned_to || previousCase?.assignedTo;
-          
-          console.log('🔍 [usePersistentDispatch] Assignee change check:', {
-            newAssignee,
-            oldAssignee,
-            previousCaseAssignedTo: previousCase?.assigned_to
-          });
           
           await storage.update('cases', action.payload.id, action.payload);
           
