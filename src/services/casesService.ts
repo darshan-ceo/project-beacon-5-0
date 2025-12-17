@@ -73,9 +73,31 @@ export const casesService = {
 
   update: async (caseId: string, updates: Partial<Case>, dispatch: React.Dispatch<AppAction>): Promise<void> => {
     try {
+      // DEBUG: Log incoming updates
+      console.log('🔍 [casesService.update] Incoming updates:', {
+        caseId,
+        assignedToId: updates.assignedToId,
+        assignedTo: (updates as any).assignedTo,
+        allKeys: Object.keys(updates)
+      });
+      
       // Normalize payload before persistence
       const normalizedUpdates = normalizeCasePayload(updates);
+      
+      // DEBUG: Log after normalization
+      console.log('🔍 [casesService.update] After normalization:', {
+        assignedToId: normalizedUpdates.assignedToId,
+        assignedTo: (normalizedUpdates as any).assignedTo,
+        allKeys: Object.keys(normalizedUpdates)
+      });
+      
       const updatedCase = { id: caseId, lastUpdated: new Date().toISOString(), ...normalizedUpdates };
+      
+      // DEBUG: Log final payload
+      console.log('🔍 [casesService.update] Final payload to dispatch:', {
+        assignedToId: updatedCase.assignedToId,
+        assignedTo: (updatedCase as any).assignedTo
+      });
       
       // Dispatch handles persistence via usePersistentDispatch
       dispatch({ type: 'UPDATE_CASE', payload: updatedCase });
