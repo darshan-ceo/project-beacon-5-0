@@ -99,13 +99,20 @@ class SupabaseRbacService {
       .from('permissions')
       .select('key, module, action, description');
 
-    // Get user counts per role
-    const { data: userRoles } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('is_active', true);
+    // Get ALL saved role permissions from role_permissions table
+    const { data: savedRolePermissions } = await supabase
+      .from('role_permissions')
+      .select('role, permission_key');
+
+    // Group saved permissions by role
+    const permissionsByRole: Record<string, string[]> = {};
+    (savedRolePermissions || []).forEach(rp => {
+      if (!permissionsByRole[rp.role]) permissionsByRole[rp.role] = [];
+      permissionsByRole[rp.role].push(rp.permission_key);
+    });
 
     // Build system role definitions from metadata
+    // Use saved permissions if they exist, otherwise fall back to defaults
     const systemRoles: RoleDefinition[] = Object.entries(ROLE_METADATA).map(([role, meta]) => ({
       id: role,
       name: role as AppRole,
@@ -113,7 +120,7 @@ class SupabaseRbacService {
       description: meta.description,
       isSystemRole: meta.isSystemRole,
       isActive: true,
-      permissions: this.getDefaultPermissionsForRole(role as AppRole, (permissions || []) as Permission[]),
+      permissions: permissionsByRole[role] || this.getDefaultPermissionsForRole(role as AppRole, (permissions || []) as Permission[]),
     }));
 
     // Get custom roles from database
@@ -129,7 +136,7 @@ class SupabaseRbacService {
       description: cr.description || '',
       isSystemRole: false,
       isActive: cr.is_active,
-      permissions: [], // Custom roles get permissions from role_permissions table
+      permissions: permissionsByRole[cr.name] || [], // Use saved permissions for custom roles too
     }));
 
     return [...systemRoles, ...customRoles];
