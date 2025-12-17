@@ -1343,6 +1343,10 @@ export class SupabaseAdapter implements StoragePort {
           if (normalized.assignedTo && !normalized.assigned_to) {
             normalized.assigned_to = normalized.assignedTo;
           }
+          // Map assignedToId to assigned_to (frontend uses assignedToId)
+          if (normalized.assignedToId && !normalized.assigned_to) {
+            normalized.assigned_to = normalized.assignedToId;
+          }
           if (normalized.ownerId && !normalized.owner_id) {
             normalized.owner_id = normalized.ownerId;
           }
@@ -1417,6 +1421,7 @@ export class SupabaseAdapter implements StoragePort {
           delete normalized.caseNumber;
           delete normalized.clientId;
           delete normalized.assignedTo;
+          delete normalized.assignedToId;
           delete normalized.ownerId;
           delete normalized.forumId;
           delete normalized.authorityId;
