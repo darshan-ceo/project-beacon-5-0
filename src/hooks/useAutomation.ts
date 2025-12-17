@@ -1,9 +1,17 @@
 import { useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { automationRuleEngine } from '@/services/automationRuleEngine';
 import { automationEventEmitter } from '@/services/automationEventEmitter';
 
 export function useAutomation() {
+  const { isAuthenticated } = useAuth();
+
   useEffect(() => {
+    // Only initialize automation when user is authenticated
+    if (!isAuthenticated) {
+      return;
+    }
+
     let initialized = false;
 
     const initializeAutomation = async () => {
@@ -49,5 +57,5 @@ export function useAutomation() {
       // Cleanup on unmount
       automationEventEmitter.clearAllListeners();
     };
-  }, []);
+  }, [isAuthenticated]);
 }
