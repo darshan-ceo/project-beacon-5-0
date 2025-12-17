@@ -3891,6 +3891,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      get_employee_data_scope: { Args: { _user_id: string }; Returns: string }
       get_user_tenant_id: { Args: never; Returns: string }
       has_role: {
         Args: {
