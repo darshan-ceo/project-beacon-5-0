@@ -1431,6 +1431,38 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
         </div>
       </div>
       </div>
+
+      {/* Inherited Access Indicators - Read Only */}
+      <div className="mt-6 p-4 bg-muted/50 rounded-lg border">
+        <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+          <Info className="h-4 w-4 text-muted-foreground" />
+          Inherited Data Access
+        </h4>
+        <div className="space-y-3 text-sm">
+          <div className="flex items-start gap-3">
+            <Badge variant="outline" className="bg-background shrink-0">📄 Documents</Badge>
+            <span className="text-muted-foreground">
+              Inherited from Case Visibility ({formData.dataScope || 'Not Set'})
+            </span>
+          </div>
+          <div className="flex items-start gap-3">
+            <Badge variant="outline" className="bg-background shrink-0">✅ Tasks</Badge>
+            <span className="text-muted-foreground">
+              Inherited from Case Visibility + Direct Assignment
+            </span>
+          </div>
+          <div className="flex items-start gap-3">
+            <Badge variant="outline" className="bg-background shrink-0">📅 Hearings</Badge>
+            <span className="text-muted-foreground">
+              Inherited from Case Visibility ({formData.dataScope || 'Not Set'})
+            </span>
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground mt-4 pt-3 border-t">
+          Users can only see documents, tasks, and hearings linked to cases they can access.
+          Role permissions control <em>what actions</em> users can perform, not <em>which data</em> they can see.
+        </p>
+      </div>
     </div>
   );
 

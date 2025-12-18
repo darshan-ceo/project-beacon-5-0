@@ -10,8 +10,10 @@ import {
   Key,
   BarChart3,
   History,
-  GitBranch
+  GitBranch,
+  Info
 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -467,6 +469,20 @@ export const RBACManagement: React.FC = () => {
 
         {/* Permissions Matrix Tab */}
         <TabsContent value="permissions">
+          {/* Case-Inherited Access Info */}
+          <Alert className="mb-6 border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950">
+            <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <AlertTitle className="text-blue-800 dark:text-blue-200">Data Visibility Rule</AlertTitle>
+            <AlertDescription className="text-blue-700 dark:text-blue-300">
+              <strong>Document</strong>, <strong>Task</strong>, and <strong>Hearing</strong> visibility is automatically inherited from <strong>Case visibility scope</strong>.
+              Role permissions here only control what <em>actions</em> (view/create/edit/delete) users can perform, not which data they can see.
+              <br />
+              <span className="text-sm mt-1 block">
+                Users can only access documents, tasks, and hearings linked to cases they are authorized to view based on their Data Visibility Scope setting (Own Cases / Team Cases / All Cases).
+              </span>
+            </AlertDescription>
+          </Alert>
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
