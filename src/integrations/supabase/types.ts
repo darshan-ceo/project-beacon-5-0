@@ -3868,6 +3868,10 @@ export type Database = {
       }
     }
     Functions: {
+      can_user_view_case: {
+        Args: { _case_id: string; _user_id: string }
+        Returns: boolean
+      }
       can_view_case_by_hierarchy: {
         Args: {
           _case_assigned_to: string
