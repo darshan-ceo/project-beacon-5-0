@@ -61,19 +61,21 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
   const { user, tenantId } = useAuth();
   const appStateContext = useAppStateSafe();
   
-  // Handle hot reload gracefully - if context is not available, just render children
-  if (!appStateContext) {
-    console.warn('[DataInitializer] AppState context not available (likely during hot reload)');
-    return <>{children}</>;
-  }
-  
-  const { dispatch } = appStateContext;
-  
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   // Only show loading if data hasn't been loaded for this tenant yet
   const [isLoading, setIsLoading] = useState(
     !globalDataLoaded || globalLoadedTenantId !== tenantId
   );
   const [error, setError] = useState<string | null>(null);
+  
+  // Get dispatch safely - will be undefined if context is not available
+  const dispatch = appStateContext?.dispatch;
+  
+  // Handle hot reload gracefully - if context is not available, just render children
+  if (!appStateContext) {
+    console.warn('[DataInitializer] AppState context not available (likely during hot reload)');
+    return <>{children}</>;
+  }
 
   useEffect(() => {
     const loadData = async () => {
