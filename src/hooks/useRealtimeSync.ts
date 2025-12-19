@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAppState } from '@/contexts/AppStateContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { normalizeStage } from '@/utils/stageUtils';
 
@@ -10,11 +11,17 @@ import { normalizeStage } from '@/utils/stageUtils';
  */
 export const useRealtimeSync = () => {
   const { dispatch, rawDispatch, state } = useAppState();
+  const { isAuthenticated, user } = useAuth();
   const channelRef = useRef<RealtimeChannel | null>(null);
   const [tenantId, setTenantId] = useState<string | null>(null);
 
-  // Get tenant ID from auth session
+  // Get tenant ID from auth session - only when authenticated
   useEffect(() => {
+    if (!isAuthenticated || !user) {
+      setTenantId(null);
+      return;
+    }
+
     const getTenantId = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
@@ -32,11 +39,21 @@ export const useRealtimeSync = () => {
     };
 
     getTenantId();
-  }, []);
+  }, [isAuthenticated, user]);
+
+  // Cleanup channel when user logs out
+  useEffect(() => {
+    if (!isAuthenticated && channelRef.current) {
+      console.log('[Realtime] User logged out, unsubscribing from channel');
+      channelRef.current.unsubscribe();
+      channelRef.current = null;
+    }
+  }, [isAuthenticated]);
 
   useEffect(() => {
-    if (!tenantId) {
-      console.log('[Realtime] No tenant ID, skipping sync');
+    // Exit early if not authenticated or no tenant ID
+    if (!isAuthenticated || !tenantId) {
+      console.log('[Realtime] No authentication or tenant ID, skipping sync');
       return;
     }
 
