@@ -14,7 +14,7 @@ export interface HierarchyNode {
 }
 
 export interface AccessPath {
-  type: 'direct' | 'ownership' | 'team' | 'hierarchy' | 'department';
+  type: 'direct' | 'ownership' | 'team' | 'hierarchy' | 'department' | 'manager';
   through?: string;
   description: string;
 }
@@ -240,6 +240,9 @@ class HierarchyService {
       this.getAllSubordinates(employee.id, employees).map(s => s.id)
     );
     
+    // Get the manager's ID (the person this employee reports to)
+    const managerId = employee.reportingTo || employee.managerId;
+    
     // Get same-team colleagues (people with same manager)
     const sameManagerIds = new Set(
       employees
@@ -251,8 +254,15 @@ class HierarchyService {
         .map(e => e.id)
     );
 
-    // Combine for "team" - self + subordinates + same-manager colleagues
-    const teamMemberIds = new Set([employee.id, ...subordinateIds, ...sameManagerIds]);
+    // CRITICAL: For "Team Cases", include the manager themselves
+    // This allows staff to see cases/clients/tasks assigned to their manager
+    const managerAndTeamIds = new Set([
+      ...sameManagerIds,
+      ...(managerId ? [managerId] : [])
+    ]);
+
+    // Combine for "team" - self + subordinates + same-manager colleagues + manager
+    const teamMemberIds = new Set([employee.id, ...subordinateIds, ...managerAndTeamIds]);
 
     // Calculate visible cases based on dataScope
     const visibleCases: VisibleEntity[] = [];
@@ -271,25 +281,44 @@ class HierarchyService {
         });
       });
     } else if (effectiveScope === 'Team Cases') {
-      // Own cases + team/subordinate cases
+      // Own cases + team/subordinate cases + manager's cases
       cases.forEach(c => {
-        if (c.assignedToId === employee.id) {
+        const caseOwnerId = (c as any).ownerId || (c as any).owner_id;
+        
+        if (c.assignedToId === employee.id || caseOwnerId === employee.id) {
+          // Direct assignment or ownership
           visibleCases.push({
             id: c.id,
             name: c.title || c.caseNumber,
-            accessPath: { type: 'direct', description: 'Directly assigned' }
+            accessPath: { type: 'direct', description: 'Directly assigned/owned' }
           });
         } else if (c.assignedToId && subordinateIds.has(c.assignedToId)) {
+          // Subordinate's case
           visibleCases.push({
             id: c.id,
             name: c.title || c.caseNumber,
             accessPath: { type: 'hierarchy', through: c.assignedToId, description: 'Assigned to subordinate' }
           });
+        } else if (managerId && (c.assignedToId === managerId || caseOwnerId === managerId)) {
+          // CRITICAL FIX: Manager's case (assigned or owned)
+          visibleCases.push({
+            id: c.id,
+            name: c.title || c.caseNumber,
+            accessPath: { type: 'manager', through: managerId, description: 'Assigned to/owned by manager' }
+          });
         } else if (c.assignedToId && sameManagerIds.has(c.assignedToId)) {
+          // Teammate's case
           visibleCases.push({
             id: c.id,
             name: c.title || c.caseNumber,
             accessPath: { type: 'team', through: c.assignedToId, description: 'Assigned to team member (same manager)' }
+          });
+        } else if (caseOwnerId && (subordinateIds.has(caseOwnerId) || sameManagerIds.has(caseOwnerId))) {
+          // Case owned by team member
+          visibleCases.push({
+            id: c.id,
+            name: c.title || c.caseNumber,
+            accessPath: { type: 'team', through: caseOwnerId, description: 'Owned by team member' }
           });
         }
       });
@@ -317,7 +346,9 @@ class HierarchyService {
     const getClientOwnerId = (client: Client) => (client as any).ownerId || (client as any).owner_id;
     
     clients.forEach(client => {
-      if (getClientOwnerId(client) === employee.id) {
+      const clientOwnerId = getClientOwnerId(client);
+      
+      if (clientOwnerId === employee.id) {
         visibleClients.push({
           id: client.id,
           name: getClientName(client),
@@ -328,6 +359,20 @@ class HierarchyService {
           id: client.id,
           name: getClientName(client),
           accessPath: { type: 'hierarchy', description: 'Via visible case (inherited from case visibility)' }
+        });
+      } else if (effectiveScope === 'Team Cases' && managerId && clientOwnerId === managerId) {
+        // CRITICAL FIX: Client owned by manager
+        visibleClients.push({
+          id: client.id,
+          name: getClientName(client),
+          accessPath: { type: 'manager', description: 'Owned by manager' }
+        });
+      } else if (effectiveScope === 'Team Cases' && clientOwnerId && (subordinateIds.has(clientOwnerId) || sameManagerIds.has(clientOwnerId))) {
+        // Client owned by team member
+        visibleClients.push({
+          id: client.id,
+          name: getClientName(client),
+          accessPath: { type: 'team', description: 'Owned by team member' }
         });
       } else if (effectiveScope === 'All Cases') {
         visibleClients.push({
@@ -375,9 +420,16 @@ class HierarchyService {
           accessPath: { type: 'hierarchy', description: 'Organization-wide visibility (All Cases scope)' }
         });
       }
-      // For Team Cases scope, also see subordinate/team tasks
+      // For Team Cases scope, also see manager/subordinate/team tasks
       else if (effectiveScope === 'Team Cases') {
-        if (task.assignedToId && subordinateIds.has(task.assignedToId)) {
+        if (task.assignedToId === managerId) {
+          // CRITICAL FIX: Manager's task
+          visibleTasks.push({
+            id: task.id,
+            name: task.title,
+            accessPath: { type: 'manager', description: 'Assigned to manager' }
+          });
+        } else if (task.assignedToId && subordinateIds.has(task.assignedToId)) {
           visibleTasks.push({
             id: task.id,
             name: task.title,
