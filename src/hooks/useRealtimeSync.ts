@@ -1,24 +1,48 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAppState } from '@/contexts/AppStateContext';
-import { useAuth } from '@/contexts/AuthContext';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { normalizeStage } from '@/utils/stageUtils';
 
 /**
  * Hook for real-time data synchronization across clients
  * Subscribes to postgres_changes for core tables and updates React context
+ * 
+ * Note: This hook should only be called from authenticated contexts.
+ * It checks for session internally but relies on being mounted only when user is logged in.
  */
 export const useRealtimeSync = () => {
   const { dispatch, rawDispatch, state } = useAppState();
-  const { isAuthenticated, user } = useAuth();
   const channelRef = useRef<RealtimeChannel | null>(null);
   const [tenantId, setTenantId] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Listen to auth state changes
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setIsAuthenticated(!!session?.user);
+      if (!session?.user) {
+        setTenantId(null);
+        // Cleanup channel on logout
+        if (channelRef.current) {
+          console.log('[Realtime] User logged out, unsubscribing from channel');
+          channelRef.current.unsubscribe();
+          channelRef.current = null;
+        }
+      }
+    });
+
+    // Check initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsAuthenticated(!!session?.user);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Get tenant ID from auth session - only when authenticated
   useEffect(() => {
-    if (!isAuthenticated || !user) {
-      setTenantId(null);
+    if (!isAuthenticated) {
       return;
     }
 
@@ -39,15 +63,6 @@ export const useRealtimeSync = () => {
     };
 
     getTenantId();
-  }, [isAuthenticated, user]);
-
-  // Cleanup channel when user logs out
-  useEffect(() => {
-    if (!isAuthenticated && channelRef.current) {
-      console.log('[Realtime] User logged out, unsubscribing from channel');
-      channelRef.current.unsubscribe();
-      channelRef.current = null;
-    }
   }, [isAuthenticated]);
 
   useEffect(() => {
