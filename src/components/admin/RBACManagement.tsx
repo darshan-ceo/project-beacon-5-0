@@ -11,7 +11,8 @@ import {
   BarChart3,
   History,
   GitBranch,
-  Info
+  Info,
+  RefreshCcw
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,6 +29,7 @@ import { supabaseRbacService, type RoleDefinition, type UserWithRoles, type Perm
 import { RolePermissionEditor } from './RolePermissionEditor';
 import { CreateRoleModal } from './CreateRoleModal';
 import { TeamHierarchyView } from './TeamHierarchyView';
+import { supabase } from '@/integrations/supabase/client';
 
 export const RBACManagement: React.FC = () => {
   // State
@@ -52,6 +54,9 @@ export const RBACManagement: React.FC = () => {
   const [editingRole, setEditingRole] = useState<RoleDefinition | null>(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isCreateRoleOpen, setIsCreateRoleOpen] = useState(false);
+
+  // Bulk sync state
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Load data on mount
   useEffect(() => {
@@ -124,6 +129,69 @@ export const RBACManagement: React.FC = () => {
     setIsPreviewOpen(true);
   };
 
+  // Bulk sync all employee roles
+  const handleBulkSyncRoles = async () => {
+    setIsSyncing(true);
+    let successCount = 0;
+    let failureCount = 0;
+
+    try {
+      // Get all active employees from the users list
+      const activeUsers = users.filter(u => u.status === 'Active');
+      
+      toast.info(`Starting role sync for ${activeUsers.length} active employees...`);
+
+      for (const user of activeUsers) {
+        try {
+          // Get the employee's role from their designation or find from employees table
+          const { data: employee } = await supabase
+            .from('employees')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+
+          if (employee?.role) {
+            // Call the edge function to sync roles
+            const { data, error } = await supabase.functions.invoke('sync-employee-roles', {
+              body: {
+                employeeId: user.id,
+                newRole: employee.role
+              }
+            });
+
+            if (error) {
+              console.error(`Failed to sync roles for ${user.full_name}:`, error);
+              failureCount++;
+            } else {
+              console.log(`Synced roles for ${user.full_name}:`, data);
+              successCount++;
+            }
+          } else {
+            console.log(`No employee role found for ${user.full_name}`);
+            failureCount++;
+          }
+        } catch (err) {
+          console.error(`Error syncing roles for ${user.full_name}:`, err);
+          failureCount++;
+        }
+      }
+
+      // Refresh data after sync
+      await loadData();
+
+      if (failureCount === 0) {
+        toast.success(`Successfully synced roles for all ${successCount} employees`);
+      } else {
+        toast.warning(`Synced ${successCount} employees, ${failureCount} failed`);
+      }
+    } catch (error: any) {
+      console.error('Bulk sync failed:', error);
+      toast.error(`Bulk sync failed: ${error.message || error}`);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.full_name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
@@ -158,10 +226,24 @@ export const RBACManagement: React.FC = () => {
           <h1 className="text-3xl font-bold">Access & Roles</h1>
           <p className="text-muted-foreground mt-2">Manage user roles and system permissions</p>
         </div>
-        <Button variant="outline" onClick={loadData}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={handleBulkSyncRoles}
+            disabled={isSyncing}
+          >
+            {isSyncing ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCcw className="h-4 w-4 mr-2" />
+            )}
+            Sync All Roles
+          </Button>
+          <Button variant="outline" onClick={loadData}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Analytics Summary */}

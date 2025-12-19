@@ -17,11 +17,15 @@ import { AccessChain } from '@/services/hierarchyService';
 interface AccessChainInspectorProps {
   accessChain: AccessChain | null;
   loading?: boolean;
+  employeeRole?: string; // Employee Master role
+  employeeDataScope?: string; // Employee data_scope setting
 }
 
 export const AccessChainInspector: React.FC<AccessChainInspectorProps> = ({
   accessChain,
-  loading
+  loading,
+  employeeRole,
+  employeeDataScope
 }) => {
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
@@ -44,6 +48,19 @@ export const AccessChainInspector: React.FC<AccessChainInspectorProps> = ({
       'staff': 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
     };
     return colors[role] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
+  };
+
+  const getDataScopeColor = (scope?: string) => {
+    switch (scope) {
+      case 'All Cases':
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+      case 'Team Cases':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
+      case 'Own Cases':
+        return 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300';
+      default:
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
+    }
   };
 
   if (loading) {
@@ -80,11 +97,35 @@ export const AccessChainInspector: React.FC<AccessChainInspectorProps> = ({
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* RBAC Roles */}
+        {/* Employee Role (from Employee Master) */}
+        {employeeRole && (
+          <div>
+            <h4 className="text-sm font-semibold mb-2 flex items-center">
+              <User className="h-4 w-4 mr-1 text-primary" />
+              Employee Role
+              <span className="text-xs text-muted-foreground ml-2">(from Employee Master)</span>
+            </h4>
+            <div className="flex items-center gap-2">
+              <Badge className={getRoleColor(employeeRole)}>
+                {employeeRole}
+              </Badge>
+              {employeeDataScope && (
+                <Badge className={getDataScopeColor(employeeDataScope)}>
+                  Data Scope: {employeeDataScope}
+                </Badge>
+              )}
+            </div>
+          </div>
+        )}
+
+        {employeeRole && <Separator />}
+
+        {/* System RBAC Roles (from user_roles table) */}
         <div>
           <h4 className="text-sm font-semibold mb-2 flex items-center">
             <Shield className="h-4 w-4 mr-1 text-primary" />
-            RBAC Roles
+            System RBAC Roles
+            <span className="text-xs text-muted-foreground ml-2">(from user_roles table)</span>
           </h4>
           <div className="flex flex-wrap gap-2">
             {accessChain.roles.length > 0 ? (
@@ -97,6 +138,11 @@ export const AccessChainInspector: React.FC<AccessChainInspectorProps> = ({
               <span className="text-sm text-muted-foreground">No RBAC roles assigned</span>
             )}
           </div>
+          {employeeRole && accessChain.roles.length > 0 && (
+            <p className="text-xs text-muted-foreground mt-2 italic">
+              Note: RBAC roles should match Employee Role. If mismatched, use "Sync All Roles" in RBAC Management.
+            </p>
+          )}
         </div>
 
         <Separator />
