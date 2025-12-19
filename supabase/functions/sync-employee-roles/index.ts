@@ -6,16 +6,18 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// RBAC role mapping
+// RBAC role mapping - MUST match src/services/roleMapperService.ts
+// Employee Role (Employee Master) -> RBAC Roles (user_roles table)
 const EMPLOYEE_TO_RBAC_MAPPING: Record<string, string[]> = {
-  'Partner': ['admin'],
-  'CA': ['admin'],
-  'Advocate': ['manager'],
-  'Manager': ['manager'],
-  'Staff': ['staff'],
-  'RM': ['manager'],
-  'Finance': ['manager'],
-  'Admin': ['admin']
+  'Partner': ['partner'],     // Partner gets partner RBAC role
+  'CA': ['ca'],               // CA gets ca RBAC role
+  'Advocate': ['advocate'],   // Advocate gets advocate RBAC role
+  'Manager': ['manager'],     // Manager gets manager RBAC role
+  'Staff': ['staff'],         // Staff gets staff RBAC role
+  'RM': ['manager'],          // RM gets manager RBAC role
+  'Finance': ['manager'],     // Finance gets manager RBAC role
+  'Admin': ['admin'],         // Admin gets admin RBAC role
+  'Clerk': ['clerk']          // Clerk gets clerk RBAC role
 };
 
 serve(async (req) => {
