@@ -208,7 +208,11 @@ class HierarchyService {
   }
 
   /**
-   * Calculate what data an employee can see based on their position
+   * Calculate what data an employee can see based on their dataScope setting
+   * This must respect the employee's dataScope from Employee Master:
+   * - 'All Cases': See all organization data
+   * - 'Team Cases': See own + team/subordinate data
+   * - 'Own Cases': See only directly assigned/owned data
    */
   calculateVisibility(
     employee: Employee,
@@ -218,184 +222,187 @@ class HierarchyService {
     tasks: Task[]
   ): EmployeeVisibility {
     const role = employee.role;
-    const isPartner = role === 'Partner';
-    const isCA = role === 'CA';
-    const isManager = role === 'Manager';
-    const isAdvocate = role === 'Advocate';
-    const isStaff = role === 'Staff' || role === 'RM';
+    const dataScope = employee.dataScope || 'Own Cases'; // Default to most restrictive
+    
+    // Admin/Partner override - they always get 'All Cases' access
+    const isPartnerOrAdmin = role === 'Partner' || role === 'Admin';
+    const effectiveScope = isPartnerOrAdmin ? 'All Cases' : dataScope;
+    
+    console.log('[HierarchyService] Calculating visibility for:', {
+      employee: employee.full_name,
+      role: employee.role,
+      dataScope: employee.dataScope,
+      effectiveScope
+    });
 
-    // Get team members (people who report to this employee)
-    const teamMemberIds = new Set(
+    // Get team members (people who report to this employee) for Team Cases scope
+    const subordinateIds = new Set(
       this.getAllSubordinates(employee.id, employees).map(s => s.id)
     );
-    teamMemberIds.add(employee.id);
+    
+    // Get same-team colleagues (people with same manager)
+    const sameManagerIds = new Set(
+      employees
+        .filter(e => 
+          e.status?.toLowerCase() === 'active' &&
+          (e.managerId === employee.managerId || e.reportingTo === employee.reportingTo) &&
+          (employee.managerId || employee.reportingTo) // Only if employee has a manager
+        )
+        .map(e => e.id)
+    );
 
-    // Calculate visible clients
+    // Combine for "team" - self + subordinates + same-manager colleagues
+    const teamMemberIds = new Set([employee.id, ...subordinateIds, ...sameManagerIds]);
+
+    // Calculate visible cases based on dataScope
+    const visibleCases: VisibleEntity[] = [];
+    
+    if (effectiveScope === 'All Cases') {
+      // Full organization access
+      cases.forEach(c => {
+        const accessType = c.assignedToId === employee.id ? 'direct' : 'hierarchy';
+        visibleCases.push({
+          id: c.id,
+          name: c.title || c.caseNumber,
+          accessPath: { 
+            type: accessType, 
+            description: accessType === 'direct' ? 'Directly assigned' : 'Organization-wide visibility (All Cases scope)' 
+          }
+        });
+      });
+    } else if (effectiveScope === 'Team Cases') {
+      // Own cases + team/subordinate cases
+      cases.forEach(c => {
+        if (c.assignedToId === employee.id) {
+          visibleCases.push({
+            id: c.id,
+            name: c.title || c.caseNumber,
+            accessPath: { type: 'direct', description: 'Directly assigned' }
+          });
+        } else if (c.assignedToId && subordinateIds.has(c.assignedToId)) {
+          visibleCases.push({
+            id: c.id,
+            name: c.title || c.caseNumber,
+            accessPath: { type: 'hierarchy', through: c.assignedToId, description: 'Assigned to subordinate' }
+          });
+        } else if (c.assignedToId && sameManagerIds.has(c.assignedToId)) {
+          visibleCases.push({
+            id: c.id,
+            name: c.title || c.caseNumber,
+            accessPath: { type: 'team', through: c.assignedToId, description: 'Assigned to team member (same manager)' }
+          });
+        }
+      });
+    } else {
+      // 'Own Cases' - most restrictive
+      cases.forEach(c => {
+        if (c.assignedToId === employee.id) {
+          visibleCases.push({
+            id: c.id,
+            name: c.title || c.caseNumber,
+            accessPath: { type: 'direct', description: 'Directly assigned' }
+          });
+        }
+      });
+    }
+
+    // Calculate visible clients - inherited from visible cases
+    const visibleCaseClientIds = new Set(visibleCases.map(c => {
+      const caseData = cases.find(cs => cs.id === c.id);
+      return caseData?.clientId;
+    }).filter(Boolean));
+    
     const visibleClients: VisibleEntity[] = [];
     const getClientName = (client: Client) => (client as any).displayName || (client as any).name || 'Unknown';
     const getClientOwnerId = (client: Client) => (client as any).ownerId || (client as any).owner_id;
     
-    if (isPartner || isCA) {
-      // Partners and CAs see clients they own
-      clients.forEach(client => {
-        if (getClientOwnerId(client) === employee.id) {
-          visibleClients.push({
-            id: client.id,
-            name: getClientName(client),
-            accessPath: { type: 'ownership', description: 'Owner of this client' }
-          });
-        } else {
-          // They also see all clients in their org (admin-level)
-          visibleClients.push({
-            id: client.id,
-            name: getClientName(client),
-            accessPath: { type: 'hierarchy', description: 'Organization-wide visibility' }
-          });
-        }
-      });
-    } else if (isManager || isAdvocate) {
-      // Managers/Advocates see clients from cases assigned to them or their team
-      const relevantCaseClientIds = new Set(
-        cases
-          .filter(c => c.assignedToId && teamMemberIds.has(c.assignedToId))
-          .map(c => c.clientId)
-      );
-      
-      clients.forEach(client => {
-        if (relevantCaseClientIds.has(client.id)) {
-          visibleClients.push({
-            id: client.id,
-            name: getClientName(client),
-            accessPath: { type: 'team', description: 'Via assigned cases' }
-          });
-        }
-      });
-    } else if (isStaff) {
-      // Staff see clients only from their directly assigned cases
-      const assignedCaseClientIds = new Set(
-        cases
-          .filter(c => c.assignedToId === employee.id)
-          .map(c => c.clientId)
-      );
-      
-      clients.forEach(client => {
-        if (assignedCaseClientIds.has(client.id)) {
-          visibleClients.push({
-            id: client.id,
-            name: getClientName(client),
-            accessPath: { type: 'direct', description: 'Via assigned case' }
-          });
-        }
-      });
-    }
-
-    // Calculate visible cases
-    const visibleCases: VisibleEntity[] = [];
-    
-    if (isPartner || isCA) {
-      // Partners/CAs see all cases
-      cases.forEach(c => {
-        visibleCases.push({
-          id: c.id,
-          name: c.title || c.caseNumber,
-          accessPath: { type: 'hierarchy', description: 'Organization-wide visibility' }
+    clients.forEach(client => {
+      if (getClientOwnerId(client) === employee.id) {
+        visibleClients.push({
+          id: client.id,
+          name: getClientName(client),
+          accessPath: { type: 'ownership', description: 'Owner of this client' }
         });
-      });
-    } else if (isManager || isAdvocate) {
-      // Managers/Advocates see cases assigned to them or their team
-      cases.forEach(c => {
-        if (c.assignedToId === employee.id) {
-          visibleCases.push({
-            id: c.id,
-            name: c.title || c.caseNumber,
-            accessPath: { type: 'direct', description: 'Directly assigned' }
-          });
-        } else if (c.assignedToId && teamMemberIds.has(c.assignedToId)) {
-          visibleCases.push({
-            id: c.id,
-            name: c.title || c.caseNumber,
-            accessPath: { type: 'team', through: c.assignedToId, description: 'Assigned to team member' }
-          });
-        }
-      });
-    } else if (isStaff) {
-      // Staff see only their assigned cases
-      cases.forEach(c => {
-        if (c.assignedToId === employee.id) {
-          visibleCases.push({
-            id: c.id,
-            name: c.title || c.caseNumber,
-            accessPath: { type: 'direct', description: 'Directly assigned' }
-          });
-        }
-      });
-    }
+      } else if (visibleCaseClientIds.has(client.id)) {
+        visibleClients.push({
+          id: client.id,
+          name: getClientName(client),
+          accessPath: { type: 'hierarchy', description: 'Via visible case (inherited from case visibility)' }
+        });
+      } else if (effectiveScope === 'All Cases') {
+        visibleClients.push({
+          id: client.id,
+          name: getClientName(client),
+          accessPath: { type: 'hierarchy', description: 'Organization-wide visibility (All Cases scope)' }
+        });
+      }
+    });
 
-    // Calculate visible tasks
+    // Calculate visible tasks - based on case visibility + direct assignment
+    const visibleCaseIds = new Set(visibleCases.map(c => c.id));
     const visibleTasks: VisibleEntity[] = [];
     
-    if (isPartner || isCA || isManager) {
-      // Partners/CAs/Managers see all tasks or team tasks
-      tasks.forEach(task => {
-        if (task.assignedToId === employee.id) {
+    tasks.forEach(task => {
+      // Always see tasks assigned to self
+      if (task.assignedToId === employee.id) {
+        visibleTasks.push({
+          id: task.id,
+          name: task.title,
+          accessPath: { type: 'direct', description: 'Directly assigned' }
+        });
+      }
+      // Always see tasks created by self
+      else if (task.assignedById === employee.id) {
+        visibleTasks.push({
+          id: task.id,
+          name: task.title,
+          accessPath: { type: 'ownership', description: 'Created by you' }
+        });
+      }
+      // See tasks from visible cases (inherited visibility)
+      else if (task.caseId && visibleCaseIds.has(task.caseId)) {
+        visibleTasks.push({
+          id: task.id,
+          name: task.title,
+          accessPath: { type: 'hierarchy', description: 'Via visible case (inherited from case visibility)' }
+        });
+      }
+      // For All Cases scope, see all tasks
+      else if (effectiveScope === 'All Cases') {
+        visibleTasks.push({
+          id: task.id,
+          name: task.title,
+          accessPath: { type: 'hierarchy', description: 'Organization-wide visibility (All Cases scope)' }
+        });
+      }
+      // For Team Cases scope, also see subordinate/team tasks
+      else if (effectiveScope === 'Team Cases') {
+        if (task.assignedToId && subordinateIds.has(task.assignedToId)) {
           visibleTasks.push({
             id: task.id,
             name: task.title,
-            accessPath: { type: 'direct', description: 'Directly assigned' }
-          });
-        } else if (task.assignedById === employee.id) {
-          visibleTasks.push({
-            id: task.id,
-            name: task.title,
-            accessPath: { type: 'ownership', description: 'Created by you' }
-          });
-        } else if (task.assignedToId && teamMemberIds.has(task.assignedToId)) {
-          visibleTasks.push({
-            id: task.id,
-            name: task.title,
-            accessPath: { type: 'team', through: task.assignedToId, description: 'Assigned to team member' }
-          });
-        } else if (isPartner || isCA) {
-          visibleTasks.push({
-            id: task.id,
-            name: task.title,
-            accessPath: { type: 'hierarchy', description: 'Organization-wide visibility' }
-          });
-        }
-      });
-    } else if (isAdvocate || isStaff) {
-      // Advocates/Staff see their own tasks and tasks of colleagues with same manager
-      const sameManagerIds = new Set(
-        employees
-          .filter(e => 
-            (e.managerId === employee.managerId || e.reportingTo === employee.reportingTo) &&
-            e.status === 'Active'
-          )
-          .map(e => e.id)
-      );
-      
-      tasks.forEach(task => {
-        if (task.assignedToId === employee.id) {
-          visibleTasks.push({
-            id: task.id,
-            name: task.title,
-            accessPath: { type: 'direct', description: 'Directly assigned' }
-          });
-        } else if (task.assignedById === employee.id) {
-          visibleTasks.push({
-            id: task.id,
-            name: task.title,
-            accessPath: { type: 'ownership', description: 'Created by you' }
+            accessPath: { type: 'hierarchy', through: task.assignedToId, description: 'Assigned to subordinate' }
           });
         } else if (task.assignedToId && sameManagerIds.has(task.assignedToId)) {
           visibleTasks.push({
             id: task.id,
             name: task.title,
-            accessPath: { type: 'team', description: 'Same team (same manager)' }
+            accessPath: { type: 'team', description: 'Assigned to team member (same manager)' }
           });
         }
-      });
-    }
+      }
+    });
+
+    console.log('[HierarchyService] Visibility calculated:', {
+      employee: employee.full_name,
+      dataScope: effectiveScope,
+      visibleCases: visibleCases.length,
+      visibleClients: visibleClients.length,
+      visibleTasks: visibleTasks.length,
+      totalCases: cases.length,
+      totalClients: clients.length,
+      totalTasks: tasks.length
+    });
 
     return {
       clients: visibleClients,

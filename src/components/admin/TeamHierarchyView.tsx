@@ -70,6 +70,12 @@ export const TeamHierarchyView: React.FC = () => {
     return hierarchyService.getTeamStatistics(state.employees, hierarchy);
   }, [state.employees, hierarchy]);
 
+  // Get selected employee for passing role/scope to inspector
+  const selectedEmployee = useMemo(() => {
+    if (!selectedEmployeeId) return null;
+    return state.employees.find(e => e.id === selectedEmployeeId) || null;
+  }, [selectedEmployeeId, state.employees]);
+
   // Handle employee selection
   const handleEmployeeSelect = useCallback(async (employee: Employee) => {
     setSelectedEmployeeId(employee.id);
@@ -352,7 +358,11 @@ export const TeamHierarchyView: React.FC = () => {
             </Card>
           ) : (
             <>
-              <AccessChainInspector accessChain={accessChain} />
+              <AccessChainInspector 
+                accessChain={accessChain}
+                employeeRole={selectedEmployee?.role}
+                employeeDataScope={selectedEmployee?.dataScope}
+              />
               <VisibilityMatrix 
                 visibility={accessChain?.visibility || null} 
                 employeeName={accessChain?.employeeName || ''}
