@@ -39,7 +39,6 @@ const StageContextPage: React.FC = () => {
 
   // Get current case details
   const currentCase = state.cases?.find(c => c.id === caseId);
-  const currentUser = { name: "Current User", role: "Admin" as const };
 
   useEffect(() => {
     if (caseId && instanceId) {
@@ -93,7 +92,7 @@ const StageContextPage: React.FC = () => {
 
   if (!caseId || !instanceId) {
     return (
-      <AdminLayout currentUser={{ name: "Current User", role: "Admin" }}>
+      <AdminLayout>
         <div className="p-6">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-destructive">Invalid Parameters</h1>
@@ -109,7 +108,7 @@ const StageContextPage: React.FC = () => {
   }
 
   return (
-    <AdminLayout currentUser={currentUser}>
+    <AdminLayout>
       <div className="p-6 space-y-6">
         {/* Header with breadcrumb */}
         <div className="flex items-center justify-between">

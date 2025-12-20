@@ -1,22 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { 
   Bell, 
-  Search, 
   ChevronDown,
   Shield,
   LogOut,
   User,
   Settings,
   AlertTriangle,
-  Database,
-  TestTube
 } from 'lucide-react';
 import { envConfig } from '@/utils/envConfig';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -27,43 +22,40 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { RoleSelector } from '@/components/dashboard/RoleSelector';
 import { GlobalSearch } from '@/components/search/GlobalSearch';
-import { searchService, SearchProvider } from '@/services/searchService';
 
-interface HeaderProps {
-  user: {
-    name: string;
-    role: 'Admin' | 'Partner/CA' | 'Staff' | 'Client';
-    avatar?: string;
-  };
-  onMenuToggle: () => void; // Still needed for compatibility but not used
-}
-
-export const Header: React.FC<HeaderProps> = ({ user }) => {
-  const [searchProvider, setSearchProvider] = useState<SearchProvider | null>(null);
-  const { signOut } = useAuth();
+export const Header: React.FC = () => {
+  const { signOut, userProfile, user } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    // Subscribe to search provider changes
-    const unsubscribe = searchService.subscribeProvider?.(setSearchProvider);
-    
-    // Get initial provider if available
-    const currentProvider = searchService.getProvider?.();
-    if (currentProvider) {
-      setSearchProvider(currentProvider);
-    }
-    
-    return unsubscribe;
-  }, []);
+  // Get display name from profile or email
+  const displayName = userProfile?.full_name || user?.email?.split('@')[0] || 'User';
+  
+  // Get role from employee data
+  const userRole = userProfile?.role || 'Staff';
+  
+  // Get avatar URL
+  const avatarUrl = userProfile?.avatar_url || undefined;
+  
+  // Generate initials for avatar fallback
+  const getInitials = (name: string): string => {
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'Admin': return 'bg-primary text-primary-foreground';
-      case 'Partner/CA': return 'bg-secondary text-secondary-foreground';
-      case 'Staff': return 'bg-warning text-warning-foreground';
-      case 'Client': return 'bg-muted text-muted-foreground';
+      case 'Partner': return 'bg-secondary text-secondary-foreground';
+      case 'Manager': return 'bg-accent text-accent-foreground';
+      case 'CA':
+      case 'Advocate': return 'bg-muted text-muted-foreground';
+      case 'Staff':
+      case 'User': return 'bg-muted text-muted-foreground';
       default: return 'bg-muted text-muted-foreground';
     }
   };
@@ -72,6 +64,8 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
     await signOut();
     navigate('/auth/login');
   };
+
+  const isDevMode = envConfig.QA_ON || !envConfig.API_SET || envConfig.MOCK_ON;
 
   return (
     <div className="flex items-center justify-between w-full">
@@ -83,32 +77,12 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
       {/* Right Section */}
       <div className="flex items-center gap-2 sm:gap-4">
         {/* Dev Mode Badge - Hidden on mobile */}
-        {(envConfig.QA_ON || !envConfig.API_SET || envConfig.MOCK_ON) && (
+        {isDevMode && (
           <Badge variant="destructive" className="hidden md:flex items-center gap-1 animate-pulse">
             <AlertTriangle className="h-3 w-3" />
             DEV MODE
           </Badge>
         )}
-        
-        {/* Search Provider Badge - Hidden on mobile */}
-        {searchProvider && (
-          <Badge 
-            variant={searchProvider === 'API' ? 'default' : 'secondary'} 
-            className="hidden md:flex items-center gap-1"
-          >
-            {searchProvider === 'API' ? (
-              <Database className="h-3 w-3" />
-            ) : (
-              <TestTube className="h-3 w-3" />
-            )}
-            <span className="hidden lg:inline">Search: {searchProvider}</span>
-          </Badge>
-        )}
-        
-        {/* Role Selector - Hidden on small mobile */}
-        <div className="hidden sm:block">
-          <RoleSelector />
-        </div>
         
         {/* Notifications */}
         <Button variant="ghost" size="sm" className="relative">
@@ -118,21 +92,21 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
           </span>
         </Button>
 
-        {/* User Menu */}
+        {/* Unified User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center gap-2 px-2 sm:px-3">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="text-xs">
-                  {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                <AvatarImage src={avatarUrl} alt={displayName} />
+                <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                  {getInitials(displayName)}
                 </AvatarFallback>
               </Avatar>
               {/* User info - Hidden on mobile */}
               <div className="hidden lg:flex flex-col items-start">
-                <span className="text-sm font-medium">{user.name}</span>
-                <Badge className={`text-xs ${getRoleColor(user.role)}`}>
-                  {user.role}
+                <span className="text-sm font-medium">{displayName}</span>
+                <Badge className={`text-xs ${getRoleColor(userRole)}`}>
+                  {userRole}
                 </Badge>
               </div>
               <ChevronDown className="h-4 w-4 hidden sm:block" />
@@ -140,22 +114,27 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel className="flex flex-col">
-              <span>{user.name}</span>
-              <span className="text-xs text-muted-foreground">{user.role}</span>
+              <span className="font-medium">{displayName}</span>
+              <span className="text-xs text-muted-foreground">{user?.email}</span>
+              <Badge className={`text-xs mt-1 w-fit ${getRoleColor(userRole)}`}>
+                {userRole}
+              </Badge>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/profile')}>
               <User className="mr-2 h-4 w-4" />
               Profile
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/settings')}>
               <Settings className="mr-2 h-4 w-4" />
               Settings
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate('/access-roles')}>
-              <Shield className="mr-2 h-4 w-4" />
-              Access & Roles
-            </DropdownMenuItem>
+            {(userRole === 'Admin' || userRole === 'Partner') && (
+              <DropdownMenuItem onClick={() => navigate('/access-roles')}>
+                <Shield className="mr-2 h-4 w-4" />
+                Access & Roles
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="text-destructive">
               <LogOut className="mr-2 h-4 w-4" />

@@ -10,12 +10,20 @@ interface SignUpMetadata {
   tenantId: string;
 }
 
+interface UserProfile {
+  full_name: string;
+  phone: string;
+  avatar_url: string | null;
+  role: string | null;
+  designation: string | null;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
   tenantId: string | null;
-  userProfile: { full_name: string; phone: string } | null;
+  userProfile: UserProfile | null;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signUp: (email: string, password: string, metadata: SignUpMetadata) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
@@ -39,25 +47,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [tenantId, setTenantId] = useState<string | null>(null);
-  const [userProfile, setUserProfile] = useState<{ full_name: string; phone: string } | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const { toast } = useToast();
 
-  // Fetch user profile and tenant info
+  // Fetch user profile and tenant info, including employee role
   const fetchUserProfile = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('tenant_id, full_name, phone')
-      .eq('id', userId)
-      .single();
+    try {
+      // Fetch profile data
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('tenant_id, full_name, phone, avatar_url')
+        .eq('id', userId)
+        .single();
 
-    if (error) {
+      if (profileError) {
+        console.error('Error fetching user profile:', profileError);
+        return;
+      }
+
+      if (profileData) {
+        setTenantId(profileData.tenant_id);
+        
+        // Fetch employee role if exists
+        const { data: employeeData } = await supabase
+          .from('employees')
+          .select('role, designation')
+          .eq('id', userId)
+          .single();
+
+        setUserProfile({
+          full_name: profileData.full_name,
+          phone: profileData.phone,
+          avatar_url: profileData.avatar_url || null,
+          role: employeeData?.role || null,
+          designation: employeeData?.designation || null,
+        });
+      }
+    } catch (error) {
       console.error('Error fetching user profile:', error);
-      return;
-    }
-
-    if (data) {
-      setTenantId(data.tenant_id);
-      setUserProfile({ full_name: data.full_name, phone: data.phone });
     }
   };
 

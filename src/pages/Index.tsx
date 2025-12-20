@@ -18,13 +18,6 @@ const mockCurrentPage = 'tasks'; // Can be: 'dashboard', 'clients', 'documents',
 
 const Index = () => {
   const [currentPage, setCurrentPage] = useState(mockCurrentPage);
-  
-  // Mock user - in real app this would come from auth context
-  const currentUser = {
-    name: 'John Doe',
-    role: 'Admin' as const,
-    avatar: undefined
-  };
 
   const renderCurrentPage = () => {
     switch (currentPage) {
@@ -55,7 +48,7 @@ const Index = () => {
   };
 
   return (
-    <AdminLayout currentUser={currentUser}>
+    <AdminLayout>
       {/* Demo Navigation Pills - Remove when implementing real routing */}
       <motion.div 
         initial={{ opacity: 0, y: -10 }}

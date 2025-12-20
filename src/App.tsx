@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppStateProvider, useAppState } from "@/contexts/AppStateContext";
 import { AdvancedRBACProvider } from "@/hooks/useAdvancedRBAC";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { FollowUpReminderService } from "@/services/followUpReminderService";
 import { FollowUpSystemTutorial } from "@/components/tasks/FollowUpSystemTutorial";
@@ -69,12 +69,23 @@ import { DataInitializer } from "@/components/data/DataInitializer";
 
 const queryClient = new QueryClient();
 
-// Mock current user - in real app this would come from auth context
-const currentUser = {
-  id: 'demo-user',
-  name: 'John Doe',
-  role: 'Admin' as const,
-  avatar: undefined
+// Reports wrapper to get user role from context
+const ReportsWithAuth = () => {
+  const { userProfile } = useAuth();
+  // Map roles to ReportsModule expected types
+  const roleMap: Record<string, 'Admin' | 'Partner/CA' | 'Staff' | 'Client'> = {
+    'Admin': 'Admin',
+    'Partner': 'Partner/CA',
+    'CA': 'Partner/CA',
+    'Advocate': 'Partner/CA',
+    'Manager': 'Partner/CA',
+    'Staff': 'Staff',
+    'User': 'Staff',
+    'Clerk': 'Staff',
+    'Client': 'Client',
+  };
+  const userRole = roleMap[userProfile?.role || ''] || 'Staff';
+  return <ReportsModule userRole={userRole} />;
 };
 
 // Inner component to access AppState context
@@ -127,7 +138,7 @@ const AppContent = () => {
               {/* Protected Routes */}
               <Route path="/" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <EnhancedDashboard />
                   </AdminLayout>
                 </ProtectedRoute>
@@ -145,119 +156,119 @@ const AppContent = () => {
               } />
               <Route path="/clients" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <ClientMasters />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/client-groups" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <ClientGroupMasters />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/courts" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <CourtMasters />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/judges" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <JudgeMasters />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/employees" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <EmployeeMasters />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/statutory-acts" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <StatutoryActMasters />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/statutory-event-types" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <StatutoryEventTypeMasters />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/holidays" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <HolidayMasters />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/cases" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <CaseManagement />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/tasks" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <TaskManagement />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/tasks/new" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <CreateTask />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/tasks/:taskId" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <TaskConversation />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/documents" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <DocumentManagement />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/documents/folder/:id" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <DocumentManagement />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/access-roles" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <RBACManagement />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/settings" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <GlobalParameters />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/profile" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <ProfileErrorBoundary>
                       <UserProfile />
                     </ProfileErrorBoundary>
@@ -266,98 +277,98 @@ const AppContent = () => {
               } />
               <Route path="/reports" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
-                    <ReportsModule userRole={currentUser.role} />
+                  <AdminLayout>
+                    <ReportsWithAuth />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/analytics" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <AnalyticsDashboard />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/compliance" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <ComplianceDashboard />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/debug/gst" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <GSTDebugPage />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/qa" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <QADashboard />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/dev-dashboard" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <DevModeDashboard />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/hearings/*" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <HearingsPage />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/hearings/calendar" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <HearingsPage />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/hearings/list" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <HearingsPage />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/help" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <HelpCenter />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/help/glossary" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <GlossaryPage />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/help/api" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <APIDocsPage />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/help/best-practices" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <BestPracticesPage />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/help/articles/:slug" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <ArticlePage />
                   </AdminLayout>
                 </ProtectedRoute>
@@ -369,49 +380,49 @@ const AppContent = () => {
               } />
               <Route path="/help/diagnostics" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <HelpDiagnostics />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/pending-records" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <PendingRecordsPage />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/search" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <SearchResultsPage />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/debug/search" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <DebugSearchInspector />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/migration" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <MigrationHealth />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/qa/tooltips" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <TooltipDiagnostics />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/docs" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <DocViewerPage />
                   </AdminLayout>
                 </ProtectedRoute>
@@ -419,21 +430,21 @@ const AppContent = () => {
               {/* Redirect legacy URLs */}
               <Route path="/document-management" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <DocumentManagement />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/documents/templates/custom/new" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <DocumentManagement />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
               <Route path="/settings/client-portal-users" element={
                 <ProtectedRoute>
-                  <AdminLayout currentUser={currentUser}>
+                  <AdminLayout>
                     <ClientPortalUserManagement />
                   </AdminLayout>
                 </ProtectedRoute>

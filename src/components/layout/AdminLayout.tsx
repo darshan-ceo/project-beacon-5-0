@@ -5,25 +5,24 @@ import { Header } from './Header';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { StorageStatusIndicator } from '@/components/admin/StorageStatusIndicator';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
-  currentUser?: {
-    name: string;
-    role: 'Admin' | 'Partner/CA' | 'Staff' | 'Client';
-    avatar?: string;
-  };
 }
 
-export const AdminLayout: React.FC<AdminLayoutProps> = ({ 
-  children, 
-  currentUser = { name: 'John Doe', role: 'Admin' } 
-}) => {
+export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
+  const { userProfile, user } = useAuth();
+  
+  // Derive user role for sidebar - default to 'Staff' if not available
+  const userRole = (userProfile?.role as 'Admin' | 'Partner/CA' | 'Staff' | 'Client') || 'Staff';
+  const userId = user?.id || userProfile?.full_name || 'user';
+
   return (
     <SidebarProvider defaultOpen={true}>
       <div className="min-h-screen flex w-full bg-background font-inter">
         {/* Sidebar */}
-        <AppSidebar userRole={currentUser.role} />
+        <AppSidebar userRole={userRole} />
         
         {/* Main Content */}
         <div className="flex-1 flex flex-col min-w-0">
@@ -32,14 +31,11 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
             <div className="flex items-center justify-between p-4">
               <div className="flex items-center">
                 <SidebarTrigger className="mr-4 text-foreground bg-background hover:bg-muted border border-border shadow-beacon-sm" />
-                <Header 
-                  user={currentUser}
-                  onMenuToggle={() => {}} // No longer needed, controlled by SidebarProvider
-                />
+                <Header />
               </div>
               <div className="flex items-center gap-2">
                 <StorageStatusIndicator />
-                <NotificationBell userId={currentUser.name} />
+                <NotificationBell userId={userId} />
               </div>
             </div>
           </header>
