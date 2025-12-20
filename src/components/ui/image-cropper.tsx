@@ -250,8 +250,8 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
           )}
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-center gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -281,11 +281,11 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
             </Button>
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-            <Button variant="outline" size="sm" onClick={onCancel} disabled={disabled}>
+          <div className="flex flex-col sm:flex-row items-stretch gap-2 w-full">
+            <Button variant="outline" onClick={onCancel} disabled={disabled} className="flex-1">
               Cancel
             </Button>
-            <Button size="sm" onClick={cropImage} disabled={disabled || !imageLoaded}>
+            <Button onClick={cropImage} disabled={disabled || !imageLoaded} className="flex-1">
               <Crop className="h-4 w-4 mr-2" />
               Crop & Save
             </Button>
