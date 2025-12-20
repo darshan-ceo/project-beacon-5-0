@@ -304,15 +304,17 @@ export const UserProfile: React.FC = () => {
       setShowCropper(false);
       setSelectedImageFile(null);
       
-      // Upload to Supabase storage
-      const fileName = `avatars/${user?.id}-${Date.now()}.${croppedFile.type.split('/')[1]}`;
+      // Upload to avatars bucket with path: user_id/timestamp.ext
+      const fileExt = croppedFile.type.split('/')[1] || 'jpg';
+      const fileName = `${user?.id}/${Date.now()}.${fileExt}`;
       const { data, error } = await supabase.storage
-        .from('documents')
+        .from('avatars')
         .upload(fileName, croppedFile, { upsert: true });
 
       if (error) throw error;
 
-      const { data: urlData } = supabase.storage.from('documents').getPublicUrl(fileName);
+      // Get public URL from avatars bucket
+      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
       const avatarUrl = urlData.publicUrl;
 
       // Update profile with new avatar URL
@@ -339,14 +341,17 @@ export const UserProfile: React.FC = () => {
     try {
       setIsUploading(true);
       
-      const fileName = `avatars/${user?.id}-${Date.now()}.${file.type.split('/')[1]}`;
+      // Upload to avatars bucket with path: user_id/timestamp.ext
+      const fileExt = file.type.split('/')[1] || 'jpg';
+      const fileName = `${user?.id}/${Date.now()}.${fileExt}`;
       const { data, error } = await supabase.storage
-        .from('documents')
+        .from('avatars')
         .upload(fileName, file, { upsert: true });
 
       if (error) throw error;
 
-      const { data: urlData } = supabase.storage.from('documents').getPublicUrl(fileName);
+      // Get public URL from avatars bucket
+      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
       const avatarUrl = urlData.publicUrl;
 
       await updateProfile({ avatar_url: avatarUrl });
