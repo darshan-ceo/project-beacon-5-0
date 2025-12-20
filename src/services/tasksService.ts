@@ -1,6 +1,8 @@
 import { Task } from '@/contexts/AppStateContext';
 import { storageManager } from '@/data/StorageManager';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { auditService } from '@/services/auditService';
 
 export interface CreateTaskData {
   title: string;
@@ -93,6 +95,28 @@ class TasksService {
         description: `Task "${persistedTask.title}" has been created successfully.`,
       });
 
+      // Log audit event for task creation
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).single();
+        if (user && profile?.tenant_id) {
+          await auditService.log('create_task', profile.tenant_id, {
+            userId: user.id,
+            entityType: 'task',
+            entityId: persistedTask.id,
+            details: { 
+              title: persistedTask.title,
+              caseId: persistedTask.caseId,
+              assignedTo: persistedTask.assignedToName,
+              dueDate: persistedTask.dueDate,
+              priority: persistedTask.priority
+            }
+          });
+        }
+      } catch (auditError) {
+        console.warn('Failed to log audit event for task creation:', auditError);
+      }
+
       return persistedTask;
     } catch (error) {
       console.error('Failed to create task:', error);
@@ -181,6 +205,26 @@ class TasksService {
         description: `Task "${fullUpdatedTask.title}" has been updated successfully.`,
       });
 
+      // Log audit event for task update
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).single();
+        if (user && profile?.tenant_id) {
+          await auditService.log('update_task', profile.tenant_id, {
+            userId: user.id,
+            entityType: 'task',
+            entityId: taskId,
+            details: { 
+              title: fullUpdatedTask.title,
+              updatedFields: Object.keys(updates),
+              status: fullUpdatedTask.status
+            }
+          });
+        }
+      } catch (auditError) {
+        console.warn('Failed to log audit event for task update:', auditError);
+      }
+
       return fullUpdatedTask;
     } catch (error) {
       console.error('Failed to update task:', error);
@@ -200,6 +244,9 @@ class TasksService {
     try {
       const storage = storageManager.getStorage();
 
+      // Get task details before deletion for audit
+      const taskToDelete = await storage.getById('tasks', taskId) as any;
+
       // Delete from Supabase
       await storage.delete('tasks', taskId);
 
@@ -211,6 +258,25 @@ class TasksService {
         title: "Task Deleted",
         description: "Task has been deleted successfully.",
       });
+
+      // Log audit event for task deletion
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).single();
+        if (user && profile?.tenant_id) {
+          await auditService.log('delete_task', profile.tenant_id, {
+            userId: user.id,
+            entityType: 'task',
+            entityId: taskId,
+            details: { 
+              title: taskToDelete?.title || 'Unknown',
+              caseId: taskToDelete?.case_id
+            }
+          });
+        }
+      } catch (auditError) {
+        console.warn('Failed to log audit event for task deletion:', auditError);
+      }
     } catch (error) {
       console.error('Failed to delete task:', error);
       toast({

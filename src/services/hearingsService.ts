@@ -9,6 +9,7 @@ import { timelineService } from './timelineService';
 import { generateOutcomeTasks } from './hearingOutcomeTemplates';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
+import { auditService } from '@/services/auditService';
 
 const isDev = import.meta.env.DEV;
 
@@ -202,6 +203,27 @@ export const hearingsService = {
         description: `Hearing scheduled for ${data.date} at ${data.start_time}.`,
       });
       
+      // Log audit event for hearing creation
+      try {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', currentUser?.id).single();
+        if (currentUser && profile?.tenant_id) {
+          await auditService.log('create_hearing', profile.tenant_id, {
+            userId: currentUser.id,
+            entityType: 'hearing',
+            entityId: newHearing.id,
+            details: { 
+              caseId: data.case_id,
+              date: data.date,
+              startTime: data.start_time,
+              court: data.court_id
+            }
+          });
+        }
+      } catch (auditError) {
+        console.warn('Failed to log audit event for hearing creation:', auditError);
+      }
+      
       log('success', 'create hearing', { hearingId: newHearing.id });
       return newHearing;
       
@@ -342,6 +364,26 @@ export const hearingsService = {
         description: "Hearing has been updated successfully.",
       });
       
+      // Log audit event for hearing update
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).single();
+        if (user && profile?.tenant_id) {
+          await auditService.log('update_hearing', profile.tenant_id, {
+            userId: user.id,
+            entityType: 'hearing',
+            entityId: id,
+            details: { 
+              updatedFields: Object.keys(updates),
+              date: updates.date,
+              status: updates.status
+            }
+          });
+        }
+      } catch (auditError) {
+        console.warn('Failed to log audit event for hearing update:', auditError);
+      }
+      
       log('success', 'update hearing', { hearingId: id, updates: Object.keys(updates) });
       
     } catch (error) {
@@ -393,6 +435,25 @@ export const hearingsService = {
             ? "Hearing and calendar event have been cancelled successfully."
             : "Hearing has been cancelled successfully.",
         });
+        
+        // Log audit event for hearing deletion
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).single();
+          if (user && profile?.tenant_id) {
+            await auditService.log('delete_hearing', profile.tenant_id, {
+              userId: user.id,
+              entityType: 'hearing',
+              entityId: id,
+              details: { 
+                caseId: hearing?.case_id,
+                date: hearing?.date
+              }
+            });
+          }
+        } catch (auditError) {
+          console.warn('Failed to log audit event for hearing deletion:', auditError);
+        }
         
         log('success', 'delete hearing', { hearingId: id });
       } else {
@@ -545,6 +606,28 @@ export const hearingsService = {
             console.error('[Hearings] Failed to generate outcome tasks:', taskError);
             // Don't show error to user as this is non-critical
           }
+        }
+        
+        // Log audit event for outcome recording
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).single();
+          if (user && profile?.tenant_id) {
+            await auditService.log('update_hearing', profile.tenant_id, {
+              userId: user.id,
+              entityType: 'hearing',
+              entityId: id,
+              details: { 
+                action: 'record_outcome',
+                outcome,
+                outcomeText,
+                nextHearingDate,
+                caseId: hearing.case_id || hearing.caseId
+              }
+            });
+          }
+        } catch (auditError) {
+          console.warn('Failed to log audit event for hearing outcome:', auditError);
         }
         
         toast({

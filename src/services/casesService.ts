@@ -7,6 +7,8 @@ import { lifecycleService } from '@/services/lifecycleService';
 import { taskBundleService } from '@/services/taskBundleService';
 import { timelineService } from '@/services/timelineService';
 import { featureFlagService } from '@/services/featureFlagService';
+import { auditService } from '@/services/auditService';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface AdvanceStagePayload {
   caseId: string;
@@ -59,6 +61,22 @@ export const casesService = {
         description: `Case ${newCase.caseNumber} has been created successfully.`,
       });
 
+      // Log audit event
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).single();
+        if (user && profile?.tenant_id) {
+          await auditService.log('create_case', profile.tenant_id, {
+            userId: user.id,
+            entityType: 'case',
+            entityId: newCase.id,
+            details: { caseNumber: newCase.caseNumber, title: newCase.title, clientId: newCase.clientId }
+          });
+        }
+      } catch (auditError) {
+        console.warn('Failed to log audit event for case creation:', auditError);
+      }
+
       return newCase;
     } catch (error) {
       log('error', 'Overview', 'create', error);
@@ -85,6 +103,22 @@ export const casesService = {
         title: "Case Updated",
         description: "Case has been updated successfully.",
       });
+
+      // Log audit event
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).single();
+        if (user && profile?.tenant_id) {
+          await auditService.log('update_case', profile.tenant_id, {
+            userId: user.id,
+            entityType: 'case',
+            entityId: caseId,
+            details: { updatedFields: Object.keys(updates) }
+          });
+        }
+      } catch (auditError) {
+        console.warn('Failed to log audit event for case update:', auditError);
+      }
     } catch (error) {
       log('error', 'Overview', 'update', error);
       toast({
@@ -106,6 +140,22 @@ export const casesService = {
         title: "Case Deleted",
         description: "Case has been deleted successfully.",
       });
+
+      // Log audit event
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).single();
+        if (user && profile?.tenant_id) {
+          await auditService.log('delete_case', profile.tenant_id, {
+            userId: user.id,
+            entityType: 'case',
+            entityId: caseId,
+            details: { caseId }
+          });
+        }
+      } catch (auditError) {
+        console.warn('Failed to log audit event for case deletion:', auditError);
+      }
     } catch (error) {
       log('error', 'Overview', 'delete', error);
       toast({
@@ -231,6 +281,27 @@ export const casesService = {
         title: "Stage Advanced",
         description: `Case moved to ${nextStage} stage successfully.`,
       });
+
+      // Log audit event for stage advancement
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).single();
+        if (user && profile?.tenant_id) {
+          await auditService.log('update_case', profile.tenant_id, {
+            userId: user.id,
+            entityType: 'case',
+            entityId: caseId,
+            details: { 
+              action: 'stage_advance',
+              fromStage: payload.currentStage, 
+              toStage: nextStage,
+              notes: notes
+            }
+          });
+        }
+      } catch (auditError) {
+        console.warn('Failed to log audit event for stage advancement:', auditError);
+      }
     } catch (error) {
       log('error', 'Lifecycle', 'advanceStage', error);
       toast({

@@ -16,7 +16,23 @@ export type AuditAction =
   | 'revoke_role'
   | 'create_case'
   | 'update_case'
-  | 'delete_case';
+  | 'delete_case'
+  | 'create_hearing'
+  | 'update_hearing'
+  | 'delete_hearing'
+  | 'create_task'
+  | 'update_task'
+  | 'delete_task'
+  | 'upload'
+  | 'update'
+  | 'delete'
+  | 'view'
+  | 'download'
+  | 'approve'
+  | 'reject'
+  | 'version_create'
+  | 'share'
+  | 'comment';
 
 interface AuditLogEntry {
   action_type: AuditAction;
