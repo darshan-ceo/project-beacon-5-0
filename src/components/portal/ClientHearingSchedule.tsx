@@ -2,37 +2,27 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Calendar as CalendarIcon,
   Clock,
-  MapPin,
-  Scale,
-  AlertTriangle,
-  CheckCircle,
-  User
+  Scale
 } from 'lucide-react';
 
 interface Hearing {
   id: string;
-  caseId: string;
-  date: string;
-  time: string;
-  courtName?: string;
-  judgeName?: string;
-  type: string;
-  status: 'Scheduled' | 'Confirmed' | 'Rescheduled' | 'Completed';
-  agenda?: string;
-  notes?: string;
+  case_id: string;
+  hearing_date: string;
+  status: string | null;
+  notes: string | null;
 }
 
 interface Case {
   id: string;
-  caseNumber: string;
+  case_number: string;
   title: string;
-  currentStage: string;
+  status: string;
 }
 
 interface ClientHearingScheduleProps {
@@ -49,16 +39,16 @@ export const ClientHearingSchedule: React.FC<ClientHearingScheduleProps> = ({
 
   // Separate upcoming and past hearings
   const now = new Date();
-  const upcomingHearings = hearings.filter(h => new Date(h.date) >= now)
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const upcomingHearings = hearings.filter(h => new Date(h.hearing_date) >= now)
+    .sort((a, b) => new Date(a.hearing_date).getTime() - new Date(b.hearing_date).getTime());
   
-  const pastHearings = hearings.filter(h => new Date(h.date) < now)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const pastHearings = hearings.filter(h => new Date(h.hearing_date) < now)
+    .sort((a, b) => new Date(b.hearing_date).getTime() - new Date(a.hearing_date).getTime());
 
   // Get hearings for selected date (calendar view)
   const selectedDateHearings = selectedDate 
     ? hearings.filter(h => {
-        const hearingDate = new Date(h.date);
+        const hearingDate = new Date(h.hearing_date);
         return hearingDate.toDateString() === selectedDate.toDateString();
       })
     : [];
@@ -68,7 +58,7 @@ export const ClientHearingSchedule: React.FC<ClientHearingScheduleProps> = ({
     return cases.find(c => c.id === caseId);
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | null) => {
     switch (status) {
       case 'Confirmed': return 'bg-success text-success-foreground';
       case 'Scheduled': return 'bg-primary text-primary-foreground';
@@ -78,41 +68,18 @@ export const ClientHearingSchedule: React.FC<ClientHearingScheduleProps> = ({
     }
   };
 
-  const getTypeIcon = (type: string) => {
-    switch (type.toLowerCase()) {
-      case 'urgent':
-        return <AlertTriangle className="h-4 w-4 text-destructive" />;
-      case 'final':
-        return <CheckCircle className="h-4 w-4 text-success" />;
-      default:
-        return <Scale className="h-4 w-4 text-primary" />;
-    }
-  };
-
-  const formatTime = (timeString: string) => {
-    try {
-      return new Date(`2000-01-01 ${timeString}`).toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      });
-    } catch {
-      return timeString;
-    }
-  };
-
   const HearingCard: React.FC<{ hearing: Hearing; showDate?: boolean }> = ({ hearing, showDate = true }) => {
-    const caseDetails = getCaseDetails(hearing.caseId);
+    const caseDetails = getCaseDetails(hearing.case_id);
     
     return (
       <Card className="hover-lift">
         <CardContent className="p-4">
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-start space-x-3">
-              {getTypeIcon(hearing.type)}
+              <Scale className="h-4 w-4 text-primary" />
               <div className="flex-1 min-w-0">
                 <h4 className="font-medium text-foreground">
-                  {caseDetails?.caseNumber || 'Case TBD'}
+                  {caseDetails?.case_number || 'Case TBD'}
                 </h4>
                 <p className="text-sm text-muted-foreground truncate">
                   {caseDetails?.title || 'Case details pending'}
@@ -120,7 +87,7 @@ export const ClientHearingSchedule: React.FC<ClientHearingScheduleProps> = ({
               </div>
             </div>
             <Badge className={getStatusColor(hearing.status)}>
-              {hearing.status}
+              {hearing.status || 'Scheduled'}
             </Badge>
           </div>
 
@@ -130,7 +97,7 @@ export const ClientHearingSchedule: React.FC<ClientHearingScheduleProps> = ({
                 <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                 <span className="text-muted-foreground">Date:</span>
                 <span className="font-medium text-foreground">
-                  {new Date(hearing.date).toLocaleDateString('en-US', {
+                  {new Date(hearing.hearing_date).toLocaleDateString('en-US', {
                     weekday: 'short',
                     year: 'numeric',
                     month: 'short',
@@ -144,36 +111,13 @@ export const ClientHearingSchedule: React.FC<ClientHearingScheduleProps> = ({
               <Clock className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground">Time:</span>
               <span className="font-medium text-foreground">
-                {formatTime(hearing.time)}
+                {new Date(hearing.hearing_date).toLocaleTimeString('en-US', {
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  hour12: true
+                })}
               </span>
             </div>
-
-            {hearing.courtName && (
-              <div className="flex items-center space-x-2">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Court:</span>
-                <span className="font-medium text-foreground">
-                  {hearing.courtName}
-                </span>
-              </div>
-            )}
-
-            {hearing.judgeName && (
-              <div className="flex items-center space-x-2">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Judge:</span>
-                <span className="font-medium text-foreground">
-                  {hearing.judgeName}
-                </span>
-              </div>
-            )}
-
-            {hearing.agenda && (
-              <div className="mt-3 p-2 bg-muted/50 rounded-lg">
-                <p className="text-xs text-muted-foreground mb-1">Agenda:</p>
-                <p className="text-sm text-foreground">{hearing.agenda}</p>
-              </div>
-            )}
 
             {hearing.notes && (
               <div className="mt-2 p-2 bg-accent/50 rounded-lg">
@@ -291,7 +235,7 @@ export const ClientHearingSchedule: React.FC<ClientHearingScheduleProps> = ({
                 onSelect={setSelectedDate}
                 className="rounded-md border"
                 modifiers={{
-                  hasHearing: hearings.map(h => new Date(h.date))
+                  hasHearing: hearings.map(h => new Date(h.hearing_date))
                 }}
                 modifiersStyles={{
                   hasHearing: { 
