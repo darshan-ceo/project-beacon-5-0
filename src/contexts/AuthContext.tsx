@@ -278,6 +278,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     if (error) {
       console.error('Error updating password:', error);
+    } else if (user && tenantId) {
+      // Log password change
+      await auditService.log('update_employee', tenantId, {
+        userId: user.id,
+        entityType: 'password',
+        entityId: user.id,
+        details: { action: 'password_changed' }
+      });
     }
     
     return { error };
@@ -300,6 +308,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Update local state
       setUserProfile(prev => prev ? { ...prev, ...updates } : null);
+      
+      // Log profile update
+      if (tenantId) {
+        await auditService.log('update_employee', tenantId, {
+          userId: user.id,
+          entityType: 'profile',
+          entityId: user.id,
+          details: { updated_fields: Object.keys(updates) }
+        });
+      }
       
       return { error: null };
     } catch (error) {
