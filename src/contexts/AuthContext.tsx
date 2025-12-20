@@ -16,6 +16,10 @@ interface UserProfile {
   avatar_url: string | null;
   role: string | null;
   designation: string | null;
+  department: string | null;
+  location: string | null;
+  bio: string | null;
+  joinedDate: string | null;
 }
 
 interface AuthContextType {
@@ -29,6 +33,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
   updatePassword: (newPassword: string) => Promise<{ error: AuthError | null }>;
+  updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: Error | null }>;
   isAuthenticated: boolean;
 }
 
@@ -42,6 +47,18 @@ export const useAuth = () => {
   return context;
 };
 
+// Helper to get the primary/highest role from user_roles
+const getPrimaryRole = (roles: string[]): string => {
+  const roleHierarchy = ['admin', 'partner', 'manager', 'ca', 'advocate', 'staff', 'user', 'clerk'];
+  for (const role of roleHierarchy) {
+    if (roles.includes(role)) {
+      // Capitalize first letter
+      return role.charAt(0).toUpperCase() + role.slice(1);
+    }
+  }
+  return 'User';
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -50,13 +67,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const { toast } = useToast();
 
-  // Fetch user profile and tenant info, including employee role
+  // Fetch user profile and tenant info, including role from user_roles table
   const fetchUserProfile = async (userId: string) => {
     try {
       // Fetch profile data
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('tenant_id, full_name, phone, avatar_url')
+        .select('tenant_id, full_name, phone, avatar_url, created_at')
         .eq('id', userId)
         .single();
 
@@ -68,10 +85,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (profileData) {
         setTenantId(profileData.tenant_id);
         
-        // Fetch employee role if exists
+        // Fetch role from user_roles table (the source of truth for RBAC)
+        const { data: userRolesData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', userId);
+
+        const roles = userRolesData?.map(r => r.role) || [];
+        const primaryRole = getPrimaryRole(roles);
+
+        // Fetch additional employee data if exists
         const { data: employeeData } = await supabase
           .from('employees')
-          .select('role, designation')
+          .select('designation, department, city, state')
           .eq('id', userId)
           .single();
 
@@ -79,8 +105,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           full_name: profileData.full_name,
           phone: profileData.phone,
           avatar_url: profileData.avatar_url || null,
-          role: employeeData?.role || null,
+          role: primaryRole,
           designation: employeeData?.designation || null,
+          department: employeeData?.department || null,
+          location: employeeData?.city && employeeData?.state 
+            ? `${employeeData.city}, ${employeeData.state}` 
+            : null,
+          bio: null,
+          joinedDate: profileData.created_at ? new Date(profileData.created_at).toLocaleDateString() : null,
         });
       }
     } catch (error) {
@@ -231,6 +263,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { error };
   };
 
+  const updateProfile = async (updates: Partial<UserProfile>) => {
+    if (!user) return { error: new Error('Not authenticated') };
+    
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: updates.full_name,
+          phone: updates.phone,
+          avatar_url: updates.avatar_url,
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setUserProfile(prev => prev ? { ...prev, ...updates } : null);
+      
+      return { error: null };
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      return { error: error as Error };
+    }
+  };
+
   const value = {
     user,
     session,
@@ -242,6 +299,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signOut,
     resetPassword,
     updatePassword,
+    updateProfile,
     isAuthenticated: !!session,
   };
 

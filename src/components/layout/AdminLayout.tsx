@@ -4,7 +4,6 @@ import { AppSidebar } from './Sidebar';
 import { Header } from './Header';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
-import { StorageStatusIndicator } from '@/components/admin/StorageStatusIndicator';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface AdminLayoutProps {
@@ -34,7 +33,6 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 <Header />
               </div>
               <div className="flex items-center gap-2">
-                <StorageStatusIndicator />
                 <NotificationBell userId={userId} />
               </div>
             </div>
