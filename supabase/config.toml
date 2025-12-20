@@ -47,3 +47,6 @@ verify_jwt = true
 
 [functions.categorize-document]
 verify_jwt = false
+
+[functions.invite-client-portal-user]
+verify_jwt = true

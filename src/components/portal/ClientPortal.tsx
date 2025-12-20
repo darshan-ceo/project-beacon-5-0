@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { useAppState } from '@/contexts/AppStateContext';
+import { supabase } from '@/integrations/supabase/client';
 import { useClientPortal } from '@/contexts/ClientPortalContext';
 import { ClientCaseView } from './ClientCaseView';
 import { ClientDocumentLibrary } from './ClientDocumentLibrary';
@@ -8,7 +8,7 @@ import { ClientHearingSchedule } from './ClientHearingSchedule';
 import { ClientNotifications } from './ClientNotifications';
 import { ClientDocumentUpload } from './ClientDocumentUpload';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
   Scale, 
@@ -20,78 +20,91 @@ import {
   Loader2
 } from 'lucide-react';
 
-export const ClientPortal: React.FC = () => {
-  const { state } = useAppState();
-  const { clientAccess, loading: portalLoading } = useClientPortal();
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [hasAccess, setHasAccess] = React.useState(false);
-  const [clientCases, setClientCases] = React.useState<any[]>([]);
+interface Case {
+  id: string;
+  case_number: string;
+  title: string;
+  status: string;
+  client_id: string;
+}
 
-  // Use clientId from authenticated portal access context
+interface Hearing {
+  id: string;
+  case_id: string;
+  hearing_date: string;
+  status: string;
+  notes: string | null;
+}
+
+export const ClientPortal: React.FC = () => {
+  const { clientAccess, loading: portalLoading } = useClientPortal();
+  const [isLoading, setIsLoading] = useState(true);
+  const [clientCases, setClientCases] = useState<Case[]>([]);
+  const [clientHearings, setClientHearings] = useState<Hearing[]>([]);
+  const [documentCount, setDocumentCount] = useState(0);
+
   const clientId = clientAccess?.clientId || '';
   const clientName = clientAccess?.clientName || '';
 
-  // Find the client from state for additional details
-  const client = React.useMemo(() => {
-    if (!clientId) return null;
-    return state.clients.find(c => c.id === clientId);
-  }, [clientId, state.clients]);
+  const fetchClientData = useCallback(async () => {
+    if (!clientId) {
+      setIsLoading(false);
+      return;
+    }
 
-  // Since ClientRouteGuard already validates portal access, we just load cases for this client
-  React.useEffect(() => {
-    const loadClientCases = async () => {
-      if (!clientId) {
-        setIsLoading(false);
-        return;
-      }
-      
-      try {
-        // Filter cases for this client
-        const cases = state.cases.filter(c => c.clientId === clientId);
-        setClientCases(cases);
-        setHasAccess(true);
-      } catch (error) {
-        console.error('Error loading client cases:', error);
-        setHasAccess(false);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadClientCases();
-  }, [clientId, state.cases]);
-  // Transform documents to match interface
-  const clientDocuments = state.documents
-    .filter(d => d.clientId === clientId)
-    .map(d => ({
-      ...d,
-      uploadedBy: d.uploadedByName || 'System',
-      shared: d.isShared || false
-    }));
-  
-  // Transform hearings to match interface  
-  const clientHearings = (state.hearings?.filter(h => 
-    clientCases.some(c => c.id === (h.caseId || h.case_id))
-  ) || []).map(h => ({
-    ...h,
-    time: h.time || h.start_time,
-    caseId: h.caseId || h.case_id,
-    type: h.type || 'Preliminary'
-  })) as any;
+    try {
+      setIsLoading(true);
 
-  // Calculate stats
-  const activeCases = clientCases.length; // All cases considered active for demo
-  const upcomingHearings = clientHearings.filter(h => 
-    new Date(h.date) > new Date()
-  ).length;
+      // Fetch cases for this client
+      const { data: cases, error: casesError } = await supabase
+        .from('cases')
+        .select('id, case_number, title, status, client_id')
+        .eq('client_id', clientId)
+        .order('created_at', { ascending: false });
+
+      if (casesError) throw casesError;
+      setClientCases(cases || []);
+
+      // Fetch hearings for these cases
+      if (cases && cases.length > 0) {
+        const caseIds = cases.map(c => c.id);
+        const { data: hearings, error: hearingsError } = await supabase
+          .from('hearings')
+          .select('id, case_id, hearing_date, status, notes')
+          .in('case_id', caseIds)
+          .gte('hearing_date', new Date().toISOString())
+          .order('hearing_date', { ascending: true });
+
+        if (hearingsError) throw hearingsError;
+        setClientHearings(hearings || []);
+      }
+
+      // Get document count
+      const { count, error: docError } = await supabase
+        .from('documents')
+        .select('id', { count: 'exact', head: true })
+        .eq('client_id', clientId);
+
+      if (!docError) {
+        setDocumentCount(count || 0);
+      }
+
+    } catch (error) {
+      console.error('Error loading client data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [clientId]);
+
+  useEffect(() => {
+    fetchClientData();
+  }, [fetchClientData]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
+      transition: { staggerChildren: 0.1 }
     }
   };
 
@@ -100,38 +113,33 @@ export const ClientPortal: React.FC = () => {
     visible: { opacity: 1, y: 0 }
   };
 
-  if (isLoading) {
+  if (portalLoading || isLoading) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Validating access...</p>
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading your portal...</p>
         </div>
       </div>
     );
   }
 
-  if (!clientId || !hasAccess) {
+  if (!clientId) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center max-w-md">
           <Shield className="h-12 w-12 text-destructive mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-foreground">Access Denied</h2>
           <p className="text-muted-foreground mt-2">
-            {!clientId 
-              ? "Client profile not found."
-              : "You don't have permission to access this portal."
-            }
+            Client profile not found. Please contact your legal team for assistance.
           </p>
-          <div className="mt-4 p-4 bg-muted rounded-lg text-left">
-            <p className="text-sm text-muted-foreground">
-              Please contact your legal team for assistance.
-            </p>
-          </div>
         </div>
       </div>
     );
   }
+
+  const activeCases = clientCases.filter(c => c.status !== 'Closed').length;
+  const upcomingHearings = clientHearings.length;
 
   return (
     <div className="space-y-6">
@@ -144,12 +152,11 @@ export const ClientPortal: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold text-foreground">Client Portal</h1>
           <p className="text-muted-foreground mt-2">
-            Welcome back, {clientName || client?.name}! Here's your case overview.
+            Welcome back, {clientName}! Here's your case overview.
           </p>
         </div>
         <div className="flex items-center space-x-2">
           <User className="h-5 w-5 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">{client?.type || 'Client'}</span>
           <Badge variant="outline" className="ml-2">
             {clientAccess?.portalRole || 'Viewer'}
           </Badge>
@@ -189,7 +196,7 @@ export const ClientPortal: React.FC = () => {
               <FileText className="h-5 w-5 text-secondary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground">{clientDocuments.length}</div>
+              <div className="text-2xl font-bold text-foreground">{documentCount}</div>
               <p className="text-xs text-muted-foreground">
                 Available for download
               </p>
@@ -208,7 +215,7 @@ export const ClientPortal: React.FC = () => {
             <CardContent>
               <div className="text-2xl font-bold text-foreground">{upcomingHearings}</div>
               <p className="text-xs text-muted-foreground">
-                Scheduled this month
+                Scheduled hearings
               </p>
             </CardContent>
           </Card>
@@ -251,8 +258,14 @@ export const ClientPortal: React.FC = () => {
 
           <TabsContent value="documents">
             <div className="space-y-6">
-              <ClientDocumentUpload clientId={clientId} />
-              <ClientDocumentLibrary documents={clientDocuments} clientId={clientId} />
+              <ClientDocumentUpload 
+                clientId={clientId} 
+                onUploadComplete={fetchClientData}
+              />
+              <ClientDocumentLibrary 
+                clientId={clientId} 
+                cases={clientCases.map(c => ({ id: c.id, case_number: c.case_number, title: c.title }))}
+              />
             </div>
           </TabsContent>
 
