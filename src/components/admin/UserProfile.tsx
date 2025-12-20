@@ -30,6 +30,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -422,92 +423,102 @@ export const UserProfile: React.FC = () => {
             <TabsTrigger value="activity" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Activity</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="profile" className="space-y-6">
+          <TabsContent value="profile" className="space-y-6 overflow-x-hidden">
+            {/* Image Cropper Dialog */}
+            <Dialog open={showCropper && !!selectedImageFile} onOpenChange={(open) => {
+              if (!open) {
+                setShowCropper(false);
+                setSelectedImageFile(null);
+              }
+            }}>
+              <DialogContent className="max-w-lg sm:max-w-2xl p-0 overflow-hidden">
+                <DialogHeader className="sr-only">
+                  <DialogTitle>Crop Profile Image</DialogTitle>
+                </DialogHeader>
+                {selectedImageFile && (
+                  <ImageCropper
+                    imageFile={selectedImageFile}
+                    onCrop={handleCroppedImage}
+                    onCancel={() => {
+                      setShowCropper(false);
+                      setSelectedImageFile(null);
+                    }}
+                    disabled={isUploading}
+                    className="border-0 shadow-none"
+                  />
+                )}
+              </DialogContent>
+            </Dialog>
+
             <div className="grid gap-6 md:grid-cols-3">
               <div className="md:col-span-1">
                 <Card>
                   <CardContent className="pt-6">
                     <div className="flex flex-col items-center space-y-4">
-                      {showCropper && selectedImageFile ? (
-                        <div className="w-full">
-                          <ImageCropper
-                            imageFile={selectedImageFile}
-                            onCrop={handleCroppedImage}
-                            onCancel={() => {
-                              setShowCropper(false);
-                              setSelectedImageFile(null);
-                            }}
-                            disabled={isUploading}
+                      <div className="relative">
+                        <Avatar className="h-24 w-24">
+                          <AvatarImage 
+                            src={formData.avatar} 
+                            alt={formData.name}
+                            onError={() => setFormData(prev => ({ ...prev, avatar: '/placeholder.svg' }))}
                           />
+                          <AvatarFallback>{getInitials(formData.name)}</AvatarFallback>
+                        </Avatar>
+                        <Button 
+                          size="sm" 
+                          className="absolute -bottom-2 -right-2 rounded-full h-8 w-8 p-0"
+                          onClick={() => document.getElementById('avatar-upload')?.click()}
+                          disabled={isUploading}
+                          aria-label="Upload profile photo"
+                        >
+                          <Camera className="h-4 w-4" />
+                        </Button>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleAvatarFileSelect(file);
+                            e.target.value = '';
+                          }}
+                          className="hidden"
+                          id="avatar-upload"
+                        />
+                      </div>
+
+                      {featureFlagService.isEnabled('profile_avatar_v1') ? (
+                        <div className="w-full max-w-sm">
+                          <FileDropzone
+                            onFileSelect={handleAvatarFileSelect}
+                            onError={handleAvatarError}
+                            accept="image/jpeg,image/png,image/webp"
+                            maxSize={2}
+                            disabled={isUploading}
+                            progress={uploadProgress}
+                          />
+                          {formData.avatar !== '/placeholder.svg' && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleRemoveAvatar}
+                              disabled={isUploading}
+                              className="w-full mt-2"
+                            >
+                              Remove Photo
+                            </Button>
+                          )}
                         </div>
                       ) : (
-                        <>
-                          <div className="relative">
-                            <Avatar className="h-24 w-24">
-                              <AvatarImage 
-                                src={formData.avatar} 
-                                alt={formData.name}
-                                onError={() => setFormData(prev => ({ ...prev, avatar: '/placeholder.svg' }))}
-                              />
-                              <AvatarFallback>{getInitials(formData.name)}</AvatarFallback>
-                            </Avatar>
-                            <Button 
-                              size="sm" 
-                              className="absolute -bottom-2 -right-2 rounded-full h-8 w-8 p-0"
-                              onClick={() => document.getElementById('avatar-upload')?.click()}
-                              disabled={isUploading}
-                              aria-label="Upload profile photo"
-                            >
-                              <Camera className="h-4 w-4" />
-                            </Button>
-                            <input
-                              type="file"
-                              accept="image/jpeg,image/png,image/webp"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) handleAvatarFileSelect(file);
-                                e.target.value = '';
-                              }}
-                              className="hidden"
-                              id="avatar-upload"
-                            />
-                          </div>
-
-                          {featureFlagService.isEnabled('profile_avatar_v1') ? (
-                            <div className="w-full max-w-sm">
-                              <FileDropzone
-                                onFileSelect={handleAvatarFileSelect}
-                                onError={handleAvatarError}
-                                accept="image/jpeg,image/png,image/webp"
-                                maxSize={2}
-                                disabled={isUploading}
-                                progress={uploadProgress}
-                              />
-                              {formData.avatar !== '/placeholder.svg' && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={handleRemoveAvatar}
-                                  disabled={isUploading}
-                                  className="w-full mt-2"
-                                >
-                                  Remove Photo
-                                </Button>
-                              )}
-                            </div>
-                          ) : (
-                            formData.avatar !== '/placeholder.svg' && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handleRemoveAvatar}
-                                disabled={isUploading}
-                              >
-                                Remove Photo
-                              </Button>
-                            )
-                          )}
-                        </>
+                        formData.avatar !== '/placeholder.svg' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleRemoveAvatar}
+                            disabled={isUploading}
+                          >
+                            Remove Photo
+                          </Button>
+                        )
                       )}
                       <div className="text-center">
                         <h3 className="text-lg font-semibold">{formData.name}</h3>
