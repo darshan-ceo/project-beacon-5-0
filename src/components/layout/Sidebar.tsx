@@ -45,7 +45,7 @@ import { useUIState } from '@/hooks/useUIState';
 import { envConfig } from '@/utils/envConfig';
 
 interface AppSidebarProps {
-  userRole: 'Admin' | 'Partner/CA' | 'Staff' | 'Client';
+  userRole: 'Admin' | 'Partner/CA' | 'Staff' | 'Client' | 'Advocate' | 'Manager' | 'Ca' | 'Clerk' | 'User';
 }
 
 interface MenuItem {
@@ -66,15 +66,15 @@ interface MenuGroup {
 
 // Main navigation items (always visible, in requested order)
 const mainMenuItems: MenuItem[] = [
-  { icon: BarChart3, label: 'Dashboard', href: '/', roles: ['Admin', 'Partner/CA', 'Staff'], tourId: 'dashboard-nav' },
-  { icon: ShieldCheck, label: 'Compliance Dashboard', href: '/compliance', roles: ['Admin', 'Partner/CA', 'Staff'], tourId: 'compliance-nav' },
-  { icon: FileText, label: 'Case Management', href: '/cases', roles: ['Admin', 'Partner/CA', 'Staff'], tourId: 'cases-nav' },
-  { icon: CalendarDays, label: 'Hearings', href: '/hearings/calendar', roles: ['Admin', 'Partner/CA', 'Staff'], tourId: 'hearings-nav' },
-  { icon: CheckSquare, label: 'Task Management', href: '/tasks', roles: ['Admin', 'Partner/CA', 'Staff'], tourId: 'tasks-nav' },
-  { icon: FolderOpen, label: 'Document Management', href: '/documents', roles: ['Admin', 'Partner/CA', 'Staff', 'Client'], tourId: 'documents-nav' },
-  { icon: BarChart3, label: 'Reports', href: '/reports', roles: ['Admin', 'Partner/CA', 'Staff'], tourId: 'reports-nav' },
-  { icon: HelpCircle, label: 'Help & Knowledge Base', href: '/help', roles: ['Admin', 'Partner/CA', 'Staff', 'Client'], tourId: 'help-nav' },
-  { icon: UserCircle, label: 'User Profile', href: '/profile', roles: ['Admin', 'Partner/CA', 'Staff', 'Client'], tourId: 'profile-nav' },
+  { icon: BarChart3, label: 'Dashboard', href: '/', roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'dashboard-nav' },
+  { icon: ShieldCheck, label: 'Compliance Dashboard', href: '/compliance', roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'compliance-nav' },
+  { icon: FileText, label: 'Case Management', href: '/cases', roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'cases-nav' },
+  { icon: CalendarDays, label: 'Hearings', href: '/hearings/calendar', roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'hearings-nav' },
+  { icon: CheckSquare, label: 'Task Management', href: '/tasks', roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'tasks-nav' },
+  { icon: FolderOpen, label: 'Document Management', href: '/documents', roles: ['Admin', 'Partner/CA', 'Staff', 'Client', 'Advocate', 'Manager', 'Ca'], tourId: 'documents-nav' },
+  { icon: BarChart3, label: 'Reports', href: '/reports', roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'reports-nav' },
+  { icon: HelpCircle, label: 'Help & Knowledge Base', href: '/help', roles: ['Admin', 'Partner/CA', 'Staff', 'Client', 'Advocate', 'Manager', 'Ca', 'Clerk', 'User'], tourId: 'help-nav' },
+  { icon: UserCircle, label: 'User Profile', href: '/profile', roles: ['Admin', 'Partner/CA', 'Staff', 'Client', 'Advocate', 'Manager', 'Ca', 'Clerk', 'User'], tourId: 'profile-nav' },
 ];
 
 // Grouped menu sections
@@ -82,14 +82,14 @@ const menuGroups: MenuGroup[] = [
   {
     label: 'Masters',
     defaultOpen: false,
-    roles: ['Admin', 'Partner/CA', 'Staff'],
+    roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'],
     items: [
-      { icon: Users, label: 'Client Masters', href: '/clients', roles: ['Admin', 'Partner/CA', 'Staff'] },
-      { icon: Building2, label: 'Client Groups', href: '/client-groups', roles: ['Admin', 'Partner/CA'] },
-      { icon: Building2, label: 'Legal Authorities', href: '/courts', roles: ['Admin', 'Partner/CA'] },
-      { icon: Gavel, label: 'Judge Masters', href: '/judges', roles: ['Admin', 'Partner/CA'] },
+      { icon: Users, label: 'Client Masters', href: '/clients', roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'] },
+      { icon: Building2, label: 'Client Groups', href: '/client-groups', roles: ['Admin', 'Partner/CA', 'Ca'] },
+      { icon: Building2, label: 'Legal Authorities', href: '/courts', roles: ['Admin', 'Partner/CA', 'Ca'] },
+      { icon: Gavel, label: 'Judge Masters', href: '/judges', roles: ['Admin', 'Partner/CA', 'Ca'] },
       { icon: UserCheck, label: 'Employee Masters', href: '/employees', roles: ['Admin'] },
-      { icon: Scale, label: 'Statutory Deadlines', href: '/statutory-acts', roles: ['Admin', 'Partner/CA'] },
+      { icon: Scale, label: 'Statutory Deadlines', href: '/statutory-acts', roles: ['Admin', 'Partner/CA', 'Ca'] },
     ]
   },
   {
