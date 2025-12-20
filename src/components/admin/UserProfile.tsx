@@ -299,6 +299,15 @@ export const UserProfile: React.FC = () => {
   };
 
   const handleCroppedImage = async (croppedFile: File) => {
+    if (!user?.id) {
+      toast({
+        title: "Upload Failed",
+        description: "You must be logged in to upload an avatar.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       setIsUploading(true);
       setShowCropper(false);
@@ -306,7 +315,7 @@ export const UserProfile: React.FC = () => {
       
       // Upload to avatars bucket with path: user_id/timestamp.ext
       const fileExt = croppedFile.type.split('/')[1] || 'jpg';
-      const fileName = `${user?.id}/${Date.now()}.${fileExt}`;
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
       const { data, error } = await supabase.storage
         .from('avatars')
         .upload(fileName, croppedFile, { upsert: true });
@@ -326,6 +335,7 @@ export const UserProfile: React.FC = () => {
         description: "Your profile photo has been updated successfully.",
       });
     } catch (error: any) {
+      console.error('Avatar upload error:', error);
       toast({
         title: "Upload Failed",
         description: error.message || "Failed to upload avatar. Please try again.",
@@ -338,12 +348,21 @@ export const UserProfile: React.FC = () => {
   };
 
   const handleBasicAvatarUpload = async (file: File) => {
+    if (!user?.id) {
+      toast({
+        title: "Upload Failed",
+        description: "You must be logged in to upload an avatar.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       setIsUploading(true);
       
       // Upload to avatars bucket with path: user_id/timestamp.ext
       const fileExt = file.type.split('/')[1] || 'jpg';
-      const fileName = `${user?.id}/${Date.now()}.${fileExt}`;
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
       const { data, error } = await supabase.storage
         .from('avatars')
         .upload(fileName, file, { upsert: true });
@@ -362,6 +381,7 @@ export const UserProfile: React.FC = () => {
         description: "Your profile photo has been updated successfully.",
       });
     } catch (error: any) {
+      console.error('Avatar upload error:', error);
       toast({
         title: "Upload Failed",
         description: error.message || "Failed to upload avatar. Please try again.",
