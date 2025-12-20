@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { 
   Bell,
   Calendar,
@@ -14,19 +15,21 @@ import {
   AlertTriangle,
   Info,
   Settings,
-  BellOff
+  BellOff,
+  Loader2
 } from 'lucide-react';
 
 interface Notification {
   id: string;
-  type: 'hearing_reminder' | 'case_update' | 'document' | 'payment' | 'general';
+  type: string;
   title: string;
   message: string;
   timestamp: string;
   read: boolean;
   urgent: boolean;
   actionRequired?: boolean;
-  relatedId?: string; // Case ID, Document ID, etc.
+  relatedId?: string;
+  relatedType?: string;
 }
 
 interface ClientNotificationsProps {
@@ -34,64 +37,87 @@ interface ClientNotificationsProps {
 }
 
 export const ClientNotifications: React.FC<ClientNotificationsProps> = ({ clientId }) => {
-  // Mock notifications - in real app would come from API/state
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: '1',
-      type: 'hearing_reminder',
-      title: 'Hearing Reminder',
-      message: 'Your hearing for Case #2024-001 is scheduled for tomorrow at 10:00 AM at Supreme Court.',
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-      read: false,
-      urgent: true,
-      actionRequired: true,
-      relatedId: 'case-1'
-    },
-    {
-      id: '2',
-      type: 'case_update',
-      title: 'Case Status Update',
-      message: 'Your case #2024-001 has progressed to the Adjudication stage. Next steps are being prepared.',
-      timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
-      read: false,
-      urgent: false,
-      actionRequired: false,
-      relatedId: 'case-1'
-    },
-    {
-      id: '3',
-      type: 'document',
-      title: 'New Document Available',
-      message: 'A new court order has been uploaded to your case documents. Please review at your earliest convenience.',
-      timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
-      read: true,
-      urgent: false,
-      actionRequired: true,
-      relatedId: 'doc-1'
-    },
-    {
-      id: '4',
-      type: 'payment',
-      title: 'Payment Reminder',
-      message: 'Your monthly retainer payment of ₹50,000 is due in 5 days. Please ensure timely payment to avoid service interruption.',
-      timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
-      read: true,
-      urgent: false,
-      actionRequired: true
-    },
-    {
-      id: '5',
-      type: 'general',
-      title: 'Welcome to Client Portal',
-      message: 'Welcome to your new client portal! You can now view case updates, documents, and hearing schedules in one place.',
-      timestamp: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 1 week ago
-      read: true,
-      urgent: false,
-      actionRequired: false
-    }
-  ]);
-
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'unread' | 'urgent'>('all');
+
+  // Transform database record to Notification interface
+  const transformNotification = (record: any): Notification => ({
+    id: record.id,
+    type: record.type,
+    title: record.title,
+    message: record.message,
+    timestamp: record.created_at,
+    read: record.read,
+    urgent: record.urgent,
+    actionRequired: record.action_required,
+    relatedId: record.related_entity_id,
+    relatedType: record.related_entity_type
+  });
+
+  // Fetch notifications from database
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('client_notifications')
+        .select('*')
+        .eq('client_id', clientId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error('Error fetching notifications:', error);
+        toast.error('Failed to load notifications');
+        return;
+      }
+
+      if (data) {
+        setNotifications(data.map(transformNotification));
+      }
+    } catch (err) {
+      console.error('Error in fetchNotifications:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+
+    // Subscribe to realtime updates
+    const channel = supabase
+      .channel(`client-notifications-${clientId}`)
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'client_notifications', 
+          filter: `client_id=eq.${clientId}` 
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newNotification = transformNotification(payload.new);
+            setNotifications(prev => [newNotification, ...prev]);
+            toast.info(newNotification.title, {
+              description: newNotification.message.slice(0, 100) + (newNotification.message.length > 100 ? '...' : '')
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            setNotifications(prev => 
+              prev.map(n => n.id === payload.new.id ? transformNotification(payload.new) : n)
+            );
+          } else if (payload.eventType === 'DELETE') {
+            setNotifications(prev => prev.filter(n => n.id !== payload.old.id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [clientId]);
 
   // Filter notifications
   const filteredNotifications = notifications.filter(notification => {
@@ -120,26 +146,49 @@ export const ClientNotifications: React.FC<ClientNotificationsProps> = ({ client
     }
   };
 
-  const markAsRead = (notificationId: string) => {
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === notificationId 
-          ? { ...notification, read: true }
-          : notification
-      )
-    );
+  const markAsRead = async (notificationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('client_notifications')
+        .update({ read: true, read_at: new Date().toISOString() })
+        .eq('id', notificationId);
+
+      if (error) {
+        console.error('Error marking notification as read:', error);
+        toast.error('Failed to update notification');
+        return;
+      }
+
+      setNotifications(prev => 
+        prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+      );
+    } catch (err) {
+      console.error('Error in markAsRead:', err);
+    }
   };
 
-  const markAllAsRead = () => {
-    setNotifications(prev => 
-      prev.map(notification => ({ ...notification, read: true }))
-    );
-  };
+  const markAllAsRead = async () => {
+    try {
+      const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+      
+      if (unreadIds.length === 0) return;
 
-  const deleteNotification = (notificationId: string) => {
-    setNotifications(prev => 
-      prev.filter(notification => notification.id !== notificationId)
-    );
+      const { error } = await supabase
+        .from('client_notifications')
+        .update({ read: true, read_at: new Date().toISOString() })
+        .in('id', unreadIds);
+
+      if (error) {
+        console.error('Error marking all as read:', error);
+        toast.error('Failed to update notifications');
+        return;
+      }
+
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      toast.success('All notifications marked as read');
+    } catch (err) {
+      console.error('Error in markAllAsRead:', err);
+    }
   };
 
   const formatTimestamp = (timestamp: string) => {
@@ -147,14 +196,26 @@ export const ClientNotifications: React.FC<ClientNotificationsProps> = ({ client
     const now = new Date();
     const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
     
-    if (diffInMinutes < 60) {
-      return `${diffInMinutes} minutes ago`;
+    if (diffInMinutes < 1) {
+      return 'Just now';
+    } else if (diffInMinutes < 60) {
+      return `${diffInMinutes} minute${diffInMinutes === 1 ? '' : 's'} ago`;
     } else if (diffInMinutes < 24 * 60) {
-      return `${Math.floor(diffInMinutes / 60)} hours ago`;
+      const hours = Math.floor(diffInMinutes / 60);
+      return `${hours} hour${hours === 1 ? '' : 's'} ago`;
     } else {
-      return `${Math.floor(diffInMinutes / (24 * 60))} days ago`;
+      const days = Math.floor(diffInMinutes / (24 * 60));
+      return `${days} day${days === 1 ? '' : 's'} ago`;
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -214,7 +275,7 @@ export const ClientNotifications: React.FC<ClientNotificationsProps> = ({ client
           <CardContent className="flex flex-col items-center justify-center py-12">
             {filter === 'unread' ? (
               <>
-                <CheckCircle className="h-12 w-12 text-success mb-4" />
+                <CheckCircle className="h-12 w-12 text-green-500 mb-4" />
                 <h3 className="text-lg font-medium text-foreground mb-2">All Caught Up!</h3>
                 <p className="text-muted-foreground text-center">
                   You have no unread notifications.
@@ -252,7 +313,7 @@ export const ClientNotifications: React.FC<ClientNotificationsProps> = ({ client
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
             >
-              <Card className={`hover-lift transition-all ${
+              <Card className={`hover:shadow-md transition-all ${
                 !notification.read 
                   ? 'border-primary/50 bg-primary/5' 
                   : 'hover:bg-muted/50'
@@ -306,18 +367,11 @@ export const ClientNotifications: React.FC<ClientNotificationsProps> = ({ client
                               variant="ghost" 
                               size="sm"
                               onClick={() => markAsRead(notification.id)}
+                              title="Mark as read"
                             >
                               <CheckCircle className="h-4 w-4" />
                             </Button>
                           )}
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => deleteNotification(notification.id)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            ×
-                          </Button>
                         </div>
                       </div>
 

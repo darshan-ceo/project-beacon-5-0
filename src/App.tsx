@@ -49,6 +49,7 @@ import { DevModeDashboard } from "@/pages/DevModeDashboard";
 import { ClientPortal } from "./components/portal/ClientPortal";
 import { ClientLayout } from "./components/layout/ClientLayout";
 import { ClientRouteGuard } from "./components/ui/client-route-guard";
+import { ClientPortalProvider } from "./contexts/ClientPortalContext";
 import { AppWithPersistence } from "./components/AppWithPersistence";
 import { SearchResultsPage } from "./pages/SearchResultsPage";
 import { DebugSearchInspector } from "./pages/DebugSearchInspector";
@@ -132,11 +133,13 @@ const AppContent = () => {
               } />
               <Route path="/portal" element={
                 <ProtectedRoute>
-                  <ClientRouteGuard>
-                    <ClientLayout>
-                      <ClientPortal />
-                    </ClientLayout>
-                  </ClientRouteGuard>
+                  <ClientPortalProvider>
+                    <ClientRouteGuard>
+                      <ClientLayout>
+                        <ClientPortal />
+                      </ClientLayout>
+                    </ClientRouteGuard>
+                  </ClientPortalProvider>
                 </ProtectedRoute>
               } />
               <Route path="/clients" element={
