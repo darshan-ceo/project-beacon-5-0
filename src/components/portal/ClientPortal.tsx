@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useAppState } from '@/contexts/AppStateContext';
-import { useRBAC } from '@/hooks/useAdvancedRBAC';
+import { useClientPortal } from '@/contexts/ClientPortalContext';
 import { ClientCaseView } from './ClientCaseView';
 import { ClientDocumentLibrary } from './ClientDocumentLibrary';
 import { ClientHearingSchedule } from './ClientHearingSchedule';
@@ -16,84 +16,50 @@ import {
   Calendar, 
   Bell,
   User,
-  Shield
+  Shield,
+  Loader2
 } from 'lucide-react';
 
 export const ClientPortal: React.FC = () => {
   const { state } = useAppState();
-  const { currentUser } = useRBAC();
+  const { clientAccess, loading: portalLoading } = useClientPortal();
   const [isLoading, setIsLoading] = React.useState(true);
   const [hasAccess, setHasAccess] = React.useState(false);
   const [clientCases, setClientCases] = React.useState<any[]>([]);
 
-  // Get clientId from URL query parameter or fallback to first active client
-  const searchParams = new URLSearchParams(window.location.search);
-  const urlClientId = searchParams.get('clientId');
+  // Use clientId from authenticated portal access context
+  const clientId = clientAccess?.clientId || '';
+  const clientName = clientAccess?.clientName || '';
 
-  // Priority: URL param > First active client with portal access > First active client > First any client
+  // Find the client from state for additional details
   const client = React.useMemo(() => {
-    if (urlClientId) {
-      // If clientId provided in URL, find that specific client
-      return state.clients.find(c => c.id === urlClientId);
-    }
-    
-    // Fallback 1: First active client with portal access enabled
-    const clientWithPortal = state.clients.find(
-      c => c.status === 'Active' && c.portalAccess?.allowLogin === true
-    );
-    if (clientWithPortal) return clientWithPortal;
-    
-    // Fallback 2: First active client (any)
-    const activeClient = state.clients.find(c => c.status === 'Active');
-    if (activeClient) return activeClient;
-    
-    // Fallback 3: Any client at all
-    return state.clients[0];
-  }, [urlClientId, state.clients]);
+    if (!clientId) return null;
+    return state.clients.find(c => c.id === clientId);
+  }, [clientId, state.clients]);
 
-  const clientId = client?.id || '';
-  const currentUserId = currentUser?.id || '1';
-
-  // PHASE 3C: Validate client access and apply scope filtering
+  // Since ClientRouteGuard already validates portal access, we just load cases for this client
   React.useEffect(() => {
-    const validateAccess = async () => {
+    const loadClientCases = async () => {
+      if (!clientId) {
+        setIsLoading(false);
+        return;
+      }
+      
       try {
-        const { policyEngine, secureDataAccess } = await import('@/security/policyEngine');
-        
-        // Check: Can user access client portal?
-        const canAccessClient = await policyEngine.evaluatePermission(
-          currentUserId,
-          'clients',
-          'read'
-        );
-        
-        if (!canAccessClient.allowed) {
-          setHasAccess(false);
-          setIsLoading(false);
-          return;
-        }
-        
-        // Apply scope filtering to cases
-        const filteredCases = await secureDataAccess.secureList(
-          currentUserId,
-          'cases',
-          async () => state.cases.filter(c => c.clientId === clientId)
-        );
-        
-        setClientCases(filteredCases);
+        // Filter cases for this client
+        const cases = state.cases.filter(c => c.clientId === clientId);
+        setClientCases(cases);
         setHasAccess(true);
       } catch (error) {
-        console.error('Client portal access validation failed:', error);
+        console.error('Error loading client cases:', error);
         setHasAccess(false);
       } finally {
         setIsLoading(false);
       }
     };
     
-    if (clientId && state.cases.length > 0) {
-      validateAccess();
-    }
-  }, [clientId, currentUserId, state.cases]);
+    loadClientCases();
+  }, [clientId, state.cases]);
   // Transform documents to match interface
   const clientDocuments = state.documents
     .filter(d => d.clientId === clientId)
@@ -145,41 +111,23 @@ export const ClientPortal: React.FC = () => {
     );
   }
 
-  if (!client || !hasAccess) {
+  if (!clientId || !hasAccess) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center max-w-md">
           <Shield className="h-12 w-12 text-destructive mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-foreground">Access Denied</h2>
           <p className="text-muted-foreground mt-2">
-            {!client 
+            {!clientId 
               ? "Client profile not found."
               : "You don't have permission to access this portal."
             }
           </p>
-          {urlClientId && !client && (
-            <div className="mt-4 p-4 bg-muted rounded-lg text-left">
-              <p className="text-sm text-muted-foreground">
-                <strong>Looking for client ID:</strong> <code className="bg-background px-2 py-1 rounded">{urlClientId}</code>
-              </p>
-              <p className="text-sm text-muted-foreground mt-2">
-                This client doesn't exist in the system. Try using a valid client ID from the Client Masters page.
-              </p>
-            </div>
-          )}
-          {!urlClientId && (
-            <div className="mt-4 p-4 bg-muted rounded-lg text-left">
-              <p className="text-sm text-muted-foreground">
-                <strong>How to access a specific client portal:</strong>
-              </p>
-              <code className="block mt-2 bg-background px-3 py-2 rounded text-xs">
-                /portal?clientId=YOUR_CLIENT_ID
-              </code>
-              <p className="text-sm text-muted-foreground mt-2">
-                Get client IDs from the Client Masters page.
-              </p>
-            </div>
-          )}
+          <div className="mt-4 p-4 bg-muted rounded-lg text-left">
+            <p className="text-sm text-muted-foreground">
+              Please contact your legal team for assistance.
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -196,17 +144,15 @@ export const ClientPortal: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold text-foreground">Client Portal</h1>
           <p className="text-muted-foreground mt-2">
-            Welcome back, {client.name}! Here's your case overview.
+            Welcome back, {clientName || client?.name}! Here's your case overview.
           </p>
         </div>
         <div className="flex items-center space-x-2">
           <User className="h-5 w-5 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">{client.type}</span>
-          {urlClientId && (
-            <Badge variant="outline" className="ml-2">
-              Client ID: {urlClientId}
-            </Badge>
-          )}
+          <span className="text-sm text-muted-foreground">{client?.type || 'Client'}</span>
+          <Badge variant="outline" className="ml-2">
+            {clientAccess?.portalRole || 'Viewer'}
+          </Badge>
         </div>
       </motion.div>
 
