@@ -158,8 +158,68 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
     }
   }, [employee, mode, state.employees.length]);
 
+  // Get recommended data_scope based on employee role
+  const getRecommendedDataScope = (role: string): Employee['dataScope'] => {
+    switch (role) {
+      case 'Partner':
+      case 'Admin':
+        return 'All Cases';
+      case 'Manager':
+      case 'CA':
+      case 'Advocate':
+      case 'RM':
+      case 'Finance':
+        return 'Team Cases';
+      case 'Staff':
+        return 'Own Cases';
+      default:
+        return 'Team Cases';
+    }
+  };
+
+  // Check if data_scope is valid for the given role
+  const isDataScopeValidForRole = (role: string, dataScope: string): { valid: boolean; warning?: string } => {
+    const restrictedRoles = ['Partner', 'Admin', 'Manager'];
+    if (restrictedRoles.includes(role) && dataScope === 'Own Cases') {
+      return {
+        valid: false,
+        warning: `'Own Cases' is too restrictive for ${role} role. They won't be able to see team/subordinate data.`
+      };
+    }
+    return { valid: true };
+  };
+
+  // Get description for data_scope option
+  const getDataScopeDescription = (scope: string): string => {
+    switch (scope) {
+      case 'Own Cases':
+        return 'Only cases directly assigned to this employee';
+      case 'Team Cases':
+        return 'Cases assigned to self + subordinates (via reporting hierarchy)';
+      case 'All Cases':
+        return 'Full visibility across all tenant data';
+      default:
+        return '';
+    }
+  };
+
   const handleInputChange = (field: string, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => {
+      const updated = { ...prev, [field]: value };
+      
+      // Auto-set recommended data_scope when role changes (only if not manually set or in create mode)
+      if (field === 'role' && value) {
+        const recommendedScope = getRecommendedDataScope(value);
+        // Only auto-set if current scope is invalid for new role, or if creating new employee
+        const currentScope = prev.dataScope || 'Team Cases';
+        const validation = isDataScopeValidForRole(value, currentScope);
+        if (!validation.valid || mode === 'create') {
+          updated.dataScope = recommendedScope;
+        }
+      }
+      
+      return updated;
+    });
   };
 
   const handleMultiSelectChange = (field: keyof Employee, value: string) => {
@@ -1385,20 +1445,63 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
         <Label htmlFor="dataScope">Data Visibility Scope</Label>
         <Select
           value={formData.dataScope || ''}
-          onValueChange={(value) =>
-            handleInputChange('dataScope', value as Employee['dataScope'])
-          }
+          onValueChange={(value) => {
+            const validation = isDataScopeValidForRole(formData.role || '', value);
+            if (!validation.valid) {
+              toast({
+                title: 'Invalid Data Scope',
+                description: validation.warning,
+                variant: 'destructive',
+              });
+              return;
+            }
+            handleInputChange('dataScope', value as Employee['dataScope']);
+          }}
           disabled={isReadOnly}
         >
-          <SelectTrigger>
+          <SelectTrigger className={
+            formData.role && formData.dataScope && 
+            !isDataScopeValidForRole(formData.role, formData.dataScope).valid 
+              ? 'border-destructive' 
+              : ''
+          }>
             <SelectValue placeholder="Select scope" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="Own Cases">Own Cases</SelectItem>
-            <SelectItem value="Team Cases">Team Cases</SelectItem>
-            <SelectItem value="All Cases">All Cases</SelectItem>
+            <SelectItem 
+              value="Own Cases"
+              disabled={['Partner', 'Admin', 'Manager'].includes(formData.role || '')}
+            >
+              <div className="flex flex-col">
+                <span>Own Cases</span>
+                <span className="text-xs text-muted-foreground">
+                  {getDataScopeDescription('Own Cases')}
+                </span>
+              </div>
+            </SelectItem>
+            <SelectItem value="Team Cases">
+              <div className="flex flex-col">
+                <span>Team Cases</span>
+                <span className="text-xs text-muted-foreground">
+                  {getDataScopeDescription('Team Cases')}
+                </span>
+              </div>
+            </SelectItem>
+            <SelectItem value="All Cases">
+              <div className="flex flex-col">
+                <span>All Cases</span>
+                <span className="text-xs text-muted-foreground">
+                  {getDataScopeDescription('All Cases')}
+                </span>
+              </div>
+            </SelectItem>
           </SelectContent>
         </Select>
+        {formData.role && (
+          <p className="text-xs text-muted-foreground">
+            Recommended for {formData.role}: <strong>{getRecommendedDataScope(formData.role)}</strong>
+          </p>
+        )}
       </div>
 
       <div className="space-y-2">
