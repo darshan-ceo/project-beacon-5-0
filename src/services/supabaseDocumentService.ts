@@ -7,6 +7,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
 import { isValidUUID } from '@/utils/uuidValidator';
+import { auditService } from '@/services/auditService';
 
 export interface DocumentMetadata {
   case_id?: string;
@@ -246,6 +247,25 @@ export const uploadDocument = async (
       // Don't fail the upload if timeline creation fails
     }
 
+    // Log audit event for document upload
+    try {
+      await auditService.log('upload', metadata.tenant_id, {
+        userId: user.id,
+        entityType: 'document',
+        entityId: docData.id,
+        details: { 
+          fileName: fileName, 
+          fileType: fileExt, 
+          fileSize: file.size,
+          caseId: metadata.case_id,
+          clientId: metadata.client_id,
+          category: metadata.category
+        }
+      });
+    } catch (auditError) {
+      console.warn('Failed to log audit event for document upload:', auditError);
+    }
+
     return {
       id: docData.id,
       file_name: docData.file_name,
@@ -336,6 +356,25 @@ export const deleteDocument = async (id: string) => {
 
   if (dbError) {
     throw new Error(`Failed to delete document record: ${dbError.message}`);
+  }
+
+  // Log audit event for document deletion
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).single();
+    if (user && profile?.tenant_id) {
+      await auditService.log('delete', profile.tenant_id, {
+        userId: user.id,
+        entityType: 'document',
+        entityId: id,
+        details: { 
+          fileName: document.file_name, 
+          filePath: document.file_path
+        }
+      });
+    }
+  } catch (auditError) {
+    console.warn('Failed to log audit event for document deletion:', auditError);
   }
 
   console.log('✅ Document deleted:', id);
