@@ -167,12 +167,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           description: error.message,
           variant: "destructive",
         });
-      } else if (data.user && tenantId) {
-        // Log successful login
-        await auditService.log('login', tenantId, {
-          userId: data.user.id,
-          details: { email }
-        });
+      } else if (data.user) {
+        // Fetch tenant_id directly for audit logging (don't rely on state)
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('tenant_id')
+          .eq('id', data.user.id)
+          .single();
+        
+        if (profileData?.tenant_id) {
+          await auditService.log('login', profileData.tenant_id, {
+            userId: data.user.id,
+            details: { email }
+          });
+        }
       }
       
       return { error };
@@ -219,9 +227,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
+      // Capture tenant_id before signing out (fetch if not in state)
+      let logTenantId = tenantId;
+      
+      if (!logTenantId && user) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('tenant_id')
+          .eq('id', user.id)
+          .single();
+        logTenantId = profileData?.tenant_id || null;
+      }
+      
       // Log logout before signing out
-      if (user && tenantId) {
-        await auditService.log('logout', tenantId, {
+      if (user && logTenantId) {
+        await auditService.log('logout', logTenantId, {
           userId: user.id
         });
       }
