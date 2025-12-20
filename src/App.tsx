@@ -47,6 +47,7 @@ import { PendingRecordsPage } from "@/pages/PendingRecordsPage";
 import StageContextPage from "@/pages/StageContextPage";
 import { DevModeDashboard } from "@/pages/DevModeDashboard";
 import { ClientPortal } from "./components/portal/ClientPortal";
+import { ClientPortalUserManagement } from "./components/admin/ClientPortalUserManagement";
 import { ClientLayout } from "./components/layout/ClientLayout";
 import { ClientRouteGuard } from "./components/ui/client-route-guard";
 import { ClientPortalProvider } from "./contexts/ClientPortalContext";
@@ -427,6 +428,13 @@ const AppContent = () => {
                 <ProtectedRoute>
                   <AdminLayout currentUser={currentUser}>
                     <DocumentManagement />
+                  </AdminLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/settings/client-portal-users" element={
+                <ProtectedRoute>
+                  <AdminLayout currentUser={currentUser}>
+                    <ClientPortalUserManagement />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
