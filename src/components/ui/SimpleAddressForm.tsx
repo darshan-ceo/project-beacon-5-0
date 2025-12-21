@@ -16,6 +16,12 @@ interface SimpleAddressFormProps {
   onChange: (address: SimpleAddressData) => void;
   disabled?: boolean;
   className?: string;
+  errors?: {
+    line1?: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
+  };
 }
 
 /**
@@ -26,7 +32,8 @@ export const SimpleAddressForm: React.FC<SimpleAddressFormProps> = ({
   value,
   onChange,
   disabled = false,
-  className = ''
+  className = '',
+  errors = {}
 }) => {
   const handleFieldChange = (field: keyof SimpleAddressData, newValue: string) => {
     onChange({
@@ -45,7 +52,9 @@ export const SimpleAddressForm: React.FC<SimpleAddressFormProps> = ({
           onChange={(e) => handleFieldChange('line1', e.target.value)}
           disabled={disabled}
           placeholder="Street address, building name"
+          className={errors.line1 ? 'border-destructive' : ''}
         />
+        {errors.line1 && <p className="text-sm text-destructive mt-1">{errors.line1}</p>}
       </div>
       
       <div className="md:col-span-2">
@@ -67,7 +76,9 @@ export const SimpleAddressForm: React.FC<SimpleAddressFormProps> = ({
           onChange={(e) => handleFieldChange('cityName', e.target.value)}
           disabled={disabled}
           placeholder="Enter city name"
+          className={errors.city ? 'border-destructive' : ''}
         />
+        {errors.city && <p className="text-sm text-destructive mt-1">{errors.city}</p>}
       </div>
       
       <div>
@@ -78,7 +89,9 @@ export const SimpleAddressForm: React.FC<SimpleAddressFormProps> = ({
           onChange={(e) => handleFieldChange('stateName', e.target.value)}
           disabled={disabled}
           placeholder="Enter state name"
+          className={errors.state ? 'border-destructive' : ''}
         />
+        {errors.state && <p className="text-sm text-destructive mt-1">{errors.state}</p>}
       </div>
       
       <div>
@@ -89,7 +102,9 @@ export const SimpleAddressForm: React.FC<SimpleAddressFormProps> = ({
           onChange={(e) => handleFieldChange('pincode', e.target.value)}
           disabled={disabled}
           placeholder="Enter pincode"
+          className={errors.pincode ? 'border-destructive' : ''}
         />
+        {errors.pincode && <p className="text-sm text-destructive mt-1">{errors.pincode}</p>}
       </div>
       
       <div>
