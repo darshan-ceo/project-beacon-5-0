@@ -25,6 +25,7 @@ import { CalendarIntegrationPanel } from './CalendarIntegrationPanel';
 import { GSTIntegrationPanel } from './GSTIntegrationPanel';
 import SMSConfigPanel from './SMSConfigPanel';
 import SMSTemplateManager from './SMSTemplateManager';
+import WhatsAppConfigPanel from './WhatsAppConfigPanel';
 import { AddressSettings } from './AddressSettings';
 import { EmailConfiguration } from './EmailConfiguration';
 import { OutcomeTemplateManager } from './OutcomeTemplateManager';
@@ -369,6 +370,7 @@ export const GlobalParameters: React.FC = () => {
             <EmailConfiguration />
             <SMSTemplateManager />
             <SMSConfigPanel />
+            <WhatsAppConfigPanel />
           </div>
         );
 
