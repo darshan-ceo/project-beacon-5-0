@@ -34,10 +34,12 @@ import {
 import { ClientGroupModal } from '@/components/modals/ClientGroupModal';
 import { useToast } from '@/hooks/use-toast';
 import { clientGroupsService } from '@/services/clientGroupsService';
+import { useRBAC } from '@/hooks/useAdvancedRBAC';
 
 export const ClientGroupMasters: React.FC = () => {
   const { state, dispatch } = useAppState();
   const { toast } = useToast();
+  const { hasPermission } = useRBAC();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'Active' | 'Inactive'>('all');
@@ -228,7 +230,7 @@ export const ClientGroupMasters: React.FC = () => {
                 <TableRow 
                   key={group.id}
                   className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => handleView(group)}
+                  onClick={() => hasPermission('clients', 'write') ? handleEdit(group) : handleView(group)}
                 >
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">

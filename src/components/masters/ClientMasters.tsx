@@ -477,7 +477,11 @@ export const ClientMasters: React.FC = () => {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.3, delay: index * 0.05 }}
                     className="hover:bg-muted/50 cursor-pointer"
-                    onClick={() => setClientModal({ isOpen: true, mode: 'view', client })}
+                    onClick={() => setClientModal({ 
+                      isOpen: true, 
+                      mode: hasPermission('clients', 'write') ? 'edit' : 'view', 
+                      client 
+                    })}
                   >
                     {/* Column 1: Client Name */}
                     <TableCell>

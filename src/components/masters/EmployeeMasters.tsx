@@ -514,7 +514,7 @@ export const EmployeeMasters: React.FC = () => {
                 <TableRow 
                   key={employee.id}
                   className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => handleViewEmployee(employee)}
+                  onClick={() => hasPermission('employees', 'write') ? handleEditEmployee(employee) : handleViewEmployee(employee)}
                 >
                   <TableCell>
                     <span className="font-mono text-sm">{employee.employeeCode || '-'}</span>

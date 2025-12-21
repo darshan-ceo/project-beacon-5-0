@@ -26,6 +26,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { module: 'clients', action: 'admin' },
     { module: 'courts', action: 'admin' },
     { module: 'judges', action: 'admin' },
+    { module: 'employees', action: 'admin' },
     { module: 'tasks', action: 'admin' },
     { module: 'documents', action: 'admin' },
     { module: 'reports', action: 'admin' },
@@ -47,6 +48,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   Manager: [
     { module: 'cases', action: 'write' },
     { module: 'clients', action: 'write' },
+    { module: 'employees', action: 'write' },
     { module: 'courts', action: 'read' },
     { module: 'judges', action: 'read' },
     { module: 'tasks', action: 'write' },
@@ -59,6 +61,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   Associate: [
     { module: 'cases', action: 'read' },
     { module: 'clients', action: 'read' },
+    { module: 'employees', action: 'read' },
     { module: 'courts', action: 'read' },
     { module: 'judges', action: 'read' },
     { module: 'tasks', action: 'write' },
@@ -69,6 +72,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   Clerk: [
     { module: 'tasks', action: 'read' },
     { module: 'documents', action: 'read' },
+    { module: 'employees', action: 'read' },
   ],
   Client: [
     { module: 'cases', action: 'read' }, // Own cases only
