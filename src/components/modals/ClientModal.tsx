@@ -383,15 +383,21 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
       if (!formData.address.state?.trim()) {
         newErrors.addressState = 'State is required';
       }
+    } else if (isAddressMasterEnabled) {
+      // For enhanced address format with Address Master
+      if (!address.district?.trim()) {
+        newErrors.addressDistrict = 'District is required';
+      }
+      if (!address.stateId?.trim()) {
+        newErrors.addressState = 'State is required';
+      }
     } else {
-      // For enhanced address format
-      if (isAddressMasterEnabled) {
-        if (!address.district?.trim()) {
-          newErrors.addressDistrict = 'District is required';
-        }
-        if (!address.stateId?.trim()) {
-          newErrors.addressState = 'State is required';
-        }
+      // For SimpleAddressForm format (Address Master disabled)
+      if (!address.cityName?.trim()) {
+        newErrors.addressCity = 'City is required';
+      }
+      if (!address.stateName?.trim()) {
+        newErrors.addressState = 'State is required';
       }
     }
 
@@ -896,6 +902,12 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                       }
                     }))}
                     disabled={mode === 'view'}
+                    errors={{
+                      line1: errors.addressLine1,
+                      city: errors.addressCity,
+                      state: errors.addressState,
+                      pincode: errors.pincode
+                    }}
                   />
                 )}
               </CardContent>
