@@ -235,7 +235,15 @@ const JudgeMasters: React.FC = () => {
                   </TableHeader>
                   <TableBody>
                     {filteredJudges.map((judge) => (
-                      <TableRow key={judge.id}>
+                      <TableRow 
+                        key={judge.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => setJudgeModal({ 
+                          isOpen: true, 
+                          mode: hasPermission('judges', 'write') ? 'edit' : 'view', 
+                          judge 
+                        })}
+                      >
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <Avatar className="h-8 w-8">

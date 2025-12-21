@@ -254,7 +254,11 @@ export const CourtMasters: React.FC = () => {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}
                     className="hover:bg-muted/50 cursor-pointer"
-                    onClick={() => setCourtModal({ isOpen: true, mode: 'view', court })}
+                    onClick={() => setCourtModal({ 
+                      isOpen: true, 
+                      mode: hasPermission('courts', 'write') ? 'edit' : 'view', 
+                      court 
+                    })}
                   >
                     <TableCell className="max-w-md">
                       <div className="space-y-0.5">
