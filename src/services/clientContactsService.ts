@@ -1,9 +1,10 @@
 /**
  * Client Contacts Service for Beacon Essential 5.0
- * Manages centralized client contact information
+ * Manages centralized client contact information using Supabase
  */
 
-import { apiService, ApiResponse } from './apiService';
+import { supabase } from '@/integrations/supabase/client';
+import { ApiResponse } from './apiService';
 
 export interface ContactEmail {
   id: string;
@@ -33,7 +34,7 @@ export interface ClientContact {
   name: string;
   designation?: string;
   
-  // NEW: Multiple emails and phones
+  // Multiple emails and phones
   emails: ContactEmail[];
   phones: ContactPhone[];
   
@@ -57,7 +58,7 @@ export interface CreateContactRequest {
   name: string;
   designation?: string;
   
-  // NEW: Arrays for multiple entries
+  // Arrays for multiple entries
   emails?: ContactEmail[];
   phones?: ContactPhone[];
   
@@ -82,7 +83,42 @@ export interface ContactRoleFilter {
   isActive?: boolean;
 }
 
+// Helper to convert DB row to ClientContact
+function toClientContact(row: any): ClientContact {
+  return {
+    id: row.id,
+    clientId: row.client_id,
+    name: row.name,
+    designation: row.designation,
+    emails: (row.emails || []) as ContactEmail[],
+    phones: (row.phones || []) as ContactPhone[],
+    roles: (row.roles || []) as ContactRole[],
+    isPrimary: row.is_primary || false,
+    source: row.source || 'manual',
+    isActive: row.is_active !== false,
+    notes: row.notes,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
 class ClientContactsService {
+  /**
+   * Get user's tenant_id
+   */
+  private async getTenantId(): Promise<string | null> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+    
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('tenant_id')
+      .eq('id', user.id)
+      .single();
+    
+    return profile?.tenant_id || null;
+  }
+
   /**
    * Get all contacts for a client
    */
@@ -95,18 +131,53 @@ class ClientContactsService {
       };
     }
 
-    const params: any = {};
-    if (filter?.roles?.length) {
-      params.roles = filter.roles.join(',');
-    }
-    if (filter?.isPrimary !== undefined) {
-      params.isPrimary = filter.isPrimary;
-    }
-    if (filter?.isActive !== undefined) {
-      params.isActive = filter.isActive;
-    }
+    try {
+      let query = supabase
+        .from('client_contacts')
+        .select('*')
+        .eq('client_id', clientId);
 
-    return apiService.get<ClientContact[]>(`/api/clients/${clientId}/contacts`, params);
+      if (filter?.isActive !== undefined) {
+        query = query.eq('is_active', filter.isActive);
+      }
+      
+      if (filter?.isPrimary !== undefined) {
+        query = query.eq('is_primary', filter.isPrimary);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching contacts:', error);
+        return {
+          success: false,
+          error: error.message,
+          data: null
+        };
+      }
+
+      let contacts = (data || []).map(toClientContact);
+
+      // Filter by roles if specified
+      if (filter?.roles?.length) {
+        contacts = contacts.filter(contact => 
+          contact.roles.some(role => filter.roles!.includes(role))
+        );
+      }
+
+      return {
+        success: true,
+        data: contacts,
+        message: 'Contacts fetched successfully'
+      };
+    } catch (err: any) {
+      console.error('Error in getContacts:', err);
+      return {
+        success: false,
+        error: err.message || 'Failed to fetch contacts',
+        data: null
+      };
+    }
   }
 
   /**
@@ -117,6 +188,15 @@ class ClientContactsService {
       return {
         success: false,
         error: 'Client ID is required',
+        data: null
+      };
+    }
+
+    const tenantId = await this.getTenantId();
+    if (!tenantId) {
+      return {
+        success: false,
+        error: 'User not authenticated or tenant not found',
         data: null
       };
     }
@@ -161,7 +241,47 @@ class ClientContactsService {
       };
     }
 
-    return apiService.post<ClientContact>(`/api/clients/${clientId}/contacts`, migratedContact);
+    try {
+      const { data, error } = await supabase
+        .from('client_contacts')
+        .insert({
+          tenant_id: tenantId,
+          client_id: clientId,
+          name: migratedContact.name,
+          designation: migratedContact.designation || null,
+          emails: JSON.parse(JSON.stringify(migratedContact.emails || [])),
+          phones: JSON.parse(JSON.stringify(migratedContact.phones || [])),
+          roles: migratedContact.roles || [],
+          is_primary: migratedContact.isPrimary || false,
+          is_active: true,
+          source: 'manual',
+          notes: migratedContact.notes || null
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating contact:', error);
+        return {
+          success: false,
+          error: error.message,
+          data: null
+        };
+      }
+
+      return {
+        success: true,
+        data: toClientContact(data),
+        message: 'Contact created successfully'
+      };
+    } catch (err: any) {
+      console.error('Error in createContact:', err);
+      return {
+        success: false,
+        error: err.message || 'Failed to create contact',
+        data: null
+      };
+    }
   }
 
   /**
@@ -187,7 +307,46 @@ class ClientContactsService {
       }
     }
 
-    return apiService.put<ClientContact>(`/api/clients/${clientId}/contacts/${contactId}`, updates);
+    try {
+      const updateData: any = {};
+      if (updates.name !== undefined) updateData.name = updates.name;
+      if (updates.designation !== undefined) updateData.designation = updates.designation;
+      if (updates.emails !== undefined) updateData.emails = updates.emails;
+      if (updates.phones !== undefined) updateData.phones = updates.phones;
+      if (updates.roles !== undefined) updateData.roles = updates.roles;
+      if (updates.isPrimary !== undefined) updateData.is_primary = updates.isPrimary;
+      if (updates.notes !== undefined) updateData.notes = updates.notes;
+
+      const { data, error } = await supabase
+        .from('client_contacts')
+        .update(updateData)
+        .eq('id', contactId)
+        .eq('client_id', clientId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating contact:', error);
+        return {
+          success: false,
+          error: error.message,
+          data: null
+        };
+      }
+
+      return {
+        success: true,
+        data: toClientContact(data),
+        message: 'Contact updated successfully'
+      };
+    } catch (err: any) {
+      console.error('Error in updateContact:', err);
+      return {
+        success: false,
+        error: err.message || 'Failed to update contact',
+        data: null
+      };
+    }
   }
 
   /**
@@ -202,19 +361,83 @@ class ClientContactsService {
       };
     }
 
-    return apiService.delete<void>(`/api/clients/${clientId}/contacts/${contactId}`);
+    try {
+      const { error } = await supabase
+        .from('client_contacts')
+        .delete()
+        .eq('id', contactId)
+        .eq('client_id', clientId);
+
+      if (error) {
+        console.error('Error deleting contact:', error);
+        return {
+          success: false,
+          error: error.message,
+          data: null
+        };
+      }
+
+      return {
+        success: true,
+        data: undefined,
+        message: 'Contact deleted successfully'
+      };
+    } catch (err: any) {
+      console.error('Error in deleteContact:', err);
+      return {
+        success: false,
+        error: err.message || 'Failed to delete contact',
+        data: null
+      };
+    }
   }
 
   /**
    * Search contacts across clients
    */
   async searchContacts(query: string, roles?: ContactRole[]): Promise<ApiResponse<ContactSearchResult>> {
-    const params: any = { query };
-    if (roles?.length) {
-      params.roles = roles.join(',');
-    }
+    try {
+      let dbQuery = supabase
+        .from('client_contacts')
+        .select('*')
+        .or(`name.ilike.%${query}%,designation.ilike.%${query}%`);
 
-    return apiService.get<ContactSearchResult>('/api/contacts/search', params);
+      const { data, error } = await dbQuery;
+
+      if (error) {
+        console.error('Error searching contacts:', error);
+        return {
+          success: false,
+          error: error.message,
+          data: null
+        };
+      }
+
+      let contacts = (data || []).map(toClientContact);
+
+      // Filter by roles if specified
+      if (roles?.length) {
+        contacts = contacts.filter(contact =>
+          contact.roles.some(role => roles.includes(role))
+        );
+      }
+
+      return {
+        success: true,
+        data: {
+          contacts,
+          total: contacts.length
+        },
+        message: 'Search completed successfully'
+      };
+    } catch (err: any) {
+      console.error('Error in searchContacts:', err);
+      return {
+        success: false,
+        error: err.message || 'Failed to search contacts',
+        data: null
+      };
+    }
   }
 
   /**
@@ -260,6 +483,15 @@ class ClientContactsService {
       };
     }
 
+    const tenantId = await this.getTenantId();
+    if (!tenantId) {
+      return {
+        success: false,
+        error: 'User not authenticated or tenant not found',
+        data: null
+      };
+    }
+
     // Validate all contacts
     for (const contact of contacts) {
       const validation = this.validateContact(contact);
@@ -272,9 +504,51 @@ class ClientContactsService {
       }
     }
 
-    return apiService.post<ClientContact[]>(`/api/clients/${clientId}/contacts/bulk`, {
-      contacts
-    });
+    try {
+      const insertData = contacts.map(contact => {
+        const migrated = this.migrateContactData(contact);
+        return {
+          tenant_id: tenantId,
+          client_id: clientId,
+          name: migrated.name,
+          designation: migrated.designation || null,
+          emails: JSON.parse(JSON.stringify(migrated.emails || [])),
+          phones: JSON.parse(JSON.stringify(migrated.phones || [])),
+          roles: migrated.roles || [],
+          is_primary: migrated.isPrimary || false,
+          is_active: true,
+          source: 'imported',
+          notes: migrated.notes || null
+        };
+      });
+
+      const { data, error } = await supabase
+        .from('client_contacts')
+        .insert(insertData)
+        .select();
+
+      if (error) {
+        console.error('Error bulk creating contacts:', error);
+        return {
+          success: false,
+          error: error.message,
+          data: null
+        };
+      }
+
+      return {
+        success: true,
+        data: (data || []).map(toClientContact),
+        message: `${data?.length || 0} contacts created successfully`
+      };
+    } catch (err: any) {
+      console.error('Error in bulkCreateContacts:', err);
+      return {
+        success: false,
+        error: err.message || 'Failed to bulk create contacts',
+        data: null
+      };
+    }
   }
 
   /**
