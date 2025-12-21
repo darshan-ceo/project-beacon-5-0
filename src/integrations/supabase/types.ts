@@ -3666,6 +3666,127 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_config: {
+        Row: {
+          created_at: string | null
+          daily_limit: number | null
+          id: string
+          instance_id: string | null
+          is_active: boolean | null
+          monthly_limit: number | null
+          provider: string
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          daily_limit?: number | null
+          id?: string
+          instance_id?: string | null
+          is_active?: boolean | null
+          monthly_limit?: number | null
+          provider?: string
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          daily_limit?: number | null
+          id?: string
+          instance_id?: string | null
+          is_active?: boolean | null
+          monthly_limit?: number | null
+          provider?: string
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_delivery_logs: {
+        Row: {
+          created_at: string | null
+          credits_used: number | null
+          delivery_timestamp: string | null
+          error_message: string | null
+          id: string
+          message_text: string
+          provider_message_id: string | null
+          recipient_phone: string
+          related_entity_id: string | null
+          related_entity_type: string | null
+          status: string
+          template_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          credits_used?: number | null
+          delivery_timestamp?: string | null
+          error_message?: string | null
+          id?: string
+          message_text: string
+          provider_message_id?: string | null
+          recipient_phone: string
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          status?: string
+          template_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string | null
+          credits_used?: number | null
+          delivery_timestamp?: string | null
+          error_message?: string | null
+          id?: string
+          message_text?: string
+          provider_message_id?: string | null
+          recipient_phone?: string
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          status?: string
+          template_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_delivery_logs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "sms_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_delivery_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_delivery_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       audit_log_with_user_details: {
