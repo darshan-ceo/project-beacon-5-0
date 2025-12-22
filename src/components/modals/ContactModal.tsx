@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogBody,
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, UserCircle, Building2, Trash2 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2, UserCircle, Building2, Trash2, Mail, Phone, Settings, Plus, Edit, Eye } from 'lucide-react';
 import { 
   clientContactsService, 
   ClientContact, 
@@ -277,197 +278,265 @@ export const ContactModal: React.FC<ContactModalProps> = ({
     }
   };
 
+  const getModeIcon = () => {
+    switch (mode) {
+      case 'create': return <Plus className="h-5 w-5" />;
+      case 'edit': return <Edit className="h-5 w-5" />;
+      case 'view': return <Eye className="h-5 w-5" />;
+    }
+  };
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-beacon-modal max-h-[90vh] flex flex-col">
           <DialogHeader>
             <div className="flex items-center gap-3">
-              <UserCircle className="h-6 w-6 text-primary" />
-              <div>
-                <DialogTitle>{getTitle()}</DialogTitle>
-                <DialogDescription>
+              <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10">
+                <UserCircle className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <DialogTitle className="flex items-center gap-2">
+                  {getModeIcon()}
+                  {getTitle()}
+                </DialogTitle>
+                <p className="text-sm text-muted-foreground mt-0.5">
                   {mode === 'create' 
                     ? 'Create a new contact (client-linked or standalone)'
                     : contactData?.clientName 
                       ? `Linked to ${contactData.clientName}` 
                       : 'Standalone contact'
                   }
-                </DialogDescription>
+                </p>
               </div>
             </div>
           </DialogHeader>
 
           {loading ? (
-            <div className="space-y-4 py-4">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-20 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </div>
+            <DialogBody>
+              <div className="space-y-4">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            </DialogBody>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Name */}
-              <div className="space-y-2">
-                <Label htmlFor="name">Name *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="Enter contact name"
-                  disabled={isViewMode}
-                  required
-                />
-              </div>
+            <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+              <DialogBody>
+                <div className="space-y-6">
+                  {/* Basic Information Card */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <UserCircle className="h-4 w-4 text-primary" />
+                        Basic Information
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* Name + Designation - 2 column */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="name">Name *</Label>
+                          <Input
+                            id="name"
+                            value={formData.name}
+                            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                            placeholder="Enter contact name"
+                            disabled={isViewMode}
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="designation">Designation</Label>
+                          <Input
+                            id="designation"
+                            value={formData.designation}
+                            onChange={(e) => setFormData(prev => ({ ...prev, designation: e.target.value }))}
+                            placeholder="e.g., Director, Manager"
+                            disabled={isViewMode}
+                          />
+                        </div>
+                      </div>
 
-              {/* Designation */}
-              <div className="space-y-2">
-                <Label htmlFor="designation">Designation</Label>
-                <Input
-                  id="designation"
-                  value={formData.designation}
-                  onChange={(e) => setFormData(prev => ({ ...prev, designation: e.target.value }))}
-                  placeholder="e.g., Director, Manager"
-                  disabled={isViewMode}
-                />
-              </div>
+                      {/* Client Selector (only for create mode) */}
+                      {mode === 'create' && (
+                        <div className="space-y-2">
+                          <Label className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4" />
+                            Link to Client (Optional)
+                          </Label>
+                          <SearchableClientSelector
+                            clients={clients}
+                            value={formData.clientId || ''}
+                            onValueChange={(value) => setFormData(prev => ({ ...prev, clientId: value || null }))}
+                            disabled={isViewMode}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Leave empty for a standalone contact
+                          </p>
+                        </div>
+                      )}
 
-              {/* Client Selector (only for create mode) */}
-              {mode === 'create' && (
-                <div className="space-y-2">
-                  <Label>Link to Client (Optional)</Label>
-                  <SearchableClientSelector
-                    clients={clients}
-                    value={formData.clientId || ''}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, clientId: value || null }))}
-                    disabled={isViewMode}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Leave empty for a standalone contact
-                  </p>
+                      {/* Client Badge (for edit/view) */}
+                      {mode !== 'create' && contactData?.clientName && (
+                        <div className="space-y-2">
+                          <Label>Linked Client</Label>
+                          <div>
+                            <Badge variant="outline" className="gap-1.5 py-1">
+                              <Building2 className="h-3 w-3" />
+                              {contactData.clientName}
+                            </Badge>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Contact Details Card */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-primary" />
+                        Contact Details
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* Email Manager */}
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2">
+                          <Mail className="h-4 w-4" />
+                          Email Addresses
+                        </Label>
+                        <EmailManager
+                          emails={formData.emails || []}
+                          onChange={(emails) => setFormData(prev => ({ ...prev, emails }))}
+                          disabled={isViewMode}
+                        />
+                      </div>
+
+                      {/* Phone Manager */}
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2">
+                          <Phone className="h-4 w-4" />
+                          Phone Numbers
+                        </Label>
+                        <PhoneManager
+                          phones={formData.phones || []}
+                          onChange={(phones) => setFormData(prev => ({ ...prev, phones }))}
+                          disabled={isViewMode}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Settings Card */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Settings className="h-4 w-4 text-primary" />
+                        Settings
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* Roles */}
+                      <div className="space-y-3">
+                        <Label>Roles *</Label>
+                        <div className="grid grid-cols-2 gap-3">
+                          {availableRoles.map(({ role, label }) => (
+                            <div key={role} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={role}
+                                checked={formData.roles.includes(role)}
+                                onCheckedChange={(checked) => handleRoleChange(role, checked as boolean)}
+                                disabled={isViewMode}
+                              />
+                              <Label htmlFor={role} className="text-sm font-normal cursor-pointer">
+                                {label}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Primary + Active - 2 column */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex items-center space-x-2 p-3 bg-muted/50 rounded-lg">
+                          <Checkbox
+                            id="isPrimary"
+                            checked={formData.isPrimary}
+                            onCheckedChange={(checked) => 
+                              setFormData(prev => ({ ...prev, isPrimary: checked as boolean }))
+                            }
+                            disabled={isViewMode}
+                          />
+                          <Label htmlFor="isPrimary" className="text-sm font-normal cursor-pointer">
+                            Set as Primary Contact
+                          </Label>
+                        </div>
+
+                        <div className="flex items-center space-x-2 p-3 bg-muted/50 rounded-lg">
+                          <Checkbox
+                            id="isActive"
+                            checked={formData.isActive}
+                            onCheckedChange={(checked) => 
+                              setFormData(prev => ({ ...prev, isActive: checked as boolean }))
+                            }
+                            disabled={isViewMode}
+                          />
+                          <Label htmlFor="isActive" className="text-sm font-normal cursor-pointer">
+                            Active
+                          </Label>
+                        </div>
+                      </div>
+
+                      {/* Data Visibility Scope */}
+                      <div className="space-y-2">
+                        <Label htmlFor="dataScope">Data Visibility</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Who can see this contact record
+                        </p>
+                        <Select 
+                          value={formData.dataScope || 'TEAM'} 
+                          onValueChange={(value: 'OWN' | 'TEAM' | 'ALL') => 
+                            setFormData(prev => ({ ...prev, dataScope: value }))
+                          }
+                          disabled={isViewMode}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="OWN">Own Only</SelectItem>
+                            <SelectItem value="TEAM">Team Members</SelectItem>
+                            <SelectItem value="ALL">Everyone</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Notes */}
+                      <div className="space-y-2">
+                        <Label htmlFor="notes">Notes</Label>
+                        <Input
+                          id="notes"
+                          value={formData.notes}
+                          onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                          placeholder="Additional notes about this contact"
+                          disabled={isViewMode}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {error && (
+                    <Alert variant="destructive">
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  )}
                 </div>
-              )}
+              </DialogBody>
 
-              {/* Client Badge (for edit/view) */}
-              {mode !== 'create' && contactData?.clientName && (
-                <div className="flex items-center gap-2">
-                  <Label>Linked Client</Label>
-                  <Badge variant="outline" className="gap-1">
-                    <Building2 className="h-3 w-3" />
-                    {contactData.clientName}
-                  </Badge>
-                </div>
-              )}
-
-              {/* Email Manager */}
-              <EmailManager
-                emails={formData.emails || []}
-                onChange={(emails) => setFormData(prev => ({ ...prev, emails }))}
-                disabled={isViewMode}
-              />
-
-              {/* Phone Manager */}
-              <PhoneManager
-                phones={formData.phones || []}
-                onChange={(phones) => setFormData(prev => ({ ...prev, phones }))}
-                disabled={isViewMode}
-              />
-
-              {/* Roles */}
-              <div className="space-y-3">
-                <Label>Roles *</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {availableRoles.map(({ role, label }) => (
-                    <div key={role} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={role}
-                        checked={formData.roles.includes(role)}
-                        onCheckedChange={(checked) => handleRoleChange(role, checked as boolean)}
-                        disabled={isViewMode}
-                      />
-                      <Label htmlFor={role} className="text-sm font-normal">
-                        {label}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                {/* Primary Contact */}
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="isPrimary"
-                    checked={formData.isPrimary}
-                    onCheckedChange={(checked) => 
-                      setFormData(prev => ({ ...prev, isPrimary: checked as boolean }))
-                    }
-                    disabled={isViewMode}
-                  />
-                  <Label htmlFor="isPrimary" className="text-sm font-normal">
-                    Primary Contact
-                  </Label>
-                </div>
-
-                {/* Status */}
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="isActive"
-                    checked={formData.isActive}
-                    onCheckedChange={(checked) => 
-                      setFormData(prev => ({ ...prev, isActive: checked as boolean }))
-                    }
-                    disabled={isViewMode}
-                  />
-                  <Label htmlFor="isActive" className="text-sm font-normal">
-                    Active
-                  </Label>
-                </div>
-              </div>
-
-              {/* Data Visibility Scope */}
-              <div className="space-y-2">
-                <Label htmlFor="dataScope">Data Visibility</Label>
-                <p className="text-xs text-muted-foreground">
-                  Who can see this contact record
-                </p>
-                <Select 
-                  value={formData.dataScope || 'TEAM'} 
-                  onValueChange={(value: 'OWN' | 'TEAM' | 'ALL') => 
-                    setFormData(prev => ({ ...prev, dataScope: value }))
-                  }
-                  disabled={isViewMode}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="OWN">Own Only</SelectItem>
-                    <SelectItem value="TEAM">Team Members</SelectItem>
-                    <SelectItem value="ALL">Everyone</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Notes */}
-              <div className="space-y-2">
-                <Label htmlFor="notes">Notes</Label>
-                <Input
-                  id="notes"
-                  value={formData.notes}
-                  onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                  placeholder="Additional notes"
-                  disabled={isViewMode}
-                />
-              </div>
-
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
-              <DialogFooter className="flex-col sm:flex-row gap-2">
+              <DialogFooter className="border-t">
                 {mode === 'edit' && (
                   <Button
                     type="button"
@@ -498,6 +567,7 @@ export const ContactModal: React.FC<ContactModalProps> = ({
         </DialogContent>
       </Dialog>
 
+      {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -508,7 +578,11 @@ export const ContactModal: React.FC<ContactModalProps> = ({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+            <AlertDialogAction 
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
