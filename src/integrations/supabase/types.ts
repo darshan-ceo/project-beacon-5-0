@@ -537,8 +537,9 @@ export type Database = {
       }
       client_contacts: {
         Row: {
-          client_id: string
+          client_id: string | null
           created_at: string | null
+          data_scope: Database["public"]["Enums"]["entity_data_scope"] | null
           designation: string | null
           emails: Json | null
           id: string
@@ -546,6 +547,7 @@ export type Database = {
           is_primary: boolean | null
           name: string
           notes: string | null
+          owner_user_id: string | null
           phones: Json | null
           roles: string[] | null
           source: string | null
@@ -553,8 +555,9 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
-          client_id: string
+          client_id?: string | null
           created_at?: string | null
+          data_scope?: Database["public"]["Enums"]["entity_data_scope"] | null
           designation?: string | null
           emails?: Json | null
           id?: string
@@ -562,6 +565,7 @@ export type Database = {
           is_primary?: boolean | null
           name: string
           notes?: string | null
+          owner_user_id?: string | null
           phones?: Json | null
           roles?: string[] | null
           source?: string | null
@@ -569,8 +573,9 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
-          client_id?: string
+          client_id?: string | null
           created_at?: string | null
+          data_scope?: Database["public"]["Enums"]["entity_data_scope"] | null
           designation?: string | null
           emails?: Json | null
           id?: string
@@ -578,6 +583,7 @@ export type Database = {
           is_primary?: boolean | null
           name?: string
           notes?: string | null
+          owner_user_id?: string | null
           phones?: Json | null
           roles?: string[] | null
           source?: string | null
@@ -808,6 +814,7 @@ export type Database = {
           city: string | null
           client_group_id: string | null
           created_at: string | null
+          data_scope: Database["public"]["Enums"]["entity_data_scope"] | null
           display_name: string
           email: string | null
           gstin: string | null
@@ -828,6 +835,7 @@ export type Database = {
           city?: string | null
           client_group_id?: string | null
           created_at?: string | null
+          data_scope?: Database["public"]["Enums"]["entity_data_scope"] | null
           display_name: string
           email?: string | null
           gstin?: string | null
@@ -848,6 +856,7 @@ export type Database = {
           city?: string | null
           client_group_id?: string | null
           created_at?: string | null
+          data_scope?: Database["public"]["Enums"]["entity_data_scope"] | null
           display_name?: string
           email?: string | null
           gstin?: string | null
@@ -4224,6 +4233,14 @@ export type Database = {
         Args: { _case_id: string; _user_id: string }
         Returns: boolean
       }
+      can_user_view_client: {
+        Args: { _client_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_user_view_contact: {
+        Args: { _contact_id: string; _user_id: string }
+        Returns: boolean
+      }
       can_view_case_by_hierarchy: {
         Args: {
           _case_assigned_to: string
@@ -4289,6 +4306,7 @@ export type Database = {
         | "clerk"
         | "client"
         | "user"
+      entity_data_scope: "OWN" | "TEAM" | "ALL"
       license_tier: "trial" | "basic" | "professional" | "enterprise"
     }
     CompositeTypes: {
@@ -4428,6 +4446,7 @@ export const Constants = {
         "client",
         "user",
       ],
+      entity_data_scope: ["OWN", "TEAM", "ALL"],
       license_tier: ["trial", "basic", "professional", "enterprise"],
     },
   },
