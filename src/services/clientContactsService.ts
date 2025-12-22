@@ -258,32 +258,51 @@ class ClientContactsService {
     }
 
     try {
+      const insertData = {
+        tenant_id: tenantId,
+        client_id: clientId || null, // Support standalone contacts
+        name: migratedContact.name,
+        designation: migratedContact.designation || null,
+        emails: JSON.parse(JSON.stringify(migratedContact.emails || [])),
+        phones: JSON.parse(JSON.stringify(migratedContact.phones || [])),
+        roles: migratedContact.roles || [],
+        is_primary: migratedContact.isPrimary || false,
+        is_active: true,
+        source: 'manual',
+        notes: migratedContact.notes || null,
+        // Dual Access Model fields
+        owner_user_id: user.id,
+        data_scope: contact.dataScope || 'TEAM'
+      };
+
+      // Debug logging for RLS troubleshooting
+      console.log('[createContact] Auth state:', { userId: user.id, email: user.email });
+      console.log('[createContact] Insert data:', insertData);
+
       const { data, error } = await supabase
         .from('client_contacts')
-        .insert({
-          tenant_id: tenantId,
-          client_id: clientId || null, // Support standalone contacts
-          name: migratedContact.name,
-          designation: migratedContact.designation || null,
-          emails: JSON.parse(JSON.stringify(migratedContact.emails || [])),
-          phones: JSON.parse(JSON.stringify(migratedContact.phones || [])),
-          roles: migratedContact.roles || [],
-          is_primary: migratedContact.isPrimary || false,
-          is_active: true,
-          source: 'manual',
-          notes: migratedContact.notes || null,
-          // Dual Access Model fields
-          owner_user_id: user.id,
-          data_scope: contact.dataScope || 'TEAM'
-        })
+        .insert(insertData)
         .select()
         .single();
 
       if (error) {
-        console.error('Error creating contact:', error);
+        console.error('[createContact] Error:', error);
+        console.error('[createContact] Error details:', { 
+          code: error.code, 
+          message: error.message,
+          hint: (error as any).hint,
+          details: (error as any).details 
+        });
+        
+        // Provide more helpful error message for RLS violations
+        let errorMessage = error.message;
+        if (error.code === '42501') {
+          errorMessage = 'Permission denied. Please ensure you have the required role to create contacts.';
+        }
+        
         return {
           success: false,
-          error: error.message,
+          error: errorMessage,
           data: null
         };
       }

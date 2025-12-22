@@ -74,10 +74,22 @@ export const CreateContactDrawer: React.FC<CreateContactDrawerProps> = ({
           description: `${formData.name} has been added successfully`,
         });
       } else {
-        setError(response.error || 'Failed to create contact');
+        const errorMsg = response.error || 'Failed to create contact';
+        setError(errorMsg);
+        toast({
+          title: 'Failed to Create Contact',
+          description: errorMsg,
+          variant: 'destructive'
+        });
       }
-    } catch (err) {
-      setError('Network error. Please try again.');
+    } catch (err: any) {
+      const errorMsg = err.message || 'Network error. Please try again.';
+      setError(errorMsg);
+      toast({
+        title: 'Error',
+        description: errorMsg,
+        variant: 'destructive'
+      });
     } finally {
       setLoading(false);
     }

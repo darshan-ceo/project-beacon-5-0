@@ -201,7 +201,13 @@ export const ContactModal: React.FC<ContactModalProps> = ({
           onSuccess?.();
           onClose();
         } else {
-          setError(response.error || 'Failed to create contact');
+          const errorMsg = response.error || 'Failed to create contact';
+          setError(errorMsg);
+          toast({
+            title: 'Failed to Create Contact',
+            description: errorMsg,
+            variant: 'destructive'
+          });
         }
       } else if (mode === 'edit' && contactId) {
         const response = await clientContactsService.updateContact(contactId, {
@@ -224,11 +230,23 @@ export const ContactModal: React.FC<ContactModalProps> = ({
           onSuccess?.();
           onClose();
         } else {
-          setError(response.error || 'Failed to update contact');
+          const errorMsg = response.error || 'Failed to update contact';
+          setError(errorMsg);
+          toast({
+            title: 'Failed to Update Contact',
+            description: errorMsg,
+            variant: 'destructive'
+          });
         }
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred');
+      const errorMsg = err.message || 'An error occurred';
+      setError(errorMsg);
+      toast({
+        title: 'Error',
+        description: errorMsg,
+        variant: 'destructive'
+      });
     } finally {
       setSaving(false);
     }
