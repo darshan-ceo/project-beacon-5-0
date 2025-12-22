@@ -16,6 +16,7 @@ import NotFound from "./pages/NotFound";
 import { AdminLayout } from "./components/layout/AdminLayout";
 import { EnhancedDashboard } from "@/components/dashboard/EnhancedDashboard";
 import { ClientMasters } from "@/components/masters/ClientMasters";
+import { ContactsPage } from "@/pages/ContactsPage";
 import { ClientGroupMasters } from "@/components/masters/ClientGroupMasters";
 import { CourtMasters } from "@/components/masters/CourtMasters";
 import JudgeMasters from "@/components/masters/JudgeMasters";
@@ -158,6 +159,13 @@ const AppContent = () => {
                 <ProtectedRoute>
                   <AdminLayout>
                     <ClientMasters />
+                  </AdminLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/contacts" element={
+                <ProtectedRoute>
+                  <AdminLayout>
+                    <ContactsPage />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
