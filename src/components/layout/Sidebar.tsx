@@ -42,6 +42,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useUIState } from '@/hooks/useUIState';
+import { useModuleAccess } from '@/hooks/useModuleAccess';
 import { envConfig } from '@/utils/envConfig';
 
 interface AppSidebarProps {
@@ -118,6 +119,9 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
     { category: 'preferences', description: 'Sidebar theme preference' }
   );
 
+  // Module access enforcement
+  const { hasModuleAccess, filterMenuItems } = useModuleAccess();
+
   // State for tracking group expansion
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
     const initialState: Record<string, boolean> = {};
@@ -164,11 +168,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
     });
   }
 
-  // Filter menu items and groups by user role
-  const filteredMainItems = dynamicMainItems.filter(item => item.roles.includes(userRole));
+  // Filter menu items by role AND module access
+  const filteredMainItems = filterMenuItems(
+    dynamicMainItems.filter(item => item.roles.includes(userRole))
+  );
+  
   const filteredGroups = menuGroups.filter(group => 
     group.roles.includes(userRole) && 
-    group.items.some(item => item.roles.includes(userRole))
+    group.items.some(item => item.roles.includes(userRole) && hasModuleAccess(item.href))
   );
 
   const location = useLocation();
@@ -258,7 +265,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
 
             {/* Collapsible Groups */}
             {filteredGroups.map((group) => {
-              const groupItems = group.items.filter(item => item.roles.includes(userRole));
+              const groupItems = filterMenuItems(group.items.filter(item => item.roles.includes(userRole)));
               if (groupItems.length === 0) return null;
               
               const isGroupOpen = openGroups[group.label];
