@@ -6,7 +6,7 @@
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { DashboardTile } from '@/utils/rbacHelper';
 
@@ -37,6 +37,7 @@ import { DeadlineCalendarWidget } from './DeadlineCalendarWidget';
 
 interface DashboardWidgetProps {
   tile: DashboardTile;
+  onHide?: (tileId: string) => void;
 }
 
 // Map tile IDs to widget components
@@ -84,7 +85,7 @@ const colorThemeToBorder: Record<string, string> = {
   'vibrant-indigo': 'border-l-indigo-500',
 };
 
-export const DashboardWidget: React.FC<DashboardWidgetProps> = ({ tile }) => {
+export const DashboardWidget: React.FC<DashboardWidgetProps> = ({ tile, onHide }) => {
   const {
     attributes,
     listeners,
@@ -127,17 +128,33 @@ export const DashboardWidget: React.FC<DashboardWidgetProps> = ({ tile }) => {
         isDragging && 'opacity-50 z-50'
       )}
     >
-      {/* Drag Handle - Visible on hover */}
-      <div
-        {...attributes}
-        {...listeners}
-        className={cn(
-          'absolute top-2 right-2 z-10 p-1.5 rounded-md bg-muted/80 backdrop-blur-sm',
-          'opacity-0 group-hover:opacity-100 transition-opacity cursor-grab',
-          'hover:bg-muted active:cursor-grabbing'
+      {/* Widget Controls - Visible on hover */}
+      <div className="absolute top-2 right-2 z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Hide Button */}
+        {onHide && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onHide(tile.id);
+            }}
+            className="p-1.5 rounded-md bg-muted/80 backdrop-blur-sm hover:bg-destructive/20 transition-colors"
+            title="Hide widget temporarily"
+          >
+            <X className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+          </button>
         )}
-      >
-        <GripVertical className="h-4 w-4 text-muted-foreground" />
+        
+        {/* Drag Handle */}
+        <div
+          {...attributes}
+          {...listeners}
+          className={cn(
+            'p-1.5 rounded-md bg-muted/80 backdrop-blur-sm cursor-grab',
+            'hover:bg-muted active:cursor-grabbing'
+          )}
+        >
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </div>
       </div>
 
       {/* Widget Content */}

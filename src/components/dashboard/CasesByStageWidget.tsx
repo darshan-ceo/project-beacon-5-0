@@ -30,7 +30,7 @@ export const CasesByStageWidget: React.FC = () => {
   };
   
   return (
-    <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-blue-50 to-indigo-50 md:col-span-2">
+    <Card className="hover:shadow-md transition-shadow bg-card border-l-4 border-l-blue-500 h-full">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <BarChart3 className="h-4 w-4 text-blue-600" />

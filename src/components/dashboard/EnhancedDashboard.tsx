@@ -9,12 +9,13 @@ import { motion } from 'framer-motion';
 import { useAppState } from '@/contexts/AppStateContext';
 import { useRBAC } from '@/hooks/useAdvancedRBAC';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Settings, RefreshCw, LayoutGrid } from 'lucide-react';
 import { PageHelp } from '@/components/help/PageHelp';
 import { InlineHelp } from '@/components/help/InlineHelp';
-import { FollowUpsDueWidget } from './FollowUpsDueWidget';
 import { DashboardWidget } from './DashboardWidget';
 import { DashboardStatsBar } from './DashboardStatsBar';
+import { toast } from 'sonner';
 import { CustomizeDashboard } from './CustomizeDashboard';
 import { filterTilesByRBAC, getDefaultTiles, DashboardTile } from '@/utils/rbacHelper';
 import { format } from 'date-fns';
@@ -37,6 +38,7 @@ import {
 } from '@dnd-kit/sortable';
 
 const STORAGE_KEY = 'dashboard_user_tiles';
+const HIDDEN_TILES_KEY = 'dashboard_hidden_tiles';
 
 // Categorize widgets by type for layout grouping
 const categorizeWidgets = (tiles: DashboardTile[]) => {
@@ -65,6 +67,19 @@ export const EnhancedDashboard: React.FC = () => {
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [hiddenTiles, setHiddenTiles] = useState<string[]>([]);
+
+  // Load hidden tiles from localStorage
+  useEffect(() => {
+    const savedHidden = localStorage.getItem(HIDDEN_TILES_KEY);
+    if (savedHidden) {
+      try {
+        setHiddenTiles(JSON.parse(savedHidden));
+      } catch (error) {
+        console.error('Failed to parse hidden tiles:', error);
+      }
+    }
+  }, []);
 
   // Load user preferences from localStorage
   useEffect(() => {
@@ -86,10 +101,10 @@ export const EnhancedDashboard: React.FC = () => {
     return filterTilesByRBAC(selectedTiles, hasPermission);
   }, [selectedTiles, hasPermission]);
 
-  // Maintain user's custom order
+  // Maintain user's custom order and filter out hidden tiles
   const sortedTiles = useMemo(() => {
-    return [...accessibleTiles];
-  }, [accessibleTiles]);
+    return accessibleTiles.filter(tile => !hiddenTiles.includes(tile.id));
+  }, [accessibleTiles, hiddenTiles]);
 
   // Categorize widgets for grouped layout
   const { kpiWidgets, chartWidgets, listWidgets } = useMemo(() => {
@@ -120,6 +135,24 @@ export const EnhancedDashboard: React.FC = () => {
       setLastUpdated(new Date());
       setIsRefreshing(false);
     }, 1000);
+  };
+
+  const handleHideWidget = (tileId: string) => {
+    const newHidden = [...hiddenTiles, tileId];
+    setHiddenTiles(newHidden);
+    localStorage.setItem(HIDDEN_TILES_KEY, JSON.stringify(newHidden));
+    
+    toast.info('Widget hidden', {
+      description: 'Restore it from Customize dashboard',
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          const restored = hiddenTiles.filter(id => id !== tileId);
+          setHiddenTiles(restored);
+          localStorage.setItem(HIDDEN_TILES_KEY, JSON.stringify(restored));
+        }
+      }
+    });
   };
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -177,6 +210,13 @@ export const EnhancedDashboard: React.FC = () => {
             <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
           </Button>
 
+          {/* Hidden Count Badge */}
+          {hiddenTiles.length > 0 && (
+            <Badge variant="secondary" className="text-xs">
+              {hiddenTiles.length} hidden
+            </Badge>
+          )}
+
           {/* Customize Button */}
           <Button onClick={() => setCustomizeOpen(true)} variant="outline" size="sm">
             <LayoutGrid className="mr-2 h-4 w-4" />
@@ -195,15 +235,6 @@ export const EnhancedDashboard: React.FC = () => {
         transition={{ delay: 0.05 }}
       >
         <DashboardStatsBar />
-      </motion.div>
-
-      {/* Follow-Ups Due Widget (always visible) */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-      >
-        <FollowUpsDueWidget />
       </motion.div>
 
       {/* Dashboard Widgets with Drag-and-Drop */}
@@ -227,7 +258,7 @@ export const EnhancedDashboard: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {kpiWidgets.map((tile) => (
                   <div key={tile.id} className="h-[180px]">
-                    <DashboardWidget tile={tile} />
+                    <DashboardWidget tile={tile} onHide={handleHideWidget} />
                   </div>
                 ))}
               </div>
@@ -244,7 +275,7 @@ export const EnhancedDashboard: React.FC = () => {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {chartWidgets.map((tile) => (
                   <div key={tile.id} className="h-[320px]">
-                    <DashboardWidget tile={tile} />
+                    <DashboardWidget tile={tile} onHide={handleHideWidget} />
                   </div>
                 ))}
               </div>
@@ -261,7 +292,7 @@ export const EnhancedDashboard: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {listWidgets.map((tile) => (
                   <div key={tile.id} className="h-[280px]">
-                    <DashboardWidget tile={tile} />
+                    <DashboardWidget tile={tile} onHide={handleHideWidget} />
                   </div>
                 ))}
               </div>
@@ -274,6 +305,7 @@ export const EnhancedDashboard: React.FC = () => {
             <div className="opacity-80 scale-105 shadow-2xl">
               <DashboardWidget
                 tile={sortedTiles.find((t) => t.id === activeDragId)!}
+                onHide={handleHideWidget}
               />
             </div>
           ) : null}
