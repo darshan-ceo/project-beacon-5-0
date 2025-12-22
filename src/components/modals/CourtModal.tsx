@@ -352,9 +352,13 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
       }
 
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Court operation failed:', error);
-    } finally {
+      toast({
+        title: 'Error Saving Legal Forum',
+        description: error?.message || 'Failed to save legal forum. Please try again.',
+        variant: 'destructive'
+      });
       setIsSaving(false);
     }
   };
@@ -366,9 +370,13 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         const { courtsService } = await import('@/services/courtsService');
         await courtsService.delete(courtData.id, dispatch);
         onClose();
-      } catch (error) {
+      } catch (error: any) {
         console.error('Court deletion failed:', error);
-      } finally {
+        toast({
+          title: 'Error Deleting Legal Forum',
+          description: error?.message || 'Failed to delete legal forum.',
+          variant: 'destructive'
+        });
         setIsDeleting(false);
       }
     }

@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useMemo, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { 
   Users, 
@@ -136,46 +135,55 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
     setSidebarTheme(sidebarTheme === 'dark' ? 'light' : 'dark');
   };
 
-  // Add QA and Debug items to main menu based on environment
-  const dynamicMainItems = [...mainMenuItems];
-  
-  // Add Dev Mode Dashboard when any dev features are enabled
-  if (envConfig.QA_ON || envConfig.GST_ENABLED || envConfig.MOCK_ON) {
-    dynamicMainItems.push({ 
-      icon: TestTube, 
-      label: 'Dev Mode Dashboard', 
-      href: '/dev-dashboard', 
-      roles: ['Admin'],
-      badge: 'DEV'
-    });
-  }
-  
-  if (envConfig.QA_ON) {
-    dynamicMainItems.push({ 
-      icon: Bug, 
-      label: 'QA Dashboard', 
-      href: '/qa', 
-      roles: ['Admin'] 
-    });
-  }
-  
-  if (envConfig.GST_ENABLED) {
-    dynamicMainItems.push({ 
-      icon: TestTube, 
-      label: 'GST Debug', 
-      href: '/debug/gst', 
-      roles: ['Admin'] 
-    });
-  }
+  // Add QA and Debug items to main menu based on environment - memoized for stability
+  const dynamicMainItems = useMemo(() => {
+    const items = [...mainMenuItems];
+    
+    // Add Dev Mode Dashboard when any dev features are enabled
+    if (envConfig.QA_ON || envConfig.GST_ENABLED || envConfig.MOCK_ON) {
+      items.push({ 
+        icon: TestTube, 
+        label: 'Dev Mode Dashboard', 
+        href: '/dev-dashboard', 
+        roles: ['Admin'],
+        badge: 'DEV'
+      });
+    }
+    
+    if (envConfig.QA_ON) {
+      items.push({ 
+        icon: Bug, 
+        label: 'QA Dashboard', 
+        href: '/qa', 
+        roles: ['Admin'] 
+      });
+    }
+    
+    if (envConfig.GST_ENABLED) {
+      items.push({ 
+        icon: TestTube, 
+        label: 'GST Debug', 
+        href: '/debug/gst', 
+        roles: ['Admin'] 
+      });
+    }
+    
+    return items;
+  }, []); // Static since envConfig doesn't change at runtime
 
-  // Filter menu items by role AND module access
-  const filteredMainItems = filterMenuItems(
-    dynamicMainItems.filter(item => item.roles.includes(userRole))
+  // Filter menu items by role AND module access - memoized
+  const filteredMainItems = useMemo(() => 
+    filterMenuItems(dynamicMainItems.filter(item => item.roles.includes(userRole))),
+    [dynamicMainItems, userRole, filterMenuItems]
   );
   
-  const filteredGroups = menuGroups.filter(group => 
-    group.roles.includes(userRole) && 
-    group.items.some(item => item.roles.includes(userRole) && hasModuleAccess(item.href))
+  // Memoize filtered groups to prevent useEffect re-triggers
+  const filteredGroups = useMemo(() => 
+    menuGroups.filter(group => 
+      group.roles.includes(userRole) && 
+      group.items.some(item => item.roles.includes(userRole) && hasModuleAccess(item.href))
+    ),
+    [userRole, hasModuleAccess]
   );
 
   const location = useLocation();
@@ -189,15 +197,26 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
   const getNavClasses = (active: boolean) =>
     active ? "brand-active-sidebar" : "nav-hover";
 
-  // Auto-open any group that contains the active route
-  React.useEffect(() => {
-    setOpenGroups((prev) => {
+  // Auto-open any group that contains the active route - stable dependencies
+  useEffect(() => {
+    const groupLabels = filteredGroups.map(g => g.label);
+    const activeGroupLabels = filteredGroups
+      .filter(group => group.items.some(item => isPathActive(item.href, location.pathname)))
+      .map(g => g.label);
+    
+    setOpenGroups(prev => {
+      // Only update if there's actually a change needed
+      let hasChange = false;
       const next = { ...prev };
-      filteredGroups.forEach((group) => {
-        const hasActive = group.items.some((item) => isPathActive(item.href, location.pathname));
-        if (hasActive) next[group.label] = true;
+      
+      activeGroupLabels.forEach(label => {
+        if (!prev[label]) {
+          next[label] = true;
+          hasChange = true;
+        }
       });
-      return next;
+      
+      return hasChange ? next : prev;
     });
   }, [location.pathname, filteredGroups]);
 

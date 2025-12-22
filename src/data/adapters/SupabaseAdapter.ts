@@ -1157,8 +1157,8 @@ export class SupabaseAdapter implements StoragePort {
             normalized.jurisdiction = JSON.stringify(normalized.jurisdiction);
           }
           
-          // Keep only valid DB columns (now including jurisdiction)
-          const validClientFields = ['id', 'tenant_id', 'display_name', 'email', 'phone', 'pan', 'gstin', 'state', 'city', 'status', 'client_group_id', 'owner_id', 'created_at', 'updated_at', 'address', 'signatories', 'type', 'jurisdiction'];
+          // Keep only valid DB columns (now including jurisdiction and data_scope)
+          const validClientFields = ['id', 'tenant_id', 'display_name', 'email', 'phone', 'pan', 'gstin', 'state', 'city', 'status', 'client_group_id', 'owner_id', 'created_at', 'updated_at', 'address', 'signatories', 'type', 'jurisdiction', 'data_scope'];
           Object.keys(normalized).forEach(key => {
             if (!validClientFields.includes(key)) delete normalized[key];
           });
@@ -1856,34 +1856,46 @@ export class SupabaseAdapter implements StoragePort {
           break;
           
         case 'courts':
-          // Map fields
+          // Map camelCase fields to snake_case
           if (normalized.establishedYear && !normalized.established_year) normalized.established_year = normalized.establishedYear;
           if (normalized.createdAt && !normalized.created_at) normalized.created_at = normalized.createdAt;
           if (normalized.updatedAt && !normalized.updated_at) normalized.updated_at = normalized.updatedAt;
           if (normalized.createdBy && !normalized.created_by) normalized.created_by = normalized.createdBy;
+          if (normalized.benchLocation && !normalized.bench_location) normalized.bench_location = normalized.benchLocation;
+          if (normalized.taxJurisdiction && !normalized.tax_jurisdiction) normalized.tax_jurisdiction = normalized.taxJurisdiction;
+          if (normalized.officerDesignation && !normalized.officer_designation) normalized.officer_designation = normalized.officerDesignation;
           
-          // Delete UI-only fields
+          // Delete camelCase/UI-only fields
           delete normalized.activeCases;
           delete normalized.establishedYear;
           delete normalized.createdAt;
           delete normalized.updatedAt;
           delete normalized.createdBy;
+          delete normalized.benchLocation;
+          delete normalized.taxJurisdiction;
+          delete normalized.officerDesignation;
           
-          // Whitelist only valid columns
-          const validCourtFields = ['id', 'tenant_id', 'name', 'code', 'type', 'level', 'city', 'state', 'jurisdiction', 'address', 'created_by', 'created_at', 'updated_at', 'established_year'];
+          // Whitelist only valid columns (now includes all DB columns)
+          const validCourtFields = ['id', 'tenant_id', 'name', 'code', 'type', 'level', 'city', 'state', 'jurisdiction', 'address', 'created_by', 'created_at', 'updated_at', 'established_year', 'bench_location', 'tax_jurisdiction', 'officer_designation', 'phone', 'email', 'status'];
           Object.keys(normalized).forEach(key => {
             if (!validCourtFields.includes(key)) delete normalized[key];
           });
           break;
           
         case 'judges':
-          // Map fields
+          // Map camelCase fields to snake_case
           if (normalized.courtId && !normalized.court_id) normalized.court_id = normalized.courtId;
           if (normalized.createdAt && !normalized.created_at) normalized.created_at = normalized.createdAt;
           if (normalized.updatedAt && !normalized.updated_at) normalized.updated_at = normalized.updatedAt;
           if (normalized.createdBy && !normalized.created_by) normalized.created_by = normalized.createdBy;
+          if (normalized.appointmentDate && !normalized.appointment_date) normalized.appointment_date = normalized.appointmentDate;
           
-          // Delete UI-only fields
+          // Handle specialization - ensure it's an array for Postgres
+          if (normalized.specialization && typeof normalized.specialization === 'string') {
+            normalized.specialization = [normalized.specialization];
+          }
+          
+          // Delete camelCase/UI-only fields
           delete normalized.appointmentDate;
           delete normalized.courtId;
           delete normalized.createdAt;
@@ -1895,8 +1907,8 @@ export class SupabaseAdapter implements StoragePort {
             normalized.court_id = null;
           }
           
-          // Whitelist only valid columns
-          const validJudgeFields = ['id', 'tenant_id', 'name', 'court_id', 'designation', 'phone', 'email', 'created_by', 'created_at', 'updated_at'];
+          // Whitelist only valid columns (now includes all judge table columns)
+          const validJudgeFields = ['id', 'tenant_id', 'name', 'court_id', 'designation', 'phone', 'email', 'created_by', 'created_at', 'updated_at', 'status', 'specialization', 'appointment_date', 'notes'];
           Object.keys(normalized).forEach(key => {
             if (!validJudgeFields.includes(key)) delete normalized[key];
           });

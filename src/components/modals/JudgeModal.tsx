@@ -73,9 +73,13 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
       }
 
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Judge operation failed:', error);
-    } finally {
+      toast({
+        title: 'Error Saving Judge',
+        description: error?.message || 'Failed to save judge. Please try again.',
+        variant: 'destructive'
+      });
       setIsSaving(false);
     }
   };
@@ -87,9 +91,13 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
         const { judgesService } = await import('@/services/judgesService');
         await judgesService.delete(judgeData.id, dispatch);
         onClose();
-      } catch (error) {
+      } catch (error: any) {
         console.error('Judge deletion failed:', error);
-      } finally {
+        toast({
+          title: 'Error Deleting Judge',
+          description: error?.message || 'Failed to delete judge.',
+          variant: 'destructive'
+        });
         setIsDeleting(false);
       }
     }
