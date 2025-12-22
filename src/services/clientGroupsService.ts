@@ -69,6 +69,7 @@ export const clientGroupsService = {
         name: newGroup.name,
         code: newGroup.code,
         description: newGroup.description,
+        head_client_id: groupData.headClientId || null,
         total_clients: 0,
       });
 
@@ -78,6 +79,7 @@ export const clientGroupsService = {
         name: saved.name || newGroup.name,
         code: saved.code || newGroup.code,
         description: saved.description || newGroup.description,
+        headClientId: saved.head_client_id || undefined,
         totalClients: saved.total_clients || 0,
         status: 'Active',
         createdAt: saved.created_at || newGroup.createdAt,
@@ -123,6 +125,7 @@ export const clientGroupsService = {
       };
       if (updates.name !== undefined) supabaseUpdates.name = updates.name.trim();
       if (updates.code !== undefined) supabaseUpdates.code = updates.code;
+      if (updates.headClientId !== undefined) supabaseUpdates.head_client_id = updates.headClientId || null;
       if (updates.description !== undefined) supabaseUpdates.description = updates.description?.trim() || '';
 
       // Persist to Supabase
@@ -134,6 +137,7 @@ export const clientGroupsService = {
         name: updates.name?.trim() || existing.name,
         code: updates.code || existing.code,
         description: updates.description?.trim() ?? existing.description ?? '',
+        headClientId: updates.headClientId !== undefined ? (updates.headClientId || undefined) : (existing.head_client_id || undefined),
         totalClients: existing.total_clients || 0,
         status: updates.status || existing.status || 'Active',
         createdAt: existing.created_at,
@@ -210,6 +214,7 @@ export const clientGroupsService = {
         name: group.name,
         code: group.code,
         description: group.description || '',
+        headClientId: group.head_client_id || undefined,
         totalClients: group.total_clients || 0,
         status: 'Active' as const,
         createdAt: group.created_at,
@@ -234,6 +239,7 @@ export const clientGroupsService = {
         name: g.name,
         code: g.code,
         description: g.description || '',
+        headClientId: g.head_client_id || undefined,
         totalClients: g.total_clients || 0,
         status: 'Active' as const,
         createdAt: g.created_at,

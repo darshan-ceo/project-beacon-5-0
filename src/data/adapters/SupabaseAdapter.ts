@@ -1185,7 +1185,10 @@ export class SupabaseAdapter implements StoragePort {
           delete normalized.totalClients;
           delete normalized.createdBy;
           
-          // Delete UI-only fields not in DB schema
+          // Map headClientId to head_client_id
+          if (normalized.headClientId !== undefined && normalized.head_client_id === undefined) {
+            normalized.head_client_id = normalized.headClientId || null;
+          }
           delete normalized.headClientId;
           
           // Validate ID format - if not valid UUID, let DB generate
@@ -1193,8 +1196,13 @@ export class SupabaseAdapter implements StoragePort {
             delete normalized.id;
           }
           
+          // Validate head_client_id if provided
+          if (normalized.head_client_id && !isValidUUID(normalized.head_client_id)) {
+            normalized.head_client_id = null;
+          }
+          
           // Keep only valid DB columns
-          const validClientGroupFields = ['id', 'tenant_id', 'name', 'code', 'description', 'total_clients', 'created_at', 'updated_at', 'created_by'];
+          const validClientGroupFields = ['id', 'tenant_id', 'name', 'code', 'description', 'head_client_id', 'total_clients', 'created_at', 'updated_at', 'created_by'];
           Object.keys(normalized).forEach(key => {
             if (!validClientGroupFields.includes(key)) delete normalized[key];
           });

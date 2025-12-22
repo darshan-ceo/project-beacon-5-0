@@ -627,6 +627,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           description: string | null
+          head_client_id: string | null
           id: string
           name: string
           tenant_id: string
@@ -638,6 +639,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           description?: string | null
+          head_client_id?: string | null
           id?: string
           name: string
           tenant_id: string
@@ -649,13 +651,29 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           description?: string | null
+          head_client_id?: string | null
           id?: string
           name?: string
           tenant_id?: string
           total_clients?: number | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "client_groups_head_client_id_fkey"
+            columns: ["head_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_groups_head_client_id_fkey"
+            columns: ["head_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients_directory"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       client_notifications: {
         Row: {
