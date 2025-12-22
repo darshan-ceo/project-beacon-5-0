@@ -4,8 +4,7 @@
  * Admins and Partners bypass module access restrictions
  */
 
-import { useCallback, useMemo } from 'react';
-import { useRBAC } from './useRBAC';
+import { useCallback, useMemo, useContext } from 'react';
 import { useAppState } from '@/contexts/AppStateContext';
 
 // Module name to sidebar route mapping
@@ -45,21 +44,21 @@ export interface ModuleAccessResult {
 }
 
 export const useModuleAccess = (): ModuleAccessResult => {
-  const { currentUser } = useRBAC();
   const { state } = useAppState();
+
+  // Get current employee from state using userProfile
+  const currentEmployee = useMemo(() => {
+    const userId = state.userProfile?.id;
+    if (!userId) return null;
+    return state.employees.find(e => e.id === userId);
+  }, [state.userProfile?.id, state.employees]);
 
   // Check if user role bypasses module access
   const isUnrestricted = useMemo(() => {
-    if (!currentUser) return false;
-    const bypassRoles = ['admin', 'partner'];
-    return bypassRoles.includes(currentUser.role.toLowerCase());
-  }, [currentUser]);
-
-  // Get current employee's module access from state
-  const currentEmployee = useMemo(() => {
-    if (!currentUser?.id) return null;
-    return state.employees.find(e => e.id === currentUser.id);
-  }, [currentUser?.id, state.employees]);
+    if (!currentEmployee) return true; // Allow all if no employee found (fallback)
+    const bypassRoles = ['admin', 'partner', 'Admin', 'Partner'];
+    return bypassRoles.includes(currentEmployee.role || '');
+  }, [currentEmployee]);
 
   // Get allowed modules
   const allowedModules = useMemo((): string[] => {
@@ -67,7 +66,7 @@ export const useModuleAccess = (): ModuleAccessResult => {
       return Object.keys(MODULE_ROUTE_MAPPING);
     }
     
-    if (!currentEmployee?.moduleAccess) {
+    if (!currentEmployee?.moduleAccess || currentEmployee.moduleAccess.length === 0) {
       // If no module access defined, allow all (fallback)
       return Object.keys(MODULE_ROUTE_MAPPING);
     }
