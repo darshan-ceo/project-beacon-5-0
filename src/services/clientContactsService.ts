@@ -30,7 +30,7 @@ export interface ContactPhone {
 
 export interface ClientContact {
   id: string;
-  clientId: string;
+  clientId?: string; // Optional - supports standalone contacts
   name: string;
   designation?: string;
   
@@ -50,6 +50,11 @@ export interface ClientContact {
   notes?: string;
   createdAt: string;
   updatedAt: string;
+  
+  // Dual Access Model fields
+  ownerUserId?: string; // FK to profiles.id - Owner user ID
+  ownerName?: string; // Display name of owner (derived)
+  dataScope?: 'OWN' | 'TEAM' | 'ALL'; // Entity-level data visibility scope
 }
 
 export type ContactRole = 'primary' | 'billing' | 'legal_notice' | 'authorized_signatory';
@@ -70,6 +75,9 @@ export interface CreateContactRequest {
   roles: ContactRole[];
   isPrimary?: boolean;
   notes?: string;
+  
+  // Dual Access Model fields
+  dataScope?: 'OWN' | 'TEAM' | 'ALL';
 }
 
 export interface ContactSearchResult {
@@ -87,7 +95,7 @@ export interface ContactRoleFilter {
 function toClientContact(row: any): ClientContact {
   return {
     id: row.id,
-    clientId: row.client_id,
+    clientId: row.client_id || undefined, // Support standalone contacts
     name: row.name,
     designation: row.designation,
     emails: (row.emails || []) as ContactEmail[],
@@ -98,7 +106,10 @@ function toClientContact(row: any): ClientContact {
     isActive: row.is_active !== false,
     notes: row.notes,
     createdAt: row.created_at,
-    updatedAt: row.updated_at
+    updatedAt: row.updated_at,
+    // Dual Access Model fields
+    ownerUserId: row.owner_user_id || undefined,
+    dataScope: row.data_scope || 'TEAM'
   };
 }
 
@@ -183,20 +194,25 @@ class ClientContactsService {
   /**
    * Create a new contact for a client
    */
-  async createContact(clientId: string, contact: CreateContactRequest): Promise<ApiResponse<ClientContact>> {
-    if (!clientId) {
-      return {
-        success: false,
-        error: 'Client ID is required',
-        data: null
-      };
-    }
-
+  /**
+   * Create a new contact - supports both client-linked and standalone contacts
+   */
+  async createContact(clientId: string | null, contact: CreateContactRequest): Promise<ApiResponse<ClientContact>> {
     const tenantId = await this.getTenantId();
     if (!tenantId) {
       return {
         success: false,
         error: 'User not authenticated or tenant not found',
+        data: null
+      };
+    }
+
+    // Get current user ID for owner_user_id
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return {
+        success: false,
+        error: 'User not authenticated',
         data: null
       };
     }
@@ -246,7 +262,7 @@ class ClientContactsService {
         .from('client_contacts')
         .insert({
           tenant_id: tenantId,
-          client_id: clientId,
+          client_id: clientId || null, // Support standalone contacts
           name: migratedContact.name,
           designation: migratedContact.designation || null,
           emails: JSON.parse(JSON.stringify(migratedContact.emails || [])),
@@ -255,7 +271,10 @@ class ClientContactsService {
           is_primary: migratedContact.isPrimary || false,
           is_active: true,
           source: 'manual',
-          notes: migratedContact.notes || null
+          notes: migratedContact.notes || null,
+          // Dual Access Model fields
+          owner_user_id: user.id,
+          data_scope: contact.dataScope || 'TEAM'
         })
         .select()
         .single();

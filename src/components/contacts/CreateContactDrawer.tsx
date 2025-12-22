@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2 } from 'lucide-react';
 import { 
@@ -32,7 +33,7 @@ import { PhoneManager } from './PhoneManager';
 interface CreateContactDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  clientId: string;
+  clientId?: string; // Optional - supports standalone contacts
   onSuccess: (contact: ClientContact) => void;
   defaultRoles?: ContactRole[];
 }
@@ -53,7 +54,8 @@ export const CreateContactDrawer: React.FC<CreateContactDrawerProps> = ({
     phones: [],
     roles: defaultRoles.length > 0 ? defaultRoles : ['primary'],
     isPrimary: false,
-    notes: ''
+    notes: '',
+    dataScope: 'TEAM' // Default data scope for contacts
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -62,7 +64,7 @@ export const CreateContactDrawer: React.FC<CreateContactDrawerProps> = ({
     setError(null);
 
     try {
-      const response = await clientContactsService.createContact(clientId, formData);
+      const response = await clientContactsService.createContact(clientId || null, formData);
       
       if (response.success && response.data) {
         onSuccess(response.data);
@@ -89,7 +91,8 @@ export const CreateContactDrawer: React.FC<CreateContactDrawerProps> = ({
       phones: [],
       roles: defaultRoles.length > 0 ? defaultRoles : ['primary'],
       isPrimary: false,
-      notes: ''
+      notes: '',
+      dataScope: 'TEAM'
     });
     setError(null);
     onClose();
@@ -117,7 +120,7 @@ export const CreateContactDrawer: React.FC<CreateContactDrawerProps> = ({
         <SheetHeader>
           <SheetTitle>Add New Contact</SheetTitle>
           <SheetDescription>
-            Create a new contact for this client
+            {clientId ? 'Create a new contact for this client' : 'Create a standalone contact'}
           </SheetDescription>
         </SheetHeader>
 
@@ -203,6 +206,29 @@ export const CreateContactDrawer: React.FC<CreateContactDrawerProps> = ({
               onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
               placeholder="Additional notes"
             />
+          </div>
+
+          {/* Data Visibility Scope */}
+          <div className="space-y-2">
+            <Label htmlFor="dataScope">Data Visibility</Label>
+            <p className="text-xs text-muted-foreground">
+              Who can see this contact record
+            </p>
+            <Select 
+              value={formData.dataScope || 'TEAM'} 
+              onValueChange={(value: 'OWN' | 'TEAM' | 'ALL') => 
+                setFormData(prev => ({ ...prev, dataScope: value }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="OWN">Own Only</SelectItem>
+                <SelectItem value="TEAM">Team Members</SelectItem>
+                <SelectItem value="ALL">Everyone</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
             {error && (
