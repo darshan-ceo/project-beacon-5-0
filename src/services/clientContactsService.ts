@@ -304,13 +304,65 @@ class ClientContactsService {
   }
 
   /**
-   * Update an existing contact
+   * Get a single contact by ID
    */
-  async updateContact(clientId: string, contactId: string, updates: Partial<CreateContactRequest>): Promise<ApiResponse<ClientContact>> {
-    if (!clientId || !contactId) {
+  async getContactById(contactId: string): Promise<ApiResponse<ClientContact & { clientName?: string }>> {
+    if (!contactId) {
       return {
         success: false,
-        error: 'Client ID and Contact ID are required',
+        error: 'Contact ID is required',
+        data: null
+      };
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('client_contacts')
+        .select(`
+          *,
+          clients:client_id (
+            display_name
+          )
+        `)
+        .eq('id', contactId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching contact:', error);
+        return {
+          success: false,
+          error: error.message,
+          data: null
+        };
+      }
+
+      const contact = toClientContact(data);
+      return {
+        success: true,
+        data: {
+          ...contact,
+          clientName: data.clients?.display_name || undefined
+        },
+        message: 'Contact fetched successfully'
+      };
+    } catch (err: any) {
+      console.error('Error in getContactById:', err);
+      return {
+        success: false,
+        error: err.message || 'Failed to fetch contact',
+        data: null
+      };
+    }
+  }
+
+  /**
+   * Update an existing contact - works for both client-linked and standalone contacts
+   */
+  async updateContact(contactId: string, updates: Partial<CreateContactRequest> & { isActive?: boolean }): Promise<ApiResponse<ClientContact>> {
+    if (!contactId) {
+      return {
+        success: false,
+        error: 'Contact ID is required',
         data: null
       };
     }
@@ -330,17 +382,18 @@ class ClientContactsService {
       const updateData: any = {};
       if (updates.name !== undefined) updateData.name = updates.name;
       if (updates.designation !== undefined) updateData.designation = updates.designation;
-      if (updates.emails !== undefined) updateData.emails = updates.emails;
-      if (updates.phones !== undefined) updateData.phones = updates.phones;
+      if (updates.emails !== undefined) updateData.emails = JSON.parse(JSON.stringify(updates.emails));
+      if (updates.phones !== undefined) updateData.phones = JSON.parse(JSON.stringify(updates.phones));
       if (updates.roles !== undefined) updateData.roles = updates.roles;
       if (updates.isPrimary !== undefined) updateData.is_primary = updates.isPrimary;
       if (updates.notes !== undefined) updateData.notes = updates.notes;
+      if (updates.dataScope !== undefined) updateData.data_scope = updates.dataScope;
+      if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
 
       const { data, error } = await supabase
         .from('client_contacts')
         .update(updateData)
         .eq('id', contactId)
-        .eq('client_id', clientId)
         .select()
         .single();
 
@@ -369,13 +422,13 @@ class ClientContactsService {
   }
 
   /**
-   * Delete a contact
+   * Delete a contact - works for both client-linked and standalone contacts
    */
-  async deleteContact(clientId: string, contactId: string): Promise<ApiResponse<void>> {
-    if (!clientId || !contactId) {
+  async deleteContact(contactId: string): Promise<ApiResponse<void>> {
+    if (!contactId) {
       return {
         success: false,
-        error: 'Client ID and Contact ID are required',
+        error: 'Contact ID is required',
         data: null
       };
     }
@@ -384,8 +437,7 @@ class ClientContactsService {
       const { error } = await supabase
         .from('client_contacts')
         .delete()
-        .eq('id', contactId)
-        .eq('client_id', clientId);
+        .eq('id', contactId);
 
       if (error) {
         console.error('Error deleting contact:', error);

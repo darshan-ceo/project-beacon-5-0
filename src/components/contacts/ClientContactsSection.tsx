@@ -84,7 +84,7 @@ export const ClientContactsSection: React.FC<ClientContactsSectionProps> = ({
 
   const handleDeleteContact = async (contactId: string) => {
     try {
-      const response = await clientContactsService.deleteContact(clientId, contactId);
+      const response = await clientContactsService.deleteContact(contactId);
       if (response.success) {
         setContacts(prev => prev.filter(c => c.id !== contactId));
         toast({
