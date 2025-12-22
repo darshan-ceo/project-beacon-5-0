@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppState } from '@/contexts/AppStateContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, ArrowRight, Clock } from 'lucide-react';
@@ -14,7 +14,6 @@ export const UpcomingHearingsWidget: React.FC = () => {
   const now = new Date();
   const weekFromNow = addDays(now, 7);
   
-  // Calculate all upcoming hearings (without slice) for correct count
   const allUpcomingHearings = state.hearings
     .filter(h => {
       try {
@@ -26,7 +25,6 @@ export const UpcomingHearingsWidget: React.FC = () => {
     })
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   
-  // Display only first 3 hearings in widget
   const upcomingHearings = allUpcomingHearings.slice(0, 3);
   
   const todayHearings = state.hearings.filter(h => {
@@ -40,55 +38,56 @@ export const UpcomingHearingsWidget: React.FC = () => {
   });
   
   return (
-    <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-violet-50 to-indigo-50 h-full flex flex-col overflow-hidden">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 h-[60px]">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-primary" />
-          Upcoming Hearings
-        </CardTitle>
-        {todayHearings.length > 0 && (
-          <Badge 
-            variant="default" 
-            className="animate-pulse cursor-pointer hover:bg-primary/80 transition-colors"
-            onClick={() => navigate('/hearings?dateRange=today')}
-          >
-            {todayHearings.length} today
-          </Badge>
-        )}
-      </CardHeader>
-      <CardContent className="flex-1 flex flex-col">
-        <div className="space-y-3 flex-1">
-          <div className="text-2xl font-bold text-foreground">
-            {allUpcomingHearings.length}
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Hearings in the next 7 days
-          </p>
-          
-          {upcomingHearings.length > 0 && (
-            <div className="space-y-2 mt-3 pt-3 border-t">
-              {upcomingHearings.map(hearing => {
-                const caseInfo = state.cases.find(c => c.id === hearing.case_id);
-                return (
-                  <div key={hearing.id} className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <Clock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                      <span className="truncate">{caseInfo?.caseNumber || 'Unknown'}</span>
-                    </div>
-                    <span className="text-muted-foreground flex-shrink-0 ml-2">
-                      {format(parseISO(hearing.date), 'MMM dd')}
-                    </span>
-                  </div>
-                );
-              })}
+    <Card className="hover:shadow-md transition-shadow border-l-4 border-l-indigo-500 h-full flex flex-col">
+      <CardContent className="p-4 flex-1 flex flex-col">
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-sm font-medium text-muted-foreground">Upcoming Hearings</p>
+              {todayHearings.length > 0 && (
+                <Badge 
+                  variant="default" 
+                  className="text-xs animate-pulse cursor-pointer"
+                  onClick={() => navigate('/hearings?dateRange=today')}
+                >
+                  {todayHearings.length} today
+                </Badge>
+              )}
             </div>
-          )}
+            <p className="text-3xl font-bold text-foreground">{allUpcomingHearings.length}</p>
+          </div>
+          <div className="p-3 rounded-full bg-indigo-100 flex-shrink-0">
+            <Calendar className="h-6 w-6 text-indigo-600" />
+          </div>
         </div>
+        
+        <p className="text-xs text-muted-foreground mb-2">
+          Hearings in the next 7 days
+        </p>
+        
+        {upcomingHearings.length > 0 && (
+          <div className="space-y-1.5 flex-1 border-t pt-2">
+            {upcomingHearings.map(hearing => {
+              const caseInfo = state.cases.find(c => c.id === hearing.case_id);
+              return (
+                <div key={hearing.id} className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <Clock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                    <span className="truncate">{caseInfo?.caseNumber || 'Unknown'}</span>
+                  </div>
+                  <span className="text-muted-foreground flex-shrink-0 ml-2">
+                    {format(parseISO(hearing.date), 'MMM dd')}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
         
         <Button 
           variant="outline" 
           size="sm" 
-          className="w-full mt-4"
+          className="w-full mt-auto"
           onClick={() => navigate('/hearings?dateRange=next7days')}
         >
           View Calendar
