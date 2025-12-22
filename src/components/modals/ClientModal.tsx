@@ -75,6 +75,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
     gstData?: any;
     addressId?: string;
     tags?: string[];
+    dataScope?: 'OWN' | 'TEAM' | 'ALL'; // Dual Access Model: Entity-level data scope
   }>({
     name: '',
     type: 'Proprietorship',
@@ -123,7 +124,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         assignedCAName: '',
         clientGroupId: '',
         status: 'Active',
-        tags: []
+        tags: [],
+        dataScope: 'TEAM'
   });
 
   const [signatories, setSignatories] = useState<Signatory[]>([]);
@@ -199,7 +201,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
           clientGroupId: clientData.clientGroupId || '',
           status: clientData.status,
           addressId: addressObj.id,
-          tags: (clientData as any).tags || []
+          tags: (clientData as any).tags || [],
+          dataScope: clientData.dataScope || 'TEAM'
         });
         setSignatories(clientData.signatories || []);
       } else if (mode === 'create') {
@@ -251,7 +254,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
           assignedCAName: '',
           clientGroupId: '',
           status: 'Active',
-          tags: []
+          tags: [],
+          dataScope: 'TEAM'
         });
         setSignatories([]);
         setPreloadedContacts([]);
@@ -1545,6 +1549,28 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+
+                {/* Data Scope - Controls who can see this client */}
+                <div>
+                  <Label htmlFor="dataScope">Data Visibility Scope</Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Controls who can see this client record in addition to you (the owner)
+                  </p>
+                  <Select 
+                    value={formData.dataScope || 'TEAM'} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, dataScope: value as any }))}
+                    disabled={mode === 'view'}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="OWN">Own Only - Only you can see this</SelectItem>
+                      <SelectItem value="TEAM">Team - You and your team members</SelectItem>
+                      <SelectItem value="ALL">All - Everyone in the organization</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </CardContent>
             </Card>

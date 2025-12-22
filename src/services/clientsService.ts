@@ -195,6 +195,8 @@ export const clientsService = {
         signatories: clientData.signatories ? JSON.stringify(clientData.signatories) : null,
         address: clientData.address ? JSON.stringify(clientData.address) : null,
         jurisdiction: clientData.jurisdiction ? JSON.stringify(clientData.jurisdiction) : null,
+        // Dual Access Model: data_scope defaults to TEAM
+        data_scope: (clientData as any).dataScope || 'TEAM',
       };
 
       // Persist to Supabase first
@@ -229,7 +231,10 @@ export const clientsService = {
         assignedCAName: clientData.assignedCAName || '',
         clientGroupId: savedClient.client_group_id || clientData.clientGroupId,
         createdAt: savedClient.created_at || new Date().toISOString(),
-        updatedAt: savedClient.updated_at || new Date().toISOString()
+        updatedAt: savedClient.updated_at || new Date().toISOString(),
+        // Dual Access Model fields
+        ownerId: savedClient.owner_id,
+        dataScope: savedClient.data_scope || 'TEAM'
       };
 
       // ✅ Dispatch immediately for instant UI update
@@ -298,6 +303,8 @@ export const clientsService = {
       if (updates.signatories !== undefined) supabaseUpdates.signatories = JSON.stringify(updates.signatories);
       if (updates.address !== undefined) supabaseUpdates.address = JSON.stringify(updates.address);
       if (updates.jurisdiction !== undefined) supabaseUpdates.jurisdiction = JSON.stringify(updates.jurisdiction);
+      // Dual Access Model: handle data_scope updates
+      if ((updates as any).dataScope !== undefined) supabaseUpdates.data_scope = (updates as any).dataScope;
 
       // Persist to Supabase first
       await storage.update('clients', clientId, supabaseUpdates);

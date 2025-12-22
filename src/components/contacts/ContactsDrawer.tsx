@@ -156,6 +156,7 @@ export const ContactsDrawer: React.FC<ContactsDrawerProps> = ({
 
   const renderContact = (contact: ClientContact) => {
     const selected = isSelected(contact.id);
+    const isStandalone = !contact.clientId;
     
     return (
       <Card 
@@ -177,11 +178,18 @@ export const ContactsDrawer: React.FC<ContactsDrawerProps> = ({
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1">
                 <h4 className="font-medium truncate">{contact.name}</h4>
-                {contact.isPrimary && (
-                  <Badge variant="outline" className="text-xs">
-                    Primary
-                  </Badge>
-                )}
+                <div className="flex items-center gap-1">
+                  {isStandalone && (
+                    <Badge variant="outline" className="text-xs text-muted-foreground">
+                      Standalone
+                    </Badge>
+                  )}
+                  {contact.isPrimary && (
+                    <Badge variant="outline" className="text-xs">
+                      Primary
+                    </Badge>
+                  )}
+                </div>
               </div>
               
               {contact.designation && (

@@ -232,6 +232,10 @@ interface Client {
   clientGroupId?: string; // FK to ClientGroup.id
   createdAt?: string;
   updatedAt?: string;
+  // Dual Access Model fields
+  ownerId?: string; // FK to profiles.id - Owner user ID
+  ownerName?: string; // Display name of owner (derived)
+  dataScope?: 'OWN' | 'TEAM' | 'ALL'; // Entity-level data visibility scope
   // Migration flags
   needsAddressReview?: boolean;
   needsSignatoryReview?: boolean;
