@@ -1,6 +1,7 @@
 /**
  * Enhanced Dashboard Component
- * Modular, personalization-enabled dashboard with vibrant tiles
+ * Modular, personalization-enabled dashboard with consistent widget sizing
+ * UI/UX aligned with Compliance Dashboard
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -8,13 +9,15 @@ import { motion } from 'framer-motion';
 import { useAppState } from '@/contexts/AppStateContext';
 import { useRBAC } from '@/hooks/useAdvancedRBAC';
 import { Button } from '@/components/ui/button';
-import { Settings } from 'lucide-react';
+import { Settings, RefreshCw, LayoutGrid } from 'lucide-react';
 import { PageHelp } from '@/components/help/PageHelp';
 import { InlineHelp } from '@/components/help/InlineHelp';
 import { FollowUpsDueWidget } from './FollowUpsDueWidget';
 import { DashboardWidget } from './DashboardWidget';
+import { DashboardStatsBar } from './DashboardStatsBar';
 import { CustomizeDashboard } from './CustomizeDashboard';
-import { filterTilesByRBAC, getDefaultTiles } from '@/utils/rbacHelper';
+import { filterTilesByRBAC, getDefaultTiles, DashboardTile } from '@/utils/rbacHelper';
+import { format } from 'date-fns';
 import {
   DndContext,
   closestCenter,
@@ -35,12 +38,33 @@ import {
 
 const STORAGE_KEY = 'dashboard_user_tiles';
 
+// Categorize widgets by type for layout grouping
+const categorizeWidgets = (tiles: DashboardTile[]) => {
+  const kpiWidgets: DashboardTile[] = [];
+  const chartWidgets: DashboardTile[] = [];
+  const listWidgets: DashboardTile[] = [];
+
+  tiles.forEach((tile) => {
+    if (tile.type === 'metric' || tile.type === 'gauge' || tile.type === 'status') {
+      kpiWidgets.push(tile);
+    } else if (tile.type === 'barChart' || tile.type === 'pieChart' || tile.type === 'trafficLight') {
+      chartWidgets.push(tile);
+    } else {
+      listWidgets.push(tile);
+    }
+  });
+
+  return { kpiWidgets, chartWidgets, listWidgets };
+};
+
 export const EnhancedDashboard: React.FC = () => {
   const { state } = useAppState();
   const { hasPermission } = useRBAC();
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [selectedTiles, setSelectedTiles] = useState<string[]>([]);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Load user preferences from localStorage
   useEffect(() => {
@@ -62,16 +86,21 @@ export const EnhancedDashboard: React.FC = () => {
     return filterTilesByRBAC(selectedTiles, hasPermission);
   }, [selectedTiles, hasPermission]);
 
-  // Maintain user's custom order or default order
+  // Maintain user's custom order
   const sortedTiles = useMemo(() => {
     return [...accessibleTiles];
   }, [accessibleTiles]);
+
+  // Categorize widgets for grouped layout
+  const { kpiWidgets, chartWidgets, listWidgets } = useMemo(() => {
+    return categorizeWidgets(sortedTiles);
+  }, [sortedTiles]);
 
   // Setup drag-and-drop sensors
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8, // Require 8px movement before drag starts
+        distance: 8,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -84,13 +113,22 @@ export const EnhancedDashboard: React.FC = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newSelection));
   };
 
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    // Simulate refresh - in real app would trigger data refetch
+    setTimeout(() => {
+      setLastUpdated(new Date());
+      setIsRefreshing(false);
+    }, 1000);
+  };
+
   const handleDragStart = (event: DragStartEvent) => {
     setActiveDragId(event.active.id as string);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    
+
     setActiveDragId(null);
 
     if (over && active.id !== over.id) {
@@ -98,13 +136,12 @@ export const EnhancedDashboard: React.FC = () => {
       const newIndex = sortedTiles.findIndex((tile) => tile.id === over.id);
 
       if (oldIndex !== -1 && newIndex !== -1) {
-        // Reorder tiles
         const reordered = arrayMove(sortedTiles, oldIndex, newIndex);
         const newIds = reordered.map((tile) => tile.id);
-        
+
         setSelectedTiles(newIds);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(newIds));
-        
+
         console.debug('[Dashboard] Reordered tiles:', { from: oldIndex, to: newIndex });
       }
     }
@@ -119,31 +156,57 @@ export const EnhancedDashboard: React.FC = () => {
         className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
       >
         <div className="flex-1">
-          <h1 className="text-3xl font-bold text-foreground">Practice Analytics</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className="text-2xl font-bold text-foreground">Practice Analytics</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             Comprehensive insights and metrics for your workspace
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={() => setCustomizeOpen(true)} variant="outline">
-            <Settings className="mr-2 h-4 w-4" />
-            Customize Dashboard
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Last Updated */}
+          <span className="text-xs text-muted-foreground hidden md:inline">
+            Last updated: {format(lastUpdated, 'HH:mm')}
+          </span>
+
+          {/* Refresh Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
           </Button>
+
+          {/* Customize Button */}
+          <Button onClick={() => setCustomizeOpen(true)} variant="outline" size="sm">
+            <LayoutGrid className="mr-2 h-4 w-4" />
+            Customize
+          </Button>
+
           <PageHelp pageId="dashboard" variant="floating" />
           <InlineHelp module="dashboard" />
         </div>
+      </motion.div>
+
+      {/* Stats Bar */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+      >
+        <DashboardStatsBar />
       </motion.div>
 
       {/* Follow-Ups Due Widget (always visible) */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
+        transition={{ delay: 0.1 }}
       >
         <FollowUpsDueWidget />
       </motion.div>
 
-      {/* Customizable Dashboard Widgets with Drag-and-Drop */}
+      {/* Dashboard Widgets with Drag-and-Drop */}
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -154,23 +217,63 @@ export const EnhancedDashboard: React.FC = () => {
           items={sortedTiles.map((tile) => tile.id)}
           strategy={rectSwappingStrategy}
         >
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.1 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-          >
-            {sortedTiles.map((tile) => (
-              <DashboardWidget key={tile.id} tile={tile} />
-            ))}
-          </motion.div>
+          {/* KPI Widgets Row - 4 columns, equal size */}
+          {kpiWidgets.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.15 }}
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {kpiWidgets.map((tile) => (
+                  <div key={tile.id} className="h-[180px]">
+                    <DashboardWidget tile={tile} />
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Chart Widgets Row - 2 columns */}
+          {chartWidgets.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+            >
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {chartWidgets.map((tile) => (
+                  <div key={tile.id} className="h-[320px]">
+                    <DashboardWidget tile={tile} />
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {/* List Widgets Row - 3 columns */}
+          {listWidgets.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.25 }}
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {listWidgets.map((tile) => (
+                  <div key={tile.id} className="h-[280px]">
+                    <DashboardWidget tile={tile} />
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
         </SortableContext>
-        
+
         <DragOverlay>
           {activeDragId ? (
-            <div className="opacity-50">
-              <DashboardWidget 
-                tile={sortedTiles.find(t => t.id === activeDragId)!} 
+            <div className="opacity-80 scale-105 shadow-2xl">
+              <DashboardWidget
+                tile={sortedTiles.find((t) => t.id === activeDragId)!}
               />
             </div>
           ) : null}

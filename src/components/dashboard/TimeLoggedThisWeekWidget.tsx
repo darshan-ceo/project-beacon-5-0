@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { useAppState } from '@/contexts/AppStateContext';
 import { Clock } from 'lucide-react';
 import { useMemo } from 'react';
@@ -27,25 +27,23 @@ export const TimeLoggedThisWeekWidget = () => {
   }, [state.tasks]);
 
   return (
-    <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-sky-50 to-blue-50">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <Clock className="h-4 w-4 text-blue-600" />
-          Time Logged This Week
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-2">
-          <div className="flex items-baseline gap-2">
-            <div className="text-4xl font-bold text-blue-600">
-              {timeStats.formatted}
+    <Card className="hover:shadow-md transition-shadow border-l-4 border-l-green-500 h-full flex flex-col">
+      <CardContent className="p-4 flex-1 flex flex-col">
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex-1">
+            <p className="text-sm font-medium text-muted-foreground mb-1">Time Logged This Week</p>
+            <div className="flex items-baseline gap-2">
+              <p className="text-3xl font-bold text-foreground">{timeStats.formatted}</p>
+              <span className="text-sm text-muted-foreground">hours</span>
             </div>
-            <div className="text-sm text-muted-foreground">hours</div>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Logged across completed tasks
-          </p>
+          <div className="p-3 rounded-full bg-green-100 flex-shrink-0">
+            <Clock className="h-6 w-6 text-green-600" />
+          </div>
         </div>
+        <p className="text-xs text-muted-foreground">
+          Logged across completed tasks
+        </p>
       </CardContent>
     </Card>
   );
