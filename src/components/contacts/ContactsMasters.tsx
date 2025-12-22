@@ -1,21 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { 
   UserCircle, 
-  Search, 
   Plus, 
   Mail, 
   Phone, 
   Building2,
-  Filter,
   MoreHorizontal,
   Eye,
   Edit,
   Trash2,
-  Users
+  Users,
+  Filter
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
   Table,
@@ -26,23 +25,29 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
 import { clientContactsService, ClientContact } from '@/services/clientContactsService';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { UnifiedContactSearch, ContactFilters } from './UnifiedContactSearch';
+import { ContactModal } from '@/components/modals/ContactModal';
 
 interface ContactWithClient extends ClientContact {
   clientName?: string;
@@ -51,12 +56,27 @@ interface ContactWithClient extends ClientContact {
 export const ContactsMasters: React.FC = () => {
   const [contacts, setContacts] = useState<ContactWithClient[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [dataScopeFilter, setDataScopeFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeFilters, setActiveFilters] = useState<ContactFilters>({});
+  const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
+  
+  // Modal state
+  const [contactModal, setContactModal] = useState<{
+    isOpen: boolean;
+    mode: 'create' | 'edit' | 'view';
+    contactId?: string;
+  }>({ isOpen: false, mode: 'create' });
+
+  // Delete dialog state
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean;
+    contactId?: string;
+    contactName?: string;
+  }>({ isOpen: false });
 
   useEffect(() => {
     loadContacts();
+    loadClients();
   }, []);
 
   const loadContacts = async () => {
@@ -84,6 +104,18 @@ export const ContactsMasters: React.FC = () => {
     }
   };
 
+  const loadClients = async () => {
+    const { data } = await supabase
+      .from('clients')
+      .select('id, display_name')
+      .eq('status', 'Active')
+      .order('display_name');
+    
+    if (data) {
+      setClients(data.map(c => ({ id: c.id, name: c.display_name })));
+    }
+  };
+
   const getPrimaryEmail = (contact: ClientContact): string => {
     const primary = contact.emails?.find(e => e.isPrimary);
     return primary?.email || contact.emails?.[0]?.email || '-';
@@ -91,11 +123,14 @@ export const ContactsMasters: React.FC = () => {
 
   const getPrimaryPhone = (contact: ClientContact): string => {
     const primary = contact.phones?.find(p => p.isPrimary);
-    if (primary) {
+    if (primary && primary.number) {
       return `${primary.countryCode || ''} ${primary.number}`.trim();
     }
     const first = contact.phones?.[0];
-    return first ? `${first.countryCode || ''} ${first.number}`.trim() : '-';
+    if (first && first.number) {
+      return `${first.countryCode || ''} ${first.number}`.trim();
+    }
+    return contact.phone || '-';
   };
 
   const getDataScopeBadgeVariant = (scope: string) => {
@@ -107,30 +142,83 @@ export const ContactsMasters: React.FC = () => {
     }
   };
 
-  const filteredContacts = contacts.filter(contact => {
-    // Search filter
-    const searchLower = searchQuery.toLowerCase();
-    const matchesSearch = !searchQuery || 
-      contact.name.toLowerCase().includes(searchLower) ||
-      contact.designation?.toLowerCase().includes(searchLower) ||
-      getPrimaryEmail(contact).toLowerCase().includes(searchLower) ||
-      contact.clientName?.toLowerCase().includes(searchLower);
+  // Stats computed from data
+  const stats = useMemo(() => ({
+    total: contacts.length,
+    clientLinked: contacts.filter(c => c.clientId).length,
+    standalone: contacts.filter(c => !c.clientId).length,
+    active: contacts.filter(c => c.isActive).length
+  }), [contacts]);
 
-    // Data scope filter
-    const matchesDataScope = dataScopeFilter === 'all' || 
-      contact.dataScope === dataScopeFilter;
+  // Filtered contacts
+  const filteredContacts = useMemo(() => {
+    return contacts.filter(contact => {
+      // Search filter
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch = !searchTerm || 
+        contact.name.toLowerCase().includes(searchLower) ||
+        contact.designation?.toLowerCase().includes(searchLower) ||
+        getPrimaryEmail(contact).toLowerCase().includes(searchLower) ||
+        contact.clientName?.toLowerCase().includes(searchLower);
 
-    // Status filter
-    const matchesStatus = statusFilter === 'all' ||
-      (statusFilter === 'active' && contact.isActive) ||
-      (statusFilter === 'inactive' && !contact.isActive);
+      // Data scope filter
+      const matchesDataScope = !activeFilters.dataScope || 
+        contact.dataScope === activeFilters.dataScope;
 
-    return matchesSearch && matchesDataScope && matchesStatus;
-  });
+      // Status filter
+      const matchesStatus = !activeFilters.status ||
+        (activeFilters.status === 'active' && contact.isActive) ||
+        (activeFilters.status === 'inactive' && !contact.isActive);
+
+      // Client filter
+      const matchesClient = !activeFilters.client ||
+        contact.clientId === activeFilters.client;
+
+      // Role filter
+      const matchesRole = !activeFilters.role ||
+        contact.roles.includes(activeFilters.role as any);
+
+      // Type filter (client-linked vs standalone)
+      const matchesType = !activeFilters.type ||
+        (activeFilters.type === 'client-linked' && contact.clientId) ||
+        (activeFilters.type === 'standalone' && !contact.clientId);
+
+      return matchesSearch && matchesDataScope && matchesStatus && matchesClient && matchesRole && matchesType;
+    });
+  }, [contacts, searchTerm, activeFilters]);
+
+  const handleDelete = async () => {
+    if (!deleteDialog.contactId) return;
+    
+    try {
+      const response = await clientContactsService.deleteContact(deleteDialog.contactId);
+      if (response.success) {
+        toast({
+          title: 'Contact Deleted',
+          description: `${deleteDialog.contactName} has been removed`,
+        });
+        loadContacts();
+      } else {
+        toast({
+          title: 'Error',
+          description: response.error || 'Failed to delete contact',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete contact',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeleteDialog({ isOpen: false });
+    }
+  };
 
   if (loading) {
     return (
-      <div className="space-y-6 p-6">
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
           <Skeleton className="h-8 w-48" />
           <Skeleton className="h-10 w-32" />
@@ -149,241 +237,360 @@ export const ContactsMasters: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="flex justify-between items-center"
+      >
         <div className="flex items-center gap-3">
-          <Users className="h-8 w-8 text-primary" />
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Contact Directory</h1>
-            <p className="text-sm text-muted-foreground">
-              Manage all contacts across clients
+            <h1 className="text-3xl font-bold text-foreground">Contact Directory</h1>
+            <p className="text-muted-foreground mt-2">
+              Manage all contacts across clients and standalone contacts
             </p>
           </div>
         </div>
-      </div>
+        <Button 
+          className="bg-primary hover:bg-primary/90"
+          onClick={() => setContactModal({ isOpen: true, mode: 'create' })}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Add New Contact
+        </Button>
+      </motion.div>
 
-      {/* Filters */}
-      <Card>
-        <CardContent className="py-4">
-          <div className="flex flex-wrap gap-4 items-center">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by name, email, designation, or client..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
+      {/* Stats Cards */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
+        className="grid grid-cols-1 md:grid-cols-4 gap-6"
+      >
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Contacts</p>
+                <p className="text-2xl font-bold text-foreground">{stats.total}</p>
+              </div>
+              <UserCircle className="h-8 w-8 text-primary" />
             </div>
-            <Select value={dataScopeFilter} onValueChange={setDataScopeFilter}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Data Scope" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Scopes</SelectItem>
-                <SelectItem value="OWN">Own</SelectItem>
-                <SelectItem value="TEAM">Team</SelectItem>
-                <SelectItem value="ALL">All</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[120px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Client-Linked</p>
+                <p className="text-2xl font-bold text-foreground">{stats.clientLinked}</p>
+              </div>
+              <Building2 className="h-8 w-8 text-blue-500" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Standalone</p>
+                <p className="text-2xl font-bold text-foreground">{stats.standalone}</p>
+              </div>
+              <Users className="h-8 w-8 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Active Contacts</p>
+                <p className="text-2xl font-bold text-foreground">{stats.active}</p>
+              </div>
+              <Filter className="h-8 w-8 text-orange-500" />
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="py-4">
-            <div className="flex items-center gap-2">
-              <UserCircle className="h-5 w-5 text-primary" />
-              <div>
-                <p className="text-2xl font-bold">{contacts.length}</p>
-                <p className="text-xs text-muted-foreground">Total Contacts</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="py-4">
-            <div className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-blue-500" />
-              <div>
-                <p className="text-2xl font-bold">
-                  {contacts.filter(c => c.clientId).length}
-                </p>
-                <p className="text-xs text-muted-foreground">Client-Linked</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="py-4">
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-green-500" />
-              <div>
-                <p className="text-2xl font-bold">
-                  {contacts.filter(c => !c.clientId).length}
-                </p>
-                <p className="text-xs text-muted-foreground">Standalone</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="py-4">
-            <div className="flex items-center gap-2">
-              <Filter className="h-5 w-5 text-orange-500" />
-              <div>
-                <p className="text-2xl font-bold">{filteredContacts.length}</p>
-                <p className="text-xs text-muted-foreground">Filtered Results</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Divider */}
+      <div className="border-t border-border" />
+
+      {/* Search and Filters */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.2 }}
+      >
+        <UnifiedContactSearch
+          searchTerm={searchTerm}
+          onSearchTermChange={setSearchTerm}
+          activeFilters={activeFilters}
+          onFiltersChange={setActiveFilters}
+          clients={clients}
+        />
+      </motion.div>
 
       {/* Contacts Table */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg">All Contacts</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {filteredContacts.length === 0 ? (
-            <div className="text-center py-12">
-              <UserCircle className="h-12 w-12 mx-auto text-muted-foreground/50" />
-              <h3 className="mt-4 text-lg font-medium">No contacts found</h3>
-              <p className="text-sm text-muted-foreground">
-                {searchQuery || dataScopeFilter !== 'all' || statusFilter !== 'all'
-                  ? 'Try adjusting your filters'
-                  : 'Contacts will appear here once added'}
-              </p>
-            </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Client</TableHead>
-                    <TableHead>Roles</TableHead>
-                    <TableHead>Data Scope</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredContacts.map((contact) => (
-                    <TableRow key={contact.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <UserCircle className="h-8 w-8 text-muted-foreground" />
-                          <div>
-                            <p className="font-medium">{contact.name}</p>
-                            {contact.designation && (
-                              <p className="text-xs text-muted-foreground">
-                                {contact.designation}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.3 }}
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle>All Contacts</CardTitle>
+            <CardDescription>
+              {filteredContacts.length} of {contacts.length} contacts shown
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {filteredContacts.length === 0 ? (
+              <div className="text-center py-12">
+                <UserCircle className="h-12 w-12 mx-auto text-muted-foreground/50" />
+                <h3 className="mt-4 text-lg font-medium">No contacts found</h3>
+                <p className="text-sm text-muted-foreground">
+                  {searchTerm || Object.keys(activeFilters).length > 0
+                    ? 'Try adjusting your filters'
+                    : 'Contacts will appear here once added'}
+                </p>
+                {!searchTerm && Object.keys(activeFilters).length === 0 && (
+                  <Button 
+                    className="mt-4"
+                    onClick={() => setContactModal({ isOpen: true, mode: 'create' })}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Your First Contact
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[200px]">Name</TableHead>
+                      <TableHead className="w-[200px]">Contact Details</TableHead>
+                      <TableHead className="w-[150px]">Client</TableHead>
+                      <TableHead className="w-[150px]">Roles</TableHead>
+                      <TableHead className="w-[100px]">Data Scope</TableHead>
+                      <TableHead className="w-[80px]">Status</TableHead>
+                      <TableHead className="w-[100px]">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredContacts.map((contact, index) => (
+                      <motion.tr
+                        key={contact.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.03 }}
+                        className="hover:bg-muted/50 cursor-pointer"
+                        onClick={() => setContactModal({ 
+                          isOpen: true, 
+                          mode: 'edit', 
+                          contactId: contact.id 
+                        })}
+                      >
+                        {/* Name */}
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <UserCircle className="h-8 w-8 text-muted-foreground" />
+                            <div>
+                              <p className="font-medium text-foreground hover:text-primary transition-colors">
+                                {contact.name}
                               </p>
+                              {contact.designation && (
+                                <p className="text-xs text-muted-foreground">
+                                  {contact.designation}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+
+                        {/* Contact Details */}
+                        <TableCell>
+                          <div className="space-y-1">
+                            <a 
+                              href={`mailto:${getPrimaryEmail(contact)}`}
+                              className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Mail className="h-3 w-3" />
+                              <span className="truncate max-w-[150px]">{getPrimaryEmail(contact)}</span>
+                            </a>
+                            <a 
+                              href={`tel:${getPrimaryPhone(contact)}`}
+                              className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Phone className="h-3 w-3" />
+                              {getPrimaryPhone(contact)}
+                            </a>
+                          </div>
+                        </TableCell>
+
+                        {/* Client */}
+                        <TableCell>
+                          {contact.clientName ? (
+                            <Badge variant="outline" className="font-normal gap-1">
+                              <Building2 className="h-3 w-3" />
+                              <span className="truncate max-w-[100px]">{contact.clientName}</span>
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">Standalone</span>
+                          )}
+                        </TableCell>
+
+                        {/* Roles */}
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {contact.roles.slice(0, 2).map((role) => (
+                              <Badge key={role} variant="secondary" className="text-xs">
+                                {role.replace('_', ' ')}
+                              </Badge>
+                            ))}
+                            {contact.roles.length > 2 && (
+                              <Badge variant="secondary" className="text-xs">
+                                +{contact.roles.length - 2}
+                              </Badge>
                             )}
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1 text-sm">
-                          <Mail className="h-3 w-3 text-muted-foreground" />
-                          {getPrimaryEmail(contact)}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1 text-sm">
-                          <Phone className="h-3 w-3 text-muted-foreground" />
-                          {getPrimaryPhone(contact)}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {contact.clientName ? (
-                          <Badge variant="outline" className="font-normal">
-                            <Building2 className="h-3 w-3 mr-1" />
-                            {contact.clientName}
+                        </TableCell>
+
+                        {/* Data Scope */}
+                        <TableCell>
+                          <Badge variant={getDataScopeBadgeVariant(contact.dataScope || 'TEAM')}>
+                            {contact.dataScope || 'TEAM'}
                           </Badge>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">Standalone</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {contact.roles.slice(0, 2).map((role) => (
-                            <Badge key={role} variant="secondary" className="text-xs">
-                              {role.replace('_', ' ')}
-                            </Badge>
-                          ))}
-                          {contact.roles.length > 2 && (
-                            <Badge variant="secondary" className="text-xs">
-                              +{contact.roles.length - 2}
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={getDataScopeBadgeVariant(contact.dataScope || 'TEAM')}>
-                          {contact.dataScope || 'TEAM'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant={contact.isActive ? 'default' : 'secondary'}
-                          className={cn(
-                            contact.isActive 
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
-                              : ''
-                          )}
-                        >
-                          {contact.isActive ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
+                        </TableCell>
+
+                        {/* Status */}
+                        <TableCell>
+                          <Badge 
+                            variant={contact.isActive ? 'default' : 'secondary'}
+                            className={cn(
+                              contact.isActive 
+                                ? 'bg-success text-success-foreground' 
+                                : ''
+                            )}
+                          >
+                            {contact.isActive ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </TableCell>
+
+                        {/* Actions */}
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => setContactModal({ 
+                                isOpen: true, 
+                                mode: 'view', 
+                                contactId: contact.id 
+                              })}
+                            >
+                              <Eye className="h-4 w-4" />
                             </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
-                              <Eye className="h-4 w-4 mr-2" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive">
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => setContactModal({ 
+                                isOpen: true, 
+                                mode: 'edit', 
+                                contactId: contact.id 
+                              })}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() => setContactModal({ 
+                                    isOpen: true, 
+                                    mode: 'view', 
+                                    contactId: contact.id 
+                                  })}
+                                >
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  View Details
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => setContactModal({ 
+                                    isOpen: true, 
+                                    mode: 'edit', 
+                                    contactId: contact.id 
+                                  })}
+                                >
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Edit Contact
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  className="text-destructive"
+                                  onClick={() => setDeleteDialog({
+                                    isOpen: true,
+                                    contactId: contact.id,
+                                    contactName: contact.name
+                                  })}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </TableCell>
+                      </motion.tr>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Contact Modal */}
+      <ContactModal
+        isOpen={contactModal.isOpen}
+        onClose={() => setContactModal({ isOpen: false, mode: 'create' })}
+        mode={contactModal.mode}
+        contactId={contactModal.contactId}
+        onSuccess={loadContacts}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialog.isOpen} onOpenChange={(open) => setDeleteDialog({ isOpen: open })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Contact</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{deleteDialog.contactName}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
