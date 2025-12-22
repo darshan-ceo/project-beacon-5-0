@@ -460,6 +460,54 @@ class ClientContactsService {
   }
 
   /**
+   * Get all contacts accessible to the current user (with client name)
+   */
+  async getAllContacts(): Promise<ApiResponse<(ClientContact & { clientName?: string })[]>> {
+    try {
+      // Fetch contacts with client info using a join
+      const { data, error } = await supabase
+        .from('client_contacts')
+        .select(`
+          *,
+          clients:client_id (
+            display_name
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching all contacts:', error);
+        return {
+          success: false,
+          error: error.message,
+          data: null
+        };
+      }
+
+      const contacts = (data || []).map(row => {
+        const contact = toClientContact(row);
+        return {
+          ...contact,
+          clientName: row.clients?.display_name || undefined
+        };
+      });
+
+      return {
+        success: true,
+        data: contacts,
+        message: 'All contacts fetched successfully'
+      };
+    } catch (err: any) {
+      console.error('Error in getAllContacts:', err);
+      return {
+        success: false,
+        error: err.message || 'Failed to fetch all contacts',
+        data: null
+      };
+    }
+  }
+
+  /**
    * Get primary contact for a client
    */
   async getPrimaryContact(clientId: string): Promise<ApiResponse<ClientContact | null>> {

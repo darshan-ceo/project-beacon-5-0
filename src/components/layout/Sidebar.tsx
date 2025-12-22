@@ -85,6 +85,7 @@ const menuGroups: MenuGroup[] = [
     roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'],
     items: [
       { icon: Users, label: 'Client Masters', href: '/clients', roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'] },
+      { icon: UserCircle, label: 'Contacts', href: '/contacts', roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'] },
       { icon: Building2, label: 'Client Groups', href: '/client-groups', roles: ['Admin', 'Partner/CA', 'Ca'] },
       { icon: Building2, label: 'Legal Authorities', href: '/courts', roles: ['Admin', 'Partner/CA', 'Ca'] },
       { icon: Gavel, label: 'Judge Masters', href: '/judges', roles: ['Admin', 'Partner/CA', 'Ca'] },
