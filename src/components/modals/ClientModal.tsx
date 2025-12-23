@@ -1561,7 +1561,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                       </h4>
                       <div className="flex items-center gap-2">
                         <Input 
-                          value={`${window.location.origin}/portal`} 
+                          value={`${window.location.origin}/portal/login?username=${formData.portalAccess.username || ''}`} 
                           readOnly 
                           className="font-mono text-sm bg-white dark:bg-background"
                         />
@@ -1569,7 +1569,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                           type="button"
                           variant="outline"
                           size="sm"
-                          onClick={() => window.open(`${window.location.origin}/portal`, '_blank')}
+                          onClick={() => window.open(`${window.location.origin}/portal/login?username=${formData.portalAccess.username || ''}`, '_blank')}
                           className="shrink-0"
                         >
                           <ExternalLink className="h-4 w-4 mr-1" />
@@ -1580,7 +1580,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                           variant="outline"
                           size="sm"
                           onClick={() => {
-                            navigator.clipboard.writeText(`${window.location.origin}/portal`);
+                            navigator.clipboard.writeText(`${window.location.origin}/portal/login?username=${formData.portalAccess.username || ''}`);
                             toast({
                               title: "Link copied",
                               description: "Portal access link copied to clipboard",

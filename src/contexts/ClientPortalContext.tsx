@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { usePortalAuth } from '@/contexts/PortalAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
 interface ClientPortalAccess {
@@ -32,13 +32,15 @@ interface ClientPortalProviderProps {
 }
 
 export const ClientPortalProvider: React.FC<ClientPortalProviderProps> = ({ children }) => {
-  const { user, loading: authLoading } = useAuth();
+  // Use portal auth instead of main app auth
+  const { portalSession, isLoading: authLoading } = usePortalAuth();
   const [clientAccess, setClientAccess] = useState<ClientPortalAccess | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const checkClientAccess = async () => {
-    if (!user) {
+    // Use portal session's userId instead of main auth
+    if (!portalSession?.userId) {
       setClientAccess(null);
       setLoading(false);
       return;
@@ -57,7 +59,7 @@ export const ClientPortalProvider: React.FC<ClientPortalProviderProps> = ({ chil
           tenant_id,
           clients!inner(display_name)
         `)
-        .eq('user_id', user.id)
+        .eq('user_id', portalSession.userId)
         .eq('is_active', true)
         .maybeSingle();
 
@@ -80,7 +82,7 @@ export const ClientPortalProvider: React.FC<ClientPortalProviderProps> = ({ chil
         await supabase
           .from('client_portal_users')
           .update({ last_login_at: new Date().toISOString() })
-          .eq('user_id', user.id)
+          .eq('user_id', portalSession.userId)
           .eq('client_id', data.client_id);
       }
     } catch (err) {
@@ -96,7 +98,7 @@ export const ClientPortalProvider: React.FC<ClientPortalProviderProps> = ({ chil
     if (!authLoading) {
       checkClientAccess();
     }
-  }, [user, authLoading]);
+  }, [portalSession, authLoading]);
 
   const value: ClientPortalContextType = {
     clientAccess,
