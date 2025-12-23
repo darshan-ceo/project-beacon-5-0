@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, File, X, CheckCircle, AlertCircle } from 'lucide-react';
+import { Upload, File, X, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { portalSupabase } from '@/integrations/supabase/portalClient';
+import { usePortalAuth } from '@/contexts/PortalAuthContext';
 import { useClientPortal } from '@/contexts/ClientPortalContext';
 import { canPerformAction } from '@/utils/portalPermissions';
+import { v4 as uuidv4 } from 'uuid';
 
 interface ClientDocumentUploadProps {
   clientId: string;
@@ -23,14 +24,15 @@ export const ClientDocumentUpload: React.FC<ClientDocumentUploadProps> = ({
   caseId,
   onUploadComplete
 }) => {
-  const { user } = useAuth();
+  const { portalSession, isAuthenticated } = usePortalAuth();
   const { clientAccess } = useClientPortal();
   const [uploading, setUploading] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [description, setDescription] = useState('');
 
-  // Check if user has upload permission
-  const canUpload = canPerformAction(clientAccess?.portalRole, 'canUploadDocuments');
+  // Check if user has upload permission (requires portal auth + editor role)
+  const canUpload = isAuthenticated && portalSession?.isAuthenticated && 
+    canPerformAction(clientAccess?.portalRole, 'canUploadDocuments');
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
@@ -56,24 +58,51 @@ export const ClientDocumentUpload: React.FC<ClientDocumentUploadProps> = ({
   };
 
   const handleUpload = async () => {
-    if (selectedFiles.length === 0 || !user || !clientAccess) return;
+    if (selectedFiles.length === 0 || !clientAccess) return;
+
+    // Verify portal session is valid
+    if (!portalSession?.userId) {
+      toast({
+        title: 'Session Expired',
+        description: 'Your portal session has expired. Please login again.',
+        variant: 'destructive'
+      });
+      return;
+    }
 
     setUploading(true);
 
     try {
+      // Get current portal user from portalSupabase to ensure we have valid auth
+      const { data: authData, error: authError } = await portalSupabase.auth.getUser();
+      
+      if (authError || !authData.user) {
+        console.error('Portal auth error:', authError);
+        toast({
+          title: 'Session Expired',
+          description: 'Your portal session has expired. Please login again.',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      const portalUserId = authData.user.id;
+
       for (const file of selectedFiles) {
         // Generate unique file path - must start with 'client-uploads' for RLS policy
         const timestamp = Date.now();
         const fileExtension = file.name.split('.').pop() || '';
-        const uniqueId = crypto.randomUUID();
-        const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        // Use uuid library for cross-browser compatibility
+        const uniqueId = uuidv4();
         // Path format: client-uploads/{clientId}/{uniqueId}-{timestamp}.{ext}
-        const filePath = `client-uploads/${clientId}/${uniqueId}-${timestamp}.${fileExtension}`;
+        const filePath = fileExtension 
+          ? `client-uploads/${clientId}/${uniqueId}-${timestamp}.${fileExtension}`
+          : `client-uploads/${clientId}/${uniqueId}-${timestamp}`;
 
-        console.log('Uploading file to path:', filePath);
+        console.log('Portal uploading file to path:', filePath);
 
-        // Upload to Supabase Storage
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        // Upload to Supabase Storage using portal client
+        const { data: uploadData, error: uploadError } = await portalSupabase.storage
           .from('documents')
           .upload(filePath, file, {
             cacheControl: '3600',
@@ -81,33 +110,39 @@ export const ClientDocumentUpload: React.FC<ClientDocumentUploadProps> = ({
           });
 
         if (uploadError) {
-          console.error('Upload error:', uploadError);
+          console.error('Portal upload error:', uploadError);
           throw new Error(`Failed to upload ${file.name}: ${uploadError.message}`);
         }
+
+        console.log('Portal upload successful:', uploadData);
 
         // Get file extension for type
         const fileType = file.name.split('.').pop()?.toLowerCase() || 'file';
 
-        // Create document record in database
-        const { error: docError } = await supabase
+        // Create document record in database using portal client
+        const { error: docError } = await portalSupabase
           .from('documents')
           .insert({
             file_name: file.name,
             file_path: filePath,
             file_type: fileType,
             file_size: file.size,
-            mime_type: file.type,
+            mime_type: file.type || 'application/octet-stream',
             client_id: clientId,
             case_id: caseId || null,
             tenant_id: clientAccess.tenantId,
-            uploaded_by: user.id,
+            uploaded_by: portalUserId, // Use portal user's auth.uid()
             category: 'Client Upload',
             document_status: 'Pending Review',
-            remarks: description || null
+            remarks: description || null,
+            version: 1,
+            is_latest_version: true
           });
 
         if (docError) {
-          console.error('Document record error:', docError);
+          console.error('Portal document record error:', docError);
+          // Try to clean up the uploaded file
+          await portalSupabase.storage.from('documents').remove([filePath]);
           throw new Error(`Failed to save document record: ${docError.message}`);
         }
       }
