@@ -197,6 +197,8 @@ export const clientsService = {
         jurisdiction: clientData.jurisdiction ? JSON.stringify(clientData.jurisdiction) : null,
         // Dual Access Model: data_scope defaults to TEAM
         data_scope: (clientData as any).dataScope || 'TEAM',
+        // Portal access credentials
+        portal_access: clientData.portalAccess?.allowLogin ? clientData.portalAccess : null,
       };
 
       // Persist to Supabase first
@@ -305,6 +307,10 @@ export const clientsService = {
       if (updates.jurisdiction !== undefined) supabaseUpdates.jurisdiction = JSON.stringify(updates.jurisdiction);
       // Dual Access Model: handle data_scope updates
       if ((updates as any).dataScope !== undefined) supabaseUpdates.data_scope = (updates as any).dataScope;
+      // Portal access credentials
+      if (updates.portalAccess !== undefined) {
+        supabaseUpdates.portal_access = updates.portalAccess?.allowLogin ? updates.portalAccess : null;
+      }
 
       // Persist to Supabase first
       await storage.update('clients', clientId, supabaseUpdates);
