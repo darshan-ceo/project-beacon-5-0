@@ -192,6 +192,10 @@ export function useImportRefresh() {
               clientGroupId: client.client_group_id || '',
               assignedCAId: '',
               assignedCAName: '',
+              portalAccess: client.portal_access 
+                ? (typeof client.portal_access === 'string' ? JSON.parse(client.portal_access) : client.portal_access)
+                : { allowLogin: false },
+              dataScope: client.data_scope || 'TEAM',
             } as unknown as Client
           });
         }
