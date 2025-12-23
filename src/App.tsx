@@ -52,6 +52,9 @@ import { ClientPortalUserManagement } from "./components/admin/ClientPortalUserM
 import { ClientLayout } from "./components/layout/ClientLayout";
 import { ClientRouteGuard } from "./components/ui/client-route-guard";
 import { ClientPortalProvider } from "./contexts/ClientPortalContext";
+import { PortalAuthProvider } from "./contexts/PortalAuthContext";
+import { PortalRouteGuard } from "./components/portal/PortalRouteGuard";
+import { PortalLoginPage } from "./pages/auth/PortalLoginPage";
 import { AppWithPersistence } from "./components/AppWithPersistence";
 import { SearchResultsPage } from "./pages/SearchResultsPage";
 import { DebugSearchInspector } from "./pages/DebugSearchInspector";
@@ -137,23 +140,30 @@ const AppContent = () => {
               <Route path="/auth/reset-password" element={<ResetPassword />} />
               <Route path="/oauth/callback" element={<OAuthCallback />} />
               
+              {/* Client Portal Routes (separate auth system) */}
+              <Route path="/portal/login" element={
+                <PortalAuthProvider>
+                  <PortalLoginPage />
+                </PortalAuthProvider>
+              } />
+              <Route path="/portal" element={
+                <PortalAuthProvider>
+                  <PortalRouteGuard>
+                    <ClientPortalProvider>
+                      <ClientLayout>
+                        <ClientPortal />
+                      </ClientLayout>
+                    </ClientPortalProvider>
+                  </PortalRouteGuard>
+                </PortalAuthProvider>
+              } />
+              
               {/* Protected Routes */}
               <Route path="/" element={
                 <ProtectedRoute>
                   <AdminLayout>
                     <EnhancedDashboard />
                   </AdminLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/portal" element={
-                <ProtectedRoute>
-                  <ClientPortalProvider>
-                    <ClientRouteGuard>
-                      <ClientLayout>
-                        <ClientPortal />
-                      </ClientLayout>
-                    </ClientRouteGuard>
-                  </ClientPortalProvider>
                 </ProtectedRoute>
               } />
               <Route path="/clients" element={
