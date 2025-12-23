@@ -31,6 +31,7 @@ import { toTitleCase, toLowerCase } from '@/utils/formatters';
 import { secureLog } from '@/utils/secureLogger';
 import { format } from 'date-fns';
 import { CLIENT_TYPES } from '@/../config/appConfig';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ClientModalProps {
   isOpen: boolean;
@@ -531,8 +532,11 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         ...(isAddressMasterEnabled && addressId ? { addressId } : {})
       };
 
+      let savedClientId: string | undefined;
+
       if (mode === 'create') {
         const createdClient = await clientsService.create(clientToSave, dispatch) as Client;
+        savedClientId = createdClient?.id;
         
         // Link address for new client
         if (isAddressMasterEnabled && addressId && createdClient) {
@@ -540,6 +544,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         }
         // Toast already shown by service
       } else if (mode === 'edit' && clientData) {
+        savedClientId = clientData.id;
         // Use rawDispatch so UI updates instantly without triggering persistence twice
         await clientsService.update(clientData.id, { ...clientData, ...clientToSave }, rawDispatch);
         
@@ -548,6 +553,38 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
           await addressMasterService.linkAddress('client', clientData.id, addressId, true);
         }
         // Toast already shown by service
+      }
+
+      // Provision portal user if portal access is enabled
+      if (savedClientId && formData.portalAccess.allowLogin && formData.portalAccess.username && formData.portalAccess.passwordHash) {
+        try {
+          const { data, error } = await supabase.functions.invoke('provision-portal-user', {
+            body: {
+              clientId: savedClientId,
+              username: formData.portalAccess.username,
+              password: formData.portalAccess.passwordHash,
+              portalRole: 'viewer'
+            }
+          });
+
+          if (error) {
+            console.error('Portal provisioning error:', error);
+            toast({
+              title: "Portal Setup Warning",
+              description: "Client saved but portal access setup failed. You may need to re-save.",
+              variant: "destructive"
+            });
+          } else if (data?.success) {
+            console.log('Portal user provisioned:', data);
+            toast({
+              title: "Portal Access Configured",
+              description: `Portal login created for ${formData.portalAccess.username}`,
+            });
+          }
+        } catch (provisionError) {
+          console.error('Portal provisioning exception:', provisionError);
+          // Non-fatal - client was still saved
+        }
       }
 
       onClose();

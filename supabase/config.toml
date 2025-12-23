@@ -53,3 +53,6 @@ verify_jwt = false
 
 [functions.invite-client-portal-user]
 verify_jwt = true
+
+[functions.provision-portal-user]
+verify_jwt = true
