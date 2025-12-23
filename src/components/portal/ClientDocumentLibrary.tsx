@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { portalSupabase } from '@/integrations/supabase/portalClient';
+import { usePortalAuth } from '@/contexts/PortalAuthContext';
 import { useClientPortal } from '@/contexts/ClientPortalContext';
 import { canPerformAction } from '@/utils/portalPermissions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -58,6 +59,7 @@ export const ClientDocumentLibrary: React.FC<ClientDocumentLibraryProps> = ({
   clientId,
   cases = []
 }) => {
+  const { portalSession, isAuthenticated } = usePortalAuth();
   const { clientAccess } = useClientPortal();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,13 +68,21 @@ export const ClientDocumentLibrary: React.FC<ClientDocumentLibraryProps> = ({
   const [selectedCaseId, setSelectedCaseId] = useState<string>('all');
   const [downloading, setDownloading] = useState<string | null>(null);
 
-  const canDownload = canPerformAction(clientAccess?.portalRole, 'canDownloadDocuments');
+  // Check download permission (requires portal auth + appropriate role)
+  const canDownload = isAuthenticated && portalSession?.isAuthenticated && 
+    canPerformAction(clientAccess?.portalRole, 'canDownloadDocuments');
 
   const fetchDocuments = useCallback(async () => {
+    if (!isAuthenticated || !clientId) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       
-      let query = supabase
+      // Use portal client for fetching documents
+      let query = portalSupabase
         .from('documents')
         .select('*')
         .eq('client_id', clientId)
@@ -85,13 +95,13 @@ export const ClientDocumentLibrary: React.FC<ClientDocumentLibraryProps> = ({
       const { data, error } = await query;
 
       if (error) {
-        console.error('Error fetching documents:', error);
+        console.error('Portal fetch documents error:', error);
         throw error;
       }
 
       setDocuments(data || []);
     } catch (error) {
-      console.error('Error loading documents:', error);
+      console.error('Portal error loading documents:', error);
       toast({
         title: 'Error',
         description: 'Failed to load documents',
@@ -100,7 +110,7 @@ export const ClientDocumentLibrary: React.FC<ClientDocumentLibraryProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [clientId, selectedCaseId]);
+  }, [clientId, selectedCaseId, isAuthenticated]);
 
   useEffect(() => {
     fetchDocuments();
@@ -138,49 +148,49 @@ export const ClientDocumentLibrary: React.FC<ClientDocumentLibraryProps> = ({
     try {
       setDownloading(document.id);
       
-      // Try to download using file_path first
       let downloadError: Error | null = null;
       let blob: Blob | null = null;
 
-      // First attempt: direct file path download
-      const { data, error } = await supabase.storage
+      console.log('Portal attempting download:', document.file_path);
+
+      // First attempt: direct download using portal client
+      const { data, error } = await portalSupabase.storage
         .from('documents')
         .download(document.file_path);
 
       if (error) {
-        console.log('Direct download failed, trying signed URL:', error);
+        console.log('Portal direct download failed:', error.message);
         
-        // Second attempt: try using storage_url if available
-        if (document.storage_url) {
+        // Second attempt: create signed URL via portal client
+        const { data: signedData, error: signedError } = await portalSupabase.storage
+          .from('documents')
+          .createSignedUrl(document.file_path, 3600);
+        
+        if (signedError) {
+          console.log('Portal signed URL creation failed:', signedError.message);
+          downloadError = signedError;
+        } else if (signedData?.signedUrl) {
           try {
-            const response = await fetch(document.storage_url);
+            const response = await fetch(signedData.signedUrl);
             if (response.ok) {
               blob = await response.blob();
             } else {
-              downloadError = new Error('Failed to fetch from storage URL');
+              downloadError = new Error(`Failed to fetch: ${response.status}`);
             }
           } catch (fetchError) {
             downloadError = fetchError as Error;
           }
-        } else {
-          // Third attempt: create signed URL
-          const { data: signedData, error: signedError } = await supabase.storage
-            .from('documents')
-            .createSignedUrl(document.file_path, 3600);
-          
-          if (signedError) {
-            downloadError = signedError;
-          } else if (signedData?.signedUrl) {
-            try {
-              const response = await fetch(signedData.signedUrl);
-              if (response.ok) {
-                blob = await response.blob();
-              } else {
-                downloadError = new Error('Failed to fetch from signed URL');
-              }
-            } catch (fetchError) {
-              downloadError = fetchError as Error;
+        }
+
+        // Third attempt: try storage_url if available
+        if (!blob && document.storage_url) {
+          try {
+            const response = await fetch(document.storage_url);
+            if (response.ok) {
+              blob = await response.blob();
             }
+          } catch (e) {
+            console.log('Storage URL fetch failed:', e);
           }
         }
       } else {
@@ -188,7 +198,9 @@ export const ClientDocumentLibrary: React.FC<ClientDocumentLibraryProps> = ({
       }
 
       if (!blob) {
-        throw downloadError || new Error('Unable to download file');
+        const errorMessage = downloadError?.message || 'Unable to download file';
+        console.error('Portal download failed:', errorMessage);
+        throw new Error(errorMessage);
       }
 
       // Create download link
