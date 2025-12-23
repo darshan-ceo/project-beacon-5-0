@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Edit, Trash2, User, Eye, Building2, MapPin, Shield, AlertCircle, Loader2 } from 'lucide-react';
+import { Plus, Edit, Trash2, User, Eye, Building2, MapPin, Shield, AlertCircle, Loader2, RefreshCw, EyeOff } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Client, useAppState, type Signatory, type Address, type Jurisdiction, type PortalAccess } from '@/contexts/AppStateContext';
 import { CASelector } from '@/components/ui/employee-selector';
@@ -143,6 +143,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
   const [isLoadingAddress, setIsLoadingAddress] = useState(false);
   const validationErrorsRef = useRef<HTMLDivElement>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [showPortalPassword, setShowPortalPassword] = useState(false);
 
   useEffect(() => {
     const loadClientData = async () => {
@@ -425,21 +426,18 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
       }
     }
 
-    // Portal access validations
+    // Portal access validations - simplified to username and password
     if (formData.portalAccess.allowLogin) {
-      if (!formData.portalAccess.email) {
-        newErrors.portalEmail = 'Email is required for portal access';
-      } else {
-        const emailValidation = clientsService.validateEmail(formData.portalAccess.email);
-        if (!emailValidation.isValid) {
-          newErrors.portalEmail = emailValidation.errors[0];
-        }
+      if (!formData.portalAccess.username?.trim()) {
+        newErrors.portalUsername = 'Username is required for portal access';
+      } else if (formData.portalAccess.username.trim().length < 3) {
+        newErrors.portalUsername = 'Username must be at least 3 characters';
       }
 
-      if (!formData.portalAccess.mobile) {
-        newErrors.portalMobile = 'Mobile number is required for portal access';
-      } else if (!/^[+]?[0-9]{10,15}$/.test(formData.portalAccess.mobile.replace(/\s/g, ''))) {
-        newErrors.portalMobile = 'Mobile must be 10-15 digits (with optional country code)';
+      if (!formData.portalAccess.passwordHash?.trim()) {
+        newErrors.portalPassword = 'Password is required for portal access';
+      } else if (formData.portalAccess.passwordHash.trim().length < 6) {
+        newErrors.portalPassword = 'Password must be at least 6 characters';
       }
     }
 
@@ -618,16 +616,13 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
 
   const handlePortalToggle = (enabled: boolean) => {
     if (enabled) {
-      // Auto-populate username from portal email (if available)
-      const autoUsername = formData.portalAccess.email || '';
-      
       setFormData(prev => ({
         ...prev,
         portalAccess: {
           ...prev.portalAccess,
           allowLogin: true,
-          username: autoUsername,
-          passwordHash: prev.portalAccess.mobile || ''
+          username: prev.portalAccess.username || '',
+          passwordHash: prev.portalAccess.passwordHash || ''
         }
       }));
     } else {
@@ -639,6 +634,22 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         }
       }));
     }
+  };
+
+  const generateRandomPassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    let password = '';
+    for (let i = 0; i < 8; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setFormData(prev => ({
+      ...prev,
+      portalAccess: {
+        ...prev.portalAccess,
+        passwordHash: password
+      }
+    }));
+    setErrors(prev => ({ ...prev, portalPassword: '' }));
   };
 
   const handleSignatoriesImport = (importedContacts: any[]) => {
@@ -1383,125 +1394,122 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                 {formData.portalAccess.allowLogin && (
                   <>
                     <Separator />
+                    
+                    {/* Info Note */}
+                    <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                      <p className="text-sm text-blue-700 dark:text-blue-300 flex items-center gap-2">
+                        <Shield className="h-4 w-4" />
+                        These credentials are shared for all portal users linked to this client.
+                      </p>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
+                      {/* Username Field */}
                       <div>
-                        <Label htmlFor="portalEmail">Portal Email *</Label>
+                        <Label htmlFor="portalUsername">Portal Username *</Label>
                         <Input
-                          id="portalEmail"
-                          type="email"
-                          value={formData.portalAccess.email || ''}
+                          id="portalUsername"
+                          value={formData.portalAccess.username || ''}
                           onChange={(e) => {
-                            const newEmail = e.target.value;
                             setFormData(prev => ({ 
                               ...prev, 
                               portalAccess: { 
                                 ...prev.portalAccess, 
-                                email: newEmail,
-                                username: newEmail // Auto-sync username
+                                username: e.target.value
                               }
                             }));
-                            setErrors(prev => ({ ...prev, portalEmail: '' }));
+                            setErrors(prev => ({ ...prev, portalUsername: '' }));
                           }}
                           disabled={mode === 'view'}
-                          className={errors.portalEmail ? 'border-destructive' : ''}
+                          placeholder="Enter username"
+                          className={errors.portalUsername ? 'border-destructive' : ''}
                         />
-                        {errors.portalEmail && <p className="text-sm text-destructive mt-1">{errors.portalEmail}</p>}
-                      </div>
-
-                      <div>
-                        <Label htmlFor="portalMobile">Portal Mobile *</Label>
-                        <Input
-                          id="portalMobile"
-                          value={formData.portalAccess.mobile || ''}
-                          onChange={(e) => {
-                            const newMobile = e.target.value;
-                            setFormData(prev => ({ 
-                              ...prev, 
-                              portalAccess: { 
-                                ...prev.portalAccess, 
-                                mobile: newMobile,
-                                passwordHash: newMobile // Auto-sync password
-                              }
-                            }));
-                            setErrors(prev => ({ ...prev, portalMobile: '' }));
-                          }}
-                          disabled={mode === 'view'}
-                          className={errors.portalMobile ? 'border-destructive' : ''}
-                        />
-                        {errors.portalMobile && <p className="text-sm text-destructive mt-1">{errors.portalMobile}</p>}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="username" className="flex items-center gap-2">
-                          Username
-                          <Badge variant="secondary" className="text-xs font-normal">
-                            Auto from Email
-                          </Badge>
-                        </Label>
-                        <Input
-                          id="username"
-                          value={formData.portalAccess.username || formData.portalAccess.email || ''}
-                          onChange={(e) => setFormData(prev => ({ 
-                            ...prev, 
-                            portalAccess: { ...prev.portalAccess, username: e.target.value }
-                          }))}
-                          disabled={mode === 'view'}
-                          placeholder="Will auto-populate from Portal Email"
-                          className="font-mono text-sm"
-                        />
+                        {errors.portalUsername && <p className="text-sm text-destructive mt-1">{errors.portalUsername}</p>}
                         <p className="text-xs text-muted-foreground mt-1">
-                          Username defaults to Portal Email (can be manually changed)
+                          Minimum 3 characters
                         </p>
                       </div>
 
+                      {/* Password Field */}
                       <div>
-                        <Label htmlFor="password" className="flex items-center gap-2">
-                          Temporary Password
-                          <Badge variant="outline" className="text-xs font-normal">
-                            From Mobile
-                          </Badge>
-                        </Label>
-                        <Input
-                          id="password"
-                          type="text"
-                          value={formData.portalAccess.mobile || ''}
-                          disabled={true}
-                          placeholder="Portal Mobile will be temporary password"
-                          className="font-mono text-sm bg-muted"
-                        />
+                        <Label htmlFor="portalPassword">Portal Password *</Label>
+                        <div className="flex gap-2">
+                          <div className="relative flex-1">
+                            <Input
+                              id="portalPassword"
+                              type={showPortalPassword ? 'text' : 'password'}
+                              value={formData.portalAccess.passwordHash || ''}
+                              onChange={(e) => {
+                                setFormData(prev => ({ 
+                                  ...prev, 
+                                  portalAccess: { 
+                                    ...prev.portalAccess, 
+                                    passwordHash: e.target.value
+                                  }
+                                }));
+                                setErrors(prev => ({ ...prev, portalPassword: '' }));
+                              }}
+                              disabled={mode === 'view'}
+                              placeholder="Enter password"
+                              className={errors.portalPassword ? 'border-destructive pr-10' : 'pr-10'}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                              onClick={() => setShowPortalPassword(!showPortalPassword)}
+                              disabled={mode === 'view'}
+                            >
+                              {showPortalPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
+                            </Button>
+                          </div>
+                          {mode !== 'view' && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={generateRandomPassword}
+                              className="shrink-0"
+                            >
+                              <RefreshCw className="h-4 w-4 mr-1" />
+                              Generate
+                            </Button>
+                          )}
+                        </div>
+                        {errors.portalPassword && <p className="text-sm text-destructive mt-1">{errors.portalPassword}</p>}
                         <p className="text-xs text-muted-foreground mt-1">
-                          Client will use their Portal Mobile as temporary password (must change on first login)
+                          Minimum 6 characters
                         </p>
                       </div>
                     </div>
 
-                    {formData.portalAccess.email && formData.portalAccess.mobile && (
+                    {/* Credentials Summary */}
+                    {formData.portalAccess.username && formData.portalAccess.passwordHash && (
                       <>
                         <Separator />
                         <div className="bg-muted/50 border rounded-lg p-4 space-y-2">
                           <h4 className="text-sm font-semibold flex items-center gap-2">
                             <Shield className="h-4 w-4" />
-                            Client Login Credentials Summary
+                            Portal Credentials Summary
                           </h4>
                           <div className="grid grid-cols-2 gap-3 text-sm">
                             <div>
                               <span className="text-muted-foreground">Username:</span>
                               <p className="font-mono font-medium mt-1">
-                                {formData.portalAccess.username || formData.portalAccess.email}
+                                {formData.portalAccess.username}
                               </p>
                             </div>
                             <div>
-                              <span className="text-muted-foreground">Temporary Password:</span>
+                              <span className="text-muted-foreground">Password:</span>
                               <p className="font-mono font-medium mt-1">
-                                {formData.portalAccess.mobile}
+                                {'•'.repeat(formData.portalAccess.passwordHash.length)}
                               </p>
                             </div>
                           </div>
                           <p className="text-xs text-amber-600 flex items-center gap-1 mt-2">
                             <AlertCircle className="h-3 w-3" />
-                            Client must change password on first login
+                            Client should change password on first login
                           </p>
                         </div>
                       </>
