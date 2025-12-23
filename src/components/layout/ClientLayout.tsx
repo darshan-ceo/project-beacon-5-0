@@ -1,22 +1,39 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Shield, User, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { useRBAC } from '@/hooks/useAdvancedRBAC';
+import { usePortalAuth } from '@/contexts/PortalAuthContext';
+import { useClientPortal } from '@/contexts/ClientPortalContext';
 
 interface ClientLayoutProps {
   children: React.ReactNode;
 }
 
 export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
-  const { currentUser, switchRole } = useRBAC();
+  const navigate = useNavigate();
+  const { portalSession, logout } = usePortalAuth();
+  const { clientAccess } = useClientPortal();
 
   const handleBackToAdmin = () => {
-    switchRole('Admin');
+    // Just navigate to home - admin auth is separate from portal auth
     window.location.href = '/';
   };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/portal/login', { replace: true });
+  };
+
+  const displayName = clientAccess?.clientName || portalSession?.clientName || 'Client';
+  const initials = displayName
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/30">
@@ -48,18 +65,23 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
               <div className="flex items-center space-x-2">
                 <Avatar className="h-8 w-8">
                   <AvatarFallback className="text-xs">
-                    {currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                    {initials}
                   </AvatarFallback>
                 </Avatar>
                 <div className="text-right">
-                  <div className="text-sm font-medium text-foreground">{currentUser.name}</div>
+                  <div className="text-sm font-medium text-foreground">{displayName}</div>
                   <Badge variant="secondary" className="text-xs">
-                    Client Access
+                    {clientAccess?.portalRole || 'Client Access'}
                   </Badge>
                 </div>
               </div>
               
-              <Button variant="ghost" size="sm">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={handleLogout}
+                title="Logout from portal"
+              >
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>

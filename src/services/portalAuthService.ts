@@ -1,8 +1,9 @@
 /**
  * Portal Authentication Service
- * Handles authentication for client portal users using Supabase Auth
+ * Handles authentication for client portal users using isolated Supabase Auth client
  */
 
+import { portalSupabase } from "@/integrations/supabase/portalClient";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface PortalSession {
@@ -21,13 +22,13 @@ const SESSION_DURATION_HOURS = 24;
 export const portalAuthService = {
   /**
    * Authenticate portal user with username and password
-   * Uses Supabase Auth with generated login email
+   * Uses isolated portal Supabase client to prevent overwriting admin auth
    */
   async login(username: string, password: string): Promise<{ success: boolean; session?: PortalSession; error?: string }> {
     try {
       console.log('[PortalAuth] Attempting login for username:', username);
 
-      // Call edge function to lookup loginEmail (bypasses RLS)
+      // Call edge function to lookup loginEmail (uses main supabase for function invocation)
       const { data: lookupData, error: lookupError } = await supabase.functions.invoke(
         'portal-lookup-login-email',
         { body: { identifier: username } }
@@ -52,9 +53,9 @@ export const portalAuthService = {
 
       console.log('[PortalAuth] Got loginEmail from lookup:', loginEmail);
 
-      // Now sign in with Supabase Auth
-      console.log('[PortalAuth] Signing in with email:', loginEmail);
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      // Sign in using ISOLATED portal Supabase client
+      console.log('[PortalAuth] Signing in with portal client, email:', loginEmail);
+      const { data: authData, error: authError } = await portalSupabase.auth.signInWithPassword({
         email: loginEmail,
         password
       });
@@ -73,8 +74,8 @@ export const portalAuthService = {
 
       console.log('[PortalAuth] Auth successful, user:', authData.user.id);
 
-      // Get client portal user record
-      const { data: portalUser, error: portalError } = await supabase
+      // Get client portal user record using portal client (RLS will now work)
+      const { data: portalUser, error: portalError } = await portalSupabase
         .from('client_portal_users')
         .select('client_id, tenant_id, portal_role, clients(display_name)')
         .eq('user_id', authData.user.id)
@@ -84,7 +85,7 @@ export const portalAuthService = {
       if (portalError || !portalUser) {
         console.error('[PortalAuth] Portal user not found:', portalError);
         // Sign out since they're not a valid portal user
-        await supabase.auth.signOut();
+        await portalSupabase.auth.signOut();
         return { success: false, error: 'Portal access not found. Please contact your administrator.' };
       }
 
@@ -102,8 +103,8 @@ export const portalAuthService = {
         isAuthenticated: true,
       };
 
-      // Update last login
-      await supabase
+      // Update last login using portal client
+      await portalSupabase
         .from('client_portal_users')
         .update({ last_login_at: new Date().toISOString() })
         .eq('user_id', authData.user.id);
@@ -153,11 +154,27 @@ export const portalAuthService = {
   },
 
   /**
-   * Check if portal session is valid
+   * Check if portal session is valid (both local session and Supabase auth)
    */
   isSessionValid(): boolean {
     const session = this.getSession();
     return session !== null && session.isAuthenticated && session.expiresAt > Date.now();
+  },
+
+  /**
+   * Validate that portal Supabase auth matches local session
+   */
+  async validateSupabaseSession(): Promise<{ valid: boolean; userId?: string }> {
+    try {
+      const { data: { session } } = await portalSupabase.auth.getSession();
+      if (session?.user) {
+        return { valid: true, userId: session.user.id };
+      }
+      return { valid: false };
+    } catch (error) {
+      console.error('[PortalAuth] Failed to validate Supabase session:', error);
+      return { valid: false };
+    }
   },
 
   /**
@@ -172,12 +189,12 @@ export const portalAuthService = {
   },
 
   /**
-   * Logout portal user
+   * Logout portal user - uses isolated portal client
    */
   async logout(): Promise<void> {
     try {
-      // Sign out from Supabase
-      await supabase.auth.signOut();
+      // Sign out from portal Supabase client (doesn't affect admin auth)
+      await portalSupabase.auth.signOut();
     } catch (error) {
       console.error('[PortalAuth] Supabase signOut error:', error);
     }
@@ -194,4 +211,11 @@ export const portalAuthService = {
       this.saveSession(session);
     }
   },
+
+  /**
+   * Get the portal Supabase client for data queries
+   */
+  getClient() {
+    return portalSupabase;
+  }
 };
