@@ -27,47 +27,30 @@ export const portalAuthService = {
     try {
       console.log('[PortalAuth] Attempting login for username:', username);
 
-      // First, find the client with this username to get the loginEmail
-      const { data: clients, error: queryError } = await supabase
-        .from('clients')
-        .select('id, display_name, tenant_id, portal_access')
-        .not('portal_access', 'is', null);
+      // Call edge function to lookup loginEmail (bypasses RLS)
+      const { data: lookupData, error: lookupError } = await supabase.functions.invoke(
+        'portal-lookup-login-email',
+        { body: { identifier: username } }
+      );
 
-      if (queryError) {
-        console.error('[PortalAuth] Query error:', queryError);
+      if (lookupError) {
+        console.error('[PortalAuth] Lookup error:', lookupError);
         return { success: false, error: 'Login failed. Please try again.' };
       }
 
-      // Find client with matching username
-      const matchingClient = clients?.find(client => {
-        const portalAccess = client.portal_access as any;
-        if (!portalAccess || !portalAccess.allowLogin) return false;
-        return portalAccess.username?.toLowerCase() === username.toLowerCase();
-      });
-
-      let loginEmail: string;
-
-      if (matchingClient) {
-        const portalAccess = matchingClient.portal_access as any;
-        loginEmail = portalAccess.loginEmail;
-        console.log('[PortalAuth] Found client with loginEmail:', loginEmail);
-      } else {
-        // If no matching client found with exact username, 
-        // try to construct the email pattern (for backward compatibility)
-        // This handles the case where the user types their generated email directly
-        if (username.includes('@')) {
-          loginEmail = username.toLowerCase();
-        } else {
-          // Cannot find the client - invalid credentials
-          console.log('[PortalAuth] No matching client found for username:', username);
-          return { success: false, error: 'Invalid username or password' };
-        }
+      if (lookupData?.error) {
+        console.log('[PortalAuth] Lookup returned error:', lookupData.error);
+        return { success: false, error: 'Invalid username or password' };
       }
+
+      const loginEmail = lookupData?.loginEmail;
 
       if (!loginEmail) {
-        console.log('[PortalAuth] No loginEmail found - user may not be provisioned');
+        console.log('[PortalAuth] No loginEmail returned from lookup');
         return { success: false, error: 'Portal access not configured. Please contact your administrator.' };
       }
+
+      console.log('[PortalAuth] Got loginEmail from lookup:', loginEmail);
 
       // Now sign in with Supabase Auth
       console.log('[PortalAuth] Signing in with email:', loginEmail);

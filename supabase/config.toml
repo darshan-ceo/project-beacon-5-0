@@ -56,3 +56,6 @@ verify_jwt = true
 
 [functions.provision-portal-user]
 verify_jwt = true
+
+[functions.portal-lookup-login-email]
+verify_jwt = false
