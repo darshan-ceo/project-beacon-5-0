@@ -437,8 +437,21 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
 
       if (!formData.portalAccess.passwordHash?.trim()) {
         newErrors.portalPassword = 'Password is required for portal access';
-      } else if (formData.portalAccess.passwordHash.trim().length < 6) {
-        newErrors.portalPassword = 'Password must be at least 6 characters';
+      } else if (formData.portalAccess.passwordHash.trim().length < 8) {
+        newErrors.portalPassword = 'Password must be at least 8 characters';
+      } else {
+        const pwd = formData.portalAccess.passwordHash.trim();
+        const isWeakPattern = /^(\d)\1+$/.test(pwd) || // All same digit
+                              /^12345678/.test(pwd) ||
+                              /^password/i.test(pwd) ||
+                              /^qwerty/i.test(pwd) ||
+                              /^abcd/i.test(pwd);
+        const hasLetter = /[a-zA-Z]/.test(pwd);
+        const hasNumber = /\d/.test(pwd);
+        
+        if (isWeakPattern || !hasLetter || !hasNumber) {
+          newErrors.portalPassword = 'Password must contain letters and numbers, and avoid common patterns';
+        }
       }
     }
 
@@ -674,11 +687,28 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
   };
 
   const generateRandomPassword = () => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    // Generate a strong password with letters, numbers, and special characters
+    const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    const lower = 'abcdefghjkmnpqrstuvwxyz';
+    const numbers = '23456789';
+    const special = '@#$!';
+    
+    // Ensure at least one of each type
     let password = '';
-    for (let i = 0; i < 8; i++) {
-      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    password += upper.charAt(Math.floor(Math.random() * upper.length));
+    password += lower.charAt(Math.floor(Math.random() * lower.length));
+    password += numbers.charAt(Math.floor(Math.random() * numbers.length));
+    password += special.charAt(Math.floor(Math.random() * special.length));
+    
+    // Fill remaining with mixed characters
+    const allChars = upper + lower + numbers + special;
+    for (let i = 0; i < 6; i++) {
+      password += allChars.charAt(Math.floor(Math.random() * allChars.length));
     }
+    
+    // Shuffle the password
+    password = password.split('').sort(() => Math.random() - 0.5).join('');
+    
     setFormData(prev => ({
       ...prev,
       portalAccess: {
@@ -1516,7 +1546,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                         </div>
                         {errors.portalPassword && <p className="text-sm text-destructive mt-1">{errors.portalPassword}</p>}
                         <p className="text-xs text-muted-foreground mt-1">
-                          Minimum 6 characters
+                          Min 8 characters with letters & numbers (e.g., Client@2024)
                         </p>
                       </div>
                     </div>
