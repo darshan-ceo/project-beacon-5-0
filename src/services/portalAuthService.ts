@@ -83,10 +83,13 @@ export const portalAuthService = {
         .single();
 
       if (portalError || !portalUser) {
-        console.error('[PortalAuth] Portal user not found:', portalError);
+        console.error('[PortalAuth] Portal user not found. Error:', JSON.stringify(portalError, null, 2));
         // Sign out since they're not a valid portal user
         await portalSupabase.auth.signOut();
-        return { success: false, error: 'Portal access not found. Please contact your administrator.' };
+        return { 
+          success: false, 
+          error: portalError?.message || 'Portal access not found. Please contact your administrator.' 
+        };
       }
 
       console.log('[PortalAuth] Portal user found:', portalUser);
