@@ -128,7 +128,7 @@ const MASTER_ENTITIES: EntityTestConfig[] = [
       email: `qc-emp-${Date.now()}@test.local`,
       department: 'General',
       role: 'Staff',
-      status: 'active',
+      status: 'Active',
       data_scope: 'Own Cases',
       module_access: ['Dashboard', 'Cases']
     },
