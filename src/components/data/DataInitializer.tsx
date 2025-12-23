@@ -211,6 +211,11 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
             division: '',
             range: ''
           },
+          // Parse portal_access from JSON
+          portalAccess: c.portal_access 
+            ? (typeof c.portal_access === 'string' ? JSON.parse(c.portal_access) : c.portal_access)
+            : { allowLogin: false },
+          dataScope: c.data_scope || 'TEAM',
         }));
 
         const clientGroups = (clientGroupsData.data || []).map((cg: any) => ({
