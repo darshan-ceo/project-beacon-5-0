@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Edit, Trash2, User, Eye, Building2, MapPin, Shield, AlertCircle, Loader2, RefreshCw, EyeOff, ExternalLink, Copy, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Edit, Trash2, User, Eye, Building2, MapPin, Shield, AlertCircle, Loader2, RefreshCw, EyeOff, ExternalLink, Copy, ChevronDown, ChevronUp, CheckCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Client, useAppState, type Signatory, type Address, type Jurisdiction, type PortalAccess } from '@/contexts/AppStateContext';
 import { CASelector } from '@/components/ui/employee-selector';
@@ -1468,13 +1468,22 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                   <>
                     <Separator />
                     
-                    {/* Info Note */}
-                    <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                      <p className="text-sm text-blue-700 dark:text-blue-300 flex items-center gap-2">
-                        <Shield className="h-4 w-4" />
-                        These credentials are shared for all portal users linked to this client.
-                      </p>
-                    </div>
+                    {/* Portal Already Active Indicator - for existing clients with portal access */}
+                    {mode === 'edit' && clientData?.portalAccess?.allowLogin && clientData?.portalAccess?.username ? (
+                      <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg p-3">
+                        <p className="text-sm text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4" />
+                          Portal is active for user: <strong className="font-mono">{clientData.portalAccess.username}</strong>
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                        <p className="text-sm text-blue-700 dark:text-blue-300 flex items-center gap-2">
+                          <Shield className="h-4 w-4" />
+                          These credentials are shared for all portal users linked to this client.
+                        </p>
+                      </div>
+                    )}
 
                     <div className="grid grid-cols-2 gap-4">
                       {/* Username Field */}
@@ -1503,57 +1512,68 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                         </p>
                       </div>
 
-                      {/* Password Field */}
+                      {/* Password Field - label changes based on whether portal is already provisioned */}
                       <div>
-                        <Label htmlFor="portalPassword">Portal Password *</Label>
-                        <div className="flex gap-2">
-                          <div className="relative flex-1">
-                            <Input
-                              id="portalPassword"
-                              type={showPortalPassword ? 'text' : 'password'}
-                              value={formData.portalAccess.passwordHash || ''}
-                              onChange={(e) => {
-                                setFormData(prev => ({ 
-                                  ...prev, 
-                                  portalAccess: { 
-                                    ...prev.portalAccess, 
-                                    passwordHash: e.target.value
-                                  }
-                                }));
-                                setErrors(prev => ({ ...prev, portalPassword: '' }));
-                              }}
-                              disabled={mode === 'view'}
-                              placeholder="Enter password"
-                              className={errors.portalPassword ? 'border-destructive pr-10' : 'pr-10'}
-                            />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                              onClick={() => setShowPortalPassword(!showPortalPassword)}
-                              disabled={mode === 'view'}
-                            >
-                              {showPortalPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
-                            </Button>
-                          </div>
-                          {mode !== 'view' && (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={generateRandomPassword}
-                              className="shrink-0"
-                            >
-                              <RefreshCw className="h-4 w-4 mr-1" />
-                              Generate
-                            </Button>
-                          )}
-                        </div>
-                        {errors.portalPassword && <p className="text-sm text-destructive mt-1">{errors.portalPassword}</p>}
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Min 8 characters with letters & numbers (e.g., Client@2024)
-                        </p>
+                        {(() => {
+                          const isPortalAlreadyProvisioned = mode === 'edit' && clientData?.portalAccess?.allowLogin && clientData?.portalAccess?.username;
+                          return (
+                            <>
+                              <Label htmlFor="portalPassword">
+                                {isPortalAlreadyProvisioned ? 'New Password (optional)' : 'Portal Password *'}
+                              </Label>
+                              <div className="flex gap-2">
+                                <div className="relative flex-1">
+                                  <Input
+                                    id="portalPassword"
+                                    type={showPortalPassword ? 'text' : 'password'}
+                                    value={formData.portalAccess.passwordHash || ''}
+                                    onChange={(e) => {
+                                      setFormData(prev => ({ 
+                                        ...prev, 
+                                        portalAccess: { 
+                                          ...prev.portalAccess, 
+                                          passwordHash: e.target.value
+                                        }
+                                      }));
+                                      setErrors(prev => ({ ...prev, portalPassword: '' }));
+                                    }}
+                                    disabled={mode === 'view'}
+                                    placeholder={isPortalAlreadyProvisioned ? 'Leave empty to keep current' : 'Enter password'}
+                                    className={errors.portalPassword ? 'border-destructive pr-10' : 'pr-10'}
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                                    onClick={() => setShowPortalPassword(!showPortalPassword)}
+                                    disabled={mode === 'view'}
+                                  >
+                                    {showPortalPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
+                                  </Button>
+                                </div>
+                                {mode !== 'view' && (
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={generateRandomPassword}
+                                    className="shrink-0"
+                                  >
+                                    <RefreshCw className="h-4 w-4 mr-1" />
+                                    Generate
+                                  </Button>
+                                )}
+                              </div>
+                              {errors.portalPassword && <p className="text-sm text-destructive mt-1">{errors.portalPassword}</p>}
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {isPortalAlreadyProvisioned 
+                                  ? 'Leave empty to keep current password' 
+                                  : 'Min 8 characters with letters & numbers (e.g., Client@2024)'}
+                              </p>
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
 
