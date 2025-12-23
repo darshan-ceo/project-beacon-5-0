@@ -841,6 +841,7 @@ export type Database = {
           owner_id: string | null
           pan: string | null
           phone: string | null
+          portal_access: Json | null
           signatories: Json | null
           state: string | null
           status: string | null
@@ -862,6 +863,7 @@ export type Database = {
           owner_id?: string | null
           pan?: string | null
           phone?: string | null
+          portal_access?: Json | null
           signatories?: Json | null
           state?: string | null
           status?: string | null
@@ -883,6 +885,7 @@ export type Database = {
           owner_id?: string | null
           pan?: string | null
           phone?: string | null
+          portal_access?: Json | null
           signatories?: Json | null
           state?: string | null
           status?: string | null
