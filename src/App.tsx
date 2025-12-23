@@ -56,6 +56,7 @@ import { AppWithPersistence } from "./components/AppWithPersistence";
 import { SearchResultsPage } from "./pages/SearchResultsPage";
 import { DebugSearchInspector } from "./pages/DebugSearchInspector";
 import { MigrationHealth } from "@/components/qa/MigrationHealth";
+import MastersQC from "@/pages/MastersQC";
 import { TooltipDiagnostics } from "@/pages/TooltipDiagnostics";
 import { OAuthCallback } from "@/pages/OAuthCallback";
 import { DocViewerPage } from "@/pages/DocViewerPage";
@@ -425,6 +426,13 @@ const AppContent = () => {
                 <ProtectedRoute>
                   <AdminLayout>
                     <TooltipDiagnostics />
+                  </AdminLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/qa/masters-qc" element={
+                <ProtectedRoute>
+                  <AdminLayout>
+                    <MastersQC />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
