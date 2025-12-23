@@ -119,7 +119,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
       email: '',
       mobile: '',
       username: '',
-      passwordHash: ''
+      passwordHash: '',
+      role: 'editor' as 'viewer' | 'editor' | 'admin'
     },
         assignedCAId: '',
         assignedCAName: '',
@@ -197,7 +198,10 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
             division: clientData.jurisdiction?.division || '',
             range: clientData.jurisdiction?.range || ''
           },
-          portalAccess: clientData.portalAccess || { allowLogin: false },
+          portalAccess: clientData.portalAccess ? { 
+            ...clientData.portalAccess, 
+            role: clientData.portalAccess.role || 'editor' 
+          } : { allowLogin: false, role: 'editor' as const },
           assignedCAId: clientData.assignedCAId,
           assignedCAName: clientData.assignedCAName,
           clientGroupId: clientData.clientGroupId || '',
@@ -582,7 +586,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
               clientId: savedClientId,
               username: formData.portalAccess.username,
               password: formData.portalAccess.passwordHash,
-              portalRole: 'viewer'
+              portalRole: formData.portalAccess.role || 'editor'
             }
           });
 
@@ -1574,6 +1578,51 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                             </>
                           );
                         })()}
+                      </div>
+                      
+                      {/* Portal Role Selector */}
+                      <div>
+                        <Label htmlFor="portalRole">Portal Role *</Label>
+                        <Select
+                          value={formData.portalAccess.role || 'editor'}
+                          onValueChange={(value: 'viewer' | 'editor' | 'admin') => {
+                            setFormData(prev => ({ 
+                              ...prev, 
+                              portalAccess: { 
+                                ...prev.portalAccess, 
+                                role: value
+                              }
+                            }));
+                          }}
+                          disabled={mode === 'view'}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select role" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="viewer">
+                              <div className="flex flex-col">
+                                <span>Viewer</span>
+                                <span className="text-xs text-muted-foreground">Can view &amp; download only</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="editor">
+                              <div className="flex flex-col">
+                                <span>Editor</span>
+                                <span className="text-xs text-muted-foreground">Can upload, download &amp; add notes</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="admin">
+                              <div className="flex flex-col">
+                                <span>Admin</span>
+                                <span className="text-xs text-muted-foreground">Full access including user management</span>
+                              </div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Controls what actions the portal user can perform
+                        </p>
                       </div>
                     </div>
 

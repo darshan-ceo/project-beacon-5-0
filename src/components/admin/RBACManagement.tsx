@@ -29,6 +29,7 @@ import { supabaseRbacService, type RoleDefinition, type UserWithRoles, type Perm
 import { RolePermissionEditor } from './RolePermissionEditor';
 import { CreateRoleModal } from './CreateRoleModal';
 import { TeamHierarchyView } from './TeamHierarchyView';
+import { PortalUserManagement } from '../portal/PortalUserManagement';
 import { supabase } from '@/integrations/supabase/client';
 
 export const RBACManagement: React.FC = () => {
@@ -304,6 +305,10 @@ export const RBACManagement: React.FC = () => {
             <GitBranch className="h-4 w-4" />
             Team Hierarchy
           </TabsTrigger>
+          <TabsTrigger value="portal-users" className="flex items-center gap-1">
+            <Key className="h-4 w-4" />
+            Portal Users
+          </TabsTrigger>
           <TabsTrigger value="permissions">Permissions Matrix</TabsTrigger>
           <TabsTrigger value="audit">Audit Log</TabsTrigger>
         </TabsList>
@@ -547,6 +552,11 @@ export const RBACManagement: React.FC = () => {
         {/* Team Hierarchy Tab */}
         <TabsContent value="hierarchy">
           <TeamHierarchyView />
+        </TabsContent>
+
+        {/* Portal Users Tab */}
+        <TabsContent value="portal-users">
+          <PortalUserManagement />
         </TabsContent>
 
         {/* Permissions Matrix Tab */}
