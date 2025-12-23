@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Edit, Trash2, User, Eye, Building2, MapPin, Shield, AlertCircle, Loader2, RefreshCw, EyeOff } from 'lucide-react';
+import { Plus, Edit, Trash2, User, Eye, Building2, MapPin, Shield, AlertCircle, Loader2, RefreshCw, EyeOff, ExternalLink, Copy, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Client, useAppState, type Signatory, type Address, type Jurisdiction, type PortalAccess } from '@/contexts/AppStateContext';
 import { CASelector } from '@/components/ui/employee-selector';
@@ -144,7 +144,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
   const validationErrorsRef = useRef<HTMLDivElement>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [showPortalPassword, setShowPortalPassword] = useState(false);
-
+  const [showPortalInstructions, setShowPortalInstructions] = useState(false);
   useEffect(() => {
     const loadClientData = async () => {
       setIsAddressMasterEnabled(featureFlagService.isEnabled('address_master_v1'));
@@ -1514,6 +1514,95 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                         </div>
                       </>
                     )}
+
+                    {/* Portal Access Link */}
+                    <Separator />
+                    <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4 space-y-3">
+                      <h4 className="text-sm font-semibold flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
+                        <ExternalLink className="h-4 w-4" />
+                        Portal Access Link
+                      </h4>
+                      <div className="flex items-center gap-2">
+                        <Input 
+                          value={`${window.location.origin}/portal`} 
+                          readOnly 
+                          className="font-mono text-sm bg-white dark:bg-background"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(`${window.location.origin}/portal`, '_blank')}
+                          className="shrink-0"
+                        >
+                          <ExternalLink className="h-4 w-4 mr-1" />
+                          Open
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText(`${window.location.origin}/portal`);
+                            toast({
+                              title: "Link copied",
+                              description: "Portal access link copied to clipboard",
+                            });
+                          }}
+                          className="shrink-0"
+                        >
+                          <Copy className="h-4 w-4 mr-1" />
+                          Copy
+                        </Button>
+                      </div>
+                      <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                        Share this link with your client along with their credentials
+                      </p>
+                    </div>
+
+                    {/* Quick Steps Instructions */}
+                    <div className="border rounded-lg overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setShowPortalInstructions(!showPortalInstructions)}
+                        className="w-full flex items-center justify-between p-3 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
+                      >
+                        <span className="text-sm font-medium flex items-center gap-2">
+                          <AlertCircle className="h-4 w-4 text-primary" />
+                          Quick Steps & Instructions
+                        </span>
+                        {showPortalInstructions ? (
+                          <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </button>
+                      
+                      {showPortalInstructions && (
+                        <div className="p-4 space-y-4 text-sm">
+                          <div>
+                            <h5 className="font-semibold text-foreground mb-2">For Clients:</h5>
+                            <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
+                              <li>Visit the portal link shared by your administrator</li>
+                              <li>Enter the Username and Password provided</li>
+                              <li>After first login, go to <strong>Profile → Change Password</strong></li>
+                              <li>Set a new secure password of your choice</li>
+                            </ol>
+                          </div>
+                          
+                          <Separator />
+                          
+                          <div>
+                            <h5 className="font-semibold text-foreground mb-2">For Administrators:</h5>
+                            <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                              <li><strong>Reset credentials:</strong> Edit client → Update password → Click "Generate" or enter new password → Save</li>
+                              <li><strong>Disable access:</strong> Toggle off "Enable Client Portal Login" and save</li>
+                              <li>Credentials are shared across all linked portal users for this client</li>
+                            </ul>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </>
                 )}
               </CardContent>
