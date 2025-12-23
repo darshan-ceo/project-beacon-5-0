@@ -1,6 +1,6 @@
 /**
  * Portal Authentication Service
- * Handles authentication for client portal users using credentials stored in clients table
+ * Handles authentication for client portal users using Supabase Auth
  */
 
 import { supabase } from "@/integrations/supabase/client";
@@ -10,15 +10,9 @@ export interface PortalSession {
   clientName: string;
   tenantId: string;
   username: string;
+  userId: string;
   expiresAt: number;
   isAuthenticated: boolean;
-}
-
-interface PortalAccessData {
-  allowLogin: boolean;
-  username: string;
-  passwordHash: string;
-  email?: string;
 }
 
 const PORTAL_SESSION_KEY = 'portal_session';
@@ -27,61 +21,116 @@ const SESSION_DURATION_HOURS = 24;
 export const portalAuthService = {
   /**
    * Authenticate portal user with username and password
-   * Validates against clients.portal_access JSONB column
+   * Uses Supabase Auth with generated login email
    */
   async login(username: string, password: string): Promise<{ success: boolean; session?: PortalSession; error?: string }> {
     try {
-      // Query clients table for all clients with portal_access enabled
+      console.log('[PortalAuth] Attempting login for username:', username);
+
+      // First, find the client with this username to get the loginEmail
       const { data: clients, error: queryError } = await supabase
         .from('clients')
         .select('id, display_name, tenant_id, portal_access')
         .not('portal_access', 'is', null);
 
       if (queryError) {
-        console.error('Portal login query error:', queryError);
+        console.error('[PortalAuth] Query error:', queryError);
         return { success: false, error: 'Login failed. Please try again.' };
       }
 
-      if (!clients || clients.length === 0) {
-        return { success: false, error: 'Invalid username or password' };
-      }
-
-      // Find client with matching username (case-insensitive)
-      const matchingClient = clients.find(client => {
-        const portalAccess = client.portal_access as unknown as PortalAccessData | null;
+      // Find client with matching username
+      const matchingClient = clients?.find(client => {
+        const portalAccess = client.portal_access as any;
         if (!portalAccess || !portalAccess.allowLogin) return false;
         return portalAccess.username?.toLowerCase() === username.toLowerCase();
       });
 
-      if (!matchingClient) {
-        return { success: false, error: 'Invalid username or password' };
+      let loginEmail: string;
+
+      if (matchingClient) {
+        const portalAccess = matchingClient.portal_access as any;
+        loginEmail = portalAccess.loginEmail;
+        console.log('[PortalAuth] Found client with loginEmail:', loginEmail);
+      } else {
+        // If no matching client found with exact username, 
+        // try to construct the email pattern (for backward compatibility)
+        // This handles the case where the user types their generated email directly
+        if (username.includes('@')) {
+          loginEmail = username.toLowerCase();
+        } else {
+          // Cannot find the client - invalid credentials
+          console.log('[PortalAuth] No matching client found for username:', username);
+          return { success: false, error: 'Invalid username or password' };
+        }
       }
 
-      const portalAccess = matchingClient.portal_access as unknown as PortalAccessData;
-
-      // Validate password (plain text comparison for now)
-      // In production, use bcrypt hash comparison via Edge Function
-      if (portalAccess.passwordHash !== password) {
-        return { success: false, error: 'Invalid username or password' };
+      if (!loginEmail) {
+        console.log('[PortalAuth] No loginEmail found - user may not be provisioned');
+        return { success: false, error: 'Portal access not configured. Please contact your administrator.' };
       }
+
+      // Now sign in with Supabase Auth
+      console.log('[PortalAuth] Signing in with email:', loginEmail);
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: loginEmail,
+        password
+      });
+
+      if (authError) {
+        console.error('[PortalAuth] Auth error:', authError);
+        if (authError.message.includes('Invalid login credentials')) {
+          return { success: false, error: 'Invalid username or password' };
+        }
+        return { success: false, error: authError.message };
+      }
+
+      if (!authData.user) {
+        return { success: false, error: 'Authentication failed' };
+      }
+
+      console.log('[PortalAuth] Auth successful, user:', authData.user.id);
+
+      // Get client portal user record
+      const { data: portalUser, error: portalError } = await supabase
+        .from('client_portal_users')
+        .select('client_id, tenant_id, portal_role, clients(display_name)')
+        .eq('user_id', authData.user.id)
+        .eq('is_active', true)
+        .single();
+
+      if (portalError || !portalUser) {
+        console.error('[PortalAuth] Portal user not found:', portalError);
+        // Sign out since they're not a valid portal user
+        await supabase.auth.signOut();
+        return { success: false, error: 'Portal access not found. Please contact your administrator.' };
+      }
+
+      console.log('[PortalAuth] Portal user found:', portalUser);
 
       // Create session
       const expiresAt = Date.now() + (SESSION_DURATION_HOURS * 60 * 60 * 1000);
       const session: PortalSession = {
-        clientId: matchingClient.id,
-        clientName: matchingClient.display_name,
-        tenantId: matchingClient.tenant_id,
-        username: portalAccess.username,
+        clientId: portalUser.client_id,
+        clientName: (portalUser.clients as any)?.display_name || 'Unknown Client',
+        tenantId: portalUser.tenant_id,
+        username,
+        userId: authData.user.id,
         expiresAt,
         isAuthenticated: true,
       };
+
+      // Update last login
+      await supabase
+        .from('client_portal_users')
+        .update({ last_login_at: new Date().toISOString() })
+        .eq('user_id', authData.user.id);
 
       // Store session
       this.saveSession(session);
 
       return { success: true, session };
     } catch (error) {
-      console.error('Portal login error:', error);
+      console.error('[PortalAuth] Login error:', error);
       return { success: false, error: 'An unexpected error occurred. Please try again.' };
     }
   },
@@ -93,7 +142,7 @@ export const portalAuthService = {
     try {
       localStorage.setItem(PORTAL_SESSION_KEY, JSON.stringify(session));
     } catch (error) {
-      console.error('Failed to save portal session:', error);
+      console.error('[PortalAuth] Failed to save session:', error);
     }
   },
 
@@ -115,7 +164,7 @@ export const portalAuthService = {
 
       return session;
     } catch (error) {
-      console.error('Failed to get portal session:', error);
+      console.error('[PortalAuth] Failed to get session:', error);
       return null;
     }
   },
@@ -135,7 +184,7 @@ export const portalAuthService = {
     try {
       localStorage.removeItem(PORTAL_SESSION_KEY);
     } catch (error) {
-      console.error('Failed to clear portal session:', error);
+      console.error('[PortalAuth] Failed to clear session:', error);
     }
   },
 
@@ -143,6 +192,12 @@ export const portalAuthService = {
    * Logout portal user
    */
   async logout(): Promise<void> {
+    try {
+      // Sign out from Supabase
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('[PortalAuth] Supabase signOut error:', error);
+    }
     this.clearSession();
   },
 
