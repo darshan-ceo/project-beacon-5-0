@@ -33,6 +33,7 @@ interface Document {
   file_type: string;
   file_size: number;
   file_path: string;
+  storage_url: string | null;
   case_id: string | null;
   client_id: string | null;
   uploaded_by: string;
@@ -137,14 +138,61 @@ export const ClientDocumentLibrary: React.FC<ClientDocumentLibraryProps> = ({
     try {
       setDownloading(document.id);
       
+      // Try to download using file_path first
+      let downloadError: Error | null = null;
+      let blob: Blob | null = null;
+
+      // First attempt: direct file path download
       const { data, error } = await supabase.storage
         .from('documents')
         .download(document.file_path);
 
-      if (error) throw error;
+      if (error) {
+        console.log('Direct download failed, trying signed URL:', error);
+        
+        // Second attempt: try using storage_url if available
+        if (document.storage_url) {
+          try {
+            const response = await fetch(document.storage_url);
+            if (response.ok) {
+              blob = await response.blob();
+            } else {
+              downloadError = new Error('Failed to fetch from storage URL');
+            }
+          } catch (fetchError) {
+            downloadError = fetchError as Error;
+          }
+        } else {
+          // Third attempt: create signed URL
+          const { data: signedData, error: signedError } = await supabase.storage
+            .from('documents')
+            .createSignedUrl(document.file_path, 3600);
+          
+          if (signedError) {
+            downloadError = signedError;
+          } else if (signedData?.signedUrl) {
+            try {
+              const response = await fetch(signedData.signedUrl);
+              if (response.ok) {
+                blob = await response.blob();
+              } else {
+                downloadError = new Error('Failed to fetch from signed URL');
+              }
+            } catch (fetchError) {
+              downloadError = fetchError as Error;
+            }
+          }
+        }
+      } else {
+        blob = data;
+      }
+
+      if (!blob) {
+        throw downloadError || new Error('Unable to download file');
+      }
 
       // Create download link
-      const url = URL.createObjectURL(data);
+      const url = URL.createObjectURL(blob);
       const a = window.document.createElement('a');
       a.href = url;
       a.download = document.file_name;

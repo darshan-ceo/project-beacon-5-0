@@ -62,10 +62,15 @@ export const ClientDocumentUpload: React.FC<ClientDocumentUploadProps> = ({
 
     try {
       for (const file of selectedFiles) {
-        // Generate unique file path
+        // Generate unique file path - must start with 'client-uploads' for RLS policy
         const timestamp = Date.now();
+        const fileExtension = file.name.split('.').pop() || '';
+        const uniqueId = crypto.randomUUID();
         const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const filePath = `client-uploads/${clientId}/${timestamp}-${sanitizedName}`;
+        // Path format: client-uploads/{clientId}/{uniqueId}-{timestamp}.{ext}
+        const filePath = `client-uploads/${clientId}/${uniqueId}-${timestamp}.${fileExtension}`;
+
+        console.log('Uploading file to path:', filePath);
 
         // Upload to Supabase Storage
         const { data: uploadData, error: uploadError } = await supabase.storage
