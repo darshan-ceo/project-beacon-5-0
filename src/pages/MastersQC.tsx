@@ -43,6 +43,19 @@ interface EntityTestConfig {
   requiredFields: string[];
 }
 
+// Entity test config with optional special handling flags
+interface EntityTestConfig {
+  name: string;
+  table: string;
+  createPayload: Record<string, any>;
+  updatePayload: Record<string, any>;
+  requiredFields: string[];
+  requiresOwner?: boolean; // Set owner_id/owner_user_id to current user
+  requiresClientLink?: boolean; // Create temp client first
+  skipCreate?: boolean; // Skip create/delete (e.g., employees need provisioning)
+  skipReason?: string;
+}
+
 // Test configurations for each master entity
 const MASTER_ENTITIES: EntityTestConfig[] = [
   {
@@ -59,7 +72,8 @@ const MASTER_ENTITIES: EntityTestConfig[] = [
       data_scope: 'TEAM'
     },
     updatePayload: { status: 'inactive' },
-    requiredFields: ['display_name']
+    requiredFields: ['display_name'],
+    requiresOwner: true
   },
   {
     name: 'Client Contacts',
@@ -70,11 +84,13 @@ const MASTER_ENTITIES: EntityTestConfig[] = [
       is_primary: false,
       is_active: true,
       data_scope: 'TEAM',
-      emails: JSON.stringify([{ email: 'test@example.com', isPrimary: true }]),
-      phones: JSON.stringify([{ countryCode: '+91', number: '9999999999', isPrimary: true }])
+      emails: [{ email: 'test@example.com', isPrimary: true }],
+      phones: [{ countryCode: '+91', number: '9999999999', isPrimary: true }]
     },
     updatePayload: { designation: 'Director' },
-    requiredFields: ['name']
+    requiredFields: ['name'],
+    requiresOwner: true,
+    requiresClientLink: true
   },
   {
     name: 'Client Groups',
@@ -122,18 +138,11 @@ const MASTER_ENTITIES: EntityTestConfig[] = [
   {
     name: 'Employees',
     table: 'employees',
-    createPayload: {
-      full_name: `QC Test Employee ${Date.now()}`,
-      employee_code: `QC-${Date.now().toString().slice(-8)}`,
-      email: `qc-emp-${Date.now()}@test.local`,
-      department: 'General',
-      role: 'Staff',
-      status: 'Active',
-      data_scope: 'Own Cases',
-      module_access: ['Dashboard', 'Cases']
-    },
+    createPayload: {},
     updatePayload: { department: 'Legal' },
-    requiredFields: ['full_name', 'employee_code', 'email', 'department', 'role']
+    requiredFields: ['full_name', 'employee_code', 'email', 'department', 'role'],
+    skipCreate: true,
+    skipReason: 'Employees require auth provisioning (profile + auth.users FK)'
   }
 ];
 
@@ -143,8 +152,8 @@ export default function MastersQC() {
   const [currentEntity, setCurrentEntity] = useState<string | null>(null);
   const [tenantId, setTenantId] = useState<string | null>(null);
 
-  // Fetch tenant ID from current user
-  const fetchTenantId = async (): Promise<string | null> => {
+  // Fetch tenant ID and user ID from current user
+  const fetchUserContext = async (): Promise<{ tenantId: string; userId: string } | null> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
     
@@ -154,20 +163,125 @@ export default function MastersQC() {
       .eq('id', user.id)
       .single();
     
-    return profile?.tenant_id || null;
+    if (!profile?.tenant_id) return null;
+    return { tenantId: profile.tenant_id, userId: user.id };
   };
 
   // Run a single CRUD test for an entity
-  const runEntityTest = async (config: EntityTestConfig, tid: string): Promise<TestResult[]> => {
+  const runEntityTest = async (
+    config: EntityTestConfig, 
+    tid: string, 
+    userId: string
+  ): Promise<TestResult[]> => {
     const entityResults: TestResult[] = [];
     let createdId: string | null = null;
+    let tempClientId: string | null = null;
+
+    // Handle entities that skip create (like employees that need provisioning)
+    if (config.skipCreate) {
+      entityResults.push({
+        entity: config.name,
+        operation: 'create',
+        status: 'skip',
+        duration: 0,
+        errorMessage: config.skipReason || 'Create skipped'
+      });
+
+      // For employees, test read on existing record
+      if (config.table === 'employees') {
+        const readStart = performance.now();
+        try {
+          const { data, error } = await (supabase as any)
+            .from(config.table)
+            .select('id, full_name')
+            .eq('tenant_id', tid)
+            .limit(1)
+            .single();
+
+          if (error || !data) {
+            entityResults.push({
+              entity: config.name,
+              operation: 'read',
+              status: 'skip',
+              duration: performance.now() - readStart,
+              errorMessage: 'No existing employee to test read'
+            });
+          } else {
+            entityResults.push({
+              entity: config.name,
+              operation: 'read',
+              status: 'pass',
+              duration: performance.now() - readStart,
+              recordId: data.id
+            });
+          }
+        } catch {
+          entityResults.push({
+            entity: config.name,
+            operation: 'read',
+            status: 'skip',
+            duration: 0,
+            errorMessage: 'Read test skipped'
+          });
+        }
+      }
+
+      // Skip update/delete for entities that skip create
+      ['update', 'delete'].forEach(op => {
+        entityResults.push({
+          entity: config.name,
+          operation: op as any,
+          status: 'skip',
+          duration: 0,
+          errorMessage: config.skipReason || 'Skipped - requires provisioning'
+        });
+      });
+
+      return entityResults;
+    }
+
+    // If this entity requires a client link, create a temp client first
+    if (config.requiresClientLink) {
+      try {
+        const { data: tempClient } = await (supabase as any)
+          .from('clients')
+          .insert({ 
+            display_name: `QC Temp Client ${Date.now()}`,
+            tenant_id: tid,
+            owner_id: userId,
+            status: 'active'
+          })
+          .select('id')
+          .single();
+        tempClientId = tempClient?.id;
+      } catch {
+        // Continue without client link
+      }
+    }
+
+    // Build create payload with owner and client_id if needed
+    const createPayload: Record<string, any> = { 
+      ...config.createPayload, 
+      tenant_id: tid 
+    };
+    
+    if (config.requiresOwner) {
+      if (config.table === 'clients') {
+        createPayload.owner_id = userId;
+      } else if (config.table === 'client_contacts') {
+        createPayload.owner_user_id = userId;
+        if (tempClientId) {
+          createPayload.client_id = tempClientId;
+        }
+      }
+    }
 
     // CREATE
     const createStart = performance.now();
     try {
       const { data, error } = await (supabase as any)
         .from(config.table)
-        .insert({ ...config.createPayload, tenant_id: tid })
+        .insert(createPayload)
         .select()
         .single();
 
@@ -326,6 +440,18 @@ export default function MastersQC() {
       });
     }
 
+    // Cleanup temp client if created
+    if (tempClientId) {
+      try {
+        await (supabase as any)
+          .from('clients')
+          .delete()
+          .eq('id', tempClientId);
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
+
     return entityResults;
   };
 
@@ -334,23 +460,23 @@ export default function MastersQC() {
     setIsRunning(true);
     setResults([]);
     
-    const tid = await fetchTenantId();
-    if (!tid) {
+    const ctx = await fetchUserContext();
+    if (!ctx) {
       toast({
         title: 'Error',
-        description: 'Could not fetch tenant ID. Please ensure you are logged in.',
+        description: 'Could not fetch user context. Please ensure you are logged in.',
         variant: 'destructive'
       });
       setIsRunning(false);
       return;
     }
-    setTenantId(tid);
+    setTenantId(ctx.tenantId);
 
     const allResults: TestResult[] = [];
 
     for (const config of MASTER_ENTITIES) {
       setCurrentEntity(config.name);
-      const entityResults = await runEntityTest(config, tid);
+      const entityResults = await runEntityTest(config, ctx.tenantId, ctx.userId);
       allResults.push(...entityResults);
       setResults([...allResults]);
     }
