@@ -3004,6 +3004,7 @@ export interface PortalAccess {
   mobile?: string;
   username?: string;
   passwordHash?: string;
+  role?: 'viewer' | 'editor' | 'admin';
 }
 
 export interface SignatoryEmail {
