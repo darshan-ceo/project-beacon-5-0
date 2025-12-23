@@ -5,6 +5,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { portalAuthService, PortalSession } from '@/services/portalAuthService';
+import { getAuthErrorMessage } from '@/utils/errorUtils';
 
 interface PortalAuthContextType {
   portalSession: PortalSession | null;
@@ -68,11 +69,14 @@ export const PortalAuthProvider: React.FC<PortalAuthProviderProps> = ({ children
         setPortalSession(result.session);
         return { success: true };
       } else {
-        setError(result.error || 'Login failed');
-        return { success: false, error: result.error };
+        // Use the error utility to get a meaningful message
+        const errorMessage = getAuthErrorMessage(result.error) || 'Invalid username or password';
+        setError(errorMessage);
+        return { success: false, error: errorMessage };
       }
     } catch (err) {
-      const errorMessage = 'An unexpected error occurred';
+      console.error('[PortalAuthContext] Login exception:', err);
+      const errorMessage = getAuthErrorMessage(err);
       setError(errorMessage);
       return { success: false, error: errorMessage };
     } finally {

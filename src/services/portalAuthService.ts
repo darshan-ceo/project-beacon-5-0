@@ -26,55 +26,66 @@ export const portalAuthService = {
    */
   async login(username: string, password: string): Promise<{ success: boolean; session?: PortalSession; error?: string }> {
     try {
-      console.log('[PortalAuth] Attempting login for username:', username);
+      console.log('[PortalAuth] === LOGIN ATTEMPT START ===');
+      console.log('[PortalAuth] Username:', username);
 
-      // Call edge function to lookup loginEmail (uses main supabase for function invocation)
+      // Step 1: Call edge function to lookup loginEmail
+      console.log('[PortalAuth] Step 1: Looking up loginEmail...');
       const { data: lookupData, error: lookupError } = await supabase.functions.invoke(
         'portal-lookup-login-email',
         { body: { identifier: username } }
       );
 
+      console.log('[PortalAuth] Lookup response - data:', JSON.stringify(lookupData));
+      console.log('[PortalAuth] Lookup response - error:', lookupError ? JSON.stringify(lookupError) : 'none');
+
       if (lookupError) {
-        console.error('[PortalAuth] Lookup error:', lookupError);
+        console.error('[PortalAuth] FAILED at Step 1: Lookup edge function error');
         return { success: false, error: 'Login failed. Please try again.' };
       }
 
       if (lookupData?.error) {
-        console.log('[PortalAuth] Lookup returned error:', lookupData.error);
+        console.log('[PortalAuth] FAILED at Step 1: Lookup returned error:', lookupData.error);
         return { success: false, error: 'Invalid username or password' };
       }
 
       const loginEmail = lookupData?.loginEmail;
 
       if (!loginEmail) {
-        console.log('[PortalAuth] No loginEmail returned from lookup');
+        console.log('[PortalAuth] FAILED at Step 1: No loginEmail in response');
         return { success: false, error: 'Portal access not configured. Please contact your administrator.' };
       }
 
-      console.log('[PortalAuth] Got loginEmail from lookup:', loginEmail);
+      console.log('[PortalAuth] Step 1 SUCCESS: Got loginEmail:', loginEmail);
 
-      // Sign in using ISOLATED portal Supabase client
-      console.log('[PortalAuth] Signing in with portal client, email:', loginEmail);
+      // Step 2: Sign in using ISOLATED portal Supabase client
+      console.log('[PortalAuth] Step 2: Authenticating with portalSupabase...');
       const { data: authData, error: authError } = await portalSupabase.auth.signInWithPassword({
         email: loginEmail,
         password
       });
 
       if (authError) {
-        console.error('[PortalAuth] Auth error:', authError);
+        console.error('[PortalAuth] FAILED at Step 2: Auth error');
+        console.error('[PortalAuth] Auth error message:', authError.message);
+        console.error('[PortalAuth] Auth error status:', authError.status);
+        console.error('[PortalAuth] Auth error full:', JSON.stringify(authError));
+        
         if (authError.message.includes('Invalid login credentials')) {
           return { success: false, error: 'Invalid username or password' };
         }
-        return { success: false, error: authError.message };
+        return { success: false, error: authError.message || 'Authentication failed' };
       }
 
       if (!authData.user) {
+        console.log('[PortalAuth] FAILED at Step 2: No user in auth response');
         return { success: false, error: 'Authentication failed' };
       }
 
-      console.log('[PortalAuth] Auth successful, user:', authData.user.id);
+      console.log('[PortalAuth] Step 2 SUCCESS: Authenticated user:', authData.user.id);
 
-      // Get client portal user record using portal client (RLS will now work)
+      // Step 3: Get client portal user record
+      console.log('[PortalAuth] Step 3: Fetching portal user record...');
       const { data: portalUser, error: portalError } = await portalSupabase
         .from('client_portal_users')
         .select('client_id, tenant_id, portal_role, clients(display_name)')
@@ -83,18 +94,23 @@ export const portalAuthService = {
         .single();
 
       if (portalError || !portalUser) {
-        console.error('[PortalAuth] Portal user not found. Error:', JSON.stringify(portalError, null, 2));
+        console.error('[PortalAuth] FAILED at Step 3: Portal user fetch error');
+        console.error('[PortalAuth] Portal error message:', portalError?.message);
+        console.error('[PortalAuth] Portal error code:', portalError?.code);
+        console.error('[PortalAuth] Portal error full:', JSON.stringify(portalError));
+        
         // Sign out since they're not a valid portal user
         await portalSupabase.auth.signOut();
         return { 
           success: false, 
-          error: portalError?.message || 'Portal access not found. Please contact your administrator.' 
+          error: 'Portal access not found. Please contact your administrator.' 
         };
       }
 
-      console.log('[PortalAuth] Portal user found:', portalUser);
+      console.log('[PortalAuth] Step 3 SUCCESS: Portal user found:', JSON.stringify(portalUser));
 
-      // Create session
+      // Step 4: Create and save session
+      console.log('[PortalAuth] Step 4: Creating session...');
       const expiresAt = Date.now() + (SESSION_DURATION_HOURS * 60 * 60 * 1000);
       const session: PortalSession = {
         clientId: portalUser.client_id,
@@ -106,18 +122,23 @@ export const portalAuthService = {
         isAuthenticated: true,
       };
 
-      // Update last login using portal client
+      // Update last login
       await portalSupabase
         .from('client_portal_users')
         .update({ last_login_at: new Date().toISOString() })
         .eq('user_id', authData.user.id);
 
-      // Store session
       this.saveSession(session);
+
+      console.log('[PortalAuth] === LOGIN SUCCESS ===');
+      console.log('[PortalAuth] Session created for:', session.clientName);
 
       return { success: true, session };
     } catch (error) {
-      console.error('[PortalAuth] Login error:', error);
+      console.error('[PortalAuth] === LOGIN EXCEPTION ===');
+      console.error('[PortalAuth] Caught error:', error);
+      console.error('[PortalAuth] Error type:', typeof error);
+      console.error('[PortalAuth] Error stringify:', JSON.stringify(error));
       return { success: false, error: 'An unexpected error occurred. Please try again.' };
     }
   },
