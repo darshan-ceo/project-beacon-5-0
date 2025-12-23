@@ -90,9 +90,23 @@ serve(async (req) => {
       );
     }
 
-    if (password.length < 6) {
+    if (password.length < 8) {
       return new Response(
-        JSON.stringify({ error: 'Password must be at least 6 characters' }),
+        JSON.stringify({ error: 'Password must be at least 8 characters' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check for weak password patterns
+    const isWeakPassword = /^(\d)\1+$/.test(password) || // All same digit
+                          /^12345678/.test(password) ||
+                          /^password/i.test(password) ||
+                          /^qwerty/i.test(password) ||
+                          /^abcd/i.test(password);
+    
+    if (isWeakPassword) {
+      return new Response(
+        JSON.stringify({ error: 'Password is too weak. Please use a mix of letters, numbers, and special characters.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -141,8 +155,11 @@ serve(async (req) => {
 
       if (updateError) {
         console.error('Update user error:', updateError);
+        const errorMessage = updateError.message?.includes('weak') 
+          ? 'Password is too weak or commonly used. Please choose a stronger password with letters, numbers, and special characters.'
+          : updateError.message;
         return new Response(
-          JSON.stringify({ error: `Failed to update user: ${updateError.message}` }),
+          JSON.stringify({ error: errorMessage }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -189,8 +206,11 @@ serve(async (req) => {
 
         if (createUserError) {
           console.error('Create user error:', createUserError);
+          const errorMessage = createUserError.message?.includes('weak') 
+            ? 'Password is too weak or commonly used. Please choose a stronger password with letters, numbers, and special characters.'
+            : createUserError.message;
           return new Response(
-            JSON.stringify({ error: `Failed to create user: ${createUserError.message}` }),
+            JSON.stringify({ error: errorMessage }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
