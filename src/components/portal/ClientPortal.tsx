@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { supabase } from '@/integrations/supabase/client';
+import { portalSupabase } from '@/integrations/supabase/portalClient';
 import { useClientPortal } from '@/contexts/ClientPortalContext';
 import { ClientCaseView } from './ClientCaseView';
 import { ClientDocumentLibrary } from './ClientDocumentLibrary';
@@ -55,8 +55,8 @@ export const ClientPortal: React.FC = () => {
     try {
       setIsLoading(true);
 
-      // Fetch cases for this client
-      const { data: cases, error: casesError } = await supabase
+      // Fetch cases for this client using portal client
+      const { data: cases, error: casesError } = await portalSupabase
         .from('cases')
         .select('id, case_number, title, status, client_id')
         .eq('client_id', clientId)
@@ -68,7 +68,7 @@ export const ClientPortal: React.FC = () => {
       // Fetch hearings for these cases
       if (cases && cases.length > 0) {
         const caseIds = cases.map(c => c.id);
-        const { data: hearings, error: hearingsError } = await supabase
+        const { data: hearings, error: hearingsError } = await portalSupabase
           .from('hearings')
           .select('id, case_id, hearing_date, status, notes')
           .in('case_id', caseIds)
@@ -80,7 +80,7 @@ export const ClientPortal: React.FC = () => {
       }
 
       // Get document count
-      const { count, error: docError } = await supabase
+      const { count, error: docError } = await portalSupabase
         .from('documents')
         .select('id', { count: 'exact', head: true })
         .eq('client_id', clientId);

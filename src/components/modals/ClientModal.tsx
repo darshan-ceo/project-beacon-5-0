@@ -428,6 +428,10 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
     }
 
     // Portal access validations - simplified to username and password
+    // Password is only required for NEW portal access, not when editing existing
+    // Check if portal is already provisioned by looking at existing portalAccess data
+    const isPortalAlreadyProvisioned = mode === 'edit' && clientData?.portalAccess?.allowLogin && clientData?.portalAccess?.username;
+    
     if (formData.portalAccess.allowLogin) {
       if (!formData.portalAccess.username?.trim()) {
         newErrors.portalUsername = 'Username is required for portal access';
@@ -435,12 +439,14 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         newErrors.portalUsername = 'Username must be at least 3 characters';
       }
 
-      if (!formData.portalAccess.passwordHash?.trim()) {
-        newErrors.portalPassword = 'Password is required for portal access';
-      } else if (formData.portalAccess.passwordHash.trim().length < 8) {
+      // Password is only required for new portal setup or if user entered one
+      const passwordEntered = formData.portalAccess.passwordHash?.trim();
+      if (!isPortalAlreadyProvisioned && !passwordEntered) {
+        newErrors.portalPassword = 'Password is required for new portal access';
+      } else if (passwordEntered && passwordEntered.length < 8) {
         newErrors.portalPassword = 'Password must be at least 8 characters';
-      } else {
-        const pwd = formData.portalAccess.passwordHash.trim();
+      } else if (passwordEntered) {
+        const pwd = passwordEntered;
         const isWeakPattern = /^(\d)\1+$/.test(pwd) || // All same digit
                               /^12345678/.test(pwd) ||
                               /^password/i.test(pwd) ||

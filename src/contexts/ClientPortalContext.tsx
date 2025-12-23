@@ -1,8 +1,13 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { usePortalAuth } from '@/contexts/PortalAuthContext';
-import { supabase } from '@/integrations/supabase/client';
+/**
+ * Client Portal Context
+ * Manages client access information for portal users using isolated portal client
+ */
 
-interface ClientPortalAccess {
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { portalSupabase } from '@/integrations/supabase/portalClient';
+import { usePortalAuth } from './PortalAuthContext';
+
+export interface ClientPortalAccess {
   clientId: string;
   clientName: string;
   portalRole: string;
@@ -14,33 +19,33 @@ interface ClientPortalContextType {
   loading: boolean;
   error: string | null;
   isClientPortalUser: boolean;
-  refetch: () => Promise<void>;
+  refetch: () => void;
 }
 
 const ClientPortalContext = createContext<ClientPortalContextType | undefined>(undefined);
 
-export const useClientPortal = () => {
+export const useClientPortal = (): ClientPortalContextType => {
   const context = useContext(ClientPortalContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useClientPortal must be used within a ClientPortalProvider');
   }
   return context;
 };
 
 interface ClientPortalProviderProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 export const ClientPortalProvider: React.FC<ClientPortalProviderProps> = ({ children }) => {
-  // Use portal auth instead of main app auth
-  const { portalSession, isLoading: authLoading } = usePortalAuth();
+  const { portalSession, isAuthenticated } = usePortalAuth();
   const [clientAccess, setClientAccess] = useState<ClientPortalAccess | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const checkClientAccess = async () => {
-    // Use portal session's userId instead of main auth
-    if (!portalSession?.userId) {
+  const checkClientAccess = useCallback(async () => {
+    // Use portal session data directly - it already has all the info we need
+    if (!isAuthenticated || !portalSession) {
+      console.log('[ClientPortal] Not authenticated or no portal session');
       setClientAccess(null);
       setLoading(false);
       return;
@@ -50,61 +55,73 @@ export const ClientPortalProvider: React.FC<ClientPortalProviderProps> = ({ chil
       setLoading(true);
       setError(null);
 
-      const { data, error: queryError } = await supabase
+      console.log('[ClientPortal] Using portal session data:', {
+        userId: portalSession.userId,
+        clientId: portalSession.clientId,
+        clientName: portalSession.clientName
+      });
+
+      // Verify the portal user record still exists and is active using portal client
+      const { data: portalUser, error: portalError } = await portalSupabase
         .from('client_portal_users')
-        .select(`
-          client_id,
-          portal_role,
-          is_active,
-          tenant_id,
-          clients!inner(display_name)
-        `)
+        .select('client_id, tenant_id, portal_role, is_active, clients(display_name)')
         .eq('user_id', portalSession.userId)
         .eq('is_active', true)
-        .maybeSingle();
+        .single();
 
-      if (queryError) {
-        console.error('Error checking client portal access:', queryError);
-        setError('Failed to verify client portal access.');
-        setClientAccess(null);
-      } else if (!data) {
-        setClientAccess(null);
-      } else {
-        const clientData = data.clients as { display_name: string };
+      if (portalError) {
+        console.error('[ClientPortal] Error fetching portal user:', portalError);
+        // Fall back to session data if query fails
         setClientAccess({
-          clientId: data.client_id,
-          clientName: clientData.display_name,
-          portalRole: data.portal_role || 'viewer',
-          tenantId: data.tenant_id
+          clientId: portalSession.clientId,
+          clientName: portalSession.clientName,
+          portalRole: 'viewer',
+          tenantId: portalSession.tenantId
         });
-
-        // Update last_login_at
-        await supabase
-          .from('client_portal_users')
-          .update({ last_login_at: new Date().toISOString() })
-          .eq('user_id', portalSession.userId)
-          .eq('client_id', data.client_id);
+        setLoading(false);
+        return;
       }
+
+      if (!portalUser) {
+        console.log('[ClientPortal] Portal user not found or inactive');
+        setError('Portal access has been revoked. Please contact your administrator.');
+        setClientAccess(null);
+        setLoading(false);
+        return;
+      }
+
+      console.log('[ClientPortal] Portal user verified:', portalUser);
+
+      setClientAccess({
+        clientId: portalUser.client_id,
+        clientName: (portalUser.clients as any)?.display_name || portalSession.clientName,
+        portalRole: portalUser.portal_role || 'viewer',
+        tenantId: portalUser.tenant_id
+      });
+
     } catch (err) {
-      console.error('Error in checkClientAccess:', err);
-      setError('An unexpected error occurred.');
-      setClientAccess(null);
+      console.error('[ClientPortal] Error checking client access:', err);
+      // Fall back to session data
+      setClientAccess({
+        clientId: portalSession.clientId,
+        clientName: portalSession.clientName,
+        portalRole: 'viewer',
+        tenantId: portalSession.tenantId
+      });
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAuthenticated, portalSession]);
 
   useEffect(() => {
-    if (!authLoading) {
-      checkClientAccess();
-    }
-  }, [portalSession, authLoading]);
+    checkClientAccess();
+  }, [checkClientAccess]);
 
   const value: ClientPortalContextType = {
     clientAccess,
-    loading: authLoading || loading,
+    loading,
     error,
-    isClientPortalUser: !!clientAccess,
+    isClientPortalUser: clientAccess !== null,
     refetch: checkClientAccess
   };
 
