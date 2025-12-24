@@ -1157,14 +1157,12 @@ export class SupabaseAdapter implements StoragePort {
             normalized.jurisdiction = JSON.stringify(normalized.jurisdiction);
           }
           
-          // Map portalAccess to snake_case and stringify if object
+          // Map portalAccess to snake_case - DO NOT stringify since column is jsonb
           if (normalized.portalAccess !== undefined && normalized.portal_access === undefined) {
             normalized.portal_access = normalized.portalAccess;
           }
           delete normalized.portalAccess;
-          if (normalized.portal_access && typeof normalized.portal_access === 'object') {
-            normalized.portal_access = JSON.stringify(normalized.portal_access);
-          }
+          // portal_access stays as object for jsonb column (no JSON.stringify)
           
           // Keep only valid DB columns (now including jurisdiction, data_scope, and portal_access)
           const validClientFields = ['id', 'tenant_id', 'display_name', 'email', 'phone', 'pan', 'gstin', 'state', 'city', 'status', 'client_group_id', 'owner_id', 'created_at', 'updated_at', 'address', 'signatories', 'type', 'jurisdiction', 'data_scope', 'portal_access'];

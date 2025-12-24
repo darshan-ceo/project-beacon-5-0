@@ -40,8 +40,15 @@ export const portalAuthService = {
       console.log('[PortalAuth] Lookup response - error:', lookupError ? JSON.stringify(lookupError) : 'none');
 
       if (lookupError) {
-        console.error('[PortalAuth] FAILED at Step 1: Lookup edge function error');
-        return { success: false, error: 'Unable to connect. Please check your connection and try again.' };
+        console.error('[PortalAuth] FAILED at Step 1: Lookup edge function error', lookupError);
+        // Check if this is a network/connection issue vs a functional error
+        const isNetworkError = lookupError.message?.toLowerCase().includes('network') ||
+                               lookupError.message?.toLowerCase().includes('fetch') ||
+                               lookupError.message?.toLowerCase().includes('timeout');
+        if (isNetworkError) {
+          return { success: false, error: 'Unable to connect. Please check your connection and try again.' };
+        }
+        return { success: false, error: 'Login service unavailable. Please try again later.' };
       }
 
       if (lookupData?.error) {

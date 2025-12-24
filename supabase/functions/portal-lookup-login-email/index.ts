@@ -55,12 +55,28 @@ Deno.serve(async (req) => {
     }
 
     // Find matching client by username (case-insensitive)
+    // Handle portal_access stored as object or as JSON string (legacy fix)
     const matchingClient = clients?.find((client) => {
-      const portalAccess = client.portal_access as { 
+      let portalAccess: { 
         allowLogin?: boolean; 
         username?: string; 
         loginEmail?: string 
-      } | null
+      } | null = null
+      
+      if (client.portal_access) {
+        if (typeof client.portal_access === 'string') {
+          // Legacy: portal_access stored as stringified JSON
+          try {
+            portalAccess = JSON.parse(client.portal_access)
+          } catch {
+            console.warn('[portal-lookup] Failed to parse portal_access string for client', client.id)
+            return false
+          }
+        } else {
+          // Expected: portal_access stored as object
+          portalAccess = client.portal_access as typeof portalAccess
+        }
+      }
       
       if (!portalAccess?.allowLogin || !portalAccess?.username) {
         return false
@@ -77,12 +93,19 @@ Deno.serve(async (req) => {
       )
     }
 
-    const portalAccess = matchingClient.portal_access as { 
-      loginEmail?: string; 
-      username?: string 
+    // Parse portal_access again (same logic as above)
+    let portalAccess: { loginEmail?: string; username?: string } | null = null
+    if (typeof matchingClient.portal_access === 'string') {
+      try {
+        portalAccess = JSON.parse(matchingClient.portal_access)
+      } catch {
+        portalAccess = null
+      }
+    } else {
+      portalAccess = matchingClient.portal_access as typeof portalAccess
     }
     
-    const loginEmail = portalAccess.loginEmail
+    const loginEmail = portalAccess?.loginEmail
 
     if (!loginEmail) {
       console.log(`[portal-lookup] No loginEmail found for client: ${matchingClient.id}`)
