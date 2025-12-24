@@ -41,19 +41,28 @@ export const portalAuthService = {
 
       if (lookupError) {
         console.error('[PortalAuth] FAILED at Step 1: Lookup edge function error');
-        return { success: false, error: 'Login failed. Please try again.' };
+        return { success: false, error: 'Unable to connect. Please check your connection and try again.' };
       }
 
       if (lookupData?.error) {
         console.log('[PortalAuth] FAILED at Step 1: Lookup returned error:', lookupData.error);
-        return { success: false, error: 'Invalid username or password' };
+        // Check if it's a "not found" type error
+        if (lookupData.error.toLowerCase().includes('not found') || 
+            lookupData.error.toLowerCase().includes('invalid username')) {
+          return { success: false, error: 'Username not found. Please check your username and try again.' };
+        }
+        if (lookupData.error.toLowerCase().includes('not enabled') || 
+            lookupData.error.toLowerCase().includes('portal access')) {
+          return { success: false, error: 'Portal access is not enabled for this account.' };
+        }
+        return { success: false, error: lookupData.error };
       }
 
       const loginEmail = lookupData?.loginEmail;
 
       if (!loginEmail) {
         console.log('[PortalAuth] FAILED at Step 1: No loginEmail in response');
-        return { success: false, error: 'Portal access not configured. Please contact your administrator.' };
+        return { success: false, error: 'Username not found. Please check and try again.' };
       }
 
       console.log('[PortalAuth] Step 1 SUCCESS: Got loginEmail:', loginEmail);
@@ -72,9 +81,18 @@ export const portalAuthService = {
         console.error('[PortalAuth] Auth error full:', JSON.stringify(authError));
         
         if (authError.message.includes('Invalid login credentials')) {
-          return { success: false, error: 'Invalid username or password' };
+          return { 
+            success: false, 
+            error: 'Incorrect password. Please try again or contact your administrator to reset your password.' 
+          };
         }
-        return { success: false, error: authError.message || 'Authentication failed' };
+        if (authError.message.includes('Email not confirmed')) {
+          return { 
+            success: false, 
+            error: 'Account not verified. Please contact your administrator.' 
+          };
+        }
+        return { success: false, error: authError.message || 'Authentication failed. Please try again.' };
       }
 
       if (!authData.user) {

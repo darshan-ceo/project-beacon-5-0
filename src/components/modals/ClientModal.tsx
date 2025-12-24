@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Edit, Trash2, User, Eye, Building2, MapPin, Shield, AlertCircle, Loader2, RefreshCw, EyeOff, ExternalLink, Copy, ChevronDown, ChevronUp, CheckCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, User, Eye, Building2, MapPin, Shield, AlertCircle, Loader2, RefreshCw, EyeOff, ExternalLink, Copy, ChevronDown, ChevronUp, CheckCircle, KeyRound } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Client, useAppState, type Signatory, type Address, type Jurisdiction, type PortalAccess } from '@/contexts/AppStateContext';
 import { CASelector } from '@/components/ui/employee-selector';
@@ -147,6 +147,9 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
   const [isInitialized, setIsInitialized] = useState(false);
   const [showPortalPassword, setShowPortalPassword] = useState(false);
   const [showPortalInstructions, setShowPortalInstructions] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [newGeneratedPassword, setNewGeneratedPassword] = useState<string | null>(null);
+  const [passwordCopied, setPasswordCopied] = useState(false);
   useEffect(() => {
     const loadClientData = async () => {
       setIsAddressMasterEnabled(featureFlagService.isEnabled('address_master_v1'));
@@ -727,6 +730,96 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
       }
     }));
     setErrors(prev => ({ ...prev, portalPassword: '' }));
+  };
+
+  // Generate a random password (returns the password string)
+  const generatePassword = (): string => {
+    const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    const lower = 'abcdefghjkmnpqrstuvwxyz';
+    const numbers = '23456789';
+    const special = '@#$!';
+    
+    let password = '';
+    password += upper.charAt(Math.floor(Math.random() * upper.length));
+    password += lower.charAt(Math.floor(Math.random() * lower.length));
+    password += numbers.charAt(Math.floor(Math.random() * numbers.length));
+    password += special.charAt(Math.floor(Math.random() * special.length));
+    
+    const allChars = upper + lower + numbers + special;
+    for (let i = 0; i < 6; i++) {
+      password += allChars.charAt(Math.floor(Math.random() * allChars.length));
+    }
+    
+    return password.split('').sort(() => Math.random() - 0.5).join('');
+  };
+
+  // Reset portal password for existing users
+  const handleResetPortalPassword = async () => {
+    if (!clientData?.id || !clientData?.portalAccess?.username) return;
+    
+    setIsResettingPassword(true);
+    setNewGeneratedPassword(null);
+    setPasswordCopied(false);
+    
+    try {
+      const newPassword = generatePassword();
+      
+      const { data, error } = await supabase.functions.invoke('provision-portal-user', {
+        body: {
+          clientId: clientData.id,
+          username: clientData.portalAccess.username,
+          password: newPassword,
+          portalRole: clientData.portalAccess.role || 'editor'
+        }
+      });
+
+      if (error) {
+        console.error('Reset password error:', error);
+        toast({
+          title: "Password Reset Failed",
+          description: error.message || 'Failed to reset password',
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (data?.error) {
+        toast({
+          title: "Password Reset Failed",
+          description: data.error,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Success - show the new password
+      setNewGeneratedPassword(newPassword);
+      toast({
+        title: "Password Reset Successful",
+        description: "New password generated. Please copy it now - it won't be shown again!",
+      });
+      
+    } catch (err) {
+      console.error('Reset password error:', err);
+      toast({
+        title: "Password Reset Failed",
+        description: 'An unexpected error occurred',
+        variant: "destructive"
+      });
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
+
+  const copyPasswordToClipboard = () => {
+    if (newGeneratedPassword) {
+      navigator.clipboard.writeText(newGeneratedPassword);
+      setPasswordCopied(true);
+      toast({
+        title: "Password Copied",
+        description: "New password copied to clipboard",
+      });
+    }
   };
 
   const handleSignatoriesImport = (importedContacts: any[]) => {
@@ -1474,11 +1567,90 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                     
                     {/* Portal Already Active Indicator - for existing clients with portal access */}
                     {mode === 'edit' && clientData?.portalAccess?.allowLogin && clientData?.portalAccess?.username ? (
-                      <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg p-3">
-                        <p className="text-sm text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4" />
-                          Portal is active for user: <strong className="font-mono">{clientData.portalAccess.username}</strong>
-                        </p>
+                      <div className="space-y-3">
+                        <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg p-3">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
+                              <CheckCircle className="h-4 w-4" />
+                              Portal is active for user: <strong className="font-mono">{clientData.portalAccess.username}</strong>
+                            </p>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={handleResetPortalPassword}
+                              disabled={isResettingPassword}
+                              className="shrink-0"
+                            >
+                              {isResettingPassword ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                                  Resetting...
+                                </>
+                              ) : (
+                                <>
+                                  <KeyRound className="h-4 w-4 mr-1" />
+                                  Reset Password
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Show newly generated password */}
+                        {newGeneratedPassword && (
+                          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700 rounded-lg p-4 space-y-2">
+                            <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-200 flex items-center gap-2">
+                              <AlertCircle className="h-4 w-4" />
+                              New Password Generated - Copy Now!
+                            </h4>
+                            <p className="text-xs text-amber-700 dark:text-amber-300">
+                              This password will not be shown again. Make sure to copy and share it with your client.
+                            </p>
+                            <div className="flex items-center gap-2">
+                              <Input 
+                                value={newGeneratedPassword} 
+                                readOnly 
+                                className="font-mono text-lg bg-white dark:bg-background font-bold tracking-wider"
+                              />
+                              <Button
+                                type="button"
+                                variant={passwordCopied ? "default" : "outline"}
+                                size="sm"
+                                onClick={copyPasswordToClipboard}
+                                className="shrink-0"
+                              >
+                                {passwordCopied ? (
+                                  <>
+                                    <CheckCircle className="h-4 w-4 mr-1" />
+                                    Copied!
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="h-4 w-4 mr-1" />
+                                    Copy
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                            <div className="flex items-center gap-2 pt-2">
+                              <span className="text-xs text-amber-700 dark:text-amber-300">Username:</span>
+                              <span className="font-mono text-sm font-medium">{clientData.portalAccess.username}</span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(clientData.portalAccess.username || '');
+                                  toast({ title: "Username copied" });
+                                }}
+                                className="h-6 px-2"
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
