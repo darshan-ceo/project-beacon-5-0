@@ -3304,40 +3304,64 @@ export type Database = {
       }
       task_followups: {
         Row: {
+          attachments: Json | null
+          blockers: string | null
           client_interaction: boolean | null
           created_at: string
           created_by: string
           created_by_name: string
+          escalation_requested: boolean | null
+          hours_logged: number | null
           id: string
           internal_review: boolean | null
+          next_actions: string | null
+          next_follow_up_date: string | null
           outcome: string | null
+          remarks: string | null
           status: string | null
+          support_needed: boolean | null
           task_id: string
           tenant_id: string
           work_date: string
         }
         Insert: {
+          attachments?: Json | null
+          blockers?: string | null
           client_interaction?: boolean | null
           created_at?: string
           created_by: string
           created_by_name: string
+          escalation_requested?: boolean | null
+          hours_logged?: number | null
           id?: string
           internal_review?: boolean | null
+          next_actions?: string | null
+          next_follow_up_date?: string | null
           outcome?: string | null
+          remarks?: string | null
           status?: string | null
+          support_needed?: boolean | null
           task_id: string
           tenant_id: string
           work_date: string
         }
         Update: {
+          attachments?: Json | null
+          blockers?: string | null
           client_interaction?: boolean | null
           created_at?: string
           created_by?: string
           created_by_name?: string
+          escalation_requested?: boolean | null
+          hours_logged?: number | null
           id?: string
           internal_review?: boolean | null
+          next_actions?: string | null
+          next_follow_up_date?: string | null
           outcome?: string | null
+          remarks?: string | null
           status?: string | null
+          support_needed?: boolean | null
           task_id?: string
           tenant_id?: string
           work_date?: string

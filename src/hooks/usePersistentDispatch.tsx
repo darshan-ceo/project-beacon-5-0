@@ -9,6 +9,7 @@ import { AppAction } from '@/contexts/AppStateContext';
 import { storageManager } from '@/data/StorageManager';
 import { toast } from '@/hooks/use-toast';
 import { timelineService } from '@/services/timelineService';
+import { supabase } from '@/integrations/supabase/client';
 
 type PersistCallback = () => Promise<void>;
 
@@ -232,15 +233,44 @@ export const usePersistentDispatch = (
           const isValidUUID = (val: any) => typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
           const asUUIDOrNull = (val: any) => (isValidUUID(val) ? val : null);
           
+          // Get authenticated user and tenant_id for proper persistence
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) {
+            console.warn('User not authenticated, skipping follow-up persistence');
+            originalDispatch(action);
+            return;
+          }
+          
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('tenant_id')
+            .eq('id', user.id)
+            .maybeSingle();
+            
+          if (!profile?.tenant_id) {
+            console.warn('No tenant_id found, skipping follow-up persistence');
+            originalDispatch(action);
+            return;
+          }
+          
           const followUpPayload: any = {
             ...(isValidUUID(followUp.id) && { id: followUp.id }),
+            tenant_id: profile.tenant_id,
             task_id: asUUIDOrNull(followUp.taskId || followUp.task_id),
             work_date: followUp.workDate || followUp.work_date || new Date().toISOString().split('T')[0],
             status: followUp.status || 'Not Started',
             outcome: followUp.outcome || '',
+            remarks: followUp.remarks || '',
+            hours_logged: followUp.hoursLogged || followUp.hours_logged || null,
+            next_follow_up_date: followUp.nextFollowUpDate || followUp.next_follow_up_date || null,
+            next_actions: followUp.nextActions || followUp.next_actions || null,
+            blockers: followUp.blockers || null,
+            support_needed: followUp.supportNeeded ?? followUp.support_needed ?? false,
+            escalation_requested: followUp.escalationRequested ?? followUp.escalation_requested ?? false,
+            attachments: followUp.attachments || null,
             client_interaction: followUp.clientInteraction ?? followUp.client_interaction ?? false,
             internal_review: followUp.internalReview ?? followUp.internal_review ?? false,
-            created_by: asUUIDOrNull(followUp.createdBy || followUp.created_by),
+            created_by: user.id, // Use auth user.id (guaranteed UUID)
             created_by_name: followUp.createdByName || followUp.created_by_name || '',
             created_at: followUp.createdAt || followUp.created_at || new Date().toISOString(),
           };
