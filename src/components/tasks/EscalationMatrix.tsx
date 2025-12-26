@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from '@/hooks/use-toast';
 import { escalationService, type EscalationEvent } from '@/services/escalationService';
@@ -15,7 +15,9 @@ import {
   Target,
   TrendingUp,
   CheckCircle,
-  User
+  User,
+  RefreshCw,
+  Inbox
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -58,55 +60,26 @@ interface EscalationMatrixProps {
   tasks: TaskDisplay[];
 }
 
-// Mock escalation data that matches the service interface
-const mockActiveEscalations = [
-  {
-    id: '1',
-    taskId: '1',
-    title: 'Draft Response to DRC-01 Notice',
-    caseNumber: 'CASE-2024-001',
-    currentLevel: 2,
-    escalatedTo: 'Mike Wilson (Partner)',
-    escalatedAt: '2024-01-21T09:00:00',
-    overdueDays: 1,
-    priority: 'Critical' as const,
-    nextAction: 'Phone call scheduled',
-    timeToNextEscalation: '22 hours'
-  },
-  {
-    id: '2',
-    taskId: '4',
-    title: 'File Appeal with GSTAT',
-    caseNumber: 'CASE-2024-002',
-    currentLevel: 1,
-    escalatedTo: 'John Smith (Team Lead)',
-    escalatedAt: '2024-01-22T14:30:00',
-    overdueDays: 0,
-    priority: 'Medium' as const,
-    nextAction: 'Email notification sent',
-    timeToNextEscalation: '18 hours'
-  }
-];
-
 export const EscalationMatrix: React.FC<EscalationMatrixProps> = ({ tasks }) => {
   const [selectedRule, setSelectedRule] = useState<EscalationRule | null>(null);
   const [escalationRules, setEscalationRules] = useState<any[]>([]);
   const [activeEscalations, setActiveEscalations] = useState<any[]>([]);
+  const [allEvents, setAllEvents] = useState<any[]>([]);
   const [isConfigureRulesOpen, setIsConfigureRulesOpen] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    loadEscalationData();
-  }, []);
-
-  const loadEscalationData = async () => {
+  const loadEscalationData = useCallback(async () => {
     try {
+      setIsLoading(true);
       const [rules, events] = await Promise.all([
         escalationService.getRules(),
         escalationService.getEvents()
       ]);
       setEscalationRules(rules);
+      setAllEvents(events);
       
-      // Transform events to display format
+      // Transform events to display format - only pending/contacted ones
       const displayEvents = events
         .filter(e => e.status === 'pending' || e.status === 'contacted')
         .map(event => {
@@ -121,6 +94,8 @@ export const EscalationMatrix: React.FC<EscalationMatrixProps> = ({ tasks }) => 
             currentLevel: event.currentLevel || 1,
             escalatedTo: event.escalatedTo || event.rule?.name || 'Manager',
             escalatedAt: event.triggeredAt,
+            triggeredAt: event.triggeredAt,
+            resolvedAt: event.resolvedAt,
             overdueDays,
             priority: (event.task?.priority as 'Critical' | 'High' | 'Medium' | 'Low') || 'Medium',
             nextAction: event.status === 'contacted' ? 'Follow-up pending' : 'Awaiting response',
@@ -128,14 +103,46 @@ export const EscalationMatrix: React.FC<EscalationMatrixProps> = ({ tasks }) => 
           };
         });
       
-      // Use real events if available, otherwise fall back to mock
-      setActiveEscalations(displayEvents.length > 0 ? displayEvents : mockActiveEscalations);
+      setActiveEscalations(displayEvents);
     } catch (error) {
       console.error('Failed to load escalation data:', error);
-      // Fallback to mock data
-      setActiveEscalations(mockActiveEscalations);
+      setActiveEscalations([]);
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, []);
+
+  const checkAndEscalate = useCallback(async () => {
+    try {
+      setIsChecking(true);
+      const count = await escalationService.checkAndEscalateOverdueTasks();
+      if (count > 0) {
+        toast({
+          title: "Escalations Created",
+          description: `${count} overdue task${count !== 1 ? 's' : ''} escalated`,
+        });
+        await loadEscalationData();
+      } else {
+        toast({
+          title: "No New Escalations",
+          description: "No overdue tasks match escalation rules",
+        });
+      }
+    } catch (error) {
+      console.error('Failed to check overdue tasks:', error);
+      toast({
+        title: "Check Failed",
+        description: "Could not check for overdue tasks",
+        variant: "destructive"
+      });
+    } finally {
+      setIsChecking(false);
+    }
+  }, [loadEscalationData]);
+
+  useEffect(() => {
+    loadEscalationData();
+  }, [loadEscalationData]);
 
   const getEscalationStats = () => {
     // Calculate overdue based on due date, not status field
@@ -147,13 +154,31 @@ export const EscalationMatrix: React.FC<EscalationMatrixProps> = ({ tasks }) => 
       return dueDate < now;
     });
     const escalatedTasks = tasks.filter(t => t.escalationLevel > 0);
-    const criticalEscalations = escalatedTasks.filter(t => t.priority === 'Critical');
+    const criticalEscalations = activeEscalations.filter(e => e.priority === 'Critical');
+    
+    // Calculate real avg resolution time from resolved events
+    const resolvedEvents = allEvents.filter(e => e.resolvedAt && e.triggeredAt);
+    let avgResolutionTime = 'N/A';
+    
+    if (resolvedEvents.length > 0) {
+      const totalMs = resolvedEvents.reduce((sum, e) => {
+        const resolved = new Date(e.resolvedAt).getTime();
+        const triggered = new Date(e.triggeredAt).getTime();
+        return sum + (resolved - triggered);
+      }, 0);
+      const avgHours = (totalMs / resolvedEvents.length) / (1000 * 60 * 60);
+      if (avgHours < 1) {
+        avgResolutionTime = `${Math.round(avgHours * 60)} min`;
+      } else {
+        avgResolutionTime = `${avgHours.toFixed(1)} hours`;
+      }
+    }
     
     return {
       totalOverdue: overdueTasks.length,
-      totalEscalated: escalatedTasks.length,
+      totalEscalated: activeEscalations.length,
       criticalEscalations: criticalEscalations.length,
-      avgResolutionTime: '4.2 hours'
+      avgResolutionTime
     };
   };
 
@@ -191,10 +216,20 @@ export const EscalationMatrix: React.FC<EscalationMatrixProps> = ({ tasks }) => 
             Automated escalation workflows for overdue tasks and SLA breaches
           </p>
         </div>
-        <Button variant="outline" onClick={() => setIsConfigureRulesOpen(true)}>
-          <Settings className="mr-2 h-4 w-4" />
-          Configure Rules
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={checkAndEscalate}
+            disabled={isChecking}
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${isChecking ? 'animate-spin' : ''}`} />
+            {isChecking ? 'Checking...' : 'Check Overdue Tasks'}
+          </Button>
+          <Button variant="outline" onClick={() => setIsConfigureRulesOpen(true)}>
+            <Settings className="mr-2 h-4 w-4" />
+            Configure Rules
+          </Button>
+        </div>
       </motion.div>
 
       {/* Escalation Stats */}
@@ -278,97 +313,115 @@ export const EscalationMatrix: React.FC<EscalationMatrixProps> = ({ tasks }) => 
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {activeEscalations.map((escalation, index) => (
-                    <motion.div
-                      key={escalation.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.1 }}
-                      className="p-4 rounded-lg border border-destructive/20 bg-destructive/5"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <h4 className="font-medium text-foreground">{escalation.title}</h4>
-                            <Badge variant="destructive" className={getLevelColor(escalation.currentLevel)}>
-                              Level {escalation.currentLevel}
-                            </Badge>
-                            <Badge variant="outline">{escalation.priority}</Badge>
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : activeEscalations.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Inbox className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium mb-2">No Active Escalations</h3>
+                    <p className="text-muted-foreground mb-4">
+                      All tasks are on track. Click "Check Overdue Tasks" to scan for tasks needing escalation.
+                    </p>
+                    <Button variant="outline" onClick={checkAndEscalate} disabled={isChecking}>
+                      <RefreshCw className={`mr-2 h-4 w-4 ${isChecking ? 'animate-spin' : ''}`} />
+                      Check Overdue Tasks
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {activeEscalations.map((escalation, index) => (
+                      <motion.div
+                        key={escalation.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.1 }}
+                        className="p-4 rounded-lg border border-destructive/20 bg-destructive/5"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <h4 className="font-medium text-foreground">{escalation.title}</h4>
+                              <Badge variant="destructive" className={getLevelColor(escalation.currentLevel)}>
+                                Level {escalation.currentLevel}
+                              </Badge>
+                              <Badge variant="outline">{escalation.priority}</Badge>
+                            </div>
+                            
+                            <p className="text-sm text-muted-foreground mb-3">
+                              {escalation.caseNumber} • Overdue: {escalation.overdueDays} day{escalation.overdueDays !== 1 ? 's' : ''}
+                            </p>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                              <div>
+                                <p className="text-muted-foreground">Escalated To</p>
+                                <p className="font-medium">{escalation.escalatedTo}</p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground">Next Action</p>
+                                <p className="font-medium">{escalation.nextAction}</p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground">Next Escalation</p>
+                                <p className="font-medium">{escalation.timeToNextEscalation}</p>
+                              </div>
+                            </div>
                           </div>
                           
-                          <p className="text-sm text-muted-foreground mb-3">
-                            {escalation.caseNumber} • Overdue: {escalation.overdueDays} days
-                          </p>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                            <div>
-                              <p className="text-muted-foreground">Escalated To</p>
-                              <p className="font-medium">{escalation.escalatedTo}</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Next Action</p>
-                              <p className="font-medium">{escalation.nextAction}</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Next Escalation</p>
-                              <p className="font-medium">{escalation.timeToNextEscalation}</p>
-                            </div>
+                          <div className="flex flex-col space-y-2">
+                            <Button 
+                              size="sm" 
+                              variant="destructive"
+                              onClick={async () => {
+                                try {
+                                  await escalationService.markContacted(escalation.id, 'Contact initiated via escalation matrix');
+                                  await loadEscalationData();
+                                  toast({
+                                    title: "Contact Initiated",
+                                    description: "Escalation marked as contacted",
+                                  });
+                                } catch (error) {
+                                  toast({
+                                    title: "Failed to update",
+                                    description: "Could not mark as contacted",
+                                    variant: "destructive"
+                                  });
+                                }
+                              }}
+                            >
+                              <Phone className="mr-2 h-3 w-3" />
+                              Contact Now
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={async () => {
+                                try {
+                                  await escalationService.resolve(escalation.id, 'Resolved via escalation matrix');
+                                  await loadEscalationData();
+                                  toast({
+                                    title: "Escalation Resolved",
+                                    description: "Issue has been marked as resolved",
+                                  });
+                                } catch (error) {
+                                  toast({
+                                    title: "Failed to resolve",
+                                    description: "Could not mark as resolved",
+                                    variant: "destructive"
+                                  });
+                                }
+                              }}
+                            >
+                              <CheckCircle className="mr-2 h-3 w-3" />
+                              Mark Resolved
+                            </Button>
                           </div>
                         </div>
-                        
-                         <div className="flex flex-col space-y-2">
-                          <Button 
-                            size="sm" 
-                            variant="destructive"
-                            onClick={async () => {
-                              try {
-                                await escalationService.markContacted(escalation.id, 'Contact initiated via escalation matrix');
-                                await loadEscalationData();
-                                toast({
-                                  title: "Contact Initiated",
-                                  description: "Escalation marked as contacted",
-                                });
-                              } catch (error) {
-                                toast({
-                                  title: "Failed to update",
-                                  description: "Could not mark as contacted",
-                                  variant: "destructive"
-                                });
-                              }
-                            }}
-                          >
-                            <Phone className="mr-2 h-3 w-3" />
-                            Contact Now
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={async () => {
-                              try {
-                                await escalationService.resolve(escalation.id, 'Resolved via escalation matrix');
-                                await loadEscalationData();
-                                toast({
-                                  title: "Escalation Resolved",
-                                  description: "Issue has been marked as resolved",
-                                });
-                              } catch (error) {
-                                toast({
-                                  title: "Failed to resolve",
-                                  description: "Could not mark as resolved",
-                                  variant: "destructive"
-                                });
-                              }
-                            }}
-                          >
-                            <CheckCircle className="mr-2 h-3 w-3" />
-                            Mark Resolved
-                          </Button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>
