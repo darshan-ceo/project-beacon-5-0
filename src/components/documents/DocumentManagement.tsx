@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { isToday, parseISO, startOfWeek, isWithinInterval, endOfWeek } from 'date-fns';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
@@ -145,6 +146,44 @@ export const DocumentManagement: React.FC = () => {
     options?: any;
   }>({ isOpen: false });
   const [noticeIntakeModal, setNoticeIntakeModal] = useState(false);
+
+  // Calculate real activity metrics from state
+  const recentActivityStats = useMemo(() => {
+    const now = new Date();
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+    const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+    
+    // Documents uploaded today
+    const documentsUploadedToday = state.documents.filter(doc => {
+      try {
+        if (!doc.uploadedAt) return false;
+        const uploadDate = parseISO(doc.uploadedAt);
+        return isToday(uploadDate);
+      } catch {
+        return false;
+      }
+    }).length;
+    
+    // Folders created this week
+    const foldersCreatedThisWeek = state.folders.filter(folder => {
+      try {
+        if (!folder.createdAt) return false;
+        const createdDate = parseISO(folder.createdAt);
+        return isWithinInterval(createdDate, { start: weekStart, end: weekEnd });
+      } catch {
+        return false;
+      }
+    }).length;
+    
+    // Total shared documents
+    const documentsShared = state.documents.filter(doc => doc.isShared).length;
+    
+    return {
+      documentsUploadedToday,
+      foldersCreatedThisWeek,
+      documentsShared
+    };
+  }, [state.documents, state.folders]);
 
   const getStageColor = (stage: string) => {
     switch (stage) {
@@ -1250,9 +1289,9 @@ export const DocumentManagement: React.FC = () => {
                   <div>
                     <h3 className="font-medium mb-3">Recent Activity</h3>
                     <div className="text-sm text-muted-foreground space-y-1">
-                      <div>5 documents uploaded today</div>
-                      <div>3 folders created this week</div>
-                      <div>12 documents shared</div>
+                      <div>{recentActivityStats.documentsUploadedToday} document{recentActivityStats.documentsUploadedToday !== 1 ? 's' : ''} uploaded today</div>
+                      <div>{recentActivityStats.foldersCreatedThisWeek} folder{recentActivityStats.foldersCreatedThisWeek !== 1 ? 's' : ''} created this week</div>
+                      <div>{recentActivityStats.documentsShared} document{recentActivityStats.documentsShared !== 1 ? 's' : ''} shared</div>
                     </div>
                   </div>
                 </div>
