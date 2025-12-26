@@ -265,7 +265,7 @@ class EscalationService {
           *,
           tasks:task_id (title, case_number, priority, due_date),
           escalation_rules:rule_id (name, actions),
-          escalated_employee:employees!escalation_events_escalated_to_fkey (id, full_name)
+          escalated_employee:employees!escalation_events_escalated_to_employees_fkey (id, full_name)
         `)
         .eq('tenant_id', tenantId)
         .order('triggered_at', { ascending: false })
@@ -508,8 +508,11 @@ class EscalationService {
         
         for (const rule of overdueRules) {
           const meetsHoursCriteria = !rule.conditions.hoursOverdue || hoursOverdue >= rule.conditions.hoursOverdue;
+          // Case-insensitive priority matching
           const meetsPriorityCriteria = !rule.conditions.priority?.length || 
-            rule.conditions.priority.includes(task.priority as any);
+            rule.conditions.priority.some(p => 
+              p.toLowerCase() === (task.priority || '').toLowerCase()
+            );
 
           if (meetsHoursCriteria && meetsPriorityCriteria) {
             await this.createEvent(rule.id, task.id, { 
