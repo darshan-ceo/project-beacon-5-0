@@ -136,7 +136,8 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           courtsData,
           judgesData,
           foldersData,
-          timelineData
+          timelineData,
+          taskFollowUpsData
         ] = await Promise.all([
           supabase.from('clients').select('*').eq('tenant_id', tenantId),
           supabase.from('client_groups').select('*').eq('tenant_id', tenantId),
@@ -148,7 +149,8 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           supabase.from('courts').select('*').eq('tenant_id', tenantId),
           supabase.from('judges').select('*').eq('tenant_id', tenantId),
           supabase.from('document_folders').select('*').eq('tenant_id', tenantId),
-          supabase.from('timeline_entries').select('*').eq('tenant_id', tenantId)
+          supabase.from('timeline_entries').select('*').eq('tenant_id', tenantId),
+          supabase.from('task_followups').select('*').eq('tenant_id', tenantId)
         ]);
 
         // Check for errors
@@ -163,7 +165,8 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           courtsData.error,
           judgesData.error,
           foldersData.error,
-          timelineData.error
+          timelineData.error,
+          taskFollowUpsData.error
         ].filter(Boolean);
 
         if (errors.length > 0) {
@@ -548,6 +551,28 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           metadata: t.metadata || {}
         }));
 
+        // Transform task follow-ups data
+        const taskFollowUps = (taskFollowUpsData.data || []).map((f: any) => ({
+          id: f.id,
+          taskId: f.task_id || f.taskId,
+          remarks: f.remarks || '',
+          outcome: f.outcome,
+          status: f.status,
+          hoursLogged: f.hours_logged || f.hoursLogged,
+          workDate: f.work_date || f.workDate,
+          nextFollowUpDate: f.next_follow_up_date || f.nextFollowUpDate,
+          nextActions: f.next_actions || f.nextActions,
+          blockers: f.blockers,
+          supportNeeded: f.support_needed || f.supportNeeded,
+          escalationRequested: f.escalation_requested || f.escalationRequested,
+          attachments: f.attachments,
+          createdBy: f.created_by || f.createdBy,
+          createdByName: f.created_by_name || f.createdByName || '',
+          createdAt: f.created_at || f.createdAt,
+          clientInteraction: f.client_interaction || f.clientInteraction,
+          internalReview: f.internal_review || f.internalReview,
+        }));
+
         // Dispatch RESTORE_STATE action
         dispatch({
           type: 'RESTORE_STATE',
@@ -557,7 +582,7 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
             cases,
             tasks,
             taskNotes: [],
-            taskFollowUps: [],
+            taskFollowUps,
             hearings,
             documents,
             employees,
