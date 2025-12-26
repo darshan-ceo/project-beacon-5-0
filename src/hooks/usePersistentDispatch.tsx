@@ -226,6 +226,52 @@ export const usePersistentDispatch = (
           await storage.delete('tasks', action.payload);
           break;
           
+        // Task Follow-ups - Transform camelCase to snake_case for database
+        case 'ADD_TASK_FOLLOWUP': {
+          const followUp = action.payload as any;
+          const isValidUUID = (val: any) => typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+          const asUUIDOrNull = (val: any) => (isValidUUID(val) ? val : null);
+          
+          const followUpPayload: any = {
+            ...(isValidUUID(followUp.id) && { id: followUp.id }),
+            task_id: asUUIDOrNull(followUp.taskId || followUp.task_id),
+            work_date: followUp.workDate || followUp.work_date || new Date().toISOString().split('T')[0],
+            status: followUp.status || 'Not Started',
+            outcome: followUp.outcome || '',
+            client_interaction: followUp.clientInteraction ?? followUp.client_interaction ?? false,
+            internal_review: followUp.internalReview ?? followUp.internal_review ?? false,
+            created_by: asUUIDOrNull(followUp.createdBy || followUp.created_by),
+            created_by_name: followUp.createdByName || followUp.created_by_name || '',
+            created_at: followUp.createdAt || followUp.created_at || new Date().toISOString(),
+          };
+          
+          await storage.create('task_followups', followUpPayload);
+          break;
+        }
+        
+        case 'UPDATE_TASK_FOLLOWUP': {
+          const followUp = action.payload as any;
+          const isValidUUID = (val: any) => typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+          const asUUIDOrNull = (val: any) => (isValidUUID(val) ? val : null);
+          
+          const updatePayload: any = {
+            id: followUp.id,
+            task_id: asUUIDOrNull(followUp.taskId || followUp.task_id),
+            work_date: followUp.workDate || followUp.work_date,
+            status: followUp.status,
+            outcome: followUp.outcome || '',
+            client_interaction: followUp.clientInteraction ?? followUp.client_interaction ?? false,
+            internal_review: followUp.internalReview ?? followUp.internal_review ?? false,
+          };
+          
+          await storage.update('task_followups', followUp.id, updatePayload);
+          break;
+        }
+        
+        case 'DELETE_TASK_FOLLOWUP':
+          await storage.delete('task_followups', action.payload);
+          break;
+          
         // Hearings
         case 'ADD_HEARING':
           await storage.create('hearings', action.payload);
