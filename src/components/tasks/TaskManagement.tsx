@@ -150,9 +150,10 @@ export const TaskManagement: React.FC = () => {
         status: 'Completed' 
       }));
     } else if (filterParam === 'overdue') {
+      // Use date-based overdue calculation instead of status field
       setActiveFilters(prev => ({ 
         ...prev, 
-        status: 'Overdue' 
+        overdueByDate: true 
       }));
     }
     
@@ -337,6 +338,22 @@ export const TaskManagement: React.FC = () => {
       matchesStatus = !activeFilters.status || task.status === activeFilters.status;
     }
     
+    // Date-based overdue filter (for dashboard widget drill-down)
+    let matchesOverdueByDate = true;
+    if (activeFilters.overdueByDate) {
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      const taskDueDate = task.dueDate ? new Date(task.dueDate) : null;
+      if (taskDueDate) {
+        taskDueDate.setHours(0, 0, 0, 0);
+      }
+      // Check if task is overdue and not in terminal states
+      const isTerminalStatus = ['Completed', 'Cancelled'].includes(task.status as string);
+      matchesOverdueByDate = !!(taskDueDate && 
+        taskDueDate < now &&
+        !isTerminalStatus);
+    }
+    
     // Priority filter
     const matchesPriority = !activeFilters.priority || task.priority === activeFilters.priority;
     
@@ -371,7 +388,8 @@ export const TaskManagement: React.FC = () => {
     }
     
     return matchesSearch && matchesClient && matchesCase && matchesStatus && 
-           matchesPriority && matchesAssignee && matchesTaskTypes && matchesDueDate;
+           matchesPriority && matchesAssignee && matchesTaskTypes && matchesDueDate &&
+           matchesOverdueByDate;
   });
 
   // Defensive logging for filter counts (dev mode)
