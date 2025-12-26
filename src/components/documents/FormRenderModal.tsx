@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { X, FileText, Download, AlertCircle, CheckCircle, Loader2, Wand2 } from 'lucide-react';
+import { X, FileText, Download, AlertCircle, CheckCircle, Loader2, Wand2, Upload } from 'lucide-react';
+import { dmsService } from '@/services/dmsService';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ModalLayout } from '@/components/ui/modal-layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -291,7 +292,27 @@ export const FormRenderModal: React.FC<FormRenderModalProps> = ({
       const caseData = state.cases.find(c => c.id === caseId);
       const currentEmployee = state.employees.find(e => e.id === 'emp-1'); // TODO: Get from auth context
 
-      // Create generated form record
+      // Create File object from the blob for DMS upload
+      const file = new File([blob], suggestedFilename, { type: 'application/pdf' });
+
+      // Upload to DMS (Supabase Storage + documents table)
+      const uploadResult = await dmsService.files.upload(
+        'system', // userId for automated operations
+        file,
+        {
+          caseId: caseId,
+          clientId: caseData?.clientId,
+          tags: ['form-generated', template.code, 'auto-generated'],
+          folderId: 'litigation-docs' // Store in Litigation Documents folder
+        },
+        dispatch
+      );
+
+      if (!uploadResult.success && !uploadResult.document) {
+        throw new Error('Failed to upload document to DMS');
+      }
+
+      // Create generated form record with actual document ID
       const generatedForm = {
         formCode: template.code,
         version: (caseData?.generatedForms?.filter(f => f.formCode === template.code).length || 0) + 1,
@@ -300,11 +321,8 @@ export const FormRenderModal: React.FC<FormRenderModalProps> = ({
         employeeName: currentEmployee?.full_name || 'Current User',
         fileName: suggestedFilename,
         status: 'Uploaded' as const,
-        documentId: `doc-${Date.now()}`
+        documentId: uploadResult.document?.id || `doc-${Date.now()}`
       };
-
-      // Simulate DMS upload (in real app, would upload to DMS)
-      await new Promise(resolve => setTimeout(resolve, 500));
 
       // Notify parent component
       if (onFormGenerated) {
