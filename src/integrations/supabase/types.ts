@@ -1790,6 +1790,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "escalation_events_escalated_to_employees_fkey"
+            columns: ["escalated_to"]
+            isOneToOne: false
+            referencedRelation: "employee_productivity_metrics"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "escalation_events_escalated_to_employees_fkey"
+            columns: ["escalated_to"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "escalation_events_resolved_by_fkey"
             columns: ["resolved_by"]
             isOneToOne: false
