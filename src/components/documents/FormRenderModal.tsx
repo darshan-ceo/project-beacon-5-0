@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X, FileText, Download, AlertCircle, CheckCircle, Loader2, Wand2, Upload } from 'lucide-react';
-import { dmsService } from '@/services/dmsService';
+import { uploadDocument } from '@/services/supabaseDocumentService';
+import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ModalLayout } from '@/components/ui/modal-layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -292,25 +293,54 @@ export const FormRenderModal: React.FC<FormRenderModalProps> = ({
       const caseData = state.cases.find(c => c.id === caseId);
       const currentEmployee = state.employees.find(e => e.id === 'emp-1'); // TODO: Get from auth context
 
-      // Create File object from the blob for DMS upload
+      // Create File object from the blob for Supabase Storage upload
       const file = new File([blob], suggestedFilename, { type: 'application/pdf' });
 
-      // Upload to DMS (Supabase Storage + documents table)
-      const uploadResult = await dmsService.files.upload(
-        'system', // userId for automated operations
-        file,
-        {
-          caseId: caseId,
-          clientId: caseData?.clientId,
-          tags: ['form-generated', template.code, 'auto-generated'],
-          folderId: 'litigation-docs' // Store in Litigation Documents folder
-        },
-        dispatch
-      );
-
-      if (!uploadResult.success && !uploadResult.document) {
-        throw new Error('Failed to upload document to DMS');
+      // Get authenticated user and tenant_id for proper upload
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User must be authenticated to upload documents');
       }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.tenant_id) {
+        throw new Error('Unable to determine tenant context');
+      }
+
+      // Upload to Supabase Storage + create database record
+      const uploadResult = await uploadDocument(file, {
+        tenant_id: profile.tenant_id,
+        case_id: caseId,
+        client_id: caseData?.clientId,
+        folder_id: 'litigation-docs',
+        category: 'Reply'
+      });
+
+      // Dispatch to update UI state with proper field mapping
+      dispatch({
+        type: 'ADD_DOCUMENT',
+        payload: {
+          id: uploadResult.id,
+          name: uploadResult.file_name,
+          type: uploadResult.file_type,
+          size: uploadResult.file_size,
+          caseId: caseId,
+          clientId: caseData?.clientId || '',
+          uploadedAt: new Date().toISOString(),
+          uploadedById: user.id,
+          uploadedByName: currentEmployee?.full_name || 'System',
+          tags: ['form-generated', template.code, 'auto-generated'],
+          isShared: false,
+          path: uploadResult.file_path,
+          folderId: 'litigation-docs',
+          category: 'Reply'
+        }
+      });
 
       // Create generated form record with actual document ID
       const generatedForm = {
@@ -321,7 +351,7 @@ export const FormRenderModal: React.FC<FormRenderModalProps> = ({
         employeeName: currentEmployee?.full_name || 'Current User',
         fileName: suggestedFilename,
         status: 'Uploaded' as const,
-        documentId: uploadResult.document?.id || `doc-${Date.now()}`
+        documentId: uploadResult.id
       };
 
       // Notify parent component
