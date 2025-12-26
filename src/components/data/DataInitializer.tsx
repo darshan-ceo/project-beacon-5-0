@@ -520,7 +520,17 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           notes: j.notes || '',
         }));
 
-        // Transform folders data
+        // Compute document counts per folder from loaded documents
+        const documentCountByFolder = new Map<string, number>();
+        const folderSizeMap = new Map<string, number>();
+        documents.forEach(doc => {
+          if (doc.folderId) {
+            documentCountByFolder.set(doc.folderId, (documentCountByFolder.get(doc.folderId) || 0) + 1);
+            folderSizeMap.set(doc.folderId, (folderSizeMap.get(doc.folderId) || 0) + (doc.size || 0));
+          }
+        });
+
+        // Transform folders data with computed document counts
         const folders = (foldersData.data || []).map((f: any) => ({
           id: f.id,
           name: f.name,
@@ -531,9 +541,9 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           caseId: f.case_id,
           createdAt: f.created_at,
           updatedAt: f.updated_at,
-          lastAccess: f.updated_at || f.created_at, // Use updated_at as lastAccess
-          documentCount: 0, // Will be computed client-side from documents
-          size: 0 // Will be computed client-side from documents
+          lastAccess: f.updated_at || f.created_at,
+          documentCount: documentCountByFolder.get(f.id) || 0,
+          size: folderSizeMap.get(f.id) || 0
         }));
 
         // Transform timeline entries data
