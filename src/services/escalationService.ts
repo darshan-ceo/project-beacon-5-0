@@ -46,6 +46,11 @@ export interface EscalationEvent {
   };
   rule?: {
     name: string;
+    actions?: EscalationRule['actions'];
+  };
+  escalatedEmployee?: {
+    id: string;
+    fullName: string;
   };
 }
 
@@ -259,7 +264,8 @@ class EscalationService {
         .select(`
           *,
           tasks:task_id (title, case_number, priority, due_date),
-          escalation_rules:rule_id (name)
+          escalation_rules:rule_id (name, actions),
+          escalated_employee:employees!escalation_events_escalated_to_fkey (id, full_name)
         `)
         .eq('tenant_id', tenantId)
         .order('triggered_at', { ascending: false })
@@ -290,7 +296,12 @@ class EscalationService {
           dueDate: (event.tasks as any).due_date
         } : undefined,
         rule: event.escalation_rules ? {
-          name: (event.escalation_rules as any).name
+          name: (event.escalation_rules as any).name,
+          actions: (event.escalation_rules as any).actions
+        } : undefined,
+        escalatedEmployee: event.escalated_employee ? {
+          id: (event.escalated_employee as any).id,
+          fullName: (event.escalated_employee as any).full_name
         } : undefined
       }));
     } catch (error) {
@@ -339,6 +350,58 @@ class EscalationService {
     const tenantId = await this.getTenantId();
     const rule = await this.getRule(ruleId);
     
+    // Resolve who to escalate to based on rule and task assignee
+    let escalatedToId: string | null = null;
+    
+    if (rule?.actions?.escalateToRole) {
+      const targetRole = rule.actions.escalateToRole.toLowerCase();
+      
+      // Get task details including assignee
+      const { data: task } = await supabase
+        .from('tasks')
+        .select('assigned_to')
+        .eq('id', taskId)
+        .maybeSingle();
+      
+      if (task?.assigned_to) {
+        // Get assignee's reporting manager
+        const { data: assignee } = await supabase
+          .from('employees')
+          .select('reporting_to')
+          .eq('id', task.assigned_to)
+          .maybeSingle();
+        
+        if (assignee?.reporting_to) {
+          // Check if manager matches target role
+          const { data: manager } = await supabase
+            .from('employees')
+            .select('id, role')
+            .eq('id', assignee.reporting_to)
+            .maybeSingle();
+          
+          if (manager && manager.role.toLowerCase().includes(targetRole)) {
+            escalatedToId = manager.id;
+          }
+        }
+      }
+      
+      // Fallback: Find any employee with the target role in tenant
+      if (!escalatedToId) {
+        const { data: roleEmployee } = await supabase
+          .from('employees')
+          .select('id')
+          .eq('tenant_id', tenantId)
+          .eq('status', 'Active')
+          .ilike('role', `%${targetRole}%`)
+          .limit(1)
+          .maybeSingle();
+        
+        if (roleEmployee) {
+          escalatedToId = roleEmployee.id;
+        }
+      }
+    }
+    
     const { data, error } = await supabase
       .from('escalation_events')
       .insert({
@@ -346,7 +409,8 @@ class EscalationService {
         rule_id: ruleId,
         task_id: taskId,
         status: 'pending',
-        current_level: 1
+        current_level: 1,
+        escalated_to: escalatedToId
       })
       .select()
       .single();
@@ -363,7 +427,8 @@ class EscalationService {
       taskId: data.task_id,
       triggeredAt: data.triggered_at,
       status: data.status as EscalationEvent['status'],
-      currentLevel: data.current_level
+      currentLevel: data.current_level,
+      escalatedTo: data.escalated_to
     };
 
     // Send notifications
