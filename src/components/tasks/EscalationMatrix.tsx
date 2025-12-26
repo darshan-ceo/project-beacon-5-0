@@ -92,7 +92,7 @@ export const EscalationMatrix: React.FC<EscalationMatrixProps> = ({ tasks }) => 
             title: event.task?.title || 'Unknown Task',
             caseNumber: event.task?.caseNumber || 'N/A',
             currentLevel: event.currentLevel || 1,
-            escalatedTo: event.escalatedTo || event.rule?.name || 'Manager',
+            escalatedTo: event.escalatedEmployee?.fullName || event.rule?.actions?.escalateToRole || 'Manager',
             escalatedAt: event.triggeredAt,
             triggeredAt: event.triggeredAt,
             resolvedAt: event.resolvedAt,
