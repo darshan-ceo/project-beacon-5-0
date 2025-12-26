@@ -230,6 +230,55 @@ export const hearingsService = {
       }
       
       log('success', 'create hearing', { hearingId: newHearing.id });
+
+      // Trigger task bundle automation for hearing_scheduled
+      if (data.case_id) {
+        try {
+          const { taskBundleTriggerService } = await import('./taskBundleTriggerService');
+          const { storageManager: sm } = await import('@/data/StorageManager');
+          
+          // Get case data for automation
+          const caseData = await sm.getStorage().getById<any>('cases', data.case_id);
+          
+          if (caseData) {
+            await taskBundleTriggerService.triggerTaskBundles(
+              {
+                id: caseData.id,
+                caseNumber: caseData.case_number || caseData.caseNumber,
+                clientId: caseData.client_id || caseData.clientId,
+                assignedToId: caseData.assigned_to || caseData.assignedToId || 'emp-1',
+                assignedToName: caseData.assigned_to_name || caseData.assignedToName || 'Current User',
+                currentStage: caseData.stage_code || caseData.currentStage || 'Any Stage',
+                noticeType: caseData.notice_type || caseData.noticeType,
+                clientTier: caseData.client_tier || caseData.clientTier
+              },
+              'hearing_scheduled',
+              (caseData.stage_code || caseData.currentStage || 'ANY') as any,
+              dispatch
+            );
+            
+            console.log(`[Hearings] Task bundle automation triggered for hearing: ${newHearing.id}`);
+          }
+        } catch (bundleError) {
+          console.error('[Hearings] Failed to trigger task bundle automation:', bundleError);
+          // Don't fail the hearing creation if automation fails
+        }
+      }
+
+      // Emit automation event for rules engine (notifications, etc.)
+      try {
+        const { emitHearingSchedule } = await import('@/utils/automationEventConnectors');
+        await emitHearingSchedule(newHearing.id, data.case_id, {
+          hearingDate: data.date,
+          startTime: data.start_time,
+          courtId: data.court_id,
+          forumId: data.forum_id
+        });
+        console.log(`[Hearings] Automation event emitted for hearing: ${newHearing.id}`);
+      } catch (eventError) {
+        console.error('[Hearings] Failed to emit automation event:', eventError);
+      }
+
       return newHearing;
       
     } catch (error) {
