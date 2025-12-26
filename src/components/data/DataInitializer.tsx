@@ -357,7 +357,8 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           if (h.hearing_date) {
             const hearingDateTime = new Date(h.hearing_date);
             dateStr = hearingDateTime.toISOString().split('T')[0]; // "2025-11-12"
-            timeStr = hearingDateTime.toTimeString().slice(0, 5);   // "10:00"
+            // Extract time in UTC to match how it was stored (avoid local timezone conversion)
+            timeStr = hearingDateTime.toISOString().split('T')[1].slice(0, 5); // "14:00" stays "14:00"
           }
           
           return {

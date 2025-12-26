@@ -96,9 +96,14 @@ export const hearingsService = {
       const { storageManager } = await import('@/data/StorageManager');
       const storage = storageManager.getStorage();
 
+      // Parse date and time components to store as UTC (avoid timezone conversion)
+      const [hours, minutes] = (data.start_time || '10:00').split(':').map(Number);
+      const [year, month, day] = data.date.split('-').map(Number);
+      const utcDate = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0));
+
       const hearingData = {
         case_id: data.case_id,
-        hearing_date: new Date(`${data.date}T${data.start_time || '10:00'}:00`).toISOString(),
+        hearing_date: utcDate.toISOString(),
         next_hearing_date: null,
         // Sanitize UUID fields - convert empty strings to null
         court_id: sanitizeUuidField(data.court_id),
@@ -253,15 +258,14 @@ export const hearingsService = {
       };
 
       // Map camelCase to snake_case for database fields
-      if (updates.date !== undefined) {
-        // Combine date and time into hearing_date timestamp
-        const timeValue = updates.start_time || updates.time || '10:00';
-        updateData.hearing_date = new Date(`${updates.date}T${timeValue}:00`).toISOString();
-      }
-      if (updates.start_time !== undefined || updates.time !== undefined) {
+      // Handle date/time updates with UTC to avoid timezone conversion
+      if (updates.date !== undefined || updates.start_time !== undefined || updates.time !== undefined) {
         const dateValue = updates.date || new Date().toISOString().split('T')[0];
         const timeValue = updates.start_time || updates.time || '10:00';
-        updateData.hearing_date = new Date(`${dateValue}T${timeValue}:00`).toISOString();
+        const [hours, minutes] = timeValue.split(':').map(Number);
+        const [year, month, day] = dateValue.split('-').map(Number);
+        const utcDate = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0));
+        updateData.hearing_date = utcDate.toISOString();
       }
       if (updates.status !== undefined) updateData.status = updates.status;
       if (updates.notes !== undefined) updateData.notes = updates.notes;
