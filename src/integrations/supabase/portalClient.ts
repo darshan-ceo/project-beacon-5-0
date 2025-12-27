@@ -1,13 +1,20 @@
 /**
  * Isolated Supabase Client for Portal Authentication
  * Uses a separate storage key to prevent portal auth from overwriting admin auth tokens
+ * Uses the same environment variables as the main client for consistency
  */
 
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = "https://myncxddatwvtyiioqekh.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15bmN4ZGRhdHd2dHlpaW9xZWtoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwNDU2MzIsImV4cCI6MjA3NzYyMTYzMn0.CISgb95GqEGJSW46VgIzrRlVReq01Ssk4Y_q_kwv6kM";
+// Use same env vars as main client - these are auto-generated
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+// Validate environment variables
+if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+  console.error('[PortalClient] Missing Supabase environment variables');
+}
 
 // Portal-specific storage key to isolate from main app auth
 const PORTAL_AUTH_STORAGE_KEY = 'sb-portal-auth-token';
@@ -29,3 +36,17 @@ export const portalSupabase = createClient<Database>(
     }
   }
 );
+
+/**
+ * Clear all portal-related auth data from localStorage
+ * Useful for recovery when portal auth gets into a bad state
+ */
+export const clearPortalAuthData = (): void => {
+  try {
+    localStorage.removeItem(PORTAL_AUTH_STORAGE_KEY);
+    localStorage.removeItem('portal_session');
+    console.log('[PortalClient] Cleared portal auth data');
+  } catch (error) {
+    console.error('[PortalClient] Failed to clear portal auth data:', error);
+  }
+};

@@ -6,13 +6,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Building2, Lock, User, Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
+import { Building2, Lock, User, Eye, EyeOff, AlertCircle, Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { usePortalAuth } from '@/contexts/PortalAuthContext';
+import { clearPortalAuthData } from '@/integrations/supabase/portalClient';
+import { toast } from 'sonner';
 
 export const PortalLoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -50,7 +52,9 @@ export const PortalLoginPage: React.FC = () => {
     }
 
     try {
-      const result = await login(username.trim(), password);
+      // Normalize username: trim and lowercase for consistency
+      const normalizedUsername = username.trim().toLowerCase();
+      const result = await login(normalizedUsername, password);
       
       if (result.success) {
         navigate('/portal', { replace: true });
@@ -62,6 +66,13 @@ export const PortalLoginPage: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleClearSession = () => {
+    clearPortalAuthData();
+    toast.success('Portal login data cleared. Please try logging in again.');
+    setError(null);
+    setPassword('');
   };
 
   if (isLoading) {
@@ -168,10 +179,18 @@ export const PortalLoginPage: React.FC = () => {
               </Button>
             </form>
 
-            <div className="mt-6 pt-6 border-t border-border">
+            <div className="mt-6 pt-6 border-t border-border space-y-3">
               <p className="text-sm text-muted-foreground text-center">
                 Need help? Contact your administrator for login credentials.
               </p>
+              <button
+                type="button"
+                onClick={handleClearSession}
+                className="flex items-center justify-center gap-2 w-full text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <RefreshCw className="h-3 w-3" />
+                Having trouble? Clear saved login data
+              </button>
             </div>
           </CardContent>
         </Card>
