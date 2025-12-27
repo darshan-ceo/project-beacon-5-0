@@ -76,7 +76,7 @@ export const TaskHeader: React.FC<TaskHeaderProps> = ({ task, compact = false })
 
   if (compact) {
     return (
-      <div className="flex items-center gap-3 py-2">
+      <div className="flex items-center gap-3 py-2 flex-wrap">
         <Badge variant="secondary" className={cn('text-xs font-medium', statusConfig.color)}>
           {statusConfig.label}
         </Badge>
@@ -100,6 +100,12 @@ export const TaskHeader: React.FC<TaskHeaderProps> = ({ task, compact = false })
             {dueStatus && (
               <span className="text-xs">({dueStatus.text})</span>
             )}
+          </div>
+        )}
+        {task.createdDate && (
+          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+            <CalendarPlus className="h-3.5 w-3.5" />
+            <span>Created: {format(new Date(task.createdDate), 'MMM d')}</span>
           </div>
         )}
         {task.priority && (
