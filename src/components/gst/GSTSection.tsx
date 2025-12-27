@@ -31,6 +31,7 @@ import { GSPConsentModal } from './GSPConsentModal';
 import { SignatorySelectionModal } from './SignatorySelectionModal';
 import { toast } from '@/hooks/use-toast';
 import { envConfig } from '../../utils/envConfig';
+import { extractPANFromGSTIN } from '@/utils/gstUtils';
 
 interface GSTSectionProps {
   clientId: string;
@@ -133,6 +134,8 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
           name: gstInfo.legalName,
           tradeName: gstInfo.tradeName,
           gstin: gstInfo.gstin,
+          // Auto-extract PAN from GSTIN
+          pan: extractPANFromGSTIN(gstInfo.gstin) || formData.pan,
           gstStatus: gstInfo.status,
           gstRegistrationDate: gstInfo.registrationDate,
           gstCancellationDate: gstInfo.cancellationDate,
