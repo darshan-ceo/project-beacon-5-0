@@ -6,7 +6,8 @@ import {
   Flag, 
   Clock,
   Briefcase,
-  ChevronRight
+  ChevronRight,
+  CalendarPlus
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -172,6 +173,13 @@ export const TaskHeader: React.FC<TaskHeaderProps> = ({ task, compact = false })
           <div className="flex items-center gap-1">
             <Briefcase className="h-3.5 w-3.5" />
             <span>{task.caseNumber}</span>
+          </div>
+        )}
+
+        {task.createdDate && (
+          <div className="flex items-center gap-1">
+            <CalendarPlus className="h-3.5 w-3.5" />
+            <span>Created: {format(new Date(task.createdDate), 'MMM d, yyyy')}</span>
           </div>
         )}
       </div>

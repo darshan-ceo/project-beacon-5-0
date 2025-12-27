@@ -603,6 +603,7 @@ export const reportsService = {
           owner: caseInfo ? employeeMap.get(caseInfo.assignedTo) || 'Unassigned' : 'Unassigned',
           assignee: employeeMap.get(task.assigned_to || task.assignedToId) || task.assignedToName || 'Unassigned',
           dueDate: (task.due_date || task.dueDate) ? new Date(task.due_date || task.dueDate).toISOString().split('T')[0] : 'N/A',
+          createdDate: (task.created_at || task.createdAt || task.createdDate) ? new Date(task.created_at || task.createdAt || task.createdDate).toISOString().split('T')[0] : 'N/A',
           status: task.status as any,
           agingDays,
           escalated: (task.escalation_level || 0) > 0,

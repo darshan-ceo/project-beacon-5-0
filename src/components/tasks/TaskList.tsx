@@ -66,7 +66,7 @@ interface TaskListProps {
   onTaskClick?: (task: TaskDisplay) => void;
 }
 
-type SortField = 'title' | 'status' | 'priority' | 'dueDate' | 'assignedTo' | 'caseNumber';
+type SortField = 'title' | 'status' | 'priority' | 'dueDate' | 'createdDate' | 'assignedTo' | 'caseNumber';
 type SortDirection = 'asc' | 'desc';
 
 const priorityOrder = { 'Critical': 4, 'High': 3, 'Medium': 2, 'Low': 1 };
@@ -120,8 +120,11 @@ export const TaskList: React.FC<TaskListProps> = ({
         aValue = statusOrder[a.status as keyof typeof statusOrder] || 0;
         bValue = statusOrder[b.status as keyof typeof statusOrder] || 0;
       } else if (sortField === 'dueDate') {
-        aValue = new Date(a.dueDate).getTime();
-        bValue = new Date(b.dueDate).getTime();
+        aValue = a.dueDate ? new Date(a.dueDate).getTime() : 0;
+        bValue = b.dueDate ? new Date(b.dueDate).getTime() : 0;
+      } else if (sortField === 'createdDate') {
+        aValue = a.createdDate ? new Date(a.createdDate).getTime() : 0;
+        bValue = b.createdDate ? new Date(b.createdDate).getTime() : 0;
       }
 
       if (typeof aValue === 'string') {
@@ -368,6 +371,13 @@ export const TaskList: React.FC<TaskListProps> = ({
                   {getSortIcon('dueDate')}
                 </div>
               </TableHead>
+
+              <TableHead className="cursor-pointer min-w-[120px] hidden md:table-cell" onClick={() => handleSort('createdDate')}>
+                <div className="flex items-center gap-2">
+                  Created
+                  {getSortIcon('createdDate')}
+                </div>
+              </TableHead>
               
               <TableHead className="hidden lg:table-cell min-w-[120px]">Progress</TableHead>
               <TableHead className="w-12"></TableHead>
@@ -473,6 +483,12 @@ export const TaskList: React.FC<TaskListProps> = ({
                         {dueInfo.text}
                       </span>
                     </div>
+                  </TableCell>
+
+                  <TableCell className="hidden md:table-cell">
+                    <span className="text-sm text-muted-foreground">
+                      {task.createdDate ? formatDateForDisplay(task.createdDate) : '-'}
+                    </span>
                   </TableCell>
                   
                   <TableCell className="hidden lg:table-cell">

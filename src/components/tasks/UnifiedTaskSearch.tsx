@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckSquare, User, Flag, Calendar, FileText, Tag } from 'lucide-react';
+import { CheckSquare, User, Flag, Calendar, FileText, Tag, CalendarPlus } from 'lucide-react';
 import { UnifiedModuleSearch, FilterConfig } from '@/components/search/UnifiedModuleSearch';
 
 interface UnifiedTaskSearchProps {
@@ -85,6 +85,12 @@ export const UnifiedTaskSearch: React.FC<UnifiedTaskSearchProps> = ({
       label: 'Due Date',
       type: 'dateRange',
       icon: Calendar
+    },
+    {
+      id: 'createdDate',
+      label: 'Created Date',
+      type: 'dateRange',
+      icon: CalendarPlus
     }
   ];
 

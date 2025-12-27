@@ -386,10 +386,26 @@ export const TaskManagement: React.FC = () => {
         matchesDueDate = false;
       }
     }
+
+    // Created date filter
+    let matchesCreatedDate = true;
+    if (activeFilters.createdDate?.from || activeFilters.createdDate?.to) {
+      const taskCreatedDate = task.createdDate ? new Date(task.createdDate) : null;
+      if (taskCreatedDate) {
+        if (activeFilters.createdDate.from && taskCreatedDate < new Date(activeFilters.createdDate.from)) {
+          matchesCreatedDate = false;
+        }
+        if (activeFilters.createdDate.to && taskCreatedDate > new Date(activeFilters.createdDate.to)) {
+          matchesCreatedDate = false;
+        }
+      } else {
+        matchesCreatedDate = false;
+      }
+    }
     
     return matchesSearch && matchesClient && matchesCase && matchesStatus && 
            matchesPriority && matchesAssignee && matchesTaskTypes && matchesDueDate &&
-           matchesOverdueByDate;
+           matchesOverdueByDate && matchesCreatedDate;
   });
 
   // Defensive logging for filter counts (dev mode)

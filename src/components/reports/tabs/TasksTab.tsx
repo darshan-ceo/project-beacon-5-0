@@ -5,8 +5,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ExportButton } from '@/components/ui/export-button';
 import { getTaskReport } from '@/services/reportsService';
 import { ReportFilter, TaskReportData } from '@/types/reports';
-import { Building2, User } from 'lucide-react';
+import { Building2, User, CalendarPlus } from 'lucide-react';
 import { useAppState } from '@/contexts/AppStateContext';
+import { formatDateForDisplay } from '@/utils/dateFormatters';
 
 interface TasksTabProps {
   filters: ReportFilter;
@@ -74,6 +75,7 @@ export const TasksTab: React.FC<TasksTabProps> = ({ filters }) => {
               <TableHead>Owner</TableHead>
               <TableHead>Task Title</TableHead>
               <TableHead>Assignee</TableHead>
+              <TableHead>Created Date</TableHead>
               <TableHead>Due Date</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Priority</TableHead>
@@ -97,6 +99,12 @@ export const TasksTab: React.FC<TasksTabProps> = ({ filters }) => {
                 </TableCell>
                 <TableCell className="font-medium">{item.title}</TableCell>
                 <TableCell>{item.assignee}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1">
+                    <CalendarPlus className="h-3 w-3 text-muted-foreground" />
+                    <span>{item.createdDate ? formatDateForDisplay(item.createdDate) : '-'}</span>
+                  </div>
+                </TableCell>
                 <TableCell>{item.dueDate}</TableCell>
                 <TableCell>
                   <Badge variant={item.status === 'Completed' ? 'default' : item.status === 'Overdue' ? 'destructive' : 'secondary'}>

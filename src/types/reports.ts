@@ -109,6 +109,7 @@ export interface TaskReportData {
   owner: string;
   assignee: string;
   dueDate: string;
+  createdDate: string;
   status: 'Open' | 'In Progress' | 'Completed' | 'Overdue';
   agingDays: number;
   escalated: boolean;
