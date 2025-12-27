@@ -1022,53 +1022,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <div className="flex items-center gap-1">
-                      <Label htmlFor="pan">PAN Number *</Label>
-                      <FieldTooltip formId="client-master" fieldId="pan" />
-                      {isPANDerivedFromGSTIN && formData.gstin && (
-                        <span className="text-xs text-muted-foreground ml-1">(auto-derived from GSTIN)</span>
-                      )}
-                    </div>
-                    <div className="relative">
-                      <Input
-                        id="pan"
-                        value={formData.pan}
-                        onChange={(e) => {
-                          const newPAN = e.target.value.toUpperCase();
-                          setFormData(prev => ({ ...prev, pan: newPAN }));
-                          setErrors(prev => ({ ...prev, pan: '' }));
-                          
-                          // Show warning if user manually edits PAN when GSTIN is present
-                          if (formData.gstin && isPANDerivedFromGSTIN) {
-                            const derivedPAN = extractPANFromGSTIN(formData.gstin);
-                            if (derivedPAN && newPAN !== derivedPAN) {
-                              setShowPANMismatchWarning(true);
-                            } else {
-                              setShowPANMismatchWarning(false);
-                            }
-                          }
-                        }}
-                        disabled={mode === 'view' || (isPANDerivedFromGSTIN && isValidGSTIN(formData.gstin))}
-                        maxLength={10}
-                        placeholder="ABCDE1234F"
-                        className={`${errors.pan ? 'border-destructive' : ''} ${isPANDerivedFromGSTIN && formData.gstin ? 'bg-muted/50' : ''}`}
-                      />
-                      {isPANDerivedFromGSTIN && formData.gstin && (
-                        <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                          <Lock className="h-3.5 w-3.5 text-muted-foreground" />
-                        </div>
-                      )}
-                    </div>
-                    {errors.pan && <p className="text-sm text-destructive mt-1">{errors.pan}</p>}
-                    {showPANMismatchWarning && (
-                      <p className="text-sm text-amber-600 mt-1 flex items-center gap-1">
-                        <AlertCircle className="h-3.5 w-3.5" />
-                        PAN is derived from GSTIN. Manual changes may cause mismatch.
-                      </p>
-                    )}
-                  </div>
-                  
+                  {/* GSTIN First (left column) */}
                   <div>
                     <div className="flex items-center gap-1">
                       <Label htmlFor="gstin">GSTIN</Label>
@@ -1118,6 +1072,55 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                       className={errors.gstin ? 'border-destructive' : ''}
                     />
                     {errors.gstin && <p className="text-sm text-destructive mt-1">{errors.gstin}</p>}
+                    <p className="text-xs text-muted-foreground mt-1">PAN will be auto-extracted from valid GSTIN</p>
+                  </div>
+                  
+                  {/* PAN Second (right column) */}
+                  <div>
+                    <div className="flex items-center gap-1">
+                      <Label htmlFor="pan">PAN Number *</Label>
+                      <FieldTooltip formId="client-master" fieldId="pan" />
+                      {isPANDerivedFromGSTIN && formData.gstin && (
+                        <span className="text-xs text-muted-foreground ml-1">(auto-derived from GSTIN)</span>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <Input
+                        id="pan"
+                        value={formData.pan}
+                        onChange={(e) => {
+                          const newPAN = e.target.value.toUpperCase();
+                          setFormData(prev => ({ ...prev, pan: newPAN }));
+                          setErrors(prev => ({ ...prev, pan: '' }));
+                          
+                          // Show warning if user manually edits PAN when GSTIN is present
+                          if (formData.gstin && isPANDerivedFromGSTIN) {
+                            const derivedPAN = extractPANFromGSTIN(formData.gstin);
+                            if (derivedPAN && newPAN !== derivedPAN) {
+                              setShowPANMismatchWarning(true);
+                            } else {
+                              setShowPANMismatchWarning(false);
+                            }
+                          }
+                        }}
+                        disabled={mode === 'view' || (isPANDerivedFromGSTIN && isValidGSTIN(formData.gstin))}
+                        maxLength={10}
+                        placeholder="ABCDE1234F"
+                        className={`${errors.pan ? 'border-destructive' : ''} ${isPANDerivedFromGSTIN && formData.gstin ? 'bg-muted/50' : ''}`}
+                      />
+                      {isPANDerivedFromGSTIN && formData.gstin && (
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                          <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
+                    {errors.pan && <p className="text-sm text-destructive mt-1">{errors.pan}</p>}
+                    {showPANMismatchWarning && (
+                      <p className="text-sm text-amber-600 mt-1 flex items-center gap-1">
+                        <AlertCircle className="h-3.5 w-3.5" />
+                        PAN is derived from GSTIN. Manual changes may cause mismatch.
+                      </p>
+                    )}
                   </div>
                 </div>
               </CardContent>
