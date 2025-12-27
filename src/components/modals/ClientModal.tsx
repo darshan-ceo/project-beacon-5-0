@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Edit, Trash2, User, Eye, Building2, MapPin, Shield, AlertCircle, Loader2, RefreshCw, EyeOff, ExternalLink, Copy, ChevronDown, ChevronUp, CheckCircle, KeyRound } from 'lucide-react';
+import { Plus, Edit, Trash2, User, Eye, Building2, MapPin, Shield, AlertCircle, Loader2, RefreshCw, EyeOff, ExternalLink, Copy, ChevronDown, ChevronUp, CheckCircle, KeyRound, Lock } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Client, useAppState, type Signatory, type Address, type Jurisdiction, type PortalAccess } from '@/contexts/AppStateContext';
 import { CASelector } from '@/components/ui/employee-selector';
@@ -29,6 +29,7 @@ import { FieldTooltip } from '@/components/ui/field-tooltip';
 import { TagInput } from '@/components/ui/TagInput';
 import { toTitleCase, toLowerCase } from '@/utils/formatters';
 import { secureLog } from '@/utils/secureLogger';
+import { extractPANFromGSTIN, validateGSTINPANConsistency, isValidGSTIN } from '@/utils/gstUtils';
 import { format } from 'date-fns';
 import { CLIENT_TYPES } from '@/../config/appConfig';
 import { supabase } from '@/integrations/supabase/client';
@@ -150,6 +151,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [newGeneratedPassword, setNewGeneratedPassword] = useState<string | null>(null);
   const [passwordCopied, setPasswordCopied] = useState(false);
+  const [isPANDerivedFromGSTIN, setIsPANDerivedFromGSTIN] = useState(false);
+  const [showPANMismatchWarning, setShowPANMismatchWarning] = useState(false);
   useEffect(() => {
     const loadClientData = async () => {
       setIsAddressMasterEnabled(featureFlagService.isEnabled('address_master_v1'));
@@ -214,6 +217,16 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
           dataScope: clientData.dataScope || 'TEAM'
         });
         setSignatories(clientData.signatories || []);
+        
+        // Check if PAN was derived from GSTIN on edit mode load
+        const existingGSTIN = clientData.gstin || '';
+        const existingPAN = clientData.pan || clientData.panNumber || '';
+        if (existingGSTIN && existingPAN && isValidGSTIN(existingGSTIN)) {
+          const derivedPAN = extractPANFromGSTIN(existingGSTIN);
+          if (derivedPAN === existingPAN) {
+            setIsPANDerivedFromGSTIN(true);
+          }
+        }
       } else if (mode === 'create') {
         // Reset to defaults
         setFormData({
@@ -424,6 +437,12 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
       const gstinValidation = clientsService.validateGSTIN(formData.gstin);
       if (!gstinValidation.isValid) {
         newErrors.gstin = gstinValidation.errors[0];
+      }
+      
+      // PAN-GSTIN consistency check
+      if (formData.pan && !validateGSTINPANConsistency(formData.gstin, formData.pan)) {
+        const derivedPAN = extractPANFromGSTIN(formData.gstin);
+        newErrors.pan = `PAN mismatch: GSTIN suggests PAN should be ${derivedPAN}`;
       }
     }
 
@@ -1007,20 +1026,47 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                     <div className="flex items-center gap-1">
                       <Label htmlFor="pan">PAN Number *</Label>
                       <FieldTooltip formId="client-master" fieldId="pan" />
+                      {isPANDerivedFromGSTIN && formData.gstin && (
+                        <span className="text-xs text-muted-foreground ml-1">(auto-derived from GSTIN)</span>
+                      )}
                     </div>
-                    <Input
-                      id="pan"
-                      value={formData.pan}
-                      onChange={(e) => {
-                        setFormData(prev => ({ ...prev, pan: e.target.value.toUpperCase() }));
-                        setErrors(prev => ({ ...prev, pan: '' }));
-                      }}
-                      disabled={mode === 'view'}
-                      maxLength={10}
-                      placeholder="ABCDE1234F"
-                      className={errors.pan ? 'border-destructive' : ''}
-                    />
+                    <div className="relative">
+                      <Input
+                        id="pan"
+                        value={formData.pan}
+                        onChange={(e) => {
+                          const newPAN = e.target.value.toUpperCase();
+                          setFormData(prev => ({ ...prev, pan: newPAN }));
+                          setErrors(prev => ({ ...prev, pan: '' }));
+                          
+                          // Show warning if user manually edits PAN when GSTIN is present
+                          if (formData.gstin && isPANDerivedFromGSTIN) {
+                            const derivedPAN = extractPANFromGSTIN(formData.gstin);
+                            if (derivedPAN && newPAN !== derivedPAN) {
+                              setShowPANMismatchWarning(true);
+                            } else {
+                              setShowPANMismatchWarning(false);
+                            }
+                          }
+                        }}
+                        disabled={mode === 'view' || (isPANDerivedFromGSTIN && isValidGSTIN(formData.gstin))}
+                        maxLength={10}
+                        placeholder="ABCDE1234F"
+                        className={`${errors.pan ? 'border-destructive' : ''} ${isPANDerivedFromGSTIN && formData.gstin ? 'bg-muted/50' : ''}`}
+                      />
+                      {isPANDerivedFromGSTIN && formData.gstin && (
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                          <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
                     {errors.pan && <p className="text-sm text-destructive mt-1">{errors.pan}</p>}
+                    {showPANMismatchWarning && (
+                      <p className="text-sm text-amber-600 mt-1 flex items-center gap-1">
+                        <AlertCircle className="h-3.5 w-3.5" />
+                        PAN is derived from GSTIN. Manual changes may cause mismatch.
+                      </p>
+                    )}
                   </div>
                   
                   <div>
@@ -1032,8 +1078,39 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                       id="gstin"
                       value={formData.gstin}
                       onChange={(e) => {
-                        setFormData(prev => ({ ...prev, gstin: e.target.value.toUpperCase() }));
+                        const newGSTIN = e.target.value.toUpperCase();
+                        setFormData(prev => ({ ...prev, gstin: newGSTIN }));
                         setErrors(prev => ({ ...prev, gstin: '' }));
+                        
+                        // Auto-extract PAN when GSTIN is valid
+                        if (newGSTIN.length === 15 && isValidGSTIN(newGSTIN)) {
+                          const derivedPAN = extractPANFromGSTIN(newGSTIN);
+                          if (derivedPAN) {
+                            setFormData(prev => ({ ...prev, gstin: newGSTIN, pan: derivedPAN }));
+                            setIsPANDerivedFromGSTIN(true);
+                            setShowPANMismatchWarning(false);
+                            setErrors(prev => ({ ...prev, pan: '' }));
+                          }
+                        } else if (!newGSTIN) {
+                          // Clear derived flag when GSTIN is cleared
+                          setIsPANDerivedFromGSTIN(false);
+                          setShowPANMismatchWarning(false);
+                        }
+                      }}
+                      onBlur={(e) => {
+                        // Also check on blur for paste scenarios
+                        const gstin = e.target.value.toUpperCase();
+                        if (gstin.length === 15 && isValidGSTIN(gstin)) {
+                          const derivedPAN = extractPANFromGSTIN(gstin);
+                          if (derivedPAN && (!formData.pan || formData.pan !== derivedPAN)) {
+                            setFormData(prev => ({ ...prev, pan: derivedPAN }));
+                            setIsPANDerivedFromGSTIN(true);
+                            setShowPANMismatchWarning(false);
+                            setErrors(prev => ({ ...prev, pan: '' }));
+                          }
+                        } else if (gstin && !isValidGSTIN(gstin)) {
+                          setErrors(prev => ({ ...prev, gstin: 'Invalid GSTIN format. PAN cannot be derived.' }));
+                        }
                       }}
                       disabled={mode === 'view'}
                       maxLength={15}
