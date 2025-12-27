@@ -55,11 +55,19 @@ export function getAuthErrorMessage(err: unknown): string {
   
   // Map common auth errors to user-friendly messages
   const errorMappings: Record<string, string> = {
-    'Invalid login credentials': 'Invalid username or password',
-    'Email not confirmed': 'Please verify your email before logging in',
-    'User not found': 'Invalid username or password',
-    'invalid_grant': 'Invalid username or password',
+    'Invalid login credentials': 'Incorrect password. Please try again or contact your administrator to reset your password.',
+    'Email not confirmed': 'Account not verified. Please contact your administrator.',
+    'User not found': 'Username not found. Please check your username.',
+    'invalid_grant': 'Incorrect password. Please try again or contact your administrator.',
     'Invalid Refresh Token': 'Your session has expired. Please log in again.',
+    'Network': 'Unable to connect. Please check your internet connection.',
+    'fetch': 'Unable to connect. Please check your internet connection.',
+    'timeout': 'Connection timed out. Please try again.',
+    'not enabled': 'Portal access is not enabled for this account.',
+    'portal access': 'Portal access is not configured. Please contact your administrator.',
+    'not found': 'Username not found. Please verify your username.',
+    'deactivated': 'Your account has been deactivated. Please contact your administrator.',
+    'disabled': 'Your account has been disabled. Please contact your administrator.',
   };
   
   // Check if the error matches any known patterns
@@ -71,8 +79,50 @@ export function getAuthErrorMessage(err: unknown): string {
   
   // If message is empty or generic, return friendly fallback
   if (!rawMessage || rawMessage === '{}' || rawMessage === 'An unexpected error occurred') {
-    return 'Invalid username or password. Please try again.';
+    return 'Login failed. Please check your credentials or contact your administrator.';
   }
   
   return rawMessage;
+}
+
+/**
+ * Portal-specific error codes for tracking login failures
+ */
+export enum PortalLoginErrorCode {
+  LOOKUP_FAILED = 'LOOKUP_FAILED',
+  NETWORK_ERROR = 'NETWORK_ERROR', 
+  INVALID_CREDENTIALS = 'INVALID_CREDENTIALS',
+  ACCOUNT_DISABLED = 'ACCOUNT_DISABLED',
+  PORTAL_NOT_FOUND = 'PORTAL_NOT_FOUND',
+  UNKNOWN = 'UNKNOWN'
+}
+
+/**
+ * Parse auth error to determine the failure type
+ */
+export function parsePortalLoginError(err: unknown): { code: PortalLoginErrorCode; message: string } {
+  const rawMessage = getErrorMessage(err);
+  const lowerMessage = rawMessage.toLowerCase();
+  
+  if (lowerMessage.includes('network') || lowerMessage.includes('fetch') || lowerMessage.includes('timeout')) {
+    return { code: PortalLoginErrorCode.NETWORK_ERROR, message: 'Unable to connect. Please check your internet connection.' };
+  }
+  
+  if (lowerMessage.includes('invalid login') || lowerMessage.includes('invalid_grant') || lowerMessage.includes('incorrect')) {
+    return { code: PortalLoginErrorCode.INVALID_CREDENTIALS, message: 'Incorrect password. Please try again or contact your administrator to reset your password.' };
+  }
+  
+  if (lowerMessage.includes('not found') || lowerMessage.includes('user not')) {
+    return { code: PortalLoginErrorCode.LOOKUP_FAILED, message: 'Username not found. Please verify your username.' };
+  }
+  
+  if (lowerMessage.includes('disabled') || lowerMessage.includes('deactivated') || lowerMessage.includes('inactive')) {
+    return { code: PortalLoginErrorCode.ACCOUNT_DISABLED, message: 'Your account has been disabled. Please contact your administrator.' };
+  }
+  
+  if (lowerMessage.includes('portal') || lowerMessage.includes('access')) {
+    return { code: PortalLoginErrorCode.PORTAL_NOT_FOUND, message: 'Portal access not found. Please contact your administrator.' };
+  }
+  
+  return { code: PortalLoginErrorCode.UNKNOWN, message: getAuthErrorMessage(err) };
 }

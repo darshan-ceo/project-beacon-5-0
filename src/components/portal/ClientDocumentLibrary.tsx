@@ -81,25 +81,69 @@ export const ClientDocumentLibrary: React.FC<ClientDocumentLibraryProps> = ({
     try {
       setLoading(true);
       
-      // Use portal client for fetching documents
-      let query = portalSupabase
+      // Get all case IDs for this client to also fetch case-linked documents
+      const clientCaseIds: string[] = cases.map(c => c.id);
+      
+      console.log('[PortalDocs] Fetching documents for client:', clientId);
+      console.log('[PortalDocs] Client case IDs:', clientCaseIds);
+      
+      // Strategy: Fetch documents that are either:
+      // 1. Directly tagged to this client (client_id = clientId), OR
+      // 2. Linked to one of the client's cases (case_id IN clientCaseIds)
+      // This ensures documents uploaded to cases (without explicit client_id) are visible
+      
+      let allDocs: Document[] = [];
+      
+      // Query 1: Documents directly tagged to client
+      const { data: clientDocs, error: clientDocsError } = await portalSupabase
         .from('documents')
         .select('*')
         .eq('client_id', clientId)
         .order('upload_timestamp', { ascending: false });
-
+      
+      if (clientDocsError) {
+        console.error('[PortalDocs] Error fetching client-tagged docs:', clientDocsError);
+      } else {
+        console.log('[PortalDocs] Client-tagged documents:', clientDocs?.length || 0);
+        allDocs = [...(clientDocs || [])];
+      }
+      
+      // Query 2: Documents linked to client's cases (if case IDs available)
+      if (clientCaseIds.length > 0) {
+        const { data: caseDocs, error: caseDocsError } = await portalSupabase
+          .from('documents')
+          .select('*')
+          .in('case_id', clientCaseIds)
+          .order('upload_timestamp', { ascending: false });
+        
+        if (caseDocsError) {
+          console.error('[PortalDocs] Error fetching case-linked docs:', caseDocsError);
+        } else {
+          console.log('[PortalDocs] Case-linked documents:', caseDocs?.length || 0);
+          // Merge and dedupe
+          const existingIds = new Set(allDocs.map(d => d.id));
+          for (const doc of (caseDocs || [])) {
+            if (!existingIds.has(doc.id)) {
+              allDocs.push(doc);
+              existingIds.add(doc.id);
+            }
+          }
+        }
+      }
+      
+      // Apply case filter if specific case selected
+      let filteredDocs = allDocs;
       if (selectedCaseId !== 'all') {
-        query = query.eq('case_id', selectedCaseId);
+        filteredDocs = allDocs.filter(d => d.case_id === selectedCaseId);
       }
-
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('Portal fetch documents error:', error);
-        throw error;
-      }
-
-      setDocuments(data || []);
+      
+      // Sort by upload timestamp descending
+      filteredDocs.sort((a, b) => 
+        new Date(b.upload_timestamp).getTime() - new Date(a.upload_timestamp).getTime()
+      );
+      
+      console.log('[PortalDocs] Total documents after merge:', filteredDocs.length);
+      setDocuments(filteredDocs);
     } catch (error) {
       console.error('Portal error loading documents:', error);
       toast({
@@ -110,7 +154,7 @@ export const ClientDocumentLibrary: React.FC<ClientDocumentLibraryProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [clientId, selectedCaseId, isAuthenticated]);
+  }, [clientId, selectedCaseId, isAuthenticated, cases]);
 
   useEffect(() => {
     fetchDocuments();
