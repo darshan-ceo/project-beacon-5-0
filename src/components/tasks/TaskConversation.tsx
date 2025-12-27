@@ -95,7 +95,7 @@ export const TaskConversation: React.FC = () => {
             attachments: data.attachments || [],
             estimatedHours: data.estimated_hours,
             actualHours: data.actual_hours,
-            createdAt: data.created_at,
+            createdDate: data.created_at,
             updatedAt: data.updated_at,
           });
         }
