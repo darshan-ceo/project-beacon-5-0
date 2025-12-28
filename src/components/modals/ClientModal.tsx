@@ -153,6 +153,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
   const [passwordCopied, setPasswordCopied] = useState(false);
   const [isPANDerivedFromGSTIN, setIsPANDerivedFromGSTIN] = useState(false);
   const [showPANMismatchWarning, setShowPANMismatchWarning] = useState(false);
+  // Track if user explicitly wants to change portal password (prevents accidental rotations on save)
+  const [portalPasswordChangeRequested, setPortalPasswordChangeRequested] = useState(false);
   useEffect(() => {
     const loadClientData = async () => {
       setIsAddressMasterEnabled(featureFlagService.isEnabled('address_master_v1'));
@@ -601,8 +603,17 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
       }
 
       // Provision portal user if portal access is enabled
-      if (savedClientId && formData.portalAccess.allowLogin && formData.portalAccess.username && formData.portalAccess.passwordHash) {
+      // In EDIT mode: only provision if user explicitly requested password change OR if this is NEW portal setup
+      const isNewPortalSetup = mode === 'create' || !clientData?.portalAccess?.allowLogin || !clientData?.portalAccess?.username;
+      const shouldProvision = savedClientId && 
+                              formData.portalAccess.allowLogin && 
+                              formData.portalAccess.username && 
+                              formData.portalAccess.passwordHash &&
+                              (isNewPortalSetup || portalPasswordChangeRequested);
+      
+      if (shouldProvision) {
         try {
+          console.log('[ClientModal] Provisioning portal user - isNew:', isNewPortalSetup, 'passwordChangeRequested:', portalPasswordChangeRequested);
           const { data, error } = await supabase.functions.invoke('provision-portal-user', {
             body: {
               clientId: savedClientId,
@@ -625,6 +636,12 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
               title: "Portal Access Configured",
               description: `Portal login created for ${formData.portalAccess.username}`,
             });
+            // Clear the password field and reset flag after successful provision
+            setFormData(prev => ({
+              ...prev,
+              portalAccess: { ...prev.portalAccess, passwordHash: '' }
+            }));
+            setPortalPasswordChangeRequested(false);
           }
         } catch (provisionError) {
           console.error('Portal provisioning exception:', provisionError);
@@ -748,6 +765,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         passwordHash: password
       }
     }));
+    // Mark that user explicitly wants to change password
+    setPortalPasswordChangeRequested(true);
     setErrors(prev => ({ ...prev, portalPassword: '' }));
   };
 
