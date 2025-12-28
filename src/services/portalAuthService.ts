@@ -29,11 +29,26 @@ export const portalAuthService = {
       console.log('[PortalAuth] === LOGIN ATTEMPT START ===');
       console.log('[PortalAuth] Username:', username);
 
+      // Step 0: Clean up any stale sessions to avoid auth conflicts
+      console.log('[PortalAuth] Step 0: Clearing stale sessions...');
+      try {
+        this.clearSession();
+        await portalSupabase.auth.signOut();
+        console.log('[PortalAuth] Step 0 SUCCESS: Stale sessions cleared');
+      } catch (cleanupError) {
+        // Non-fatal - continue with login attempt
+        console.log('[PortalAuth] Step 0: Cleanup had non-fatal error, continuing...', cleanupError);
+      }
+
+      // Trim credentials to avoid whitespace issues from copy/paste
+      const trimmedUsername = username.trim();
+      const trimmedPassword = password.trim();
+
       // Step 1: Call edge function to lookup loginEmail
       console.log('[PortalAuth] Step 1: Looking up loginEmail...');
       const { data: lookupData, error: lookupError } = await supabase.functions.invoke(
         'portal-lookup-login-email',
-        { body: { identifier: username } }
+        { body: { identifier: trimmedUsername } }
       );
 
       console.log('[PortalAuth] Lookup response - data:', JSON.stringify(lookupData));
@@ -78,7 +93,7 @@ export const portalAuthService = {
       console.log('[PortalAuth] Step 2: Authenticating with portalSupabase...');
       const { data: authData, error: authError } = await portalSupabase.auth.signInWithPassword({
         email: loginEmail,
-        password
+        password: trimmedPassword
       });
 
       if (authError) {

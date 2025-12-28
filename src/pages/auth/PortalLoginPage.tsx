@@ -54,7 +54,9 @@ export const PortalLoginPage: React.FC = () => {
     try {
       // Normalize username: trim and lowercase for consistency
       const normalizedUsername = username.trim().toLowerCase();
-      const result = await login(normalizedUsername, password);
+      // Trim password to avoid whitespace issues from copy/paste
+      const trimmedPassword = password.trim();
+      const result = await login(normalizedUsername, trimmedPassword);
       
       if (result.success) {
         navigate('/portal', { replace: true });
@@ -62,6 +64,7 @@ export const PortalLoginPage: React.FC = () => {
         setError(result.error || 'Invalid username or password');
       }
     } catch (err) {
+      console.error('[PortalLogin] Login exception:', err);
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);
