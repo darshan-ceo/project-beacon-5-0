@@ -132,9 +132,9 @@ export const ClientDocumentUpload: React.FC<ClientDocumentUploadProps> = ({
             case_id: caseId || null,
             tenant_id: clientAccess.tenantId,
             uploaded_by: portalUserId, // Use portal user's auth.uid()
-            category: 'Client Upload',
+            category: 'Miscellaneous',
             document_status: 'Pending Review',
-            remarks: description || null,
+            remarks: description ? `[Client Upload] ${description}` : '[Client Upload]',
             version: 1,
             is_latest_version: true
           });
