@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { portalSupabase } from '@/integrations/supabase/portalClient';
 import { useClientPortal } from '@/contexts/ClientPortalContext';
 import { ClientCaseView } from './ClientCaseView';
+import { ClientCaseTimeline } from './ClientCaseTimeline';
 import { ClientDocumentLibrary } from './ClientDocumentLibrary';
 import { ClientHearingSchedule } from './ClientHearingSchedule';
 import { ClientNotifications } from './ClientNotifications';
@@ -10,6 +11,7 @@ import { ClientDocumentUpload } from './ClientDocumentUpload';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { 
   Scale, 
   FileText, 
@@ -42,6 +44,9 @@ export const ClientPortal: React.FC = () => {
   const [clientCases, setClientCases] = useState<Case[]>([]);
   const [clientHearings, setClientHearings] = useState<Hearing[]>([]);
   const [documentCount, setDocumentCount] = useState(0);
+  const [activeTab, setActiveTab] = useState('cases');
+  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
+  const [showTimeline, setShowTimeline] = useState(false);
 
   const clientId = clientAccess?.clientId || '';
   const clientName = clientAccess?.clientName || '';
@@ -140,6 +145,20 @@ export const ClientPortal: React.FC = () => {
   const activeCases = clientCases.filter(c => c.status !== 'Closed').length;
   const upcomingHearings = clientHearings.length;
 
+  const selectedCase = selectedCaseId 
+    ? clientCases.find(c => c.id === selectedCaseId) 
+    : null;
+
+  const handleViewDocuments = (caseId: string) => {
+    setSelectedCaseId(caseId);
+    setActiveTab('documents');
+  };
+
+  const handleCaseTimeline = (caseId: string) => {
+    setSelectedCaseId(caseId);
+    setShowTimeline(true);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -227,7 +246,7 @@ export const ClientPortal: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
       >
-        <Tabs defaultValue="cases" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1 p-1 h-auto">
             <TabsTrigger value="cases" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap flex items-center space-x-2">
               <Scale className="h-4 w-4" />
@@ -248,7 +267,12 @@ export const ClientPortal: React.FC = () => {
           </TabsList>
 
           <TabsContent value="cases">
-            <ClientCaseView cases={clientCases} clientId={clientId} />
+            <ClientCaseView 
+              cases={clientCases} 
+              clientId={clientId}
+              onViewDocuments={handleViewDocuments}
+              onCaseTimeline={handleCaseTimeline}
+            />
           </TabsContent>
 
           <TabsContent value="hearings">
@@ -273,6 +297,29 @@ export const ClientPortal: React.FC = () => {
           </TabsContent>
         </Tabs>
       </motion.div>
+
+      {/* Case Timeline Sheet */}
+      <Sheet open={showTimeline} onOpenChange={setShowTimeline}>
+        <SheetContent className="sm:max-w-lg overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Case Timeline
+            </SheetTitle>
+            <SheetDescription>
+              View the complete history of events for this case.
+            </SheetDescription>
+          </SheetHeader>
+          {selectedCaseId && selectedCase && (
+            <div className="mt-6">
+              <ClientCaseTimeline 
+                caseId={selectedCaseId} 
+                caseNumber={selectedCase.case_number} 
+              />
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };

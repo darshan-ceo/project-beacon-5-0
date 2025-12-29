@@ -20,9 +20,11 @@ interface Case {
 interface ClientCaseViewProps {
   cases: Case[];
   clientId: string;
+  onViewDocuments?: (caseId: string) => void;
+  onCaseTimeline?: (caseId: string) => void;
 }
 
-export const ClientCaseView: React.FC<ClientCaseViewProps> = ({ cases, clientId }) => {
+export const ClientCaseView: React.FC<ClientCaseViewProps> = ({ cases, clientId, onViewDocuments, onCaseTimeline }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Open':
@@ -96,11 +98,19 @@ export const ClientCaseView: React.FC<ClientCaseViewProps> = ({ cases, clientId 
                 
                 <CardContent className="space-y-4">
                   <div className="flex space-x-2 pt-2">
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => onViewDocuments?.(caseItem.id)}
+                    >
                       <FileText className="mr-2 h-4 w-4" />
                       View Documents
                     </Button>
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => onCaseTimeline?.(caseItem.id)}
+                    >
                       <Calendar className="mr-2 h-4 w-4" />
                       Case Timeline
                     </Button>
