@@ -72,8 +72,7 @@ export const ClientPortal: React.FC = () => {
           .from('hearings')
           .select('id, case_id, hearing_date, status, notes')
           .in('case_id', caseIds)
-          .gte('hearing_date', new Date().toISOString())
-          .order('hearing_date', { ascending: true });
+          .order('hearing_date', { ascending: false });
 
         if (hearingsError) throw hearingsError;
         setClientHearings(hearings || []);
