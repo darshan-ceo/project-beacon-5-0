@@ -104,6 +104,8 @@ class NetworkInterceptor {
       'localhost',
       '127.0.0.1',
       envConfig.API?.replace(/^https?:\/\//, '').split('/')[0],
+      // Allow Supabase domain for all database/storage operations
+      envConfig.SUPABASE_URL?.replace(/^https?:\/\//, '').split('/')[0],
       // Allow blob URLs for file operations
       'blob:',
       // Allow OpenAI API for notice extraction

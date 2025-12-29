@@ -91,60 +91,12 @@ class SearchService {
       return;
     }
 
-    // Determine provider based on API availability
-    let provider: SearchProvider = 'DEMO';
-    
-    if (envConfig.API_SET) {
-      try {
-        // Test API reachability with 1500ms timeout
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 1500);
-        
-        try {
-          // Try search ping endpoint first, fallback to health check
-          let pingUrl = `${envConfig.API}/api/search/ping`;
-          let response = await fetch(pingUrl, { 
-            method: 'GET',
-            signal: controller.signal 
-          });
-          
-          if (!response.ok) {
-            // Fallback to health endpoint
-            pingUrl = `${envConfig.API}/api/health`;
-            response = await fetch(pingUrl, { 
-              method: 'GET',
-              signal: controller.signal 
-            });
-          }
-          
-          if (!response.ok) {
-            // Last fallback - try a small search request
-            pingUrl = `${envConfig.API}/api/search/suggest?q=ping&limit=1`;
-            response = await fetch(pingUrl, { 
-              method: 'GET',
-              signal: controller.signal 
-            });
-          }
-          
-          clearTimeout(timeoutId);
-          
-          if (response.ok) {
-            provider = 'API';
-            console.log(`🔍 API reachable at ${pingUrl}, using API provider`);
-          } else {
-            console.log(`🔍 API not responsive (${response.status}), falling back to DEMO`);
-          }
-        } catch (fetchError) {
-          clearTimeout(timeoutId);
-          console.log(`🔍 API unreachable, falling back to DEMO:`, fetchError.message);
-        }
-      } catch (error) {
-        console.log(`🔍 API ping failed, using DEMO provider:`, error.message);
-      }
-    } else if (envConfig.QA_ON || envConfig.MOCK_ON || !envConfig.API_SET) {
-      provider = 'DEMO';
-      console.log(`🔍 Using DEMO provider due to environment config`);
-    }
+    // Force DEMO mode - Global search uses Supabase directly via storageManager
+    // No external search API is configured for this project
+    // Note: envConfig.API_SET may be true due to Supabase edge functions (like GST)
+    // but that doesn't mean a search API exists
+    const provider: SearchProvider = 'DEMO';
+    console.log(`🔍 Search provider: DEMO mode (queries Supabase directly)`);
 
     this.provider = provider;
     sessionStorage.setItem('search_provider', provider);
