@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { NotificationSettingsDialog } from './NotificationSettingsDialog';
 import { 
   Bell,
   Calendar,
@@ -40,6 +41,7 @@ export const ClientNotifications: React.FC<ClientNotificationsProps> = ({ client
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'unread' | 'urgent'>('all');
+  const [showSettings, setShowSettings] = useState(false);
 
   // Transform database record to Notification interface
   const transformNotification = (record: any): Notification => ({
@@ -228,7 +230,7 @@ export const ClientNotifications: React.FC<ClientNotificationsProps> = ({ client
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => setShowSettings(true)}>
             <Settings className="mr-2 h-4 w-4" />
             Settings
           </Button>
@@ -240,6 +242,12 @@ export const ClientNotifications: React.FC<ClientNotificationsProps> = ({ client
           )}
         </div>
       </div>
+
+      {/* Settings Dialog */}
+      <NotificationSettingsDialog 
+        open={showSettings} 
+        onOpenChange={setShowSettings} 
+      />
 
       {/* Filter Tabs */}
       <div className="flex space-x-1 bg-muted p-1 rounded-lg">
@@ -422,7 +430,12 @@ export const ClientNotifications: React.FC<ClientNotificationsProps> = ({ client
           <p>• Case updates: Email notifications</p>
           <p>• Document uploads: Instant email notifications</p>
           <p>• Payment reminders: Email (5 days before due date)</p>
-          <Button variant="outline" size="sm" className="mt-3">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="mt-3"
+            onClick={() => setShowSettings(true)}
+          >
             Customize Preferences
           </Button>
         </CardContent>
