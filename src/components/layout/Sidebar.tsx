@@ -20,7 +20,14 @@ import {
   HelpCircle,
   Sun,
   Moon,
-  ShieldCheck
+  ShieldCheck,
+  Briefcase,
+  Activity,
+  Folder,
+  LineChart,
+  LifeBuoy,
+  Wrench,
+  Lock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -57,57 +64,182 @@ interface MenuItem {
   tourId?: string;
 }
 
-interface MenuGroup {
+interface SidebarSection {
+  id: string;
   label: string;
+  icon: React.ElementType;
   items: MenuItem[];
-  defaultOpen?: boolean;
+  defaultOpen: boolean;
+  collapsible: boolean;
   roles: string[];
 }
 
-// Main navigation items (always visible, in requested order)
-const mainMenuItems: MenuItem[] = [
-  { icon: BarChart3, label: 'Dashboard', href: '/', roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'dashboard-nav' },
-  { icon: ShieldCheck, label: 'Compliance Dashboard', href: '/compliance', roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'compliance-nav' },
-  { icon: FileText, label: 'Case Management', href: '/cases', roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'cases-nav' },
-  { icon: CalendarDays, label: 'Hearings', href: '/hearings/calendar', roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'hearings-nav' },
-  { icon: CheckSquare, label: 'Task Management', href: '/tasks', roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'tasks-nav' },
-  { icon: FolderOpen, label: 'Document Management', href: '/documents', roles: ['Admin', 'Partner/CA', 'Staff', 'Client', 'Advocate', 'Manager', 'Ca'], tourId: 'documents-nav' },
-  { icon: BarChart3, label: 'Reports', href: '/reports', roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'reports-nav' },
-  { icon: HelpCircle, label: 'Help & Knowledge Base', href: '/help', roles: ['Admin', 'Partner/CA', 'Staff', 'Client', 'Advocate', 'Manager', 'Ca', 'Clerk', 'User'], tourId: 'help-nav' },
-  { icon: UserCircle, label: 'User Profile', href: '/profile', roles: ['Admin', 'Partner/CA', 'Staff', 'Client', 'Advocate', 'Manager', 'Ca', 'Clerk', 'User'], tourId: 'profile-nav' },
-];
+// =============================================================================
+// SIDEBAR SECTIONS - Organized by lawyer's mental workflow:
+// Monitor → Act → Execute → Reference → Control
+// =============================================================================
 
-// Grouped menu sections
-const menuGroups: MenuGroup[] = [
+const sidebarSections: SidebarSection[] = [
+  // SECTION 1: MONITOR (Daily Awareness)
   {
-    label: 'Masters',
-    defaultOpen: false,
+    id: 'monitor',
+    label: 'MONITOR',
+    icon: Activity,
+    defaultOpen: true,
+    collapsible: false,
     roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'],
     items: [
-      { icon: Users, label: 'Client Masters', href: '/clients', roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'] },
+      { icon: BarChart3, label: 'Dashboard', href: '/', roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'dashboard-nav' },
+      { icon: ShieldCheck, label: 'Compliance Dashboard', href: '/compliance', roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'compliance-nav' },
+    ]
+  },
+  
+  // SECTION 2: LITIGATION (Core Workflow)
+  {
+    id: 'litigation',
+    label: 'LITIGATION',
+    icon: Briefcase,
+    defaultOpen: true,
+    collapsible: false,
+    roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'],
+    items: [
+      { icon: FileText, label: 'Case Management', href: '/cases', roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'cases-nav' },
+      { icon: CalendarDays, label: 'Hearings', href: '/hearings/calendar', roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'hearings-nav' },
+      { icon: CheckSquare, label: 'Task Management', href: '/tasks', roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'tasks-nav' },
+    ]
+  },
+  
+  // SECTION 3: CLIENTS (Relationship Layer)
+  {
+    id: 'clients',
+    label: 'CLIENTS',
+    icon: Users,
+    defaultOpen: true,
+    collapsible: true,
+    roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'],
+    items: [
+      { icon: Users, label: 'Clients', href: '/clients', roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'] },
       { icon: UserCircle, label: 'Contacts', href: '/contacts', roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'] },
       { icon: Building2, label: 'Client Groups', href: '/client-groups', roles: ['Admin', 'Partner/CA', 'Ca'] },
+    ]
+  },
+  
+  // SECTION 4: DOCUMENTS (Evidence & Records)
+  {
+    id: 'documents',
+    label: 'DOCUMENTS',
+    icon: Folder,
+    defaultOpen: true,
+    collapsible: false,
+    roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca', 'Client'],
+    items: [
+      { icon: FolderOpen, label: 'Document Management', href: '/documents', roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca', 'Client'], tourId: 'documents-nav' },
+    ]
+  },
+  
+  // SECTION 5: ANALYTICS
+  {
+    id: 'analytics',
+    label: 'ANALYTICS',
+    icon: LineChart,
+    defaultOpen: false,
+    collapsible: true,
+    roles: ['Admin', 'Partner/CA', 'Manager'],
+    items: [
+      { icon: BarChart3, label: 'Reports', href: '/reports', roles: ['Admin', 'Partner/CA', 'Manager'], tourId: 'reports-nav' },
+    ]
+  },
+  
+  // SECTION 6: SUPPORT
+  {
+    id: 'support',
+    label: 'SUPPORT',
+    icon: LifeBuoy,
+    defaultOpen: false,
+    collapsible: true,
+    roles: ['Admin', 'Partner/CA', 'Staff', 'Client', 'Advocate', 'Manager', 'Ca', 'Clerk', 'User'],
+    items: [
+      { icon: HelpCircle, label: 'Help & Knowledge Base', href: '/help', roles: ['Admin', 'Partner/CA', 'Staff', 'Client', 'Advocate', 'Manager', 'Ca', 'Clerk', 'User'], tourId: 'help-nav' },
+      { icon: UserCircle, label: 'User Profile', href: '/profile', roles: ['Admin', 'Partner/CA', 'Staff', 'Client', 'Advocate', 'Manager', 'Ca', 'Clerk', 'User'], tourId: 'profile-nav' },
+    ]
+  },
+  
+  // SECTION 7: CONFIGURATION (Collapsed by Default) - Admin/Partner only
+  {
+    id: 'configuration',
+    label: 'CONFIGURATION',
+    icon: Wrench,
+    defaultOpen: false,
+    collapsible: true,
+    roles: ['Admin', 'Partner/CA', 'Ca'],
+    items: [
       { icon: Building2, label: 'Legal Authorities', href: '/courts', roles: ['Admin', 'Partner/CA', 'Ca'] },
       { icon: Gavel, label: 'Judge Masters', href: '/judges', roles: ['Admin', 'Partner/CA', 'Ca'] },
       { icon: UserCheck, label: 'Employee Masters', href: '/employees', roles: ['Admin'] },
       { icon: Scale, label: 'Statutory Deadlines', href: '/statutory-acts', roles: ['Admin', 'Partner/CA', 'Ca'] },
     ]
   },
+  
+  // SECTION 8: ADMINISTRATION
   {
-    label: 'Administration',
+    id: 'administration',
+    label: 'ADMINISTRATION',
+    icon: Lock,
     defaultOpen: false,
+    collapsible: true,
     roles: ['Admin'],
     items: [
       { icon: Settings, label: 'System Settings', href: '/settings', roles: ['Admin', 'Partner/CA'] },
       { icon: Shield, label: 'Access & Roles', href: '/access-roles', roles: ['Admin'] },
     ]
-  }
+  },
 ];
 
-// Icons for group headers in collapsed mode
-const groupIcons: Record<string, React.ElementType> = {
-  Masters: Building2,
-  Administration: Settings,
+// Developer section - added dynamically based on env config
+const createDevSection = (): SidebarSection | null => {
+  if (!envConfig.QA_ON && !envConfig.GST_ENABLED && !envConfig.MOCK_ON) {
+    return null;
+  }
+  
+  const devItems: MenuItem[] = [];
+  
+  if (envConfig.QA_ON || envConfig.GST_ENABLED || envConfig.MOCK_ON) {
+    devItems.push({ 
+      icon: TestTube, 
+      label: 'Dev Mode Dashboard', 
+      href: '/dev-dashboard', 
+      roles: ['Admin'],
+      badge: 'DEV'
+    });
+  }
+  
+  if (envConfig.QA_ON) {
+    devItems.push({ 
+      icon: Bug, 
+      label: 'QA Dashboard', 
+      href: '/qa', 
+      roles: ['Admin'] 
+    });
+  }
+  
+  if (envConfig.GST_ENABLED) {
+    devItems.push({ 
+      icon: TestTube, 
+      label: 'GST Debug', 
+      href: '/debug/gst', 
+      roles: ['Admin'] 
+    });
+  }
+  
+  return {
+    id: 'developer',
+    label: 'DEVELOPER',
+    icon: Bug,
+    defaultOpen: false,
+    collapsible: true,
+    roles: ['Admin'],
+    items: devItems
+  };
 };
 
 export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
@@ -121,11 +253,21 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
   // Module access enforcement
   const { hasModuleAccess, filterMenuItems } = useModuleAccess();
 
-  // State for tracking group expansion
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+  // Build complete sections list including dev section if applicable
+  const allSections = useMemo(() => {
+    const sections = [...sidebarSections];
+    const devSection = createDevSection();
+    if (devSection) {
+      sections.push(devSection);
+    }
+    return sections;
+  }, []);
+
+  // State for tracking section expansion
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>(() => {
     const initialState: Record<string, boolean> = {};
-    menuGroups.forEach(group => {
-      initialState[group.label] = group.defaultOpen || false;
+    allSections.forEach(section => {
+      initialState[section.id] = section.defaultOpen;
     });
     return initialState;
   });
@@ -135,56 +277,20 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
     setSidebarTheme(sidebarTheme === 'dark' ? 'light' : 'dark');
   };
 
-  // Add QA and Debug items to main menu based on environment - memoized for stability
-  const dynamicMainItems = useMemo(() => {
-    const items = [...mainMenuItems];
-    
-    // Add Dev Mode Dashboard when any dev features are enabled
-    if (envConfig.QA_ON || envConfig.GST_ENABLED || envConfig.MOCK_ON) {
-      items.push({ 
-        icon: TestTube, 
-        label: 'Dev Mode Dashboard', 
-        href: '/dev-dashboard', 
-        roles: ['Admin'],
-        badge: 'DEV'
-      });
-    }
-    
-    if (envConfig.QA_ON) {
-      items.push({ 
-        icon: Bug, 
-        label: 'QA Dashboard', 
-        href: '/qa', 
-        roles: ['Admin'] 
-      });
-    }
-    
-    if (envConfig.GST_ENABLED) {
-      items.push({ 
-        icon: TestTube, 
-        label: 'GST Debug', 
-        href: '/debug/gst', 
-        roles: ['Admin'] 
-      });
-    }
-    
-    return items;
-  }, []); // Static since envConfig doesn't change at runtime
-
-  // Filter menu items by role AND module access - memoized
-  const filteredMainItems = useMemo(() => 
-    filterMenuItems(dynamicMainItems.filter(item => item.roles.includes(userRole))),
-    [dynamicMainItems, userRole, filterMenuItems]
-  );
-  
-  // Memoize filtered groups to prevent useEffect re-triggers
-  const filteredGroups = useMemo(() => 
-    menuGroups.filter(group => 
-      group.roles.includes(userRole) && 
-      group.items.some(item => item.roles.includes(userRole) && hasModuleAccess(item.href))
-    ),
-    [userRole, hasModuleAccess]
-  );
+  // Filter sections by role AND module access - memoized
+  const filteredSections = useMemo(() => {
+    return allSections
+      .filter(section => section.roles.includes(userRole))
+      .map(section => ({
+        ...section,
+        items: filterMenuItems(
+          section.items.filter(item => 
+            item.roles.includes(userRole) && hasModuleAccess(item.href)
+          )
+        )
+      }))
+      .filter(section => section.items.length > 0);
+  }, [allSections, userRole, filterMenuItems, hasModuleAccess]);
 
   const location = useLocation();
   const { open } = useSidebar();
@@ -197,28 +303,26 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
   const getNavClasses = (active: boolean) =>
     active ? "brand-active-sidebar" : "nav-hover";
 
-  // Auto-open any group that contains the active route - stable dependencies
+  // Auto-open any section that contains the active route
   useEffect(() => {
-    const groupLabels = filteredGroups.map(g => g.label);
-    const activeGroupLabels = filteredGroups
-      .filter(group => group.items.some(item => isPathActive(item.href, location.pathname)))
-      .map(g => g.label);
+    const activeSectionIds = filteredSections
+      .filter(section => section.items.some(item => isPathActive(item.href, location.pathname)))
+      .map(s => s.id);
     
-    setOpenGroups(prev => {
-      // Only update if there's actually a change needed
+    setOpenSections(prev => {
       let hasChange = false;
       const next = { ...prev };
       
-      activeGroupLabels.forEach(label => {
-        if (!prev[label]) {
-          next[label] = true;
+      activeSectionIds.forEach(id => {
+        if (!prev[id]) {
+          next[id] = true;
           hasChange = true;
         }
       });
       
       return hasChange ? next : prev;
     });
-  }, [location.pathname, filteredGroups]);
+  }, [location.pathname, filteredSections]);
 
   const renderMenuItem = (item: MenuItem) => {
     const active = isPathActive(item.href, location.pathname);
@@ -246,6 +350,63 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
     );
   };
 
+  const renderSection = (section: SidebarSection) => {
+    const isSectionOpen = openSections[section.id];
+    const SectionIcon = section.icon;
+
+    // Non-collapsible sections render directly
+    if (!section.collapsible) {
+      return (
+        <SidebarGroup key={section.id}>
+          <SidebarGroupLabel className="text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider px-3 py-2">
+            {open ? section.label : <SectionIcon className="h-4 w-4 mx-auto" />}
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {section.items.map(renderMenuItem)}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      );
+    }
+
+    // Collapsible sections
+    return (
+      <SidebarGroup key={section.id}>
+        <Collapsible 
+          open={isSectionOpen}
+          onOpenChange={(isOpen) => 
+            setOpenSections(prev => ({ ...prev, [section.id]: isOpen }))
+          }
+        >
+          <CollapsibleTrigger className="w-full group">
+            <div className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md cursor-pointer transition-colors">
+              <div className="flex items-center gap-2 min-w-0">
+                <SectionIcon className={cn("h-4 w-4", open ? "" : "mx-auto")} />
+                {open && <span className="truncate">{section.label}</span>}
+              </div>
+              {open && (
+                <ChevronDown 
+                  className={cn(
+                    "h-4 w-4 transition-transform duration-200 flex-shrink-0",
+                    isSectionOpen ? "rotate-180" : "rotate-0"
+                  )}
+                />
+              )}
+            </div>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-1">
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {section.items.map(renderMenuItem)}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </CollapsibleContent>
+        </Collapsible>
+      </SidebarGroup>
+    );
+  };
+
   return (
     <TooltipProvider>
       <Sidebar 
@@ -255,118 +416,64 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
         )} 
         collapsible="icon"
       >
-      {/* Header with Logo */}
-      <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex items-center space-x-2 p-2">
-          <Scale className="h-8 w-8 text-sidebar-primary flex-shrink-0" />
-          {open && (
-            <div className="min-w-0">
-              <h1 className="text-lg font-semibold text-sidebar-foreground truncate">Project Beacon</h1>
-              <p className="text-xs text-sidebar-foreground/70 truncate">Legal Practice Management</p>
-            </div>
-          )}
-        </div>
-      </SidebarHeader>
-
-      {/* Scrollable Content */}
-      <SidebarContent>
-        <ScrollArea className="flex-1">
-          <div className="p-2 space-y-4">
-            {/* Main Navigation */}
-            <SidebarGroup>
-              <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {filteredMainItems.map(renderMenuItem)}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-
-            {/* Collapsible Groups */}
-            {filteredGroups.map((group) => {
-              const groupItems = filterMenuItems(group.items.filter(item => item.roles.includes(userRole)));
-              if (groupItems.length === 0) return null;
-              
-              const isGroupOpen = openGroups[group.label];
-
-              return (
-                <SidebarGroup key={group.label}>
-                  <Collapsible 
-                    open={isGroupOpen}
-                    onOpenChange={(open) => 
-                      setOpenGroups(prev => ({ ...prev, [group.label]: open }))
-                    }
-                  >
-                    <CollapsibleTrigger className="w-full group">
-                      <div className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md cursor-pointer transition-colors group-data-[collapsible=icon]:justify-center">
-                        <div className="flex items-center gap-2 min-w-0">
-                          {(() => {
-                            const GroupIcon = (groupIcons as Record<string, React.ElementType>)[group.label] || Settings;
-                            return <GroupIcon className={cn("h-4 w-4 text-sidebar-foreground", open ? "" : "mx-auto")} />;
-                          })()}
-                          {open && <span className="truncate">{group.label}</span>}
-                        </div>
-                        {open && (
-                          <ChevronDown 
-                            className={cn(
-                              "h-4 w-4 transition-transform duration-200 flex-shrink-0",
-                              isGroupOpen ? "rotate-180" : "rotate-0"
-                            )}
-                          />
-                        )}
-                      </div>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="space-y-1">
-                      <SidebarGroupContent>
-                        <SidebarMenu>
-                          {groupItems.map(renderMenuItem)}
-                        </SidebarMenu>
-                      </SidebarGroupContent>
-                    </CollapsibleContent>
-                  </Collapsible>
-                </SidebarGroup>
-              );
-            })}
-          </div>
-        </ScrollArea>
-      </SidebarContent>
-
-      {/* Footer with Theme Toggle and Environment Status */}
-      <SidebarFooter className="border-t border-sidebar-border">
-        <div className="p-2 space-y-2">
-          {/* Sidebar Theme Toggle */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={toggleSidebarTheme}
-                className="w-full justify-start gap-2 text-sidebar-foreground hover:bg-sidebar-accent"
-              >
-                {sidebarTheme === 'dark' ? (
-                  <Sun className="h-4 w-4" />
-                ) : (
-                  <Moon className="h-4 w-4" />
-                )}
-                {open && <span>{sidebarTheme === 'dark' ? 'Light Sidebar' : 'Dark Sidebar'}</span>}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right">
-              Switch to {sidebarTheme === 'dark' ? 'light' : 'dark'} sidebar
-            </TooltipContent>
-          </Tooltip>
-
-          {/* Environment Status */}
-          {envConfig.QA_ON && open && (
-            <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-green-700 dark:text-green-400">QA Mode</span>
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+        {/* Header with Logo */}
+        <SidebarHeader className="border-b border-sidebar-border">
+          <div className="flex items-center space-x-2 p-2">
+            <Scale className="h-8 w-8 text-sidebar-primary flex-shrink-0" />
+            {open && (
+              <div className="min-w-0">
+                <h1 className="text-lg font-semibold text-sidebar-foreground truncate">Project Beacon</h1>
+                <p className="text-xs text-sidebar-foreground/70 truncate">Legal Practice Management</p>
               </div>
+            )}
+          </div>
+        </SidebarHeader>
+
+        {/* Scrollable Content */}
+        <SidebarContent>
+          <ScrollArea className="flex-1">
+            <div className="p-2 space-y-2">
+              {filteredSections.map(renderSection)}
             </div>
-          )}
-        </div>
-      </SidebarFooter>
+          </ScrollArea>
+        </SidebarContent>
+
+        {/* Footer with Theme Toggle and Environment Status */}
+        <SidebarFooter className="border-t border-sidebar-border">
+          <div className="p-2 space-y-2">
+            {/* Sidebar Theme Toggle */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleSidebarTheme}
+                  className="w-full justify-start gap-2 text-sidebar-foreground hover:bg-sidebar-accent"
+                >
+                  {sidebarTheme === 'dark' ? (
+                    <Sun className="h-4 w-4" />
+                  ) : (
+                    <Moon className="h-4 w-4" />
+                  )}
+                  {open && <span>{sidebarTheme === 'dark' ? 'Light Sidebar' : 'Dark Sidebar'}</span>}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                Switch to {sidebarTheme === 'dark' ? 'light' : 'dark'} sidebar
+              </TooltipContent>
+            </Tooltip>
+
+            {/* Environment Status */}
+            {envConfig.QA_ON && open && (
+              <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-green-700 dark:text-green-400">QA Mode</span>
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                </div>
+              </div>
+            )}
+          </div>
+        </SidebarFooter>
       </Sidebar>
     </TooltipProvider>
   );
