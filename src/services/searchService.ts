@@ -5,6 +5,7 @@
 
 import { apiService } from './apiService';
 import { envConfig } from '@/utils/envConfig';
+import { supabase } from '@/integrations/supabase/client';
 import { featureFlagService } from './featureFlagService';
 import { storageManager } from '@/data/StorageManager';
 import { persistenceService } from '@/services/persistenceService';
@@ -83,12 +84,17 @@ class SearchService {
    * Initialize search provider once on boot and persist decision
    */
   public async initProvider(): Promise<void> {
-    // Check if provider is already determined in this session
+    // NOTE: previously we persisted 'API' in sessionStorage, which can lock global search
+    // into calling a non-existent /api/search endpoint. Only honor the cached value if it's DEMO.
     const sessionProvider = sessionStorage.getItem('search_provider') as SearchProvider;
-    if (sessionProvider && (sessionProvider === 'API' || sessionProvider === 'DEMO')) {
-      this.provider = sessionProvider;
+    if (sessionProvider === 'DEMO') {
+      this.provider = 'DEMO';
       console.log(`🔍 Search provider loaded from session:`, this.provider);
       return;
+    }
+    // Clear any stale/incorrect provider choice (e.g. 'API')
+    if (sessionProvider) {
+      sessionStorage.removeItem('search_provider');
     }
 
     // Force DEMO mode - Global search uses Supabase directly via storageManager
@@ -324,6 +330,11 @@ class SearchService {
     
     allResults.push(...dynamicResults);
 
+    // If local stores aren't populated yet, fall back to querying the backend directly
+    if (dynamicResults.length === 0) {
+      return await this.searchBackend(parsedQuery, scope, limit);
+    }
+
     // Skip demo data for now - focus on dynamic results
     // Demo data integration can be added later if needed
 
@@ -341,6 +352,166 @@ class SearchService {
       total: allResults.length,
       next_cursor: nextCursor
     };
+  }
+
+  private buildBackendOr(columns: string[], terms: string[]): string {
+    const cleanedTerms = terms
+      .map((t) => (t || '').replace(/[%_,]/g, '').trim())
+      .filter(Boolean)
+      .slice(0, 5);
+
+    return cleanedTerms.flatMap((t) => columns.map((c) => `${c}.ilike.%${t}%`)).join(',');
+  }
+
+  private async searchBackend(parsedQuery: ParsedQuery, scope: SearchScope, limit: number): Promise<SearchResponse> {
+    try {
+      const terms = parsedQuery.terms.filter(Boolean);
+      if (terms.length === 0) return { results: [], total: 0 };
+
+      const wantClients = scope === 'all' || scope === 'clients' || scope === 'hearings' || scope === 'cases';
+      const wantCases = scope === 'all' || scope === 'cases' || scope === 'hearings';
+      const wantHearings = scope === 'all' || scope === 'hearings';
+
+      const perEntityLimit = Math.min(Math.max(limit * 2, 20), 50);
+
+      const clientsOr = wantClients ? this.buildBackendOr(['display_name', 'gstin', 'email'], terms) : '';
+      const casesOr = wantCases ? this.buildBackendOr(['title', 'case_number'], terms) : '';
+
+      const [clientsRes, casesRes] = await Promise.all([
+        wantClients && clientsOr
+          ? supabase
+              .from('clients')
+              .select('id, display_name, gstin, city, state, status')
+              .or(clientsOr)
+              .limit(perEntityLimit)
+          : Promise.resolve({ data: [] as any[], error: null }),
+        wantCases && casesOr
+          ? supabase
+              .from('cases')
+              .select('id, title, case_number, status, client_id')
+              .or(casesOr)
+              .limit(perEntityLimit)
+          : Promise.resolve({ data: [] as any[], error: null }),
+      ]);
+
+      if ((clientsRes as any).error) console.warn('🔍 Backend search (clients) error:', (clientsRes as any).error);
+      if ((casesRes as any).error) console.warn('🔍 Backend search (cases) error:', (casesRes as any).error);
+
+      const clients = ((clientsRes as any).data || []) as any[];
+      const directCases = ((casesRes as any).data || []) as any[];
+
+      const clientLookup = new Map<string, any>(clients.map((c) => [c.id, c]));
+      const clientIds = clients.map((c) => c.id).filter(Boolean);
+
+      // Also pull cases by matching clients (so "horus" finds its cases even if case title doesn't contain "horus")
+      let casesByClient: any[] = [];
+      if (wantCases && clientIds.length > 0) {
+        const res = await supabase
+          .from('cases')
+          .select('id, title, case_number, status, client_id')
+          .in('client_id', clientIds.slice(0, 50))
+          .limit(perEntityLimit);
+        if (res.error) console.warn('🔍 Backend search (cases by client) error:', res.error);
+        casesByClient = res.data || [];
+      }
+
+      const caseMap = new Map<string, any>();
+      [...directCases, ...casesByClient].forEach((c) => caseMap.set(c.id, c));
+      const cases = Array.from(caseMap.values());
+
+      // Hearings for matched cases
+      let hearings: any[] = [];
+      if (wantHearings) {
+        const caseIds = cases.map((c) => c.id).filter(Boolean);
+        if (caseIds.length > 0) {
+          const res = await supabase
+            .from('hearings')
+            .select('id, hearing_date, status, case_id, notes, court_name')
+            .in('case_id', caseIds.slice(0, 50))
+            .limit(perEntityLimit);
+          if (res.error) console.warn('🔍 Backend search (hearings) error:', res.error);
+          hearings = res.data || [];
+        }
+      }
+
+      const results: SearchResult[] = [];
+
+      if (scope === 'all' || scope === 'clients') {
+        clients.forEach((client) => {
+          const name = client.display_name || 'Client';
+          const subtitleParts = [client.gstin, client.city, client.state].filter(Boolean);
+          results.push({
+            type: 'client',
+            id: client.id,
+            title: name,
+            subtitle: subtitleParts.join(' • ') || 'Client',
+            url: `/clients?search=${encodeURIComponent(name)}`,
+            score: 90,
+            highlights: [name],
+            badges: ['Client'],
+          });
+        });
+      }
+
+      if (scope === 'all' || scope === 'cases') {
+        cases.forEach((c) => {
+          const caseTitle = c.title || c.case_number || 'Case';
+          const client = c.client_id ? clientLookup.get(c.client_id) : null;
+          const clientName = client?.display_name || 'Unknown Client';
+          const status = c.status || 'Active';
+          const caseNumber = c.case_number || 'N/A';
+
+          const directMatch = terms.some((t) => (caseTitle || '').toLowerCase().includes(t.toLowerCase()));
+          const score = directMatch ? 95 : 80;
+
+          results.push({
+            type: 'case',
+            id: c.id,
+            title: caseTitle,
+            subtitle: `Case ${caseNumber} • ${clientName} • ${status}`,
+            url: `/cases?caseId=${c.id}`,
+            score,
+            highlights: [caseTitle],
+            badges: [status],
+          });
+        });
+      }
+
+      if (scope === 'all' || scope === 'hearings') {
+        hearings.forEach((h) => {
+          const relatedCase = h.case_id ? caseMap.get(h.case_id) : null;
+          const caseTitle = relatedCase?.title || 'Case';
+          const caseNumber = relatedCase?.case_number || '';
+          const client = relatedCase?.client_id ? clientLookup.get(relatedCase.client_id) : null;
+          const clientName = client?.display_name || '';
+
+          const hearingTitle = caseNumber ? `${caseNumber} - ${caseTitle}` : caseTitle;
+          const hearingDateStr = h.hearing_date ? format(new Date(h.hearing_date), 'MMM dd, yyyy') : 'Date TBD';
+
+          results.push({
+            type: 'hearing',
+            id: h.id,
+            title: hearingTitle,
+            subtitle: `${caseNumber || 'N/A'} • ${caseTitle} • ${hearingDateStr}`,
+            url: `/hearings?search=${encodeURIComponent(caseNumber || caseTitle || clientName || '')}`,
+            score: 85,
+            highlights: [caseTitle],
+            badges: ['Hearing'],
+          });
+        });
+      }
+
+      results.sort((a, b) => b.score - a.score);
+
+      return {
+        results: results.slice(0, limit),
+        total: results.length,
+        next_cursor: undefined,
+      };
+    } catch (e: any) {
+      console.warn('🔍 Backend search failed:', e?.message || e);
+      return { results: [], total: 0, next_cursor: undefined };
+    }
   }
 
   private async suggestDemo(query: string, limit: number): Promise<SearchSuggestion[]> {
