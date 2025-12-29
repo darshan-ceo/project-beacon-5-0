@@ -8,24 +8,46 @@ import { useCallback, useMemo, useContext } from 'react';
 import { useAppState } from '@/contexts/AppStateContext';
 
 // Module name to sidebar route mapping
+// Module name to sidebar route mapping - aligned with new section-based structure
 const MODULE_ROUTE_MAPPING: Record<string, string[]> = {
-  'Dashboard': ['/', '/compliance'],
+  // MONITOR section
+  'Dashboard': ['/'],
+  'Compliance Dashboard': ['/compliance'],
+  
+  // LITIGATION section
   'Case Management': ['/cases'],
   'Hearings': ['/hearings', '/hearings/calendar'],
   'Task Management': ['/tasks'],
-  'Document Management': ['/documents'],
-  'Reports': ['/reports'],
-  'Help & Knowledge Base': ['/help'],
-  'User Profile': ['/profile'],
-  'Client Masters': ['/clients'],
+  
+  // CLIENTS section
+  'Clients': ['/clients'],
   'Contacts': ['/contacts'],
   'Client Groups': ['/client-groups'],
+  
+  // DOCUMENTS section
+  'Document Management': ['/documents'],
+  
+  // ANALYTICS section
+  'Reports': ['/reports'],
+  
+  // SUPPORT section
+  'Help & Knowledge Base': ['/help'],
+  'User Profile': ['/profile'],
+  
+  // CONFIGURATION section (Admin/Partner only)
   'Legal Authorities': ['/courts'],
   'Judge Masters': ['/judges'],
   'Employee Masters': ['/employees'],
   'Statutory Deadlines': ['/statutory-acts'],
+  
+  // ADMINISTRATION section
   'System Settings': ['/settings'],
   'Access & Roles': ['/access-roles'],
+  
+  // DEVELOPER section
+  'Dev Mode Dashboard': ['/dev-dashboard'],
+  'QA Dashboard': ['/qa'],
+  'GST Debug': ['/debug/gst'],
 };
 
 // Reverse mapping: route to module
