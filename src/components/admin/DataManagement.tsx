@@ -10,7 +10,9 @@ import {
   Shield,
   AlertTriangle,
   CheckCircle,
-  Save
+  Save,
+  Users,
+  Rocket
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,12 +30,16 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { TaskDataMigration } from './TaskDataMigration';
+import { ClientCleanupManager } from './ClientCleanupManager';
+import { ProductionReadinessCheck } from './ProductionReadinessCheck';
+import { ProductionModeToggle, useProductionMode } from './ProductionModeToggle';
 
 export const DataManagement: React.FC = () => {
   const { exportData, importData, clearAllData, saveToStorage } = useDataPersistence();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const isProductionMode = useProductionMode();
 
   const handleExport = () => {
     try {
@@ -131,15 +137,34 @@ export const DataManagement: React.FC = () => {
         </p>
       </motion.div>
 
-      <Tabs defaultValue="backup" className="w-full">
-        <TabsList>
+      <Tabs defaultValue="readiness" className="w-full">
+        <TabsList className="flex-wrap h-auto gap-1">
+          <TabsTrigger value="readiness">
+            <Rocket className="mr-1 h-4 w-4" />
+            Readiness
+          </TabsTrigger>
+          <TabsTrigger value="cleanup">
+            <Users className="mr-1 h-4 w-4" />
+            Cleanup
+          </TabsTrigger>
           <TabsTrigger value="backup">Backup & Restore</TabsTrigger>
-          <TabsTrigger value="task-audit">Task Data Audit</TabsTrigger>
+          <TabsTrigger value="task-audit">Task Audit</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="backup" className="space-y-6 mt-6">
+        {/* Production Readiness Tab */}
+        <TabsContent value="readiness" className="space-y-6 mt-6">
+          <ProductionModeToggle />
+          <ProductionReadinessCheck />
+        </TabsContent>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Cleanup Tab */}
+        <TabsContent value="cleanup" className="space-y-6 mt-6">
+          <ClientCleanupManager />
+        </TabsContent>
+
+        {/* Backup Tab */}
+        <TabsContent value="backup" className="space-y-6 mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Backup & Export */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
