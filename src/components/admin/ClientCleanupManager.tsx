@@ -104,7 +104,7 @@ export const ClientCleanupManager: React.FC = () => {
     try {
       const clientIds = Array.from(selectedClients);
       
-      // Delete from Supabase
+      // Delete from Supabase (single source of truth)
       const { error } = await supabase
         .from('clients')
         .delete()
@@ -112,17 +112,14 @@ export const ClientCleanupManager: React.FC = () => {
       
       if (error) throw error;
       
-      // Refresh the page to reload data
-      toast({
-        title: "Clients Deleted",
-        description: `Successfully deleted ${clientIds.length} client(s). Refreshing...`,
+      // Update local AppState to reflect deletion
+      clientIds.forEach(clientId => {
+        dispatch({ type: 'DELETE_CLIENT', payload: clientId });
       });
       
-      setTimeout(() => window.location.reload(), 1000);
-      
       toast({
         title: "Clients Deleted",
-        description: `Successfully deleted ${clientIds.length} client(s).`,
+        description: `Successfully deleted ${clientIds.length} client(s) from database.`,
       });
       
       setSelectedClients(new Set());

@@ -289,23 +289,8 @@ export const useUnifiedPersistence = () => {
         });
       }
 
-      // Check if storage is empty (no meaningful data)
-      const hasData = clients.length > 0 || migratedCases.length > 0 || employees.length > 0 || judges.length > 0;
-
-      if (!hasData) {
-        console.log('📦 Storage is empty, preserving initial mock data from AppStateContext');
-        // Don't dispatch RESTORE_STATE if storage is empty - preserve the initial mock data
-        // Just set counts to 0 to indicate empty storage
-        const counts = {
-          clients: 0, cases: 0, tasks: 0, task_bundles: 0,
-          documents: 0, hearings: 0, judges: 0, courts: 0,
-          employees: 0, folders: folders.length
-        };
-        setEntityCounts(counts);
-        lastKnownEntityCounts.current = counts;
-        console.log('✅ Using initial mock data from context');
-        return;
-      }
+      // Supabase is single source of truth - always restore from storage (even if empty)
+      console.log('📦 Loading data from Supabase storage');
 
       // Normalize hearings to ensure backward compatibility with both time and start_time fields
       const hearings = rawHearings.map((hearing: any) => ({
