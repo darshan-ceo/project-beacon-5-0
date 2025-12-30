@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { 
   User, 
@@ -16,7 +16,12 @@ import {
   Clock,
   MapPin,
   Activity,
-  Key
+  Key,
+  Briefcase,
+  Users,
+  UserCheck,
+  Building2,
+  ArrowRight
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,12 +36,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAppState } from '@/contexts/AppStateContext';
 import { supabase } from '@/integrations/supabase/client';
 import { featureFlagService } from '@/services/featureFlagService';
+import { hierarchyService } from '@/services/hierarchyService';
 import { FileDropzone } from '@/components/ui/file-dropzone';
 import { ImageCropper } from '@/components/ui/image-cropper';
+import { useNavigate } from 'react-router-dom';
 
 interface UserProfileFormData {
   name: string;
@@ -71,6 +80,8 @@ interface ActivityLog {
 
 export const UserProfile: React.FC = () => {
   const { user, userProfile, updateProfile } = useAuth();
+  const { state } = useAppState();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [formData, setFormData] = useState<UserProfileFormData>({
     name: '',
@@ -176,6 +187,39 @@ export const UserProfile: React.FC = () => {
 
     fetchActivityLogs();
   }, [user]);
+
+  // Calculate access data for My Access section
+  const accessData = useMemo(() => {
+    if (!user?.email) return null;
+    
+    const currentEmployee = state.employees.find(e => 
+      e.email?.toLowerCase() === user.email?.toLowerCase() || 
+      e.officialEmail?.toLowerCase() === user.email?.toLowerCase()
+    );
+    
+    if (!currentEmployee) return null;
+
+    const visibility = hierarchyService.calculateVisibility(
+      currentEmployee,
+      state.employees,
+      state.clients,
+      state.cases,
+      state.tasks
+    );
+
+    const summary = hierarchyService.getVisibilitySummary(visibility);
+    const manager = state.employees.find(e => 
+      e.id === currentEmployee.managerId || e.id === currentEmployee.reportingTo
+    );
+
+    return {
+      employee: currentEmployee,
+      manager,
+      visibility,
+      summary,
+      dataScope: currentEmployee.dataScope || 'Own Cases',
+    };
+  }, [user, state.employees, state.clients, state.cases, state.tasks]);
 
   const formatActionType = (actionType: string): string => {
     const actionMap: Record<string, string> = {
@@ -580,6 +624,120 @@ export const UserProfile: React.FC = () => {
                   </CardContent>
                 </Card>
               </div>
+
+              {/* My Access Section */}
+              {accessData && (
+                <div className="md:col-span-3">
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="flex items-center text-base">
+                          <Eye className="h-5 w-5 mr-2 text-muted-foreground" />
+                          My Data Access
+                        </CardTitle>
+                        <Badge variant={accessData.dataScope === 'All Cases' ? 'default' : 'secondary'}>
+                          {accessData.dataScope}
+                        </Badge>
+                      </div>
+                      {accessData.manager && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Reporting to: <span className="font-medium">{accessData.manager.full_name}</span>
+                        </p>
+                      )}
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* Access Breakdown */}
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                        <TooltipProvider>
+                          {[
+                            { 
+                              label: 'Direct', 
+                              count: accessData.summary.directCases, 
+                              icon: UserCheck,
+                              color: 'text-success',
+                              bgColor: 'bg-success/10',
+                              description: 'Cases assigned directly to you'
+                            },
+                            { 
+                              label: 'Via Manager', 
+                              count: accessData.summary.managerCases, 
+                              icon: Users,
+                              color: 'text-primary',
+                              bgColor: 'bg-primary/10',
+                              description: 'Cases assigned to your manager'
+                            },
+                            { 
+                              label: 'Team', 
+                              count: accessData.summary.teamCases, 
+                              icon: Building2,
+                              color: 'text-warning',
+                              bgColor: 'bg-warning/10',
+                              description: 'Cases from team members'
+                            },
+                            { 
+                              label: 'Org-wide', 
+                              count: accessData.summary.hierarchyCases, 
+                              icon: Briefcase,
+                              color: 'text-muted-foreground',
+                              bgColor: 'bg-muted',
+                              description: 'Organization-wide visibility'
+                            },
+                          ].filter(item => item.count > 0 || accessData.dataScope === 'All Cases').map((item) => (
+                            <Tooltip key={item.label}>
+                              <TooltipTrigger asChild>
+                                <div className={`p-3 rounded-lg ${item.bgColor} cursor-help`}>
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <item.icon className={`h-4 w-4 ${item.color}`} />
+                                    <span className="text-xs font-medium">{item.label}</span>
+                                  </div>
+                                  <div className={`text-xl font-bold ${item.color}`}>
+                                    {item.count}
+                                  </div>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{item.description}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </TooltipProvider>
+                      </div>
+
+                      {/* Totals Row */}
+                      <div className="flex items-center justify-between pt-3 border-t">
+                        <div className="flex items-center gap-6">
+                          <div className="text-center">
+                            <div className="text-xl font-bold text-foreground">
+                              {accessData.summary.totalAccessibleCases}
+                            </div>
+                            <div className="text-xs text-muted-foreground">Total Cases</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-xl font-bold text-foreground">
+                              {accessData.summary.totalAccessibleTasks}
+                            </div>
+                            <div className="text-xs text-muted-foreground">Total Tasks</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-xl font-bold text-foreground">
+                              {accessData.summary.totalAccessibleClients}
+                            </div>
+                            <div className="text-xs text-muted-foreground">Total Clients</div>
+                          </div>
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => navigate('/admin/access')}
+                        >
+                          View Access Details
+                          <ArrowRight className="h-4 w-4 ml-2" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
 
               <div className="md:col-span-2">
                 <Card>

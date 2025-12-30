@@ -24,7 +24,10 @@ import {
   HelpCircle,
   Download,
   Bell,
-  AlertCircle
+  AlertCircle,
+  UserCheck,
+  Building2,
+  Briefcase
 } from 'lucide-react';
 import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 import { casesService } from '@/services/casesService';
@@ -59,16 +62,21 @@ import { PageHelp } from '@/components/help/PageHelp';
 import { ContextualPageHelp } from '@/components/help/ContextualPageHelp';
 import { HelpButton } from '@/components/ui/help-button';
 import { ThreeLayerHelp } from '@/components/ui/three-layer-help';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 import { GlossaryText, GlossaryDescription } from '@/components/ui/glossary-enhanced';
 import { NoticeIntakeWizard } from '@/components/notices/NoticeIntakeWizard';
 import { featureFlagService } from '@/services/featureFlagService';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
+import { useAuth } from '@/contexts/AuthContext';
+import { hierarchyService, EmployeeVisibility, AccessPath } from '@/services/hierarchyService';
+import { AccessPathBadge } from '@/components/ui/AccessPathBadge';
 
 export const CaseManagement: React.FC = () => {
   const { state, dispatch, rawDispatch } = useAppState();
   const { hasPermission } = useAdvancedRBAC();
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
@@ -86,6 +94,7 @@ export const CaseManagement: React.FC = () => {
   const [filterCaseStatus, setFilterCaseStatus] = useState<'all' | 'Active' | 'Completed'>('all');
   const [filterAging, setFilterAging] = useState<'all' | string>('all');
   const [filterAssignedTo, setFilterAssignedTo] = useState<'all' | string>('all');
+  const [filterAccessPath, setFilterAccessPath] = useState<'all' | 'direct' | 'manager' | 'team' | 'hierarchy'>('all');
   const [advanceStageModal, setAdvanceStageModal] = useState<{
     isOpen: boolean;
     caseData: Case | null;
@@ -122,6 +131,32 @@ export const CaseManagement: React.FC = () => {
       upcomingHearings: upcomingHearings.length
     };
   }, [state.cases, state.hearings]);
+
+  // Calculate user's visibility for access path filtering
+  const userVisibility = useMemo(() => {
+    if (!user?.email) return null;
+    
+    const currentEmployee = state.employees.find(e => 
+      e.email?.toLowerCase() === user.email?.toLowerCase() || 
+      e.officialEmail?.toLowerCase() === user.email?.toLowerCase()
+    );
+    
+    if (!currentEmployee) return null;
+
+    return hierarchyService.calculateVisibility(
+      currentEmployee,
+      state.employees,
+      state.clients,
+      state.cases,
+      state.tasks
+    );
+  }, [user, state.employees, state.clients, state.cases, state.tasks]);
+
+  // Create a map of case IDs to their access paths for quick lookup
+  const caseAccessPathMap = useMemo(() => {
+    if (!userVisibility) return new Map<string, AccessPath>();
+    return new Map(userVisibility.cases.map(c => [c.id, c.accessPath]));
+  }, [userVisibility]);
 
   const [formTemplateModal, setFormTemplateModal] = useState<{
     isOpen: boolean;

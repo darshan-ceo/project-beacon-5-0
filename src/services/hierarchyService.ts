@@ -532,6 +532,49 @@ class HierarchyService {
     
     return chain;
   }
+
+  /**
+   * Get the access path for a specific entity (case, task, etc.)
+   * Returns the access path explaining HOW the user can access this item
+   */
+  getAccessPathForEntity(
+    entityId: string,
+    entityType: 'case' | 'task' | 'client',
+    visibility: EmployeeVisibility
+  ): AccessPath | null {
+    const collection = entityType === 'case' ? visibility.cases :
+                       entityType === 'task' ? visibility.tasks :
+                       visibility.clients;
+    
+    const entity = collection.find(e => e.id === entityId);
+    return entity?.accessPath || null;
+  }
+
+  /**
+   * Get user's visibility summary for quick stats
+   */
+  getVisibilitySummary(visibility: EmployeeVisibility): {
+    directCases: number;
+    managerCases: number;
+    teamCases: number;
+    hierarchyCases: number;
+    totalAccessibleCases: number;
+    totalAccessibleTasks: number;
+    totalAccessibleClients: number;
+  } {
+    const countByType = (items: VisibleEntity[], type: AccessPath['type']) =>
+      items.filter(i => i.accessPath.type === type).length;
+
+    return {
+      directCases: countByType(visibility.cases, 'direct'),
+      managerCases: countByType(visibility.cases, 'manager'),
+      teamCases: countByType(visibility.cases, 'team'),
+      hierarchyCases: countByType(visibility.cases, 'hierarchy'),
+      totalAccessibleCases: visibility.cases.length,
+      totalAccessibleTasks: visibility.tasks.length,
+      totalAccessibleClients: visibility.clients.length,
+    };
+  }
 }
 
 export const hierarchyService = new HierarchyService();
