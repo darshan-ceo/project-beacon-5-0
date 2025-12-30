@@ -6,7 +6,7 @@
 import { ApiResponse } from './apiService';
 import { gstCacheService } from './gstCacheService';
 import { supabase } from '@/integrations/supabase/client';
-
+import { toTitleCase } from '@/utils/formatters';
 export interface GSTTaxpayerInfo {
   gstin: string;
   legalName: string;
@@ -276,6 +276,7 @@ class GSTPublicService {
 
   /**
    * Map API address format to internal format
+   * Applies title case formatting to address fields
    */
   private mapAddressFormat(apiAddr: any): GSTAddress {
     if (!apiAddr) {
@@ -293,10 +294,10 @@ class GSTPublicService {
     return {
       type: 'Principal',
       buildingNumber: apiAddr.bno,
-      buildingName: apiAddr.bnm,
-      street: apiAddr.st,
-      location: apiAddr.loc,
-      district: apiAddr.dst,
+      buildingName: toTitleCase(apiAddr.bnm || ''),
+      street: toTitleCase(apiAddr.st || ''),
+      location: toTitleCase(apiAddr.loc || ''),
+      district: toTitleCase(apiAddr.dst || ''),
       stateCode: stateName, // Now contains "Gujarat" instead of "24"
       pincode: apiAddr.pncd
     };
@@ -397,6 +398,7 @@ class GSTPublicService {
 
   /**
    * Map API response to internal address format
+   * Uses location as city (more accurate than district for urban areas)
    */
   mapToAddressFormat(gstAddress: GSTAddress): any {
     const stateId = this.getStateIdFromName(gstAddress.stateCode);
@@ -405,7 +407,8 @@ class GSTPublicService {
       line1: [gstAddress.buildingNumber, gstAddress.buildingName].filter(Boolean).join(' '),
       line2: gstAddress.street,
       line3: gstAddress.location,
-      city: gstAddress.district,
+      // Use location as city (GST loc field contains city/area), fallback to district
+      city: gstAddress.location || gstAddress.district,
       district: gstAddress.district,
       stateId: stateId,               // ID for dropdown selection
       stateName: gstAddress.stateCode, // Display name

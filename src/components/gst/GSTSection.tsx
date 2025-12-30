@@ -32,6 +32,28 @@ import { SignatorySelectionModal } from './SignatorySelectionModal';
 import { toast } from '@/hooks/use-toast';
 import { envConfig } from '../../utils/envConfig';
 import { extractPANFromGSTIN } from '@/utils/gstUtils';
+import { toTitleCase } from '@/utils/formatters';
+
+/**
+ * Map GST constitution type to client type for form dropdown
+ */
+const mapConstitutionToClientType = (constitution: string): string => {
+  const mapping: Record<string, string> = {
+    'Private Limited Company': 'Private Limited Company',
+    'Public Limited Company': 'Public Limited Company',
+    'Proprietorship': 'Proprietorship',
+    'Partnership': 'Partnership',
+    'Limited Liability Partnership': 'Limited Liability Partnership',
+    'Hindu Undivided Family': 'Hindu Undivided Family',
+    'Society/ Club/ Trust/ AOP': 'Society/ Club/ Trust/ AOP',
+    'Government Department': 'Government Department',
+    'Local Authority': 'Local Authority',
+    'Statutory Body': 'Statutory Body',
+    'Foreign Company': 'Foreign Company',
+    'Others': 'Others'
+  };
+  return mapping[constitution] || 'Others';
+};
 
 interface GSTSectionProps {
   clientId: string;
@@ -130,9 +152,10 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
         setApiMode('production');
         
         // Auto-fill form fields with source tracking - complete mapping
+        // Apply toTitleCase formatting to text fields from GST API (comes in ALL CAPS)
         const updates: any = {
-          name: gstInfo.legalName,
-          tradeName: gstInfo.tradeName,
+          name: toTitleCase(gstInfo.legalName),
+          tradeName: toTitleCase(gstInfo.tradeName || ''),
           gstin: gstInfo.gstin,
           // Auto-extract PAN from GSTIN
           pan: extractPANFromGSTIN(gstInfo.gstin) || formData.pan,
@@ -140,6 +163,8 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
           gstRegistrationDate: gstInfo.registrationDate,
           gstCancellationDate: gstInfo.cancellationDate,
           constitution: gstInfo.constitution,
+          // Map constitution to client type for form dropdown
+          type: mapConstitutionToClientType(gstInfo.constitution),
           taxpayerType: gstInfo.taxpayerType,
           natureOfBusiness: gstInfo.natureOfBusiness.join(', '),
           filingFrequency: gstInfo.filingFrequency,
@@ -157,15 +182,15 @@ export const GSTSection: React.FC<GSTSectionProps> = ({
               state: gstInfo.principalAddress?.stateCode || '',
               division: '',
               range: '',
-              // stj (State Jurisdiction) goes to Unit/Ghatak field
-              unit: gstInfo.stateJurisdiction || ''
+              // stj (State Jurisdiction) goes to Unit/Ghatak field - apply title case
+              unit: toTitleCase(gstInfo.stateJurisdiction || '')
             },
             centerJurisdiction: {
               zone: '',
-              commissionerate: '',
+              // ctj (Centre Jurisdiction) - use as commissionerate with title case
+              commissionerate: toTitleCase(gstInfo.centreJurisdiction || ''),
               division: '',
-              // ctj (Centre Jurisdiction) goes to Range field
-              range: gstInfo.centreJurisdiction || ''
+              range: ''
             }
           }
         };
