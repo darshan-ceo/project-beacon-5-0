@@ -116,10 +116,10 @@ const navigationItems: NavigationItem[] = [
   },
   {
     id: 'sample-data',
-    label: 'Sample Data',
+    label: 'Data Management',
     icon: TestTube,
-    description: 'Development data',
-    tooltip: 'Generate test data'
+    description: 'Readiness & cleanup tools',
+    tooltip: 'Production readiness and data cleanup'
   }
 ];
 

@@ -30,7 +30,7 @@ import { AddressSettings } from './AddressSettings';
 import { EmailConfiguration } from './EmailConfiguration';
 import { OutcomeTemplateManager } from './OutcomeTemplateManager';
 import { AuthorityHierarchySettings } from '@/components/settings/AuthorityHierarchySettings';
-import { SampleDataManager } from './SampleDataManager';
+import { DataManagement } from './DataManagement';
 import { SystemSettingsLayout, SettingsSection } from './SystemSettingsLayout';
 import { InlineHelp } from '@/components/help/InlineHelp';
 import {
@@ -644,7 +644,7 @@ export const GlobalParameters: React.FC = () => {
         return <AuthorityHierarchySettings />;
 
       case 'sample-data':
-        return <SampleDataManager />;
+        return <DataManagement />;
 
       default:
         return null;
