@@ -108,24 +108,34 @@ export const UserProfile: React.FC = () => {
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [showCropper, setShowCropper] = useState(false);
 
-  // Initialize form data from authenticated user
+  // Initialize form data from authenticated user - prioritize employee data as source of truth
   useEffect(() => {
     if (user && userProfile) {
+      // Find matching employee record for accurate data
+      const currentEmployee = state.employees.find(e => 
+        e.email?.toLowerCase() === user.email?.toLowerCase() ||
+        e.id === user.id
+      );
+      
       setFormData({
-        name: userProfile.full_name || '',
+        name: currentEmployee?.full_name || userProfile.full_name || '',
         email: user.email || '',
-        phone: userProfile.phone || '',
-        role: userProfile.role || 'User',
-        department: userProfile.department || '',
+        phone: currentEmployee?.mobile || userProfile.phone || '',
+        role: currentEmployee?.role || userProfile.role || 'User',
+        department: currentEmployee?.department || userProfile.department || '',
         avatar: userProfile.avatar_url || '/placeholder.svg',
         bio: userProfile.bio || '',
-        location: userProfile.location || '',
+        location: currentEmployee 
+          ? `${currentEmployee.city || ''}, ${currentEmployee.state || ''}`.replace(/^, |, $/g, '')
+          : userProfile.location || '',
         timezone: 'Asia/Kolkata',
-        joinedDate: userProfile.joinedDate || new Date(user.created_at || '').toLocaleDateString(),
+        joinedDate: currentEmployee?.date_of_joining 
+          ? new Date(currentEmployee.date_of_joining).toLocaleDateString()
+          : userProfile.joinedDate || new Date(user.created_at || '').toLocaleDateString(),
       });
       setIsLoading(false);
     }
-  }, [user, userProfile]);
+  }, [user, userProfile, state.employees]);
 
   // Fetch current session info
   useEffect(() => {
