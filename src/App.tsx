@@ -64,6 +64,7 @@ import { TooltipDiagnostics } from "@/pages/TooltipDiagnostics";
 import { OAuthCallback } from "@/pages/OAuthCallback";
 import { DocViewerPage } from "@/pages/DocViewerPage";
 import { ComplianceDashboard } from "@/pages/ComplianceDashboard";
+import { AccessDetailsPage } from "@/pages/AccessDetailsPage";
 import { LoginPage } from "@/pages/auth/LoginPage";
 import { SignupPage } from "@/pages/auth/SignupPage";
 import ForgotPassword from "@/pages/ForgotPassword";
@@ -291,6 +292,13 @@ const AppContent = () => {
                     <ProfileErrorBoundary>
                       <UserProfile />
                     </ProfileErrorBoundary>
+                  </AdminLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/access" element={
+                <ProtectedRoute>
+                  <AdminLayout>
+                    <AccessDetailsPage />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
