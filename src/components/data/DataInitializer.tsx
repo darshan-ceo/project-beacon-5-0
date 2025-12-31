@@ -43,7 +43,7 @@ const normalizeStateId = (stateValue: string): string => {
 // Version 5: Fixed address parsing to preserve city/state/locality fields
 // Version 6: Fixed dataScope/data_scope mapping for Team Cases visibility
 // Version 7: Fixed manager chain visibility for Team Cases (upward visibility to manager's manager)
-const DATA_SCHEMA_VERSION = 7;
+const DATA_SCHEMA_VERSION = 8;
 
 // Global flags to persist data loaded state across component remounts
 // This prevents the "Loading your data..." screen from appearing when switching tabs
