@@ -447,6 +447,22 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           tenantId: e.tenant_id || e.tenantId,
           addressId: e.address_id || e.addressId,
           status: e.status || 'Active', // Ensure status is always set
+          // Access & Visibility fields
+          dataScope: e.data_scope || e.dataScope || 'Own Cases',
+          moduleAccess: e.module_access || e.moduleAccess,
+          aiAccess: e.ai_access ?? e.aiAccess ?? true,
+          whatsappAccess: e.whatsapp_access ?? e.whatsappAccess ?? false,
+          // Employment fields
+          designation: e.designation,
+          employmentType: e.employment_type || e.employmentType,
+          confirmationDate: e.confirmation_date || e.confirmationDate,
+          weeklyOff: e.weekly_off || e.weeklyOff,
+          workShift: e.work_shift || e.workShift,
+          employeeCode: e.employee_code || e.employeeCode,
+          // Billing fields
+          billingRate: e.billing_rate || e.billingRate,
+          billable: e.billable ?? true,
+          incentiveEligible: e.incentive_eligible ?? e.incentiveEligible,
         }));
         
         // Data integrity verification for hierarchy
