@@ -225,12 +225,21 @@ export const UserProfile: React.FC = () => {
     // CRITICAL FIX: Use hierarchyService to get normalized dataScope
     const normalizedDataScope = hierarchyService.getEmployeeDataScope(currentEmployee);
 
+    // CRITICAL FIX: Use actual state counts (already RLS-filtered by database)
+    // This ensures profile counts match Case Management module counts
+    const actualCounts = {
+      cases: state.cases.length,
+      tasks: state.tasks.length,
+      clients: state.clients.length,
+    };
+
     return {
       employee: currentEmployee,
       manager,
       visibility,
       summary,
       dataScope: normalizedDataScope,
+      actualCounts, // Use these for display instead of summary counts
     };
   }, [user, state.employees, state.clients, state.cases, state.tasks]);
 
@@ -716,24 +725,24 @@ export const UserProfile: React.FC = () => {
                         </TooltipProvider>
                       </div>
 
-                      {/* Totals Row */}
+                      {/* Totals Row - Use actual state counts (RLS-filtered) */}
                       <div className="flex items-center justify-between pt-3 border-t">
                         <div className="flex items-center gap-6">
                           <div className="text-center">
                             <div className="text-xl font-bold text-foreground">
-                              {accessData.summary.totalAccessibleCases}
+                              {accessData.actualCounts.cases}
                             </div>
                             <div className="text-xs text-muted-foreground">Total Cases</div>
                           </div>
                           <div className="text-center">
                             <div className="text-xl font-bold text-foreground">
-                              {accessData.summary.totalAccessibleTasks}
+                              {accessData.actualCounts.tasks}
                             </div>
                             <div className="text-xs text-muted-foreground">Total Tasks</div>
                           </div>
                           <div className="text-center">
                             <div className="text-xl font-bold text-foreground">
-                              {accessData.summary.totalAccessibleClients}
+                              {accessData.actualCounts.clients}
                             </div>
                             <div className="text-xs text-muted-foreground">Total Clients</div>
                           </div>
