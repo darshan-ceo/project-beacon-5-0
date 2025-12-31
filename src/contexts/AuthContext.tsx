@@ -94,18 +94,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const roles = userRolesData?.map(r => r.role) || [];
         const primaryRole = getPrimaryRole(roles);
 
-        // Fetch additional employee data if exists
+        // Fetch additional employee data if exists - THIS IS THE SOURCE OF TRUTH
         const { data: employeeData } = await supabase
           .from('employees')
-          .select('designation, department, city, state')
+          .select('designation, department, city, state, role, mobile, data_scope, full_name')
           .eq('id', userId)
           .single();
 
+        // Use employee role if available (capitalize first letter), otherwise fall back to user_roles
+        const displayRole = employeeData?.role 
+          ? employeeData.role.charAt(0).toUpperCase() + employeeData.role.slice(1)
+          : primaryRole;
+
         setUserProfile({
-          full_name: profileData.full_name,
-          phone: profileData.phone,
+          full_name: employeeData?.full_name || profileData.full_name,
+          phone: employeeData?.mobile || profileData.phone,
           avatar_url: profileData.avatar_url || null,
-          role: primaryRole,
+          role: displayRole,
           designation: employeeData?.designation || null,
           department: employeeData?.department || null,
           location: employeeData?.city && employeeData?.state 
