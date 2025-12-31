@@ -243,6 +243,13 @@ const createDevSection = (): SidebarSection | null => {
 };
 
 export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
+  // Normalize role: map 'Partner' to 'Partner/CA' for sidebar compatibility
+  const normalizedRole = useMemo(() => {
+    const role = userRole?.toString().trim();
+    if (role?.toLowerCase() === 'partner') return 'Partner/CA';
+    return userRole;
+  }, [userRole]);
+
   // Sidebar theme state with persistence
   const [sidebarTheme, setSidebarTheme] = useUIState<'dark' | 'light'>(
     'ui.layout.sidebar_theme',
@@ -277,20 +284,20 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
     setSidebarTheme(sidebarTheme === 'dark' ? 'light' : 'dark');
   };
 
-  // Filter sections by role AND module access - memoized
+  // Filter sections by role AND module access - memoized (using normalizedRole)
   const filteredSections = useMemo(() => {
     return allSections
-      .filter(section => section.roles.includes(userRole))
+      .filter(section => section.roles.includes(normalizedRole))
       .map(section => ({
         ...section,
         items: filterMenuItems(
           section.items.filter(item => 
-            item.roles.includes(userRole) && hasModuleAccess(item.href)
+            item.roles.includes(normalizedRole) && hasModuleAccess(item.href)
           )
         )
       }))
       .filter(section => section.items.length > 0);
-  }, [allSections, userRole, filterMenuItems, hasModuleAccess]);
+  }, [allSections, normalizedRole, filterMenuItems, hasModuleAccess]);
 
   const location = useLocation();
   const { open } = useSidebar();
