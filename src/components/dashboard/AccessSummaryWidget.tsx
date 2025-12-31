@@ -44,12 +44,23 @@ export const AccessSummaryWidget: React.FC<AccessSummaryWidgetProps> = ({ compac
     );
 
     const summary = hierarchyService.getVisibilitySummary(visibility);
+    
+    // CRITICAL FIX: Handle both camelCase (mapped) and snake_case (raw) field names
     const manager = state.employees.find(e => 
-      e.id === currentEmployee.managerId || e.id === currentEmployee.reportingTo
+      e.id === currentEmployee.managerId || 
+      e.id === currentEmployee.reportingTo ||
+      e.id === (currentEmployee as any).reporting_to
     );
 
     // CRITICAL FIX: Use hierarchyService to get normalized dataScope
     const normalizedDataScope = hierarchyService.getEmployeeDataScope(currentEmployee);
+
+    // CRITICAL FIX: Use actual state counts (already RLS-filtered by database)
+    const actualCounts = {
+      cases: state.cases.length,
+      tasks: state.tasks.length,
+      clients: state.clients.length,
+    };
 
     return {
       employee: currentEmployee,
@@ -57,6 +68,7 @@ export const AccessSummaryWidget: React.FC<AccessSummaryWidgetProps> = ({ compac
       visibility,
       summary,
       dataScope: normalizedDataScope,
+      actualCounts,
     };
   }, [user, state.employees, state.clients, state.cases, state.tasks]);
 
@@ -118,15 +130,15 @@ export const AccessSummaryWidget: React.FC<AccessSummaryWidgetProps> = ({ compac
           
           <div className="grid grid-cols-3 gap-2 text-center">
             <div>
-              <div className="text-lg font-bold">{summary.totalAccessibleCases}</div>
+              <div className="text-lg font-bold">{accessData.actualCounts.cases}</div>
               <div className="text-[10px] text-muted-foreground">Cases</div>
             </div>
             <div>
-              <div className="text-lg font-bold">{summary.totalAccessibleTasks}</div>
+              <div className="text-lg font-bold">{accessData.actualCounts.tasks}</div>
               <div className="text-[10px] text-muted-foreground">Tasks</div>
             </div>
             <div>
-              <div className="text-lg font-bold">{summary.totalAccessibleClients}</div>
+              <div className="text-lg font-bold">{accessData.actualCounts.clients}</div>
               <div className="text-[10px] text-muted-foreground">Clients</div>
             </div>
           </div>
@@ -192,24 +204,24 @@ export const AccessSummaryWidget: React.FC<AccessSummaryWidgetProps> = ({ compac
             </TooltipProvider>
           </div>
 
-          {/* Totals Row */}
+          {/* Totals Row - Use actual state counts (RLS-filtered) */}
           <div className="flex items-center justify-between pt-3 border-t">
             <div className="flex items-center gap-6">
               <div className="text-center">
                 <div className="text-2xl font-bold text-foreground">
-                  {summary.totalAccessibleCases}
+                  {accessData.actualCounts.cases}
                 </div>
                 <div className="text-xs text-muted-foreground">Total Cases</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-foreground">
-                  {summary.totalAccessibleTasks}
+                  {accessData.actualCounts.tasks}
                 </div>
                 <div className="text-xs text-muted-foreground">Total Tasks</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-foreground">
-                  {summary.totalAccessibleClients}
+                  {accessData.actualCounts.clients}
                 </div>
                 <div className="text-xs text-muted-foreground">Total Clients</div>
               </div>
