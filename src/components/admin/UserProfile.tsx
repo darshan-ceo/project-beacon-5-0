@@ -519,27 +519,30 @@ export const UserProfile: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">User Profile</h1>
-          <p className="text-muted-foreground mt-2">
-            {isLoading ? "Loading profile..." : "Manage your account settings and security preferences"}
-          </p>
-        </div>
-      </div>
+    <div className="w-full max-w-6xl mx-auto space-y-6 px-4 sm:px-6">
+      {/* Page Header */}
+      <motion.div 
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="space-y-1"
+      >
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">My Profile</h1>
+        <p className="text-sm text-muted-foreground">
+          {isLoading ? "Loading profile..." : "Manage your account settings and preferences"}
+        </p>
+      </motion.div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center p-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="flex items-center justify-center p-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
         </div>
       ) : (
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1 p-1 h-auto">
-            <TabsTrigger value="profile" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Profile</TabsTrigger>
-            <TabsTrigger value="security" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Security</TabsTrigger>
-            <TabsTrigger value="sessions" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Sessions</TabsTrigger>
-            <TabsTrigger value="activity" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Activity</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1 p-1 h-auto bg-muted/50">
+            <TabsTrigger value="profile" className="text-xs sm:text-sm py-2.5 px-3">Profile</TabsTrigger>
+            <TabsTrigger value="security" className="text-xs sm:text-sm py-2.5 px-3">Security</TabsTrigger>
+            <TabsTrigger value="sessions" className="text-xs sm:text-sm py-2.5 px-3">Sessions</TabsTrigger>
+            <TabsTrigger value="activity" className="text-xs sm:text-sm py-2.5 px-3">Activity</TabsTrigger>
           </TabsList>
 
           <TabsContent value="profile" className="space-y-6 overflow-x-hidden">
@@ -569,45 +572,64 @@ export const UserProfile: React.FC = () => {
               </DialogContent>
             </Dialog>
 
-            <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
-              {/* Avatar Card */}
-              <div className="lg:col-span-1">
-                <Card className="h-full">
-                  <CardContent className="pt-6">
+            {/* Main Grid - 12 column system for precise control */}
+            <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-12">
+              {/* Avatar Card - Narrow left column */}
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.1 }}
+                className="md:col-span-4 lg:col-span-3"
+              >
+                <Card className="h-full border-border/50 shadow-sm hover:shadow-md transition-shadow">
+                  <CardContent className="pt-6 pb-6">
                     <div className="flex flex-col items-center space-y-4">
-                      <div className="relative">
-                        <Avatar className="h-20 w-20 sm:h-24 sm:w-24">
-                          <AvatarImage 
-                            src={formData.avatar} 
-                            alt={formData.name}
-                            onError={() => setFormData(prev => ({ ...prev, avatar: '/placeholder.svg' }))}
-                          />
-                          <AvatarFallback className="text-lg sm:text-xl">{getInitials(formData.name)}</AvatarFallback>
-                        </Avatar>
-                        <Button 
-                          size="sm" 
-                          className="absolute -bottom-2 -right-2 rounded-full h-8 w-8 p-0"
-                          onClick={() => document.getElementById('avatar-upload')?.click()}
-                          disabled={isUploading}
-                          aria-label="Upload profile photo"
-                        >
-                          <Camera className="h-4 w-4" />
-                        </Button>
-                        <input
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) handleAvatarFileSelect(file);
-                            e.target.value = '';
-                          }}
-                          className="hidden"
-                          id="avatar-upload"
-                        />
-                      </div>
+                      {/* Avatar with hover effect */}
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="relative group cursor-pointer">
+                              <Avatar className="h-24 w-24 sm:h-28 sm:w-28 ring-4 ring-background shadow-lg transition-transform group-hover:scale-105">
+                                <AvatarImage 
+                                  src={formData.avatar} 
+                                  alt={formData.name}
+                                  onError={() => setFormData(prev => ({ ...prev, avatar: '/placeholder.svg' }))}
+                                />
+                                <AvatarFallback className="text-2xl font-semibold bg-primary/10 text-primary">
+                                  {getInitials(formData.name)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <Button 
+                                size="sm" 
+                                className="absolute -bottom-1 -right-1 rounded-full h-9 w-9 p-0 shadow-md"
+                                onClick={() => document.getElementById('avatar-upload')?.click()}
+                                disabled={isUploading}
+                                aria-label="Upload profile photo"
+                              >
+                                <Camera className="h-4 w-4" />
+                              </Button>
+                              <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleAvatarFileSelect(file);
+                                  e.target.value = '';
+                                }}
+                                className="hidden"
+                                id="avatar-upload"
+                              />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Click the camera icon to update your photo</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
 
-                      {featureFlagService.isEnabled('profile_avatar_v1') ? (
-                        <div className="w-full max-w-sm">
+                      {/* File Dropzone for advanced upload */}
+                      {featureFlagService.isEnabled('profile_avatar_v1') && (
+                        <div className="w-full">
                           <FileDropzone
                             onFileSelect={handleAvatarFileSelect}
                             onError={handleAvatarError}
@@ -618,87 +640,151 @@ export const UserProfile: React.FC = () => {
                           />
                           {formData.avatar !== '/placeholder.svg' && (
                             <Button
-                              variant="outline"
+                              variant="ghost"
                               size="sm"
                               onClick={handleRemoveAvatar}
                               disabled={isUploading}
-                              className="w-full mt-2"
+                              className="w-full mt-2 text-muted-foreground hover:text-destructive"
                             >
                               Remove Photo
                             </Button>
                           )}
                         </div>
-                      ) : (
-                        formData.avatar !== '/placeholder.svg' && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleRemoveAvatar}
-                            disabled={isUploading}
-                          >
-                            Remove Photo
-                          </Button>
-                        )
                       )}
-                      <div className="text-center">
-                        <h3 className="text-lg font-semibold">{formData.name}</h3>
-                        <Badge variant="outline">{formData.role}</Badge>
+
+                      {/* User info */}
+                      <div className="text-center space-y-2">
+                        <h3 className="text-lg font-semibold text-foreground">{formData.name}</h3>
+                        <Badge variant="secondary" className="font-medium">{formData.role}</Badge>
                         {formData.department && (
-                          <p className="text-sm text-muted-foreground mt-1">{formData.department}</p>
+                          <p className="text-sm text-muted-foreground">{formData.department}</p>
                         )}
                       </div>
-                      <div className="w-full space-y-2 text-sm">
-                        <div className="flex items-center">
-                          <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
-                          <span className="truncate">{formData.email}</span>
-                        </div>
-                        {formData.phone && (
-                          <div className="flex items-center">
-                            <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
-                            <span>{formData.phone}</span>
-                          </div>
-                        )}
-                        {formData.location && (
-                          <div className="flex items-center">
-                            <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                            <span>{formData.location}</span>
-                          </div>
-                        )}
-                        {formData.joinedDate && (
-                          <div className="flex items-center">
-                            <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                            <span>Joined {formData.joinedDate}</span>
-                          </div>
-                        )}
+
+                      <Separator className="w-full" />
+
+                      {/* Contact details with tooltips */}
+                      <div className="w-full space-y-3">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-help">
+                                <div className="p-2 rounded-md bg-primary/10">
+                                  <Mail className="h-4 w-4 text-primary" />
+                                </div>
+                                <span className="text-sm truncate flex-1">{formData.email}</span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="right">
+                              <p className="font-medium">Login Email</p>
+                              <p className="text-xs text-muted-foreground">Cannot be changed for security</p>
+                            </TooltipContent>
+                          </Tooltip>
+
+                          {formData.phone && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-help">
+                                  <div className="p-2 rounded-md bg-success/10">
+                                    <Phone className="h-4 w-4 text-success" />
+                                  </div>
+                                  <span className="text-sm">{formData.phone}</span>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent side="right">
+                                <p className="font-medium">Contact Number</p>
+                                <p className="text-xs text-muted-foreground">Visible to your team members</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+
+                          {formData.location && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-help">
+                                  <div className="p-2 rounded-md bg-warning/10">
+                                    <MapPin className="h-4 w-4 text-warning" />
+                                  </div>
+                                  <span className="text-sm">{formData.location}</span>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent side="right">
+                                <p className="font-medium">Office Location</p>
+                                <p className="text-xs text-muted-foreground">From your employee record</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+
+                          {formData.joinedDate && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-help">
+                                  <div className="p-2 rounded-md bg-accent">
+                                    <Clock className="h-4 w-4 text-accent-foreground" />
+                                  </div>
+                                  <span className="text-sm">Joined {formData.joinedDate}</span>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent side="right">
+                                <p className="font-medium">Member Since</p>
+                                <p className="text-xs text-muted-foreground">Date you joined the organization</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                        </TooltipProvider>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
-              </div>
+              </motion.div>
 
-              {/* My Access Section */}
+              {/* My Access Section - Wide right column */}
               {accessData && (
-                <div className="lg:col-span-2">
-                  <Card className="h-full">
-                    <CardHeader className="pb-3">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                        <CardTitle className="flex items-center text-base">
-                          <Eye className="h-5 w-5 mr-2 text-muted-foreground" />
-                          My Data Access
-                        </CardTitle>
-                        <Badge variant={accessData.dataScope === 'All Cases' ? 'default' : 'secondary'}>
-                          {accessData.dataScope}
-                        </Badge>
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="md:col-span-8 lg:col-span-9"
+                >
+                  <Card className="h-full border-border/50 shadow-sm hover:shadow-md transition-shadow">
+                    <CardHeader className="pb-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-primary/10">
+                            <Eye className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <CardTitle className="text-base sm:text-lg">My Data Access</CardTitle>
+                            {accessData.manager && (
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                Reporting to: <span className="font-medium text-foreground">{accessData.manager.full_name}</span>
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge 
+                                variant={accessData.dataScope === 'All Cases' ? 'default' : 'secondary'}
+                                className="cursor-help w-fit"
+                              >
+                                {accessData.dataScope}
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="font-medium">Data Visibility Level</p>
+                              <p className="text-xs text-muted-foreground max-w-xs">
+                                Your visibility level determines what cases, tasks, and clients you can access in the system
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
-                      {accessData.manager && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Reporting to: <span className="font-medium">{accessData.manager.full_name}</span>
-                        </p>
-                      )}
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      {/* Access Breakdown */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+                    <CardContent className="space-y-5">
+                      {/* Access Breakdown - Responsive grid */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         <TooltipProvider>
                           {[
                             { 
@@ -707,7 +793,8 @@ export const UserProfile: React.FC = () => {
                               icon: UserCheck,
                               color: 'text-success',
                               bgColor: 'bg-success/10',
-                              description: 'Cases assigned directly to you'
+                              borderColor: 'border-success/20',
+                              description: 'Cases assigned directly to you or where you are the owner'
                             },
                             { 
                               label: 'Via Manager', 
@@ -715,7 +802,8 @@ export const UserProfile: React.FC = () => {
                               icon: Users,
                               color: 'text-primary',
                               bgColor: 'bg-primary/10',
-                              description: 'Cases assigned to your manager'
+                              borderColor: 'border-primary/20',
+                              description: 'Cases visible through your reporting manager'
                             },
                             { 
                               label: 'Team', 
@@ -723,7 +811,8 @@ export const UserProfile: React.FC = () => {
                               icon: Building2,
                               color: 'text-warning',
                               bgColor: 'bg-warning/10',
-                              description: 'Cases from team members'
+                              borderColor: 'border-warning/20',
+                              description: 'Cases from team members who share your manager'
                             },
                             { 
                               label: 'Org-wide', 
@@ -731,177 +820,296 @@ export const UserProfile: React.FC = () => {
                               icon: Briefcase,
                               color: 'text-muted-foreground',
                               bgColor: 'bg-muted',
-                              description: 'Organization-wide visibility'
+                              borderColor: 'border-border',
+                              description: 'Cases accessible due to organization-wide visibility settings'
                             },
                           ].filter(item => item.count > 0 || accessData.dataScope === 'All Cases').map((item) => (
                             <Tooltip key={item.label}>
                               <TooltipTrigger asChild>
-                                <div className={`p-2 sm:p-3 rounded-lg ${item.bgColor} cursor-help transition-transform hover:scale-105`}>
-                                  <div className="flex items-center gap-1 sm:gap-2 mb-1">
-                                    <item.icon className={`h-3 w-3 sm:h-4 sm:w-4 ${item.color}`} />
-                                    <span className="text-[10px] sm:text-xs font-medium truncate">{item.label}</span>
+                                <div className={`p-3 sm:p-4 rounded-xl border ${item.bgColor} ${item.borderColor} cursor-help transition-all hover:scale-[1.02] hover:shadow-sm`}>
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <item.icon className={`h-4 w-4 ${item.color}`} />
+                                    <span className="text-xs font-medium text-muted-foreground">{item.label}</span>
                                   </div>
-                                  <div className={`text-lg sm:text-xl font-bold ${item.color}`}>
+                                  <div className={`text-2xl sm:text-3xl font-bold ${item.color}`}>
                                     {item.count}
                                   </div>
                                 </div>
                               </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{item.description}</p>
+                              <TooltipContent className="max-w-xs">
+                                <p className="font-medium">{item.label} Access</p>
+                                <p className="text-xs text-muted-foreground">{item.description}</p>
                               </TooltipContent>
                             </Tooltip>
                           ))}
                         </TooltipProvider>
                       </div>
 
-                      {/* Totals Row - Use actual state counts (RLS-filtered) */}
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-3 border-t">
-                        <div className="grid grid-cols-3 gap-4 sm:flex sm:items-center sm:gap-6">
-                          <div className="text-center">
-                            <div className="text-lg sm:text-xl font-bold text-foreground">
-                              {accessData.actualCounts.cases}
-                            </div>
-                            <div className="text-[10px] sm:text-xs text-muted-foreground">Cases</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-lg sm:text-xl font-bold text-foreground">
-                              {accessData.actualCounts.tasks}
-                            </div>
-                            <div className="text-[10px] sm:text-xs text-muted-foreground">Tasks</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-lg sm:text-xl font-bold text-foreground">
-                              {accessData.actualCounts.clients}
-                            </div>
-                            <div className="text-[10px] sm:text-xs text-muted-foreground">Clients</div>
-                          </div>
+                      <Separator />
+
+                      {/* Totals Row - Better alignment */}
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div className="flex items-center justify-around sm:justify-start sm:gap-8">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="text-center cursor-help">
+                                  <div className="text-2xl sm:text-3xl font-bold text-foreground">
+                                    {accessData.actualCounts.cases}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground font-medium">Total Cases</div>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="font-medium">Accessible Cases</p>
+                                <p className="text-xs text-muted-foreground">All cases you have permission to view based on your role</p>
+                              </TooltipContent>
+                            </Tooltip>
+
+                            <div className="h-10 w-px bg-border hidden sm:block" />
+
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="text-center cursor-help">
+                                  <div className="text-2xl sm:text-3xl font-bold text-foreground">
+                                    {accessData.actualCounts.tasks}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground font-medium">Total Tasks</div>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="font-medium">Your Tasks</p>
+                                <p className="text-xs text-muted-foreground">Tasks assigned to you or visible through your team</p>
+                              </TooltipContent>
+                            </Tooltip>
+
+                            <div className="h-10 w-px bg-border hidden sm:block" />
+
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="text-center cursor-help">
+                                  <div className="text-2xl sm:text-3xl font-bold text-foreground">
+                                    {accessData.actualCounts.clients}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground font-medium">Total Clients</div>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="font-medium">Accessible Clients</p>
+                                <p className="text-xs text-muted-foreground">Clients you can view and manage</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
+
                         <Button 
                           variant="outline" 
                           size="sm"
                           onClick={() => navigate('/admin/access')}
-                          className="w-full sm:w-auto"
+                          className="w-full sm:w-auto group"
                         >
                           View Access Details
-                          <ArrowRight className="h-4 w-4 ml-2" />
+                          <ArrowRight className="h-4 w-4 ml-2 transition-transform group-hover:translate-x-1" />
                         </Button>
                       </div>
                     </CardContent>
                   </Card>
-                </div>
+                </motion.div>
               )}
 
               {/* Personal Information Card - Full width */}
-              <div className="col-span-full">
-                <Card>
-                  <CardHeader>
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="col-span-full"
+              >
+                <Card className="border-border/50 shadow-sm">
+                  <CardHeader className="pb-4">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="flex items-center">
-                        <User className="h-5 w-5 mr-2" />
-                        Personal Information
-                      </CardTitle>
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-secondary/10">
+                          <User className="h-5 w-5 text-secondary-foreground" />
+                        </div>
+                        <CardTitle className="text-base sm:text-lg">Personal Information</CardTitle>
+                      </div>
                       <Button
-                        variant="outline"
+                        variant={isEditing ? "ghost" : "outline"}
                         size="sm"
                         onClick={() => setIsEditing(!isEditing)}
+                        className="gap-2"
                       >
                         {isEditing ? (
                           <>
-                            <X className="h-4 w-4 mr-2" />
-                            Cancel
+                            <X className="h-4 w-4" />
+                            <span className="hidden sm:inline">Cancel</span>
                           </>
                         ) : (
                           <>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit
+                            <Edit className="h-4 w-4" />
+                            <span className="hidden sm:inline">Edit</span>
                           </>
                         )}
                       </Button>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="fullName">Full Name</Label>
-                        <Input
-                          id="fullName"
-                          value={formData.name}
-                          disabled={!isEditing}
-                          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="role">Role</Label>
-                        <Input
-                          id="role"
-                          value={formData.role}
-                          disabled
-                        />
-                      </div>
+                  <CardContent className="space-y-5">
+                    {/* Two column grid for form fields */}
+                    <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2">
+                      <TooltipProvider>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor="fullName" className="text-sm font-medium">Full Name</Label>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button className="text-muted-foreground hover:text-foreground">
+                                  <Activity className="h-3.5 w-3.5" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Your display name shown across the system</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                          <Input
+                            id="fullName"
+                            value={formData.name}
+                            disabled={!isEditing}
+                            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                            className="h-10"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor="role" className="text-sm font-medium">Role</Label>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button className="text-muted-foreground hover:text-foreground">
+                                  <Activity className="h-3.5 w-3.5" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Your role is set by administrators</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                          <Input
+                            id="role"
+                            value={formData.role}
+                            disabled
+                            className="h-10 bg-muted/30"
+                          />
+                        </div>
+                      </TooltipProvider>
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="email">Email Address</Label>
+                      <TooltipProvider>
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor="email" className="text-sm font-medium">Email Address</Label>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button className="text-muted-foreground hover:text-foreground">
+                                <Lock className="h-3.5 w-3.5" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Cannot be changed - contact admin for updates</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </TooltipProvider>
                       <Input
                         id="email"
                         type="email"
                         value={formData.email}
                         disabled
+                        className="h-10 bg-muted/30"
                       />
-                      <p className="text-xs text-muted-foreground">Email cannot be changed</p>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="phone">Phone Number</Label>
+                      <Label htmlFor="phone" className="text-sm font-medium">Phone Number</Label>
                       <Input
                         id="phone"
                         value={formData.phone}
                         disabled={!isEditing}
                         onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                         placeholder="Enter phone number"
+                        className="h-10"
                       />
                     </div>
 
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="location">Location</Label>
-                        <Input
-                          id="location"
-                          value={formData.location}
-                          disabled
-                          placeholder="Location from employee record"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="timezone">Timezone</Label>
-                        <Select value={formData.timezone} disabled={!isEditing}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Asia/Kolkata">India Standard Time</SelectItem>
-                            <SelectItem value="America/New_York">Eastern Time</SelectItem>
-                            <SelectItem value="America/Los_Angeles">Pacific Time</SelectItem>
-                            <SelectItem value="Europe/London">UK Time</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                    <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2">
+                      <TooltipProvider>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor="location" className="text-sm font-medium">Location</Label>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button className="text-muted-foreground hover:text-foreground">
+                                  <Activity className="h-3.5 w-3.5" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Synced from your employee profile</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                          <Input
+                            id="location"
+                            value={formData.location}
+                            disabled
+                            placeholder="Location from employee record"
+                            className="h-10 bg-muted/30"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor="timezone" className="text-sm font-medium">Timezone</Label>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button className="text-muted-foreground hover:text-foreground">
+                                  <Activity className="h-3.5 w-3.5" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Used for scheduling and date display</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                          <Select value={formData.timezone} disabled={!isEditing}>
+                            <SelectTrigger className="h-10">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Asia/Kolkata">India Standard Time</SelectItem>
+                              <SelectItem value="America/New_York">Eastern Time</SelectItem>
+                              <SelectItem value="America/Los_Angeles">Pacific Time</SelectItem>
+                              <SelectItem value="Europe/London">UK Time</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </TooltipProvider>
                     </div>
 
+                    {/* Save buttons */}
                     {isEditing && (
-                      <div className="flex justify-end space-x-2 pt-4">
-                        <Button variant="outline" onClick={() => setIsEditing(false)}>
+                      <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-4 border-t">
+                        <Button variant="outline" onClick={() => setIsEditing(false)} className="w-full sm:w-auto">
                           Cancel
                         </Button>
-                        <Button onClick={handleSaveProfile}>
-                          <Save className="h-4 w-4 mr-2" />
+                        <Button onClick={handleSaveProfile} className="w-full sm:w-auto gap-2">
+                          <Save className="h-4 w-4" />
                           Save Changes
                         </Button>
                       </div>
                     )}
                   </CardContent>
                 </Card>
-              </div>
+              </motion.div>
             </div>
           </TabsContent>
 
