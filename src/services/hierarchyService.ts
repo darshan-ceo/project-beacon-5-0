@@ -214,6 +214,37 @@ class HierarchyService {
    * - 'Team Cases': See own + team/subordinate data
    * - 'Own Cases': See only directly assigned/owned data
    */
+  /**
+   * Normalize dataScope value from various formats to standard display values
+   * Handles: snake_case from DB, legacy enum values, undefined/null
+   */
+  private normalizeDataScope(rawScope: string | undefined | null): 'Own Cases' | 'Team Cases' | 'All Cases' {
+    if (!rawScope) return 'Own Cases';
+    
+    const normalized = rawScope.toLowerCase().trim();
+    
+    // Handle legacy enum values
+    if (normalized === 'own' || normalized === 'own cases' || normalized === 'own_cases') return 'Own Cases';
+    if (normalized === 'team' || normalized === 'team cases' || normalized === 'team_cases') return 'Team Cases';
+    if (normalized === 'all' || normalized === 'all cases' || normalized === 'all_cases') return 'All Cases';
+    
+    // If it matches display values directly
+    if (rawScope === 'Own Cases' || rawScope === 'Team Cases' || rawScope === 'All Cases') {
+      return rawScope as 'Own Cases' | 'Team Cases' | 'All Cases';
+    }
+    
+    return 'Own Cases'; // Default fallback
+  }
+
+  /**
+   * Get effective data scope for an employee, checking both camelCase and snake_case fields
+   */
+  getEmployeeDataScope(employee: Employee): 'Own Cases' | 'Team Cases' | 'All Cases' {
+    // Check both camelCase (JS) and snake_case (DB) field names
+    const rawScope = employee.dataScope || (employee as any).data_scope;
+    return this.normalizeDataScope(rawScope);
+  }
+
   calculateVisibility(
     employee: Employee,
     employees: Employee[],
@@ -222,7 +253,8 @@ class HierarchyService {
     tasks: Task[]
   ): EmployeeVisibility {
     const role = employee.role;
-    const dataScope = employee.dataScope || 'Own Cases'; // Default to most restrictive
+    // CRITICAL FIX: Check both camelCase and snake_case, then normalize
+    const dataScope = this.getEmployeeDataScope(employee);
     
     // Admin/Partner override - they always get 'All Cases' access
     const isPartnerOrAdmin = role === 'Partner' || role === 'Admin';
@@ -231,7 +263,9 @@ class HierarchyService {
     console.log('[HierarchyService] Calculating visibility for:', {
       employee: employee.full_name,
       role: employee.role,
-      dataScope: employee.dataScope,
+      rawDataScope: employee.dataScope,
+      rawData_scope: (employee as any).data_scope,
+      normalizedDataScope: dataScope,
       effectiveScope
     });
 

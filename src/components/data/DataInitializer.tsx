@@ -41,7 +41,8 @@ const normalizeStateId = (stateValue: string): string => {
 // Version 3: Force reload to fix stale closure issues with hierarchy building
 // Version 4: Fixed assignedCAId mapping and UPDATE_CLIENT merge pattern
 // Version 5: Fixed address parsing to preserve city/state/locality fields
-const DATA_SCHEMA_VERSION = 5;
+// Version 6: Fixed dataScope/data_scope mapping for Team Cases visibility
+const DATA_SCHEMA_VERSION = 6;
 
 // Global flags to persist data loaded state across component remounts
 // This prevents the "Loading your data..." screen from appearing when switching tabs
