@@ -277,6 +277,16 @@ class HierarchyService {
     // Get the manager's ID (the person this employee reports to)
     const managerId = employee.reportingTo || employee.managerId;
     
+    // CRITICAL FIX: Build manager chain (upward visibility - manager, manager's manager, etc.)
+    const managerChainIds = new Set<string>();
+    let currentManagerId = managerId;
+    while (currentManagerId) {
+      managerChainIds.add(currentManagerId);
+      const manager = employees.find(e => e.id === currentManagerId);
+      currentManagerId = manager?.reportingTo || manager?.managerId;
+      if (managerChainIds.size > 5) break; // Safety limit
+    }
+    
     // Get same-team colleagues (people with same manager)
     const sameManagerIds = new Set(
       employees
@@ -288,14 +298,14 @@ class HierarchyService {
         .map(e => e.id)
     );
 
-    // CRITICAL: For "Team Cases", include the manager themselves
-    // This allows staff to see cases/clients/tasks assigned to their manager
+    // CRITICAL: For "Team Cases", include the entire manager chain
+    // This allows staff to see cases/clients/tasks assigned to their manager and above
     const managerAndTeamIds = new Set([
       ...sameManagerIds,
-      ...(managerId ? [managerId] : [])
+      ...managerChainIds
     ]);
 
-    // Combine for "team" - self + subordinates + same-manager colleagues + manager
+    // Combine for "team" - self + subordinates + same-manager colleagues + manager chain
     const teamMemberIds = new Set([employee.id, ...subordinateIds, ...managerAndTeamIds]);
 
     // Calculate visible cases based on dataScope
@@ -333,12 +343,19 @@ class HierarchyService {
             name: c.title || c.caseNumber,
             accessPath: { type: 'hierarchy', through: c.assignedToId, description: 'Assigned to subordinate' }
           });
-        } else if (managerId && (c.assignedToId === managerId || caseOwnerId === managerId)) {
-          // CRITICAL FIX: Manager's case (assigned or owned)
+        } else if (c.assignedToId && managerChainIds.has(c.assignedToId)) {
+          // CRITICAL FIX: Case assigned to someone in manager chain (manager, manager's manager, etc.)
           visibleCases.push({
             id: c.id,
             name: c.title || c.caseNumber,
-            accessPath: { type: 'manager', through: managerId, description: 'Assigned to/owned by manager' }
+            accessPath: { type: 'manager', through: c.assignedToId, description: 'Assigned to manager chain' }
+          });
+        } else if (caseOwnerId && managerChainIds.has(caseOwnerId)) {
+          // Case owned by someone in manager chain
+          visibleCases.push({
+            id: c.id,
+            name: c.title || c.caseNumber,
+            accessPath: { type: 'manager', through: caseOwnerId, description: 'Owned by manager chain' }
           });
         } else if (c.assignedToId && sameManagerIds.has(c.assignedToId)) {
           // Teammate's case
@@ -394,12 +411,12 @@ class HierarchyService {
           name: getClientName(client),
           accessPath: { type: 'hierarchy', description: 'Via visible case (inherited from case visibility)' }
         });
-      } else if (effectiveScope === 'Team Cases' && managerId && clientOwnerId === managerId) {
-        // CRITICAL FIX: Client owned by manager
+      } else if (effectiveScope === 'Team Cases' && clientOwnerId && managerChainIds.has(clientOwnerId)) {
+        // CRITICAL FIX: Client owned by someone in manager chain
         visibleClients.push({
           id: client.id,
           name: getClientName(client),
-          accessPath: { type: 'manager', description: 'Owned by manager' }
+          accessPath: { type: 'manager', description: 'Owned by manager chain' }
         });
       } else if (effectiveScope === 'Team Cases' && clientOwnerId && (subordinateIds.has(clientOwnerId) || sameManagerIds.has(clientOwnerId))) {
         // Client owned by team member
@@ -456,12 +473,12 @@ class HierarchyService {
       }
       // For Team Cases scope, also see manager/subordinate/team tasks
       else if (effectiveScope === 'Team Cases') {
-        if (task.assignedToId === managerId) {
-          // CRITICAL FIX: Manager's task
+        if (task.assignedToId && managerChainIds.has(task.assignedToId)) {
+          // CRITICAL FIX: Task assigned to someone in manager chain
           visibleTasks.push({
             id: task.id,
             name: task.title,
-            accessPath: { type: 'manager', description: 'Assigned to manager' }
+            accessPath: { type: 'manager', description: 'Assigned to manager chain' }
           });
         } else if (task.assignedToId && subordinateIds.has(task.assignedToId)) {
           visibleTasks.push({
