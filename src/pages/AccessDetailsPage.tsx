@@ -36,22 +36,14 @@ export const AccessDetailsPage: React.FC = () => {
     
     if (!currentEmployee) return null;
 
-    const visibility = hierarchyService.calculateVisibility(
-      currentEmployee,
-      state.employees,
-      state.clients,
-      state.cases,
-      state.tasks
-    );
-
-    const summary = hierarchyService.getVisibilitySummary(visibility);
-    
     // CRITICAL FIX: Handle both camelCase (mapped) and snake_case (raw) field names
-    const manager = state.employees.find(e => 
-      e.id === currentEmployee.managerId || 
-      e.id === currentEmployee.reportingTo ||
-      e.id === (currentEmployee as any).reporting_to
-    );
+    const managerId = currentEmployee.managerId || 
+                      currentEmployee.reportingTo ||
+                      (currentEmployee as any).reporting_to;
+    
+    const manager = managerId 
+      ? state.employees.find(e => e.id === managerId)
+      : null;
 
     // Get direct reports - check both field naming conventions
     const directReports = state.employees.filter(e => 
@@ -64,21 +56,62 @@ export const AccessDetailsPage: React.FC = () => {
     const normalizedDataScope = hierarchyService.getEmployeeDataScope(currentEmployee);
 
     // CRITICAL FIX: Use actual state counts (already RLS-filtered by database)
-    // This ensures profile counts match Case Management module counts
     const actualCounts = {
       cases: state.cases.length,
       tasks: state.tasks.length,
       clients: state.clients.length,
     };
 
+    // CRITICAL FIX: Calculate breakdown from actual RLS-filtered cases
+    // Instead of relying on frontend visibility calculation that may not match RLS
+    const breakdown = {
+      direct: 0,
+      viaManager: 0,
+      team: 0,
+      orgWide: 0,
+    };
+
+    // Categorize each case based on how the user can access it
+    state.cases.forEach(caseItem => {
+      const assignedToId = (caseItem as any).assignedToId || (caseItem as any).assigned_to;
+      const ownerId = (caseItem as any).ownerId || (caseItem as any).owner_id;
+      
+      // Direct: assigned to or owned by current user
+      if (assignedToId === currentEmployee.id || ownerId === currentEmployee.id) {
+        breakdown.direct++;
+      } 
+      // Via Manager: assigned to or owned by manager
+      else if (managerId && (assignedToId === managerId || ownerId === managerId)) {
+        breakdown.viaManager++;
+      }
+      // Team: assigned to or owned by someone with same manager
+      else if (managerId) {
+        const caseOwnerOrAssignee = state.employees.find(e => 
+          e.id === assignedToId || e.id === ownerId
+        );
+        const caseEmployeeManagerId = caseOwnerOrAssignee?.managerId || 
+                                       caseOwnerOrAssignee?.reportingTo ||
+                                       (caseOwnerOrAssignee as any)?.reporting_to;
+        
+        if (caseEmployeeManagerId === managerId) {
+          breakdown.team++;
+        } else {
+          // Org-wide: visible due to data scope permissions
+          breakdown.orgWide++;
+        }
+      } else {
+        // If no manager, treat as org-wide
+        breakdown.orgWide++;
+      }
+    });
+
     return {
       employee: currentEmployee,
       manager,
       directReports,
-      visibility,
-      summary,
       dataScope: normalizedDataScope,
       actualCounts,
+      breakdown,
     };
   }, [user, state.employees, state.clients, state.cases, state.tasks]);
 
@@ -119,12 +152,12 @@ export const AccessDetailsPage: React.FC = () => {
     );
   }
 
-  const { employee, manager, directReports, summary, dataScope } = accessData;
+  const { employee, manager, directReports, dataScope, breakdown } = accessData;
 
   const accessItems = [
     { 
       label: 'Direct', 
-      count: summary.directCases, 
+      count: breakdown.direct, 
       icon: UserCheck,
       color: 'text-success',
       bgColor: 'bg-success/10',
@@ -133,7 +166,7 @@ export const AccessDetailsPage: React.FC = () => {
     },
     { 
       label: 'Via Manager', 
-      count: summary.managerCases, 
+      count: breakdown.viaManager, 
       icon: Users,
       color: 'text-primary',
       bgColor: 'bg-primary/10',
@@ -142,7 +175,7 @@ export const AccessDetailsPage: React.FC = () => {
     },
     { 
       label: 'Team', 
-      count: summary.teamCases, 
+      count: breakdown.team, 
       icon: Building2,
       color: 'text-warning',
       bgColor: 'bg-warning/10',
@@ -151,7 +184,7 @@ export const AccessDetailsPage: React.FC = () => {
     },
     { 
       label: 'Org-wide', 
-      count: summary.hierarchyCases, 
+      count: breakdown.orgWide, 
       icon: Briefcase,
       color: 'text-muted-foreground',
       bgColor: 'bg-muted',

@@ -45,7 +45,8 @@ const normalizeStateId = (stateValue: string): string => {
 // Version 7: Fixed manager chain visibility for Team Cases (upward visibility to manager's manager)
 // Version 8: Fixed profile/access pages to use actual RLS-filtered state counts
 // Version 9: Fixed manager lookup to handle snake_case reporting_to field
-const DATA_SCHEMA_VERSION = 9;
+// Version 10: Fixed access breakdown to use RLS-filtered cases instead of frontend visibility calculation
+const DATA_SCHEMA_VERSION = 10;
 
 // Global flags to persist data loaded state across component remounts
 // This prevents the "Loading your data..." screen from appearing when switching tabs
