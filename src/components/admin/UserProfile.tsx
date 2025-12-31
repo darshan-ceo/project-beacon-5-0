@@ -209,37 +209,65 @@ export const UserProfile: React.FC = () => {
     
     if (!currentEmployee) return null;
 
-    const visibility = hierarchyService.calculateVisibility(
-      currentEmployee,
-      state.employees,
-      state.clients,
-      state.cases,
-      state.tasks
-    );
-
-    const summary = hierarchyService.getVisibilitySummary(visibility);
-    const manager = state.employees.find(e => 
-      e.id === currentEmployee.managerId || e.id === currentEmployee.reportingTo
-    );
+    // CRITICAL FIX: Handle both camelCase and snake_case field names
+    const managerId = currentEmployee.managerId || 
+                      currentEmployee.reportingTo ||
+                      (currentEmployee as any).reporting_to;
+    
+    const manager = managerId 
+      ? state.employees.find(e => e.id === managerId)
+      : null;
 
     // CRITICAL FIX: Use hierarchyService to get normalized dataScope
     const normalizedDataScope = hierarchyService.getEmployeeDataScope(currentEmployee);
 
     // CRITICAL FIX: Use actual state counts (already RLS-filtered by database)
-    // This ensures profile counts match Case Management module counts
     const actualCounts = {
       cases: state.cases.length,
       tasks: state.tasks.length,
       clients: state.clients.length,
     };
 
+    // Calculate breakdown from actual RLS-filtered cases
+    const breakdown = {
+      direct: 0,
+      viaManager: 0,
+      team: 0,
+      orgWide: 0,
+    };
+
+    state.cases.forEach(caseItem => {
+      const assignedToId = (caseItem as any).assignedToId || (caseItem as any).assigned_to;
+      const ownerId = (caseItem as any).ownerId || (caseItem as any).owner_id;
+      
+      if (assignedToId === currentEmployee.id || ownerId === currentEmployee.id) {
+        breakdown.direct++;
+      } else if (managerId && (assignedToId === managerId || ownerId === managerId)) {
+        breakdown.viaManager++;
+      } else if (managerId) {
+        const caseOwnerOrAssignee = state.employees.find(e => 
+          e.id === assignedToId || e.id === ownerId
+        );
+        const caseEmployeeManagerId = caseOwnerOrAssignee?.managerId || 
+                                       caseOwnerOrAssignee?.reportingTo ||
+                                       (caseOwnerOrAssignee as any)?.reporting_to;
+        
+        if (caseEmployeeManagerId === managerId) {
+          breakdown.team++;
+        } else {
+          breakdown.orgWide++;
+        }
+      } else {
+        breakdown.orgWide++;
+      }
+    });
+
     return {
       employee: currentEmployee,
       manager,
-      visibility,
-      summary,
       dataScope: normalizedDataScope,
-      actualCounts, // Use these for display instead of summary counts
+      actualCounts,
+      breakdown,
     };
   }, [user, state.employees, state.clients, state.cases, state.tasks]);
 
@@ -541,19 +569,20 @@ export const UserProfile: React.FC = () => {
               </DialogContent>
             </Dialog>
 
-            <div className="grid gap-6 md:grid-cols-3">
-              <div className="md:col-span-1">
-                <Card>
+            <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
+              {/* Avatar Card */}
+              <div className="lg:col-span-1">
+                <Card className="h-full">
                   <CardContent className="pt-6">
                     <div className="flex flex-col items-center space-y-4">
                       <div className="relative">
-                        <Avatar className="h-24 w-24">
+                        <Avatar className="h-20 w-20 sm:h-24 sm:w-24">
                           <AvatarImage 
                             src={formData.avatar} 
                             alt={formData.name}
                             onError={() => setFormData(prev => ({ ...prev, avatar: '/placeholder.svg' }))}
                           />
-                          <AvatarFallback>{getInitials(formData.name)}</AvatarFallback>
+                          <AvatarFallback className="text-lg sm:text-xl">{getInitials(formData.name)}</AvatarFallback>
                         </Avatar>
                         <Button 
                           size="sm" 
@@ -649,10 +678,10 @@ export const UserProfile: React.FC = () => {
 
               {/* My Access Section */}
               {accessData && (
-                <div className="md:col-span-3">
-                  <Card>
+                <div className="lg:col-span-2">
+                  <Card className="h-full">
                     <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                         <CardTitle className="flex items-center text-base">
                           <Eye className="h-5 w-5 mr-2 text-muted-foreground" />
                           My Data Access
@@ -669,12 +698,12 @@ export const UserProfile: React.FC = () => {
                     </CardHeader>
                     <CardContent className="space-y-4">
                       {/* Access Breakdown */}
-                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                         <TooltipProvider>
                           {[
                             { 
                               label: 'Direct', 
-                              count: accessData.summary.directCases, 
+                              count: accessData.breakdown.direct, 
                               icon: UserCheck,
                               color: 'text-success',
                               bgColor: 'bg-success/10',
@@ -682,7 +711,7 @@ export const UserProfile: React.FC = () => {
                             },
                             { 
                               label: 'Via Manager', 
-                              count: accessData.summary.managerCases, 
+                              count: accessData.breakdown.viaManager, 
                               icon: Users,
                               color: 'text-primary',
                               bgColor: 'bg-primary/10',
@@ -690,7 +719,7 @@ export const UserProfile: React.FC = () => {
                             },
                             { 
                               label: 'Team', 
-                              count: accessData.summary.teamCases, 
+                              count: accessData.breakdown.team, 
                               icon: Building2,
                               color: 'text-warning',
                               bgColor: 'bg-warning/10',
@@ -698,7 +727,7 @@ export const UserProfile: React.FC = () => {
                             },
                             { 
                               label: 'Org-wide', 
-                              count: accessData.summary.hierarchyCases, 
+                              count: accessData.breakdown.orgWide, 
                               icon: Briefcase,
                               color: 'text-muted-foreground',
                               bgColor: 'bg-muted',
@@ -707,12 +736,12 @@ export const UserProfile: React.FC = () => {
                           ].filter(item => item.count > 0 || accessData.dataScope === 'All Cases').map((item) => (
                             <Tooltip key={item.label}>
                               <TooltipTrigger asChild>
-                                <div className={`p-3 rounded-lg ${item.bgColor} cursor-help`}>
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <item.icon className={`h-4 w-4 ${item.color}`} />
-                                    <span className="text-xs font-medium">{item.label}</span>
+                                <div className={`p-2 sm:p-3 rounded-lg ${item.bgColor} cursor-help transition-transform hover:scale-105`}>
+                                  <div className="flex items-center gap-1 sm:gap-2 mb-1">
+                                    <item.icon className={`h-3 w-3 sm:h-4 sm:w-4 ${item.color}`} />
+                                    <span className="text-[10px] sm:text-xs font-medium truncate">{item.label}</span>
                                   </div>
-                                  <div className={`text-xl font-bold ${item.color}`}>
+                                  <div className={`text-lg sm:text-xl font-bold ${item.color}`}>
                                     {item.count}
                                   </div>
                                 </div>
@@ -726,31 +755,32 @@ export const UserProfile: React.FC = () => {
                       </div>
 
                       {/* Totals Row - Use actual state counts (RLS-filtered) */}
-                      <div className="flex items-center justify-between pt-3 border-t">
-                        <div className="flex items-center gap-6">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-3 border-t">
+                        <div className="grid grid-cols-3 gap-4 sm:flex sm:items-center sm:gap-6">
                           <div className="text-center">
-                            <div className="text-xl font-bold text-foreground">
+                            <div className="text-lg sm:text-xl font-bold text-foreground">
                               {accessData.actualCounts.cases}
                             </div>
-                            <div className="text-xs text-muted-foreground">Total Cases</div>
+                            <div className="text-[10px] sm:text-xs text-muted-foreground">Cases</div>
                           </div>
                           <div className="text-center">
-                            <div className="text-xl font-bold text-foreground">
+                            <div className="text-lg sm:text-xl font-bold text-foreground">
                               {accessData.actualCounts.tasks}
                             </div>
-                            <div className="text-xs text-muted-foreground">Total Tasks</div>
+                            <div className="text-[10px] sm:text-xs text-muted-foreground">Tasks</div>
                           </div>
                           <div className="text-center">
-                            <div className="text-xl font-bold text-foreground">
+                            <div className="text-lg sm:text-xl font-bold text-foreground">
                               {accessData.actualCounts.clients}
                             </div>
-                            <div className="text-xs text-muted-foreground">Total Clients</div>
+                            <div className="text-[10px] sm:text-xs text-muted-foreground">Clients</div>
                           </div>
                         </div>
                         <Button 
                           variant="outline" 
                           size="sm"
                           onClick={() => navigate('/admin/access')}
+                          className="w-full sm:w-auto"
                         >
                           View Access Details
                           <ArrowRight className="h-4 w-4 ml-2" />
@@ -761,7 +791,8 @@ export const UserProfile: React.FC = () => {
                 </div>
               )}
 
-              <div className="md:col-span-2">
+              {/* Personal Information Card - Full width */}
+              <div className="col-span-full">
                 <Card>
                   <CardHeader>
                     <div className="flex items-center justify-between">
