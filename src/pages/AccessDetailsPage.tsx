@@ -54,13 +54,16 @@ export const AccessDetailsPage: React.FC = () => {
       e.managerId === currentEmployee.id || e.reportingTo === currentEmployee.id
     );
 
+    // CRITICAL FIX: Use hierarchyService to get normalized dataScope
+    const normalizedDataScope = hierarchyService.getEmployeeDataScope(currentEmployee);
+
     return {
       employee: currentEmployee,
       manager,
       directReports,
       visibility,
       summary,
-      dataScope: currentEmployee.dataScope || 'Own Cases',
+      dataScope: normalizedDataScope,
     };
   }, [user, state.employees, state.clients, state.cases, state.tasks]);
 

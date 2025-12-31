@@ -222,12 +222,15 @@ export const UserProfile: React.FC = () => {
       e.id === currentEmployee.managerId || e.id === currentEmployee.reportingTo
     );
 
+    // CRITICAL FIX: Use hierarchyService to get normalized dataScope
+    const normalizedDataScope = hierarchyService.getEmployeeDataScope(currentEmployee);
+
     return {
       employee: currentEmployee,
       manager,
       visibility,
       summary,
-      dataScope: currentEmployee.dataScope || 'Own Cases',
+      dataScope: normalizedDataScope,
     };
   }, [user, state.employees, state.clients, state.cases, state.tasks]);
 
