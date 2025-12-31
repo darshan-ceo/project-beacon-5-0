@@ -13,8 +13,12 @@ interface AdminLayoutProps {
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const { userProfile, user } = useAuth();
   
-  // Derive user role for sidebar - default to 'Staff' if not available
-  const userRole = (userProfile?.role as 'Admin' | 'Partner/CA' | 'Staff' | 'Client') || 'Staff';
+  // Derive user role for sidebar - map 'Partner' to 'Partner/CA' for sidebar compatibility
+  const userRole = (() => {
+    const role = userProfile?.role;
+    if (role === 'Partner') return 'Partner/CA';
+    return role || 'Staff';
+  })() as 'Admin' | 'Partner/CA' | 'Staff' | 'Client';
   const userId = user?.id || userProfile?.full_name || 'user';
 
   return (
