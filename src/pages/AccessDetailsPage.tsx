@@ -45,17 +45,31 @@ export const AccessDetailsPage: React.FC = () => {
     );
 
     const summary = hierarchyService.getVisibilitySummary(visibility);
+    
+    // CRITICAL FIX: Handle both camelCase (mapped) and snake_case (raw) field names
     const manager = state.employees.find(e => 
-      e.id === currentEmployee.managerId || e.id === currentEmployee.reportingTo
+      e.id === currentEmployee.managerId || 
+      e.id === currentEmployee.reportingTo ||
+      e.id === (currentEmployee as any).reporting_to
     );
 
-    // Get direct reports
+    // Get direct reports - check both field naming conventions
     const directReports = state.employees.filter(e => 
-      e.managerId === currentEmployee.id || e.reportingTo === currentEmployee.id
+      e.managerId === currentEmployee.id || 
+      e.reportingTo === currentEmployee.id ||
+      (e as any).reporting_to === currentEmployee.id
     );
 
     // CRITICAL FIX: Use hierarchyService to get normalized dataScope
     const normalizedDataScope = hierarchyService.getEmployeeDataScope(currentEmployee);
+
+    // CRITICAL FIX: Use actual state counts (already RLS-filtered by database)
+    // This ensures profile counts match Case Management module counts
+    const actualCounts = {
+      cases: state.cases.length,
+      tasks: state.tasks.length,
+      clients: state.clients.length,
+    };
 
     return {
       employee: currentEmployee,
@@ -64,6 +78,7 @@ export const AccessDetailsPage: React.FC = () => {
       visibility,
       summary,
       dataScope: normalizedDataScope,
+      actualCounts,
     };
   }, [user, state.employees, state.clients, state.cases, state.tasks]);
 
@@ -328,7 +343,7 @@ export const AccessDetailsPage: React.FC = () => {
               >
                 <Briefcase className="h-8 w-8 mx-auto mb-2 text-primary" />
                 <div className="text-3xl font-bold text-foreground">
-                  {summary.totalAccessibleCases}
+                  {accessData.actualCounts.cases}
                 </div>
                 <div className="text-sm text-muted-foreground">Cases</div>
               </div>
@@ -338,7 +353,7 @@ export const AccessDetailsPage: React.FC = () => {
               >
                 <FileText className="h-8 w-8 mx-auto mb-2 text-warning" />
                 <div className="text-3xl font-bold text-foreground">
-                  {summary.totalAccessibleTasks}
+                  {accessData.actualCounts.tasks}
                 </div>
                 <div className="text-sm text-muted-foreground">Tasks</div>
               </div>
@@ -348,7 +363,7 @@ export const AccessDetailsPage: React.FC = () => {
               >
                 <FolderOpen className="h-8 w-8 mx-auto mb-2 text-success" />
                 <div className="text-3xl font-bold text-foreground">
-                  {summary.totalAccessibleClients}
+                  {accessData.actualCounts.clients}
                 </div>
                 <div className="text-sm text-muted-foreground">Clients</div>
               </div>
