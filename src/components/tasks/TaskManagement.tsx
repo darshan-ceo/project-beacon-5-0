@@ -101,12 +101,17 @@ export const TaskManagement: React.FC = () => {
   const { state, dispatch, rawDispatch } = useAppState();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { hasPermission } = useAdvancedRBAC();
   const [searchTerm, setSearchTerm] = useState('');
   const [highlightedTaskId, setHighlightedTaskId] = useState<string | null>(null);
   const [shouldAutoOpenTask, setShouldAutoOpenTask] = useState<string | null>(null);
   const [activeFilters, setActiveFilters] = useState<Record<string, any>>({});
   const [activeTab, setActiveTab] = useState('board');
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
+  
+  // RBAC permission checks
+  const canDeleteTasks = hasPermission('tasks', 'delete');
+  const canCreateTasks = hasPermission('tasks', 'write');
   
   // Load view mode from storage
   useEffect(() => {
@@ -576,30 +581,26 @@ export const TaskManagement: React.FC = () => {
     }
   };
 
-  // Handle task deletion
+  // Handle task deletion - uses tasksService for proper Supabase response validation
   const handleTaskDelete = async (taskId: string) => {
-    try {
-      // Remove from app state
-      dispatch({
-        type: 'DELETE_TASK',
-        payload: taskId,
-      });
-
-      // Remove from storage
-      const storage = storageManager.getStorage();
-      await storage.delete('tasks', taskId);
-
+    // RBAC permission check
+    if (!canDeleteTasks) {
       toast({
-        title: "Success",
-        description: "Task deleted successfully",
-      });
-    } catch (error) {
-      console.error('Failed to delete task:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete task",
+        title: "Permission Denied",
+        description: "You don't have permission to delete tasks",
         variant: "destructive",
       });
+      return;
+    }
+    
+    try {
+      // Use tasksService which validates Supabase response before UI update
+      const { tasksService } = await import('@/services/tasksService');
+      await tasksService.delete(taskId, dispatch);
+      // tasksService handles success/error toasts
+    } catch (error) {
+      // Error already handled by tasksService
+      console.error('Failed to delete task:', error);
     }
   };
 
