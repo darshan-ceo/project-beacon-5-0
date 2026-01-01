@@ -494,15 +494,15 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <AdvancedRBACProvider>
-          <AppStateProvider>
+        <AppStateProvider>
+          <AdvancedRBACProvider>
             <DataInitializer>
               <AppWithPersistence>
                 <AppContent />
               </AppWithPersistence>
             </DataInitializer>
-          </AppStateProvider>
-        </AdvancedRBACProvider>
+          </AdvancedRBACProvider>
+        </AppStateProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
