@@ -35,7 +35,8 @@ const HearingsList: React.FC<{
   selectedIds: Set<string>;
   onToggleSelection: (id: string) => void;
   calendarProvider?: string;
-}> = ({ hearings, onEdit, onView, highlightCaseId, highlightDate, highlightCourtId, selectedIds, onToggleSelection, calendarProvider }) => {
+  canEdit?: boolean;
+}> = ({ hearings, onEdit, onView, highlightCaseId, highlightDate, highlightCourtId, selectedIds, onToggleSelection, calendarProvider, canEdit = false }) => {
   const { state } = useAppState();
   
   // Auto-scroll to highlighted hearing when component mounts
@@ -117,9 +118,11 @@ const HearingsList: React.FC<{
                     <Button size="sm" variant="outline" onClick={() => onView(hearing)} className="flex-1 md:flex-none">
                       View
                     </Button>
-                    <Button size="sm" onClick={() => onEdit(hearing)} className="flex-1 md:flex-none">
-                      Edit
-                    </Button>
+                    {canEdit && (
+                      <Button size="sm" onClick={() => onEdit(hearing)} className="flex-1 md:flex-none">
+                        Edit
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -500,6 +503,7 @@ export const HearingsPage: React.FC = () => {
             selectedIds={selectedHearingIds}
             onToggleSelection={handleToggleSelection}
             calendarProvider={calendarSettings?.provider}
+            canEdit={canEditHearings}
           />
         </TabsContent>
 
@@ -517,16 +521,18 @@ export const HearingsPage: React.FC = () => {
       </Tabs>
 
       {/* Mobile: Floating Schedule Button */}
-      <div className="md:hidden fixed bottom-6 right-6 z-50">
-        <Button
-          onClick={handleCreateHearing}
-          size="lg"
-          className="shadow-2xl h-14 w-14 rounded-full p-0"
-          title="Schedule Hearing"
-        >
-          <Plus className="h-6 w-6" />
-        </Button>
-      </div>
+      {canCreateHearings && (
+        <div className="md:hidden fixed bottom-6 right-6 z-50">
+          <Button
+            onClick={handleCreateHearing}
+            size="lg"
+            className="shadow-2xl h-14 w-14 rounded-full p-0"
+            title="Schedule Hearing"
+          >
+            <Plus className="h-6 w-6" />
+          </Button>
+        </div>
+      )}
 
       {/* Hearing Modal */}
       <HearingModal

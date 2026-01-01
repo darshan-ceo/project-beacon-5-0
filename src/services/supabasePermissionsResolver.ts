@@ -1,7 +1,11 @@
 /**
  * Supabase Permissions Resolver
- * Maps user roles to actual Supabase RLS permissions
- * This ensures frontend RBAC matches database-level security
+ * Maps user roles to actual database permissions from role_permissions table
+ * This ensures frontend RBAC matches database-level security (RLS)
+ * 
+ * IMPORTANT: This resolver now reads permissions from the database (role_permissions table)
+ * instead of using a hardcoded matrix, ensuring the UI respects whatever is configured
+ * in the Access & Roles admin panel.
  */
 
 import { supabase } from '@/integrations/supabase/client';
@@ -9,133 +13,10 @@ import { supabase } from '@/integrations/supabase/client';
 export type AppRole = 'admin' | 'partner' | 'manager' | 'advocate' | 'ca' | 'staff' | 'clerk' | 'client' | 'user';
 export type PermissionAction = 'read' | 'write' | 'delete' | 'admin';
 
-interface RolePermissionMatrix {
-  [module: string]: PermissionAction[];
+interface CachedPermissions {
+  permissions: Set<string>;
+  expiry: number;
 }
-
-/**
- * Permission matrix that mirrors actual Supabase RLS policies
- * IMPORTANT: Keep this in sync with database RLS policies
- */
-const SUPABASE_ROLE_PERMISSIONS: Record<AppRole, RolePermissionMatrix> = {
-  admin: {
-    tasks: ['read', 'write', 'delete', 'admin'],
-    cases: ['read', 'write', 'delete', 'admin'],
-    clients: ['read', 'write', 'delete', 'admin'],
-    documents: ['read', 'write', 'delete', 'admin'],
-    courts: ['read', 'write', 'delete', 'admin'],
-    judges: ['read', 'write', 'delete', 'admin'],
-    employees: ['read', 'write', 'delete', 'admin'],
-    hearings: ['read', 'write', 'delete', 'admin'],
-    reports: ['read', 'write', 'admin'],
-    settings: ['read', 'write', 'admin'],
-    rbac: ['read', 'write', 'delete', 'admin'],
-  },
-  partner: {
-    tasks: ['read', 'write', 'delete'],
-    cases: ['read', 'write', 'delete'], // After RLS fix
-    clients: ['read', 'write'],
-    documents: ['read', 'write', 'delete'],
-    courts: ['read', 'write'],
-    judges: ['read', 'write'],
-    employees: ['read'],
-    hearings: ['read', 'write', 'delete'], // After RLS fix
-    reports: ['read', 'write'],
-    settings: ['read'],
-    rbac: ['read'],
-  },
-  manager: {
-    tasks: ['read', 'write', 'delete'],
-    cases: ['read', 'write', 'delete'], // Scoped to subordinates
-    clients: ['read', 'write'],
-    documents: ['read', 'write'],
-    courts: ['read', 'write'],
-    judges: ['read', 'write'],
-    employees: ['read', 'write'],
-    hearings: ['read', 'write', 'delete'],
-    reports: ['read', 'write'],
-    settings: ['read'],
-    rbac: ['read'],
-  },
-  advocate: {
-    tasks: ['read', 'write'],
-    cases: ['read'],
-    clients: ['read', 'write'],
-    documents: ['read', 'write', 'delete'],
-    courts: ['read', 'write', 'delete'],
-    judges: ['read', 'write', 'delete'],
-    employees: ['read'],
-    hearings: ['read', 'write', 'delete'],
-    reports: ['read'],
-    settings: ['read'],
-    rbac: [],
-  },
-  ca: {
-    tasks: ['read', 'write'],
-    cases: ['read'],
-    clients: ['read', 'write'],
-    documents: ['read', 'write'],
-    courts: ['read', 'write'],
-    judges: ['read', 'write'],
-    employees: ['read'],
-    hearings: ['read', 'write'],
-    reports: ['read'],
-    settings: ['read'],
-    rbac: [],
-  },
-  staff: {
-    tasks: ['read', 'write'], // Can only delete own tasks via RLS
-    cases: ['read'],
-    clients: ['read'],
-    documents: ['read', 'write'],
-    courts: ['read'],
-    judges: ['read'],
-    employees: ['read'],
-    hearings: ['read'],
-    reports: ['read'],
-    settings: ['read'],
-    rbac: [],
-  },
-  clerk: {
-    tasks: ['read'],
-    cases: ['read'],
-    clients: ['read'],
-    documents: ['read'],
-    courts: ['read'],
-    judges: ['read'],
-    employees: [],
-    hearings: ['read'],
-    reports: [],
-    settings: [],
-    rbac: [],
-  },
-  client: {
-    tasks: [],
-    cases: ['read'], // Own cases only
-    clients: [],
-    documents: ['read'], // Own documents only
-    courts: [],
-    judges: [],
-    employees: [],
-    hearings: ['read'], // Own hearings only
-    reports: [],
-    settings: [],
-    rbac: [],
-  },
-  user: {
-    tasks: ['read'],
-    cases: ['read'],
-    clients: ['read'],
-    documents: ['read'],
-    courts: ['read'],
-    judges: ['read'],
-    employees: ['read'],
-    hearings: ['read'],
-    reports: [],
-    settings: [],
-    rbac: [],
-  },
-};
 
 // Module aliases for compatibility
 const MODULE_ALIASES: Record<string, string> = {
@@ -154,9 +35,21 @@ const MODULE_ALIASES: Record<string, string> = {
 // Priority order: admin > partner > manager > advocate > ca > staff > clerk > client > user
 const ROLE_PRIORITY: AppRole[] = ['admin', 'partner', 'manager', 'advocate', 'ca', 'staff', 'clerk', 'client', 'user'];
 
+// Map database action names to our PermissionAction type
+const ACTION_MAP: Record<string, PermissionAction> = {
+  'read': 'read',
+  'create': 'write',
+  'update': 'write',
+  'delete': 'delete',
+  'manage': 'admin',
+  'admin': 'admin',
+};
+
 class SupabasePermissionsResolver {
   private userRoleCache = new Map<string, { role: AppRole; expiry: number }>();
+  private rolePermissionsCache = new Map<string, CachedPermissions>();
   private cacheTTL = 5 * 60 * 1000; // 5 minutes
+  private permissionsLoading = new Map<string, Promise<Set<string>>>();
 
   /**
    * Get highest priority role from a list of roles
@@ -192,6 +85,7 @@ class SupabasePermissionsResolver {
       if (employee?.role) {
         const role = this.mapEmployeeRole(employee.role);
         this.userRoleCache.set(userId, { role, expiry: Date.now() + this.cacheTTL });
+        console.log(`[RBAC] User ${userId} resolved to role: ${role} (from employees table)`);
         return role;
       }
 
@@ -252,46 +146,131 @@ class SupabasePermissionsResolver {
   }
 
   /**
+   * Load permissions for a role from the database (role_permissions table)
+   */
+  private async loadRolePermissions(role: AppRole): Promise<Set<string>> {
+    // Check cache
+    const cached = this.rolePermissionsCache.get(role);
+    if (cached && Date.now() < cached.expiry) {
+      return cached.permissions;
+    }
+
+    // Check if already loading (prevent duplicate requests)
+    const existingLoad = this.permissionsLoading.get(role);
+    if (existingLoad) {
+      return existingLoad;
+    }
+
+    // Start loading
+    const loadPromise = (async () => {
+      try {
+        const { data: rolePermissions, error } = await supabase
+          .from('role_permissions')
+          .select('permission_key')
+          .eq('role', role);
+
+        if (error) {
+          console.error(`[RBAC] Error loading permissions for role ${role}:`, error);
+          return new Set<string>();
+        }
+
+        const permissions = new Set<string>();
+        if (rolePermissions) {
+          for (const rp of rolePermissions) {
+            permissions.add(rp.permission_key);
+          }
+        }
+
+        // Cache the result
+        this.rolePermissionsCache.set(role, {
+          permissions,
+          expiry: Date.now() + this.cacheTTL
+        });
+
+        console.log(`[RBAC] Loaded ${permissions.size} permissions for role ${role}:`, Array.from(permissions));
+        return permissions;
+      } catch (error) {
+        console.error(`[RBAC] Failed to load permissions for role ${role}:`, error);
+        return new Set<string>();
+      } finally {
+        this.permissionsLoading.delete(role);
+      }
+    })();
+
+    this.permissionsLoading.set(role, loadPromise);
+    return loadPromise;
+  }
+
+  /**
    * Check if a role has permission for a module and action
+   * Uses database-driven permissions from role_permissions table
    */
   hasPermission(role: AppRole, module: string, action: PermissionAction): boolean {
     // Normalize module name
     const normalizedModule = MODULE_ALIASES[module.toLowerCase()] || module.toLowerCase();
     
-    const rolePermissions = SUPABASE_ROLE_PERMISSIONS[role];
-    if (!rolePermissions) {
-      console.warn(`Unknown role: ${role}`);
+    // Check cache for role permissions
+    const cached = this.rolePermissionsCache.get(role);
+    if (!cached || Date.now() >= cached.expiry) {
+      // Permissions not loaded yet - trigger async load and return false (fail-closed)
+      // The UI should re-check after loading completes
+      this.loadRolePermissions(role).catch(console.error);
+      console.log(`[RBAC] Permissions not loaded for role ${role}, denying ${normalizedModule}:${action}`);
       return false;
     }
 
-    const modulePermissions = rolePermissions[normalizedModule];
-    if (!modulePermissions) {
-      // Module not in permissions list - deny by default
-      return false;
-    }
+    const permissions = cached.permissions;
 
-    // Admin action includes all other actions
-    if (modulePermissions.includes('admin')) {
-      return true;
-    }
-
-    // Direct match
-    if (modulePermissions.includes(action)) {
-      return true;
-    }
-
-    // Hierarchy: admin > delete > write > read
-    // If user has higher permission, they implicitly have lower
-    const hierarchy: PermissionAction[] = ['read', 'write', 'delete', 'admin'];
-    const actionIndex = hierarchy.indexOf(action);
+    // Build the permission keys to check
+    // The database uses format: module.action (e.g., clients.read, clients.create)
+    const dbActions = this.mapActionToDatabaseActions(action);
     
-    for (let i = actionIndex + 1; i < hierarchy.length; i++) {
-      if (modulePermissions.includes(hierarchy[i])) {
+    // Check if any of the database action permissions exist
+    for (const dbAction of dbActions) {
+      const permissionKey = `${normalizedModule}.${dbAction}`;
+      if (permissions.has(permissionKey)) {
         return true;
       }
     }
 
+    // Check for manage/admin permission which grants all actions
+    if (permissions.has(`${normalizedModule}.manage`)) {
+      return true;
+    }
+
+    console.log(`[RBAC] Permission denied: ${normalizedModule}:${action} for role ${role}`);
     return false;
+  }
+
+  /**
+   * Map our PermissionAction to database action names
+   * The database uses: read, create, update, delete, manage
+   * Our actions are: read, write, delete, admin
+   */
+  private mapActionToDatabaseActions(action: PermissionAction): string[] {
+    switch (action) {
+      case 'read':
+        return ['read'];
+      case 'write':
+        // write = create OR update
+        return ['create', 'update'];
+      case 'delete':
+        return ['delete'];
+      case 'admin':
+        return ['manage', 'admin'];
+      default:
+        return [action];
+    }
+  }
+
+  /**
+   * Async permission check that ensures permissions are loaded
+   * Use this for initial checks where you need to wait for permissions to load
+   */
+  async hasPermissionAsync(role: AppRole, module: string, action: PermissionAction): Promise<boolean> {
+    // Ensure permissions are loaded
+    await this.loadRolePermissions(role);
+    return this.hasPermission(role, module, action);
   }
 
   /**
@@ -299,14 +278,29 @@ class SupabasePermissionsResolver {
    */
   async checkPermission(userId: string, module: string, action: PermissionAction): Promise<boolean> {
     const role = await this.getUserRole(userId);
-    return this.hasPermission(role, module, action);
+    return this.hasPermissionAsync(role, module, action);
   }
 
   /**
-   * Get all permissions for a role
+   * Get all permissions for a role (from database)
    */
-  getRolePermissions(role: AppRole): RolePermissionMatrix {
-    return SUPABASE_ROLE_PERMISSIONS[role] || {};
+  async getRolePermissions(role: AppRole): Promise<Set<string>> {
+    return this.loadRolePermissions(role);
+  }
+
+  /**
+   * Preload permissions for a role (call this early to avoid delays)
+   */
+  async preloadPermissions(role: AppRole): Promise<void> {
+    await this.loadRolePermissions(role);
+  }
+
+  /**
+   * Check if permissions are loaded for a role
+   */
+  isPermissionsLoaded(role: AppRole): boolean {
+    const cached = this.rolePermissionsCache.get(role);
+    return cached !== undefined && Date.now() < cached.expiry;
   }
 
   /**
@@ -317,17 +311,24 @@ class SupabasePermissionsResolver {
   }
 
   /**
+   * Clear role permissions cache (call after role permissions are edited)
+   */
+  clearRolePermissionsCache(role?: AppRole): void {
+    if (role) {
+      this.rolePermissionsCache.delete(role);
+    } else {
+      this.rolePermissionsCache.clear();
+    }
+    console.log(`[RBAC] Cleared permissions cache${role ? ` for role: ${role}` : ' for all roles'}`);
+  }
+
+  /**
    * Clear all cache
    */
   clearAllCache(): void {
     this.userRoleCache.clear();
-  }
-
-  /**
-   * Get the permission matrix (for debugging/admin purposes)
-   */
-  getPermissionMatrix(): typeof SUPABASE_ROLE_PERMISSIONS {
-    return SUPABASE_ROLE_PERMISSIONS;
+    this.rolePermissionsCache.clear();
+    console.log('[RBAC] Cleared all caches');
   }
 }
 

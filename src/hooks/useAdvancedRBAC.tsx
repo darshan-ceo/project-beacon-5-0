@@ -4,8 +4,7 @@
  * Now uses Supabase-backed permissions resolver for accurate RLS alignment
  */
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { permissionsResolver, type EffectivePermissions } from '@/services/permissionsResolver';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { supabasePermissionsResolver, type AppRole } from '@/services/supabasePermissionsResolver';
 import { advancedRbacService } from '@/services/advancedRbacService';
 import { type RoleEntity } from '@/persistence/unifiedStore';
@@ -36,10 +35,11 @@ interface AdvancedRBACContextType {
   
   // Advanced features
   currentUserId: string;
-  effectivePermissions: EffectivePermissions | null;
+  effectivePermissions: null; // Removed legacy permissions
   userRoles: RoleEntity[];
   isLoading: boolean;
   enforcementEnabled: boolean;
+  isRbacReady: boolean; // NEW: indicates if RBAC is fully loaded
   
   // Enhanced permission checking
   can: (resource: string, action: 'read' | 'write' | 'delete' | 'admin') => Promise<boolean>;
@@ -90,13 +90,16 @@ export const AdvancedRBACProvider: React.FC<AdvancedRBACProviderProps> = ({
 }) => {
   const { user, tenantId, userProfile } = useAuth();
   const [currentUserId, setCurrentUserId] = useState(initialUserId);
-  const [effectivePermissions, setEffectivePermissions] = useState<EffectivePermissions | null>(null);
   const [userRoles, setUserRoles] = useState<RoleEntity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [enforcementEnabled, setEnforcementEnabled] = useState(enableEnforcement);
   const [currentUser, setCurrentUser] = useState<User>(defaultUser);
   const [supabaseRole, setSupabaseRole] = useState<AppRole>('user');
-  const [isRoleLoading, setIsRoleLoading] = useState(true); // Track if role is still loading
+  const [isRoleLoading, setIsRoleLoading] = useState(true);
+  const [isPermissionsLoaded, setIsPermissionsLoaded] = useState(false);
+
+  // Computed: RBAC is ready when role and permissions are loaded
+  const isRbacReady = !isRoleLoading && isPermissionsLoaded;
 
   // Update currentUserId when authenticated user changes
   useEffect(() => {
@@ -105,134 +108,80 @@ export const AdvancedRBACProvider: React.FC<AdvancedRBACProviderProps> = ({
     }
   }, [user]);
 
-  // Load user role from Supabase for permission checking
+  // Load user role AND permissions from Supabase
   useEffect(() => {
-    const loadSupabaseRole = async () => {
-      if (currentUserId && currentUserId !== 'demo-user') {
+    const loadRoleAndPermissions = async () => {
+      if (currentUserId && currentUserId !== 'demo-user' && enforcementEnabled) {
         setIsRoleLoading(true);
+        setIsPermissionsLoaded(false);
+        
         try {
+          // Step 1: Get the user's role
           const role = await supabasePermissionsResolver.getUserRole(currentUserId);
           setSupabaseRole(role);
           console.log(`[RBAC] Role loaded for user ${currentUserId}: ${role}`);
+          
+          // Step 2: Preload permissions for the role
+          await supabasePermissionsResolver.preloadPermissions(role);
+          setIsPermissionsLoaded(true);
+          console.log(`[RBAC] Permissions loaded for role ${role}`);
+          
         } catch (error) {
-          console.error('Failed to load user role from Supabase:', error);
+          console.error('Failed to load user role/permissions from Supabase:', error);
+          setIsPermissionsLoaded(false);
         } finally {
           setIsRoleLoading(false);
+          setIsLoading(false);
         }
       } else {
         setIsRoleLoading(false);
+        setIsPermissionsLoaded(true); // In demo mode, consider permissions loaded
+        setIsLoading(false);
       }
     };
     
-    if (enforcementEnabled && currentUserId) {
-      loadSupabaseRole();
-    } else {
-      setIsRoleLoading(false);
+    if (currentUserId) {
+      loadRoleAndPermissions();
     }
   }, [currentUserId, enforcementEnabled]);
 
-  // Load user permissions and roles
-  useEffect(() => {
-    if (currentUserId && tenantId && enforcementEnabled) {
-      loadUserPermissions();
-    } else {
-      setEffectivePermissions(null);
-      setUserRoles([]);
-      setIsLoading(false);
-    }
-  }, [currentUserId, tenantId, enforcementEnabled]);
-
-  const loadUserPermissions = async () => {
-    try {
-      setIsLoading(true);
-      
-      if (!enforcementEnabled) {
-        // Use legacy static permissions when enforcement is disabled
-        setEffectivePermissions(null);
-        setUserRoles([]);
-        setCurrentUser(defaultUser);
-        return;
-      }
-
-      // Load effective permissions
-      const permissions = await permissionsResolver.resolveUserPermissions(currentUserId);
-      setEffectivePermissions(permissions);
-      setUserRoles(permissions.roles);
-
-      // Update current user for legacy compatibility
-      const primaryRole = permissions.roles[0];
-      if (primaryRole) {
-        setCurrentUser({
-          id: currentUserId,
-          name: 'Demo User', // In real app, fetch from user service
-          email: 'demo@lawfirm.com',
-          role: primaryRole.name as UserRole,
-          permissions: permissions.permissions.map(p => ({
-            module: p.resource,
-            action: p.action
-          }))
-        });
-      }
-
-    } catch (error) {
-      console.error('Failed to load user permissions:', error);
-      toast.error('Failed to load user permissions');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Permission checking using Supabase-backed resolver
-  const hasPermission = (module: string, action: Permission['action']): boolean => {
+  // Permission checking using Supabase-backed resolver (FAIL-CLOSED)
+  const hasPermission = useCallback((module: string, action: Permission['action']): boolean => {
+    // DEMO mode - allow everything
     if (!enforcementEnabled) {
-      // Always allow in DEMO mode when enforcement is disabled
       return true;
     }
 
-    // CRITICAL: If role is still loading and user is authenticated, allow access
-    // This prevents false permission denials during initial load
-    if (isRoleLoading && user?.id) {
-      console.log(`[RBAC] Role loading, allowing ${module}:${action} for authenticated user`);
-      return true;
+    // CRITICAL: FAIL-CLOSED while loading
+    // This prevents UI from showing actions user may not have permission for
+    if (!isRbacReady) {
+      console.log(`[RBAC] Not ready yet, denying ${module}:${action} (fail-closed)`);
+      return false;
     }
 
-    // Use Supabase permissions resolver for accurate RLS alignment
+    // Use Supabase permissions resolver (database-driven)
     const allowed = supabasePermissionsResolver.hasPermission(supabaseRole, module, action);
     
-    // If Supabase resolver allows, return true immediately
-    if (allowed) return true;
-
-    // Fallback to legacy permission system for backward compatibility
-    if (effectivePermissions) {
-      const permission = effectivePermissions.permissions.find(p => 
-        p.resource === module && p.action === action
-      );
-      if (permission?.allowed) return true;
+    if (!allowed) {
+      console.log(`[RBAC] Permission denied: ${module}:${action} for role ${supabaseRole}`);
     }
     
-    console.log(`[RBAC] Permission denied: ${module}:${action} for role ${supabaseRole}`);
-    return false;
-  };
+    return allowed;
+  }, [enforcementEnabled, isRbacReady, supabaseRole]);
 
-  // Enhanced permission checking
-  const can = async (resource: string, action: 'read' | 'write' | 'delete' | 'admin'): Promise<boolean> => {
+  // Enhanced async permission checking
+  const can = useCallback(async (resource: string, action: 'read' | 'write' | 'delete' | 'admin'): Promise<boolean> => {
     if (!enforcementEnabled) return true;
-    return permissionsResolver.can(currentUserId, resource, action);
-  };
+    return supabasePermissionsResolver.hasPermissionAsync(supabaseRole, resource, action);
+  }, [enforcementEnabled, supabaseRole]);
 
-  const canSync = (resource: string, action: 'read' | 'write' | 'delete' | 'admin'): boolean => {
+  const canSync = useCallback((resource: string, action: 'read' | 'write' | 'delete' | 'admin'): boolean => {
     if (!enforcementEnabled) return true;
-    
-    if (!effectivePermissions) return false;
+    if (!isRbacReady) return false;
+    return supabasePermissionsResolver.hasPermission(supabaseRole, resource, action);
+  }, [enforcementEnabled, isRbacReady, supabaseRole]);
 
-    const permission = effectivePermissions.permissions.find(p => 
-      p.resource === resource && p.action === action
-    );
-    
-    return permission?.allowed ?? false;
-  };
-
-  const canMultiple = async (checks: Array<{ resource: string; action: 'read' | 'write' | 'delete' | 'admin' }>): Promise<Record<string, boolean>> => {
+  const canMultiple = useCallback(async (checks: Array<{ resource: string; action: 'read' | 'write' | 'delete' | 'admin' }>): Promise<Record<string, boolean>> => {
     if (!enforcementEnabled) {
       const result: Record<string, boolean> = {};
       checks.forEach(check => {
@@ -241,8 +190,15 @@ export const AdvancedRBACProvider: React.FC<AdvancedRBACProviderProps> = ({
       return result;
     }
 
-    return permissionsResolver.canMultiple(currentUserId, checks);
-  };
+    // Ensure permissions are loaded
+    await supabasePermissionsResolver.preloadPermissions(supabaseRole);
+
+    const result: Record<string, boolean> = {};
+    for (const check of checks) {
+      result[`${check.resource}.${check.action}`] = supabasePermissionsResolver.hasPermission(supabaseRole, check.resource, check.action);
+    }
+    return result;
+  }, [enforcementEnabled, supabaseRole]);
 
   // Role management
   const assignRole = async (roleId: string): Promise<void> => {
@@ -253,8 +209,12 @@ export const AdvancedRBACProvider: React.FC<AdvancedRBACProviderProps> = ({
       });
       
       // Clear cache and reload
-      permissionsResolver.clearUserCache(currentUserId);
-      await loadUserPermissions();
+      supabasePermissionsResolver.clearUserCache(currentUserId);
+      supabasePermissionsResolver.clearAllCache();
+      
+      // Force reload of role and permissions
+      setIsRoleLoading(true);
+      setIsPermissionsLoaded(false);
       
       toast.success('Role assigned successfully');
     } catch (error) {
@@ -268,8 +228,12 @@ export const AdvancedRBACProvider: React.FC<AdvancedRBACProviderProps> = ({
       await advancedRbacService.revokeRole(currentUserId, roleId);
       
       // Clear cache and reload
-      permissionsResolver.clearUserCache(currentUserId);
-      await loadUserPermissions();
+      supabasePermissionsResolver.clearUserCache(currentUserId);
+      supabasePermissionsResolver.clearAllCache();
+      
+      // Force reload
+      setIsRoleLoading(true);
+      setIsPermissionsLoaded(false);
       
       toast.success('Role revoked successfully');
     } catch (error) {
@@ -292,13 +256,22 @@ export const AdvancedRBACProvider: React.FC<AdvancedRBACProviderProps> = ({
     setEnforcementEnabled(prev => {
       const newState = !prev;
       toast.success(`RBAC enforcement ${newState ? 'enabled' : 'disabled'}`);
+      
+      // Clear caches when toggling
+      supabasePermissionsResolver.clearAllCache();
+      
       return newState;
     });
   };
 
   const refreshPermissions = async () => {
-    permissionsResolver.clearUserCache(currentUserId);
-    await loadUserPermissions();
+    supabasePermissionsResolver.clearUserCache(currentUserId);
+    supabasePermissionsResolver.clearAllCache();
+    
+    // Force reload
+    setIsRoleLoading(true);
+    setIsPermissionsLoaded(false);
+    
     toast.success('Permissions refreshed');
   };
 
@@ -310,10 +283,11 @@ export const AdvancedRBACProvider: React.FC<AdvancedRBACProviderProps> = ({
     
     // Advanced features
     currentUserId,
-    effectivePermissions,
+    effectivePermissions: null,
     userRoles,
     isLoading,
     enforcementEnabled,
+    isRbacReady,
     
     // Enhanced permission checking
     can,
@@ -342,17 +316,35 @@ interface ProtectedComponentProps {
   action: Permission['action'];
   children: ReactNode;
   fallback?: ReactNode;
+  showLoading?: boolean;
 }
 
 export const ProtectedComponent: React.FC<ProtectedComponentProps> = ({
   module,
   action,
   children,
-  fallback = <div className="text-muted-foreground">Access denied</div>
+  fallback = null, // Default to hiding instead of showing "Access denied"
+  showLoading = false
 }) => {
-  const { hasPermission, enforcementEnabled } = useAdvancedRBAC();
+  const { hasPermission, enforcementEnabled, isRbacReady, isLoading } = useAdvancedRBAC();
   
-  if (enforcementEnabled && !hasPermission(module, action)) {
+  // Show loading if requested and still loading
+  if (showLoading && isLoading) {
+    return <div className="animate-pulse h-8 w-20 bg-muted rounded" />;
+  }
+  
+  // In demo mode, always show
+  if (!enforcementEnabled) {
+    return <>{children}</>;
+  }
+  
+  // While loading, hide the component (fail-closed)
+  if (!isRbacReady) {
+    return <>{fallback}</>;
+  }
+  
+  // Check permission
+  if (!hasPermission(module, action)) {
     return <>{fallback}</>;
   }
   
@@ -374,7 +366,7 @@ export const globalCan = async (resource: string, action: 'read' | 'write' | 'de
 
 // Enhanced hook for async permission checking
 export const useAsyncPermission = (resource: string, action: 'read' | 'write' | 'delete' | 'admin') => {
-  const { can, enforcementEnabled } = useAdvancedRBAC();
+  const { can, enforcementEnabled, isRbacReady } = useAdvancedRBAC();
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -382,6 +374,11 @@ export const useAsyncPermission = (resource: string, action: 'read' | 'write' | 
     if (!enforcementEnabled) {
       setHasPermission(true);
       setLoading(false);
+      return;
+    }
+
+    // Wait for RBAC to be ready
+    if (!isRbacReady) {
       return;
     }
 
@@ -399,7 +396,7 @@ export const useAsyncPermission = (resource: string, action: 'read' | 'write' | 
     };
 
     checkPermission();
-  }, [resource, action, can, enforcementEnabled]);
+  }, [resource, action, can, enforcementEnabled, isRbacReady]);
 
   return { hasPermission, loading };
 };
