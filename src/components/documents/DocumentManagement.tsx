@@ -117,9 +117,15 @@ const mockFolders: Folder[] = [
 
 export const DocumentManagement: React.FC = () => {
   const { state, dispatch, rawDispatch } = useAppState();
-  const { currentUserId } = useAdvancedRBAC();
+  const { currentUserId, hasPermission } = useAdvancedRBAC();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  
+  // RBAC permission flags
+  const canCreateDocuments = hasPermission('documents', 'write');
+  const canEditDocuments = hasPermission('documents', 'write');
+  const canDeleteDocuments = hasPermission('documents', 'delete');
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [documentSearchTerm, setDocumentSearchTerm] = useState('');
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);

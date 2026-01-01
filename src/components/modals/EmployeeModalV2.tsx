@@ -118,6 +118,8 @@ const taskCategoryOptions = [
   'Client Meeting',
 ];
 
+import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
+
 export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
   isOpen,
   onClose,
@@ -125,10 +127,16 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
   mode,
 }) => {
   const { state, dispatch } = useAppState();
+  const { hasPermission } = useAdvancedRBAC();
   const queryClient = useQueryClient();
   const isMobile = useMediaQuery('(max-width: 768px)');
   const [activeTab, setActiveTab] = useState('personal');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // RBAC permission flags
+  const canCreateEmployees = hasPermission('employees', 'write');
+  const canEditEmployees = hasPermission('employees', 'write');
+  
   const [formData, setFormData] = useState<Partial<Employee & { 
     passwordOption?: 'email' | 'manual';
     tempPassword?: string;
@@ -233,6 +241,25 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
   const handleSubmit = async () => {
     try {
       setIsSubmitting(true);
+
+      // Check RBAC permissions
+      if (mode === 'create' && !canCreateEmployees) {
+        toast({
+          title: 'Permission Denied',
+          description: "You don't have permission to create employees.",
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      if (mode === 'edit' && !canEditEmployees) {
+        toast({
+          title: 'Permission Denied',
+          description: "You don't have permission to edit employees.",
+          variant: 'destructive',
+        });
+        return;
+      }
 
       // Basic validation
       if (!formData.full_name?.trim()) {

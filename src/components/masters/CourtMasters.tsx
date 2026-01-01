@@ -159,19 +159,21 @@ export const CourtMasters: React.FC = () => {
                 <span className="sm:hidden">Export</span>
               </Button>
             )}
-            <Button 
-              size="sm"
-              className="gap-2"
-              onClick={() => setCourtModal({ 
-                isOpen: true, 
-                mode: 'create', 
-                court: null 
-              })}
-            >
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Add New Legal Forum</span>
-              <span className="sm:hidden">Add Legal Forum</span>
-            </Button>
+            {hasPermission('courts', 'write') && (
+              <Button 
+                size="sm"
+                className="gap-2"
+                onClick={() => setCourtModal({ 
+                  isOpen: true, 
+                  mode: 'create', 
+                  court: null 
+                })}
+              >
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">Add New Legal Forum</span>
+                <span className="sm:hidden">Add Legal Forum</span>
+              </Button>
+            )}
           </div>
       </motion.div>
 

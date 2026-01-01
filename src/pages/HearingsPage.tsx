@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Plus, Calendar, List } from 'lucide-react';
 import { formatDateForDisplay, formatTimeForDisplay } from '@/utils/dateFormatters';
+import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
+import { toast } from '@/hooks/use-toast';
 
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -9,7 +11,6 @@ import { Dialog } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 
 import { useAppState, Hearing } from '@/contexts/AppStateContext';
-import { toast } from '@/hooks/use-toast';
 import { HearingModal } from '@/components/modals/HearingModal';
 import { HearingFilters, HearingFiltersState } from '@/components/hearings/HearingFilters';
 import { hearingsService } from '@/services/hearingsService';
@@ -135,8 +136,14 @@ import { ProCalendarView } from '@/components/hearings/ProCalendarView';
 
 export const HearingsPage: React.FC = () => {
   const { state, dispatch } = useAppState();
+  const { hasPermission } = useAdvancedRBAC();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  
+  // RBAC permission flags
+  const canCreateHearings = hasPermission('hearings', 'write');
+  const canEditHearings = hasPermission('hearings', 'write');
+  const canDeleteHearings = hasPermission('hearings', 'delete');
   
   const [activeTab, setActiveTab] = useState(searchParams.get('view') || 'list');
   const [selectedHearingIds, setSelectedHearingIds] = useState<Set<string>>(new Set());
@@ -288,12 +295,27 @@ export const HearingsPage: React.FC = () => {
   });
 
   const handleCreateHearing = () => {
+    if (!canCreateHearings) {
+      toast({
+        title: 'Permission Denied',
+        description: "You don't have permission to schedule hearings.",
+        variant: 'destructive',
+      });
+      return;
+    }
     setSelectedHearing(null);
     setFormMode('create');
     setIsFormOpen(true);
   };
 
   const handleEditHearing = (hearing: Hearing) => {
+    if (!canEditHearings) {
+      // Open in view mode instead
+      setSelectedHearing(hearing);
+      setFormMode('view');
+      setIsFormOpen(true);
+      return;
+    }
     setSelectedHearing(hearing);
     setFormMode('edit');
     setIsFormOpen(true);
@@ -428,10 +450,12 @@ export const HearingsPage: React.FC = () => {
         </div>
         
         {/* Desktop Schedule Button */}
-        <Button onClick={handleCreateHearing} className="hidden md:flex">
-          <Plus className="h-4 w-4 mr-2" />
-          Schedule Hearing
-        </Button>
+        {canCreateHearings && (
+          <Button onClick={handleCreateHearing} className="hidden md:flex">
+            <Plus className="h-4 w-4 mr-2" />
+            Schedule Hearing
+          </Button>
+        )}
       </div>
 
       {/* Hearing Metrics Dashboard */}

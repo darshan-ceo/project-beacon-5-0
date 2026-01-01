@@ -70,10 +70,16 @@ export const CaseModal: React.FC<CaseModalProps> = ({
   contextClientId 
 }) => {
   const { state, dispatch } = useAppState();
+  const { hasPermission } = useAdvancedRBAC();
   const { validateCaseClient } = useRelationships();
   const { context, updateContext, getAvailableClients, getContextDetails } = useContextualForms({
     clientId: contextClientId
   });
+  
+  // RBAC permission flags
+  const canCreateCases = hasPermission('cases', 'write');
+  const canEditCases = hasPermission('cases', 'write');
+  const canDeleteCases = hasPermission('cases', 'delete');
   
   // Statutory deadline calculation hook
   const { calculateReplyDeadline, formatDeadlineForForm, isCalculating } = useStatutoryDeadlines({
@@ -267,6 +273,25 @@ export const CaseModal: React.FC<CaseModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check RBAC permissions
+    if (mode === 'create' && !canCreateCases) {
+      toast({
+        title: "Permission Denied",
+        description: "You don't have permission to create cases.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (mode === 'edit' && !canEditCases) {
+      toast({
+        title: "Permission Denied",
+        description: "You don't have permission to edit cases.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     // Grandfather clause: Only require these fields for new cases
     if (mode === 'create') {
@@ -582,10 +607,6 @@ export const CaseModal: React.FC<CaseModalProps> = ({
 
     onClose();
   };
-
-  // RBAC permission checks
-  const { hasPermission } = useAdvancedRBAC();
-  const canDeleteCases = hasPermission('cases', 'delete');
 
   const handleDelete = async () => {
     if (caseData) {
