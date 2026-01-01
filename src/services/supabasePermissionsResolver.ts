@@ -151,9 +151,25 @@ const MODULE_ALIASES: Record<string, string> = {
   setting: 'settings',
 };
 
+// Priority order: admin > partner > manager > advocate > ca > staff > clerk > client > user
+const ROLE_PRIORITY: AppRole[] = ['admin', 'partner', 'manager', 'advocate', 'ca', 'staff', 'clerk', 'client', 'user'];
+
 class SupabasePermissionsResolver {
   private userRoleCache = new Map<string, { role: AppRole; expiry: number }>();
   private cacheTTL = 5 * 60 * 1000; // 5 minutes
+
+  /**
+   * Get highest priority role from a list of roles
+   */
+  private getHighestPriorityRole(roles: string[]): AppRole {
+    const normalizedRoles = roles.map(r => r.toLowerCase() as AppRole);
+    for (const priorityRole of ROLE_PRIORITY) {
+      if (normalizedRoles.includes(priorityRole)) {
+        return priorityRole;
+      }
+    }
+    return 'user';
+  }
 
   /**
    * Get the user's role from their employee record or user_roles table
@@ -179,22 +195,24 @@ class SupabasePermissionsResolver {
         return role;
       }
 
-      // Fallback: Check user_roles table
+      // Fallback: Check user_roles table - get ALL active roles
       const { data: userRoles } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
-        .limit(1);
+        .eq('is_active', true);
 
       if (userRoles && userRoles.length > 0) {
-        const role = userRoles[0].role as AppRole;
+        // Get highest priority role from all user's roles
+        const allRoles = userRoles.map(r => r.role as string);
+        const role = this.getHighestPriorityRole(allRoles);
         this.userRoleCache.set(userId, { role, expiry: Date.now() + this.cacheTTL });
+        console.log(`[RBAC] User ${userId} resolved to role: ${role} (from roles: ${allRoles.join(', ')})`);
         return role;
       }
 
       // Default to 'user' if no role found
+      console.log(`[RBAC] User ${userId} has no roles, defaulting to 'user'`);
       return 'user';
     } catch (error) {
       console.error('Error fetching user role:', error);
