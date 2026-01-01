@@ -48,11 +48,17 @@ import { CaseSelector } from '@/components/ui/relationship-selector';
 const PRIORITY_OPTIONS = ['Critical', 'High', 'Medium', 'Low'];
 const DEFAULT_TAGS = ['Urgent', 'Review', 'Follow-up', 'Documentation', 'Client'];
 
+import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
+
 export const CreateTask: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { state, dispatch } = useAppState();
+  const { hasPermission } = useAdvancedRBAC();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Check if user has permission to create tasks
+  const canCreateTasks = hasPermission('tasks', 'write');
 
   // Read case context from URL params
   const caseId = searchParams.get('caseId') || '';
@@ -212,6 +218,12 @@ export const CreateTask: React.FC = () => {
   };
 
   const handleSubmit = async () => {
+    // Check RBAC permission first
+    if (!canCreateTasks) {
+      toast.error("You don't have permission to create tasks.");
+      return;
+    }
+    
     if (!formData.title.trim()) {
       toast.error('Please enter a task title');
       return;

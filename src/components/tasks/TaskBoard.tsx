@@ -27,6 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
+import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -64,9 +65,14 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
   onTaskClick 
 }) => {
   const { state, dispatch } = useAppState();
+  const { hasPermission } = useAdvancedRBAC();
   const navigate = useNavigate();
   const [draggedTask, setDraggedTask] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
+  
+  // RBAC permission flags
+  const canEditTasks = hasPermission('tasks', 'write');
+  const canDeleteTasks = hasPermission('tasks', 'delete');
 
   const getTasksByStatus = (status: string) => {
     return tasks.filter(task => task.status === status);
@@ -111,6 +117,14 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
   };
 
   const handleStatusChange = (taskId: string, newStatus: string) => {
+    if (!canEditTasks) {
+      toast({
+        title: 'Permission Denied',
+        description: "You don't have permission to update tasks.",
+        variant: 'destructive',
+      });
+      return;
+    }
     if (onTaskUpdate) {
       onTaskUpdate(taskId, { status: newStatus as Task['status'] });
     }
@@ -175,20 +189,24 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
                   <Eye className="mr-2 h-4 w-4" />
                   View Details
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/tasks/${task.id}?edit=true`);
-                }}>
-                  <MessageSquare className="mr-2 h-4 w-4" />
-                  Add Follow-Up
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/tasks/${task.id}?edit=true`);
-                }}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit Task
-                </DropdownMenuItem>
+                {canEditTasks && (
+                  <DropdownMenuItem onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/tasks/${task.id}?edit=true`);
+                  }}>
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    Add Follow-Up
+                  </DropdownMenuItem>
+                )}
+                {canEditTasks && (
+                  <DropdownMenuItem onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/tasks/${task.id}?edit=true`);
+                  }}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit Task
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={(e) => {
                   e.stopPropagation();

@@ -29,6 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { detectHearingConflicts } from '@/utils/hearingConflicts';
 import { supabase } from '@/integrations/supabase/client';
 import { uploadDocument } from '@/services/supabaseDocumentService';
+import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 
 interface HearingModalProps {
   isOpen: boolean;
@@ -48,7 +49,13 @@ export const HearingModal: React.FC<HearingModalProps> = ({
   contextClientId 
 }) => {
   const { state, dispatch } = useAppState();
+  const { hasPermission } = useAdvancedRBAC();
   const { validateJudgeCourt, getCaseWithClient } = useRelationships();
+  
+  // RBAC permission flags
+  const canCreateHearings = hasPermission('hearings', 'write');
+  const canEditHearings = hasPermission('hearings', 'write');
+  
   const { 
     context, 
     updateContext, 
@@ -177,6 +184,26 @@ export const HearingModal: React.FC<HearingModalProps> = ({
     e.preventDefault();
 
     if (isSubmitting) return;
+    
+    // Check RBAC permission
+    if (mode === 'create' && !canCreateHearings) {
+      toast({
+        title: "Permission Denied",
+        description: "You don't have permission to create hearings.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (mode === 'edit' && !canEditHearings) {
+      toast({
+        title: "Permission Denied",
+        description: "You don't have permission to edit hearings.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setIsSubmitting(true);
 
     try {

@@ -39,7 +39,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
   contextClientId
 }) => {
   const { state, dispatch } = useAppState();
-  const { currentUserId, enforcementEnabled } = useRBAC();
+  const { currentUserId, enforcementEnabled, hasPermission } = useRBAC();
   const [formData, setFormData] = useState({
     name: '',
     type: 'pdf',
@@ -137,6 +137,26 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check RBAC permissions
+    if (mode === 'upload' && !hasPermission('documents', 'write')) {
+      toast({
+        title: "Permission Denied",
+        description: "You don't have permission to upload documents.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (mode === 'edit' && !hasPermission('documents', 'write')) {
+      toast({
+        title: "Permission Denied",
+        description: "You don't have permission to edit documents.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setLoading(true);
     
     try {

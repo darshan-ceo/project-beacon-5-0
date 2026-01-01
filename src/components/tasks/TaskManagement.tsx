@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { navigationContextService } from '@/services/navigationContextService';
 import { uiStateService } from '@/services/UIStateService';
 import { supabase } from '@/integrations/supabase/client';
+import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 import { 
   CheckSquare, 
   Clock, 
