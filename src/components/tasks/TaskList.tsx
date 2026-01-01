@@ -52,6 +52,7 @@ import { TasksBulkActions } from './TasksBulkActions';
 import { formatDateForDisplay } from '@/utils/dateFormatters';
 import { v4 as uuid } from 'uuid';
 import { toast } from '@/hooks/use-toast';
+import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 
 interface TaskDisplay extends Task {
   assignedTo: string;
@@ -87,12 +88,17 @@ export const TaskList: React.FC<TaskListProps> = ({
 }) => {
   const { state, dispatch } = useAppState();
   const navigate = useNavigate();
+  const { hasPermission } = useAdvancedRBAC();
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
   const [sortField, setSortField] = useState<SortField>('dueDate');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [density, setDensity] = useState<'compact' | 'comfortable'>('comfortable');
   const [clientFilter, setClientFilter] = useState<string>('all');
   const [lockFilter, setLockFilter] = useState<'all' | 'locked' | 'unlocked'>('all');
+
+  // RBAC permission checks
+  const canDeleteTasks = hasPermission('tasks', 'delete');
+  const canEditTasks = hasPermission('tasks', 'write');
 
   // Filter and sort tasks
   const filteredAndSortedTasks = useMemo(() => {
@@ -518,22 +524,30 @@ export const TaskList: React.FC<TaskListProps> = ({
                           <Eye className="mr-2 h-4 w-4" />
                           View Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate(`/tasks/${task.id}?edit=true`)}>
-                          <MessageSquare className="mr-2 h-4 w-4" />
-                          Add Follow-Up
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate(`/tasks/${task.id}?edit=true`)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit Task
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          className="text-destructive"
-                          onClick={() => onTaskDelete?.(task.id)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
+                        {canEditTasks && (
+                          <>
+                            <DropdownMenuItem onClick={() => navigate(`/tasks/${task.id}?edit=true`)}>
+                              <MessageSquare className="mr-2 h-4 w-4" />
+                              Add Follow-Up
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => navigate(`/tasks/${task.id}?edit=true`)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit Task
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        {canDeleteTasks && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="text-destructive"
+                              onClick={() => onTaskDelete?.(task.id)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

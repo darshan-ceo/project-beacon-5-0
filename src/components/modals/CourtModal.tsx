@@ -29,6 +29,7 @@ import {
   getOfficersByJurisdiction,
   getOfficerLabel 
 } from '@/types/officer-designation';
+import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 
 interface CourtModalProps {
   isOpen: boolean;
@@ -363,8 +364,22 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     }
   };
 
+  // RBAC permission checks
+  const { hasPermission } = useAdvancedRBAC();
+  const canDeleteCourts = hasPermission('courts', 'delete');
+
   const handleDelete = async () => {
     if (courtData) {
+      // RBAC permission check
+      if (!canDeleteCourts) {
+        toast({
+          title: 'Permission Denied',
+          description: "You don't have permission to delete legal forums.",
+          variant: 'destructive',
+        });
+        return;
+      }
+      
       setIsDeleting(true);
       try {
         const { courtsService } = await import('@/services/courtsService');

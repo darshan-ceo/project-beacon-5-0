@@ -314,7 +314,21 @@ export const EmployeeMasters: React.FC = () => {
     }
   };
 
+  // RBAC permission checks
+  const canDeleteEmployees = hasPermission('employees', 'delete');
+  const canEditEmployees = hasPermission('employees', 'write');
+
   const handleDeleteEmployee = async (employee: Employee) => {
+    // RBAC permission check
+    if (!canDeleteEmployees) {
+      toast({
+        title: 'Permission Denied',
+        description: "You don't have permission to delete employees.",
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     try {
       await deleteMutation.mutateAsync(employee.id);
     } catch (error) {
@@ -588,30 +602,36 @@ export const EmployeeMasters: React.FC = () => {
                           <Users className="mr-2 h-4 w-4" />
                           View Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleEditEmployee(employee)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleToggleStatus(employee)}>
-                          {employee.status === 'Active' ? (
-                            <>
-                              <UserX className="mr-2 h-4 w-4" />
-                              Deactivate
-                            </>
-                          ) : (
-                            <>
-                              <UserCheck className="mr-2 h-4 w-4" />
-                              Activate
-                            </>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => handleDeleteEmployee(employee)}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
+                        {canEditEmployees && (
+                          <DropdownMenuItem onClick={() => handleEditEmployee(employee)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                        )}
+                        {canEditEmployees && (
+                          <DropdownMenuItem onClick={() => handleToggleStatus(employee)}>
+                            {employee.status === 'Active' ? (
+                              <>
+                                <UserX className="mr-2 h-4 w-4" />
+                                Deactivate
+                              </>
+                            ) : (
+                              <>
+                                <UserCheck className="mr-2 h-4 w-4" />
+                                Activate
+                              </>
+                            )}
+                          </DropdownMenuItem>
+                        )}
+                        {canDeleteEmployees && (
+                          <DropdownMenuItem 
+                            onClick={() => handleDeleteEmployee(employee)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

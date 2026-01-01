@@ -18,6 +18,7 @@ import { EnhancedAddressData } from '@/services/addressMasterService';
 import { featureFlagService } from '@/services/featureFlagService';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
+import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 
 interface JudgeModalProps {
   isOpen: boolean;
@@ -84,8 +85,22 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
     }
   };
 
+  // RBAC permission checks
+  const { hasPermission } = useAdvancedRBAC();
+  const canDeleteJudges = hasPermission('judges', 'delete');
+
   const handleDelete = async () => {
     if (judgeData) {
+      // RBAC permission check
+      if (!canDeleteJudges) {
+        toast({
+          title: 'Permission Denied',
+          description: "You don't have permission to delete judges.",
+          variant: 'destructive',
+        });
+        return;
+      }
+      
       setIsDeleting(true);
       try {
         const { judgesService } = await import('@/services/judgesService');
