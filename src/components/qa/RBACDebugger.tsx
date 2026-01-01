@@ -130,7 +130,7 @@ export const RBACDebugger: React.FC = () => {
               </div>
               <div>
                 <span className="text-sm font-medium">Total Permissions:</span>
-                <p className="text-sm text-muted-foreground">{effectivePermissions?.permissions?.length ?? 0} effective permissions</p>
+                <p className="text-sm text-muted-foreground">{(effectivePermissions as any)?.permissions?.length ?? 0} effective permissions</p>
               </div>
             </div>
           </CardContent>

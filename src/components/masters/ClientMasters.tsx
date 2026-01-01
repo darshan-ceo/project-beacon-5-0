@@ -345,14 +345,16 @@ export const ClientMasters: React.FC = () => {
               <span>Export Excel</span>
             </HelpButton>
           )}
-          <HelpButton 
-            helpId="button-add-client"
-            className="bg-primary hover:bg-primary-hover"
-            onClick={() => setClientModal({ isOpen: true, mode: 'create', client: null })}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Add New Client
-          </HelpButton>
+          {hasPermission('clients', 'write') && (
+            <HelpButton 
+              helpId="button-add-client"
+              className="bg-primary hover:bg-primary-hover"
+              onClick={() => setClientModal({ isOpen: true, mode: 'create', client: null })}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add New Client
+            </HelpButton>
+          )}
         </div>
       </motion.div>
 
@@ -654,27 +656,29 @@ export const ClientMasters: React.FC = () => {
                               </div>
                             </ThreeLayerHelp>
                           </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => {
-                              try {
-                                setClientModal({ isOpen: true, mode: 'edit', client });
-                              } catch (error) {
-                                console.error('Error opening client edit:', error);
-                                toast({
-                                  title: "Error",
-                                  description: "Failed to open client editor",
-                                  variant: "destructive"
-                                });
-                              }
-                            }}
-                          >
-                            <ThreeLayerHelp helpId="menu-edit-client" showExplanation={false}>
-                              <div className="flex items-center">
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit Client
-                              </div>
-                            </ThreeLayerHelp>
-                          </DropdownMenuItem>
+                          {hasPermission('clients', 'write') && (
+                            <DropdownMenuItem
+                              onClick={() => {
+                                try {
+                                  setClientModal({ isOpen: true, mode: 'edit', client });
+                                } catch (error) {
+                                  console.error('Error opening client edit:', error);
+                                  toast({
+                                    title: "Error",
+                                    description: "Failed to open client editor",
+                                    variant: "destructive"
+                                  });
+                                }
+                              }}
+                            >
+                              <ThreeLayerHelp helpId="menu-edit-client" showExplanation={false}>
+                                <div className="flex items-center">
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit Client
+                                </div>
+                              </ThreeLayerHelp>
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem
                             onClick={() => {
                               try {
