@@ -494,7 +494,7 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <AdvancedRBACProvider>
+        <AdvancedRBACProvider enableEnforcement={true}>
           <AppStateProvider>
             <DataInitializer>
               <AppWithPersistence>
