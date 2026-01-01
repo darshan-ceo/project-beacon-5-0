@@ -34,6 +34,7 @@ import { useStatutoryDeadlines } from '@/hooks/useStatutoryDeadlines';
 import { DeadlineStatusBadge } from '@/components/ui/DeadlineStatusBadge';
 import { Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 
 interface CaseModalProps {
   isOpen: boolean;
@@ -582,8 +583,22 @@ export const CaseModal: React.FC<CaseModalProps> = ({
     onClose();
   };
 
+  // RBAC permission checks
+  const { hasPermission } = useAdvancedRBAC();
+  const canDeleteCases = hasPermission('cases', 'delete');
+
   const handleDelete = async () => {
     if (caseData) {
+      // RBAC permission check
+      if (!canDeleteCases) {
+        toast({
+          title: 'Permission Denied',
+          description: "You don't have permission to delete cases.",
+          variant: 'destructive',
+        });
+        return;
+      }
+      
       setIsDeleting(true);
       try {
         // Service handles persistence and toast notifications

@@ -33,6 +33,7 @@ import { extractPANFromGSTIN, validateGSTINPANConsistency, isValidGSTIN } from '
 import { format } from 'date-fns';
 import { CLIENT_TYPES } from '@/../config/appConfig';
 import { supabase } from '@/integrations/supabase/client';
+import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 
 interface ClientModalProps {
   isOpen: boolean;
@@ -663,8 +664,22 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
     }
   };
 
+  // RBAC permission checks
+  const { hasPermission } = useAdvancedRBAC();
+  const canDeleteClients = hasPermission('clients', 'delete');
+
   const handleDelete = async () => {
     if (clientData) {
+      // RBAC permission check
+      if (!canDeleteClients) {
+        toast({
+          title: 'Permission Denied',
+          description: "You don't have permission to delete clients.",
+          variant: 'destructive',
+        });
+        return;
+      }
+      
       setIsDeleting(true);
       try {
         await clientsService.delete(clientData.id, dispatch);

@@ -30,12 +30,14 @@ import { QuickStatusButton } from './QuickStatusButton';
 import { supabase } from '@/integrations/supabase/client';
 import { tasksService } from '@/services/tasksService';
 import { toast } from 'sonner';
+import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 
 export const TaskConversation: React.FC = () => {
   const { taskId } = useParams<{ taskId: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { state, dispatch } = useAppState();
+  const { hasPermission } = useAdvancedRBAC();
   const [messages, setMessages] = useState<TaskMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string>('');
@@ -48,6 +50,10 @@ export const TaskConversation: React.FC = () => {
   
   // Determine if we're in edit mode (view mode is read-only)
   const isEditMode = searchParams.get('edit') === 'true';
+  
+  // RBAC permission checks
+  const canDeleteTasks = hasPermission('tasks', 'delete');
+  const canEditTasks = hasPermission('tasks', 'write');
   
   // Use task from state if available, otherwise use fetched task
   const stateTask = state.tasks.find((t) => t.id === taskId);
@@ -280,6 +286,12 @@ export const TaskConversation: React.FC = () => {
   const handleDeleteTask = async () => {
     if (!task || !taskId) return;
     
+    // RBAC permission check
+    if (!canDeleteTasks) {
+      toast.error("You don't have permission to delete tasks");
+      return;
+    }
+    
     if (window.confirm('Are you sure you want to delete this task?')) {
       try {
         await tasksService.delete(taskId, dispatch);
@@ -345,7 +357,7 @@ export const TaskConversation: React.FC = () => {
               />
             )}
 
-            {isEditMode && (
+            {isEditMode && canDeleteTasks && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon">
