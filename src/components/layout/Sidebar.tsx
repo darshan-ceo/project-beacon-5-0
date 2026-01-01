@@ -87,10 +87,10 @@ const sidebarSections: SidebarSection[] = [
     icon: Activity,
     defaultOpen: true,
     collapsible: false,
-    roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'],
+    roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'],
     items: [
-      { icon: BarChart3, label: 'Dashboard', href: '/', roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'dashboard-nav' },
-      { icon: ShieldCheck, label: 'Compliance Dashboard', href: '/compliance', roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'compliance-nav' },
+      { icon: BarChart3, label: 'Dashboard', href: '/', roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'dashboard-nav' },
+      { icon: ShieldCheck, label: 'Compliance Dashboard', href: '/compliance', roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'compliance-nav' },
     ]
   },
   
@@ -101,11 +101,11 @@ const sidebarSections: SidebarSection[] = [
     icon: Briefcase,
     defaultOpen: true,
     collapsible: false,
-    roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'],
+    roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'],
     items: [
-      { icon: FileText, label: 'Case Management', href: '/cases', roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'cases-nav' },
-      { icon: CalendarDays, label: 'Hearings', href: '/hearings/calendar', roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'hearings-nav' },
-      { icon: CheckSquare, label: 'Task Management', href: '/tasks', roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'tasks-nav' },
+      { icon: FileText, label: 'Case Management', href: '/cases', roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'cases-nav' },
+      { icon: CalendarDays, label: 'Hearings', href: '/hearings/calendar', roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'hearings-nav' },
+      { icon: CheckSquare, label: 'Task Management', href: '/tasks', roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'tasks-nav' },
     ]
   },
   
@@ -116,11 +116,11 @@ const sidebarSections: SidebarSection[] = [
     icon: Users,
     defaultOpen: true,
     collapsible: true,
-    roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'],
+    roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'],
     items: [
-      { icon: Users, label: 'Clients', href: '/clients', roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'] },
-      { icon: UserCircle, label: 'Contacts', href: '/contacts', roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'] },
-      { icon: Building2, label: 'Client Groups', href: '/client-groups', roles: ['Admin', 'Partner/CA', 'Ca'] },
+      { icon: Users, label: 'Clients', href: '/clients', roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'] },
+      { icon: UserCircle, label: 'Contacts', href: '/contacts', roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'] },
+      { icon: Building2, label: 'Client Groups', href: '/client-groups', roles: ['Admin', 'Partner', 'Partner/CA', 'Ca'] },
     ]
   },
   
@@ -131,9 +131,9 @@ const sidebarSections: SidebarSection[] = [
     icon: Folder,
     defaultOpen: true,
     collapsible: false,
-    roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca', 'Client'],
+    roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca', 'Client'],
     items: [
-      { icon: FolderOpen, label: 'Document Management', href: '/documents', roles: ['Admin', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca', 'Client'], tourId: 'documents-nav' },
+      { icon: FolderOpen, label: 'Document Management', href: '/documents', roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca', 'Client'], tourId: 'documents-nav' },
     ]
   },
   
@@ -144,9 +144,9 @@ const sidebarSections: SidebarSection[] = [
     icon: LineChart,
     defaultOpen: false,
     collapsible: true,
-    roles: ['Admin', 'Partner/CA', 'Manager'],
+    roles: ['Admin', 'Partner', 'Partner/CA', 'Manager'],
     items: [
-      { icon: BarChart3, label: 'Reports', href: '/reports', roles: ['Admin', 'Partner/CA', 'Manager'], tourId: 'reports-nav' },
+      { icon: BarChart3, label: 'Reports', href: '/reports', roles: ['Admin', 'Partner', 'Partner/CA', 'Manager'], tourId: 'reports-nav' },
     ]
   },
   
@@ -157,26 +157,26 @@ const sidebarSections: SidebarSection[] = [
     icon: LifeBuoy,
     defaultOpen: false,
     collapsible: true,
-    roles: ['Admin', 'Partner/CA', 'Staff', 'Client', 'Advocate', 'Manager', 'Ca', 'Clerk', 'User'],
+    roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Client', 'Advocate', 'Manager', 'Ca', 'Clerk', 'User'],
     items: [
-      { icon: HelpCircle, label: 'Help & Knowledge Base', href: '/help', roles: ['Admin', 'Partner/CA', 'Staff', 'Client', 'Advocate', 'Manager', 'Ca', 'Clerk', 'User'], tourId: 'help-nav' },
-      { icon: UserCircle, label: 'User Profile', href: '/profile', roles: ['Admin', 'Partner/CA', 'Staff', 'Client', 'Advocate', 'Manager', 'Ca', 'Clerk', 'User'], tourId: 'profile-nav' },
+      { icon: HelpCircle, label: 'Help & Knowledge Base', href: '/help', roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Client', 'Advocate', 'Manager', 'Ca', 'Clerk', 'User'], tourId: 'help-nav' },
+      { icon: UserCircle, label: 'User Profile', href: '/profile', roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Client', 'Advocate', 'Manager', 'Ca', 'Clerk', 'User'], tourId: 'profile-nav' },
     ]
   },
   
-  // SECTION 7: CONFIGURATION (Collapsed by Default) - Admin/Partner only
+  // SECTION 7: CONFIGURATION (Collapsed by Default) - Admin/Partner/Advocate per RBSA
   {
     id: 'configuration',
     label: 'CONFIGURATION',
     icon: Wrench,
     defaultOpen: false,
     collapsible: true,
-    roles: ['Admin', 'Partner/CA', 'Ca'],
+    roles: ['Admin', 'Partner', 'Partner/CA', 'Ca', 'Advocate'],
     items: [
-      { icon: Building2, label: 'Legal Authorities', href: '/courts', roles: ['Admin', 'Partner/CA', 'Ca'] },
-      { icon: Gavel, label: 'Judge Masters', href: '/judges', roles: ['Admin', 'Partner/CA', 'Ca'] },
+      { icon: Building2, label: 'Legal Authorities', href: '/courts', roles: ['Admin', 'Partner', 'Partner/CA', 'Ca', 'Advocate'] },
+      { icon: Gavel, label: 'Judge Masters', href: '/judges', roles: ['Admin', 'Partner', 'Partner/CA', 'Ca', 'Advocate'] },
       { icon: UserCheck, label: 'Employee Masters', href: '/employees', roles: ['Admin'] },
-      { icon: Scale, label: 'Statutory Deadlines', href: '/statutory-acts', roles: ['Admin', 'Partner/CA', 'Ca'] },
+      { icon: Scale, label: 'Statutory Deadlines', href: '/statutory-acts', roles: ['Admin', 'Partner', 'Partner/CA', 'Ca'] },
     ]
   },
   
@@ -187,9 +187,9 @@ const sidebarSections: SidebarSection[] = [
     icon: Lock,
     defaultOpen: false,
     collapsible: true,
-    roles: ['Admin'],
+    roles: ['Admin', 'Partner', 'Partner/CA'],
     items: [
-      { icon: Settings, label: 'System Settings', href: '/settings', roles: ['Admin', 'Partner/CA'] },
+      { icon: Settings, label: 'System Settings', href: '/settings', roles: ['Admin', 'Partner', 'Partner/CA'] },
       { icon: Shield, label: 'Access & Roles', href: '/access-roles', roles: ['Admin'] },
     ]
   },
