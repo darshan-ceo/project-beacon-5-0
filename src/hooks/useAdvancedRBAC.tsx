@@ -96,6 +96,7 @@ export const AdvancedRBACProvider: React.FC<AdvancedRBACProviderProps> = ({
   const [enforcementEnabled, setEnforcementEnabled] = useState(enableEnforcement);
   const [currentUser, setCurrentUser] = useState<User>(defaultUser);
   const [supabaseRole, setSupabaseRole] = useState<AppRole>('user');
+  const [isRoleLoading, setIsRoleLoading] = useState(true); // Track if role is still loading
 
   // Update currentUserId when authenticated user changes
   useEffect(() => {
@@ -108,17 +109,25 @@ export const AdvancedRBACProvider: React.FC<AdvancedRBACProviderProps> = ({
   useEffect(() => {
     const loadSupabaseRole = async () => {
       if (currentUserId && currentUserId !== 'demo-user') {
+        setIsRoleLoading(true);
         try {
           const role = await supabasePermissionsResolver.getUserRole(currentUserId);
           setSupabaseRole(role);
+          console.log(`[RBAC] Role loaded for user ${currentUserId}: ${role}`);
         } catch (error) {
           console.error('Failed to load user role from Supabase:', error);
+        } finally {
+          setIsRoleLoading(false);
         }
+      } else {
+        setIsRoleLoading(false);
       }
     };
     
     if (enforcementEnabled && currentUserId) {
       loadSupabaseRole();
+    } else {
+      setIsRoleLoading(false);
     }
   }, [currentUserId, enforcementEnabled]);
 
@@ -180,6 +189,13 @@ export const AdvancedRBACProvider: React.FC<AdvancedRBACProviderProps> = ({
       return true;
     }
 
+    // CRITICAL: If role is still loading and user is authenticated, allow access
+    // This prevents false permission denials during initial load
+    if (isRoleLoading && user?.id) {
+      console.log(`[RBAC] Role loading, allowing ${module}:${action} for authenticated user`);
+      return true;
+    }
+
     // Use Supabase permissions resolver for accurate RLS alignment
     const allowed = supabasePermissionsResolver.hasPermission(supabaseRole, module, action);
     
@@ -194,6 +210,7 @@ export const AdvancedRBACProvider: React.FC<AdvancedRBACProviderProps> = ({
       if (permission?.allowed) return true;
     }
     
+    console.log(`[RBAC] Permission denied: ${module}:${action} for role ${supabaseRole}`);
     return false;
   };
 
