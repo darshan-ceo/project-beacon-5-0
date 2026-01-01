@@ -1,10 +1,12 @@
 /**
  * Advanced RBAC Hook - Enhanced replacement for useRBAC
  * Provides comprehensive role-based access control with multi-role support
+ * Now uses Supabase-backed permissions resolver for accurate RLS alignment
  */
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { permissionsResolver, type EffectivePermissions } from '@/services/permissionsResolver';
+import { supabasePermissionsResolver, type AppRole } from '@/services/supabasePermissionsResolver';
 import { advancedRbacService } from '@/services/advancedRbacService';
 import { type RoleEntity } from '@/persistence/unifiedStore';
 import { toast } from 'sonner';
@@ -86,13 +88,14 @@ export const AdvancedRBACProvider: React.FC<AdvancedRBACProviderProps> = ({
   initialUserId = 'demo-user',
   enableEnforcement = false
 }) => {
-  const { user, tenantId } = useAuth();
+  const { user, tenantId, userProfile } = useAuth();
   const [currentUserId, setCurrentUserId] = useState(initialUserId);
   const [effectivePermissions, setEffectivePermissions] = useState<EffectivePermissions | null>(null);
   const [userRoles, setUserRoles] = useState<RoleEntity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [enforcementEnabled, setEnforcementEnabled] = useState(enableEnforcement);
   const [currentUser, setCurrentUser] = useState<User>(defaultUser);
+  const [supabaseRole, setSupabaseRole] = useState<AppRole>('user');
 
   // Update currentUserId when authenticated user changes
   useEffect(() => {
@@ -100,6 +103,24 @@ export const AdvancedRBACProvider: React.FC<AdvancedRBACProviderProps> = ({
       setCurrentUserId(user.id);
     }
   }, [user]);
+
+  // Load user role from Supabase for permission checking
+  useEffect(() => {
+    const loadSupabaseRole = async () => {
+      if (currentUserId && currentUserId !== 'demo-user') {
+        try {
+          const role = await supabasePermissionsResolver.getUserRole(currentUserId);
+          setSupabaseRole(role);
+        } catch (error) {
+          console.error('Failed to load user role from Supabase:', error);
+        }
+      }
+    };
+    
+    if (enforcementEnabled && currentUserId) {
+      loadSupabaseRole();
+    }
+  }, [currentUserId, enforcementEnabled]);
 
   // Load user permissions and roles
   useEffect(() => {
@@ -152,20 +173,28 @@ export const AdvancedRBACProvider: React.FC<AdvancedRBACProviderProps> = ({
     }
   };
 
-  // Legacy permission checking for backward compatibility
+  // Permission checking using Supabase-backed resolver
   const hasPermission = (module: string, action: Permission['action']): boolean => {
     if (!enforcementEnabled) {
       // Always allow in DEMO mode when enforcement is disabled
       return true;
     }
 
-    if (!effectivePermissions) return false;
-
-    const permission = effectivePermissions.permissions.find(p => 
-      p.resource === module && p.action === action
-    );
+    // Use Supabase permissions resolver for accurate RLS alignment
+    const allowed = supabasePermissionsResolver.hasPermission(supabaseRole, module, action);
     
-    return permission?.allowed ?? false;
+    // If Supabase resolver allows, return true immediately
+    if (allowed) return true;
+
+    // Fallback to legacy permission system for backward compatibility
+    if (effectivePermissions) {
+      const permission = effectivePermissions.permissions.find(p => 
+        p.resource === module && p.action === action
+      );
+      if (permission?.allowed) return true;
+    }
+    
+    return false;
   };
 
   // Enhanced permission checking

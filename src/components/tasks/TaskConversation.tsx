@@ -296,9 +296,11 @@ export const TaskConversation: React.FC = () => {
       try {
         await tasksService.delete(taskId, dispatch);
         navigate('/tasks');
-      } catch (error) {
+      } catch (error: any) {
+        // Error already handled by tasksService with toast
+        // Just log for debugging
         console.error('Error deleting task:', error);
-        toast.error('Failed to delete task');
+        // Don't navigate away - task still exists
       }
     }
   };

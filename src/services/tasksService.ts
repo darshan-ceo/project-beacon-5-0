@@ -238,19 +238,54 @@ class TasksService {
   }
 
   /**
-   * Delete a task
+   * Delete a task with Supabase response validation
+   * Prevents optimistic UI updates when RLS denies the operation
    */
   async delete(taskId: string, dispatch: any): Promise<void> {
     try {
-      const storage = storageManager.getStorage();
-
       // Get task details before deletion for audit
-      const taskToDelete = await storage.getById('tasks', taskId) as any;
+      const { data: taskToDelete, error: fetchError } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('id', taskId)
+        .maybeSingle();
 
-      // Delete from Supabase
-      await storage.delete('tasks', taskId);
+      if (fetchError) {
+        console.error('Failed to fetch task before deletion:', fetchError);
+      }
 
-      // Dispatch to context
+      // Attempt delete via Supabase directly to get proper error handling
+      const { error: deleteError, count } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('id', taskId)
+        .select();
+
+      // Check for RLS denial or other errors
+      if (deleteError) {
+        // Check if it's a permission/RLS error
+        if (deleteError.code === '42501' || 
+            deleteError.message?.includes('policy') ||
+            deleteError.message?.includes('permission')) {
+          toast({
+            title: "Permission Denied",
+            description: "You don't have permission to delete this task.",
+            variant: "destructive"
+          });
+          throw new Error('Permission denied by database policy');
+        }
+        
+        // Other database error
+        console.error('Failed to delete task:', deleteError);
+        toast({
+          title: "Error",
+          description: "Failed to delete task. Please try again.",
+          variant: "destructive"
+        });
+        throw deleteError;
+      }
+
+      // Only dispatch to UI if Supabase confirmed the deletion
       dispatch({ type: 'DELETE_TASK', payload: taskId });
 
       // Show success toast
@@ -278,12 +313,7 @@ class TasksService {
         console.warn('Failed to log audit event for task deletion:', auditError);
       }
     } catch (error) {
-      console.error('Failed to delete task:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete task. Please try again.",
-        variant: "destructive"
-      });
+      // Re-throw to let caller handle
       throw error;
     }
   }
