@@ -78,7 +78,7 @@ export const useModuleAccess = (): ModuleAccessResult => {
   // Check if user role bypasses module access
   const isUnrestricted = useMemo(() => {
     if (!currentEmployee) return true; // Allow all if no employee found (fallback)
-    const bypassRoles = ['admin', 'partner', 'Admin', 'Partner'];
+    const bypassRoles = ['admin', 'partner', 'Admin', 'Partner', 'Partner/CA', 'partner/ca'];
     return bypassRoles.includes(currentEmployee.role || '');
   }, [currentEmployee]);
 
