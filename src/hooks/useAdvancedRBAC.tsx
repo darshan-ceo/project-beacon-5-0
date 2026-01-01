@@ -1,19 +1,14 @@
 /**
  * Advanced RBAC Hook - Enhanced replacement for useRBAC
  * Provides comprehensive role-based access control with multi-role support
- * 
- * NOW USES DATABASE-BACKED PERMISSIONS (role_permissions table)
- * Enforcement is ENABLED by default for security
  */
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { permissionsResolver, type EffectivePermissions } from '@/services/permissionsResolver';
 import { advancedRbacService } from '@/services/advancedRbacService';
-import { databaseRbacService } from '@/services/databaseRbacService';
 import { type RoleEntity } from '@/persistence/unifiedStore';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { useAppState } from '@/contexts/AppStateContext';
 
 // Legacy compatibility types
 export type UserRole = 'Partner' | 'Admin' | 'Manager' | 'Associate' | 'Clerk' | 'Client';
@@ -89,7 +84,7 @@ const defaultUser: User = {
 export const AdvancedRBACProvider: React.FC<AdvancedRBACProviderProps> = ({
   children,
   initialUserId = 'demo-user',
-  enableEnforcement = true // ENABLED BY DEFAULT for security
+  enableEnforcement = false
 }) => {
   const { user, tenantId } = useAuth();
   const [currentUserId, setCurrentUserId] = useState(initialUserId);
@@ -157,36 +152,20 @@ export const AdvancedRBACProvider: React.FC<AdvancedRBACProviderProps> = ({
     }
   };
 
-  // Get current employee role from AppState
-  const { state } = useAppState();
-  const currentEmployeeRole = useMemo(() => {
-    const employee = state.employees.find(e => e.id === currentUserId);
-    return employee?.role?.toLowerCase() || 'staff';
-  }, [state.employees, currentUserId]);
-
-  // Legacy permission checking - NOW USES DATABASE via databaseRbacService
+  // Legacy permission checking for backward compatibility
   const hasPermission = (module: string, action: Permission['action']): boolean => {
     if (!enforcementEnabled) {
-      // Always allow when enforcement is disabled
+      // Always allow in DEMO mode when enforcement is disabled
       return true;
     }
 
-    // Check for unrestricted roles
-    const unrestrictedRoles = ['admin', 'partner'];
-    if (unrestrictedRoles.includes(currentEmployeeRole)) {
-      return true;
-    }
+    if (!effectivePermissions) return false;
 
-    // Check effective permissions if loaded
-    if (effectivePermissions) {
-      const permission = effectivePermissions.permissions.find(p => 
-        p.resource === module && p.action === action
-      );
-      return permission?.allowed ?? false;
-    }
-
-    // Fallback: deny if no permissions loaded
-    return false;
+    const permission = effectivePermissions.permissions.find(p => 
+      p.resource === module && p.action === action
+    );
+    
+    return permission?.allowed ?? false;
   };
 
   // Enhanced permission checking
