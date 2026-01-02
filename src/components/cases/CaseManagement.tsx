@@ -29,7 +29,7 @@ import {
   Building2,
   Briefcase
 } from 'lucide-react';
-import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
+import { useAdvancedRBAC, usePermission } from '@/hooks/useAdvancedRBAC';
 import { casesService } from '@/services/casesService';
 import { getNextStage, validateStagePrerequisites, generateStageDefaults, normalizeStage } from '@/utils/stageUtils';
 import { getTimelineBreaches } from '@/services/slaService';
@@ -88,6 +88,11 @@ export const CaseManagement: React.FC = () => {
     mode: 'create',
     case: null
   });
+  
+  // RBAC permission checks
+  const canCreateCases = hasPermission('cases', 'write');
+  const canEditCases = hasPermission('cases', 'write');
+  const canDeleteCases = hasPermission('cases', 'delete');
   
   const [filterStage, setFilterStage] = useState<'all' | string>('all');
   const [filterTimelineBreach, setFilterTimelineBreach] = useState<'all' | string>('all');
@@ -814,17 +819,19 @@ export const CaseManagement: React.FC = () => {
                 Export
               </Button>
             </ThreeLayerHelp>
-            <ThreeLayerHelp helpId="button-create-case" showExplanation={false}>
-              <Button 
-                onClick={() => setCaseModal({ isOpen: true, mode: 'create', case: null })}
-                className="bg-primary hover:bg-primary-hover"
-                data-tour="new-case-btn"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                New Case
-              </Button>
-            </ThreeLayerHelp>
-            {featureFlagService.isEnabled('notice_intake_v1') && (
+            {canCreateCases && (
+              <ThreeLayerHelp helpId="button-create-case" showExplanation={false}>
+                <Button 
+                  onClick={() => setCaseModal({ isOpen: true, mode: 'create', case: null })}
+                  className="bg-primary hover:bg-primary-hover"
+                  data-tour="new-case-btn"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  New Case
+                </Button>
+              </ThreeLayerHelp>
+            )}
+            {canCreateCases && featureFlagService.isEnabled('notice_intake_v1') && (
               <ThreeLayerHelp helpId="button-notice-intake" showExplanation={false}>
                 <Button 
                   onClick={() => setNoticeIntakeModal(true)}

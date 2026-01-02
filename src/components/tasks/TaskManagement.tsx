@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { navigationContextService } from '@/services/navigationContextService';
 import { uiStateService } from '@/services/UIStateService';
 import { supabase } from '@/integrations/supabase/client';
-import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
+import { useAdvancedRBAC, usePermission } from '@/hooks/useAdvancedRBAC';
 import { 
   CheckSquare, 
   Clock, 
@@ -692,15 +692,17 @@ export const TaskManagement: React.FC = () => {
             <Bell className="mr-2 h-4 w-4" />
             Escalations
           </HelpButton>
-          <HelpButton 
-            helpId="button-create-task"
-            className="bg-primary hover:bg-primary-hover"
-            onClick={() => navigate('/tasks/new')}
-            data-tour="create-task-button"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Create Task
-          </HelpButton>
+          {canCreateTasks && (
+            <HelpButton 
+              helpId="button-create-task"
+              className="bg-primary hover:bg-primary-hover"
+              onClick={() => navigate('/tasks/new')}
+              data-tour="create-task-button"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Create Task
+            </HelpButton>
+          )}
         </div>
       </motion.div>
 

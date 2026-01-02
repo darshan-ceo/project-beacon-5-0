@@ -315,45 +315,51 @@ export const DashboardOverview: React.FC = () => {
                   Add New Client
                 </Button>
               </ProtectedComponent>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                onClick={() => {
-                  toast({
-                    title: "Upload Document",
-                    description: "Opening document upload interface",
-                  });
-                }}
-              >
-                <FileText className="mr-2 h-4 w-4" />
-                Upload Document
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                onClick={() => {
-                  toast({
-                    title: "Create New Case",
-                    description: "Opening case creation form",
-                  });
-                }}
-              >
-                <Scale className="mr-2 h-4 w-4" />
-                Create New Case
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                onClick={() => {
-                  toast({
-                    title: "Schedule Meeting",
-                    description: "Opening meeting scheduler",
-                  });
-                }}
-              >
-                <Calendar className="mr-2 h-4 w-4" />
-                Schedule Meeting
-              </Button>
+              <ProtectedComponent module="documents" action="write">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => {
+                    toast({
+                      title: "Upload Document",
+                      description: "Opening document upload interface",
+                    });
+                  }}
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  Upload Document
+                </Button>
+              </ProtectedComponent>
+              <ProtectedComponent module="cases" action="write">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => {
+                    toast({
+                      title: "Create New Case",
+                      description: "Opening case creation form",
+                    });
+                  }}
+                >
+                  <Scale className="mr-2 h-4 w-4" />
+                  Create New Case
+                </Button>
+              </ProtectedComponent>
+              <ProtectedComponent module="hearings" action="write">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => {
+                    toast({
+                      title: "Schedule Meeting",
+                      description: "Opening meeting scheduler",
+                    });
+                  }}
+                >
+                  <Calendar className="mr-2 h-4 w-4" />
+                  Schedule Meeting
+                </Button>
+              </ProtectedComponent>
             </CardContent>
           </Card>
         </motion.div>
