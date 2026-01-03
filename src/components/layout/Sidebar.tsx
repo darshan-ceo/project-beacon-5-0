@@ -49,6 +49,8 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useUIState } from '@/hooks/useUIState';
 import { useModuleAccess } from '@/hooks/useModuleAccess';
+import { useRBAC } from '@/hooks/useAdvancedRBAC';
+import { getRbacModuleForRoute } from '@/hooks/useModulePermissions';
 import { envConfig } from '@/utils/envConfig';
 
 interface AppSidebarProps {
@@ -257,8 +259,29 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
     { category: 'preferences', description: 'Sidebar theme preference' }
   );
 
-  // Module access enforcement
+  // Module access enforcement (legacy employee.moduleAccess)
   const { hasModuleAccess, filterMenuItems } = useModuleAccess();
+  
+  // RBAC permission checking (database-driven)
+  const { hasPermission, enforcementEnabled, isRbacReady } = useRBAC();
+  
+  // Check RBAC permission for a menu item's route
+  const hasRbacAccess = (href: string): boolean => {
+    // If RBAC enforcement is disabled, allow all
+    if (!enforcementEnabled) return true;
+    
+    // While loading, show items (will be gated at component level)
+    if (!isRbacReady) return true;
+    
+    // Get the RBAC module for this route
+    const rbacModule = getRbacModuleForRoute(href);
+    
+    // If no module mapping, allow (e.g., help, profile)
+    if (!rbacModule) return true;
+    
+    // Check if user has read permission for this module
+    return hasPermission(rbacModule, 'read');
+  };
 
   // Build complete sections list including dev section if applicable
   const allSections = useMemo(() => {
@@ -284,7 +307,10 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
     setSidebarTheme(sidebarTheme === 'dark' ? 'light' : 'dark');
   };
 
-  // Filter sections by role AND module access - memoized (using normalizedRole)
+  // Filter sections by:
+  // 1. Legacy role array (for admin-only sections like ADMINISTRATION, DEVELOPER)
+  // 2. Module access (employee.moduleAccess field)
+  // 3. RBAC permissions (database-driven, for content modules)
   const filteredSections = useMemo(() => {
     return allSections
       .filter(section => section.roles.includes(normalizedRole))
@@ -292,12 +318,17 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
         ...section,
         items: filterMenuItems(
           section.items.filter(item => 
-            item.roles.includes(normalizedRole) && hasModuleAccess(item.href)
+            // Legacy role check (for admin-only items)
+            item.roles.includes(normalizedRole) && 
+            // Module access check (employee.moduleAccess)
+            hasModuleAccess(item.href) &&
+            // RBAC permission check (database-driven)
+            hasRbacAccess(item.href)
           )
         )
       }))
       .filter(section => section.items.length > 0);
-  }, [allSections, normalizedRole, filterMenuItems, hasModuleAccess]);
+  }, [allSections, normalizedRole, filterMenuItems, hasModuleAccess, enforcementEnabled, isRbacReady, hasPermission]);
 
   const location = useLocation();
   const { open } = useSidebar();
