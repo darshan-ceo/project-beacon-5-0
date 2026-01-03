@@ -679,62 +679,66 @@ export const ClientMasters: React.FC = () => {
                               </ThreeLayerHelp>
                             </DropdownMenuItem>
                           )}
-                          <DropdownMenuItem
-                            onClick={() => {
-                              try {
-                                setCaseModal({ isOpen: true, contextClientId: client.id });
-                              } catch (error) {
-                                console.error('Error opening case modal:', error);
-                                toast({
-                                  title: "Error",
-                                  description: "Failed to open new case form",
-                                  variant: "destructive"
-                                });
-                              }
-                            }}
-                          >
-                            <ThreeLayerHelp helpId="menu-new-case-client" showExplanation={false}>
-                              <div className="flex items-center">
-                                <Plus className="mr-2 h-4 w-4" />
-                                New Case
-                              </div>
-                            </ThreeLayerHelp>
-                          </DropdownMenuItem>
+                          {hasPermission('cases', 'write') && (
+                            <DropdownMenuItem
+                              onClick={() => {
+                                try {
+                                  setCaseModal({ isOpen: true, contextClientId: client.id });
+                                } catch (error) {
+                                  console.error('Error opening case modal:', error);
+                                  toast({
+                                    title: "Error",
+                                    description: "Failed to open new case form",
+                                    variant: "destructive"
+                                  });
+                                }
+                              }}
+                            >
+                              <ThreeLayerHelp helpId="menu-new-case-client" showExplanation={false}>
+                                <div className="flex items-center">
+                                  <Plus className="mr-2 h-4 w-4" />
+                                  New Case
+                                </div>
+                              </ThreeLayerHelp>
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            className="text-destructive"
-                            onClick={() => {
-                              try {
-                                const dependencies = checkDependencies('client', client.id);
-                                let confirmMessage = `Are you sure you want to delete ${client.name}? This action cannot be undone.`;
-                                
-                                if (dependencies.length > 0) {
-                                  confirmMessage += `\n\nThis client has ${dependencies.join(', ')}. These will also be deleted.`;
-                                }
-                                
-                                if (confirm(confirmMessage)) {
-                                  const success = safeDelete('client', client.id, dependencies.length > 0);
-                                  if (success) {
-                                    toast({
-                                      title: "Client Deleted",
-                                      description: `${client.name} has been removed`,
-                                      variant: "destructive",
-                                    });
+                          {hasPermission('clients', 'delete') && (
+                            <DropdownMenuItem 
+                              className="text-destructive"
+                              onClick={() => {
+                                try {
+                                  const dependencies = checkDependencies('client', client.id);
+                                  let confirmMessage = `Are you sure you want to delete ${client.name}? This action cannot be undone.`;
+                                  
+                                  if (dependencies.length > 0) {
+                                    confirmMessage += `\n\nThis client has ${dependencies.join(', ')}. These will also be deleted.`;
                                   }
+                                  
+                                  if (confirm(confirmMessage)) {
+                                    const success = safeDelete('client', client.id, dependencies.length > 0);
+                                    if (success) {
+                                      toast({
+                                        title: "Client Deleted",
+                                        description: `${client.name} has been removed`,
+                                        variant: "destructive",
+                                      });
+                                    }
+                                  }
+                                } catch (error) {
+                                  console.error('Error deleting client:', error);
+                                  toast({
+                                    title: "Error",
+                                    description: "Failed to delete client",
+                                    variant: "destructive"
+                                  });
                                 }
-                              } catch (error) {
-                                console.error('Error deleting client:', error);
-                                toast({
-                                  title: "Error",
-                                  description: "Failed to delete client",
-                                  variant: "destructive"
-                                });
-                              }
-                            }}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
+                              }}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
