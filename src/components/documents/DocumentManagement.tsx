@@ -1086,34 +1086,40 @@ export const DocumentManagement: React.FC = () => {
             <X className="mr-2 h-4 w-4" />
             <span className="hidden sm:inline">Reset Filters</span>
           </Button>
-          <Button 
-            variant="outline"
-            onClick={() => setNewFolderModal(true)}
-            size="sm"
-          >
-            <FolderOpen className="mr-2 h-4 w-4" />
-            <span className="hidden sm:inline">New Folder</span>
-          </Button>
-          <Button 
-            variant="default"
-            onClick={() => setBulkUploadModal(true)}
-            size="sm"
-          >
-            <Upload className="mr-2 h-4 w-4" />
-            <span className="hidden sm:inline">Bulk Upload</span>
-          </Button>
-          <Button 
-            className="bg-primary hover:bg-primary-hover"
-            onClick={() => {
-              setDocumentModal({ isOpen: true, mode: 'upload', document: null });
-            }}
-            data-tour="upload-btn"
-            size="sm"
-          >
-            <Upload className="mr-0 sm:mr-2 h-4 w-4" />
-            <span className="hidden xs:inline">Add Document</span>
-            <span className="xs:hidden sr-only">Add</span>
-          </Button>
+          {canCreateDocuments && (
+            <Button 
+              variant="outline"
+              onClick={() => setNewFolderModal(true)}
+              size="sm"
+            >
+              <FolderOpen className="mr-2 h-4 w-4" />
+              <span className="hidden sm:inline">New Folder</span>
+            </Button>
+          )}
+          {canCreateDocuments && (
+            <Button 
+              variant="default"
+              onClick={() => setBulkUploadModal(true)}
+              size="sm"
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              <span className="hidden sm:inline">Bulk Upload</span>
+            </Button>
+          )}
+          {canCreateDocuments && (
+            <Button 
+              className="bg-primary hover:bg-primary-hover"
+              onClick={() => {
+                setDocumentModal({ isOpen: true, mode: 'upload', document: null });
+              }}
+              data-tour="upload-btn"
+              size="sm"
+            >
+              <Upload className="mr-0 sm:mr-2 h-4 w-4" />
+              <span className="hidden xs:inline">Add Document</span>
+              <span className="xs:hidden sr-only">Add</span>
+            </Button>
+          )}
         </div>
       </motion.div>
 

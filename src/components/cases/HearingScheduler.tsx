@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { integrationsService, CalendarConnectionStatus } from '@/services/integrationsService';
 import { supabase } from '@/integrations/supabase/client';
+import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 import { 
   Calendar, 
   Clock, 
@@ -62,6 +63,11 @@ interface HearingSchedulerProps {
 export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases, selectedCase }) => {
   const navigate = useNavigate();
   const { state, dispatch, rawDispatch } = useAppState();
+  const { hasPermission } = useAdvancedRBAC();
+  
+  // RBAC permission flags
+  const canCreateHearings = hasPermission('hearings', 'write');
+  
   const [selectedDate, setSelectedDate] = useState('');
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [editingHearing, setEditingHearing] = useState<Hearing | null>(null);
@@ -263,13 +269,15 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases, selec
             }
           </p>
         </div>
-        <Button 
-          className="bg-primary hover:bg-primary-hover"
-          onClick={() => setIsScheduleDialogOpen(true)}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Schedule Hearing
-        </Button>
+        {canCreateHearings && (
+          <Button 
+            className="bg-primary hover:bg-primary-hover"
+            onClick={() => setIsScheduleDialogOpen(true)}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Schedule Hearing
+          </Button>
+        )}
         
         <HearingModal
           isOpen={isScheduleDialogOpen}

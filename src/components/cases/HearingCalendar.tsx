@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAppState } from '@/contexts/AppStateContext';
+import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 import { Clock, MapPin, Scale, Plus, Calendar as CalendarIcon } from 'lucide-react';
 import { HearingModal } from '@/components/modals/HearingModal';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
@@ -30,6 +31,11 @@ interface HearingCalendarProps {
 
 export const HearingCalendar: React.FC<HearingCalendarProps> = ({ isOpen, onClose }) => {
   const { state } = useAppState();
+  const { hasPermission } = useAdvancedRBAC();
+  
+  // RBAC permission flags
+  const canCreateHearings = hasPermission('hearings', 'write');
+  
   const [selectedHearing, setSelectedHearing] = useState(null);
   const [hearingModal, setHearingModal] = useState({
     isOpen: false,
@@ -117,13 +123,15 @@ export const HearingCalendar: React.FC<HearingCalendarProps> = ({ isOpen, onClos
                 <CalendarIcon className="h-5 w-5" />
                 <span>Hearing Calendar</span>
               </div>
-              <Button
-                onClick={() => setHearingModal({ isOpen: true, mode: 'create', hearing: null })}
-                size="sm"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Schedule Hearing
-              </Button>
+              {canCreateHearings && (
+                <Button
+                  onClick={() => setHearingModal({ isOpen: true, mode: 'create', hearing: null })}
+                  size="sm"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Schedule Hearing
+                </Button>
+              )}
             </DialogTitle>
           </DialogHeader>
 
