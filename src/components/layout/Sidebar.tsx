@@ -173,10 +173,10 @@ const sidebarSections: SidebarSection[] = [
     icon: Wrench,
     defaultOpen: false,
     collapsible: true,
-    roles: ['Admin', 'Partner', 'Partner/CA', 'Ca', 'Advocate'],
+    roles: ['Admin', 'Partner', 'Partner/CA', 'Ca', 'Advocate', 'Staff'],
     items: [
-      { icon: Building2, label: 'Legal Authorities', href: '/courts', roles: ['Admin', 'Partner', 'Partner/CA', 'Ca', 'Advocate'] },
-      { icon: Gavel, label: 'Judge Masters', href: '/judges', roles: ['Admin', 'Partner', 'Partner/CA', 'Ca', 'Advocate'] },
+      { icon: Building2, label: 'Legal Authorities', href: '/courts', roles: ['Admin', 'Partner', 'Partner/CA', 'Ca', 'Advocate', 'Staff'] },
+      { icon: Gavel, label: 'Judge Masters', href: '/judges', roles: ['Admin', 'Partner', 'Partner/CA', 'Ca', 'Advocate', 'Staff'] },
       { icon: UserCheck, label: 'Employee Masters', href: '/employees', roles: ['Admin'] },
       { icon: Scale, label: 'Statutory Deadlines', href: '/statutory-acts', roles: ['Admin', 'Partner', 'Partner/CA', 'Ca'] },
     ]

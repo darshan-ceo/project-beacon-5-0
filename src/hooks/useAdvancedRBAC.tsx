@@ -152,6 +152,12 @@ export const AdvancedRBACProvider: React.FC<AdvancedRBACProviderProps> = ({
       return true;
     }
 
+    // ADMIN SUPER-ROLE: Always allow everything for admin role
+    // This ensures Admin never loses access to any module or action
+    if (supabaseRole === 'admin') {
+      return true;
+    }
+
     // CRITICAL: FAIL-CLOSED while loading
     // This prevents UI from showing actions user may not have permission for
     if (!isRbacReady) {
