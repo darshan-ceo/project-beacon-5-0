@@ -21,8 +21,10 @@ import {
   Users,
   UserCheck,
   Building2,
-  ArrowRight
+  ArrowRight,
+  ShieldCheck
 } from 'lucide-react';
+import { MyPermissionsPanel } from './MyPermissionsPanel';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -538,8 +540,12 @@ export const UserProfile: React.FC = () => {
         </div>
       ) : (
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1 p-1 h-auto bg-muted/50">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 gap-1 p-1 h-auto bg-muted/50">
             <TabsTrigger value="profile" className="text-xs sm:text-sm py-2.5 px-3">Profile</TabsTrigger>
+            <TabsTrigger value="permissions" className="text-xs sm:text-sm py-2.5 px-3 gap-1">
+              <ShieldCheck className="h-3.5 w-3.5 hidden sm:inline" />
+              Permissions
+            </TabsTrigger>
             <TabsTrigger value="security" className="text-xs sm:text-sm py-2.5 px-3">Security</TabsTrigger>
             <TabsTrigger value="sessions" className="text-xs sm:text-sm py-2.5 px-3">Sessions</TabsTrigger>
             <TabsTrigger value="activity" className="text-xs sm:text-sm py-2.5 px-3">Activity</TabsTrigger>
@@ -1111,6 +1117,10 @@ export const UserProfile: React.FC = () => {
                 </Card>
               </motion.div>
             </div>
+          </TabsContent>
+
+          <TabsContent value="permissions" className="space-y-6">
+            <MyPermissionsPanel />
           </TabsContent>
 
           <TabsContent value="security" className="space-y-6">
