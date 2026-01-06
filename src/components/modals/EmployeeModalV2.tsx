@@ -26,11 +26,12 @@ import { employeesService, Employee } from '@/services/employeesService';
 import { roleMapperService } from '@/services/roleMapperService';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { toast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
 import { EmployeeDocumentUpload } from '@/components/employees/EmployeeDocumentUpload';
 import { secureLog } from '@/utils/secureLogger';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { DateInput } from '@/components/ui/date-input';
+import { format } from 'date-fns';
 import {
   User,
   Phone,
@@ -716,12 +717,13 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
 
       <div className="space-y-2">
         <Label htmlFor="dob">Date of Birth</Label>
-        <Input
+        <DateInput
           id="dob"
-          type="date"
           value={formData.dob || ''}
-          onChange={(e) => handleInputChange('dob', e.target.value)}
+          onChange={(date) => handleInputChange('dob', date)}
           disabled={isReadOnly}
+          max={new Date()}
+          placeholder="DD-MM-YYYY"
         />
       </div>
 
@@ -1047,23 +1049,23 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
         <Label htmlFor="joiningDate">
           Date of Joining {!isReadOnly && <span className="text-destructive">*</span>}
         </Label>
-        <Input
+        <DateInput
           id="joiningDate"
-          type="date"
           value={formData.date_of_joining || ''}
-          onChange={(e) => handleInputChange('date_of_joining', e.target.value)}
+          onChange={(date) => handleInputChange('date_of_joining', date)}
           disabled={isReadOnly}
+          placeholder="DD-MM-YYYY"
         />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="confirmationDate">Confirmation Date</Label>
-        <Input
+        <DateInput
           id="confirmationDate"
-          type="date"
           value={formData.confirmationDate || ''}
-          onChange={(e) => handleInputChange('confirmationDate', e.target.value)}
+          onChange={(date) => handleInputChange('confirmationDate', date)}
           disabled={isReadOnly}
+          placeholder="DD-MM-YYYY"
         />
       </div>
 
