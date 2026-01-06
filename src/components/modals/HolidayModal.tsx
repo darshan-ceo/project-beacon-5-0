@@ -8,8 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Loader2, CalendarDays } from 'lucide-react';
 import { Holiday, HolidayFormData, HOLIDAY_TYPES } from '@/types/statutory';
 import { holidayService } from '@/services/holidayService';
-import { DateInput } from '@/components/ui/date-input';
-import { formatDateForInput } from '@/utils/dateFormatters';
+import { format, parseISO } from 'date-fns';
 
 // Indian states
 const INDIAN_STATES = [
@@ -67,7 +66,7 @@ export const HolidayModal: React.FC<HolidayModalProps> = ({
   holiday
 }) => {
   const [formData, setFormData] = useState<HolidayFormData>({
-    date: formatDateForInput(new Date()),
+    date: format(new Date(), 'yyyy-MM-dd'),
     name: '',
     type: 'national',
     state: 'ALL',
@@ -86,7 +85,7 @@ export const HolidayModal: React.FC<HolidayModalProps> = ({
       });
     } else {
       setFormData({
-        date: formatDateForInput(new Date()),
+        date: format(new Date(), 'yyyy-MM-dd'),
         name: '',
         type: 'national',
         state: 'ALL',
@@ -154,12 +153,12 @@ export const HolidayModal: React.FC<HolidayModalProps> = ({
         {/* Date */}
         <div className="space-y-2">
           <Label htmlFor="date">Date *</Label>
-          <DateInput
+          <Input
             id="date"
+            type="date"
             value={formData.date}
-            onChange={(date) => setFormData(prev => ({ ...prev, date }))}
+            onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
             disabled={isReadOnly}
-            placeholder="DD-MM-YYYY"
           />
         </div>
 

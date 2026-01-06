@@ -8,8 +8,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Users, Clock, Scale, DollarSign, MapPin, AlignLeft, Loader2 } from 'lucide-react';
+import { Calendar as CalendarIcon, FileText, Users, Clock, Scale, DollarSign, MapPin, AlignLeft, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Case, useAppState } from '@/contexts/AppStateContext';
 import { ClientSelector, LegalForumSelector } from '@/components/ui/relationship-selector';
@@ -33,8 +35,6 @@ import { DeadlineStatusBadge } from '@/components/ui/DeadlineStatusBadge';
 import { Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
-import { DateInput } from '@/components/ui/date-input';
-import { formatDateForDisplay, formatDateForInput } from '@/utils/dateFormatters';
 
 interface CaseModalProps {
   isOpen: boolean;
@@ -823,38 +823,54 @@ export const CaseModal: React.FC<CaseModalProps> = ({
                           fieldId="notice_date"
                         />
                       </div>
-                      <DateInput
-                        value={formData.notice_date}
-                        onChange={async (date) => {
-                          const noticeDate = date;
-                          
-                          // Calculate statutory deadline instead of fixed 15 days
-                          let replyDue = '';
-                          if (date) {
-                            const result = await calculateReplyDeadline(noticeDate, formData.issueType);
-                            if (result) {
-                              replyDue = formatDeadlineForForm(result);
-                              setIsStatutoryDeadline(true);
-                            } else {
-                              // Fallback to 30 days if no statutory rule found
-                              const noticeAsDate = new Date(date);
-                              replyDue = format(addDays(noticeAsDate, 30), 'yyyy-MM-dd');
-                              setIsStatutoryDeadline(false);
-                            }
-                          } else {
-                            setIsStatutoryDeadline(false);
-                          }
-                          
-                          setFormData(prev => ({ 
-                            ...prev, 
-                            notice_date: noticeDate,
-                            reply_due_date: replyDue 
-                          }));
-                        }}
-                        disabled={mode === 'view'}
-                        max={new Date()}
-                        placeholder="DD-MM-YYYY"
-                      />
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            className={cn(
+                              "w-full justify-start text-left font-normal bg-background",
+                              !formData.notice_date && "text-muted-foreground"
+                            )}
+                            disabled={mode === 'view'}
+                          >
+                            {formData.notice_date ? format(new Date(formData.notice_date), "PPP") : "Select date"}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0 bg-popover z-[300]" align="start">
+                          <Calendar 
+                            mode="single"
+                            selected={formData.notice_date ? new Date(formData.notice_date) : undefined}
+                            onSelect={async (date) => {
+                              const noticeDate = date ? format(date, 'yyyy-MM-dd') : '';
+                              
+                              // Calculate statutory deadline instead of fixed 15 days
+                              let replyDue = '';
+                              if (date) {
+                                const result = await calculateReplyDeadline(noticeDate, formData.issueType);
+                                if (result) {
+                                  replyDue = formatDeadlineForForm(result);
+                                  setIsStatutoryDeadline(true);
+                                } else {
+                                  // Fallback to 30 days if no statutory rule found
+                                  replyDue = format(addDays(date, 30), 'yyyy-MM-dd');
+                                  setIsStatutoryDeadline(false);
+                                }
+                              } else {
+                                setIsStatutoryDeadline(false);
+                              }
+                              
+                              setFormData(prev => ({ 
+                                ...prev, 
+                                notice_date: noticeDate,
+                                reply_due_date: replyDue 
+                              }));
+                            }}
+                            className="pointer-events-auto"
+                            disabled={(date) => date > new Date()}
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </div>
 
                     <div>
@@ -892,20 +908,43 @@ export const CaseModal: React.FC<CaseModalProps> = ({
                           />
                         </div>
                       )}
-                      <DateInput
-                        value={formData.reply_due_date}
-                        onChange={(date) => {
-                          setFormData(prev => ({ 
-                            ...prev, 
-                            reply_due_date: date 
-                          }));
-                          // If manually changed, mark as not statutory
-                          if (date) setIsStatutoryDeadline(false);
-                        }}
-                        disabled={mode === 'view'}
-                        min={formData.notice_date || undefined}
-                        placeholder="DD-MM-YYYY"
-                      />
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            className={cn(
+                              "w-full justify-start text-left font-normal bg-background",
+                              !formData.reply_due_date && "text-muted-foreground",
+                              formData.reply_due_date && getDaysUntilDue(formData.reply_due_date) < 3 && "border-destructive"
+                            )}
+                            disabled={mode === 'view'}
+                          >
+                            <span className="flex items-center gap-2 flex-1">
+                              {formData.reply_due_date ? (
+                                format(new Date(formData.reply_due_date), "PPP")
+                              ) : (
+                                "Select date"
+                              )}
+                            </span>
+                            <CalendarIcon className="ml-2 h-4 w-4 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0 bg-popover z-[300]" align="start">
+                          <Calendar 
+                            mode="single"
+                            selected={formData.reply_due_date ? new Date(formData.reply_due_date) : undefined}
+                            onSelect={(date) => {
+                              setFormData(prev => ({ 
+                                ...prev, 
+                                reply_due_date: date ? format(date, 'yyyy-MM-dd') : '' 
+                              }));
+                              // If manually changed, mark as not statutory
+                              if (date) setIsStatutoryDeadline(false);
+                            }}
+                            className="pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   </div>
                 </CardContent>

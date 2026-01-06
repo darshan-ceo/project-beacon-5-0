@@ -6,10 +6,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon, Info } from 'lucide-react';
+import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Case } from '@/contexts/AppStateContext';
-import { formatDateForDisplay } from '@/utils/dateFormatters';
-import { format } from 'date-fns';
 
 interface ReviewDateModalProps {
   isOpen: boolean;
@@ -109,7 +108,7 @@ export const ReviewDateModal: React.FC<ReviewDateModalProps> = ({
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {reviewDate ? formatDateForDisplay(reviewDate) : 'Select review date'}
+                  {reviewDate ? format(reviewDate, 'PPP') : 'Select review date'}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">

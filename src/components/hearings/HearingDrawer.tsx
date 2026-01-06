@@ -4,6 +4,7 @@ import { useAppState } from '@/contexts/AppStateContext';
 import { featureFlagService } from '@/services/featureFlagService';
 import { hearingsService } from '@/services/hearingsService';
 import { Hearing, HearingFormData, HearingConflict } from '@/types/hearings';
+import { format } from 'date-fns';
 import { formatDateForDisplay, formatTimeForDisplay } from '@/utils/dateFormatters';
 import { CalendarDays, Clock, MapPin, Gavel, FileText, Users, AlertTriangle, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,7 +21,6 @@ import { toast } from '@/hooks/use-toast';
 import { CalendarSyncPanel } from './CalendarSyncPanel';
 import { integrationsService } from '@/services/integrationsService';
 import { calendarService } from '@/services/calendar/calendarService';
-import { DateInput } from '@/components/ui/date-input';
 
 interface HearingDrawerProps {
   hearing?: Hearing;
@@ -308,11 +308,12 @@ export const HearingDrawer: React.FC<HearingDrawerProps> = ({
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="date">Date</Label>
-                        <DateInput
+                        <Input
                           id="date"
+                          type="date"
                           value={formData.date}
-                          onChange={(date) => setFormData(prev => ({ ...prev, date }))}
-                          placeholder="DD-MM-YYYY"
+                          onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                          data-tour="hearing-datetime"
                         />
                       </div>
                       <div>

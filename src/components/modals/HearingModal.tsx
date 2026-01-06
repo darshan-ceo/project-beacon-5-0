@@ -3,7 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { MapPin, Scale, Calendar as CalendarCheckIcon, FileText, Loader2, AlertCircle } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon, MapPin, Scale, Calendar as CalendarCheckIcon, FileText, Loader2, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
 import { Hearing, useAppState } from '@/contexts/AppStateContext';
@@ -28,8 +30,6 @@ import { detectHearingConflicts } from '@/utils/hearingConflicts';
 import { supabase } from '@/integrations/supabase/client';
 import { uploadDocument } from '@/services/supabaseDocumentService';
 import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
-import { DateInput } from '@/components/ui/date-input';
-import { formatDateForDisplay, formatDateForInput } from '@/utils/dateFormatters';
 
 interface HearingModalProps {
   isOpen: boolean;
@@ -649,18 +649,29 @@ export const HearingModal: React.FC<HearingModalProps> = ({
                       <Label>Hearing Date <span className="text-destructive">*</span></Label>
                       <FieldTooltip formId="create-hearing" fieldId="date" />
                     </div>
-                    <DateInput
-                      value={formData.date}
-                      onChange={(date) => {
-                        if (date) {
-                          // Parse the ISO date string back to Date for formData
-                          setFormData(prev => ({ ...prev, date: new Date(date) }));
-                        }
-                      }}
-                      disabled={mode === 'view'}
-                      min={new Date()}
-                      placeholder="DD-MM-YYYY"
-                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !formData.date && "text-muted-foreground"
+                          )}
+                          disabled={mode === 'view'}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {formData.date ? format(formData.date, "PPP") : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={formData.date}
+                          onSelect={(date) => date && setFormData(prev => ({ ...prev, date }))}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   
                   {/* Time Picker */}
