@@ -1,5 +1,5 @@
 import React from 'react';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -13,13 +13,21 @@ interface DateInputProps {
   disabled?: boolean;
   className?: string;
   required?: boolean;
-  min?: string;
-  max?: string;
+  min?: string | Date;
+  max?: string | Date;
+  /** Show Clear and Today action buttons */
+  showActions?: boolean;
+  /** ID for form association */
+  id?: string;
 }
 
 /**
- * Custom date input component that displays DD-MM-YYYY format
- * but stores/handles YYYY-MM-DD internally for HTML5 compatibility
+ * Standardized date input component for Project Beacon
+ * - Displays dates in DD-MM-YYYY format
+ * - Stores dates in YYYY-MM-DD (ISO) format
+ * - Consistent shadcn Calendar + Popover behavior
+ * - Clear and Today action buttons
+ * - Works on desktop, tablet, and mobile
  */
 export function DateInput({
   value,
@@ -30,12 +38,17 @@ export function DateInput({
   required = false,
   min,
   max,
+  showActions = true,
+  id,
 }: DateInputProps) {
   const [open, setOpen] = React.useState(false);
 
   const parsedDate = parseDateInput(value);
   const displayValue = parsedDate ? formatDateForDisplay(parsedDate) : '';
-  const inputValue = parsedDate ? formatDateForInput(parsedDate) : '';
+
+  // Parse min/max dates for calendar disabled logic
+  const minDate = min ? parseDateInput(min) : undefined;
+  const maxDate = max ? parseDateInput(max) : undefined;
 
   const handleDateSelect = (date: Date | undefined) => {
     if (date && onChange) {
@@ -44,26 +57,42 @@ export function DateInput({
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleClear = () => {
     if (onChange) {
-      onChange(e.target.value);
+      onChange('');
     }
+  };
+
+  const handleToday = () => {
+    if (onChange) {
+      onChange(formatDateForInput(new Date()));
+      setOpen(false);
+    }
+  };
+
+  // Disable dates outside min/max range
+  const disabledDays = (date: Date) => {
+    if (minDate && date < minDate) return true;
+    if (maxDate && date > maxDate) return true;
+    return false;
   };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
+          id={id}
+          type="button"
           variant="outline"
           className={cn(
-            'w-full justify-start text-left font-normal',
+            'w-full justify-start text-left font-normal h-9',
             !value && 'text-muted-foreground',
             className
           )}
           disabled={disabled}
         >
-          <CalendarIcon className="mr-2 h-4 w-4" />
-          {displayValue || placeholder}
+          <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
+          <span className="truncate">{displayValue || placeholder}</span>
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
@@ -71,22 +100,35 @@ export function DateInput({
           mode="single"
           selected={parsedDate || undefined}
           onSelect={handleDateSelect}
-          disabled={disabled}
+          disabled={disabledDays}
           initialFocus
+          className="pointer-events-auto"
         />
+        {showActions && (
+          <div className="flex justify-between items-center p-2 border-t">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleClear}
+              disabled={!value}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-3 w-3 mr-1" />
+              Clear
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleToday}
+              className="text-primary hover:text-primary"
+            >
+              Today
+            </Button>
+          </div>
+        )}
       </PopoverContent>
-      {/* Hidden native input for form compatibility */}
-      <input
-        type="date"
-        value={inputValue}
-        onChange={handleInputChange}
-        disabled={disabled}
-        required={required}
-        min={min}
-        max={max}
-        className="sr-only"
-        aria-label={placeholder}
-      />
     </Popover>
   );
 }
@@ -94,6 +136,7 @@ export function DateInput({
 /**
  * Simple native date input wrapper that shows DD-MM-YYYY placeholder
  * Use this when you need the native date picker behavior
+ * @deprecated Use DateInput instead for consistent UX
  */
 export function NativeDateInput({
   value,
@@ -121,8 +164,8 @@ export function NativeDateInput({
       placeholder={placeholder}
       disabled={disabled}
       required={required}
-      min={min}
-      max={max}
+      min={min ? formatDateForInput(min) : undefined}
+      max={max ? formatDateForInput(max) : undefined}
       className={cn(
         'flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
         className
