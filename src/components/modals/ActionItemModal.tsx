@@ -11,6 +11,8 @@ import { useAppState } from '@/contexts/AppStateContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { CheckSquare, FileText, User, Plus } from 'lucide-react';
+import { StandardDateInput } from '@/components/ui/standard-date-input';
+import { formatDateForStorage } from '@/utils/dateFormatters';
 
 interface ActionItemModalProps {
   isOpen: boolean;
@@ -181,12 +183,11 @@ export const ActionItemModal: React.FC<ActionItemModalProps> = ({
                 </div>
                 <div>
                   <Label htmlFor="dueDate">Due Date <span className="text-destructive">*</span></Label>
-                  <Input
+                  <StandardDateInput
                     id="dueDate"
-                    type="date"
                     value={formData.dueDate}
-                    onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                    required
+                    onChange={(value) => setFormData({ ...formData, dueDate: value })}
+                    min={new Date().toISOString().split('T')[0]}
                   />
                 </div>
               </div>

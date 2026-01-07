@@ -31,6 +31,7 @@ import { EmployeeDocumentUpload } from '@/components/employees/EmployeeDocumentU
 import { secureLog } from '@/utils/secureLogger';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { StandardDateInput } from '@/components/ui/standard-date-input';
 import {
   User,
   Phone,
@@ -716,12 +717,15 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
 
       <div className="space-y-2">
         <Label htmlFor="dob">Date of Birth</Label>
-        <Input
+        <StandardDateInput
           id="dob"
-          type="date"
           value={formData.dob || ''}
-          onChange={(e) => handleInputChange('dob', e.target.value)}
+          onChange={(value) => handleInputChange('dob', value)}
           disabled={isReadOnly}
+          max={new Date().toISOString().split('T')[0]}
+          showYearDropdown
+          fromYear={1924}
+          toYear={new Date().getFullYear()}
         />
       </div>
 
@@ -1047,23 +1051,28 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
         <Label htmlFor="joiningDate">
           Date of Joining {!isReadOnly && <span className="text-destructive">*</span>}
         </Label>
-        <Input
+        <StandardDateInput
           id="joiningDate"
-          type="date"
           value={formData.date_of_joining || ''}
-          onChange={(e) => handleInputChange('date_of_joining', e.target.value)}
+          onChange={(value) => handleInputChange('date_of_joining', value)}
           disabled={isReadOnly}
+          max={new Date().toISOString().split('T')[0]}
+          showYearDropdown
+          fromYear={2000}
+          toYear={new Date().getFullYear()}
         />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="confirmationDate">Confirmation Date</Label>
-        <Input
+        <StandardDateInput
           id="confirmationDate"
-          type="date"
           value={formData.confirmationDate || ''}
-          onChange={(e) => handleInputChange('confirmationDate', e.target.value)}
+          onChange={(value) => handleInputChange('confirmationDate', value)}
           disabled={isReadOnly}
+          showYearDropdown
+          fromYear={2000}
+          toYear={new Date().getFullYear() + 1}
         />
       </div>
 

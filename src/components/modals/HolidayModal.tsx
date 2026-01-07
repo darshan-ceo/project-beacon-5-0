@@ -9,6 +9,7 @@ import { Loader2, CalendarDays } from 'lucide-react';
 import { Holiday, HolidayFormData, HOLIDAY_TYPES } from '@/types/statutory';
 import { holidayService } from '@/services/holidayService';
 import { format, parseISO } from 'date-fns';
+import { StandardDateInput } from '@/components/ui/standard-date-input';
 
 // Indian states
 const INDIAN_STATES = [
@@ -153,12 +154,14 @@ export const HolidayModal: React.FC<HolidayModalProps> = ({
         {/* Date */}
         <div className="space-y-2">
           <Label htmlFor="date">Date *</Label>
-          <Input
+          <StandardDateInput
             id="date"
-            type="date"
             value={formData.date}
-            onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+            onChange={(value) => setFormData(prev => ({ ...prev, date: value }))}
             disabled={isReadOnly}
+            showYearDropdown
+            fromYear={new Date().getFullYear() - 1}
+            toYear={new Date().getFullYear() + 2}
           />
         </div>
 
