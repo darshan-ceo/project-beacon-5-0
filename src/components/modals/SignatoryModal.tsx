@@ -5,11 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon } from 'lucide-react';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { StandardDateInput } from '@/components/ui/standard-date-input';
 import type { Signatory, SignatoryEmail, SignatoryPhone } from '@/contexts/AppStateContext';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
 import { SignatoryEmailManager } from '@/components/contacts/SignatoryEmailManager';
@@ -296,40 +292,20 @@ export const SignatoryModal: React.FC<SignatoryModalProps> = ({
                 <Label htmlFor="dob">Date of Birth</Label>
                 <FieldTooltip formId="create-signatory" fieldId="dob" />
               </div>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !formData.dob && "text-muted-foreground",
-                      errors.dob && "border-destructive"
-                    )}
-                    disabled={mode === 'view'}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.dob ? format(new Date(formData.dob), 'PPP') : <span>Select date of birth</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={formData.dob ? new Date(formData.dob) : undefined}
-                    onSelect={(date) => {
-                      if (date) {
-                        setFormData(prev => ({ ...prev, dob: format(date, 'yyyy-MM-dd') }));
-                        setErrors(prev => ({ ...prev, dob: '' }));
-                      }
-                    }}
-                    disabled={(date) => date > new Date()}
-                    initialFocus
-                    captionLayout="dropdown-buttons"
-                    fromYear={1924}
-                    toYear={new Date().getFullYear()}
-                    className="pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
+              <StandardDateInput
+                id="dob"
+                value={formData.dob || ''}
+                onChange={(value) => {
+                  setFormData(prev => ({ ...prev, dob: value }));
+                  setErrors(prev => ({ ...prev, dob: '' }));
+                }}
+                disabled={mode === 'view'}
+                max={new Date().toISOString().split('T')[0]}
+                error={!!errors.dob}
+                showYearDropdown
+                fromYear={1924}
+                toYear={new Date().getFullYear()}
+              />
               {errors.dob && (
                 <p className="text-sm text-destructive mt-1">{errors.dob}</p>
               )}

@@ -5,11 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CalendarIcon, Building2, MapPin, IndianRupee, FileText, CalendarCheck, CheckSquare, Loader2 } from 'lucide-react';
-import { format } from 'date-fns';
+import { Building2, MapPin, IndianRupee, FileText, CalendarCheck, CheckSquare, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Task, useAppState } from '@/contexts/AppStateContext';
 import { cn } from '@/lib/utils';
@@ -22,6 +19,7 @@ import { useContextualForms } from '@/hooks/useContextualForms';
 import { EmployeeSelector } from '@/components/ui/employee-selector';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
 import { z } from 'zod';
+import { StandardDateInput } from '@/components/ui/standard-date-input';
 
 // Task form validation schema with strict date validation
 const taskFormSchema = z.object({
@@ -646,30 +644,13 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                     <Label>Due Date <span className="text-destructive">*</span></Label>
                     <FieldTooltip formId="create-task" fieldId="due-date" />
                   </div>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !formData.dueDate && "text-muted-foreground"
-                        )}
-                        disabled={mode === 'view'}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {formData.dueDate ? formData.dueDate : <span>Pick a date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={parseDateInput(formData.dueDate) || undefined}
-                        onSelect={(date) => date && setFormData(prev => ({ ...prev, dueDate: formatDateForDisplay(date) }))}
-                        initialFocus
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <StandardDateInput
+                    id="dueDate"
+                    value={parseDateInput(formData.dueDate) || undefined}
+                    onChange={(isoDate) => setFormData(prev => ({ ...prev, dueDate: formatDateForDisplay(isoDate) }))}
+                    disabled={mode === 'view'}
+                    min={mode === 'create' ? new Date().toISOString().split('T')[0] : undefined}
+                  />
                   <p className="text-xs text-muted-foreground mt-1">
                     Target completion date for this task
                   </p>
