@@ -1,24 +1,28 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { X, Scale, Users, Calendar, MapPin } from 'lucide-react';
-import { Card } from '@/components/ui/card';
+import { X, Scale, Users, Calendar, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Case } from '@/contexts/AppStateContext';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface CaseContextHeaderProps {
   selectedCase: Case;
   onClearSelection: () => void;
   clientName?: string;
   courtName?: string;
+  onMarkComplete?: (caseData: Case) => void;
 }
 
 export const CaseContextHeader: React.FC<CaseContextHeaderProps> = ({
   selectedCase,
   onClearSelection,
   clientName,
-  courtName
+  courtName,
+  onMarkComplete
 }) => {
+  const isCompleted = selectedCase.status === 'Completed';
+
   return (
     <motion.div
       initial={{ opacity: 0, y: -10 }}
@@ -36,6 +40,12 @@ export const CaseContextHeader: React.FC<CaseContextHeaderProps> = ({
             <Badge variant="outline" className="text-xs">
               {selectedCase.caseNumber}
             </Badge>
+            {isCompleted && (
+              <Badge variant="secondary" className="text-xs bg-success/20 text-success border-success/30">
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                Completed
+              </Badge>
+            )}
           </div>
           
           {/* Metadata row */}
@@ -82,16 +92,37 @@ export const CaseContextHeader: React.FC<CaseContextHeaderProps> = ({
           </div>
         </div>
         
-        {/* Clear button */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onClearSelection}
-          className="flex-shrink-0"
-        >
-          <X className="h-3 w-3 mr-1" />
-          Clear
-        </Button>
+        {/* Actions */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {!isCompleted && onMarkComplete && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onMarkComplete(selectedCase)}
+                    className="text-success border-success/30 hover:bg-success/10"
+                  >
+                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                    Mark Complete
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Completed cases are matters where the legal lifecycle is fully concluded.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onClearSelection}
+          >
+            <X className="h-3 w-3 mr-1" />
+            Clear
+          </Button>
+        </div>
       </div>
     </motion.div>
   );

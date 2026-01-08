@@ -27,7 +27,9 @@ import {
   AlertCircle,
   UserCheck,
   Building2,
-  Briefcase
+  Briefcase,
+  MoreVertical,
+  CheckCircle2
 } from 'lucide-react';
 import { useAdvancedRBAC, usePermission } from '@/hooks/useAdvancedRBAC';
 import { casesService } from '@/services/casesService';
@@ -50,7 +52,7 @@ import { CaseDocuments } from './CaseDocuments';
 import { CaseTasksTab } from './CaseTasksTab';
 import { CaseModal } from '@/components/modals/CaseModal';
 import { CaseContextHeader } from './CaseContextHeader';
-
+import { CaseCompletionModal } from '@/components/modals/CaseCompletionModal';
 import { AdvanceStageConfirmationModal } from '@/components/modals/AdvanceStageConfirmationModal';
 import { FilterDropdown } from '@/components/ui/filter-dropdown';
 import { Case, useAppState } from '@/contexts/AppStateContext';
@@ -112,6 +114,15 @@ export const CaseManagement: React.FC = () => {
     currentStage: '',
     nextStage: '',
     isLoading: false
+  });
+
+  // Case Completion Modal state
+  const [completionModal, setCompletionModal] = useState<{
+    isOpen: boolean;
+    caseData: Case | null;
+  }>({
+    isOpen: false,
+    caseData: null
   });
   
   // Calculate real-time metrics from state data
@@ -1056,6 +1067,7 @@ export const CaseManagement: React.FC = () => {
               ? state.courts.find(c => c.id === selectedCase.nextHearing?.courtId)?.name 
               : undefined
             }
+            onMarkComplete={(caseData) => setCompletionModal({ isOpen: true, caseData })}
           />
         )}
 
@@ -1359,6 +1371,39 @@ export const CaseManagement: React.FC = () => {
                                   : 'text-muted-foreground'
                               }`} />
                             </Button>
+                            
+                            {/* More Actions Menu */}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                <DropdownMenuItem onClick={() => setCaseModal({ isOpen: true, mode: 'view', case: caseItem })}>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  View Details
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setCaseModal({ isOpen: true, mode: 'edit', case: caseItem })}>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit Case
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                {caseItem.status !== 'Completed' && (
+                                  <DropdownMenuItem 
+                                    onClick={() => setCompletionModal({ isOpen: true, caseData: caseItem })}
+                                    className="text-success focus:text-success"
+                                  >
+                                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                                    Mark Case as Completed
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                          </div>
                         </div>
                         </div>
@@ -1455,6 +1500,21 @@ export const CaseManagement: React.FC = () => {
         <NoticeIntakeWizard
           isOpen={noticeIntakeModal}
           onClose={() => setNoticeIntakeModal(false)}
+        />
+      )}
+
+      {/* Case Completion Modal */}
+      {completionModal.caseData && (
+        <CaseCompletionModal
+          isOpen={completionModal.isOpen}
+          onClose={() => setCompletionModal({ isOpen: false, caseData: null })}
+          caseData={completionModal.caseData}
+          onComplete={(completedCase) => {
+            // Update selected case if it was the one completed
+            if (selectedCase?.id === completedCase.id) {
+              setSelectedCase(completedCase);
+            }
+          }}
         />
       )}
     </div>
