@@ -18,6 +18,13 @@ export interface AdvanceStagePayload {
   assignedTo?: string;
 }
 
+export interface CompleteCasePayload {
+  caseId: string;
+  completionReason: string;
+  completionNotes?: string;
+  documentId?: string;
+}
+
 const isDev = import.meta.env.DEV;
 
 const log = (level: 'success' | 'error', tab: string, action: string, details?: any) => {
@@ -370,6 +377,106 @@ export const casesService = {
       toast({
         title: "Error",
         description: "Failed to export timeline. Please try again.",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  },
+
+  /**
+   * Complete/Resolve a case - marks the legal lifecycle as concluded
+   */
+  complete: async (payload: CompleteCasePayload, dispatch: React.Dispatch<AppAction>): Promise<void> => {
+    try {
+      const { caseId, completionReason, completionNotes, documentId } = payload;
+      const completedAt = new Date().toISOString();
+
+      // Get current user info
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id || 'system';
+
+      // Map reason code to readable label
+      const reasonLabels: Record<string, string> = {
+        'final_order_passed': 'Final Order Passed (No Further Remedy)',
+        'client_no_appeal': 'Client Decided Not to Appeal',
+        'matter_settled': 'Matter Settled',
+        'case_withdrawn': 'Case Withdrawn',
+        'order_complied': 'Order Complied With',
+        'other': 'Other',
+      };
+
+      const updates = {
+        status: 'Completed' as const,
+        completedDate: completedAt,
+        lastUpdated: completedAt,
+      };
+
+      // Update case status via dispatch
+      dispatch({ type: 'UPDATE_CASE', payload: { id: caseId, ...updates } });
+      
+      // Also update in Supabase directly for completion fields
+      const { error: updateError } = await supabase
+        .from('cases')
+        .update({
+          status: 'Completed',
+          completed_at: completedAt,
+          completed_by: userId,
+          completion_reason: completionReason,
+          completion_notes: completionNotes || null,
+          updated_at: completedAt,
+        })
+        .eq('id', caseId);
+
+      if (updateError) {
+        console.error('Failed to update case completion in database:', updateError);
+      }
+
+      // Add timeline entry
+      try {
+        await timelineService.addEntry({
+          caseId,
+          type: 'task_completed', // Using existing type - case completion
+          title: 'Case Marked as Completed',
+          description: `Closed with reason: ${reasonLabels[completionReason] || completionReason}. ${completionNotes || ''}`,
+          createdBy: userId,
+          metadata: {
+            completion_reason: completionReason,
+            completion_notes: completionNotes,
+            final_document_id: documentId,
+            is_case_completion: true,
+          }
+        });
+      } catch (timelineError) {
+        console.error('Failed to create timeline entry for case completion:', timelineError);
+      }
+
+      // Log audit event
+      try {
+        const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', userId).single();
+        if (profile?.tenant_id) {
+          await auditService.log('update_case', profile.tenant_id, {
+            userId,
+            entityType: 'case',
+            entityId: caseId,
+            details: {
+              action: 'case_completed',
+              completion_reason: completionReason,
+              completion_notes: completionNotes,
+              completed_at: completedAt,
+            }
+          });
+        }
+      } catch (auditError) {
+        console.warn('Failed to log audit event for case completion:', auditError);
+      }
+
+      log('success', 'Overview', 'complete', { caseId, reason: completionReason });
+
+    } catch (error) {
+      log('error', 'Overview', 'complete', error);
+      toast({
+        title: "Error",
+        description: "Failed to complete case. Please try again.",
         variant: "destructive",
       });
       throw error;

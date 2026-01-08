@@ -388,6 +388,10 @@ export type Database = {
           case_year: string | null
           city: string | null
           client_id: string
+          completed_at: string | null
+          completed_by: string | null
+          completion_notes: string | null
+          completion_reason: string | null
           created_at: string | null
           description: string | null
           financial_year: string | null
@@ -395,6 +399,7 @@ export type Database = {
           forum_id: string | null
           id: string
           interest_amount: number | null
+          is_read_only: boolean | null
           issue_type: string | null
           next_hearing_date: string | null
           notice_date: string | null
@@ -425,6 +430,10 @@ export type Database = {
           case_year?: string | null
           city?: string | null
           client_id: string
+          completed_at?: string | null
+          completed_by?: string | null
+          completion_notes?: string | null
+          completion_reason?: string | null
           created_at?: string | null
           description?: string | null
           financial_year?: string | null
@@ -432,6 +441,7 @@ export type Database = {
           forum_id?: string | null
           id?: string
           interest_amount?: number | null
+          is_read_only?: boolean | null
           issue_type?: string | null
           next_hearing_date?: string | null
           notice_date?: string | null
@@ -462,6 +472,10 @@ export type Database = {
           case_year?: string | null
           city?: string | null
           client_id?: string
+          completed_at?: string | null
+          completed_by?: string | null
+          completion_notes?: string | null
+          completion_reason?: string | null
           created_at?: string | null
           description?: string | null
           financial_year?: string | null
@@ -469,6 +483,7 @@ export type Database = {
           forum_id?: string | null
           id?: string
           interest_amount?: number | null
+          is_read_only?: boolean | null
           issue_type?: string | null
           next_hearing_date?: string | null
           notice_date?: string | null

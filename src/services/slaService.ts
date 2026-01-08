@@ -68,9 +68,11 @@ export function recalculateAllSLAs(cases: Case[]): Map<string, 'Green' | 'Amber'
 
 /**
  * Get cases that breach timeline (Red SLA)
+ * Only includes active (non-completed) cases
  */
 export function getTimelineBreaches(cases: Case[]): Case[] {
   return cases.filter(caseItem => {
+    // Exclude completed cases from timeline breach tracking
     if (caseItem.status !== 'Active') return false;
     return calculateSLAStatus(caseItem) === 'Red';
   });
