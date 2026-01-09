@@ -123,6 +123,7 @@ export const HearingCalendar: React.FC<HearingCalendarProps> = ({ isOpen, onClos
                 <CalendarIcon className="h-5 w-5" />
                 <span>Hearing Calendar</span>
               </div>
+              {/* Note: Calendar view is global, so schedule button is available */}
               {canCreateHearings && (
                 <Button
                   onClick={() => setHearingModal({ isOpen: true, mode: 'create', hearing: null })}

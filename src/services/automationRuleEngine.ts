@@ -96,6 +96,12 @@ class AutomationRuleEngine {
 
   async processEvent(event: AutomationEvent): Promise<AutomationResult> {
     this.ensureInitialized();
+    
+    // Skip automation for completed cases - no actions should be triggered
+    if (event.payload?.caseData?.status === 'Completed') {
+      console.log('[AutomationRuleEngine] Skipping event - case is completed:', event.payload.caseData.id);
+      return { success: true, rulesMatched: 0, rulesExecuted: 0, actionsExecuted: 0, errors: [], logs: [] };
+    }
 
     console.log('[AutomationRuleEngine] Processing event:', event.type);
 

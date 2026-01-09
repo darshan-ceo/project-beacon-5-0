@@ -269,7 +269,7 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases, selec
             }
           </p>
         </div>
-        {canCreateHearings && (
+        {canCreateHearings && selectedCase?.status !== 'Completed' && (
           <Button 
             className="bg-primary hover:bg-primary-hover"
             onClick={() => setIsScheduleDialogOpen(true)}
@@ -438,9 +438,11 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases, selec
                       <p className="text-sm text-muted-foreground mb-4">
                         No hearings scheduled for today for case: <strong>{selectedCase.caseNumber}</strong>
                       </p>
-                      <Button onClick={() => setIsScheduleDialogOpen(true)}>
-                        Schedule Hearing
-                      </Button>
+                      {selectedCase?.status !== 'Completed' && (
+                        <Button onClick={() => setIsScheduleDialogOpen(true)}>
+                          Schedule Hearing
+                        </Button>
+                      )}
                     </>
                   ) : (
                     <p className="text-muted-foreground">No hearings scheduled for today</p>

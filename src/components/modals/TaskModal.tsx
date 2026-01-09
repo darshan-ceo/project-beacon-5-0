@@ -227,6 +227,16 @@ export const TaskModal: React.FC<TaskModalProps> = ({
         });
         return;
       }
+      
+      // STEP 5.1: Block task creation for completed cases
+      if (mode === 'create' && caseWithClient.case.status === 'Completed') {
+        toast({
+          title: "Cannot Create Task",
+          description: "This case has been completed. No new tasks can be created.",
+          variant: "destructive"
+        });
+        return;
+      }
 
       // Derive client id from loaded client or fall back to case.clientId
       const derivedClientId = caseWithClient.client?.id || caseWithClient.case.clientId;
