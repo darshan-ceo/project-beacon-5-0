@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogBody } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, CheckCircle2, Scale, Upload, FileText, Calendar } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { AlertTriangle, CheckCircle2, Scale, FileText } from 'lucide-react';
 import { Case, useAppState } from '@/contexts/AppStateContext';
 import { casesService } from '@/services/casesService';
 import { toast } from '@/hooks/use-toast';
@@ -119,7 +120,7 @@ export const CaseCompletionModal: React.FC<CaseCompletionModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[550px]">
+      <DialogContent className="max-w-lg max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CheckCircle2 className="h-5 w-5 text-success" />
@@ -130,21 +131,24 @@ export const CaseCompletionModal: React.FC<CaseCompletionModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          {/* Case Info */}
-          <div className="bg-muted/50 rounded-lg p-3 space-y-1">
-            <div className="flex items-center gap-2">
-              <Scale className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium text-sm">{caseData.title}</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Badge variant="outline" className="text-xs">{caseData.caseNumber}</Badge>
-              <span>•</span>
-              <span>{clientName}</span>
-              <span>•</span>
-              <span>Stage: {caseData.currentStage}</span>
-            </div>
-          </div>
+        <DialogBody>
+          <div className="space-y-4">
+            {/* Case Info */}
+            <Card className="shadow-sm border">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <Scale className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium text-sm">{caseData.title}</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
+                  <Badge variant="outline" className="text-xs">{caseData.caseNumber}</Badge>
+                  <span>•</span>
+                  <span>{clientName}</span>
+                  <span>•</span>
+                  <span>Stage: {caseData.currentStage}</span>
+                </div>
+              </CardContent>
+            </Card>
 
           {/* Warning for upcoming hearings */}
           {upcomingHearings.length > 0 && (
@@ -240,7 +244,8 @@ export const CaseCompletionModal: React.FC<CaseCompletionModalProps> = ({
               </p>
             </div>
           </div>
-        </div>
+          </div>
+        </DialogBody>
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
