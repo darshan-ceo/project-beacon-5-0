@@ -287,6 +287,18 @@ export const HearingModal: React.FC<HearingModalProps> = ({
       }
 
       if (mode === 'create') {
+        // Block hearing creation for completed cases
+        const targetCase = state.cases.find(c => c.id === formData.caseId);
+        if (targetCase?.status === 'Completed') {
+          toast({
+            title: "Cannot Schedule Hearing",
+            description: "This case has been completed. No new hearings can be scheduled.",
+            variant: "destructive"
+          });
+          setIsSubmitting(false);
+          return;
+        }
+        
         // Calculate end time (assume 1 hour duration if not specified)
         const startTime = formData.time;
         const [hours, minutes] = startTime.split(':').map(Number);

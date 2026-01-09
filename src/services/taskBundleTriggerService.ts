@@ -58,6 +58,11 @@ class TaskBundleTriggerService {
     stage: GSTStage,
     dispatch?: React.Dispatch<AppAction>
   ): Promise<BundleAutomationResult> {
+    // Early exit if case is completed - no automation for closed cases
+    if ((caseData as any).status === 'Completed') {
+      console.log('[BundleTrigger] Skipping - case is completed:', caseData.id);
+      return { createdTasks: [], skippedBundles: [], totalTasksCreated: 0 };
+    }
     console.log(`[BundleTrigger] Processing bundles for trigger: ${trigger}, stage: ${stage}`);
     
     try {
