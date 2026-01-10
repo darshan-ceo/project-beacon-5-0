@@ -5,13 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { CalendarIcon, MapPin, User, Phone, Mail, Tag, X, Plus } from 'lucide-react';
-import { format } from 'date-fns';
+import { MapPin, User, Phone, Mail, Tag, X, Plus } from 'lucide-react';
 import { AddressForm } from '@/components/ui/AddressForm';
 import { Judge, useAppState } from '@/contexts/AppStateContext';
 import { EnhancedAddressData } from '@/services/addressMasterService';
@@ -22,6 +19,8 @@ import { TagInput } from '@/components/ui/TagInput';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
 import { JudgePhotoUpload } from '@/components/masters/judges/JudgePhotoUpload';
 import { autoCapitalizeFirst } from '@/utils/textFormatters';
+import { StandardDateInput } from '@/components/ui/standard-date-input';
+import { formatDateForStorage, parseDateInput } from '@/utils/dateFormatters';
 
 interface JudgeFormData {
   name: string;
@@ -545,56 +544,34 @@ export const JudgeForm: React.FC<JudgeFormProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Appointment Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !formData.appointmentDate && "text-muted-foreground"
-                    )}
-                    disabled={isReadOnly}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.appointmentDate ? format(formData.appointmentDate, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={formData.appointmentDate || undefined}
-                    onSelect={(date) => setFormData(prev => ({ ...prev, appointmentDate: date || null }))}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <Label htmlFor="appointmentDate">Appointment Date</Label>
+              <StandardDateInput
+                id="appointmentDate"
+                value={formData.appointmentDate ? formatDateForStorage(formData.appointmentDate) : ''}
+                onChange={(isoDate) => setFormData(prev => ({
+                  ...prev,
+                  appointmentDate: isoDate ? parseDateInput(isoDate) : null
+                }))}
+                disabled={isReadOnly}
+                showYearDropdown={true}
+                fromYear={1950}
+                toYear={new Date().getFullYear() + 5}
+              />
             </div>
             <div className="space-y-2">
-              <Label>Retirement Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !formData.retirementDate && "text-muted-foreground"
-                    )}
-                    disabled={isReadOnly}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.retirementDate ? format(formData.retirementDate, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={formData.retirementDate || undefined}
-                    onSelect={(date) => setFormData(prev => ({ ...prev, retirementDate: date || null }))}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <Label htmlFor="retirementDate">Retirement Date</Label>
+              <StandardDateInput
+                id="retirementDate"
+                value={formData.retirementDate ? formatDateForStorage(formData.retirementDate) : ''}
+                onChange={(isoDate) => setFormData(prev => ({
+                  ...prev,
+                  retirementDate: isoDate ? parseDateInput(isoDate) : null
+                }))}
+                disabled={isReadOnly}
+                showYearDropdown={true}
+                fromYear={1950}
+                toYear={new Date().getFullYear() + 30}
+              />
             </div>
           </div>
 
@@ -736,66 +713,34 @@ export const JudgeForm: React.FC<JudgeFormProps> = ({
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Tenure Start Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !formData.tenureDetails?.tenureStartDate && "text-muted-foreground"
-                    )}
-                    disabled={isReadOnly}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.tenureDetails?.tenureStartDate 
-                      ? format(formData.tenureDetails.tenureStartDate, "PPP") 
-                      : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={formData.tenureDetails?.tenureStartDate || undefined}
-                    onSelect={(date) => setFormData(prev => ({
-                      ...prev,
-                      tenureDetails: { ...prev.tenureDetails, tenureStartDate: date || null }
-                    }))}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <Label htmlFor="tenureStartDate">Tenure Start Date</Label>
+              <StandardDateInput
+                id="tenureStartDate"
+                value={formData.tenureDetails?.tenureStartDate ? formatDateForStorage(formData.tenureDetails.tenureStartDate) : ''}
+                onChange={(isoDate) => setFormData(prev => ({
+                  ...prev,
+                  tenureDetails: { ...prev.tenureDetails, tenureStartDate: isoDate ? parseDateInput(isoDate) : null }
+                }))}
+                disabled={isReadOnly}
+                showYearDropdown={true}
+                fromYear={1950}
+                toYear={new Date().getFullYear() + 5}
+              />
             </div>
             <div className="space-y-2">
-              <Label>Tenure End Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !formData.tenureDetails?.tenureEndDate && "text-muted-foreground"
-                    )}
-                    disabled={isReadOnly}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.tenureDetails?.tenureEndDate 
-                      ? format(formData.tenureDetails.tenureEndDate, "PPP") 
-                      : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={formData.tenureDetails?.tenureEndDate || undefined}
-                    onSelect={(date) => setFormData(prev => ({
-                      ...prev,
-                      tenureDetails: { ...prev.tenureDetails, tenureEndDate: date || null }
-                    }))}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <Label htmlFor="tenureEndDate">Tenure End Date</Label>
+              <StandardDateInput
+                id="tenureEndDate"
+                value={formData.tenureDetails?.tenureEndDate ? formatDateForStorage(formData.tenureDetails.tenureEndDate) : ''}
+                onChange={(isoDate) => setFormData(prev => ({
+                  ...prev,
+                  tenureDetails: { ...prev.tenureDetails, tenureEndDate: isoDate ? parseDateInput(isoDate) : null }
+                }))}
+                disabled={isReadOnly}
+                showYearDropdown={true}
+                fromYear={1950}
+                toYear={new Date().getFullYear() + 30}
+              />
             </div>
           </div>
           
@@ -1112,8 +1057,8 @@ export const JudgeForm: React.FC<JudgeFormProps> = ({
             <CardTitle>Record Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <div>Created: {initialData.createdAt ? format(new Date(initialData.createdAt), 'PPp') : 'Unknown'}</div>
-            <div>Updated: {initialData.updatedAt ? format(new Date(initialData.updatedAt), 'PPp') : 'Unknown'}</div>
+            <div>Created: {initialData.createdAt ? new Date(initialData.createdAt).toLocaleString('en-GB') : 'Unknown'}</div>
+            <div>Updated: {initialData.updatedAt ? new Date(initialData.updatedAt).toLocaleString('en-GB') : 'Unknown'}</div>
             <div>Created by: {(initialData as any).createdBy || 'Unknown'}</div>
             <div>Updated by: {(initialData as any).updatedBy || 'Unknown'}</div>
           </CardContent>
