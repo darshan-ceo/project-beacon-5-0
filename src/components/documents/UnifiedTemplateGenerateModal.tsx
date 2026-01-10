@@ -36,13 +36,29 @@ export const UnifiedTemplateGenerateModal: React.FC<UnifiedTemplateGenerateModal
       return;
     }
 
+    // Check if case is completed before generating
+    const caseData = state.cases.find(c => c.id === selectedCaseId);
+    if (!caseData) {
+      toast({
+        title: 'Case Not Found',
+        description: 'The selected case was not found',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    if (caseData.status === 'Completed') {
+      toast({
+        title: 'Cannot Generate Document',
+        description: 'This case has been completed and is read-only.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setGenerating(true);
 
     try {
-      const caseData = state.cases.find(c => c.id === selectedCaseId);
-      if (!caseData) {
-        throw new Error('Case not found');
-      }
 
       const clientData = state.clients.find(cl => cl.id === caseData.clientId);
       if (!clientData) {

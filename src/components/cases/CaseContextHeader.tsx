@@ -1,8 +1,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { X, Scale, Users, Calendar, CheckCircle2 } from 'lucide-react';
+import { X, Scale, Users, Calendar, CheckCircle2, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Case } from '@/contexts/AppStateContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -27,8 +28,20 @@ export const CaseContextHeader: React.FC<CaseContextHeaderProps> = ({
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4 shadow-sm"
+      className="space-y-2 mb-4"
     >
+      {/* Read-Only Banner for Completed Cases */}
+      {isCompleted && (
+        <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800">
+          <Lock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+          <AlertDescription className="text-amber-800 dark:text-amber-200">
+            This case has been completed and is now <strong>read-only</strong>. 
+            Viewing and export are available, but no modifications can be made.
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 shadow-sm">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 space-y-2">
           {/* Case title row */}
@@ -122,6 +135,7 @@ export const CaseContextHeader: React.FC<CaseContextHeaderProps> = ({
             <X className="h-3 w-3 mr-1" />
             Clear
           </Button>
+        </div>
         </div>
       </div>
     </motion.div>

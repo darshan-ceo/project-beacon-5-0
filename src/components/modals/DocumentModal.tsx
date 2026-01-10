@@ -169,6 +169,20 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
           });
           return;
         }
+        
+        // Block uploads to completed cases
+        if (formData.caseId && formData.caseId !== 'none') {
+          const targetCase = state.cases.find(c => c.id === formData.caseId);
+          if (targetCase?.status === 'Completed') {
+            toast({
+              title: "Cannot Upload Document",
+              description: "This case has been completed and is read-only.",
+              variant: "destructive"
+            });
+            setLoading(false);
+            return;
+          }
+        }
 
         // Validate at least one entity link
         const hasLink = !!(
