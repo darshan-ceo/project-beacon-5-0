@@ -1388,10 +1388,12 @@ export const CaseManagement: React.FC = () => {
                                   <Eye className="mr-2 h-4 w-4" />
                                   View Details
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setCaseModal({ isOpen: true, mode: 'edit', case: caseItem })}>
-                                  <Edit className="mr-2 h-4 w-4" />
-                                  Edit Case
-                                </DropdownMenuItem>
+                                {caseItem.status !== 'Completed' && (
+                                  <DropdownMenuItem onClick={() => setCaseModal({ isOpen: true, mode: 'edit', case: caseItem })}>
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Edit Case
+                                  </DropdownMenuItem>
+                                )}
                                 <DropdownMenuSeparator />
                                 {caseItem.status !== 'Completed' && (
                                   <DropdownMenuItem 

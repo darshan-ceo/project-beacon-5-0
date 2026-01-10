@@ -311,16 +311,18 @@ export const CaseTasksTab: React.FC<CaseTasksTabProps> = ({ caseData }) => {
                 Manage tasks for {caseData.caseNumber}
               </CardDescription>
             </div>
-            <div className="flex gap-2">
-              <Button onClick={() => setBundleModal(true)} variant="outline">
-                <PlayCircle className="mr-2 h-4 w-4" />
-                Run Bundle
-              </Button>
-              <Button onClick={handleAddTask}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Task
-              </Button>
-            </div>
+            {caseData.status !== 'Completed' && (
+              <div className="flex gap-2">
+                <Button onClick={() => setBundleModal(true)} variant="outline">
+                  <PlayCircle className="mr-2 h-4 w-4" />
+                  Run Bundle
+                </Button>
+                <Button onClick={handleAddTask}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Task
+                </Button>
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -331,16 +333,20 @@ export const CaseTasksTab: React.FC<CaseTasksTabProps> = ({ caseData }) => {
               <p className="text-sm text-muted-foreground mb-4">
                 Create tasks manually or run a task bundle to get started.
               </p>
-              <div className="flex gap-2 justify-center">
-                <Button onClick={handleAddTask} variant="outline">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add First Task
-                </Button>
-                <Button onClick={() => setBundleModal(true)}>
-                  <PlayCircle className="mr-2 h-4 w-4" />
-                  Run Bundle
-                </Button>
-              </div>
+              {caseData.status !== 'Completed' ? (
+                <div className="flex gap-2 justify-center">
+                  <Button onClick={handleAddTask} variant="outline">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add First Task
+                  </Button>
+                  <Button onClick={() => setBundleModal(true)}>
+                    <PlayCircle className="mr-2 h-4 w-4" />
+                    Run Bundle
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">This case is completed and read-only.</p>
+              )}
             </div>
           ) : (
             <Table>

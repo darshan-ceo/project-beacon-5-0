@@ -351,7 +351,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
                     </div>
                     
                     {/* Action Button */}
-                    {status === 'current' && (
+                    {status === 'current' && selectedCase?.status !== 'Completed' && (
                       <Button 
                         size="sm" 
                         className="w-full"
@@ -423,47 +423,53 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
                 
                 <div>
                   <h4 className="font-semibold mb-2">Next Actions</h4>
-                  <div className="space-y-2">
-                    <HelpButton 
-                      helpId="button-upload-response"
-                      variant="outline" 
-                      size="sm" 
-                      className="w-full justify-start"
-                      onClick={handleUploadResponse}
-                    >
-                      <FileText className="mr-2 h-4 w-4" />
-                      Upload Response
-                    </HelpButton>
-                    <HelpButton 
-                      helpId="button-schedule-hearing"
-                      variant="outline" 
-                      size="sm" 
-                      className="w-full justify-start"
-                      onClick={() => setShowHearingModal(true)}
-                    >
-                      <Clock className="mr-2 h-4 w-4" />
-                      Schedule Hearing
-                    </HelpButton>
-                    <HelpButton 
-                      helpId="button-advance-stage"
-                      variant="outline" 
-                      size="sm" 
-                      className="w-full justify-start"
-                      onClick={() => {
-                        // Use unified dialog if feature enabled, otherwise quick advance
-                        if (featureFlagService.isEnabled('lifecycle_cycles_v1')) {
-                          setShowStageModal(true);
-                        } else {
-                          handleAdvanceStage();
-                        }
-                      }}
-                      disabled={isAdvancing}
-                    >
-                      <ArrowRight className="mr-2 h-4 w-4" />
-                      {featureFlagService.isEnabled('lifecycle_cycles_v1') ? 'Advance Stage' : 
-                       isAdvancing ? 'Advancing...' : 'Advance Stage'}
-                    </HelpButton>
-                  </div>
+                  {selectedCase?.status === 'Completed' ? (
+                    <p className="text-sm text-muted-foreground">
+                      This case has been completed and is read-only.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      <HelpButton 
+                        helpId="button-upload-response"
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full justify-start"
+                        onClick={handleUploadResponse}
+                      >
+                        <FileText className="mr-2 h-4 w-4" />
+                        Upload Response
+                      </HelpButton>
+                      <HelpButton 
+                        helpId="button-schedule-hearing"
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full justify-start"
+                        onClick={() => setShowHearingModal(true)}
+                      >
+                        <Clock className="mr-2 h-4 w-4" />
+                        Schedule Hearing
+                      </HelpButton>
+                      <HelpButton 
+                        helpId="button-advance-stage"
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full justify-start"
+                        onClick={() => {
+                          // Use unified dialog if feature enabled, otherwise quick advance
+                          if (featureFlagService.isEnabled('lifecycle_cycles_v1')) {
+                            setShowStageModal(true);
+                          } else {
+                            handleAdvanceStage();
+                          }
+                        }}
+                        disabled={isAdvancing}
+                      >
+                        <ArrowRight className="mr-2 h-4 w-4" />
+                        {featureFlagService.isEnabled('lifecycle_cycles_v1') ? 'Advance Stage' : 
+                         isAdvancing ? 'Advancing...' : 'Advance Stage'}
+                      </HelpButton>
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>

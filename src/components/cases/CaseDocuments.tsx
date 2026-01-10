@@ -429,13 +429,15 @@ export const CaseDocuments: React.FC<CaseDocumentsProps> = ({ selectedCase }) =>
             <ExternalLink className="h-4 w-4" />
             All Documents
           </Button>
-          <Button
-            onClick={handleUploadToCase}
-            className="flex items-center gap-2"
-          >
-            <Upload className="h-4 w-4" />
-            Upload Document
-          </Button>
+          {selectedCase?.status !== 'Completed' && (
+            <Button
+              onClick={handleUploadToCase}
+              className="flex items-center gap-2"
+            >
+              <Upload className="h-4 w-4" />
+              Upload Document
+            </Button>
+          )}
         </div>
       </div>
 

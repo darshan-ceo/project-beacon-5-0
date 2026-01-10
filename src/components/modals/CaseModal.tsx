@@ -293,6 +293,16 @@ export const CaseModal: React.FC<CaseModalProps> = ({
       return;
     }
     
+    // Block editing of completed cases
+    if (mode === 'edit' && caseData?.status === 'Completed') {
+      toast({
+        title: "Case is Read-Only",
+        description: "This case has been completed and cannot be edited.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     // Grandfather clause: Only require these fields for new cases
     if (mode === 'create') {
       // New cases: Always require both fields
