@@ -21,88 +21,107 @@ export default {
     		screens: {
     			xs: '475px'
     		},
-    		fontFamily: {
-    			inter: [
-    				'Inter',
-    				'sans-serif'
-    			],
-    			sans: [
-    				'Roboto',
-    				'ui-sans-serif',
-    				'system-ui',
-    				'-apple-system',
-    				'BlinkMacSystemFont',
-    				'Segoe UI',
-    				'Helvetica Neue',
-    				'Arial',
-    				'Noto Sans',
-    				'sans-serif'
-    			],
-    			serif: [
-    				'Libre Caslon Text',
-    				'ui-serif',
-    				'Georgia',
-    				'Cambria',
-    				'Times New Roman',
-    				'Times',
-    				'serif'
-    			],
-    			mono: [
-    				'Roboto Mono',
-    				'ui-monospace',
-    				'SFMono-Regular',
-    				'Menlo',
-    				'Monaco',
-    				'Consolas',
-    				'Liberation Mono',
-    				'Courier New',
-    				'monospace'
-    			]
-    		},
-    		fontSize: {
-    			h1: [
-    				'32px',
-    				{
-    					lineHeight: '40px',
-    					fontWeight: '700'
-    				}
-    			],
-    			h2: [
-    				'24px',
-    				{
-    					lineHeight: '32px',
-    					fontWeight: '600'
-    				}
-    			],
-    			h3: [
-    				'20px',
-    				{
-    					lineHeight: '28px',
-    					fontWeight: '500'
-    				}
-    			],
-    			body: [
-    				'16px',
-    				{
-    					lineHeight: '24px',
-    					fontWeight: '400'
-    				}
-    			],
-    			small: [
-    				'14px',
-    				{
-    					lineHeight: '20px',
-    					fontWeight: '400'
-    				}
-    			],
-    			caption: [
-    				'12px',
-    				{
-    					lineHeight: '16px',
-    					fontWeight: '500'
-    				}
-    			]
-    		},
+		fontFamily: {
+			sans: [
+				'-apple-system',
+				'BlinkMacSystemFont',
+				'"SF Pro Text"',
+				'"SF Pro Display"',
+				'"Segoe UI"',
+				'Roboto',
+				'Helvetica',
+				'Arial',
+				'sans-serif'
+			],
+			display: [
+				'-apple-system',
+				'BlinkMacSystemFont',
+				'"SF Pro Display"',
+				'"Segoe UI"',
+				'Roboto',
+				'Helvetica',
+				'Arial',
+				'sans-serif'
+			],
+			mono: [
+				'"SF Mono"',
+				'SFMono-Regular',
+				'ui-monospace',
+				'Menlo',
+				'Monaco',
+				'Consolas',
+				'"Liberation Mono"',
+				'monospace'
+			]
+		},
+		fontSize: {
+			h1: [
+				'28px',
+				{
+					lineHeight: '36px',
+					fontWeight: '600',
+					letterSpacing: '-0.02em'
+				}
+			],
+			h2: [
+				'22px',
+				{
+					lineHeight: '28px',
+					fontWeight: '600',
+					letterSpacing: '-0.01em'
+				}
+			],
+			h3: [
+				'18px',
+				{
+					lineHeight: '24px',
+					fontWeight: '500',
+					letterSpacing: '-0.01em'
+				}
+			],
+			h4: [
+				'15px',
+				{
+					lineHeight: '20px',
+					fontWeight: '500'
+				}
+			],
+			body: [
+				'14px',
+				{
+					lineHeight: '22px',
+					fontWeight: '400'
+				}
+			],
+			'body-lg': [
+				'16px',
+				{
+					lineHeight: '24px',
+					fontWeight: '400'
+				}
+			],
+			small: [
+				'13px',
+				{
+					lineHeight: '18px',
+					fontWeight: '400'
+				}
+			],
+			caption: [
+				'12px',
+				{
+					lineHeight: '16px',
+					fontWeight: '500'
+				}
+			],
+			xs: [
+				'11px',
+				{
+					lineHeight: '14px',
+					fontWeight: '400'
+				}
+			]
+		},
     		borderRadius: {
     			lg: 'var(--radius)',
     			md: 'calc(var(--radius) - 2px)',
