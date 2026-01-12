@@ -1,46 +1,30 @@
 /**
  * Stage Transition History Component
- * Displays timeline of all stage changes for a case
+ * Displays timeline of all stage changes for a case with expandable action cards
  */
 
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
-import { format } from 'date-fns';
-import { 
-  ArrowRight, 
-  ArrowLeft, 
-  RotateCcw, 
-  Clock, 
-  User,
-  MessageSquare,
-  Info
-} from 'lucide-react';
-
-interface StageTransition {
-  id: string;
-  case_id: string;
-  from_stage: string | null;
-  to_stage: string;
-  transition_type: 'Forward' | 'Send Back' | 'Remand';
-  comments: string | null;
-  created_by: string;
-  created_at: string;
-  user_name?: string;
-}
+import { Clock, Info, Search, Filter } from 'lucide-react';
+import { StageActionCard } from './StageActionCard';
+import { EnhancedStageTransition } from '@/types/stageAction';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface StageTransitionHistoryProps {
   caseId: string;
 }
 
 export const StageTransitionHistory: React.FC<StageTransitionHistoryProps> = ({ caseId }) => {
-  const [transitions, setTransitions] = useState<StageTransition[]>([]);
+  const [transitions, setTransitions] = useState<EnhancedStageTransition[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState<string>('all');
 
   useEffect(() => {
     loadTransitions();
@@ -53,7 +37,6 @@ export const StageTransitionHistory: React.FC<StageTransitionHistoryProps> = ({ 
     setError(null);
     
     try {
-      // Fetch transitions with user profile data
       const { data, error: fetchError } = await supabase
         .from('stage_transitions')
         .select(`
@@ -65,13 +48,30 @@ export const StageTransitionHistory: React.FC<StageTransitionHistoryProps> = ({ 
 
       if (fetchError) throw fetchError;
 
-      // Map user names
-      const transitionsWithNames = (data || []).map((t: any) => ({
-        ...t,
-        user_name: t.profiles?.full_name || 'Unknown User'
+      const enhancedTransitions: EnhancedStageTransition[] = (data || []).map((t: any) => ({
+        id: t.id,
+        caseId: t.case_id,
+        fromStage: t.from_stage,
+        toStage: t.to_stage,
+        transitionType: t.transition_type,
+        comments: t.comments,
+        createdBy: t.created_by,
+        createdAt: t.created_at,
+        validationStatus: t.validation_status || 'passed',
+        validationWarnings: t.validation_warnings || [],
+        overrideReason: t.override_reason,
+        requiresApproval: t.requires_approval || false,
+        approvalStatus: t.approval_status,
+        approvedBy: t.approved_by,
+        approvedAt: t.approved_at,
+        approvalComments: t.approval_comments,
+        attachments: t.attachments || [],
+        actorRole: t.actor_role,
+        actorName: t.profiles?.full_name || 'Unknown User',
+        isConfirmed: t.is_confirmed ?? true
       }));
 
-      setTransitions(transitionsWithNames);
+      setTransitions(enhancedTransitions);
     } catch (err: any) {
       console.error('Failed to load stage transitions:', err);
       setError(err.message || 'Failed to load transition history');
@@ -80,31 +80,17 @@ export const StageTransitionHistory: React.FC<StageTransitionHistoryProps> = ({ 
     }
   };
 
-  const getTransitionIcon = (type: string) => {
-    switch (type) {
-      case 'Forward':
-        return <ArrowRight className="h-4 w-4 text-green-600" />;
-      case 'Send Back':
-        return <ArrowLeft className="h-4 w-4 text-orange-600" />;
-      case 'Remand':
-        return <RotateCcw className="h-4 w-4 text-blue-600" />;
-      default:
-        return <ArrowRight className="h-4 w-4" />;
-    }
-  };
-
-  const getTransitionColor = (type: string) => {
-    switch (type) {
-      case 'Forward':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'Send Back':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'Remand':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
+  const filteredTransitions = transitions.filter(t => {
+    const matchesSearch = !searchTerm || 
+      t.toStage.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      t.fromStage?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      t.comments?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      t.actorName?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesType = filterType === 'all' || t.transitionType === filterType;
+    
+    return matchesSearch && matchesType;
+  });
 
   if (isLoading) {
     return (
@@ -143,7 +129,7 @@ export const StageTransitionHistory: React.FC<StageTransitionHistoryProps> = ({ 
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>
-              No stage transitions recorded yet. This will show the complete history once stage changes are made.
+              No stage transitions recorded yet.
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -153,73 +139,51 @@ export const StageTransitionHistory: React.FC<StageTransitionHistoryProps> = ({ 
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-sm flex items-center gap-2">
-          <Clock className="h-4 w-4" />
-          Stage Transition History ({transitions.length})
-        </CardTitle>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            Stage Transition History
+          </CardTitle>
+          <Badge variant="secondary" className="text-xs">
+            {transitions.length} transitions
+          </Badge>
+        </div>
+        
+        {/* Filters */}
+        <div className="flex gap-2 mt-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-8 h-9 text-sm"
+            />
+          </div>
+          <Select value={filterType} onValueChange={setFilterType}>
+            <SelectTrigger className="w-[130px] h-9">
+              <Filter className="h-3 w-3 mr-1" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="Forward">Forward</SelectItem>
+              <SelectItem value="Send Back">Send Back</SelectItem>
+              <SelectItem value="Remand">Remand</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[300px] pr-4">
-          <div className="space-y-4">
-            {transitions.map((transition, index) => (
-              <div key={transition.id}>
-                <div className="flex gap-3">
-                  {/* Timeline dot and line */}
-                  <div className="flex flex-col items-center">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-primary bg-background">
-                      {getTransitionIcon(transition.transition_type)}
-                    </div>
-                    {index < transitions.length - 1 && (
-                      <div className="w-0.5 flex-1 bg-border min-h-[40px]" />
-                    )}
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 pb-4">
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Badge 
-                            variant="outline" 
-                            className={`text-xs ${getTransitionColor(transition.transition_type)}`}
-                          >
-                            {transition.transition_type}
-                          </Badge>
-                          {transition.from_stage && (
-                            <span className="text-xs text-muted-foreground">
-                              {transition.from_stage}
-                            </span>
-                          )}
-                          <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-sm font-medium">
-                            {transition.to_stage}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                      <User className="h-3 w-3" />
-                      <span>{transition.user_name}</span>
-                      <span>•</span>
-                      <Clock className="h-3 w-3" />
-                      <span>
-                        {format(new Date(transition.created_at), 'MMM dd, yyyy HH:mm')}
-                      </span>
-                    </div>
-
-                    {transition.comments && (
-                      <div className="flex gap-2 mt-2 p-2 bg-muted/50 rounded-md">
-                        <MessageSquare className="h-3 w-3 text-muted-foreground mt-0.5 flex-shrink-0" />
-                        <p className="text-xs text-muted-foreground">
-                          {transition.comments}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+        <ScrollArea className="h-[400px] pr-2">
+          <div className="space-y-3">
+            {filteredTransitions.map((transition, index) => (
+              <StageActionCard
+                key={transition.id}
+                transition={transition}
+                isLatest={index === 0}
+              />
             ))}
           </div>
         </ScrollArea>

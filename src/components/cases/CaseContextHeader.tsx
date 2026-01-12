@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, Scale, Users, Calendar, CheckCircle2, Lock } from 'lucide-react';
+import { X, Scale, Users, Calendar, CheckCircle2, Lock, FileDown, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Case } from '@/contexts/AppStateContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { caseActionDossierService } from '@/services/caseActionDossierService';
+import { toast } from '@/hooks/use-toast';
 
 interface CaseContextHeaderProps {
   selectedCase: Case;
@@ -107,6 +109,30 @@ export const CaseContextHeader: React.FC<CaseContextHeaderProps> = ({
         
         {/* Actions */}
         <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Download Dossier Button */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadDossier}
+                  disabled={isExporting}
+                >
+                  {isExporting ? (
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  ) : (
+                    <FileDown className="h-3 w-3 mr-1" />
+                  )}
+                  Dossier
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Download Case Action Dossier (PDF)</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
           {!isCompleted && onMarkComplete && (
             <TooltipProvider>
               <Tooltip>
