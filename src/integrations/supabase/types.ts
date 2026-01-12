@@ -2927,44 +2927,146 @@ export type Database = {
           },
         ]
       }
+      stage_transition_approvals: {
+        Row: {
+          action: string
+          actor_id: string
+          actor_role: string | null
+          comments: string | null
+          created_at: string | null
+          id: string
+          tenant_id: string
+          transition_id: string
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          actor_role?: string | null
+          comments?: string | null
+          created_at?: string | null
+          id?: string
+          tenant_id: string
+          transition_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          actor_role?: string | null
+          comments?: string | null
+          created_at?: string | null
+          id?: string
+          tenant_id?: string
+          transition_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stage_transition_approvals_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_transition_approvals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "stage_transition_approvals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_transition_approvals_transition_id_fkey"
+            columns: ["transition_id"]
+            isOneToOne: false
+            referencedRelation: "stage_transitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stage_transitions: {
         Row: {
+          actor_role: string | null
+          approval_comments: string | null
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
+          attachments: Json | null
           case_id: string
           comments: string | null
           created_at: string | null
           created_by: string
           from_stage: string | null
           id: string
+          is_confirmed: boolean | null
+          override_reason: string | null
+          requires_approval: boolean | null
           tenant_id: string
           to_stage: string
           transition_type: string
+          validation_status: string | null
+          validation_warnings: string[] | null
         }
         Insert: {
+          actor_role?: string | null
+          approval_comments?: string | null
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          attachments?: Json | null
           case_id: string
           comments?: string | null
           created_at?: string | null
           created_by: string
           from_stage?: string | null
           id?: string
+          is_confirmed?: boolean | null
+          override_reason?: string | null
+          requires_approval?: boolean | null
           tenant_id: string
           to_stage: string
           transition_type: string
+          validation_status?: string | null
+          validation_warnings?: string[] | null
         }
         Update: {
+          actor_role?: string | null
+          approval_comments?: string | null
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          attachments?: Json | null
           case_id?: string
           comments?: string | null
           created_at?: string | null
           created_by?: string
           from_stage?: string | null
           id?: string
+          is_confirmed?: boolean | null
+          override_reason?: string | null
+          requires_approval?: boolean | null
           tenant_id?: string
           to_stage?: string
           transition_type?: string
+          validation_status?: string | null
+          validation_warnings?: string[] | null
         }
         Relationships: [
           {
             foreignKeyName: "fk_stage_transitions_created_by"
             columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_transitions_approved_by_fkey"
+            columns: ["approved_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
