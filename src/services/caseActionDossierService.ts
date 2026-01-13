@@ -108,19 +108,23 @@ class CaseActionDossierService {
 
     // Fetch hearings
     if (includeHearings) {
-      const { data: hearings } = await supabase
+      const { data: hearings, error: hearingsError } = await supabase
         .from('hearings')
         .select(`
           *,
           courts:court_id (name)
         `)
         .eq('case_id', caseId)
-        .order('date', { ascending: false });
+        .order('hearing_date', { ascending: false });
+
+      if (hearingsError) {
+        console.error('Failed to fetch hearings:', hearingsError);
+      }
 
       if (hearings) {
         dossier.hearings = hearings.map((h: any) => ({
-          date: h.date,
-          type: h.hearing_type || 'General',
+          date: h.hearing_date,
+          type: h.status || 'General',
           status: h.status,
           outcome: h.outcome,
           notes: h.notes,
@@ -131,7 +135,7 @@ class CaseActionDossierService {
 
     // Fetch tasks
     if (includeTasks) {
-      const { data: tasks } = await supabase
+      const { data: tasks, error: tasksError } = await supabase
         .from('tasks')
         .select(`
           *,
@@ -140,13 +144,17 @@ class CaseActionDossierService {
         .eq('case_id', caseId)
         .order('created_at', { ascending: false });
 
+      if (tasksError) {
+        console.error('Failed to fetch tasks:', tasksError);
+      }
+
       if (tasks) {
         dossier.tasks = tasks.map((t: any) => ({
           title: t.title,
           status: t.status,
           assignee: (t.profiles as any)?.full_name,
           dueDate: t.due_date,
-          completedAt: t.completed_at
+          completedAt: t.completed_date
         }));
       }
     }
