@@ -24,7 +24,28 @@ export const CaseContextHeader: React.FC<CaseContextHeaderProps> = ({
   courtName,
   onMarkComplete
 }) => {
+  const [isExporting, setIsExporting] = useState(false);
   const isCompleted = selectedCase.status === 'Completed';
+
+  const handleDownloadDossier = async () => {
+    setIsExporting(true);
+    try {
+      await caseActionDossierService.downloadDossier(selectedCase.id);
+      toast({
+        title: "Dossier Downloaded",
+        description: "Case Action Dossier has been exported successfully.",
+      });
+    } catch (error) {
+      console.error('Failed to export dossier:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to generate Case Action Dossier. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
     <motion.div
