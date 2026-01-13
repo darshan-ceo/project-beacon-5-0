@@ -176,7 +176,7 @@ export const StageTransitionHistory: React.FC<StageTransitionHistoryProps> = ({ 
         </div>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[400px] pr-2">
+        <ScrollArea className="max-h-[500px] pr-3">
           <div className="space-y-3">
             {filteredTransitions.map((transition, index) => (
               <StageActionCard

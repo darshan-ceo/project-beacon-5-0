@@ -205,11 +205,11 @@ export const StageActionCard: React.FC<StageActionCardProps> = ({
                 {/* Comments / Notes */}
                 {transition.comments && (
                   <div>
-                    <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-1.5">
+                    <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-2">
                       <MessageSquare className="h-3 w-3" />
                       REASON / NOTES
                     </div>
-                    <div className="p-3 bg-muted/50 rounded-md text-sm whitespace-pre-wrap">
+                    <div className="p-4 bg-muted/50 rounded-lg text-sm whitespace-pre-wrap break-words leading-relaxed max-w-full overflow-hidden">
                       {transition.comments}
                     </div>
                   </div>

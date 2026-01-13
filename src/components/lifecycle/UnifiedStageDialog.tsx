@@ -211,7 +211,7 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh]">
+      <DialogContent className="max-w-7xl max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
@@ -248,9 +248,9 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
           </div>
         )}
 
-        <div className="grid grid-cols-3 gap-4 overflow-y-auto max-h-[65vh] px-1">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 overflow-y-auto max-h-[65vh] px-1">
           {/* Left Column: Stage Transition Form */}
-          <div className="col-span-2 space-y-4">
+          <div className="lg:col-span-3 space-y-4">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm">Current Stage</CardTitle>
@@ -458,7 +458,7 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
           </div>
 
           {/* Right Column: Stage History */}
-          <div className="col-span-1">
+          <div className="lg:col-span-2">
             {caseId && <StageTransitionHistory caseId={caseId} />}
           </div>
         </div>
