@@ -1018,65 +1018,68 @@ export const CaseManagement: React.FC = () => {
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 gap-1.5 p-1.5 h-auto">
-          <TabsTrigger value="overview" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">
-            Overview
-          </TabsTrigger>
-          <TabsTrigger 
-            value="lifecycle" 
-            disabled={getTabDisabled('lifecycle')}
-            className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
-            title={getTabDisabled('lifecycle') ? "Select a case from Overview to proceed" : ""}
-          >
-            Lifecycle
-          </TabsTrigger>
-          <TabsTrigger value="sla" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">
-            Timeline Tracker
-          </TabsTrigger>
-          <TabsTrigger value="hearings" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">
-            Hearings
-          </TabsTrigger>
-          <TabsTrigger 
-            value="documents"
-            disabled={getTabDisabled('documents')}
-            className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
-            title={getTabDisabled('documents') ? "Select a case from Overview to proceed" : ""}
-          >
-            Documents
-          </TabsTrigger>
-          <TabsTrigger 
-            value="timeline"
-            disabled={getTabDisabled('timeline')}
-            className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
-            title={getTabDisabled('timeline') ? "Select a case from Overview to proceed" : ""}
-          >
-            Timeline
-          </TabsTrigger>
-          <TabsTrigger 
-            value="ai-assistant"
-            disabled={getTabDisabled('ai-assistant')}
-            className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
-            title={getTabDisabled('ai-assistant') ? "Select a case from Overview to proceed" : ""}
-          >
-            AI Assistant
-          </TabsTrigger>
-          <TabsTrigger 
-            value="communications"
-            disabled={getTabDisabled('communications')}
-            className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
-            title={getTabDisabled('communications') ? "Select a case from Overview to proceed" : ""}
-          >
-            Communications
-          </TabsTrigger>
-          <TabsTrigger 
-            value="tasks"
-            disabled={getTabDisabled('tasks')}
-            className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
-            title={getTabDisabled('tasks') ? "Select a case from Overview to proceed" : ""}
-          >
-            Tasks
-          </TabsTrigger>
-        </TabsList>
+        {/* Only show TabsList when NO case is selected - sticky bar has tabs when case selected */}
+        {!selectedCase && (
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 gap-1.5 p-1.5 h-auto">
+            <TabsTrigger value="overview" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">
+              Overview
+            </TabsTrigger>
+            <TabsTrigger 
+              value="lifecycle" 
+              disabled={getTabDisabled('lifecycle')}
+              className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+              title={getTabDisabled('lifecycle') ? "Select a case from Overview to proceed" : ""}
+            >
+              Lifecycle
+            </TabsTrigger>
+            <TabsTrigger value="sla" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">
+              Timeline Tracker
+            </TabsTrigger>
+            <TabsTrigger value="hearings" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">
+              Hearings
+            </TabsTrigger>
+            <TabsTrigger 
+              value="documents"
+              disabled={getTabDisabled('documents')}
+              className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+              title={getTabDisabled('documents') ? "Select a case from Overview to proceed" : ""}
+            >
+              Documents
+            </TabsTrigger>
+            <TabsTrigger 
+              value="timeline"
+              disabled={getTabDisabled('timeline')}
+              className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+              title={getTabDisabled('timeline') ? "Select a case from Overview to proceed" : ""}
+            >
+              Timeline
+            </TabsTrigger>
+            <TabsTrigger 
+              value="ai-assistant"
+              disabled={getTabDisabled('ai-assistant')}
+              className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+              title={getTabDisabled('ai-assistant') ? "Select a case from Overview to proceed" : ""}
+            >
+              AI Assistant
+            </TabsTrigger>
+            <TabsTrigger 
+              value="communications"
+              disabled={getTabDisabled('communications')}
+              className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+              title={getTabDisabled('communications') ? "Select a case from Overview to proceed" : ""}
+            >
+              Communications
+            </TabsTrigger>
+            <TabsTrigger 
+              value="tasks"
+              disabled={getTabDisabled('tasks')}
+              className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+              title={getTabDisabled('tasks') ? "Select a case from Overview to proceed" : ""}
+            >
+              Tasks
+            </TabsTrigger>
+          </TabsList>
+        )}
 
         {/* Case Context Header removed - now using StickyCaseActionBar above */}
 
