@@ -133,49 +133,97 @@ class CaseActionDossierService {
       }
     }
 
-    // Fetch tasks
+    // Fetch tasks - avoid embedded join as there's no FK relationship
     if (includeTasks) {
       const { data: tasks, error: tasksError } = await supabase
         .from('tasks')
-        .select(`
-          *,
-          profiles:assigned_to (full_name)
-        `)
+        .select('id, title, status, assigned_to, due_date, completed_date, created_at, client_id')
         .eq('case_id', caseId)
         .order('created_at', { ascending: false });
 
       if (tasksError) {
-        console.error('Failed to fetch tasks:', tasksError);
+        console.error('Failed to fetch tasks for dossier:', tasksError);
       }
 
-      if (tasks) {
+      console.log('Dossier tasks fetch:', { 
+        caseId, 
+        tasksCount: tasks?.length ?? 0, 
+        tasksError: tasksError?.message 
+      });
+
+      if (tasks && tasks.length > 0) {
+        // Collect unique user IDs to resolve names
+        const assigneeIds = [...new Set(tasks.map(t => t.assigned_to).filter(Boolean))];
+        
+        // Fetch names from profiles (or employees as fallback)
+        let userNameMap: Record<string, string> = {};
+        if (assigneeIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, full_name')
+            .in('id', assigneeIds);
+          
+          if (profiles) {
+            userNameMap = profiles.reduce((acc, p) => {
+              acc[p.id] = p.full_name || 'Unknown';
+              return acc;
+            }, {} as Record<string, string>);
+          }
+        }
+
         dossier.tasks = tasks.map((t: any) => ({
           title: t.title,
           status: t.status,
-          assignee: (t.profiles as any)?.full_name,
+          assignee: userNameMap[t.assigned_to] || 'Unassigned',
           dueDate: t.due_date,
           completedAt: t.completed_date
         }));
       }
     }
 
-    // Fetch documents
+    // Fetch documents - avoid embedded join as there's no FK relationship
     if (includeDocuments) {
-      const { data: documents } = await supabase
+      const { data: documents, error: documentsError } = await supabase
         .from('documents')
-        .select(`
-          *,
-          profiles:uploaded_by (full_name)
-        `)
+        .select('id, file_name, category, uploaded_by, upload_timestamp, created_at, client_id')
         .eq('case_id', caseId)
         .order('created_at', { ascending: false });
 
-      if (documents) {
+      if (documentsError) {
+        console.error('Failed to fetch documents for dossier:', documentsError);
+      }
+
+      console.log('Dossier documents fetch:', { 
+        caseId, 
+        documentsCount: documents?.length ?? 0, 
+        documentsError: documentsError?.message 
+      });
+
+      if (documents && documents.length > 0) {
+        // Collect unique user IDs to resolve names
+        const uploaderIds = [...new Set(documents.map(d => d.uploaded_by).filter(Boolean))];
+        
+        // Fetch names from profiles
+        let userNameMap: Record<string, string> = {};
+        if (uploaderIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, full_name')
+            .in('id', uploaderIds);
+          
+          if (profiles) {
+            userNameMap = profiles.reduce((acc, p) => {
+              acc[p.id] = p.full_name || 'Unknown';
+              return acc;
+            }, {} as Record<string, string>);
+          }
+        }
+
         dossier.documents = documents.map((d: any) => ({
           name: d.file_name,
           category: d.category,
           uploadedAt: d.upload_timestamp || d.created_at,
-          uploadedBy: (d.profiles as any)?.full_name
+          uploadedBy: userNameMap[d.uploaded_by] || 'Unknown'
         }));
       }
     }
