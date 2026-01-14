@@ -225,13 +225,19 @@ export const casesService = {
       try {
         const { taskBundleTriggerService } = await import('./taskBundleTriggerService');
         
-        // Get case details for bundle triggering
+        // Fetch full case data to get clientId and caseNumber for proper task association
+        const { data: fullCaseData } = await supabase
+          .from('cases')
+          .select('id, case_number, client_id, assigned_to')
+          .eq('id', caseId)
+          .single();
+        
         const result = await taskBundleTriggerService.triggerTaskBundles(
           { 
             id: caseId, 
-            caseNumber: '', 
-            clientId: '', 
-            assignedToId: '', 
+            caseNumber: fullCaseData?.case_number || '', 
+            clientId: fullCaseData?.client_id || '', 
+            assignedToId: fullCaseData?.assigned_to || '', 
             assignedToName: assignedTo || '', 
             currentStage: nextStage 
           },
@@ -247,6 +253,21 @@ export const casesService = {
       }
       
       // Generate task bundle for new stage (legacy fallback)
+      // Fetch case data if not already fetched above
+      let legacyClientId = '';
+      let legacyCaseNumber = '';
+      try {
+        const { data: legacyCaseData } = await supabase
+          .from('cases')
+          .select('case_number, client_id')
+          .eq('id', caseId)
+          .single();
+        legacyClientId = legacyCaseData?.client_id || '';
+        legacyCaseNumber = legacyCaseData?.case_number || '';
+      } catch (e) {
+        console.warn('[casesService] Failed to fetch case data for legacy task:', e);
+      }
+      
       if (nextStage === 'Assessment') {
         dispatch({
           type: 'ADD_TASK', 
@@ -255,8 +276,8 @@ export const casesService = {
             title: 'Document Verification',
             description: 'Verify all submitted documents for completeness',
             caseId,
-            clientId: '',
-            caseNumber: '',
+            clientId: legacyClientId,
+            caseNumber: legacyCaseNumber,
             stage: nextStage,
             priority: 'High',
             status: 'Not Started',
