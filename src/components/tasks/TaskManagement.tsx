@@ -291,9 +291,15 @@ export const TaskManagement: React.FC = () => {
 
   const filteredTasks = state.tasks.filter((task) => {
     // Build lookups for enriched search
-    const client = state.clients.find(c => c.id === task.clientId);
-    const clientName = client?.name || '';
+    let client = state.clients.find(c => c.id === task.clientId);
     const relatedCase = state.cases.find(c => c.id === task.caseId);
+    
+    // Fallback: if task has no clientId, lookup via case's clientId
+    if (!client && relatedCase?.clientId) {
+      client = state.clients.find(c => c.id === relatedCase.clientId);
+    }
+    
+    const clientName = client?.name || '';
     const caseNumber = task.caseNumber || relatedCase?.caseNumber || '';
     
     // Expanded search: title, description, case number, client name, assignees
