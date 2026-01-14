@@ -998,6 +998,17 @@ export const CaseManagement: React.FC = () => {
         </div>
       </motion.div>
 
+      {/* Auto-scroll to top when case is selected */}
+      {(() => {
+        if (selectedCase) {
+          const mainElement = document.querySelector('main.overflow-auto');
+          if (mainElement && mainElement.scrollTop > 0) {
+            mainElement.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        }
+        return null;
+      })()}
+
       {/* Sticky Case Action Bar - portaled to header slot for true sticky behavior */}
       {selectedCase && (() => {
         const portalTarget = document.getElementById('case-action-header-slot');

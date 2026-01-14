@@ -103,7 +103,7 @@ export const StickyCaseActionBar: React.FC<StickyCaseActionBarProps> = ({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.15, ease: 'easeOut' }}
-      className="w-full bg-background/95 backdrop-blur-sm border-b border-border shadow-md"
+      className="w-full bg-background border-b border-border shadow-md"
       role="navigation"
       aria-label="Case actions"
     >
