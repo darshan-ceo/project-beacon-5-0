@@ -186,37 +186,51 @@ class CaseActionDossierService {
   async exportToPDF(dossier: CaseActionDossier): Promise<Blob> {
     const html = this.generateHTML(dossier);
     
-    // Create container with fixed positioning and explicit dimensions for reliable rendering
+    // Create container positioned OFF-SCREEN (not transparent) for reliable html2canvas capture
+    // Using opacity:0 causes blank PDFs because html2canvas captures transparent content
     const container = document.createElement('div');
     container.innerHTML = html;
-    container.style.position = 'fixed';
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
     container.style.top = '0';
-    container.style.left = '0';
     container.style.width = '794px'; // A4 width at 96dpi
     container.style.minHeight = '1123px'; // A4 height at 96dpi  
     container.style.background = '#ffffff';
-    container.style.opacity = '0';
     container.style.pointerEvents = 'none';
-    container.style.zIndex = '-9999';
     document.body.appendChild(container);
 
-    // Preflight check: ensure content exists
-    const contentElement = container.querySelector('.dossier-container');
+    // Wait for layout to complete (double RAF for reliability)
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+    // Preflight check: ensure content exists and has layout
+    const contentElement = container.querySelector('.dossier-container') as HTMLElement;
     if (!contentElement) {
       console.error('PDF generation failed: No content container found');
       document.body.removeChild(container);
       throw new Error('PDF content not rendered properly');
     }
 
+    // Verify element has rendered with actual dimensions
+    const contentHeight = contentElement.scrollHeight;
+    const contentWidth = contentElement.scrollWidth;
+    
     // Debug logging
     console.log('Dossier PDF generation:', {
       hasContent: !!contentElement,
+      contentHeight,
+      contentWidth,
       timelineCount: dossier.stageTimeline.length,
       hearingsCount: dossier.hearings.length,
       tasksCount: dossier.tasks.length,
       documentsCount: dossier.documents.length,
       containerTextLength: container.innerText.length
     });
+
+    if (contentHeight === 0 || contentWidth === 0) {
+      console.error('PDF generation failed: Content has no dimensions', { contentHeight, contentWidth });
+      document.body.removeChild(container);
+      throw new Error('PDF content did not render with proper dimensions');
+    }
 
     const options: any = {
       margin: [15, 15, 15, 15],
@@ -227,17 +241,17 @@ class CaseActionDossierService {
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
-        windowWidth: 794,
-        windowHeight: 1123
+        windowWidth: 794
       },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
       pagebreak: { mode: ['css', 'legacy'] }
     };
 
     try {
+      // Pass the actual content element (not wrapper) to html2pdf for reliable capture
       const pdfBlob = await html2pdf()
         .set(options)
-        .from(container)
+        .from(contentElement)
         .outputPdf('blob');
       
       return pdfBlob;
