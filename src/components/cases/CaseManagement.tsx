@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { navigationContextService } from '@/services/navigationContextService';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCaseTitle } from '@/utils/caseTitleFormatter';
@@ -52,6 +52,8 @@ import { CaseDocuments } from './CaseDocuments';
 import { CaseTasksTab } from './CaseTasksTab';
 import { CaseModal } from '@/components/modals/CaseModal';
 import { CaseContextHeader } from './CaseContextHeader';
+import { StickyCaseActionBar } from './StickyCaseActionBar';
+
 import { CaseCompletionModal } from '@/components/modals/CaseCompletionModal';
 import { AdvanceStageConfirmationModal } from '@/components/modals/AdvanceStageConfirmationModal';
 import { FilterDropdown } from '@/components/ui/filter-dropdown';
@@ -995,6 +997,25 @@ export const CaseManagement: React.FC = () => {
         </div>
       </motion.div>
 
+      {/* Sticky Case Action Bar - appears when case selected */}
+      <AnimatePresence>
+        {selectedCase && (
+          <StickyCaseActionBar
+            selectedCase={selectedCase}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            onClearSelection={handleClearSelection}
+            clientName={state.clients.find(c => c.id === selectedCase.clientId)?.name}
+            courtName={selectedCase.nextHearing 
+              ? state.courts.find(c => c.id === selectedCase.nextHearing?.courtId)?.name 
+              : undefined
+            }
+            onMarkComplete={(caseData) => setCompletionModal({ isOpen: true, caseData })}
+            getTabDisabled={getTabDisabled}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 gap-1.5 p-1.5 h-auto">
@@ -1057,19 +1078,7 @@ export const CaseManagement: React.FC = () => {
           </TabsTrigger>
         </TabsList>
 
-        {/* Case Context Header - Shows when case is selected */}
-        {selectedCase && (
-          <CaseContextHeader
-            selectedCase={selectedCase}
-            onClearSelection={handleClearSelection}
-            clientName={state.clients.find(c => c.id === selectedCase.clientId)?.name}
-            courtName={selectedCase.nextHearing 
-              ? state.courts.find(c => c.id === selectedCase.nextHearing?.courtId)?.name 
-              : undefined
-            }
-            onMarkComplete={(caseData) => setCompletionModal({ isOpen: true, caseData })}
-          />
-        )}
+        {/* Case Context Header removed - now using StickyCaseActionBar above */}
 
         <TabsContent value="overview" className="mt-6">
           <motion.div 
