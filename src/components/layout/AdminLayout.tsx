@@ -42,6 +42,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             </div>
           </header>
           
+          {/* Portal slot for StickyCaseActionBar - rendered outside scrollable area */}
+          <div id="case-action-header-slot" className="sticky top-[65px] z-[35]" />
+          
           {/* Scrollable Content Area */}
           <main className="flex-1 overflow-auto">
             <div className="p-6">

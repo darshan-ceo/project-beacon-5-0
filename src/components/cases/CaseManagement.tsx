@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -997,24 +998,29 @@ export const CaseManagement: React.FC = () => {
         </div>
       </motion.div>
 
-      {/* Sticky Case Action Bar - appears when case selected */}
-      <AnimatePresence>
-        {selectedCase && (
-          <StickyCaseActionBar
-            selectedCase={selectedCase}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            onClearSelection={handleClearSelection}
-            clientName={state.clients.find(c => c.id === selectedCase.clientId)?.name}
-            courtName={selectedCase.nextHearing 
-              ? state.courts.find(c => c.id === selectedCase.nextHearing?.courtId)?.name 
-              : undefined
-            }
-            onMarkComplete={(caseData) => setCompletionModal({ isOpen: true, caseData })}
-            getTabDisabled={getTabDisabled}
-          />
-        )}
-      </AnimatePresence>
+      {/* Sticky Case Action Bar - portaled to header slot for true sticky behavior */}
+      {selectedCase && (() => {
+        const portalTarget = document.getElementById('case-action-header-slot');
+        if (!portalTarget) return null;
+        return createPortal(
+          <AnimatePresence>
+            <StickyCaseActionBar
+              selectedCase={selectedCase}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              onClearSelection={handleClearSelection}
+              clientName={state.clients.find(c => c.id === selectedCase.clientId)?.name}
+              courtName={selectedCase.nextHearing 
+                ? state.courts.find(c => c.id === selectedCase.nextHearing?.courtId)?.name 
+                : undefined
+              }
+              onMarkComplete={(caseData) => setCompletionModal({ isOpen: true, caseData })}
+              getTabDisabled={getTabDisabled}
+            />
+          </AnimatePresence>,
+          portalTarget
+        );
+      })()}
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

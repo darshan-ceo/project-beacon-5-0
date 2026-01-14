@@ -103,7 +103,7 @@ export const StickyCaseActionBar: React.FC<StickyCaseActionBarProps> = ({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.15, ease: 'easeOut' }}
-      className="sticky top-0 z-[35] bg-background/95 backdrop-blur-sm border-b border-border shadow-md -mx-6 px-6"
+      className="w-full bg-background/95 backdrop-blur-sm border-b border-border shadow-md"
       role="navigation"
       aria-label="Case actions"
     >
@@ -126,7 +126,7 @@ export const StickyCaseActionBar: React.FC<StickyCaseActionBarProps> = ({
       </AnimatePresence>
 
       {/* Case Info Row */}
-      <div className="py-3">
+      <div className="py-3 px-6 max-w-7xl mx-auto">
         <div className="flex items-center justify-between gap-4">
           {/* Left: Case Info */}
           <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -239,9 +239,9 @@ export const StickyCaseActionBar: React.FC<StickyCaseActionBarProps> = ({
       </div>
 
       {/* Tabs Row */}
-      <div className="pb-2 -mx-2">
+      <div className="pb-2 px-6 max-w-7xl mx-auto">
         <ScrollArea className="w-full">
-          <div className="flex gap-1 px-2" role="tablist" aria-label="Case management tabs">
+          <div className="flex gap-1" role="tablist" aria-label="Case management tabs">
             {tabs.map((tab) => (
               <button
                 key={tab.value}
