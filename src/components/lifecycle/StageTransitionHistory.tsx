@@ -148,8 +148,8 @@ export const StageTransitionHistory: React.FC<StageTransitionHistoryProps> = ({ 
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
+    <Card className="flex flex-col h-full">
+      <CardHeader className="pb-3 flex-shrink-0">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm flex items-center gap-2">
             <Clock className="h-4 w-4" />
@@ -176,7 +176,7 @@ export const StageTransitionHistory: React.FC<StageTransitionHistoryProps> = ({ 
               <Filter className="h-3 w-3 mr-1" />
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-[300] bg-popover">
               <SelectItem value="all">All Types</SelectItem>
               <SelectItem value="Forward">Forward</SelectItem>
               <SelectItem value="Send Back">Send Back</SelectItem>
@@ -185,9 +185,9 @@ export const StageTransitionHistory: React.FC<StageTransitionHistoryProps> = ({ 
           </Select>
         </div>
       </CardHeader>
-      <CardContent>
-        <ScrollArea className="max-h-[500px] pr-3">
-          <div className="space-y-3">
+      <CardContent className="flex-1 overflow-hidden min-h-0">
+        <ScrollArea className="h-full">
+          <div className="space-y-3 pr-3">
             {filteredTransitions.map((transition, index) => (
               <StageActionCard
                 key={transition.id}

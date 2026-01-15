@@ -423,12 +423,18 @@ class TaskBundleService {
 
   /**
    * Calculate due date based on estimated hours
+   * Uses local timezone to avoid date discrepancies
    */
   private calculateDueDate(estimatedHours: number): string {
     const daysToAdd = Math.ceil(estimatedHours / 8); // Assuming 8 hours per work day
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + daysToAdd);
-    return dueDate.toISOString().split('T')[0];
+    
+    // Format as YYYY-MM-DD in local timezone (not UTC) to prevent date shift
+    const year = dueDate.getFullYear();
+    const month = String(dueDate.getMonth() + 1).padStart(2, '0');
+    const day = String(dueDate.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 }
 
