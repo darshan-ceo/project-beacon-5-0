@@ -65,6 +65,18 @@ export interface EnhancedStageTransition {
   
   // Approval history
   approvals?: StageTransitionApproval[];
+  
+  // Remand-specific fields
+  remandType?: 'Remand' | 'Reopen';
+  reasonCategory?: string;
+  reasonDetails?: string;
+  orderNumber?: string;
+  orderDate?: string;
+  orderDocumentId?: string;
+  orderDocumentName?: string;
+  orderDocumentPath?: string;
+  clientVisibleSummary?: string;
+  preservesFutureHistory?: boolean;
 }
 
 export interface CaseActivityItem {

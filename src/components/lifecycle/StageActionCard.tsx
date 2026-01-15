@@ -9,7 +9,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Label } from '@/components/ui/label';
 import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 import { 
   ArrowRight, 
   ArrowLeft, 
@@ -24,7 +27,10 @@ import {
   AlertTriangle,
   Shield,
   Paperclip,
-  ExternalLink
+  ExternalLink,
+  Info,
+  Calendar,
+  BookOpen
 } from 'lucide-react';
 import { EnhancedStageTransition, StageTransitionApproval } from '@/types/stageAction';
 import { supabase } from '@/integrations/supabase/client';
@@ -39,6 +45,7 @@ export const StageActionCard: React.FC<StageActionCardProps> = ({
   isLatest = false 
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const { toast } = useToast();
 
   const getTransitionIcon = (type: string) => {
     switch (type) {
@@ -102,6 +109,23 @@ export const StageActionCard: React.FC<StageActionCardProps> = ({
       window.open(data.signedUrl, '_blank');
     } catch (error) {
       console.error('Failed to open attachment:', error);
+      toast({ title: "Error", description: "Could not open attachment", variant: "destructive" });
+    }
+  };
+
+  const handleOrderDocumentClick = async () => {
+    if (!transition.orderDocumentPath) return;
+    
+    try {
+      const { data, error } = await supabase.storage
+        .from('transition-attachments')
+        .createSignedUrl(transition.orderDocumentPath, 3600);
+      
+      if (error) throw error;
+      window.open(data.signedUrl, '_blank');
+    } catch (error) {
+      console.error('Failed to open order document:', error);
+      toast({ title: "Error", description: "Could not open order document", variant: "destructive" });
     }
   };
 
@@ -110,6 +134,8 @@ export const StageActionCard: React.FC<StageActionCardProps> = ({
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
+
+  const isRemandTransition = transition.transitionType === 'Remand';
 
   return (
     <Card 
@@ -132,6 +158,19 @@ export const StageActionCard: React.FC<StageActionCardProps> = ({
               <Badge variant="outline" className={`text-xs ${getTransitionColor(transition.transitionType)}`}>
                 {transition.transitionType}
               </Badge>
+              {/* Remand Type Badge */}
+              {isRemandTransition && transition.remandType && (
+                <Badge 
+                  variant="outline" 
+                  className={`text-xs ${
+                    transition.remandType === 'Reopen' 
+                      ? 'bg-info/10 text-info border-info/30' 
+                      : 'bg-warning/10 text-warning border-warning/30'
+                  }`}
+                >
+                  {transition.remandType}
+                </Badge>
+              )}
               {transition.fromStage && (
                 <span className="text-xs text-muted-foreground truncate">
                   {transition.fromStage}
@@ -169,10 +208,23 @@ export const StageActionCard: React.FC<StageActionCardProps> = ({
                 {transition.validationStatus === 'pending_approval' && 'Pending'}
               </span>
               {transition.approvalStatus && getApprovalStatusBadge(transition.approvalStatus)}
+              {/* Show reason category for remand in collapsed view */}
+              {isRemandTransition && transition.reasonCategory && (
+                <span className="text-xs text-muted-foreground truncate max-w-[150px]">
+                  • {transition.reasonCategory}
+                </span>
+              )}
               {transition.attachments?.length > 0 && (
                 <span className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Paperclip className="h-3 w-3" />
                   {transition.attachments.length}
+                </span>
+              )}
+              {/* Order document indicator */}
+              {isRemandTransition && transition.orderDocumentId && (
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <FileText className="h-3 w-3" />
+                  Order
                 </span>
               )}
             </div>
@@ -202,8 +254,96 @@ export const StageActionCard: React.FC<StageActionCardProps> = ({
               <Separator className="my-4" />
 
               <div className="space-y-4">
-                {/* Comments / Notes */}
-                {transition.comments && (
+                {/* Remand/Reopen Details Section */}
+                {isRemandTransition && (
+                  <div className="space-y-3">
+                    {/* Remand Type Header */}
+                    <div className={`flex items-center gap-2 p-3 rounded-lg ${
+                      transition.remandType === 'Reopen' 
+                        ? 'bg-info/10 border border-info/20' 
+                        : 'bg-warning/10 border border-warning/20'
+                    }`}>
+                      <RotateCcw className={`h-4 w-4 ${
+                        transition.remandType === 'Reopen' ? 'text-info' : 'text-warning'
+                      }`} />
+                      <span className="font-medium text-sm">
+                        {transition.remandType === 'Reopen' ? 'Case Reopened' : 'Case Remanded'}
+                      </span>
+                      {transition.reasonCategory && (
+                        <Badge variant="secondary" className="ml-auto text-xs">
+                          {transition.reasonCategory}
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    {/* Reason Details */}
+                    {transition.reasonDetails && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">
+                          <BookOpen className="h-3 w-3" />
+                          DETAILED REASON
+                        </Label>
+                        <div className="p-3 bg-muted/50 rounded-lg text-sm whitespace-pre-wrap break-words leading-relaxed">
+                          {transition.reasonDetails}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Order Details */}
+                    {(transition.orderNumber || transition.orderDate) && (
+                      <div className="p-3 border rounded-lg bg-muted/30">
+                        <div className="flex items-center gap-2 mb-2">
+                          <FileText className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium text-sm">Order Details</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          {transition.orderNumber && (
+                            <div>
+                              <span className="text-xs text-muted-foreground">Order No:</span>
+                              <p className="font-medium">{transition.orderNumber}</p>
+                            </div>
+                          )}
+                          {transition.orderDate && (
+                            <div>
+                              <span className="text-xs text-muted-foreground">Order Date:</span>
+                              <p className="font-medium flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                {format(new Date(transition.orderDate), 'dd MMM yyyy')}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Order Document Button */}
+                    {transition.orderDocumentId && transition.orderDocumentPath && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full justify-start"
+                        onClick={handleOrderDocumentClick}
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        <span className="flex-1 text-left">View Order Document</span>
+                        <ExternalLink className="h-3 w-3 ml-2" />
+                      </Button>
+                    )}
+                    
+                    {/* Client Visible Summary */}
+                    {transition.clientVisibleSummary && (
+                      <div className="p-3 border-l-2 border-info bg-info/5 rounded-r-lg">
+                        <Label className="text-xs text-muted-foreground mb-1 block">
+                          CLIENT VISIBLE SUMMARY
+                        </Label>
+                        <p className="text-sm">{transition.clientVisibleSummary}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Comments / Notes - Show for non-remand or if no reason details */}
+                {transition.comments && !isRemandTransition && (
                   <div>
                     <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-2">
                       <MessageSquare className="h-3 w-3" />
@@ -309,6 +449,16 @@ export const StageActionCard: React.FC<StageActionCardProps> = ({
                       ))}
                     </div>
                   </div>
+                )}
+
+                {/* Preserved History Notice for Remand */}
+                {isRemandTransition && transition.preservesFutureHistory && (
+                  <Alert className="bg-muted/30 border-muted">
+                    <Info className="h-4 w-4" />
+                    <AlertDescription className="text-xs">
+                      Future stage history was preserved as read-only for audit compliance.
+                    </AlertDescription>
+                  </Alert>
                 )}
 
                 {/* Actor Details */}

@@ -12,8 +12,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Progress } from '@/components/ui/progress';
 import { RemandTargetStageSelector } from './RemandTargetStageSelector';
 import { stageHistoryService } from '@/services/stageHistoryService';
+import { orderDocumentService } from '@/services/orderDocumentService';
 import { 
   RemandTransitionDetails, 
   RemandReasonCategory, 
@@ -28,7 +30,8 @@ import {
   FileText, 
   X, 
   AlertTriangle,
-  HelpCircle
+  HelpCircle,
+  CheckCircle
 } from 'lucide-react';
 
 const REASON_CATEGORIES: RemandReasonCategory[] = [
@@ -42,6 +45,7 @@ const REASON_CATEGORIES: RemandReasonCategory[] = [
 ];
 
 const MIN_REASON_DETAILS_LENGTH = 50;
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 interface RemandReopenFormProps {
   caseId: string;
@@ -139,9 +143,11 @@ export const RemandReopenForm: React.FC<RemandReopenFormProps> = ({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type
-      const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-      if (!allowedTypes.includes(file.type)) {
+      // Validate file using service
+      const validation = orderDocumentService.validateFile(file);
+      if (!validation.valid) {
+        // Reset the input
+        e.target.value = '';
         return;
       }
       setOrderDocumentFile(file);
@@ -150,6 +156,10 @@ export const RemandReopenForm: React.FC<RemandReopenFormProps> = ({
 
   const removeFile = () => {
     setOrderDocumentFile(null);
+  };
+
+  const getFileSizeDisplay = (size: number) => {
+    return orderDocumentService.formatFileSize(size);
   };
 
   const validation = validate();
@@ -343,31 +353,40 @@ export const RemandReopenForm: React.FC<RemandReopenFormProps> = ({
             <div className="space-y-2">
               <Label className="text-sm">Order Document (Optional)</Label>
               {orderDocumentFile ? (
-                <div className="flex items-center gap-2 p-2 border rounded bg-background">
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm flex-1 truncate">{orderDocumentFile.name}</span>
+                <div className="flex items-center gap-2 p-3 border rounded-lg bg-background">
+                  <div className="flex h-8 w-8 items-center justify-center rounded bg-muted">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{orderDocumentFile.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {getFileSizeDisplay(orderDocumentFile.size)}
+                    </p>
+                  </div>
+                  <CheckCircle className="h-4 w-4 text-success flex-shrink-0" />
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={removeFile}
-                    className="h-6 w-6 p-0"
+                    className="h-8 w-8 p-0 flex-shrink-0"
                   >
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
               ) : (
-                <div className="flex items-center gap-2">
+                <div className="border-2 border-dashed rounded-lg p-4 hover:border-primary/50 transition-colors">
                   <Input
                     type="file"
                     accept=".pdf,.doc,.docx"
                     onChange={handleFileChange}
                     className="cursor-pointer"
+                    id="order-document-upload"
                   />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    PDF, DOC, DOCX • Max 10MB
+                  </p>
                 </div>
               )}
-              <p className="text-xs text-muted-foreground">
-                Accepted formats: PDF, DOC, DOCX
-              </p>
             </div>
           </div>
         )}

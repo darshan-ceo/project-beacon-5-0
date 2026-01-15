@@ -44,6 +44,7 @@ export interface CreateTransitionRequest {
     reasonDetails?: string;
     orderNumber?: string;
     orderDate?: string;
+    orderDocumentPath?: string;
     clientVisibleSummary?: string;
     preservesFutureHistory?: boolean;
   };
