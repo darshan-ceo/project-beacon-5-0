@@ -1,40 +1,64 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Phone, Plus, Trash2, Star, MessageCircle } from 'lucide-react';
 import { ContactPhone } from '@/services/clientContactsService';
+import { PhoneInput, PhoneValue } from '@/components/ui/phone-input';
+import { PHONE_CONFIG } from '@/config/phoneConfig';
+import { isNumberInList } from '@/utils/phoneUtils';
+import { cn } from '@/lib/utils';
 
 interface PhoneManagerProps {
   phones: ContactPhone[];
   onChange: (phones: ContactPhone[]) => void;
   disabled?: boolean;
+  excludeEntityId?: string;
 }
 
 export const PhoneManager: React.FC<PhoneManagerProps> = ({
   phones,
   onChange,
-  disabled = false
+  disabled = false,
+  excludeEntityId
 }) => {
-  const [newCountryCode, setNewCountryCode] = useState('+91');
-  const [newNumber, setNewNumber] = useState('');
+  const [phoneValue, setPhoneValue] = useState<PhoneValue>({
+    countryCode: PHONE_CONFIG.defaultCountryCode,
+    number: ''
+  });
   const [newLabel, setNewLabel] = useState<ContactPhone['label']>('Mobile');
   const [isWhatsApp, setIsWhatsApp] = useState(false);
+  const [recentlyAdded, setRecentlyAdded] = useState<string | null>(null);
+  const isAddingRef = useRef(false);
 
-  const handleAdd = () => {
-    if (!newNumber.trim()) return;
-    if (phones.length >= 5) {
-      alert('Maximum 5 phone numbers allowed per contact');
+  // Auto-enable WhatsApp for Mobile label
+  React.useEffect(() => {
+    if (PHONE_CONFIG.autoEnableWhatsAppLabels.includes(newLabel as string)) {
+      setIsWhatsApp(true);
+    }
+  }, [newLabel]);
+
+  const handleAdd = useCallback(() => {
+    if (isAddingRef.current) return;
+    if (!phoneValue.number.trim()) return;
+    if (phones.length >= PHONE_CONFIG.maxPhonesPerContact) {
       return;
     }
 
+    // Prevent duplicate in current list
+    if (isNumberInList(phoneValue.countryCode, phoneValue.number, phones)) {
+      return;
+    }
+
+    isAddingRef.current = true;
+
+    const phoneId = `phone_${Date.now()}`;
     const phone: ContactPhone = {
-      id: `phone_${Date.now()}`,
-      countryCode: newCountryCode,
-      number: newNumber.trim(),
+      id: phoneId,
+      countryCode: phoneValue.countryCode,
+      number: phoneValue.number.trim(),
       label: newLabel,
       isPrimary: phones.length === 0,
       isWhatsApp,
@@ -44,13 +68,33 @@ export const PhoneManager: React.FC<PhoneManagerProps> = ({
     };
 
     onChange([...phones, phone]);
-    setNewNumber('');
+    
+    // Show animation
+    setRecentlyAdded(phoneId);
+    setTimeout(() => setRecentlyAdded(null), 1000);
+
+    // Reset form
+    setPhoneValue({ countryCode: phoneValue.countryCode, number: '' });
     setNewLabel('Mobile');
-    setIsWhatsApp(false);
-  };
+    setIsWhatsApp(PHONE_CONFIG.autoEnableWhatsAppLabels.includes('Mobile'));
+
+    setTimeout(() => {
+      isAddingRef.current = false;
+    }, 100);
+  }, [phoneValue, newLabel, isWhatsApp, phones, onChange]);
+
+  const handleValidAdd = useCallback((value: PhoneValue) => {
+    if (value.number) {
+      handleAdd();
+    }
+  }, [handleAdd]);
 
   const handleDelete = (id: string) => {
     const filtered = phones.filter(p => p.id !== id);
+    // If we deleted the primary, make first one primary
+    if (filtered.length > 0 && !filtered.some(p => p.isPrimary)) {
+      filtered[0].isPrimary = true;
+    }
     onChange(filtered);
   };
 
@@ -61,6 +105,8 @@ export const PhoneManager: React.FC<PhoneManagerProps> = ({
     })));
   };
 
+  const canAddMore = phones.length < PHONE_CONFIG.maxPhonesPerContact;
+
   return (
     <div className="space-y-3">
       <Label className="flex items-center gap-2">
@@ -69,73 +115,65 @@ export const PhoneManager: React.FC<PhoneManagerProps> = ({
       </Label>
 
       {/* Add New Phone */}
-      <div className="space-y-2">
-        <div className="flex gap-2">
-          <Select
-            value={newCountryCode}
-            onValueChange={setNewCountryCode}
-            disabled={disabled}
-          >
-            <SelectTrigger className="w-[100px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="+91">+91 (IN)</SelectItem>
-              <SelectItem value="+1">+1 (US)</SelectItem>
-              <SelectItem value="+44">+44 (UK)</SelectItem>
-              <SelectItem value="+971">+971 (UAE)</SelectItem>
-            </SelectContent>
-          </Select>
-          <Input
-            type="tel"
-            placeholder="9876543210"
-            value={newNumber}
-            onChange={(e) => setNewNumber(e.target.value.replace(/[^0-9]/g, ''))}
-            disabled={disabled || phones.length >= 5}
-            className="flex-1"
-          />
-          <Select
-            value={newLabel}
-            onValueChange={(value) => setNewLabel(value as ContactPhone['label'])}
-            disabled={disabled}
-          >
-            <SelectTrigger className="w-[120px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Mobile">Mobile</SelectItem>
-              <SelectItem value="WhatsApp">WhatsApp</SelectItem>
-              <SelectItem value="Office">Office</SelectItem>
-              <SelectItem value="Home">Home</SelectItem>
-              <SelectItem value="Legal">Legal</SelectItem>
-              <SelectItem value="Other">Other</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="isWhatsApp"
-              checked={isWhatsApp}
-              onCheckedChange={(checked) => setIsWhatsApp(checked as boolean)}
+      {canAddMore && (
+        <div className="space-y-2">
+          <div className="flex gap-2 items-start">
+            <div className="flex-1">
+              <PhoneInput
+                value={phoneValue}
+                onChange={setPhoneValue}
+                onValidAdd={handleValidAdd}
+                existingPhones={phones}
+                checkDuplicates={true}
+                excludeEntityId={excludeEntityId}
+                disabled={disabled}
+                autoFocus={false}
+              />
+            </div>
+            <Select
+              value={newLabel}
+              onValueChange={(value) => setNewLabel(value as ContactPhone['label'])}
               disabled={disabled}
-            />
-            <Label htmlFor="isWhatsApp" className="text-sm font-normal">
-              WhatsApp Enabled
-            </Label>
+            >
+              <SelectTrigger className="w-[110px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Mobile">Mobile</SelectItem>
+                <SelectItem value="WhatsApp">WhatsApp</SelectItem>
+                <SelectItem value="Office">Office</SelectItem>
+                <SelectItem value="Home">Home</SelectItem>
+                <SelectItem value="Legal">Legal</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <Button
-            type="button"
-            onClick={handleAdd}
-            disabled={disabled || !newNumber.trim() || phones.length >= 5}
-            size="sm"
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Add Phone
-          </Button>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="isWhatsApp"
+                checked={isWhatsApp}
+                onCheckedChange={(checked) => setIsWhatsApp(checked as boolean)}
+                disabled={disabled}
+              />
+              <Label htmlFor="isWhatsApp" className="text-sm font-normal cursor-pointer">
+                WhatsApp Enabled
+              </Label>
+            </div>
+            <Button
+              type="button"
+              onClick={handleAdd}
+              disabled={disabled || !phoneValue.number.trim()}
+              size="sm"
+              variant="outline"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Add
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Phone List */}
       {phones.length > 0 && (
@@ -143,10 +181,13 @@ export const PhoneManager: React.FC<PhoneManagerProps> = ({
           {phones.map(phone => (
             <div
               key={phone.id}
-              className="flex items-center justify-between p-2 bg-muted/50 rounded"
+              className={cn(
+                "flex items-center justify-between p-2 bg-muted/50 rounded transition-all duration-300",
+                recentlyAdded === phone.id && "ring-2 ring-primary/50 bg-primary/5 animate-in fade-in slide-in-from-top-2"
+              )}
             >
-              <div className="flex items-center gap-2 flex-1">
-                <Phone className="h-3 w-3 text-muted-foreground" />
+              <div className="flex items-center gap-2 flex-1 flex-wrap">
+                <Phone className="h-3 w-3 text-muted-foreground shrink-0" />
                 <span className="text-sm font-mono">
                   {phone.countryCode} {phone.number}
                 </span>
@@ -170,7 +211,7 @@ export const PhoneManager: React.FC<PhoneManagerProps> = ({
                   </Badge>
                 )}
               </div>
-              <div className="flex gap-1">
+              <div className="flex gap-1 shrink-0">
                 {!phone.isPrimary && (
                   <Button
                     type="button"
@@ -198,8 +239,10 @@ export const PhoneManager: React.FC<PhoneManagerProps> = ({
         </div>
       )}
 
+      {/* Help text */}
       <p className="text-xs text-muted-foreground">
-        Add up to 5 phone numbers. E.164 format recommended (e.g., +919876543210).
+        {PHONE_CONFIG.helpText.enterToAdd}. {PHONE_CONFIG.helpText.duplicateNote}.
+        {!canAddMore && ` Maximum ${PHONE_CONFIG.maxPhonesPerContact} phone numbers reached.`}
       </p>
     </div>
   );
