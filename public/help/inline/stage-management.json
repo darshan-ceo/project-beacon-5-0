@@ -16,8 +16,28 @@
   },
   "remand": {
     "title": "Remand/Reopen Stage",
-    "content": "Restarts the current stage workflow when new information requires re-processing without moving to a different stage.",
+    "content": "Remand returns a case to an earlier stage (typically by court order), while Reopen restarts the current stage for additional processing. Both create a new cycle with full audit trail.",
     "learnMoreUrl": "https://docs.example.com/remand-stage"
+  },
+  "remandTargetStage": {
+    "title": "Target Stage for Remand/Reopen",
+    "content": "Select the stage where processing should resume. Selecting an earlier stage is a Remand (typically ordered by a higher authority). Selecting the current stage is a Reopen (for additional processing at the same level).",
+    "learnMoreUrl": "https://docs.example.com/remand-reopen"
+  },
+  "remandReasonCategory": {
+    "title": "Reason for Remand/Reopen",
+    "content": "Select the primary reason for this lifecycle reversal. This is mandatory for audit compliance and helps track case quality metrics.",
+    "learnMoreUrl": "https://docs.example.com/remand-reasons"
+  },
+  "remandOrderDetails": {
+    "title": "Order/Direction Details",
+    "content": "If this remand is due to a court order or authority direction, provide the order number, date, and attach the order document for compliance records.",
+    "learnMoreUrl": "https://docs.example.com/order-tracking"
+  },
+  "remandAuditImplications": {
+    "title": "Audit Trail Implications",
+    "content": "Remand/Reopen creates a permanent audit record. Any subsequent stage work that was completed will be marked as 'superseded' but remains visible for historical reference. This ensures legal traceability.",
+    "learnMoreUrl": "https://docs.example.com/audit-trail"
   },
   "currentStage": {
     "title": "Current Authority Level",

@@ -37,6 +37,16 @@ export interface CreateTransitionRequest {
   checklistOverrides?: Array<{ itemKey: string; note: string }>;
   orderDetails?: OrderDetails;
   dispatch?: React.Dispatch<any>;
+  // Enhanced remand details
+  remandDetails?: {
+    remandType?: 'Remand' | 'Reopen';
+    reasonCategory?: string;
+    reasonDetails?: string;
+    orderNumber?: string;
+    orderDate?: string;
+    clientVisibleSummary?: string;
+    preservesFutureHistory?: boolean;
+  };
 }
 
 class LifecycleService {
@@ -105,7 +115,7 @@ class LifecycleService {
         throw new Error(`Failed to fetch case data: ${caseError?.message || 'Case not found'}`);
       }
 
-      // Save transition to database
+      // Save transition to database with enhanced remand fields
       const { data: savedTransition, error: insertError } = await supabase
         .from('stage_transitions')
         .insert({
@@ -115,7 +125,17 @@ class LifecycleService {
           to_stage: request.toStageKey,
           transition_type: request.type,
           comments: request.comments || null,
-          created_by: user.id
+          created_by: user.id,
+          // Enhanced remand fields
+          ...(request.type === 'Remand' && request.remandDetails && {
+            remand_type: request.remandDetails.remandType,
+            reason_category: request.remandDetails.reasonCategory,
+            reason_details: request.remandDetails.reasonDetails,
+            order_number: request.remandDetails.orderNumber || null,
+            order_date: request.remandDetails.orderDate || null,
+            client_visible_summary: request.remandDetails.clientVisibleSummary || null,
+            preserves_future_history: request.remandDetails.preservesFutureHistory ?? true
+          })
         })
         .select()
         .single();
@@ -325,7 +345,9 @@ class LifecycleService {
       case 'Send Back':
         return [...CASE_STAGES.slice(0, currentIndex)];
       case 'Remand':
-        return [canonical]; // Same stage, new cycle
+        // Return ALL previous stages PLUS current stage (for reopen)
+        // This enables non-linear lifecycle movement
+        return [...CASE_STAGES.slice(0, currentIndex + 1)];
       default:
         return [];
     }
