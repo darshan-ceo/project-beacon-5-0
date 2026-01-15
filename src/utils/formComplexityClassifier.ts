@@ -72,6 +72,7 @@ export function classifyFormComplexity(options: FormComplexityOptions): FormComp
  * Used for quick lookup without needing to analyze form structure
  */
 export const KNOWN_MODAL_COMPLEXITY: Record<string, FormComplexity> = {
+  // Primary entities - always complex (full-page on desktop)
   CaseModal: 'complex',
   ClientModal: 'complex',
   EmployeeModal: 'complex',
@@ -79,11 +80,15 @@ export const KNOWN_MODAL_COMPLEXITY: Record<string, FormComplexity> = {
   HearingModal: 'complex',
   DocumentModal: 'complex',
   TaskModal: 'complex',
+  
+  // Master entities - complex (many fields)
   ContactModal: 'complex',
   JudgeModal: 'complex',
   CourtModal: 'complex',
-  // Simple modals
+  
+  // Configuration/simple modals - standard modal
   HolidayModal: 'simple',
   StatutoryActModal: 'simple',
   StatutoryEventTypeModal: 'simple',
+  ClientGroupModal: 'simple',
 };
