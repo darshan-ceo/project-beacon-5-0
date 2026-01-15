@@ -21,7 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { featureFlagService } from '@/services/featureFlagService';
 import { hearingsService } from '@/services/hearingsService';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog';
+import { AdaptiveFormShell } from '@/components/ui/adaptive-form-shell';
 import { HearingOutcomeSection } from './HearingOutcomeSection';
 import { HearingDocumentUpload } from '../hearings/HearingDocumentUpload';
 import { HearingSummaryGenerator } from '../hearings/HearingSummaryGenerator';
@@ -507,37 +507,39 @@ export const HearingModal: React.FC<HearingModalProps> = ({
     return 'Hearing Details';
   };
 
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-beacon-modal max-h-[90vh] overflow-hidden border bg-background shadow-beacon-lg rounded-beacon-xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Scale className="h-5 w-5" />
-            {getModalTitle()}
-          </DialogTitle>
-          {(() => {
-            const details = getContextDetails();
-            const hasBadges = details.client || details.case;
-            
-            return hasBadges ? (
-              <div className="flex items-center gap-2 flex-wrap pt-2">
-                {details.client && (
-                  <Badge variant="outline" className="text-xs">
-                    {details.client.name}
-                  </Badge>
-                )}
-                {details.case && (
-                  <Badge variant="outline" className="text-xs">
-                    {details.case.caseNumber}
-                  </Badge>
-                )}
-              </div>
-            ) : null;
-          })()}
-        </DialogHeader>
+  const footer = (
+    <>
+      <Button type="button" variant="outline" onClick={onClose}>
+        {mode === 'view' ? 'Close' : 'Cancel'}
+      </Button>
+      {mode !== 'view' && (
+        <Button type="submit" onClick={handleSubmit} disabled={isSubmitting}>
+          {isSubmitting ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              {mode === 'create' ? 'Scheduling...' : 'Updating...'}
+            </>
+          ) : (
+            <>
+              <CalendarCheckIcon className="h-4 w-4 mr-2" />
+              {mode === 'create' ? 'Schedule Hearing' : 'Update Hearing'}
+            </>
+          )}
+        </Button>
+      )}
+    </>
+  );
 
-        <DialogBody className="px-6 py-4 overflow-y-auto flex-1">
-          <form onSubmit={handleSubmit} className="space-y-6">
+  return (
+    <AdaptiveFormShell
+      isOpen={isOpen}
+      onClose={onClose}
+      title={getModalTitle()}
+      icon={<Scale className="h-5 w-5" />}
+      complexity="complex"
+      footer={footer}
+    >
+      <form onSubmit={handleSubmit} className="space-y-6">
             {/* Section 1: Case & Legal Forum Details */}
             <Card className="rounded-beacon-lg border bg-card shadow-beacon-md">
               <CardHeader className="border-b border-border p-6 pb-4">
@@ -826,29 +828,6 @@ export const HearingModal: React.FC<HearingModalProps> = ({
               disabled={mode === 'view'}
             />
           </form>
-        </DialogBody>
-
-        <DialogFooter className="gap-3">
-          <Button type="button" variant="outline" onClick={onClose}>
-            {mode === 'view' ? 'Close' : 'Cancel'}
-          </Button>
-          {mode !== 'view' && (
-            <Button type="submit" onClick={handleSubmit} disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  {mode === 'create' ? 'Scheduling...' : 'Updating...'}
-                </>
-              ) : (
-                <>
-                  <CalendarCheckIcon className="h-4 w-4 mr-2" />
-                  {mode === 'create' ? 'Schedule Hearing' : 'Update Hearing'}
-                </>
-              )}
-            </Button>
-          )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </AdaptiveFormShell>
   );
 };
