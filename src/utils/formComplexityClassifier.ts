@@ -91,4 +91,5 @@ export const KNOWN_MODAL_COMPLEXITY: Record<string, FormComplexity> = {
   StatutoryActModal: 'simple',
   StatutoryEventTypeModal: 'simple',
   ClientGroupModal: 'simple',
+  SignatoryModal: 'simple',
 };

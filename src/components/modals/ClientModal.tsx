@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { AdaptiveFormShell } from '@/components/ui/adaptive-form-shell';
+import { FormStickyFooter } from '@/components/ui/form-sticky-footer';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -882,61 +883,79 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
 
   const showSignatorySection = formData.type !== 'Individual';
 
+  const footer = (
+    <FormStickyFooter
+      mode={mode}
+      onCancel={onClose}
+      onPrimaryAction={mode !== 'view' ? () => handleSubmit({} as any) : undefined}
+      primaryLabel={mode === 'create' ? 'Create Client' : 'Update Client'}
+      isPrimaryLoading={isSaving}
+      showDelete={mode === 'edit' && canDeleteClients}
+      onDelete={handleDelete}
+      isDeleteLoading={isDeleting}
+    />
+  );
+
+  const getTitle = () => {
+    switch (mode) {
+      case 'create': return 'Add New Client';
+      case 'edit': return 'Edit Client';
+      case 'view': return 'Client Details';
+    }
+  };
+
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-beacon-modal max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {mode === 'create' && <><Plus className="h-5 w-5" /> Add New Client</>}
-                {mode === 'edit' && <><Edit className="h-5 w-5" /> Edit Client</>}
-                {mode === 'view' && <><Eye className="h-5 w-5" /> Client Details</>}
-              </div>
-              {/* Environment status badges */}
-              <div className="flex gap-2 text-xs">
-                {(() => {
-                  const badges = envConfig.getStatusBadges();
-                  return (
-                    <>
-                      <Badge variant={badges.GST === "ON" ? "default" : "destructive"}>
-                        GST: {badges.GST}
-                      </Badge>
-                      <Badge variant={badges.API === "LIVE" || badges.API === "SET" ? "default" : "destructive"}>
-                        API: {badges.API}
-                      </Badge>
-                      <Badge variant={badges.MOCK === "ON" ? "secondary" : "outline"}>
-                        MOCK: {badges.MOCK}
-                      </Badge>
-                    </>
-                  );
-                })()}
-              </div>
-            </DialogTitle>
-          </DialogHeader>
+      <AdaptiveFormShell
+        isOpen={isOpen}
+        onClose={onClose}
+        title={getTitle()}
+        icon={<Building2 className="h-5 w-5" />}
+        complexity="complex"
+        footer={footer}
+        dataTour="client-modal"
+      >
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Environment status badges */}
+          <div className="flex gap-2 text-xs mb-4">
+            {(() => {
+              const badges = envConfig.getStatusBadges();
+              return (
+                <>
+                  <Badge variant={badges.GST === "ON" ? "default" : "destructive"}>
+                    GST: {badges.GST}
+                  </Badge>
+                  <Badge variant={badges.API === "LIVE" || badges.API === "SET" ? "default" : "destructive"}>
+                    API: {badges.API}
+                  </Badge>
+                  <Badge variant={badges.MOCK === "ON" ? "secondary" : "outline"}>
+                    MOCK: {badges.MOCK}
+                  </Badge>
+                </>
+              );
+            })()}
+          </div>
 
-          <DialogBody>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* GST Section - Moved to Top for Enhanced Workflow */}
-              <GSTSection
-                clientId={clientData?.id || 'new'}
-                formData={formData}
-                onFormDataChange={(updates) => {
-                  setFormData(prev => ({ ...prev, ...updates }));
-                  if (updates.gstStatus || updates.gstin) {
-                  setGstData(updates);
-                }
-              }}
-              mode={mode}
-              onSignatoriesImport={handleSignatoriesImport}
-            />
+          {/* GST Section - Moved to Top for Enhanced Workflow */}
+          <GSTSection
+            clientId={clientData?.id || 'new'}
+            formData={formData}
+            onFormDataChange={(updates) => {
+              setFormData(prev => ({ ...prev, ...updates }));
+              if (updates.gstStatus || updates.gstin) {
+                setGstData(updates);
+              }
+            }}
+            mode={mode}
+            onSignatoriesImport={handleSignatoriesImport}
+          />
 
-            {/* General Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Building2 className="h-4 w-4" />
-                  General Information
+          {/* General Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="h-4 w-4" />
+                General Information
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -2150,46 +2169,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                 </Card>
               )}
             </form>
-          </DialogBody>
-
-          <DialogFooter className="gap-3">
-            <Button type="button" variant="outline" onClick={onClose}>
-              {mode === 'view' ? 'Close' : 'Cancel'}
-            </Button>
-            {mode === 'edit' && (
-              <Button type="button" variant="destructive" onClick={handleDelete} disabled={isDeleting}>
-                {isDeleting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Deleting...
-                  </>
-                ) : (
-                  'Delete Client'
-                )}
-              </Button>
-            )}
-            {mode !== 'view' && (
-              <Button 
-                type="button" 
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleSubmit(e);
-                }}
-                disabled={isSaving}
-              >
-                {isSaving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {mode === 'create' ? 'Creating...' : 'Updating...'}
-                  </>
-                ) : (
-                  mode === 'create' ? 'Create Client' : 'Update Client'
-                )}
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      </AdaptiveFormShell>
 
       {/* Signatory Modal */}
       <SignatoryModal
