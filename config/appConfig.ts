@@ -88,11 +88,13 @@ export const TASK_CATEGORIES = [
   'Client Communication'
 ] as const;
 
+// Priority options - Note: Orange is NOT allowed per brand guidelines
+// High priority uses amber/warning color instead
 export const PRIORITY_OPTIONS = [
-  { value: 'Critical', label: 'Critical', color: 'destructive' },
-  { value: 'High', label: 'High', color: 'orange' },
-  { value: 'Medium', label: 'Medium', color: 'blue' },
-  { value: 'Low', label: 'Low', color: 'green' }
+  { value: 'Critical', label: 'Critical', color: 'destructive' },  // Red
+  { value: 'High', label: 'High', color: 'warning' },              // Amber (NOT orange)
+  { value: 'Medium', label: 'Medium', color: 'blue' },             // Blue
+  { value: 'Low', label: 'Low', color: 'green' }                   // Green
 ] as const;
 
 export type CaseType = typeof CASE_TYPES[number];

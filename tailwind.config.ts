@@ -160,11 +160,35 @@ export default {
     			},
     			success: {
     				DEFAULT: 'hsl(var(--success))',
-    				foreground: 'hsl(var(--success-foreground))'
+    				foreground: 'hsl(var(--success-foreground))',
+    				partial: 'hsl(var(--success-partial))'
     			},
     			warning: {
     				DEFAULT: 'hsl(var(--warning))',
     				foreground: 'hsl(var(--warning-foreground))'
+    			},
+    			info: {
+    				DEFAULT: 'hsl(var(--info))',
+    				foreground: 'hsl(var(--info-foreground))'
+    			},
+    			pending: {
+    				DEFAULT: 'hsl(var(--pending))',
+    				foreground: 'hsl(var(--pending-foreground))'
+    			},
+    			stage: {
+    				draft: 'hsl(var(--stage-draft))',
+    				'draft-bg': 'hsl(var(--stage-draft-bg))',
+    				hearing: 'hsl(var(--stage-hearing))',
+    				'hearing-bg': 'hsl(var(--stage-hearing-bg))',
+    				order: 'hsl(var(--stage-order))',
+    				'order-bg': 'hsl(var(--stage-order-bg))',
+    				appeal: 'hsl(var(--stage-appeal))',
+    				'appeal-bg': 'hsl(var(--stage-appeal-bg))'
+    			},
+    			alert: {
+    				critical: 'hsl(var(--alert-critical))',
+    				important: 'hsl(var(--alert-important))',
+    				neutral: 'hsl(var(--alert-neutral))'
     			},
     			muted: {
     				DEFAULT: 'hsl(var(--muted))',

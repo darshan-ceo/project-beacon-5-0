@@ -53,92 +53,118 @@ All colors MUST be HSL. Professional legal theme with accessibility focus.
 
 @layer base {
   :root {
-    /* Beacon Brand Colors - Project Beacon 5.0 */
-    --primary: 20 90% 48%;          /* #00897B - Teal (main actions, links, highlights) */
-    --primary-foreground: 33 100% 96%;
-    --primary-hover: 174 45% 23%;    /* Darker teal for hover */
-    --primary-light: 174 45% 95%;    /* Light teal backgrounds */
+    /* ============================================
+       H-Office Litigation CRM - Legal Blue Theme
+       Brand Guidelines v1.0
+       ============================================ */
+    
+    /* Brand Colors - Deep Blue Primary */
+    --primary: 222 47% 33%;              /* #1E3A8A - Deep Blue */
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 222 47% 28%;        /* Darker on hover */
+    --primary-light: 222 47% 95%;        /* Light blue backgrounds */
 
-    --secondary: 0 0% 32%;       /* #00C2A8 - Aqua (secondary accents, hover states) */
-    --secondary-foreground: 0 0% 98%;
-    --secondary-hover: 174 100% 33%;
-    --secondary-light: 174 100% 95%;
+    --secondary: 171 75% 24%;            /* #0F766E - Teal */
+    --secondary-foreground: 0 0% 100%;
+    --secondary-hover: 171 75% 20%;
+    --secondary-light: 171 75% 95%;
 
-    /* Neutral System - Beacon Guidelines */
-    --background: 0 0% 96%;         /* White */
-    --foreground: 0 0% 9%;       /* #2C3E50 - Neutral Dark (headers, primary text) */
+    --accent: 243 75% 43%;               /* #3730A3 - Indigo */
+    --accent-foreground: 0 0% 100%;
 
-    --card: 0 0% 98%;
-    --card-foreground: 0 0% 9%;
+    /* Neutral System - Legal Blue Theme */
+    --background: 210 40% 98%;           /* #F8FAFC - App background */
+    --foreground: 222 47% 11%;           /* #0F172A - Primary text */
 
-    --popover: 0 0% 89%;
-    --popover-foreground: 0 0% 9%;
+    --card: 0 0% 100%;                   /* #FFFFFF - Surface */
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
 
     /* UI Elements */
-    --muted: 0 0% 63%;            /* #F5F6FA - Neutral Light (backgrounds, card surfaces) */
-    --muted-foreground: 210 7% 46%; /* #6C757D - Neutral Medium (labels, hints, muted text, placeholders) */
+    --muted: 213 27% 96%;                /* #F1F5F9 - Muted backgrounds */
+    --muted-foreground: 215 16% 47%;     /* #64748B - Muted text */
 
-    --accent: 47 100% 96%;           /* #FF7A45 - Orange (alerts and highlights) */
-    --accent-foreground: 37 92% 50%;
+    --border: 214 32% 89%;               /* #E2E8F0 - Dividers */
+    --input: 214 32% 89%;
+    --ring: 222 47% 33%;                 /* Focus rings use primary */
 
-    --border: 0 0% 83%;              /* #E0E0E0 */
-    --input: 0 0% 83%;
-    --ring: 20 90% 48%;             /* Focus rings use primary teal */
+    /* Status Colors - Brand Guidelines */
+    --destructive: 0 84% 50%;            /* #DC2626 - Red (overdue/risk) */
+    --destructive-foreground: 0 0% 100%;
 
-    /* Status Colors - Beacon Guidelines */
-    --destructive: 0 72% 50%;      /* #DC3545 - Red (validation errors) */
-    --destructive-foreground: 0 85% 97%;
-
-    --success: 142 71% 42%;          /* #28A745 - Green (confirmations) */
+    --success: 142 76% 36%;              /* #16A34A - Favourable */
     --success-foreground: 0 0% 100%;
+    --success-partial: 84 81% 44%;       /* #65A30D - Partial Relief */
 
-    --warning: 45 100% 51%;          /* #FFC107 - Yellow (pending actions) */
-    --warning-foreground: 215 25% 27%; /* Dark text for contrast */
+    --warning: 38 92% 50%;               /* #F59E0B - Attention */
+    --warning-foreground: 222 47% 11%;   /* Dark text for contrast */
+
+    --info: 199 89% 48%;                 /* #0284C7 - Informational */
+    --info-foreground: 0 0% 100%;
+
+    --pending: 217 91% 60%;              /* #2563EB - Pending */
+    --pending-foreground: 0 0% 100%;
+
+    /* Stage Colors - Case Position */
+    --stage-draft: 215 16% 47%;          /* #64748B - Slate */
+    --stage-draft-bg: 213 27% 96%;       /* #F1F5F9 */
+    --stage-hearing: 222 47% 33%;        /* #1E3A8A - Deep Blue */
+    --stage-hearing-bg: 214 100% 97%;    /* #EFF6FF */
+    --stage-order: 243 75% 43%;          /* #3730A3 - Indigo */
+    --stage-order-bg: 226 100% 97%;      /* #EEF2FF */
+    --stage-appeal: 171 75% 24%;         /* #0F766E - Teal */
+    --stage-appeal-bg: 185 96% 97%;      /* #ECFEFF */
+
+    /* Alert Colors */
+    --alert-critical: 0 84% 50%;         /* #DC2626 - Red */
+    --alert-important: 38 92% 50%;       /* #F59E0B - Amber (time-critical only) */
+    --alert-neutral: 217 91% 60%;        /* #2563EB - Blue */
 
     /* Layout & Design - Beacon Standards */
-    --radius: 0.75rem;                /* 8px - for buttons/inputs (md) */
-    --radius-lg: 1rem;               /* 16px - for cards */
-    --radius-xl: 1.5rem;             /* 24px - for modals */
+    --radius: 0.75rem;
+    --radius-lg: 1rem;
+    --radius-xl: 1.5rem;
 
-    /* Sidebar - Professional Dark Theme with Beacon Teal */
-    --sidebar-background: 215 28% 17%;           /* Dark professional sidebar */
-    --sidebar-foreground: 0 0% 98%;              /* Light text for visibility on dark bg */
-    --sidebar-primary: 20 90% 48%;               /* Primary teal in sidebar */
-    --sidebar-primary-foreground: 33 100% 96%;
-    --sidebar-accent: 215 28% 22%;               /* Slightly lighter than bg for hover */
-    --sidebar-accent-foreground: 0 0% 98%;       /* Light text on accent */
-    --sidebar-border: 215 28% 25%;               /* Visible border on dark bg */
-    --sidebar-ring: 20 90% 48%;
+    /* Sidebar - Professional Dark Theme */
+    --sidebar-background: 222 47% 11%;   /* Dark blue sidebar */
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 222 47% 33%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 222 47% 18%;       /* Slightly lighter for hover */
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 222 47% 20%;
+    --sidebar-ring: 222 47% 33%;
 
-    /* Custom Legal-Specific Variables - Beacon Colors */
-    --legal-urgent: 354 70% 54%;     /* #DC3545 - Red for urgent matters */
-    --legal-pending: 45 100% 51%;    /* #FFC107 - Yellow for pending */
-    --legal-approved: 142 71% 42%;   /* #28A745 - Green for approved */
-    --legal-draft: 220 14% 71%;      /* Gray for drafts */
+    /* Custom Legal-Specific Variables */
+    --legal-urgent: 0 84% 50%;           /* Red */
+    --legal-pending: 217 91% 60%;        /* Blue */
+    --legal-approved: 142 76% 36%;       /* Green */
+    --legal-draft: 215 16% 47%;          /* Slate gray */
 
-    /* Brand Active State System - Beacon Teal */
-    --brand-active: 174 45% 28%;     /* Primary teal for active states */
+    /* Brand Active State System */
+    --brand-active: 222 47% 33%;
     --brand-active-foreground: 0 0% 100%;
-    --brand-active-border: 174 45% 28%;
-    --brand-active-bg: 174 45% 95%;  /* Light teal background */
-    
-    /* Chart colors */
-    --chart-1: 27 95% 60%;
-    --chart-2: 43 96% 56%;
-    --chart-3: 47 95% 53%;
-    --chart-4: 24 94% 53%;
-    --chart-5: 0 0% 45%;
+    --brand-active-border: 222 47% 33%;
+    --brand-active-bg: 222 47% 95%;
+
+    /* Chart colors - Blue/Teal palette */
+    --chart-1: 222 47% 33%;              /* Primary blue */
+    --chart-2: 171 75% 24%;              /* Secondary teal */
+    --chart-3: 243 75% 43%;              /* Accent indigo */
+    --chart-4: 142 76% 36%;              /* Success green */
+    --chart-5: 215 16% 47%;              /* Neutral slate */
     --sidebar: 0 0% 98%;
-    
-    /* Apple-grade system-native font stack */
+
+    /* Typography */
     --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --font-mono: "SF Mono", SFMono-Regular, ui-monospace, Menlo, Monaco, Consolas, monospace;
-    
-    /* Base typography */
+
     --font-size-base: 14px;
     --line-height-base: 1.5;
-    
+
     /* Shadows */
     --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
     --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
@@ -406,21 +432,21 @@ All colors MUST be HSL. Professional legal theme with accessibility focus.
     @apply bg-gray-50 text-gray-700 border-gray-200;
   }
 
-  /* Brand Active State Utilities */
+  /* Brand Active State Utilities - Legal Blue Theme */
   .brand-active-sidebar {
-    /* Thicker, more vibrant border with glow effect */
-    border-left: 5px solid hsl(174 100% 50%) !important;
+    /* Deep blue border accent */
+    border-left: 5px solid hsl(222 70% 50%) !important;
 
-    /* Stronger gradient background - more visible on dark sidebar */
+    /* Gradient background with primary blue */
     background: linear-gradient(
       to right, 
-      hsl(var(--primary) / 0.45),    /* Stronger left edge */
-      hsl(var(--primary) / 0.28),    /* Medium center */
-      hsl(var(--primary) / 0.10)     /* Subtle right fade */
+      hsl(var(--primary) / 0.45),
+      hsl(var(--primary) / 0.28),
+      hsl(var(--primary) / 0.10)
     ) !important;
 
-    /* Brightest teal for maximum contrast on dark background */
-    color: hsl(174 100% 55%) !important;
+    /* Light blue text for contrast on dark sidebar */
+    color: hsl(210 100% 75%) !important;
 
     /* Bold font for prominence */
     font-weight: 700 !important;
@@ -428,11 +454,11 @@ All colors MUST be HSL. Professional legal theme with accessibility focus.
     /* Smooth animated transitions */
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
-    /* Multi-layered shadow for depth and glow */
+    /* Multi-layered shadow for depth */
     box-shadow: 
-      inset 0 0 0 1px hsl(var(--primary) / 0.4),           /* Inner border glow */
-      inset 4px 0 8px -2px hsl(var(--primary) / 0.3),      /* Left edge shadow */
-      0 0 12px -2px hsl(var(--primary) / 0.2);             /* Outer glow */
+      inset 0 0 0 1px hsl(var(--primary) / 0.4),
+      inset 4px 0 8px -2px hsl(var(--primary) / 0.3),
+      0 0 12px -2px hsl(var(--primary) / 0.2);
 
     /* Subtle border radius for polish */
     border-radius: 0 6px 6px 0;
@@ -449,7 +475,7 @@ All colors MUST be HSL. Professional legal theme with accessibility focus.
   .brand-active-sidebar svg,
   .brand-active-sidebar [class*="lucide"] {
     filter: drop-shadow(0 0 4px hsl(var(--primary) / 0.5));
-    color: hsl(174 100% 60%) !important;
+    color: hsl(210 100% 80%) !important;
     transform: scale(1.05);
     transition: all 0.2s ease-in-out;
   }
@@ -458,12 +484,12 @@ All colors MUST be HSL. Professional legal theme with accessibility focus.
   .brand-active-sidebar:hover {
     background: linear-gradient(
       to right, 
-      hsl(var(--primary) / 0.50),    /* Slightly brighter on hover */
+      hsl(var(--primary) / 0.50),
       hsl(var(--primary) / 0.32),
       hsl(var(--primary) / 0.12)
     ) !important;
 
-    border-left-color: hsl(174 100% 55%) !important;
+    border-left-color: hsl(222 70% 55%) !important;
 
     box-shadow: 
       inset 0 0 0 1px hsl(var(--primary) / 0.5),
