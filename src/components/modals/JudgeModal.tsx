@@ -1,33 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, MapPin, Scale } from 'lucide-react';
-import { format } from 'date-fns';
+import { Scale, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Judge, useAppState } from '@/contexts/AppStateContext';
-import { cn } from '@/lib/utils';
-import { AddressForm } from '@/components/ui/AddressForm';
-import { AddressView } from '@/components/ui/AddressView';
-import { EnhancedAddressData } from '@/services/addressMasterService';
-import { featureFlagService } from '@/services/featureFlagService';
-import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
-
-interface JudgeModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  judge?: Judge | null;
-  mode: 'create' | 'edit' | 'view';
-}
-
 import { JudgeForm } from '@/components/masters/judges/JudgeForm';
+import { AdaptiveFormShell } from '@/components/ui/adaptive-form-shell';
+import { FormStickyFooter } from '@/components/ui/form-sticky-footer';
 
 interface JudgeModalProps {
   isOpen: boolean;
@@ -41,6 +20,7 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState<any>(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -52,25 +32,31 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
     fetchUser();
   }, []);
 
-  const handleSubmit = async (formData: any) => {
+  const handleFormChange = (formData: any) => {
+    setPendingFormData(formData);
+  };
+
+  const handleSubmit = async () => {
+    if (!pendingFormData) return;
+    
     setIsSaving(true);
     try {
       const { judgesService } = await import('@/services/judgesService');
       
       if (mode === 'create') {
-        const judgeData = {
-          name: formData.name,
-          designation: formData.designation,
-          status: formData.status,
-          courtId: formData.courtId,
-          appointmentDate: formData.appointmentDate?.toISOString().split('T')[0] || '',
-          phone: formData.phone,
-          email: formData.email,
+        const judgePayload = {
+          name: pendingFormData.name,
+          designation: pendingFormData.designation,
+          status: pendingFormData.status,
+          courtId: pendingFormData.courtId,
+          appointmentDate: pendingFormData.appointmentDate?.toISOString().split('T')[0] || '',
+          phone: pendingFormData.phone,
+          email: pendingFormData.email,
         };
 
-        await judgesService.create(judgeData, rawDispatch);
+        await judgesService.create(judgePayload, rawDispatch);
       } else if (mode === 'edit' && judgeData) {
-        await judgesService.update(judgeData.id, formData, dispatch);
+        await judgesService.update(judgeData.id, pendingFormData, dispatch);
       }
 
       onClose();
@@ -118,27 +104,43 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
     }
   };
 
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-beacon-modal max-h-[90vh] overflow-hidden border bg-background shadow-beacon-lg rounded-beacon-xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Scale className="h-5 w-5" />
-            {mode === 'create' && 'Add New Judge'}
-            {mode === 'edit' && 'Edit Judge'}
-            {mode === 'view' && 'Judge Details'}
-          </DialogTitle>
-        </DialogHeader>
+  // Generate dynamic title
+  const getTitle = () => {
+    if (mode === 'create') return 'Add New Judge';
+    if (mode === 'edit') return 'Edit Judge';
+    return 'Judge Details';
+  };
 
-        <DialogBody className="px-6 py-4 overflow-y-auto flex-1">
-          <JudgeForm
-            initialData={judgeData}
-            onSubmit={handleSubmit}
-            onCancel={onClose}
-            mode={mode}
-          />
-        </DialogBody>
-      </DialogContent>
-    </Dialog>
+  // Footer with action buttons
+  const footer = (
+    <FormStickyFooter
+      mode={mode}
+      onCancel={onClose}
+      onPrimaryAction={handleSubmit}
+      onDelete={handleDelete}
+      primaryLabel={mode === 'create' ? 'Create Judge' : 'Update Judge'}
+      isPrimaryLoading={isSaving}
+      isDeleteLoading={isDeleting}
+      showDelete={mode === 'edit' && canDeleteJudges}
+    />
+  );
+
+  return (
+    <AdaptiveFormShell
+      isOpen={isOpen}
+      onClose={onClose}
+      title={getTitle()}
+      icon={<Scale className="h-5 w-5" />}
+      complexity="complex"
+      footer={footer}
+      dataTour="judge-modal"
+    >
+      <JudgeForm
+        initialData={judgeData}
+        onSubmit={handleFormChange}
+        onCancel={onClose}
+        mode={mode}
+      />
+    </AdaptiveFormShell>
   );
 };
