@@ -68,7 +68,17 @@ export const StageTransitionHistory: React.FC<StageTransitionHistoryProps> = ({ 
         attachments: t.attachments || [],
         actorRole: t.actor_role,
         actorName: t.profiles?.full_name || 'Unknown User',
-        isConfirmed: t.is_confirmed ?? true
+        isConfirmed: t.is_confirmed ?? true,
+        // Remand-specific fields
+        remandType: t.remand_type,
+        reasonCategory: t.reason_category,
+        reasonDetails: t.reason_details,
+        orderNumber: t.order_number,
+        orderDate: t.order_date,
+        orderDocumentId: t.order_document_id,
+        orderDocumentPath: t.order_document_path,
+        clientVisibleSummary: t.client_visible_summary,
+        preservesFutureHistory: t.preserves_future_history
       }));
 
       setTransitions(enhancedTransitions);

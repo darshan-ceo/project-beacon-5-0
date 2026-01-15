@@ -28,6 +28,7 @@ import { RemandReopenForm } from './RemandReopenForm';
 import { RemandConfirmationDialog } from './RemandConfirmationDialog';
 import { lifecycleService } from '@/services/lifecycleService';
 import { stageHistoryService } from '@/services/stageHistoryService';
+import { orderDocumentService } from '@/services/orderDocumentService';
 import { TransitionType, ChecklistItem, OrderDetails, ReasonEnum, LifecycleState } from '@/types/lifecycle';
 import { RemandTransitionDetails, RemandFormValidation } from '@/types/remand';
 import { MATTER_TYPES, MatterType } from '../../../config/appConfig';
@@ -107,6 +108,7 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
   const [remandValidation, setRemandValidation] = useState<RemandFormValidation>({ isValid: false, errors: {} });
   const [showRemandConfirmation, setShowRemandConfirmation] = useState(false);
   const [supersededCount, setSupersededCount] = useState(0);
+  const [isUploadingDocument, setIsUploadingDocument] = useState(false);
 
   const caseData = state.cases.find(c => c.id === caseId);
   const effectiveStage = currentStage || caseData?.currentStage || 'Assessment';
@@ -235,7 +237,38 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
   const executeTransition = async () => {
     if (!caseId || !selectedStage || isProcessing) return;
     setIsProcessing(true);
+    
+    let uploadedDocumentPath: string | undefined;
+    
     try {
+      // Handle document upload for remand transitions
+      if (transitionType === 'Remand' && remandDetails?.orderDocumentFile) {
+        setIsUploadingDocument(true);
+        try {
+          // Get tenant ID from current user profile or use case data
+          const { data: { user } } = await supabase.auth.getUser();
+          const tenantId = user?.id || 'default';
+          
+          const uploadResult = await orderDocumentService.uploadOrderDocument(
+            remandDetails.orderDocumentFile,
+            caseId,
+            tenantId
+          );
+          uploadedDocumentPath = uploadResult.path;
+        } catch (uploadError: any) {
+          toast({ 
+            title: "Upload Failed", 
+            description: uploadError.message || "Failed to upload order document", 
+            variant: "destructive" 
+          });
+          setIsUploadingDocument(false);
+          setIsProcessing(false);
+          return;
+        } finally {
+          setIsUploadingDocument(false);
+        }
+      }
+
       // Add force override notice to comments for audit trail
       let finalComments = comments;
       if (forceOverride && hasBlockingItems) {
@@ -262,6 +295,7 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
             reasonDetails: remandDetails.reasonDetails,
             orderNumber: remandDetails.orderNumber,
             orderDate: remandDetails.orderDate,
+            orderDocumentPath: uploadedDocumentPath,
             clientVisibleSummary: remandDetails.clientVisibleSummary,
             preservesFutureHistory: true
           }
