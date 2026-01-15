@@ -1,9 +1,10 @@
 /**
  * Unified Stage Management Dialog
  * Supports Forward/Send Back/Remand with evidence checklist
+ * Enhanced Remand/Reopen with non-linear lifecycle movement
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,8 +24,12 @@ import { contextService } from '@/services/contextService';
 import { ContextPanel } from './ContextPanel';
 import { ContextSplitButton } from './ContextSplitButton';
 import { StageTransitionHistory } from './StageTransitionHistory';
+import { RemandReopenForm } from './RemandReopenForm';
+import { RemandConfirmationDialog } from './RemandConfirmationDialog';
 import { lifecycleService } from '@/services/lifecycleService';
+import { stageHistoryService } from '@/services/stageHistoryService';
 import { TransitionType, ChecklistItem, OrderDetails, ReasonEnum, LifecycleState } from '@/types/lifecycle';
+import { RemandTransitionDetails, RemandFormValidation } from '@/types/remand';
 import { MATTER_TYPES, MatterType } from '../../../config/appConfig';
 import { normalizeStage } from '@/utils/stageUtils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -59,7 +64,7 @@ interface UnifiedStageDialogProps {
 const transitionTypeOptions = [
   { value: 'Forward' as TransitionType, label: 'Forward', icon: ArrowRight, description: 'Advance to next stage' },
   { value: 'Send Back' as TransitionType, label: 'Send Back', icon: ArrowLeft, description: 'Return to previous stage' },
-  { value: 'Remand' as TransitionType, label: 'Remand/Reopen', icon: RotateCcw, description: 'Restart current stage' }
+  { value: 'Remand' as TransitionType, label: 'Remand/Reopen', icon: RotateCcw, description: 'Return to any previous stage or restart current' }
 ];
 
 const reasonOptions: ReasonEnum[] = [
@@ -96,6 +101,12 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
   const [isInlineContextOpen, setIsInlineContextOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [forceOverride, setForceOverride] = useState(false);
+  
+  // Remand/Reopen specific state
+  const [remandDetails, setRemandDetails] = useState<Partial<RemandTransitionDetails> | null>(null);
+  const [remandValidation, setRemandValidation] = useState<RemandFormValidation>({ isValid: false, errors: {} });
+  const [showRemandConfirmation, setShowRemandConfirmation] = useState(false);
+  const [supersededCount, setSupersededCount] = useState(0);
 
   const caseData = state.cases.find(c => c.id === caseId);
   const effectiveStage = currentStage || caseData?.currentStage || 'Assessment';
@@ -179,7 +190,49 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
     loadLifecycle();
   }, [caseId, isOpen]);
 
+  // Handle remand form changes
+  const handleRemandFormChange = useCallback((
+    details: Partial<RemandTransitionDetails>, 
+    validation: RemandFormValidation
+  ) => {
+    setRemandDetails(details);
+    setRemandValidation(validation);
+    if (details.targetStage) {
+      setSelectedStage(details.targetStage);
+    }
+  }, []);
+
+  // Load superseded count when remand target changes
+  useEffect(() => {
+    const loadSupersededCount = async () => {
+      if (transitionType === 'Remand' && remandDetails?.targetStage && caseId) {
+        const count = await stageHistoryService.getSupersededTransitionsCount(
+          caseId, 
+          remandDetails.targetStage
+        );
+        setSupersededCount(count);
+      } else {
+        setSupersededCount(0);
+      }
+    };
+    loadSupersededCount();
+  }, [transitionType, remandDetails?.targetStage, caseId]);
+
   const handleTransition = async () => {
+    // For Remand, show confirmation dialog first
+    if (transitionType === 'Remand') {
+      if (!remandValidation.isValid) {
+        toast({ title: "Validation Error", description: "Please complete all required fields", variant: "destructive" });
+        return;
+      }
+      setShowRemandConfirmation(true);
+      return;
+    }
+
+    await executeTransition();
+  };
+
+  const executeTransition = async () => {
     if (!caseId || !selectedStage || isProcessing) return;
     setIsProcessing(true);
     try {
@@ -190,17 +243,39 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
         finalComments = comments ? comments + overrideNotice : overrideNotice.trim();
       }
 
+      // For Remand transitions, include enhanced details
+      if (transitionType === 'Remand' && remandDetails) {
+        finalComments = remandDetails.reasonDetails || '';
+      }
+
       await lifecycleService.createTransition({
         caseId,
         type: transitionType,
         toStageKey: selectedStage,
         comments: finalComments,
-        dispatch: dispatch
+        dispatch: dispatch,
+        // Include remand-specific data
+        ...(transitionType === 'Remand' && remandDetails && {
+          remandDetails: {
+            remandType: remandDetails.remandType,
+            reasonCategory: remandDetails.reasonCategory,
+            reasonDetails: remandDetails.reasonDetails,
+            orderNumber: remandDetails.orderNumber,
+            orderDate: remandDetails.orderDate,
+            clientVisibleSummary: remandDetails.clientVisibleSummary,
+            preservesFutureHistory: true
+          }
+        })
       });
 
+      const actionLabel = transitionType === 'Remand' 
+        ? (remandDetails?.remandType === 'Reopen' ? 'reopened at' : 'remanded to')
+        : transitionType === 'Forward' ? 'advanced to' : 'sent back to';
+      
       const overrideMsg = forceOverride && hasBlockingItems ? ' (Admin Override)' : '';
-      toast({ title: "Success", description: `Case moved to ${selectedStage}${overrideMsg}` });
+      toast({ title: "Success", description: `Case ${actionLabel} ${selectedStage}${overrideMsg}` });
       onStageUpdated?.({ currentStage: selectedStage, type: transitionType });
+      setShowRemandConfirmation(false);
       onClose();
     } catch (error: any) {
       toast({ title: "Error", description: error.message || "Failed to update stage", variant: "destructive" });
@@ -208,6 +283,15 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
       setIsProcessing(false);
     }
   };
+
+  // Reset remand state when transition type changes
+  useEffect(() => {
+    if (transitionType !== 'Remand') {
+      setRemandDetails(null);
+      setRemandValidation({ isValid: false, errors: {} });
+      setSupersededCount(0);
+    }
+  }, [transitionType]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -293,19 +377,32 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Next Stage *</Label>
-            <Select value={selectedStage} onValueChange={setSelectedStage}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select stage..." />
-              </SelectTrigger>
-              <SelectContent className="z-[300] bg-popover">
-                {availableStages.map((stage) => (
-                  <SelectItem key={stage} value={stage}>{stage}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Conditional Stage Selection based on Transition Type */}
+          {transitionType === 'Remand' ? (
+            // Enhanced Remand/Reopen Form
+            caseId && (
+              <RemandReopenForm
+                caseId={caseId}
+                currentStage={canonicalStage}
+                onFormChange={handleRemandFormChange}
+              />
+            )
+          ) : (
+            // Standard Forward/Send Back stage selector
+            <div className="space-y-2">
+              <Label>Next Stage *</Label>
+              <Select value={selectedStage} onValueChange={setSelectedStage}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select stage..." />
+                </SelectTrigger>
+                <SelectContent className="z-[300] bg-popover">
+                  {availableStages.map((stage) => (
+                    <SelectItem key={stage} value={stage}>{stage}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Blocking Items Alert */}
           {hasBlockingItems && (
@@ -377,8 +474,8 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
               </Card>
             )}
 
-            {/* Stage Progression Preview Card */}
-          {selectedStage && (
+            {/* Stage Progression Preview Card - Only for Forward/Send Back */}
+          {selectedStage && transitionType !== 'Remand' && (
             <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm flex items-center gap-2">
@@ -437,24 +534,24 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
                     {transitionType === 'Send Back' && (
                       <>This will return the case to <strong>{selectedStage}</strong> for corrections or additional work.</>
                     )}
-                    {transitionType === 'Remand' && (
-                      <>This will restart the <strong>{selectedStage}</strong> stage workflow from the beginning.</>
-                    )}
                   </AlertDescription>
                 </Alert>
               </CardContent>
             </Card>
           )}
 
-          <div className="space-y-2">
-            <Label>Notes</Label>
-            <Textarea
-              placeholder="Add notes..."
-              value={comments}
-              onChange={(e) => setComments(e.target.value)}
-              rows={3}
-            />
-          </div>
+          {/* Notes section - Only for Forward/Send Back */}
+          {transitionType !== 'Remand' && (
+            <div className="space-y-2">
+              <Label>Notes</Label>
+              <Textarea
+                placeholder="Add notes..."
+                value={comments}
+                onChange={(e) => setComments(e.target.value)}
+                rows={3}
+              />
+            </div>
+          )}
           </div>
 
           {/* Right Column: Stage History */}
@@ -467,12 +564,40 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button 
             onClick={handleTransition} 
-            disabled={!selectedStage || isProcessing || (hasBlockingItems && !forceOverride)}
+            disabled={
+              !selectedStage || 
+              isProcessing || 
+              (hasBlockingItems && !forceOverride) ||
+              (transitionType === 'Remand' && !remandValidation.isValid)
+            }
           >
             {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
-            {forceOverride && hasBlockingItems ? 'Force Transition' : 'Confirm'}
+            {transitionType === 'Remand' 
+              ? `Confirm ${remandDetails?.remandType || 'Remand'}` 
+              : forceOverride && hasBlockingItems 
+                ? 'Force Transition' 
+                : 'Confirm'
+            }
           </Button>
         </DialogFooter>
+
+        {/* Remand Confirmation Dialog */}
+        {transitionType === 'Remand' && remandDetails && (
+          <RemandConfirmationDialog
+            isOpen={showRemandConfirmation}
+            onConfirm={executeTransition}
+            onCancel={() => setShowRemandConfirmation(false)}
+            transitionDetails={{
+              fromStage: canonicalStage,
+              toStage: remandDetails.targetStage || '',
+              remandType: remandDetails.remandType || 'Remand',
+              reasonCategory: remandDetails.reasonCategory || '',
+              reasonDetails: remandDetails.reasonDetails || ''
+            }}
+            supersededCount={supersededCount}
+            isProcessing={isProcessing}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );

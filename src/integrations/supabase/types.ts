@@ -2998,13 +2998,21 @@ export type Database = {
           approved_by: string | null
           attachments: Json | null
           case_id: string
+          client_visible_summary: string | null
           comments: string | null
           created_at: string | null
           created_by: string
           from_stage: string | null
           id: string
           is_confirmed: boolean | null
+          order_date: string | null
+          order_document_id: string | null
+          order_number: string | null
           override_reason: string | null
+          preserves_future_history: boolean | null
+          reason_category: string | null
+          reason_details: string | null
+          remand_type: string | null
           requires_approval: boolean | null
           tenant_id: string
           to_stage: string
@@ -3020,13 +3028,21 @@ export type Database = {
           approved_by?: string | null
           attachments?: Json | null
           case_id: string
+          client_visible_summary?: string | null
           comments?: string | null
           created_at?: string | null
           created_by: string
           from_stage?: string | null
           id?: string
           is_confirmed?: boolean | null
+          order_date?: string | null
+          order_document_id?: string | null
+          order_number?: string | null
           override_reason?: string | null
+          preserves_future_history?: boolean | null
+          reason_category?: string | null
+          reason_details?: string | null
+          remand_type?: string | null
           requires_approval?: boolean | null
           tenant_id: string
           to_stage: string
@@ -3042,13 +3058,21 @@ export type Database = {
           approved_by?: string | null
           attachments?: Json | null
           case_id?: string
+          client_visible_summary?: string | null
           comments?: string | null
           created_at?: string | null
           created_by?: string
           from_stage?: string | null
           id?: string
           is_confirmed?: boolean | null
+          order_date?: string | null
+          order_document_id?: string | null
+          order_number?: string | null
           override_reason?: string | null
+          preserves_future_history?: boolean | null
+          reason_category?: string | null
+          reason_details?: string | null
+          remand_type?: string | null
           requires_approval?: boolean | null
           tenant_id?: string
           to_stage?: string
@@ -3069,6 +3093,20 @@ export type Database = {
             columns: ["approved_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_transitions_order_document_id_fkey"
+            columns: ["order_document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_transitions_order_document_id_fkey"
+            columns: ["order_document_id"]
+            isOneToOne: false
+            referencedRelation: "pending_review_documents"
             referencedColumns: ["id"]
           },
         ]
