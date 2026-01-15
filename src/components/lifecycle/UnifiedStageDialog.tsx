@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { AdaptiveFormShell } from '@/components/ui/adaptive-form-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -327,20 +327,43 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
     }
   }, [transitionType]);
 
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl max-h-[90vh]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Manage Case Stage
-          </DialogTitle>
-          <DialogDescription>Transition the case through its lifecycle</DialogDescription>
-        </DialogHeader>
+  const footerContent = (
+    <>
+      <Button variant="outline" onClick={onClose}>Cancel</Button>
+      <Button 
+        onClick={handleTransition} 
+        disabled={
+          !selectedStage || 
+          isProcessing || 
+          (hasBlockingItems && !forceOverride) ||
+          (transitionType === 'Remand' && !remandValidation.isValid)
+        }
+      >
+        {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
+        {transitionType === 'Remand' 
+          ? `Confirm ${remandDetails?.remandType || 'Remand'}` 
+          : forceOverride && hasBlockingItems 
+            ? 'Force Transition' 
+            : 'Confirm'
+        }
+      </Button>
+    </>
+  );
 
+  return (
+    <>
+      <AdaptiveFormShell
+        isOpen={isOpen}
+        onClose={onClose}
+        title="Manage Case Stage"
+        description="Transition the case through its lifecycle"
+        icon={<Shield className="h-5 w-5" />}
+        complexity="complex"
+        footer={footerContent}
+      >
         {/* Context Access Button */}
         {caseId && (
-          <div className="px-6 pb-4">
+          <div className="pb-4">
             <Separator className="mb-4" />
             <div className="flex items-center justify-between">
               <div>
@@ -366,9 +389,10 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 overflow-y-auto max-h-[65vh] px-1">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 flex-1 min-h-0">
           {/* Left Column: Stage Transition Form */}
-          <div className="lg:col-span-3 space-y-4">
+          <div className="lg:col-span-3 space-y-4 overflow-y-auto">
+
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm">Current Stage</CardTitle>
@@ -589,50 +613,29 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
           </div>
 
           {/* Right Column: Stage History */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 flex flex-col min-h-0 overflow-hidden">
             {caseId && <StageTransitionHistory caseId={caseId} />}
           </div>
         </div>
+      </AdaptiveFormShell>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button 
-            onClick={handleTransition} 
-            disabled={
-              !selectedStage || 
-              isProcessing || 
-              (hasBlockingItems && !forceOverride) ||
-              (transitionType === 'Remand' && !remandValidation.isValid)
-            }
-          >
-            {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
-            {transitionType === 'Remand' 
-              ? `Confirm ${remandDetails?.remandType || 'Remand'}` 
-              : forceOverride && hasBlockingItems 
-                ? 'Force Transition' 
-                : 'Confirm'
-            }
-          </Button>
-        </DialogFooter>
-
-        {/* Remand Confirmation Dialog */}
-        {transitionType === 'Remand' && remandDetails && (
-          <RemandConfirmationDialog
-            isOpen={showRemandConfirmation}
-            onConfirm={executeTransition}
-            onCancel={() => setShowRemandConfirmation(false)}
-            transitionDetails={{
-              fromStage: canonicalStage,
-              toStage: remandDetails.targetStage || '',
-              remandType: remandDetails.remandType || 'Remand',
-              reasonCategory: remandDetails.reasonCategory || '',
-              reasonDetails: remandDetails.reasonDetails || ''
-            }}
-            supersededCount={supersededCount}
-            isProcessing={isProcessing}
-          />
-        )}
-      </DialogContent>
-    </Dialog>
+      {/* Remand Confirmation Dialog */}
+      {transitionType === 'Remand' && remandDetails && (
+        <RemandConfirmationDialog
+          isOpen={showRemandConfirmation}
+          onConfirm={executeTransition}
+          onCancel={() => setShowRemandConfirmation(false)}
+          transitionDetails={{
+            fromStage: canonicalStage,
+            toStage: remandDetails.targetStage || '',
+            remandType: remandDetails.remandType || 'Remand',
+            reasonCategory: remandDetails.reasonCategory || '',
+            reasonDetails: remandDetails.reasonDetails || ''
+          }}
+          supersededCount={supersededCount}
+          isProcessing={isProcessing}
+        />
+      )}
+    </>
   );
 };

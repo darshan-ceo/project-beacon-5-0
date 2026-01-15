@@ -231,6 +231,15 @@ export const RemandReopenForm: React.FC<RemandReopenFormProps> = ({
           </Alert>
         )}
 
+        {/* Tip: Document Upload Visibility */}
+        <Alert className="bg-muted/50 border-muted">
+          <Info className="h-4 w-4" />
+          <AlertDescription className="text-xs">
+            <strong>Tip:</strong> Select "Court/Tribunal Order" or "Higher Authority Direction" 
+            as reason category to access order document upload options.
+          </AlertDescription>
+        </Alert>
+
         {/* Reason Category */}
         <div className="space-y-2">
           <div className="flex items-center gap-2">
