@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ModalLayout } from '@/components/ui/modal-layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AdaptiveFormShell } from '@/components/ui/adaptive-form-shell';
+import { FormStickyFooter } from '@/components/ui/form-sticky-footer';
 import {
   Accordion,
   AccordionContent,
@@ -637,29 +638,14 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
     ? employeesService.checkDependencies(employee.id, state.cases, state.tasks, state.hearings)
     : [];
 
-  const footer = !isReadOnly ? (
-    <div className="flex justify-end gap-2">
-      <Button variant="ghost" onClick={onClose} disabled={isSubmitting}>
-        Cancel
-      </Button>
-      <Button onClick={handleSubmit} disabled={isSubmitting}>
-        {isSubmitting ? (
-          <>
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            {mode === 'create' ? 'Creating...' : 'Updating...'}
-          </>
-        ) : (
-          <>
-            <Save className="h-4 w-4 mr-2" />
-            {mode === 'create' ? 'Save Employee' : 'Update Employee'}
-          </>
-        )}
-      </Button>
-    </div>
-  ) : (
-    <div className="flex justify-end">
-      <Button onClick={onClose}>Close</Button>
-    </div>
+  const footer = (
+    <FormStickyFooter
+      mode={mode}
+      onCancel={onClose}
+      onPrimaryAction={!isReadOnly ? handleSubmit : undefined}
+      primaryLabel={mode === 'create' ? 'Save Employee' : 'Update Employee'}
+      isPrimaryLoading={isSubmitting}
+    />
   );
 
   const renderPersonalTab = () => (
@@ -1759,9 +1745,9 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
   ];
 
   return (
-    <ModalLayout
-      open={isOpen}
-      onOpenChange={onClose}
+    <AdaptiveFormShell
+      isOpen={isOpen}
+      onClose={onClose}
       title={
         mode === 'create'
           ? 'Add New Employee'
@@ -1774,8 +1760,10 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
           ? `Employee Code: ${formData.employeeCode}`
           : undefined
       }
-      maxWidth="max-w-[900px]"
+      icon={<User className="h-5 w-5" />}
+      complexity="complex"
       footer={footer}
+      dataTour="employee-modal"
     >
       {isMobile ? (
         <Accordion type="single" collapsible className="space-y-2">
@@ -1809,6 +1797,6 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
           ))}
         </Tabs>
       )}
-    </ModalLayout>
+    </AdaptiveFormShell>
   );
 };

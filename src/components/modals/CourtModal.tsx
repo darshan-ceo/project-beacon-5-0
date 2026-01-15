@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,9 +6,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
+import { AdaptiveFormShell } from '@/components/ui/adaptive-form-shell';
+import { FormStickyFooter } from '@/components/ui/form-sticky-footer';
 import { Court, useAppState } from '@/contexts/AppStateContext';
 import { AddressForm } from '@/components/ui/AddressForm';
 import { AddressView } from '@/components/ui/AddressView';
@@ -397,26 +398,43 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     }
   };
 
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-beacon-modal max-h-[90vh] overflow-hidden border bg-background shadow-beacon-lg rounded-beacon-xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5" />
-            {mode === 'create' ? 'Add New Legal Forum' : mode === 'edit' ? 'Edit Legal Forum' : 'View Legal Forum'}
-          </DialogTitle>
-        </DialogHeader>
 
-        <DialogBody className="px-6 py-4 overflow-y-auto flex-1">
-          <form id="court-form" onSubmit={handleSubmit} className="space-y-6">
-            {/* Section 1: Basic Information */}
-            <Card className="rounded-beacon-lg border bg-card shadow-beacon-md">
-              <CardHeader className="border-b border-border p-6 pb-4">
-                <CardTitle className="flex items-center gap-2">
-                  <Scale className="h-4 w-4" />
-                  Basic Information
-                </CardTitle>
-              </CardHeader>
+  const footer = (
+    <FormStickyFooter
+      mode={mode}
+      onCancel={onClose}
+      onPrimaryAction={mode !== 'view' ? () => {
+        const form = document.getElementById('court-form') as HTMLFormElement;
+        if (form) form.requestSubmit();
+      } : undefined}
+      primaryLabel={mode === 'create' ? 'Create Court' : 'Update Court'}
+      isPrimaryLoading={isSaving}
+      showDelete={mode === 'edit' && canDeleteCourts}
+      onDelete={() => setDeleteDialogOpen(true)}
+      isDeleteLoading={isDeleting}
+    />
+  );
+
+  return (
+    <>
+      <AdaptiveFormShell
+        isOpen={isOpen}
+        onClose={onClose}
+        title={mode === 'create' ? 'Add New Legal Forum' : mode === 'edit' ? 'Edit Legal Forum' : 'View Legal Forum'}
+        icon={<Building2 className="h-5 w-5" />}
+        complexity="complex"
+        footer={footer}
+        dataTour="court-modal"
+      >
+        <form id="court-form" onSubmit={handleSubmit} className="space-y-6">
+          {/* Section 1: Basic Information */}
+          <Card className="rounded-beacon-lg border bg-card shadow-beacon-md">
+            <CardHeader className="border-b border-border p-6 pb-4">
+              <CardTitle className="flex items-center gap-2">
+                <Scale className="h-4 w-4" />
+                Basic Information
+              </CardTitle>
+            </CardHeader>
               <CardContent className="space-y-4 p-6">
             <div>
               <div className="flex items-center gap-1">
@@ -895,59 +913,29 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                 ))}
               </div>
             </div>
-              </CardContent>
-            </Card>
-          </form>
-        </DialogBody>
+            </CardContent>
+          </Card>
+        </form>
+      </AdaptiveFormShell>
 
-        <DialogFooter className="gap-3">
-          {mode === 'view' ? (
-            <Button type="button" onClick={onClose}>
-              Close
-            </Button>
-          ) : (
-            <>
-              <Button type="button" variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              {mode === 'edit' && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button type="button" variant="destructive">
-                      Delete
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete the court
-                        and remove all associated data.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleDelete}>
-                        Delete
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              )}
-              <Button type="submit" form="court-form" disabled={isSaving}>
-                {isSaving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {mode === 'create' ? 'Creating...' : 'Updating...'}
-                  </>
-                ) : (
-                  mode === 'create' ? 'Create Court' : 'Update Court'
-                )}
-              </Button>
-            </>
-          )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the court
+              and remove all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };

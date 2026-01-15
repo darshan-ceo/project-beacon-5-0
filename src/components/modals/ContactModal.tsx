@@ -1,13 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogBody,
-  DialogFooter,
-} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { AdaptiveFormShell } from '@/components/ui/adaptive-form-shell';
+import { FormStickyFooter } from '@/components/ui/form-sticky-footer';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -304,56 +298,61 @@ export const ContactModal: React.FC<ContactModalProps> = ({
     }
   };
 
+  const footer = (
+    <FormStickyFooter
+      mode={mode}
+      onCancel={onClose}
+      onPrimaryAction={!isViewMode ? () => {
+        const form = document.querySelector('form[data-contact-form]') as HTMLFormElement;
+        if (form) form.requestSubmit();
+      } : undefined}
+      primaryLabel={mode === 'create' ? 'Create Contact' : 'Save Changes'}
+      isPrimaryLoading={saving}
+      isPrimaryDisabled={!formData.name.trim() || formData.roles.length === 0}
+      showDelete={mode === 'edit'}
+      onDelete={() => setDeleteDialogOpen(true)}
+      isDeleteLoading={saving}
+    />
+  );
+
+  const description = mode === 'create' 
+    ? 'Create a new contact (client-linked or standalone)'
+    : contactData?.clientName 
+      ? `Linked to ${contactData.clientName}` 
+      : 'Standalone contact';
+
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-beacon-modal max-h-[90vh] flex flex-col">
-          <DialogHeader>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10">
-                <UserCircle className="h-5 w-5 text-primary" />
-              </div>
-              <div className="flex-1">
-                <DialogTitle className="flex items-center gap-2">
-                  {getModeIcon()}
-                  {getTitle()}
-                </DialogTitle>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  {mode === 'create' 
-                    ? 'Create a new contact (client-linked or standalone)'
-                    : contactData?.clientName 
-                      ? `Linked to ${contactData.clientName}` 
-                      : 'Standalone contact'
-                  }
-                </p>
-              </div>
-            </div>
-          </DialogHeader>
-
-          {loading ? (
-            <DialogBody>
-              <div className="space-y-4">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-20 w-full" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-            </DialogBody>
-          ) : (
-            <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
-              <DialogBody>
-                <div className="space-y-6">
-                  {/* Basic Information Card */}
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <UserCircle className="h-4 w-4 text-primary" />
-                        Basic Information
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {/* Name + Designation - 2 column */}
-                      <div className="grid grid-cols-2 gap-4">
+      <AdaptiveFormShell
+        isOpen={isOpen}
+        onClose={onClose}
+        title={getTitle()}
+        description={description}
+        icon={<UserCircle className="h-5 w-5 text-primary" />}
+        complexity="complex"
+        footer={footer}
+        dataTour="contact-modal"
+      >
+        {loading ? (
+          <div className="space-y-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        ) : (
+          <form data-contact-form onSubmit={handleSubmit} className="space-y-6">
+            {/* Basic Information Card */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <UserCircle className="h-4 w-4 text-primary" />
+                  Basic Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Name + Designation - 2 column */}
+                <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="name">Name *</Label>
                           <Input
@@ -543,47 +542,17 @@ export const ContactModal: React.FC<ContactModalProps> = ({
                           disabled={isViewMode}
                         />
                       </div>
-                    </CardContent>
-                  </Card>
+                  </CardContent>
+                </Card>
 
-                  {error && (
-                    <Alert variant="destructive">
-                      <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                  )}
-                </div>
-              </DialogBody>
-
-              <DialogFooter className="border-t">
-                {mode === 'edit' && (
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    onClick={() => setDeleteDialogOpen(true)}
-                    disabled={saving}
-                    className="sm:mr-auto"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </Button>
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
                 )}
-                <Button type="button" variant="outline" onClick={onClose}>
-                  {isViewMode ? 'Close' : 'Cancel'}
-                </Button>
-                {!isViewMode && (
-                  <Button 
-                    type="submit" 
-                    disabled={saving || !formData.name.trim() || formData.roles.length === 0}
-                  >
-                    {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {mode === 'create' ? 'Create Contact' : 'Save Changes'}
-                  </Button>
-                )}
-              </DialogFooter>
-            </form>
-          )}
-        </DialogContent>
-      </Dialog>
+          </form>
+        )}
+      </AdaptiveFormShell>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
