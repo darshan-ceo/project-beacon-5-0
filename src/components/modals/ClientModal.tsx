@@ -511,8 +511,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
     return Object.keys(newErrors).length === 0 && newValidationErrors.length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent | { preventDefault?: () => void }) => {
+    e?.preventDefault?.();
     
     secureLog.debug('handleSubmit called', { mode, hasSignatories: signatories.length > 0 });
     
