@@ -11,6 +11,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { FollowUpReminderService } from "@/services/followUpReminderService";
 import { FollowUpSystemTutorial } from "@/components/tasks/FollowUpSystemTutorial";
 import { toast } from "@/hooks/use-toast";
+import '@/utils/buildInfo'; // Logs build info on app start
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { AdminLayout } from "./components/layout/AdminLayout";
