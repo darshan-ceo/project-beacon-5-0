@@ -3568,11 +3568,14 @@ export type Database = {
       }
       task_messages: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           attachments: Json | null
           created_at: string
           created_by: string | null
           created_by_name: string
           id: string
+          is_client_visible: boolean | null
           is_system_message: boolean | null
           message: string
           status_update: string | null
@@ -3581,11 +3584,14 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           attachments?: Json | null
           created_at?: string
           created_by?: string | null
           created_by_name: string
           id?: string
+          is_client_visible?: boolean | null
           is_system_message?: boolean | null
           message: string
           status_update?: string | null
@@ -3594,11 +3600,14 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           attachments?: Json | null
           created_at?: string
           created_by?: string | null
           created_by_name?: string
           id?: string
+          is_client_visible?: boolean | null
           is_system_message?: boolean | null
           message?: string
           status_update?: string | null
@@ -3607,6 +3616,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "task_messages_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "task_messages_task_id_fkey"
             columns: ["task_id"]
@@ -3707,6 +3723,9 @@ export type Database = {
           client_id: string | null
           completed_date: string | null
           created_at: string | null
+          created_by: string | null
+          creation_reason: string | null
+          creation_stage_code: string | null
           description: string | null
           due_date: string | null
           due_date_validated: boolean | null
@@ -3716,9 +3735,11 @@ export type Database = {
           id: string
           is_auto_generated: boolean | null
           priority: string | null
+          sla_hours: number | null
           stage: string | null
           status: string | null
           tags: string[] | null
+          task_category: string | null
           tenant_id: string
           timezone: string | null
           title: string
@@ -3735,6 +3756,9 @@ export type Database = {
           client_id?: string | null
           completed_date?: string | null
           created_at?: string | null
+          created_by?: string | null
+          creation_reason?: string | null
+          creation_stage_code?: string | null
           description?: string | null
           due_date?: string | null
           due_date_validated?: boolean | null
@@ -3744,9 +3768,11 @@ export type Database = {
           id?: string
           is_auto_generated?: boolean | null
           priority?: string | null
+          sla_hours?: number | null
           stage?: string | null
           status?: string | null
           tags?: string[] | null
+          task_category?: string | null
           tenant_id: string
           timezone?: string | null
           title: string
@@ -3763,6 +3789,9 @@ export type Database = {
           client_id?: string | null
           completed_date?: string | null
           created_at?: string | null
+          created_by?: string | null
+          creation_reason?: string | null
+          creation_stage_code?: string | null
           description?: string | null
           due_date?: string | null
           due_date_validated?: boolean | null
@@ -3772,9 +3801,11 @@ export type Database = {
           id?: string
           is_auto_generated?: boolean | null
           priority?: string | null
+          sla_hours?: number | null
           stage?: string | null
           status?: string | null
           tags?: string[] | null
+          task_category?: string | null
           tenant_id?: string
           timezone?: string | null
           title?: string
@@ -3821,6 +3852,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
