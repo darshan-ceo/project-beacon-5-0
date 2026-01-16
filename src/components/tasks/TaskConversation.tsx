@@ -6,8 +6,11 @@ import {
   Trash2,
   Loader2,
   MessageSquare,
-  Plus
+  Plus,
+  ArrowLeft
 } from 'lucide-react';
+import { TaskHeader } from './TaskHeader';
+import { CollapsibleDescription } from './CollapsibleDescription';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
