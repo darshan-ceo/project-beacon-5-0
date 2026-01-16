@@ -82,7 +82,7 @@ export const FormStickyFooter: React.FC<FormStickyFooterProps> = ({
 
       {!isViewMode && onPrimaryAction && (
         <Button
-          type="submit"
+          type="button"
           onClick={onPrimaryAction}
           disabled={isPrimaryLoading || isPrimaryDisabled}
         >

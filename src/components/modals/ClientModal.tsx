@@ -883,11 +883,22 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
 
   const showSignatorySection = formData.type !== 'Individual';
 
+  const handlePrimaryAction = () => {
+    // Use requestSubmit to trigger the actual form submission
+    const form = document.getElementById('client-form') as HTMLFormElement | null;
+    if (form) {
+      form.requestSubmit();
+    } else {
+      // Fallback: call handleSubmit directly
+      handleSubmit();
+    }
+  };
+
   const footer = (
     <FormStickyFooter
       mode={mode}
       onCancel={onClose}
-      onPrimaryAction={mode !== 'view' ? () => handleSubmit({} as any) : undefined}
+      onPrimaryAction={mode !== 'view' ? handlePrimaryAction : undefined}
       primaryLabel={mode === 'create' ? 'Create Client' : 'Update Client'}
       isPrimaryLoading={isSaving}
       showDelete={mode === 'edit' && canDeleteClients}
@@ -915,7 +926,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         footer={footer}
         dataTour="client-modal"
       >
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form id="client-form" onSubmit={handleSubmit} className="space-y-6">
           {/* Environment status badges */}
           <div className="flex gap-2 text-xs mb-4">
             {(() => {
