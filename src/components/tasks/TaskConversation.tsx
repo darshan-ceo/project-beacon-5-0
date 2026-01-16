@@ -2,9 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { 
-  ArrowLeft, 
   MoreVertical,
-  Edit,
   Trash2,
   Loader2,
   MessageSquare,
@@ -15,22 +13,24 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAppState } from '@/contexts/AppStateContext';
 import { taskMessagesService } from '@/services/taskMessagesService';
 import { TaskMessage, TaskAttachment, TaskStatusUpdate } from '@/types/taskMessages';
-import { TaskHeader } from './TaskHeader';
-import { CollapsibleDescription } from './CollapsibleDescription';
 import { MessageBubble } from './MessageBubble';
 import { ComposeMessage } from './ComposeMessage';
 import { QuickStatusButton } from './QuickStatusButton';
+import { TaskStickyContextHeader } from './TaskStickyContextHeader';
+import { TaskDetailsPanel } from './TaskDetailsPanel';
+import { TaskInlineReferences } from './TaskInlineReferences';
+import { TaskActivityTimeline } from './TaskActivityTimeline';
 import { supabase } from '@/integrations/supabase/client';
 import { tasksService } from '@/services/tasksService';
 import { toast } from 'sonner';
 import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
+import { useTaskContext } from '@/hooks/useTaskContext';
 
 export const TaskConversation: React.FC = () => {
   const { taskId } = useParams<{ taskId: string }>();
@@ -38,6 +38,7 @@ export const TaskConversation: React.FC = () => {
   const navigate = useNavigate();
   const { state, dispatch } = useAppState();
   const { hasPermission } = useAdvancedRBAC();
+  const { context, isLoading: isContextLoading, updateClientVisibility } = useTaskContext(taskId);
   const [messages, setMessages] = useState<TaskMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string>('');
