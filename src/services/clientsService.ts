@@ -171,9 +171,31 @@ export const clientsService = {
         throw new Error(validationErrors.join(', '));
       }
 
-      // Import storage manager
+      // Import storage manager with retry logic
       const { storageManager } = await import('@/data/StorageManager');
-      const storage = storageManager.getStorage();
+      
+      // Retry logic if storage not ready
+      let storage;
+      let retries = 0;
+      const maxRetries = 5;
+      while (retries < maxRetries) {
+        try {
+          storage = storageManager.getStorage();
+          break;
+        } catch (error) {
+          if ((error as Error).message?.includes('not initialized')) {
+            retries++;
+            console.log(`[clientsService] Waiting for storage... (${retries}/${maxRetries})`);
+            await new Promise(resolve => setTimeout(resolve, 300));
+          } else {
+            throw error;
+          }
+        }
+      }
+      
+      if (!storage) {
+        throw new Error('Storage system is not ready. Please wait a moment and try again.');
+      }
 
       // Normalize payload before persistence
       const normalizedData = normalizeClientPayload(clientData);
@@ -202,7 +224,7 @@ export const clientsService = {
       };
 
       // Persist to Supabase first
-      const savedClient = await storage.create<any>('clients', supabaseClient);
+      const savedClient = await (storage as any).create('clients', supabaseClient);
 
       // Convert Supabase format to app format
       const newClient: Client = {

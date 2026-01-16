@@ -18,6 +18,25 @@ export function useAutomation() {
       if (initialized) return;
       
       try {
+        // Wait for StorageManager to be ready before initializing automation
+        const { storageManager } = await import('@/data/StorageManager');
+        
+        let storageReady = false;
+        for (let i = 0; i < 10; i++) {
+          try {
+            storageManager.getStorage();
+            storageReady = true;
+            break;
+          } catch {
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        }
+        
+        if (!storageReady) {
+          console.warn('[useAutomation] StorageManager not ready, skipping automation initialization');
+          return;
+        }
+        
         console.log('[useAutomation] Initializing automation system');
         
         // Initialize the automation engine

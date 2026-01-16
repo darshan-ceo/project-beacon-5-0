@@ -22,22 +22,39 @@ class AutomationRuleEngine {
   async initialize(): Promise<void> {
     if (this.initialized) return;
 
-    try {
-      const storage = storageManager.getStorage();
-      const auditService = storageManager.getAuditService();
-      
-      this.ruleRepository = new AutomationRuleRepository(storage, auditService);
-      this.logRepository = new AutomationLogRepository(storage, auditService);
-      
-      // Test connectivity
-      await this.ruleRepository.getAll();
-      
-      this.initialized = true;
-      console.log('[AutomationRuleEngine] ✅ Initialized successfully');
-    } catch (error) {
-      console.error('[AutomationRuleEngine] ❌ Initialization failed:', error);
-      throw new Error(`AutomationRuleEngine initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    const maxRetries = 10;
+    let retries = 0;
+
+    while (retries < maxRetries) {
+      try {
+        const storage = storageManager.getStorage();
+        const auditService = storageManager.getAuditService();
+        
+        this.ruleRepository = new AutomationRuleRepository(storage, auditService);
+        this.logRepository = new AutomationLogRepository(storage, auditService);
+        
+        // Test connectivity
+        await this.ruleRepository.getAll();
+        
+        this.initialized = true;
+        console.log('[AutomationRuleEngine] ✅ Initialized successfully');
+        return;
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        
+        // If StorageManager not initialized, wait and retry
+        if (errorMessage.includes('not initialized')) {
+          retries++;
+          console.log(`[AutomationRuleEngine] Waiting for StorageManager... (${retries}/${maxRetries})`);
+          await new Promise(resolve => setTimeout(resolve, 500));
+        } else {
+          console.error('[AutomationRuleEngine] ❌ Initialization failed:', error);
+          throw new Error(`AutomationRuleEngine initialization failed: ${errorMessage}`);
+        }
+      }
     }
+
+    console.warn('[AutomationRuleEngine] ⚠️ StorageManager initialization timeout - automation disabled');
   }
 
   private ensureInitialized(): void {
