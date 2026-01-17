@@ -214,9 +214,33 @@ Use 'Inactive' for merged Commissioner Appeals offices or abolished authorities 
       title: 'Email Address',
       content: 'Official email for document delivery and communications. Must be unique per signatory.',
     },
+    'emails': {
+      title: 'Email Addresses',
+      content: 'Contact emails for official communications. Press Enter to add. First email is auto-set as primary. Duplicate emails are allowed but flagged for awareness.',
+    },
+    'phones': {
+      title: 'Phone Numbers',
+      content: 'Contact numbers for urgent communications. Press Enter to add. Mobile numbers can be WhatsApp-enabled.',
+    },
+    'designation': {
+      title: 'Designation',
+      content: 'Role or position of the signatory (e.g., Director, Partner, Authorized Representative). Helps identify authority level.',
+    },
+    'dob': {
+      title: 'Date of Birth',
+      content: 'Required for KYC verification, digital signing, and legal compliance. Must be 18+ years old.',
+    },
     'scope': {
       title: 'Scope of Authority',
       content: 'Define what matters this signatory can authorize: All, GST Filings, Litigation, or Appeals.',
+    },
+    'isPrimary': {
+      title: 'Primary Signatory',
+      content: 'Primary signatory is the main contact for all communications and document signing. Only one primary signatory allowed per client.',
+    },
+    'status': {
+      title: 'Status',
+      content: 'Active signatories can sign documents and receive communications. Inactive signatories are retained for records but cannot act.',
     },
   },
   'create-action-item': {
