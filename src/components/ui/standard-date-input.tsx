@@ -133,6 +133,9 @@ export const StandardDateInput: React.FC<StandardDateInputProps> = ({
         max={getMaxIso()}
         className={cn(
           'pr-10',
+          // Hide native calendar icon to avoid duplicate icons
+          '[&::-webkit-calendar-picker-indicator]:hidden',
+          '[&::-webkit-inner-spin-button]:hidden',
           error && 'border-destructive focus-visible:ring-destructive'
         )}
         placeholder={placeholder}

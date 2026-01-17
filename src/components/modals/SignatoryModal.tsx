@@ -11,6 +11,7 @@ import { FieldTooltip } from '@/components/ui/field-tooltip';
 import { SignatoryEmailManager } from '@/components/contacts/SignatoryEmailManager';
 import { SignatoryPhoneManager } from '@/components/contacts/SignatoryPhoneManager';
 import { autoCapitalizeFirst } from '@/utils/textFormatters';
+import { UserPen } from 'lucide-react';
 
 interface SignatoryModalProps {
   isOpen: boolean;
@@ -93,13 +94,15 @@ export const SignatoryModal: React.FC<SignatoryModalProps> = ({
         status: signatory.status
       });
     } else if (mode === 'create') {
+      // For new signatories, auto-enable primary if this is the first signatory
+      const shouldBePrimary = existingSignatories.length === 0;
       setFormData({
         fullName: '',
         designation: '',
         emails: [],
         phones: [],
         dob: '',
-        isPrimary: false,
+        isPrimary: shouldBePrimary,
         scope: 'All',
         status: 'Active'
       });
@@ -211,7 +214,8 @@ export const SignatoryModal: React.FC<SignatoryModalProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-beacon-modal max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="font-bold flex items-center gap-2">
+            <UserPen className="h-5 w-5" />
             {mode === 'create' && 'Add New Signatory'}
             {mode === 'edit' && 'Edit Signatory'}
             {mode === 'view' && 'Signatory Details'}
@@ -245,7 +249,10 @@ export const SignatoryModal: React.FC<SignatoryModalProps> = ({
             </div>
 
             <div>
-              <Label htmlFor="designation">Designation</Label>
+              <div className="flex items-center gap-1">
+                <Label htmlFor="designation">Designation</Label>
+                <FieldTooltip formId="create-signatory" fieldId="designation" />
+              </div>
               <Input
                 id="designation"
                 value={formData.designation}
@@ -338,7 +345,10 @@ export const SignatoryModal: React.FC<SignatoryModalProps> = ({
 
             <div className="flex items-center justify-between">
               <div className="space-y-2">
-                <Label>Primary Signatory</Label>
+                <div className="flex items-center gap-1">
+                  <Label>Primary Signatory</Label>
+                  <FieldTooltip formId="create-signatory" fieldId="isPrimary" />
+                </div>
                 <div className="flex items-center space-x-2">
                   <Switch
                     checked={formData.isPrimary}
@@ -355,7 +365,10 @@ export const SignatoryModal: React.FC<SignatoryModalProps> = ({
               </div>
 
               <div className="space-y-2">
-                <Label>Status</Label>
+                <div className="flex items-center gap-1">
+                  <Label>Status</Label>
+                  <FieldTooltip formId="create-signatory" fieldId="status" />
+                </div>
                 <div>
                   <Select 
                     value={formData.status} 
