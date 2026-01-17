@@ -340,6 +340,25 @@ All colors MUST be HSL. Professional legal theme with accessibility focus.
   }
 }
 
+/* Hide native date picker icon globally - prevents duplicate calendar icons */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  display: none !important;
+  -webkit-appearance: none;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+input[type="date"]::-webkit-inner-spin-button {
+  display: none !important;
+  -webkit-appearance: none;
+}
+
+/* Firefox - hide native date picker */
+input[type="date"] {
+  -moz-appearance: textfield;
+}
+
 @layer base {
   * {
     @apply border-border;
