@@ -1526,6 +1526,68 @@ export type Database = {
           },
         ]
       }
+      employee_audit_history: {
+        Row: {
+          changed_at: string | null
+          changed_by: string | null
+          employee_id: string
+          field_name: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+          tenant_id: string
+        }
+        Insert: {
+          changed_at?: string | null
+          changed_by?: string | null
+          employee_id: string
+          field_name: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          tenant_id: string
+        }
+        Update: {
+          changed_at?: string | null
+          changed_by?: string | null
+          employee_id?: string
+          field_name?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_audit_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_productivity_metrics"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_audit_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_audit_history_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_audit_history_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           aadhaar: string | null
