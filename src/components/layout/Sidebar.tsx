@@ -245,11 +245,23 @@ const createDevSection = (): SidebarSection | null => {
 };
 
 export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
-  // Normalize role: map 'Partner' to 'Partner/CA' for sidebar compatibility
+  // Normalize role: map various role variants to sidebar-compatible roles
   const normalizedRole = useMemo(() => {
     const role = userRole?.toString().trim();
-    if (role?.toLowerCase() === 'partner') return 'Partner/CA';
-    return userRole;
+    
+    // Role normalization map for defensive compatibility
+    const roleNormalizationMap: Record<string, string> = {
+      'partner': 'Partner/CA',
+      'Partner': 'Partner/CA',
+      'rm': 'Manager',
+      'Rm': 'Manager',
+      'RM': 'Manager',
+      'ca': 'Ca',
+      'CA': 'Ca',
+      'admin': 'Admin',
+    };
+    
+    return roleNormalizationMap[role || ''] || userRole;
   }, [userRole]);
 
   // Sidebar theme state with persistence
@@ -471,7 +483,39 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
         <SidebarContent>
           <ScrollArea className="flex-1">
             <div className="p-2 space-y-2">
-              {filteredSections.map(renderSection)}
+              {filteredSections.length > 0 ? (
+                filteredSections.map(renderSection)
+              ) : (
+                /* Fallback: If no sections visible, show at least Support section */
+                <SidebarGroup>
+                  <SidebarGroupLabel className="text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider px-3 py-2">
+                    {open ? 'SUPPORT' : <LifeBuoy className="h-4 w-4 mx-auto" />}
+                  </SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild className="nav-hover" tooltip="Help & Knowledge Base">
+                          <NavLink to="/help">
+                            <HelpCircle className="h-5 w-5" />
+                            {open && <span className="truncate">Help & Knowledge Base</span>}
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild className="nav-hover" tooltip="User Profile">
+                          <NavLink to="/profile">
+                            <UserCircle className="h-5 w-5" />
+                            {open && <span className="truncate">User Profile</span>}
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                  <div className="px-3 py-2 text-xs text-sidebar-foreground/40">
+                    {open && "No modules assigned. Contact administrator."}
+                  </div>
+                </SidebarGroup>
+              )}
             </div>
           </ScrollArea>
         </SidebarContent>

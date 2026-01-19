@@ -76,10 +76,18 @@ export const useModuleAccess = (): ModuleAccessResult => {
   }, [state.userProfile?.id, state.employees]);
 
   // Check if user role bypasses module access
+  // This checks the employee's operational role for Admin/Partner bypass
+  // Note: RBAC admin bypass is handled separately in useAdvancedRBAC
   const isUnrestricted = useMemo(() => {
     if (!currentEmployee) return true; // Allow all if no employee found (fallback)
-    const bypassRoles = ['admin', 'partner', 'Admin', 'Partner', 'Partner/CA', 'partner/ca'];
-    return bypassRoles.includes(currentEmployee.role || '');
+    
+    // Normalize role for comparison
+    const normalizedRole = (currentEmployee.role || '').toLowerCase();
+    
+    // Bypass roles - including 'rm' which maps to Manager (but doesn't bypass)
+    // Only admin/partner bypass module access restrictions
+    const bypassRoles = ['admin', 'partner', 'partner/ca'];
+    return bypassRoles.includes(normalizedRole);
   }, [currentEmployee]);
 
   // Get allowed modules

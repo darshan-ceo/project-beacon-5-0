@@ -67,6 +67,11 @@ class SupabasePermissionsResolver {
   /**
    * Get the user's role from their employee record or user_roles table
    */
+  /**
+   * Get the user's effective role by checking BOTH employees table AND user_roles table,
+   * then selecting the highest priority role. This ensures RBAC roles (like 'admin') 
+   * override operational employee roles (like 'RM').
+   */
   async getUserRole(userId: string): Promise<AppRole> {
     // Check cache
     const cached = this.userRoleCache.get(userId);
@@ -75,7 +80,9 @@ class SupabasePermissionsResolver {
     }
 
     try {
-      // First check employees table (primary source for firm staff)
+      const allRoles: string[] = [];
+      
+      // 1. Check employees table for operational role
       const { data: employee } = await supabase
         .from('employees')
         .select('role')
@@ -83,13 +90,11 @@ class SupabasePermissionsResolver {
         .maybeSingle();
 
       if (employee?.role) {
-        const role = this.mapEmployeeRole(employee.role);
-        this.userRoleCache.set(userId, { role, expiry: Date.now() + this.cacheTTL });
-        console.log(`[RBAC] User ${userId} resolved to role: ${role} (from employees table)`);
-        return role;
+        allRoles.push(employee.role);
+        console.log(`[RBAC] User ${userId} employee role: ${employee.role}`);
       }
 
-      // Fallback: Check user_roles table - get ALL active roles
+      // 2. Check user_roles table for RBAC roles (always check, not just fallback)
       const { data: userRoles } = await supabase
         .from('user_roles')
         .select('role')
@@ -97,11 +102,16 @@ class SupabasePermissionsResolver {
         .eq('is_active', true);
 
       if (userRoles && userRoles.length > 0) {
-        // Get highest priority role from all user's roles
-        const allRoles = userRoles.map(r => r.role as string);
+        const rbacRoles = userRoles.map(r => r.role as string);
+        allRoles.push(...rbacRoles);
+        console.log(`[RBAC] User ${userId} RBAC roles: ${rbacRoles.join(', ')}`);
+      }
+
+      // 3. Get highest priority role from ALL sources
+      if (allRoles.length > 0) {
         const role = this.getHighestPriorityRole(allRoles);
         this.userRoleCache.set(userId, { role, expiry: Date.now() + this.cacheTTL });
-        console.log(`[RBAC] User ${userId} resolved to role: ${role} (from roles: ${allRoles.join(', ')})`);
+        console.log(`[RBAC] User ${userId} effective role: ${role} (from: ${allRoles.join(', ')})`);
         return role;
       }
 
