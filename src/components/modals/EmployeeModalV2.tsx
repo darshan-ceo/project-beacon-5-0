@@ -25,6 +25,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useAppState } from '@/contexts/AppStateContext';
 import { employeesService, Employee } from '@/services/employeesService';
 import { roleMapperService } from '@/services/roleMapperService';
+import { userResolutionService } from '@/services/userResolutionService';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -46,6 +47,7 @@ import {
   Info,
   Mail,
   Loader2,
+  HelpCircle,
 } from 'lucide-react';
 
 interface EmployeeModalV2Props {
@@ -135,6 +137,12 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
   const [activeTab, setActiveTab] = useState('personal');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
+  // State for resolved audit user names
+  const [auditUsers, setAuditUsers] = useState<{
+    createdBy: string;
+    updatedBy: string;
+  }>({ createdBy: 'Loading...', updatedBy: 'Loading...' });
+  
   // RBAC permission flags
   const canCreateEmployees = hasPermission('employees', 'write');
   const canEditEmployees = hasPermission('employees', 'write');
@@ -167,6 +175,37 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
       setFormData((prev) => ({ ...prev, employeeCode: autoCode }));
     }
   }, [employee, mode, state.employees.length]);
+
+  // Resolve audit user UUIDs to human-readable names
+  useEffect(() => {
+    const resolveAuditUsers = async () => {
+      if (mode === 'create') {
+        setAuditUsers({ createdBy: 'N/A', updatedBy: 'N/A' });
+        return;
+      }
+      
+      const userIds = [formData.createdBy, formData.updatedBy].filter(Boolean) as string[];
+      if (userIds.length === 0) {
+        setAuditUsers({ createdBy: 'N/A', updatedBy: 'N/A' });
+        return;
+      }
+
+      try {
+        const resolved = await userResolutionService.resolveUserIds(userIds);
+        setAuditUsers({
+          createdBy: formData.createdBy ? (resolved.get(formData.createdBy)?.displayText || 'System') : 'N/A',
+          updatedBy: formData.updatedBy ? (resolved.get(formData.updatedBy)?.displayText || 'N/A') : 'N/A'
+        });
+      } catch (error) {
+        console.error('Error resolving audit users:', error);
+        setAuditUsers({ createdBy: 'Unknown', updatedBy: 'Unknown' });
+      }
+    };
+
+    if (mode === 'edit' || mode === 'view') {
+      resolveAuditUsers();
+    }
+  }, [formData.createdBy, formData.updatedBy, mode]);
 
   // Get recommended data_scope based on employee role
   const getRecommendedDataScope = (role: string): Employee['dataScope'] => {
@@ -501,6 +540,10 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
         }
 
       } else if (mode === 'edit' && employee) {
+        // Get current user for updated_by field
+        const { data: { session } } = await supabase.auth.getSession();
+        const currentUserId = session?.user?.id;
+        
         // For updates, directly update the employees table
         const { error: updateError } = await supabase
           .from('employees')
@@ -556,6 +599,7 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
             notes: formData.notes,
             status: formData.status,
             updated_at: new Date().toISOString(),
+            updated_by: currentUserId, // Track who made the last update
           })
           .eq('id', employee.id);
 
@@ -1685,52 +1729,96 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
   );
 
   const renderAuditTab = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div className="space-y-2">
-        <Label>Created By</Label>
-        <Input value={formData.createdBy || 'N/A'} disabled />
-      </div>
-
-      <div className="space-y-2">
-        <Label>Created At</Label>
-        <Input
-          value={
-            formData.createdAt
-              ? format(new Date(formData.createdAt), 'dd/MM/yyyy HH:mm')
-              : 'N/A'
-          }
-          disabled
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label>Last Modified By</Label>
-        <Input value={formData.updatedBy || 'N/A'} disabled />
-      </div>
-
-      <div className="space-y-2">
-        <Label>Last Modified At</Label>
-        <Input
-          value={
-            formData.updatedAt
-              ? format(new Date(formData.updatedAt), 'dd/MM/yyyy HH:mm')
-              : 'N/A'
-          }
-          disabled
-        />
-      </div>
-
-      {mode === 'view' && dependencies.length > 0 && (
-        <div className="space-y-2 md:col-span-2">
-          <Label>Dependencies</Label>
-          <div className="p-4 border rounded-lg">
-            <p className="text-sm text-muted-foreground">
-              This employee has {dependencies.join(', ')}
-            </p>
+    <TooltipProvider>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label>Created By</Label>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Auto-generated by system for audit purposes</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
+          <Input value={auditUsers.createdBy} disabled className="bg-muted" />
         </div>
-      )}
-    </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label>Created At</Label>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Auto-generated by system for audit purposes</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+          <Input
+            value={
+              formData.createdAt
+                ? format(new Date(formData.createdAt), 'dd/MM/yyyy HH:mm')
+                : 'N/A'
+            }
+            disabled
+            className="bg-muted"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label>Last Modified By</Label>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Auto-generated by system for audit purposes</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+          <Input value={auditUsers.updatedBy} disabled className="bg-muted" />
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label>Last Modified At</Label>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Auto-generated by system for audit purposes</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+          <Input
+            value={
+              formData.updatedAt
+                ? format(new Date(formData.updatedAt), 'dd/MM/yyyy HH:mm')
+                : 'N/A'
+            }
+            disabled
+            className="bg-muted"
+          />
+        </div>
+
+        {mode === 'view' && dependencies.length > 0 && (
+          <div className="space-y-2 md:col-span-2">
+            <Label>Dependencies</Label>
+            <div className="p-4 border rounded-lg bg-muted">
+              <p className="text-sm text-muted-foreground">
+                This employee has {dependencies.join(', ')}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+    </TooltipProvider>
   );
 
   const tabs = [
