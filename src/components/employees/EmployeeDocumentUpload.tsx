@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Download, Trash2, FileText, FileImage, File } from 'lucide-react';
 import { employeeDocumentService, EmployeeDocumentCategory } from '@/services/employeeDocumentService';
 import { useAppState } from '@/contexts/AppStateContext';
+import { toast } from '@/hooks/use-toast';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -171,9 +172,17 @@ export const EmployeeDocumentUpload = ({
       ) : (
         <FileDropzone
           onFileSelect={handleFileSelect}
-          onError={(error) => console.error('File error:', error)}
+          onError={(error) => {
+            console.error('File validation error:', error);
+            toast({
+              title: 'Invalid file',
+              description: error,
+              variant: 'destructive'
+            });
+          }}
           accept={config.acceptedTypes.join(',')}
-          maxSize={config.maxSize * 1024 * 1024}
+          acceptLabel={config.acceptedTypes.map(t => t.replace('.', '').toUpperCase()).join(', ')}
+          maxSizeMB={config.maxSize}
           disabled={disabled || uploading}
           progress={uploading ? uploadProgress : undefined}
         />

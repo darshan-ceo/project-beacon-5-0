@@ -9,7 +9,9 @@ interface FileDropzoneProps {
   onFileSelect: (file: File) => void;
   onError: (error: string) => void;
   accept?: string;
-  maxSize?: number; // in MB
+  acceptLabel?: string; // Human-readable label like "PDF, DOC, DOCX"
+  maxSize?: number; // in bytes (will be converted to MB for display)
+  maxSizeMB?: number; // Alternative: size in MB directly
   disabled?: boolean;
   progress?: number;
   className?: string;
@@ -19,11 +21,28 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
   onFileSelect,
   onError,
   accept = "image/jpeg,image/png,image/webp",
-  maxSize = 2,
+  acceptLabel,
+  maxSize,
+  maxSizeMB = 2,
   disabled = false,
   progress,
   className
 }) => {
+  // Calculate display size - prefer maxSizeMB, otherwise convert maxSize from bytes
+  const displayMaxSizeMB = maxSizeMB || (maxSize ? maxSize / (1024 * 1024) : 2);
+  // Use maxSize in bytes for validation, or convert maxSizeMB to bytes
+  const maxSizeBytes = maxSize || (maxSizeMB * 1024 * 1024);
+  
+  // Generate accept label from accept string if not provided
+  const displayAcceptLabel = acceptLabel || accept.split(',').map(t => {
+    const type = t.trim();
+    if (type.includes('/')) {
+      // MIME type like "image/jpeg" -> "JPEG"
+      return type.split('/')[1].toUpperCase();
+    }
+    // Extension like ".pdf" -> "PDF"
+    return type.replace('.', '').toUpperCase();
+  }).join(', ');
   const [isDragOver, setIsDragOver] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
@@ -38,19 +57,18 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
     });
 
     if (!isValidType) {
-      onError(`File type not supported. Please select: ${acceptedTypes.join(', ')}`);
+      onError(`File type not supported. Accepted: ${displayAcceptLabel}`);
       return false;
     }
 
-    // Check file size
-    const fileSizeMB = file.size / (1024 * 1024);
-    if (fileSizeMB > maxSize) {
-      onError(`File size too large. Maximum size: ${maxSize}MB`);
+    // Check file size (compare in bytes)
+    if (file.size > maxSizeBytes) {
+      onError(`File size too large. Maximum size: ${displayMaxSizeMB}MB`);
       return false;
     }
 
     return true;
-  }, [accept, maxSize, onError]);
+  }, [accept, maxSizeBytes, displayMaxSizeMB, displayAcceptLabel, onError]);
 
   const handleFile = useCallback((file: File) => {
     if (validateFile(file)) {
@@ -146,12 +164,12 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
               <Upload className="h-12 w-12 text-muted-foreground" />
             </div>
             <div className="text-center space-y-2">
-              <p className="text-sm font-medium">Drop your image here</p>
+              <p className="text-sm font-medium">Drop your file here</p>
               <p className="text-xs text-muted-foreground">
                 or click to browse files
               </p>
               <p className="text-xs text-muted-foreground">
-                Supports: JPEG, PNG, WebP • Max size: {maxSize}MB
+                Supports: {displayAcceptLabel} • Max size: {displayMaxSizeMB}MB
               </p>
             </div>
             <div className="flex justify-center">
