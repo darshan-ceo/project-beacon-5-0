@@ -5,20 +5,58 @@ import { Header } from './Header';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRBAC } from '@/hooks/useAdvancedRBAC';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
 }
 
+// Role mapping for sidebar compatibility - maps employee operational roles and RBAC roles to sidebar roles
+const ROLE_MAP: Record<string, 'Admin' | 'Partner/CA' | 'Staff' | 'Client' | 'Manager' | 'Advocate' | 'Ca' | 'Clerk' | 'User'> = {
+  // RBAC roles (from supabasePermissionsResolver)
+  'admin': 'Admin',
+  'partner': 'Partner/CA',
+  'manager': 'Manager',
+  'advocate': 'Advocate',
+  'ca': 'Ca',
+  'staff': 'Staff',
+  'clerk': 'Clerk',
+  'client': 'Client',
+  'user': 'User',
+  // Employee operational roles (capitalized)
+  'Admin': 'Admin',
+  'Partner': 'Partner/CA',
+  'Manager': 'Manager',
+  'RM': 'Manager',
+  'Rm': 'Manager',
+  'rm': 'Manager',
+  'Advocate': 'Advocate',
+  'CA': 'Ca',
+  'Ca': 'Ca',
+  'Staff': 'Staff',
+  'Clerk': 'Clerk',
+  'Client': 'Client',
+  'User': 'User',
+};
+
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const { userProfile, user } = useAuth();
+  const { enforcementEnabled, isRbacReady } = useRBAC();
   
-  // Derive user role for sidebar - map 'Partner' to 'Partner/CA' for sidebar compatibility
-  const userRole = (() => {
-    const role = userProfile?.role;
-    if (role === 'Partner') return 'Partner/CA';
-    return role || 'Staff';
-  })() as 'Admin' | 'Partner/CA' | 'Staff' | 'Client';
+  // Get the effective role for sidebar - prioritize RBAC-derived role when enforcement is enabled
+  const userRole = React.useMemo(() => {
+    const employeeRole = userProfile?.role || '';
+    
+    // Map the role to a sidebar-compatible role
+    const mappedRole = ROLE_MAP[employeeRole];
+    if (mappedRole) {
+      return mappedRole;
+    }
+    
+    // Default fallback
+    return 'Staff' as const;
+  }, [userProfile?.role]);
+  
   const userId = user?.id || userProfile?.full_name || 'user';
 
   return (
