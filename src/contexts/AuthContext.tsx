@@ -101,10 +101,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .eq('id', userId)
           .single();
 
-        // Use employee role if available (capitalize first letter), otherwise fall back to user_roles
-        const displayRole = employeeData?.role 
-          ? employeeData.role.charAt(0).toUpperCase() + employeeData.role.slice(1)
-          : primaryRole;
+        // ALWAYS use RBAC role (primaryRole from user_roles table) for access control
+        // Employee role (like 'RM') is a job title, not an access permission
+        const displayRole = primaryRole;
 
         setUserProfile({
           full_name: employeeData?.full_name || profileData.full_name,
