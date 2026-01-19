@@ -31,11 +31,11 @@ export interface StandardDateInputProps {
  * StandardDateInput - Unified date input component
  * 
  * Features:
- * - Native HTML5 date input for direct keyboard entry (dd/mm/yyyy)
+ * - Text input for keyboard entry (dd-mm-yyyy format)
  * - Calendar picker icon for alternative selection
  * - Display format: DD-MM-YYYY
  * - Storage format: YYYY-MM-DD (ISO)
- * - Works consistently on desktop, tablet, and mobile
+ * - No native browser calendar icon (uses type="text")
  */
 export const StandardDateInput: React.FC<StandardDateInputProps> = ({
   id,
@@ -53,48 +53,106 @@ export const StandardDateInput: React.FC<StandardDateInputProps> = ({
   toYear = new Date().getFullYear(),
 }) => {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [textValue, setTextValue] = useState('');
+  const [hasError, setHasError] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Convert value to ISO format for native input (YYYY-MM-DD)
-  const getIsoValue = (): string => {
-    if (!value) return '';
+  // Sync textValue with external value prop
+  useEffect(() => {
+    if (!value) {
+      setTextValue('');
+      return;
+    }
     const parsed = parseDateInput(value);
-    if (!parsed) return '';
-    return formatDateForStorage(parsed);
+    if (parsed) {
+      setTextValue(formatDateForDisplay(parsed));
+    } else {
+      setTextValue('');
+    }
+  }, [value]);
+
+  // Parse text input and validate date
+  const parseTextDate = (text: string): Date | null => {
+    if (!text.trim()) return null;
+    
+    // Normalize separators: accept dd/mm/yyyy, dd-mm-yyyy, dd.mm.yyyy
+    const normalized = text.replace(/[/.]/g, '-');
+    
+    // Try parsing as dd-mm-yyyy
+    const ddmmyyyy = parse(normalized, 'dd-MM-yyyy', new Date());
+    if (isValid(ddmmyyyy)) {
+      return ddmmyyyy;
+    }
+    
+    // Try parsing as yyyy-mm-dd (ISO format, in case user pastes)
+    const yyyymmdd = parse(normalized, 'yyyy-MM-dd', new Date());
+    if (isValid(yyyymmdd)) {
+      return yyyymmdd;
+    }
+    
+    return null;
   };
 
-  // Convert value to display format (DD-MM-YYYY)
-  const getDisplayValue = (): string => {
-    if (!value) return '';
-    const parsed = parseDateInput(value);
-    if (!parsed) return '';
-    return formatDateForDisplay(parsed);
+  // Validate date against min/max
+  const validateDate = (date: Date): boolean => {
+    const minDate = min ? parseDateInput(min) : null;
+    const maxDate = max ? parseDateInput(max) : null;
+    
+    if (minDate && date < minDate) return false;
+    if (maxDate && date > maxDate) return false;
+    
+    return true;
   };
 
-  // Convert min/max to ISO format for native input
-  const getMinIso = (): string | undefined => {
-    if (!min) return undefined;
-    const parsed = parseDateInput(min);
-    return parsed ? formatDateForStorage(parsed) : undefined;
+  // Handle text input change
+  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setTextValue(newValue);
+    setHasError(false);
   };
 
-  const getMaxIso = (): string | undefined => {
-    if (!max) return undefined;
-    const parsed = parseDateInput(max);
-    return parsed ? formatDateForStorage(parsed) : undefined;
-  };
+  // Handle blur - parse and validate
+  const handleBlur = () => {
+    if (!textValue.trim()) {
+      // Empty is valid (unless required, but that's form-level validation)
+      if (onChange) onChange('');
+      setHasError(false);
+      return;
+    }
 
-  // Handle native date input change
-  const handleNativeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const isoValue = e.target.value; // Native input returns YYYY-MM-DD
+    const parsed = parseTextDate(textValue);
+    
+    if (!parsed) {
+      setHasError(true);
+      return;
+    }
+
+    if (!validateDate(parsed)) {
+      setHasError(true);
+      return;
+    }
+
+    // Valid date - update display and call onChange
+    setTextValue(formatDateForDisplay(parsed));
+    setHasError(false);
     if (onChange) {
-      onChange(isoValue);
+      onChange(formatDateForStorage(parsed));
+    }
+  };
+
+  // Handle Enter key
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleBlur();
     }
   };
 
   // Handle calendar selection
   const handleCalendarSelect = (date: Date | undefined) => {
     if (date && onChange) {
+      setTextValue(formatDateForDisplay(date));
+      setHasError(false);
       onChange(formatDateForStorage(date));
     }
     setIsCalendarOpen(false);
@@ -120,22 +178,23 @@ export const StandardDateInput: React.FC<StandardDateInputProps> = ({
 
   return (
     <div className={cn('relative flex items-center', className)}>
-      {/* Native date input - allows direct keyboard entry */}
+      {/* Text input - no native calendar icon */}
       <Input
         ref={inputRef}
         id={id}
-        type="date"
-        value={getIsoValue()}
-        onChange={handleNativeChange}
+        type="text"
+        value={textValue}
+        onChange={handleTextChange}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
         disabled={disabled}
         required={required}
-        min={getMinIso()}
-        max={getMaxIso()}
         className={cn(
           'pr-10',
-          error && 'border-destructive focus-visible:ring-destructive'
+          (error || hasError) && 'border-destructive focus-visible:ring-destructive'
         )}
         placeholder={placeholder}
+        autoComplete="off"
       />
       
       {/* Calendar picker button */}
