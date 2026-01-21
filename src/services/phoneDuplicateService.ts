@@ -39,10 +39,14 @@ export const checkPhoneDuplicate = async (
       for (const contact of contacts) {
         if (excludeEntityId && contact.id === excludeEntityId) continue;
         
-        const phones = contact.phones as Array<{ countryCode: string; number: string }> | null;
+        const phones = contact.phones as Array<{ countryCode?: string; number?: string; phone?: string }> | null;
         if (phones && Array.isArray(phones)) {
           for (const phone of phones) {
-            if (normalizePhone(phone.countryCode || '', phone.number || '') === normalizedPhone) {
+            // Handle both old format { phone: "xxx" } and new format { countryCode, number }
+            const phoneNumber = phone.number || phone.phone || '';
+            const phoneCountryCode = phone.countryCode || countryCode; // Default to input country code
+            
+            if (phoneNumber && normalizePhone(phoneCountryCode, phoneNumber) === normalizedPhone) {
               matches.push({
                 entityName: contact.name,
                 moduleName: 'Contact',
@@ -65,13 +69,16 @@ export const checkPhoneDuplicate = async (
       for (const emp of employees) {
         if (excludeEntityId && emp.id === excludeEntityId) continue;
         
-        // Normalize employee mobile (assuming it may or may not have country code)
-        const empNormalized = emp.mobile?.startsWith('+') 
-          ? emp.mobile.replace(/\D/g, '').replace(/^/, '+')
-          : normalizePhone(countryCode, emp.mobile || '');
+        // Clean mobile number - strip any existing formatting and leading zeros
+        const cleanMobile = emp.mobile?.replace(/\D/g, '').replace(/^0+/, '') || '';
+        if (!cleanMobile) continue;
         
-        if (empNormalized === normalizedPhone || 
-            normalizePhone('+91', emp.mobile || '') === normalizedPhone) {
+        // Try matching with both: the input country code AND default +91
+        const empNormalizedWithInputCode = normalizePhone(countryCode, cleanMobile);
+        const empNormalizedWithDefault = normalizePhone('+91', cleanMobile);
+        
+        if (empNormalizedWithInputCode === normalizedPhone || 
+            empNormalizedWithDefault === normalizedPhone) {
           matches.push({
             entityName: emp.full_name,
             moduleName: 'Employee',
@@ -91,12 +98,16 @@ export const checkPhoneDuplicate = async (
       for (const client of clients) {
         if (excludeEntityId && client.id === excludeEntityId) continue;
         
-        const clientNormalized = client.phone?.startsWith('+')
-          ? client.phone.replace(/[^\d+]/g, '')
-          : normalizePhone(countryCode, client.phone || '');
+        // Clean phone number - strip any existing formatting and leading zeros
+        const cleanPhone = client.phone?.replace(/\D/g, '').replace(/^0+/, '') || '';
+        if (!cleanPhone) continue;
         
-        if (clientNormalized === normalizedPhone ||
-            normalizePhone('+91', client.phone || '') === normalizedPhone) {
+        // Try matching with both: the input country code AND default +91
+        const clientNormalizedWithInputCode = normalizePhone(countryCode, cleanPhone);
+        const clientNormalizedWithDefault = normalizePhone('+91', cleanPhone);
+        
+        if (clientNormalizedWithInputCode === normalizedPhone ||
+            clientNormalizedWithDefault === normalizedPhone) {
           matches.push({
             entityName: client.display_name,
             moduleName: 'Client',
@@ -116,12 +127,16 @@ export const checkPhoneDuplicate = async (
       for (const court of courts) {
         if (excludeEntityId && court.id === excludeEntityId) continue;
         
-        const courtNormalized = court.phone?.startsWith('+')
-          ? court.phone.replace(/[^\d+]/g, '')
-          : normalizePhone(countryCode, court.phone || '');
+        // Clean phone number - strip any existing formatting and leading zeros
+        const cleanCourtPhone = court.phone?.replace(/\D/g, '').replace(/^0+/, '') || '';
+        if (!cleanCourtPhone) continue;
         
-        if (courtNormalized === normalizedPhone ||
-            normalizePhone('+91', court.phone || '') === normalizedPhone) {
+        // Try matching with both: the input country code AND default +91
+        const courtNormalizedWithInputCode = normalizePhone(countryCode, cleanCourtPhone);
+        const courtNormalizedWithDefault = normalizePhone('+91', cleanCourtPhone);
+        
+        if (courtNormalizedWithInputCode === normalizedPhone ||
+            courtNormalizedWithDefault === normalizedPhone) {
           matches.push({
             entityName: court.name,
             moduleName: 'Court',
