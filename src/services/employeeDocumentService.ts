@@ -168,7 +168,7 @@ export const employeeDocumentService = {
           file_size: file.size,
           uploaded_by: user.id,
           folder_id: 'employees',
-          category: `employee-${category}`,
+          category: 'Miscellaneous',
           remarks: `Employee document: ${UPLOAD_CONFIGS[category].label} for ${employeeCode}`
         })
         .select()
