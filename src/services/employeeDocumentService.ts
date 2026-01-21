@@ -136,6 +136,18 @@ export const employeeDocumentService = {
 
       const tenantId = profile.tenant_id;
 
+      // Ensure 'employees' folder exists (upsert to prevent FK violation)
+      await supabase
+        .from('document_folders')
+        .upsert({
+          id: 'employees',
+          tenant_id: tenantId,
+          name: 'Employees',
+          path: '/folders/employees',
+          description: 'Employee documents (resumes, ID proofs, etc.)',
+          is_default: true
+        }, { onConflict: 'id', ignoreDuplicates: true });
+
       // Create unique file path: tenant/employees/employeeCode/category/timestamp-filename
       const timestamp = Date.now();
       const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
