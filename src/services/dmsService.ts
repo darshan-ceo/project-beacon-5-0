@@ -191,9 +191,22 @@ const saveMockFolders = async () => {
   }
 };
 
+// Resilient auth helper - uses cached session first before network call
+const getAuthenticatedUser = async () => {
+  // First try cached session (doesn't make network request)
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.user) {
+    return session.user;
+  }
+  
+  // Fall back to getUser (makes network request)
+  const { data: { user } } = await supabase.auth.getUser();
+  return user;
+};
+
 // Helper to get tenant_id from authenticated session
 const getTenantId = async (): Promise<string> => {
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthenticatedUser();
   if (!user) throw new Error('User not authenticated');
   
   const { data: profile } = await supabase

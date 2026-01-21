@@ -1,7 +1,6 @@
-import { dmsService } from './dmsService';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { AppAction } from '@/contexts/AppStateContext';
-import { loadAppState } from '@/data/storageShim';
 
 export type EmployeeDocumentCategory = 
   | 'resume' 
@@ -50,6 +49,19 @@ const UPLOAD_CONFIGS: Record<EmployeeDocumentCategory, UploadConfig> = {
   }
 };
 
+// Resilient auth helper - uses cached session first
+const getAuthenticatedUser = async () => {
+  // First try cached session (no network request)
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.user) {
+    return session.user;
+  }
+  
+  // Fall back to getUser (makes network request)
+  const { data: { user } } = await supabase.auth.getUser();
+  return user;
+};
+
 export const employeeDocumentService = {
   /**
    * Get upload configuration for a document category
@@ -86,7 +98,7 @@ export const employeeDocumentService = {
   },
 
   /**
-   * Upload employee document to DMS
+   * Upload employee document directly to Supabase Storage
    */
   uploadDocument: async (
     employeeCode: string,
@@ -105,40 +117,90 @@ export const employeeDocumentService = {
     }
 
     try {
-      // Ensure Employees folder exists
-      const folders = await dmsService.folders.listAll();
-      let employeesFolder = folders.find(f => f.id === 'employees');
-      
-      if (!employeesFolder) {
-        employeesFolder = await dmsService.folders.create('Employees', undefined, undefined, dispatch);
+      // Get authenticated user with resilient helper
+      const user = await getAuthenticatedUser();
+      if (!user) {
+        throw new Error('Please log in again to upload documents');
       }
 
-      // Create employee-specific subfolder if needed
-      const employeeFolderPath = `/folders/employees/${employeeCode.toLowerCase()}`;
-      let employeeFolder = folders.find(f => f.path === employeeFolderPath);
-      
-      if (!employeeFolder) {
-        employeeFolder = await dmsService.folders.create(
-          employeeCode,
-          'employees',
-          undefined,
-          dispatch
-        );
+      // Get tenant_id from profile
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || !profile?.tenant_id) {
+        throw new Error('User profile not found');
       }
 
-      // Upload document using DMS service (files.upload expects userId as first param)
-      const uploadResult = await dmsService.files.upload(
-        'system', // Use system as userId for employee document uploads
-        file,
-        {
-          folderId: employeeFolder.id,
-          tags: ['employee-document', category]
-        },
-        dispatch
-      );
+      const tenantId = profile.tenant_id;
 
-      if (!uploadResult.success || !uploadResult.document) {
-        throw new Error('Upload failed');
+      // Create unique file path: tenant/employees/employeeCode/category/timestamp-filename
+      const timestamp = Date.now();
+      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const filePath = `${tenantId}/employees/${employeeCode.toLowerCase()}/${category}/${timestamp}-${sanitizedFileName}`;
+
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.error('Storage upload error:', uploadError);
+        throw new Error(`Storage upload failed: ${uploadError.message}`);
+      }
+
+      // Get file extension for file_type
+      const fileExtension = file.name.split('.').pop()?.toLowerCase() || 'unknown';
+
+      // Create document record in database
+      const { data: docRecord, error: docError } = await supabase
+        .from('documents')
+        .insert({
+          tenant_id: tenantId,
+          file_name: file.name,
+          file_path: filePath,
+          file_type: fileExtension,
+          file_size: file.size,
+          uploaded_by: user.id,
+          folder_id: 'employees',
+          category: `employee-${category}`,
+          remarks: `Employee document: ${UPLOAD_CONFIGS[category].label} for ${employeeCode}`
+        })
+        .select()
+        .single();
+
+      if (docError) {
+        // Rollback: delete the uploaded file if DB insert fails
+        console.error('Document record creation failed:', docError);
+        await supabase.storage.from('documents').remove([filePath]);
+        throw new Error(`Failed to save document record: ${docError.message}`);
+      }
+
+      // Update app state
+      if (dispatch) {
+        dispatch({
+          type: 'ADD_DOCUMENT',
+          payload: {
+            id: docRecord.id,
+            name: file.name,
+            type: fileExtension,
+            size: file.size,
+            path: filePath,
+            uploadedAt: docRecord.upload_timestamp || new Date().toISOString(),
+            folderId: 'employees',
+            tags: ['employee-document', category],
+            isShared: false,
+            caseId: '',
+            clientId: '',
+            uploadedById: user.id,
+            uploadedByName: ''
+          }
+        });
       }
 
       toast({
@@ -146,7 +208,7 @@ export const employeeDocumentService = {
         description: `${UPLOAD_CONFIGS[category].label} uploaded successfully`
       });
 
-      return uploadResult.document.id;
+      return docRecord.id;
     } catch (error) {
       console.error('Document upload failed:', error);
       toast({
@@ -167,8 +229,43 @@ export const employeeDocumentService = {
     dispatch: React.Dispatch<AppAction>
   ): Promise<void> => {
     try {
-      await dmsService.deleteDocument(documentId, dispatch);
-      
+      // Get the document to find the file path
+      const { data: doc, error: fetchError } = await supabase
+        .from('documents')
+        .select('file_path')
+        .eq('id', documentId)
+        .single();
+
+      if (fetchError) {
+        throw new Error('Document not found');
+      }
+
+      // Delete from storage
+      if (doc?.file_path) {
+        const { error: storageError } = await supabase.storage
+          .from('documents')
+          .remove([doc.file_path]);
+        
+        if (storageError) {
+          console.warn('Storage deletion warning:', storageError);
+        }
+      }
+
+      // Delete from database
+      const { error: dbError } = await supabase
+        .from('documents')
+        .delete()
+        .eq('id', documentId);
+
+      if (dbError) {
+        throw new Error(`Failed to delete document record: ${dbError.message}`);
+      }
+
+      // Update app state
+      if (dispatch) {
+        dispatch({ type: 'DELETE_DOCUMENT', payload: documentId });
+      }
+
       toast({
         title: 'Document deleted',
         description: `${UPLOAD_CONFIGS[category].label} deleted successfully`
@@ -185,15 +282,22 @@ export const employeeDocumentService = {
   },
 
   /**
-   * Get document by ID from app state
+   * Get document by ID from database
    */
   getDocument: async (documentId: string) => {
     try {
-      // Get documents from app state (Supabase-only mode)
-      const appData = await loadAppState();
-      const documents: any[] = appData.documents || [];
-      
-      return documents.find((doc: any) => doc.id === documentId) || null;
+      const { data: doc, error } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('id', documentId)
+        .single();
+
+      if (error) {
+        console.error('Failed to get document:', error);
+        return null;
+      }
+
+      return doc;
     } catch (error) {
       console.error('Failed to get document:', error);
       return null;
@@ -210,7 +314,27 @@ export const employeeDocumentService = {
         throw new Error('Document not found');
       }
 
-      await dmsService.files.download(documentId, document.name);
+      // Get signed URL for download
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+        .from('documents')
+        .createSignedUrl(document.file_path, 3600); // 1 hour expiry
+
+      if (signedUrlError || !signedUrlData?.signedUrl) {
+        throw new Error('Failed to generate download link');
+      }
+
+      // Trigger download
+      const link = window.document.createElement('a');
+      link.href = signedUrlData.signedUrl;
+      link.download = document.file_name;
+      window.document.body.appendChild(link);
+      link.click();
+      window.document.body.removeChild(link);
+
+      toast({
+        title: 'Download started',
+        description: `Downloading ${document.file_name}`
+      });
     } catch (error) {
       console.error('Document download failed:', error);
       toast({
