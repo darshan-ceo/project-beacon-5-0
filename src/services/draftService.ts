@@ -1,5 +1,6 @@
 import { toast } from '@/hooks/use-toast';
-import { dmsService } from './dmsService';
+import { supabaseDocumentService } from './supabaseDocumentService';
+import { supabase } from '@/integrations/supabase/client';
 import { reportsService } from './reportsService';
 import { AppAction } from '@/contexts/AppStateContext';
 
@@ -80,21 +81,50 @@ class DraftService {
 
       console.log(`[DraftSave] Generated ${extension.toUpperCase()} file: ${fileName} (${blob.size} bytes)`);
 
-      // Step 4: Upload to DMS
-      const uploadOptions = {
-        caseId,
-        stageId,
-        folderHint: stageId ? "Stage" : "Templates",
-        tags: ['ai-generated', templateCode, `v${version}`]
-      };
-
-      const uploadResult = await dmsService.files.upload('system', file, uploadOptions, dispatch);
-
-      if (!uploadResult.success || !uploadResult.document) {
-        throw new Error('Failed to upload draft document');
+      // Step 4: Get tenant_id from user profile
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+      
+      const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single();
+      if (!profile?.tenant_id) {
+        throw new Error('User profile or tenant not found');
       }
 
-      const document = uploadResult.document;
+      // Step 5: Upload to Supabase Storage
+      const uploadResult = await supabaseDocumentService.uploadDocument(file, {
+        tenant_id: profile.tenant_id,
+        case_id: caseId,
+        category: 'Miscellaneous',
+        remarks: `AI Draft - ${templateCode} v${version}`
+      });
+
+      const document = {
+        id: uploadResult.id,
+        path: uploadResult.file_path,
+        name: uploadResult.file_name
+      };
+      
+      // Dispatch to Redux for immediate UI update
+      dispatch({
+        type: 'ADD_DOCUMENT',
+        payload: {
+          id: uploadResult.id,
+          name: uploadResult.file_name,
+          type: uploadResult.file_type,
+          size: uploadResult.file_size,
+          path: uploadResult.file_path,
+          caseId,
+          clientId: '',
+          uploadedById: user.id,
+          uploadedByName: 'AI Assistant',
+          uploadedAt: new Date().toISOString(),
+          tags: ['ai-generated', templateCode, `v${version}`],
+          isShared: false
+        }
+      });
+      
       console.log(`[DraftSave] Upload successful: ${document.id}`);
 
       // Step 5: Create timeline entry

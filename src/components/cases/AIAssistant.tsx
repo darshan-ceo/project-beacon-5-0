@@ -25,7 +25,8 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
 import { aiService, AIDraft, DocumentSummary } from '@/services/aiService';
-import { dmsService } from '@/services/dmsService';
+import { supabaseDocumentService } from '@/services/supabaseDocumentService';
+import { supabase } from '@/integrations/supabase/client';
 import { draftService } from '@/services/draftService';
 import { timelineService } from '@/services/timelineService';
 import { useAppState, Case, Document } from '@/contexts/AppStateContext';
@@ -102,13 +103,50 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ selectedCase }) => {
       setGeneratedDraft(draft);
       setEditedDraftContent(draft.generatedContent);
       
-      // Save draft to DMS
+      // Save draft to Supabase Storage for persistence
       const draftBlob = new Blob([draft.generatedContent], { type: 'text/plain' });
       const draftFile = new File([draftBlob], `AI_Draft_${draftForm.noticeType}_${Date.now()}.txt`, {
         type: 'text/plain'
       });
       
-      await dmsService.uploadForCaseStage(draftFile, selectedCase.id, 'ai-drafts', dispatch);
+      // Get tenant_id from user profile
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single();
+        
+        if (profile?.tenant_id) {
+          try {
+            const uploadResult = await supabaseDocumentService.uploadDocument(draftFile, {
+              tenant_id: profile.tenant_id,
+              case_id: selectedCase.id,
+              category: 'Miscellaneous',
+              remarks: `AI Draft - ${draftForm.noticeType}`
+            });
+            
+            // Dispatch to Redux for immediate UI update
+            dispatch({
+              type: 'ADD_DOCUMENT',
+              payload: {
+                id: uploadResult.id,
+                name: uploadResult.file_name,
+                type: uploadResult.file_type,
+                size: uploadResult.file_size,
+                path: uploadResult.file_path,
+                caseId: selectedCase.id,
+                clientId: selectedCase.clientId,
+                uploadedById: user.id,
+                uploadedByName: 'AI Assistant',
+                uploadedAt: new Date().toISOString(),
+                tags: ['ai-drafts', draftForm.noticeType],
+                isShared: false
+              }
+            });
+          } catch (uploadError) {
+            console.error('[AIAssistant] Failed to upload draft to storage:', uploadError);
+            // Don't fail the whole operation - draft is still generated
+          }
+        }
+      }
       
     } catch (error) {
       console.error('Draft generation failed:', error);
@@ -248,7 +286,43 @@ ${summary.extractedEntities.map(entity =>
         type: 'text/plain'
       });
       
-      await dmsService.uploadForCaseStage(summaryFile, selectedCase.id, 'ai-summaries', dispatch);
+      // Upload summary to Supabase Storage for persistence
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single();
+        
+        if (profile?.tenant_id) {
+          try {
+            const uploadResult = await supabaseDocumentService.uploadDocument(summaryFile, {
+              tenant_id: profile.tenant_id,
+              case_id: selectedCase.id,
+              category: 'Miscellaneous',
+              remarks: `AI Summary - ${documentToSummarize.name}`
+            });
+            
+            // Dispatch to Redux for immediate UI update
+            dispatch({
+              type: 'ADD_DOCUMENT',
+              payload: {
+                id: uploadResult.id,
+                name: uploadResult.file_name,
+                type: uploadResult.file_type,
+                size: uploadResult.file_size,
+                path: uploadResult.file_path,
+                caseId: selectedCase.id,
+                clientId: selectedCase.clientId,
+                uploadedById: user.id,
+                uploadedByName: 'AI Assistant',
+                uploadedAt: new Date().toISOString(),
+                tags: ['ai-summaries', documentToSummarize.name],
+                isShared: false
+              }
+            });
+          } catch (uploadError) {
+            console.error('[AIAssistant] Failed to upload summary to storage:', uploadError);
+          }
+        }
+      }
       
     } catch (error) {
       console.error('Summarization failed:', error);
