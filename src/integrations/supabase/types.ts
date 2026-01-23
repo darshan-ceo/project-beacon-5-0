@@ -127,6 +127,66 @@ export type Database = {
           },
         ]
       }
+      authority_levels: {
+        Row: {
+          allows_matter_types: boolean | null
+          code: string
+          config: Json | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          label: string | null
+          name: string
+          requires_location: boolean | null
+          sort_order: number | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          allows_matter_types?: boolean | null
+          code: string
+          config?: Json | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          label?: string | null
+          name: string
+          requires_location?: boolean | null
+          sort_order?: number | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          allows_matter_types?: boolean | null
+          code?: string
+          config?: Json | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          label?: string | null
+          name?: string
+          requires_location?: boolean | null
+          sort_order?: number | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "authority_levels_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "authority_levels_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       automation_logs: {
         Row: {
           actions_executed: Json | null
@@ -277,6 +337,74 @@ export type Database = {
           },
           {
             foreignKeyName: "automation_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      case_notification_preferences: {
+        Row: {
+          case_id: string
+          created_at: string | null
+          email_notifications: boolean | null
+          google_calendar: boolean | null
+          id: string
+          outlook: boolean | null
+          reminder_days: number[] | null
+          sms_notifications: boolean | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          case_id: string
+          created_at?: string | null
+          email_notifications?: boolean | null
+          google_calendar?: boolean | null
+          id?: string
+          outlook?: boolean | null
+          reminder_days?: number[] | null
+          sms_notifications?: boolean | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          case_id?: string
+          created_at?: string | null
+          email_notifications?: boolean | null
+          google_calendar?: boolean | null
+          id?: string
+          outlook?: boolean | null
+          reminder_days?: number[] | null
+          sms_notifications?: boolean | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_notification_preferences_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "case_activity_summary"
+            referencedColumns: ["case_id"]
+          },
+          {
+            foreignKeyName: "case_notification_preferences_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_notification_preferences_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "case_notification_preferences_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1135,6 +1263,105 @@ export type Database = {
           },
           {
             foreignKeyName: "courts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custom_cities: {
+        Row: {
+          city_name: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          state_id: string
+          tenant_id: string
+        }
+        Insert: {
+          city_name: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          state_id: string
+          tenant_id: string
+        }
+        Update: {
+          city_name?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          state_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_cities_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "custom_cities_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custom_outcome_templates: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          outcome_type: string
+          tasks: Json | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          outcome_type: string
+          tasks?: Json | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          outcome_type?: string
+          tasks?: Json | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_outcome_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "custom_outcome_templates_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -2407,6 +2634,7 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          photo_path: string | null
           photo_url: string | null
           retirement_date: string | null
           specialization: string[] | null
@@ -2434,6 +2662,7 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          photo_path?: string | null
           photo_url?: string | null
           retirement_date?: string | null
           specialization?: string[] | null
@@ -2461,6 +2690,7 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          photo_path?: string | null
           photo_url?: string | null
           retirement_date?: string | null
           specialization?: string[] | null
@@ -2495,6 +2725,73 @@ export type Database = {
           },
           {
             foreignKeyName: "judges_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      matter_types: {
+        Row: {
+          authority_level_id: string | null
+          code: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          label: string | null
+          location_metadata: Json | null
+          name: string
+          requires_location: boolean | null
+          sort_order: number | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          authority_level_id?: string | null
+          code: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          label?: string | null
+          location_metadata?: Json | null
+          name: string
+          requires_location?: boolean | null
+          sort_order?: number | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          authority_level_id?: string | null
+          code?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          label?: string | null
+          location_metadata?: Json | null
+          name?: string
+          requires_location?: boolean | null
+          sort_order?: number | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matter_types_authority_level_id_fkey"
+            columns: ["authority_level_id"]
+            isOneToOne: false
+            referencedRelation: "authority_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matter_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "matter_types_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
