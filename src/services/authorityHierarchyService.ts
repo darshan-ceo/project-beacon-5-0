@@ -1,8 +1,9 @@
 /**
  * Authority Hierarchy Service
- * Manages authority levels and their matter type hierarchies
+ * Manages authority levels and their matter type hierarchies using Supabase
  */
 
+import { supabase } from '@/integrations/supabase/client';
 import { 
   AuthorityHierarchyMaster, 
   AuthorityLevelConfig, 
@@ -10,39 +11,103 @@ import {
   DEFAULT_AUTHORITY_HIERARCHY 
 } from '@/types/authority-matter-hierarchy';
 
-const STORAGE_KEY = 'authority_hierarchy_master';
-
 class AuthorityHierarchyService {
-  private hierarchy: AuthorityHierarchyMaster;
+  private hierarchy: AuthorityHierarchyMaster = DEFAULT_AUTHORITY_HIERARCHY;
+  private tenantId: string | null = null;
+  private initialized = false;
 
-  constructor() {
-    this.hierarchy = this.loadHierarchy();
+  private async getTenantId(): Promise<string> {
+    if (this.tenantId) return this.tenantId;
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+    
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('tenant_id')
+      .eq('id', user.id)
+      .single();
+    
+    if (!profile?.tenant_id) throw new Error('Tenant not found');
+    this.tenantId = profile.tenant_id;
+    return this.tenantId;
   }
 
   /**
-   * Load hierarchy from storage or initialize with defaults
+   * Initialize and load hierarchy from Supabase
    */
-  private loadHierarchy(): AuthorityHierarchyMaster {
+  async initialize(): Promise<void> {
+    if (this.initialized) return;
+    
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        return JSON.parse(stored);
+      const tenantId = await this.getTenantId();
+      
+      // Load authority levels
+      const { data: levels, error: levelsError } = await supabase
+        .from('authority_levels')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .order('sort_order');
+      
+      if (levelsError) throw levelsError;
+
+      // If no custom levels, use defaults
+      if (!levels || levels.length === 0) {
+        this.hierarchy = { ...DEFAULT_AUTHORITY_HIERARCHY };
+        this.initialized = true;
+        return;
       }
-    } catch (error) {
-      console.error('Failed to load authority hierarchy:', error);
-    }
-    return DEFAULT_AUTHORITY_HIERARCHY;
-  }
 
-  /**
-   * Save hierarchy to storage
-   */
-  private saveHierarchy(): void {
-    try {
-      this.hierarchy.lastUpdated = new Date().toISOString();
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.hierarchy));
+      // Load matter types for each level
+      const { data: matterTypes, error: mtError } = await supabase
+        .from('matter_types')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .order('sort_order');
+
+      if (mtError) throw mtError;
+
+      // Build hierarchy
+      const authorityLevels: AuthorityLevelConfig[] = levels.map(level => {
+        const config = level.config as Record<string, any> || {};
+        return {
+          id: level.code,
+          name: level.name,
+          description: config.description || level.name,
+          hint: config.hint || '',
+          color: config.color || 'bg-gray-500 text-white',
+          isActive: level.is_active ?? true,
+          sortOrder: level.sort_order || 0,
+          allowsMatterTypes: level.allows_matter_types ?? false,
+          matterTypes: (matterTypes || [])
+            .filter(mt => mt.authority_level_id === level.id)
+            .map(mt => {
+              const mtConfig = mt.location_metadata as Record<string, any> || {};
+              return {
+                id: mt.code,
+                name: mt.name,
+                description: mtConfig.description || mt.name,
+                isActive: mt.is_active ?? true,
+                sortOrder: mt.sort_order || 0,
+                requiresLocation: mt.requires_location ?? false,
+                locations: mtConfig.locations
+              };
+            })
+        };
+      });
+
+      this.hierarchy = {
+        version: '2.0',
+        lastUpdated: new Date().toISOString(),
+        authorityLevels
+      };
+
+      this.initialized = true;
     } catch (error) {
-      console.error('Failed to save authority hierarchy:', error);
+      console.error('Failed to load authority hierarchy from Supabase:', error);
+      // Fallback to defaults
+      this.hierarchy = { ...DEFAULT_AUTHORITY_HIERARCHY };
+      this.initialized = true;
     }
   }
 
@@ -123,63 +188,177 @@ class AuthorityHierarchyService {
   /**
    * Add a new authority level
    */
-  addAuthorityLevel(level: Omit<AuthorityLevelConfig, 'sortOrder'>): void {
+  async addAuthorityLevel(level: Omit<AuthorityLevelConfig, 'sortOrder'>): Promise<void> {
+    const tenantId = await this.getTenantId();
     const maxSort = Math.max(0, ...this.hierarchy.authorityLevels.map(l => l.sortOrder));
+    
+    const { error } = await supabase
+      .from('authority_levels')
+      .insert({
+        tenant_id: tenantId,
+        code: level.id,
+        name: level.name,
+        label: level.name,
+        sort_order: maxSort + 1,
+        is_active: level.isActive ?? true,
+        allows_matter_types: level.allowsMatterTypes ?? false,
+        requires_location: false,
+        config: {
+          description: level.description,
+          hint: level.hint,
+          color: level.color
+        }
+      });
+
+    if (error) throw error;
+
+    // Update local cache
     const newLevel: AuthorityLevelConfig = {
       ...level,
       sortOrder: maxSort + 1,
       matterTypes: level.matterTypes || []
     };
     this.hierarchy.authorityLevels.push(newLevel);
-    this.saveHierarchy();
   }
 
   /**
    * Update an authority level
    */
-  updateAuthorityLevel(id: string, updates: Partial<AuthorityLevelConfig>): void {
+  async updateAuthorityLevel(id: string, updates: Partial<AuthorityLevelConfig>): Promise<void> {
+    const tenantId = await this.getTenantId();
+    const existing = this.getAuthorityLevelById(id);
+    
+    const updateData: Record<string, any> = {};
+    if (updates.name !== undefined) updateData.name = updates.name;
+    if (updates.sortOrder !== undefined) updateData.sort_order = updates.sortOrder;
+    if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
+    if (updates.allowsMatterTypes !== undefined) updateData.allows_matter_types = updates.allowsMatterTypes;
+    
+    // Store extended properties in config JSON
+    if (updates.description !== undefined || updates.hint !== undefined || updates.color !== undefined) {
+      updateData.config = {
+        description: updates.description ?? existing?.description,
+        hint: updates.hint ?? existing?.hint,
+        color: updates.color ?? existing?.color
+      };
+    }
+    
+    const { error } = await supabase
+      .from('authority_levels')
+      .update(updateData)
+      .eq('tenant_id', tenantId)
+      .eq('code', id);
+
+    if (error) throw error;
+
+    // Update local cache
     const index = this.hierarchy.authorityLevels.findIndex(l => l.id === id);
     if (index !== -1) {
       this.hierarchy.authorityLevels[index] = {
         ...this.hierarchy.authorityLevels[index],
         ...updates
       };
-      this.saveHierarchy();
     }
   }
 
   /**
    * Delete an authority level
    */
-  deleteAuthorityLevel(id: string): void {
+  async deleteAuthorityLevel(id: string): Promise<void> {
+    const tenantId = await this.getTenantId();
+    
+    const { error } = await supabase
+      .from('authority_levels')
+      .delete()
+      .eq('tenant_id', tenantId)
+      .eq('code', id);
+
+    if (error) throw error;
+
     this.hierarchy.authorityLevels = this.hierarchy.authorityLevels.filter(l => l.id !== id);
-    this.saveHierarchy();
   }
 
   /**
    * Add a matter type to an authority level
    */
-  addMatterType(authorityLevelId: string, matterType: Omit<MatterTypeConfig, 'sortOrder'>): void {
+  async addMatterType(authorityLevelId: string, matterType: Omit<MatterTypeConfig, 'sortOrder'>): Promise<void> {
     const level = this.getAuthorityLevelById(authorityLevelId);
     if (!level || !level.allowsMatterTypes) {
       throw new Error('Authority level does not support matter types');
     }
+
+    const tenantId = await this.getTenantId();
     
+    // Get the authority_level database ID
+    const { data: dbLevel } = await supabase
+      .from('authority_levels')
+      .select('id')
+      .eq('tenant_id', tenantId)
+      .eq('code', authorityLevelId)
+      .single();
+
+    if (!dbLevel) throw new Error('Authority level not found in database');
+
     const maxSort = Math.max(0, ...level.matterTypes.map(mt => mt.sortOrder));
+    
+    const insertData = {
+      tenant_id: tenantId,
+      authority_level_id: dbLevel.id,
+      code: matterType.id,
+      name: matterType.name,
+      label: matterType.name,
+      sort_order: maxSort + 1,
+      is_active: matterType.isActive ?? true,
+      requires_location: matterType.requiresLocation ?? false,
+      location_metadata: {
+        description: matterType.description,
+        locations: matterType.locations
+      }
+    };
+
+    const { error } = await supabase
+      .from('matter_types')
+      .insert(insertData as any);
+
+    if (error) throw error;
+    
     const newMatterType: MatterTypeConfig = {
       ...matterType,
       sortOrder: maxSort + 1
     };
     
     level.matterTypes.push(newMatterType);
-    this.saveHierarchy();
   }
 
   /**
    * Update a matter type
    */
-  updateMatterType(authorityLevelId: string, matterTypeId: string, updates: Partial<MatterTypeConfig>): void {
+  async updateMatterType(authorityLevelId: string, matterTypeId: string, updates: Partial<MatterTypeConfig>): Promise<void> {
+    const tenantId = await this.getTenantId();
     const level = this.getAuthorityLevelById(authorityLevelId);
+    const existing = level?.matterTypes.find(mt => mt.id === matterTypeId);
+    
+    const updateData: Record<string, any> = {};
+    if (updates.name !== undefined) updateData.name = updates.name;
+    if (updates.sortOrder !== undefined) updateData.sort_order = updates.sortOrder;
+    if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
+    if (updates.requiresLocation !== undefined) updateData.requires_location = updates.requiresLocation;
+    
+    if (updates.description !== undefined || updates.locations !== undefined) {
+      updateData.location_metadata = {
+        description: updates.description ?? existing?.description,
+        locations: updates.locations ?? existing?.locations
+      };
+    }
+    
+    const { error } = await supabase
+      .from('matter_types')
+      .update(updateData)
+      .eq('tenant_id', tenantId)
+      .eq('code', matterTypeId);
+
+    if (error) throw error;
+
     if (!level) return;
     
     const index = level.matterTypes.findIndex(mt => mt.id === matterTypeId);
@@ -188,56 +367,82 @@ class AuthorityHierarchyService {
         ...level.matterTypes[index],
         ...updates
       };
-      this.saveHierarchy();
     }
   }
 
   /**
    * Delete a matter type
    */
-  deleteMatterType(authorityLevelId: string, matterTypeId: string): void {
+  async deleteMatterType(authorityLevelId: string, matterTypeId: string): Promise<void> {
+    const tenantId = await this.getTenantId();
+    
+    const { error } = await supabase
+      .from('matter_types')
+      .delete()
+      .eq('tenant_id', tenantId)
+      .eq('code', matterTypeId);
+
+    if (error) throw error;
+
     const level = this.getAuthorityLevelById(authorityLevelId);
     if (!level) return;
     
     level.matterTypes = level.matterTypes.filter(mt => mt.id !== matterTypeId);
-    this.saveHierarchy();
   }
 
   /**
    * Reorder authority levels
    */
-  reorderAuthorityLevels(levelIds: string[]): void {
-    levelIds.forEach((id, index) => {
-      const level = this.getAuthorityLevelById(id);
+  async reorderAuthorityLevels(levelIds: string[]): Promise<void> {
+    const tenantId = await this.getTenantId();
+    
+    for (let i = 0; i < levelIds.length; i++) {
+      await supabase
+        .from('authority_levels')
+        .update({ sort_order: i + 1 })
+        .eq('tenant_id', tenantId)
+        .eq('code', levelIds[i]);
+      
+      const level = this.getAuthorityLevelById(levelIds[i]);
       if (level) {
-        level.sortOrder = index + 1;
+        level.sortOrder = i + 1;
       }
-    });
-    this.saveHierarchy();
+    }
   }
 
   /**
    * Reorder matter types within an authority level
    */
-  reorderMatterTypes(authorityLevelId: string, matterTypeIds: string[]): void {
+  async reorderMatterTypes(authorityLevelId: string, matterTypeIds: string[]): Promise<void> {
+    const tenantId = await this.getTenantId();
     const level = this.getAuthorityLevelById(authorityLevelId);
     if (!level) return;
     
-    matterTypeIds.forEach((id, index) => {
-      const matterType = level.matterTypes.find(mt => mt.id === id);
+    for (let i = 0; i < matterTypeIds.length; i++) {
+      await supabase
+        .from('matter_types')
+        .update({ sort_order: i + 1 })
+        .eq('tenant_id', tenantId)
+        .eq('code', matterTypeIds[i]);
+      
+      const matterType = level.matterTypes.find(mt => mt.id === matterTypeIds[i]);
       if (matterType) {
-        matterType.sortOrder = index + 1;
+        matterType.sortOrder = i + 1;
       }
-    });
-    this.saveHierarchy();
+    }
   }
 
   /**
    * Reset to default hierarchy
    */
-  resetToDefault(): void {
+  async resetToDefault(): Promise<void> {
+    const tenantId = await this.getTenantId();
+    
+    // Delete all custom levels and types
+    await supabase.from('matter_types').delete().eq('tenant_id', tenantId);
+    await supabase.from('authority_levels').delete().eq('tenant_id', tenantId);
+    
     this.hierarchy = { ...DEFAULT_AUTHORITY_HIERARCHY };
-    this.saveHierarchy();
   }
 
   /**
@@ -250,15 +455,27 @@ class AuthorityHierarchyService {
   /**
    * Import hierarchy from JSON
    */
-  importHierarchy(json: string): void {
+  async importHierarchy(json: string): Promise<void> {
     try {
       const imported = JSON.parse(json) as AuthorityHierarchyMaster;
-      // Validate structure
       if (!imported.authorityLevels || !Array.isArray(imported.authorityLevels)) {
         throw new Error('Invalid hierarchy structure');
       }
+      
+      // Clear existing and import new
+      await this.resetToDefault();
+      
+      for (const level of imported.authorityLevels) {
+        await this.addAuthorityLevel(level);
+        
+        if (level.matterTypes) {
+          for (const mt of level.matterTypes) {
+            await this.addMatterType(level.id, mt);
+          }
+        }
+      }
+      
       this.hierarchy = imported;
-      this.saveHierarchy();
     } catch (error) {
       throw new Error('Failed to import hierarchy: ' + (error as Error).message);
     }

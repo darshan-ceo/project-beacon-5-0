@@ -1,11 +1,10 @@
 /**
  * City Master Service
- * Manages custom city additions and persistence
+ * Manages custom city additions with Supabase persistence
  */
 
 import { City } from './addressLookupService';
-
-const STORAGE_KEY = 'custom_cities_master';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CustomCity extends City {
   createdAt: string;
@@ -13,50 +12,65 @@ interface CustomCity extends City {
 }
 
 class CityMasterService {
+  private tenantId: string | null = null;
+
+  private async getTenantId(): Promise<string> {
+    if (this.tenantId) return this.tenantId;
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+    
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('tenant_id')
+      .eq('id', user.id)
+      .single();
+    
+    if (!profile?.tenant_id) throw new Error('Tenant not found');
+    this.tenantId = profile.tenant_id;
+    return this.tenantId;
+  }
+
   /**
    * Add a new custom city to the master list
    */
   async addCustomCity(cityName: string, stateId: string): Promise<City> {
-    try {
-      // Validate inputs
-      const trimmedName = cityName.trim();
-      if (!trimmedName || trimmedName.length < 2) {
-        throw new Error('City name must be at least 2 characters');
-      }
-      
-      if (!stateId) {
-        throw new Error('State ID is required');
-      }
-
-      // Check for duplicates (case-insensitive)
-      const exists = await this.cityExists(trimmedName, stateId);
-      if (exists) {
-        throw new Error('City already exists in this state');
-      }
-
-      // Generate unique ID
-      const timestamp = Date.now();
-      const newCity: CustomCity = {
-        id: `CUSTOM_${stateId}_${timestamp}`,
-        name: trimmedName,
-        stateId,
-        createdAt: new Date().toISOString(),
-        createdBy: 'user'
-      };
-
-      // Save to storage
-      const customCities = await this.getCustomCities();
-      customCities.push(newCity);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(customCities));
-
-      return {
-        id: newCity.id,
-        name: newCity.name,
-        stateId: newCity.stateId
-      };
-    } catch (error) {
-      throw error;
+    const trimmedName = cityName.trim();
+    if (!trimmedName || trimmedName.length < 2) {
+      throw new Error('City name must be at least 2 characters');
     }
+    
+    if (!stateId) {
+      throw new Error('State ID is required');
+    }
+
+    const tenantId = await this.getTenantId();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // Check for duplicates (case-insensitive)
+    const exists = await this.cityExists(trimmedName, stateId);
+    if (exists) {
+      throw new Error('City already exists in this state');
+    }
+
+    const { data, error } = await supabase
+      .from('custom_cities')
+      .insert({
+        tenant_id: tenantId,
+        city_name: trimmedName,
+        state_id: stateId,
+        created_by: user?.id
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return {
+      id: data.id,
+      name: data.city_name,
+      stateId: data.state_id
+    };
   }
 
   /**
@@ -64,18 +78,29 @@ class CityMasterService {
    */
   async getCustomCities(stateId?: string): Promise<City[]> {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (!stored) return [];
-
-      const customCities: CustomCity[] = JSON.parse(stored);
+      const tenantId = await this.getTenantId();
+      
+      let query = supabase
+        .from('custom_cities')
+        .select('id, city_name, state_id')
+        .eq('tenant_id', tenantId);
       
       if (stateId) {
-        return customCities
-          .filter(city => city.stateId === stateId)
-          .map(({ id, name, stateId }) => ({ id, name, stateId }));
+        query = query.eq('state_id', stateId);
       }
 
-      return customCities.map(({ id, name, stateId }) => ({ id, name, stateId }));
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('Error loading custom cities:', error);
+        return [];
+      }
+
+      return (data || []).map(city => ({
+        id: city.id,
+        name: city.city_name,
+        stateId: city.state_id
+      }));
     } catch (error) {
       console.error('Error loading custom cities:', error);
       return [];
@@ -87,12 +112,22 @@ class CityMasterService {
    */
   async cityExists(cityName: string, stateId: string): Promise<boolean> {
     try {
-      const customCities = await this.getCustomCities(stateId);
+      const tenantId = await this.getTenantId();
       const lowerName = cityName.trim().toLowerCase();
       
-      return customCities.some(
-        city => city.name.toLowerCase() === lowerName && city.stateId === stateId
-      );
+      const { data, error } = await supabase
+        .from('custom_cities')
+        .select('id')
+        .eq('tenant_id', tenantId)
+        .eq('state_id', stateId)
+        .ilike('city_name', lowerName);
+      
+      if (error) {
+        console.error('Error checking city existence:', error);
+        return false;
+      }
+
+      return (data?.length || 0) > 0;
     } catch (error) {
       console.error('Error checking city existence:', error);
       return false;
@@ -122,19 +157,17 @@ class CityMasterService {
    */
   async deleteCustomCity(cityId: string): Promise<boolean> {
     try {
-      if (!cityId.startsWith('CUSTOM_')) {
-        throw new Error('Can only delete custom cities');
-      }
-
-      const customCities = await this.getCustomCities();
-      const filtered = customCities.filter(city => city.id !== cityId);
+      const tenantId = await this.getTenantId();
       
-      // Get full custom cities data
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const fullData: CustomCity[] = JSON.parse(stored);
-        const filteredFull = fullData.filter(city => city.id !== cityId);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(filteredFull));
+      const { error } = await supabase
+        .from('custom_cities')
+        .delete()
+        .eq('id', cityId)
+        .eq('tenant_id', tenantId);
+
+      if (error) {
+        console.error('Error deleting custom city:', error);
+        return false;
       }
 
       return true;
@@ -145,14 +178,26 @@ class CityMasterService {
   }
 
   /**
-   * Get city by ID (checks custom cities only)
+   * Get city by ID
    */
   async getCustomCityById(cityId: string): Promise<City | null> {
     try {
-      if (!cityId.startsWith('CUSTOM_')) return null;
+      const tenantId = await this.getTenantId();
 
-      const customCities = await this.getCustomCities();
-      return customCities.find(city => city.id === cityId) || null;
+      const { data, error } = await supabase
+        .from('custom_cities')
+        .select('id, city_name, state_id')
+        .eq('id', cityId)
+        .eq('tenant_id', tenantId)
+        .single();
+
+      if (error || !data) return null;
+
+      return {
+        id: data.id,
+        name: data.city_name,
+        stateId: data.state_id
+      };
     } catch (error) {
       console.error('Error getting custom city:', error);
       return null;
@@ -164,7 +209,12 @@ class CityMasterService {
    */
   async clearAllCustomCities(): Promise<void> {
     try {
-      localStorage.removeItem(STORAGE_KEY);
+      const tenantId = await this.getTenantId();
+      
+      await supabase
+        .from('custom_cities')
+        .delete()
+        .eq('tenant_id', tenantId);
     } catch (error) {
       console.error('Error clearing custom cities:', error);
     }
@@ -190,18 +240,25 @@ class CityMasterService {
     try {
       const importedCities: City[] = JSON.parse(jsonData);
       
-      // Validate structure
       if (!Array.isArray(importedCities)) {
         throw new Error('Invalid data format');
       }
 
-      const customCities: CustomCity[] = importedCities.map(city => ({
-        ...city,
-        createdAt: new Date().toISOString(),
-        createdBy: 'import'
+      const tenantId = await this.getTenantId();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      const citiesToInsert = importedCities.map(city => ({
+        tenant_id: tenantId,
+        city_name: city.name,
+        state_id: city.stateId,
+        created_by: user?.id
       }));
 
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(customCities));
+      const { error } = await supabase
+        .from('custom_cities')
+        .upsert(citiesToInsert, { onConflict: 'tenant_id,city_name,state_id' });
+
+      if (error) throw error;
       return true;
     } catch (error) {
       console.error('Error importing custom cities:', error);
