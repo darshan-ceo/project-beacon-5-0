@@ -1,42 +1,61 @@
 import { HearingOutcomeTemplate, OutcomeTaskTemplate, OUTCOME_TEMPLATES } from './hearingOutcomeTemplates';
 import { toast } from '@/hooks/use-toast';
-
-const STORAGE_KEY = 'custom_outcome_templates';
+import { supabase } from '@/integrations/supabase/client';
+import { Json } from '@/integrations/supabase/types';
 
 /**
- * Manager service for custom hearing outcome templates
+ * Manager service for custom hearing outcome templates using Supabase
  */
 export class OutcomeTemplateManager {
   private customTemplates: HearingOutcomeTemplate[] = [];
+  private tenantId: string | null = null;
+  private initialized = false;
 
-  constructor() {
-    this.loadCustomTemplates();
+  private async getTenantId(): Promise<string> {
+    if (this.tenantId) return this.tenantId;
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+    
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('tenant_id')
+      .eq('id', user.id)
+      .single();
+    
+    if (!profile?.tenant_id) throw new Error('Tenant not found');
+    this.tenantId = profile.tenant_id;
+    return this.tenantId;
   }
 
   /**
-   * Load custom templates from localStorage
+   * Initialize and load custom templates from Supabase
    */
-  private loadCustomTemplates(): void {
+  async initialize(): Promise<void> {
+    if (this.initialized) return;
+    
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        this.customTemplates = JSON.parse(stored);
-      }
+      const tenantId = await this.getTenantId();
+      
+      const { data, error } = await supabase
+        .from('custom_outcome_templates')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .eq('is_active', true);
+
+      if (error) throw error;
+
+      this.customTemplates = (data || []).map(row => ({
+        outcomeType: row.outcome_type,
+        description: row.description || '',
+        tasks: (row.tasks as unknown as OutcomeTaskTemplate[]) || []
+      }));
+
+      this.initialized = true;
     } catch (error) {
       console.error('[OutcomeTemplateManager] Failed to load custom templates:', error);
       this.customTemplates = [];
-    }
-  }
-
-  /**
-   * Save custom templates to localStorage
-   */
-  private saveCustomTemplates(): void {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.customTemplates));
-    } catch (error) {
-      console.error('[OutcomeTemplateManager] Failed to save custom templates:', error);
-      throw error;
+      this.initialized = true;
     }
   }
 
@@ -79,14 +98,27 @@ export class OutcomeTemplateManager {
   /**
    * Create new custom template
    */
-  createTemplate(template: HearingOutcomeTemplate): void {
-    // Validate unique outcome type
+  async createTemplate(template: HearingOutcomeTemplate): Promise<void> {
     if (this.getTemplate(template.outcomeType)) {
       throw new Error(`Template with outcome type "${template.outcomeType}" already exists`);
     }
 
+    const tenantId = await this.getTenantId();
+
+    const { error } = await supabase
+      .from('custom_outcome_templates')
+      .insert({
+        tenant_id: tenantId,
+        outcome_type: template.outcomeType,
+        name: template.outcomeType,
+        description: template.description,
+        tasks: template.tasks as unknown as Json,
+        is_active: true
+      });
+
+    if (error) throw error;
+
     this.customTemplates.push(template);
-    this.saveCustomTemplates();
 
     toast({
       title: "Template Created",
@@ -97,20 +129,32 @@ export class OutcomeTemplateManager {
   /**
    * Update existing template (custom only)
    */
-  updateTemplate(outcomeType: string, updates: Partial<HearingOutcomeTemplate>): void {
+  async updateTemplate(outcomeType: string, updates: Partial<HearingOutcomeTemplate>): Promise<void> {
     const index = this.customTemplates.findIndex(t => t.outcomeType === outcomeType);
     
     if (index === -1) {
       throw new Error(`Custom template "${outcomeType}" not found. Cannot update default templates.`);
     }
 
+    const tenantId = await this.getTenantId();
+
+    const updateData: Record<string, any> = {};
+    if (updates.description !== undefined) updateData.description = updates.description;
+    if (updates.tasks !== undefined) updateData.tasks = updates.tasks as unknown as Json;
+
+    const { error } = await supabase
+      .from('custom_outcome_templates')
+      .update(updateData)
+      .eq('tenant_id', tenantId)
+      .eq('outcome_type', outcomeType);
+
+    if (error) throw error;
+
     this.customTemplates[index] = {
       ...this.customTemplates[index],
       ...updates,
-      outcomeType // Preserve original outcome type
+      outcomeType
     };
-
-    this.saveCustomTemplates();
 
     toast({
       title: "Template Updated",
@@ -121,7 +165,7 @@ export class OutcomeTemplateManager {
   /**
    * Clone default template to create custom version
    */
-  cloneTemplate(outcomeType: string, newOutcomeType: string): void {
+  async cloneTemplate(outcomeType: string, newOutcomeType: string): Promise<void> {
     const sourceTemplate = this.getTemplate(outcomeType);
     
     if (!sourceTemplate) {
@@ -138,8 +182,7 @@ export class OutcomeTemplateManager {
       tasks: sourceTemplate.tasks.map(task => ({ ...task }))
     };
 
-    this.customTemplates.push(clonedTemplate);
-    this.saveCustomTemplates();
+    await this.createTemplate(clonedTemplate);
 
     toast({
       title: "Template Cloned",
@@ -150,13 +193,22 @@ export class OutcomeTemplateManager {
   /**
    * Delete custom template
    */
-  deleteTemplate(outcomeType: string): void {
+  async deleteTemplate(outcomeType: string): Promise<void> {
     if (!this.isCustomTemplate(outcomeType)) {
       throw new Error(`Cannot delete default template "${outcomeType}"`);
     }
 
+    const tenantId = await this.getTenantId();
+
+    const { error } = await supabase
+      .from('custom_outcome_templates')
+      .delete()
+      .eq('tenant_id', tenantId)
+      .eq('outcome_type', outcomeType);
+
+    if (error) throw error;
+
     this.customTemplates = this.customTemplates.filter(t => t.outcomeType !== outcomeType);
-    this.saveCustomTemplates();
 
     toast({
       title: "Template Deleted",
@@ -168,7 +220,7 @@ export class OutcomeTemplateManager {
   /**
    * Add task to template
    */
-  addTask(outcomeType: string, task: OutcomeTaskTemplate): void {
+  async addTask(outcomeType: string, task: OutcomeTaskTemplate): Promise<void> {
     const template = this.getTemplate(outcomeType);
     
     if (!template) {
@@ -180,8 +232,9 @@ export class OutcomeTemplateManager {
     }
 
     const index = this.customTemplates.findIndex(t => t.outcomeType === outcomeType);
-    this.customTemplates[index].tasks.push(task);
-    this.saveCustomTemplates();
+    const updatedTasks = [...this.customTemplates[index].tasks, task];
+    
+    await this.updateTemplate(outcomeType, { tasks: updatedTasks });
 
     toast({
       title: "Task Added",
@@ -192,7 +245,7 @@ export class OutcomeTemplateManager {
   /**
    * Update task in template
    */
-  updateTask(outcomeType: string, taskIndex: number, updates: Partial<OutcomeTaskTemplate>): void {
+  async updateTask(outcomeType: string, taskIndex: number, updates: Partial<OutcomeTaskTemplate>): Promise<void> {
     if (!this.isCustomTemplate(outcomeType)) {
       throw new Error(`Cannot modify default template "${outcomeType}". Clone it first.`);
     }
@@ -207,12 +260,10 @@ export class OutcomeTemplateManager {
       throw new Error(`Invalid task index ${taskIndex}`);
     }
 
-    this.customTemplates[index].tasks[taskIndex] = {
-      ...this.customTemplates[index].tasks[taskIndex],
-      ...updates
-    };
+    const updatedTasks = [...this.customTemplates[index].tasks];
+    updatedTasks[taskIndex] = { ...updatedTasks[taskIndex], ...updates };
 
-    this.saveCustomTemplates();
+    await this.updateTemplate(outcomeType, { tasks: updatedTasks });
 
     toast({
       title: "Task Updated",
@@ -223,7 +274,7 @@ export class OutcomeTemplateManager {
   /**
    * Remove task from template
    */
-  removeTask(outcomeType: string, taskIndex: number): void {
+  async removeTask(outcomeType: string, taskIndex: number): Promise<void> {
     if (!this.isCustomTemplate(outcomeType)) {
       throw new Error(`Cannot modify default template "${outcomeType}". Clone it first.`);
     }
@@ -239,8 +290,9 @@ export class OutcomeTemplateManager {
     }
 
     const removedTask = this.customTemplates[index].tasks[taskIndex];
-    this.customTemplates[index].tasks.splice(taskIndex, 1);
-    this.saveCustomTemplates();
+    const updatedTasks = this.customTemplates[index].tasks.filter((_, i) => i !== taskIndex);
+
+    await this.updateTemplate(outcomeType, { tasks: updatedTasks });
 
     toast({
       title: "Task Removed",
@@ -252,7 +304,7 @@ export class OutcomeTemplateManager {
   /**
    * Reorder tasks in template
    */
-  reorderTasks(outcomeType: string, fromIndex: number, toIndex: number): void {
+  async reorderTasks(outcomeType: string, fromIndex: number, toIndex: number): Promise<void> {
     if (!this.isCustomTemplate(outcomeType)) {
       throw new Error(`Cannot modify default template "${outcomeType}". Clone it first.`);
     }
@@ -263,11 +315,11 @@ export class OutcomeTemplateManager {
       throw new Error(`Template "${outcomeType}" not found`);
     }
 
-    const tasks = this.customTemplates[index].tasks;
+    const tasks = [...this.customTemplates[index].tasks];
     const [movedTask] = tasks.splice(fromIndex, 1);
     tasks.splice(toIndex, 0, movedTask);
 
-    this.saveCustomTemplates();
+    await this.updateTemplate(outcomeType, { tasks });
 
     toast({
       title: "Tasks Reordered",
@@ -278,9 +330,15 @@ export class OutcomeTemplateManager {
   /**
    * Reset to default templates (clear all custom templates)
    */
-  resetToDefaults(): void {
+  async resetToDefaults(): Promise<void> {
+    const tenantId = await this.getTenantId();
+
+    await supabase
+      .from('custom_outcome_templates')
+      .delete()
+      .eq('tenant_id', tenantId);
+
     this.customTemplates = [];
-    this.saveCustomTemplates();
 
     toast({
       title: "Templates Reset",
@@ -299,11 +357,10 @@ export class OutcomeTemplateManager {
   /**
    * Import templates from JSON
    */
-  importTemplates(jsonString: string): void {
+  async importTemplates(jsonString: string): Promise<void> {
     try {
       const imported = JSON.parse(jsonString) as HearingOutcomeTemplate[];
       
-      // Validate structure
       if (!Array.isArray(imported)) {
         throw new Error('Invalid template format: expected array');
       }
@@ -314,8 +371,11 @@ export class OutcomeTemplateManager {
         }
       }
 
-      this.customTemplates = [...this.customTemplates, ...imported];
-      this.saveCustomTemplates();
+      for (const template of imported) {
+        if (!this.getTemplate(template.outcomeType)) {
+          await this.createTemplate(template);
+        }
+      }
 
       toast({
         title: "Templates Imported",

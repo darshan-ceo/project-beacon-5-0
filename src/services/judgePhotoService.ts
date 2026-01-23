@@ -1,118 +1,153 @@
 /**
- * Judge Photo Upload Service
- * Handles photo upload, validation, and storage for judge profiles
+ * Judge Photo Service
+ * Manages judge photos using Supabase Storage (avatars bucket)
  */
 
-export class JudgePhotoService {
-  private readonly ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-  private readonly MAX_SIZE = 2 * 1024 * 1024; // 2MB
-  private readonly STORAGE_KEY_PREFIX = 'judge_photo_';
+import { supabase } from '@/integrations/supabase/client';
 
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+const BUCKET_NAME = 'avatars';
+
+export class JudgePhotoService {
   /**
-   * Upload and store a judge photo
-   * @param file - The image file to upload
-   * @param judgeId - The judge's ID
-   * @param onProgress - Optional callback for upload progress (0-100)
-   * @returns Promise with the data URL of the uploaded photo
+   * Upload a judge's photo to Supabase Storage
    */
   async uploadJudgePhoto(
     file: File,
-    judgeId: string,
+    judgeId: string, 
     onProgress?: (progress: number) => void
   ): Promise<string> {
-    // Validate file type
-    if (!this.ALLOWED_TYPES.includes(file.type)) {
-      throw new Error(
-        `Invalid file type. Allowed types: ${this.ALLOWED_TYPES.join(', ')}`
-      );
+    // Validate file
+    const validation = this.validateFile(file);
+    if (!validation.valid) {
+      throw new Error(validation.error);
     }
 
-    // Validate file size
-    if (file.size > this.MAX_SIZE) {
-      throw new Error(
-        `File size exceeds maximum limit of ${this.MAX_SIZE / (1024 * 1024)}MB`
-      );
+    onProgress?.(10);
+
+    // Generate storage path
+    const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const storagePath = `judges/${judgeId}/photo.${fileExt}`;
+
+    onProgress?.(30);
+
+    // Upload to Supabase Storage
+    const { error: uploadError } = await supabase.storage
+      .from(BUCKET_NAME)
+      .upload(storagePath, file, {
+        cacheControl: '3600',
+        upsert: true
+      });
+
+    if (uploadError) {
+      console.error('Upload error:', uploadError);
+      throw new Error('Failed to upload photo');
     }
 
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
+    onProgress?.(70);
 
-      reader.onprogress = (event) => {
-        if (event.lengthComputable && onProgress) {
-          const progress = Math.round((event.loaded / event.total) * 100);
-          onProgress(progress);
-        }
-      };
+    // Update judge record with photo path
+    const { error: updateError } = await supabase
+      .from('judges')
+      .update({ photo_path: storagePath })
+      .eq('id', judgeId);
 
-      reader.onload = () => {
-        try {
-          const dataUrl = reader.result as string;
-          
-          // Store in localStorage
-          const storageKey = `${this.STORAGE_KEY_PREFIX}${judgeId}`;
-          localStorage.setItem(storageKey, dataUrl);
-          localStorage.setItem(`${storageKey}_timestamp`, Date.now().toString());
-          
-          onProgress?.(100);
-          resolve(dataUrl);
-        } catch (error) {
-          if (error instanceof Error && error.name === 'QuotaExceededError') {
-            reject(new Error('Storage quota exceeded. Please remove some photos and try again.'));
-          } else {
-            reject(error);
-          }
-        }
-      };
+    if (updateError) {
+      console.error('Update error:', updateError);
+      // Don't throw - photo is uploaded, just metadata update failed
+    }
 
-      reader.onerror = () => {
-        reject(new Error('Failed to read file'));
-      };
+    onProgress?.(100);
 
-      reader.readAsDataURL(file);
-    });
+    // Return public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from(BUCKET_NAME)
+      .getPublicUrl(storagePath);
+
+    return publicUrl;
   }
 
   /**
-   * Delete a judge photo
-   * @param judgeId - The judge's ID
+   * Delete a judge's photo
    */
   async deleteJudgePhoto(judgeId: string): Promise<void> {
-    const storageKey = `${this.STORAGE_KEY_PREFIX}${judgeId}`;
-    localStorage.removeItem(storageKey);
-    localStorage.removeItem(`${storageKey}_timestamp`);
+    // Get current photo path from judge record
+    const { data: judge } = await supabase
+      .from('judges')
+      .select('photo_path')
+      .eq('id', judgeId)
+      .single();
+
+    if (judge?.photo_path) {
+      // Delete from storage
+      await supabase.storage
+        .from(BUCKET_NAME)
+        .remove([judge.photo_path]);
+    }
+
+    // Clear photo_path in judge record
+    await supabase
+      .from('judges')
+      .update({ photo_path: null })
+      .eq('id', judgeId);
   }
 
   /**
-   * Get a judge photo URL
-   * @param judgeId - The judge's ID
-   * @returns The photo data URL or null if not found
+   * Get the public URL for a judge's photo
    */
   async getJudgePhotoUrl(judgeId: string): Promise<string | null> {
-    const storageKey = `${this.STORAGE_KEY_PREFIX}${judgeId}`;
-    return localStorage.getItem(storageKey);
+    // Get photo path from judge record
+    const { data: judge, error } = await supabase
+      .from('judges')
+      .select('photo_path')
+      .eq('id', judgeId)
+      .single();
+
+    if (error || !judge?.photo_path) {
+      return null;
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from(BUCKET_NAME)
+      .getPublicUrl(judge.photo_path);
+
+    return publicUrl;
   }
 
   /**
-   * Validate if a file is acceptable
-   * @param file - The file to validate
-   * @returns Object with validation result and error message
+   * Validate file before upload
    */
   validateFile(file: File): { valid: boolean; error?: string } {
-    if (!this.ALLOWED_TYPES.includes(file.type)) {
-      return {
-        valid: false,
-        error: `Invalid file type. Please upload ${this.ALLOWED_TYPES.map(t => t.split('/')[1].toUpperCase()).join(', ')} images only.`
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return { 
+        valid: false, 
+        error: `Invalid file type. Allowed: ${ALLOWED_TYPES.map(t => t.split('/')[1]).join(', ')}` 
       };
     }
 
-    if (file.size > this.MAX_SIZE) {
-      return {
-        valid: false,
-        error: `File size must be less than ${this.MAX_SIZE / (1024 * 1024)}MB`
+    if (file.size > MAX_SIZE) {
+      return { 
+        valid: false, 
+        error: `File too large. Maximum size: ${MAX_SIZE / (1024 * 1024)}MB` 
       };
     }
 
     return { valid: true };
+  }
+
+  /**
+   * Check if a judge has a photo
+   */
+  async hasPhoto(judgeId: string): Promise<boolean> {
+    const { data: judge } = await supabase
+      .from('judges')
+      .select('photo_path')
+      .eq('id', judgeId)
+      .single();
+
+    return !!judge?.photo_path;
   }
 }
 
