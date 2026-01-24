@@ -998,7 +998,7 @@ export const AppStateProvider: React.FC<{ children: ReactNode }> = ({ children }
     const initializeCalendarSync = async () => {
       try {
         const { integrationsService } = await import('@/services/integrationsService');
-        const settings = integrationsService.loadCalendarSettings('default');
+        const settings = await integrationsService.loadCalendarSettings();
         
         if (settings?.autoSync && settings.provider !== 'none') {
           // Start with configured interval or default to 5 minutes

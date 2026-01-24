@@ -1,22 +1,22 @@
-import { secretsService } from './secretsService';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+
+/**
+ * Integrations Service - Phase 2 Migration
+ * Calendar integration settings now stored in Supabase calendar_integrations table
+ * OAuth tokens handled securely via manage-secrets edge function
+ */
 
 export interface CalendarIntegrationSettings {
   orgId: string;
   provider: 'none' | 'google' | 'outlook';
   autoSync: boolean;
-  reminderTime: number; // minutes
-  syncInterval?: number; // minutes for background sync
+  reminderTime: number;
+  syncInterval?: number;
   defaultCalendarId?: string;
-  
-  // Google specific
-  googleClientId?: string;
-  googleClientSecret?: string;
-  
-  // Microsoft specific
-  microsoftClientId?: string;
-  microsoftClientSecret?: string;
-  microsoftTenant?: string; // 'common', 'organizations', or specific tenant ID
+  userEmail?: string;
+  connectionStatus?: 'disconnected' | 'connected' | 'error' | 'expired';
+  lastSyncAt?: string;
 }
 
 export interface CalendarConnectionStatus {
@@ -33,37 +33,46 @@ export interface CalendarInfo {
 }
 
 class IntegrationsService {
-  private readonly settingsKey = 'calendar_settings';
-  
-  // Save calendar integration settings
-  saveCalendarSettings(settings: CalendarIntegrationSettings): void {
+  /**
+   * Save calendar integration settings to Supabase
+   */
+  async saveCalendarSettings(settings: CalendarIntegrationSettings): Promise<void> {
     try {
-      // Store non-sensitive settings in regular localStorage
-      const publicSettings = {
-        orgId: settings.orgId,
-        provider: settings.provider,
-        autoSync: settings.autoSync,
-        reminderTime: settings.reminderTime,
-        syncInterval: settings.syncInterval,
-        defaultCalendarId: settings.defaultCalendarId,
-      };
-      localStorage.setItem(this.settingsKey, JSON.stringify(publicSettings));
-      
-      // Store sensitive credentials in encrypted storage
-      if (settings.googleClientId) {
-        secretsService.set(`calendar.${settings.orgId}.google.client_id`, settings.googleClientId);
+      // Get user's tenant
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Not authenticated');
       }
-      if (settings.googleClientSecret) {
-        secretsService.set(`calendar.${settings.orgId}.google.client_secret`, settings.googleClientSecret);
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.tenant_id) {
+        throw new Error('Tenant not found');
       }
-      if (settings.microsoftClientId) {
-        secretsService.set(`calendar.${settings.orgId}.microsoft.client_id`, settings.microsoftClientId);
-      }
-      if (settings.microsoftClientSecret) {
-        secretsService.set(`calendar.${settings.orgId}.microsoft.client_secret`, settings.microsoftClientSecret);
-      }
-      if (settings.microsoftTenant) {
-        secretsService.set(`calendar.${settings.orgId}.microsoft.tenant`, settings.microsoftTenant);
+
+      // Upsert calendar settings
+      const { error } = await supabase
+        .from('calendar_integrations')
+        .upsert({
+          tenant_id: profile.tenant_id,
+          provider: settings.provider,
+          auto_sync: settings.autoSync,
+          reminder_time: settings.reminderTime,
+          sync_interval: settings.syncInterval || 60,
+          default_calendar_id: settings.defaultCalendarId,
+          user_email: settings.userEmail,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'tenant_id'
+        });
+
+      if (error) {
+        console.error('[Integrations] Save settings error:', error);
+        throw error;
       }
       
       toast({
@@ -71,112 +80,199 @@ class IntegrationsService {
         description: "Calendar integration settings have been saved successfully.",
       });
     } catch (error) {
-      console.error('Failed to save calendar settings:', error);
+      console.error('[Integrations] Failed to save calendar settings:', error);
       toast({
         title: "Save Failed",
         description: "Failed to save calendar settings. Please try again.",
         variant: "destructive",
       });
+      throw error;
     }
   }
   
-  // Load calendar integration settings
-  loadCalendarSettings(orgId: string): CalendarIntegrationSettings | null {
+  /**
+   * Load calendar integration settings from Supabase
+   */
+  async loadCalendarSettings(): Promise<CalendarIntegrationSettings | null> {
     try {
-      const stored = localStorage.getItem(this.settingsKey);
-      if (!stored) return null;
-      
-      const publicSettings = JSON.parse(stored);
-      
-      // Load sensitive credentials from encrypted storage
-      const googleClientId = secretsService.get(`calendar.${orgId}.google.client_id`);
-      const googleClientSecret = secretsService.get(`calendar.${orgId}.google.client_secret`);
-      const microsoftClientId = secretsService.get(`calendar.${orgId}.microsoft.client_id`);
-      const microsoftClientSecret = secretsService.get(`calendar.${orgId}.microsoft.client_secret`);
-      const microsoftTenant = secretsService.get(`calendar.${orgId}.microsoft.tenant`);
-      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        return null;
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.tenant_id) {
+        return null;
+      }
+
+      const { data, error } = await supabase
+        .from('calendar_integrations')
+        .select('*')
+        .eq('tenant_id', profile.tenant_id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('[Integrations] Load settings error:', error);
+        return null;
+      }
+
+      if (!data) {
+        return null;
+      }
+
       return {
-        ...publicSettings,
-        googleClientId: googleClientId || undefined,
-        googleClientSecret: googleClientSecret || undefined,
-        microsoftClientId: microsoftClientId || undefined,
-        microsoftClientSecret: microsoftClientSecret || undefined,
-        microsoftTenant: microsoftTenant || undefined,
+        orgId: profile.tenant_id,
+        provider: (data.provider as 'none' | 'google' | 'outlook') || 'none',
+        autoSync: data.auto_sync || false,
+        reminderTime: data.reminder_time || 30,
+        syncInterval: data.sync_interval || 60,
+        defaultCalendarId: data.default_calendar_id || undefined,
+        userEmail: data.user_email || undefined,
+        connectionStatus: (data.connection_status as CalendarIntegrationSettings['connectionStatus']) || 'disconnected',
+        lastSyncAt: data.last_sync_at || undefined
       };
     } catch (error) {
-      console.error('Failed to load calendar settings:', error);
+      console.error('[Integrations] Failed to load calendar settings:', error);
       return null;
     }
   }
   
-  // Save OAuth tokens
-  saveTokens(orgId: string, provider: 'google' | 'outlook', tokens: {
+  /**
+   * Save OAuth tokens securely via edge function
+   */
+  async saveTokens(provider: 'google' | 'outlook', tokens: {
     access_token: string;
     refresh_token?: string;
     expires_at?: number;
     user_email?: string;
-  }): void {
-    secretsService.set(`calendar.${orgId}.${provider}.access_token`, tokens.access_token);
-    if (tokens.refresh_token) {
-      secretsService.set(`calendar.${orgId}.${provider}.refresh_token`, tokens.refresh_token);
-    }
-    if (tokens.expires_at) {
-      secretsService.set(`calendar.${orgId}.${provider}.expires_at`, tokens.expires_at.toString());
-    }
-    if (tokens.user_email) {
-      secretsService.set(`calendar.${orgId}.${provider}.user_email`, tokens.user_email);
+  }): Promise<void> {
+    try {
+      const { error } = await supabase.functions.invoke('manage-secrets/save-calendar-tokens', {
+        body: { provider, tokens }
+      });
+
+      if (error) {
+        console.error('[Integrations] Save tokens error:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('[Integrations] Failed to save tokens:', error);
+      throw error;
     }
   }
   
-  // Load OAuth tokens
-  loadTokens(orgId: string, provider: 'google' | 'outlook'): {
-    access_token?: string;
-    refresh_token?: string;
-    expires_at?: number;
-    user_email?: string;
-  } | null {
-    const accessToken = secretsService.get(`calendar.${orgId}.${provider}.access_token`);
-    if (!accessToken) return null;
-    
-    const refreshToken = secretsService.get(`calendar.${orgId}.${provider}.refresh_token`);
-    const expiresAtStr = secretsService.get(`calendar.${orgId}.${provider}.expires_at`);
-    const userEmail = secretsService.get(`calendar.${orgId}.${provider}.user_email`);
-    
-    return {
-      access_token: accessToken,
-      refresh_token: refreshToken || undefined,
-      expires_at: expiresAtStr ? parseInt(expiresAtStr) : undefined,
-      user_email: userEmail || undefined,
-    };
-  }
-  
-  // Clear all tokens for a provider
-  clearTokens(orgId: string, provider: 'google' | 'outlook'): void {
-    secretsService.remove(`calendar.${orgId}.${provider}.access_token`);
-    secretsService.remove(`calendar.${orgId}.${provider}.refresh_token`);
-    secretsService.remove(`calendar.${orgId}.${provider}.expires_at`);
-    secretsService.remove(`calendar.${orgId}.${provider}.user_email`);
-  }
-  
-  // Check connection status
-  getConnectionStatus(orgId: string, provider: 'google' | 'outlook'): CalendarConnectionStatus {
-    const tokens = this.loadTokens(orgId, provider);
-    if (!tokens || !tokens.access_token) {
-      return { connected: false };
+  /**
+   * Clear OAuth tokens via edge function
+   */
+  async clearTokens(provider: 'google' | 'outlook'): Promise<void> {
+    try {
+      const { error } = await supabase.functions.invoke('manage-secrets/clear-calendar-tokens', {
+        body: { provider }
+      });
+
+      if (error) {
+        console.error('[Integrations] Clear tokens error:', error);
+      }
+    } catch (error) {
+      console.error('[Integrations] Failed to clear tokens:', error);
     }
-    
-    // Check if token is expired
-    if (tokens.expires_at && tokens.expires_at < Date.now()) {
-      return { 
-        connected: false, 
-        error: 'Access token expired. Please reconnect.' 
+  }
+  
+  /**
+   * Get connection status from Supabase
+   */
+  async getConnectionStatus(provider: 'google' | 'outlook'): Promise<CalendarConnectionStatus> {
+    try {
+      const settings = await this.loadCalendarSettings();
+      
+      if (!settings || settings.provider !== provider) {
+        return { connected: false };
+      }
+
+      if (settings.connectionStatus === 'expired') {
+        return { 
+          connected: false, 
+          error: 'Access token expired. Please reconnect.' 
+        };
+      }
+
+      if (settings.connectionStatus === 'error') {
+        return { 
+          connected: false, 
+          error: 'Connection error. Please reconnect.' 
+        };
+      }
+
+      return {
+        connected: settings.connectionStatus === 'connected',
+        userEmail: settings.userEmail,
+        lastSync: settings.lastSyncAt
       };
+    } catch (error) {
+      console.error('[Integrations] Failed to get connection status:', error);
+      return { connected: false, error: 'Failed to check connection status' };
     }
-    
-    return {
-      connected: true,
-      userEmail: tokens.user_email,
-    };
+  }
+
+  /**
+   * Update sync timestamp
+   */
+  async updateLastSync(): Promise<void> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.tenant_id) return;
+
+      await supabase
+        .from('calendar_integrations')
+        .update({
+          last_sync_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('tenant_id', profile.tenant_id);
+    } catch (error) {
+      console.error('[Integrations] Failed to update last sync:', error);
+    }
+  }
+
+  /**
+   * Update connection status
+   */
+  async updateConnectionStatus(status: 'disconnected' | 'connected' | 'error' | 'expired'): Promise<void> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.tenant_id) return;
+
+      await supabase
+        .from('calendar_integrations')
+        .update({
+          connection_status: status,
+          updated_at: new Date().toISOString()
+        })
+        .eq('tenant_id', profile.tenant_id);
+    } catch (error) {
+      console.error('[Integrations] Failed to update connection status:', error);
+    }
   }
 }
 

@@ -344,6 +344,66 @@ export type Database = {
           },
         ]
       }
+      calendar_integrations: {
+        Row: {
+          auto_sync: boolean | null
+          connection_status: string | null
+          created_at: string | null
+          default_calendar_id: string | null
+          id: string
+          last_sync_at: string | null
+          provider: string
+          reminder_time: number | null
+          sync_interval: number | null
+          tenant_id: string
+          updated_at: string | null
+          user_email: string | null
+        }
+        Insert: {
+          auto_sync?: boolean | null
+          connection_status?: string | null
+          created_at?: string | null
+          default_calendar_id?: string | null
+          id?: string
+          last_sync_at?: string | null
+          provider?: string
+          reminder_time?: number | null
+          sync_interval?: number | null
+          tenant_id: string
+          updated_at?: string | null
+          user_email?: string | null
+        }
+        Update: {
+          auto_sync?: boolean | null
+          connection_status?: string | null
+          created_at?: string | null
+          default_calendar_id?: string | null
+          id?: string
+          last_sync_at?: string | null
+          provider?: string
+          reminder_time?: number | null
+          sync_interval?: number | null
+          tenant_id?: string
+          updated_at?: string | null
+          user_email?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_integrations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "calendar_integrations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       case_notification_preferences: {
         Row: {
           case_id: string
