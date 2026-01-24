@@ -38,14 +38,13 @@ export const portalSupabase = createClient<Database>(
 );
 
 /**
- * Clear all portal-related auth data from localStorage
- * Useful for recovery when portal auth gets into a bad state
+ * Clear portal auth tokens from localStorage
+ * Only clears Supabase auth tokens, not custom session data (which no longer exists)
  */
 export const clearPortalAuthData = (): void => {
   try {
     localStorage.removeItem(PORTAL_AUTH_STORAGE_KEY);
-    localStorage.removeItem('portal_session');
-    console.log('[PortalClient] Cleared portal auth data');
+    console.log('[PortalClient] Cleared portal auth tokens');
   } catch (error) {
     console.error('[PortalClient] Failed to clear portal auth data:', error);
   }
