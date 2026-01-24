@@ -1498,6 +1498,7 @@ export type Database = {
           id: string
           job_type: string
           mapping: Json | null
+          pending_data: Json | null
           record_count: number | null
           status: string
           tenant_id: string
@@ -1518,6 +1519,7 @@ export type Database = {
           id?: string
           job_type: string
           mapping?: Json | null
+          pending_data?: Json | null
           record_count?: number | null
           status: string
           tenant_id: string
@@ -1538,6 +1540,7 @@ export type Database = {
           id?: string
           job_type?: string
           mapping?: Json | null
+          pending_data?: Json | null
           record_count?: number | null
           status?: string
           tenant_id?: string

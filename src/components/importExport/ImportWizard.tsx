@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { EntityType, ImportJob, ColumnMapping, ImportError } from '@/types/importExport';
 import { importExportService } from '@/services/importExportService';
+import { clientSideImportExportService } from '@/services/clientSideImportExportService';
 import { mappingService } from '@/services/mappingService';
 import { MappingInterface } from './MappingInterface';
 import { toast } from '@/hooks/use-toast';
@@ -42,7 +43,6 @@ export const ImportWizard: React.FC<ImportWizardProps> = ({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [importJob, setImportJob] = useState<ImportJob | null>(null);
   const [mapping, setMapping] = useState<ColumnMapping>({});
-  const STORAGE_KEY_PREFIX = 'import_mapping_';
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -139,11 +139,8 @@ export const ImportWizard: React.FC<ImportWizardProps> = ({
     setIsProcessing(true);
 
     try {
-      // Save mapping to localStorage for persistence
-      localStorage.setItem(
-        `${STORAGE_KEY_PREFIX}${importJob.id}`,
-        JSON.stringify(completedMapping)
-      );
+      // Save mapping to Supabase data_jobs table
+      await clientSideImportExportService.saveJobMapping(importJob.id, completedMapping);
 
       // Run validation to get accurate counts for preview
       toast({
@@ -167,14 +164,6 @@ export const ImportWizard: React.FC<ImportWizardProps> = ({
           },
           errors: validationResult.errors
         };
-
-        // Save updated job to localStorage
-        const jobData = localStorage.getItem(`import_job_${importJob.id}`);
-        if (jobData) {
-          const parsed = JSON.parse(jobData);
-          parsed.job = updatedJob;
-          localStorage.setItem(`import_job_${importJob.id}`, JSON.stringify(parsed));
-        }
 
         setImportJob(updatedJob);
         setCurrentStep('preview');
@@ -382,9 +371,8 @@ export const ImportWizard: React.FC<ImportWizardProps> = ({
   const renderMappingStep = () => {
     if (!importJob) return null;
 
-    // Restore saved mapping if exists
-    const savedMapping = localStorage.getItem(`${STORAGE_KEY_PREFIX}${importJob.id}`);
-    const initialMapping = savedMapping ? JSON.parse(savedMapping) : null;
+    // Note: savedMapping will be loaded asynchronously via MappingInterface
+    // which now fetches from Supabase via clientSideImportExportService.getJobMapping()
 
     return (
       <div className="space-y-6">
@@ -402,7 +390,6 @@ export const ImportWizard: React.FC<ImportWizardProps> = ({
           importJob={importJob}
           entityType={entityType}
           onMappingComplete={handleMappingComplete}
-          savedMapping={initialMapping}
         />
       </div>
     );
@@ -586,11 +573,7 @@ export const ImportWizard: React.FC<ImportWizardProps> = ({
   };
 
   const handleClose = () => {
-    // Clean up stored mapping if user closes without completing
-    if (importJob) {
-      localStorage.removeItem(`${STORAGE_KEY_PREFIX}${importJob.id}`);
-    }
-    
+    // Mapping now persisted in Supabase, no cleanup needed
     setCurrentStep('template');
     setSelectedFile(null);
     setImportJob(null);
