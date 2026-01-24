@@ -15,18 +15,37 @@ const DEFAULT_SLA_CONFIG: SLAConfig = {
 
 /**
  * Calculate SLA status for a single case
- * Green: ≤15 days since last update OR upcoming hearing within 30 days
- * Amber: 16-30 days since last update
- * Red: >30 days since last update (Timeline Breach)
+ * Priority 1: Reply Due Date - Red if overdue, Amber if due within 15 days, Green otherwise
+ * Priority 2 (fallback): Days since last update - Green ≤15 days, Amber 16-30 days, Red >30 days
+ * Exception: Upcoming hearing within 30 days forces Green (only in fallback mode)
  */
 export function calculateSLAStatus(
   caseItem: Case,
   config: SLAConfig = DEFAULT_SLA_CONFIG
 ): 'Green' | 'Amber' | 'Red' {
   const now = new Date();
-  const lastUpdate = new Date(caseItem.lastUpdated);
-  const daysSinceUpdate = differenceInDays(now, lastUpdate);
-  
+  now.setHours(0, 0, 0, 0); // Normalize to start of day for accurate day comparison
+
+  // 1. Check Reply Due Date first (takes priority if set)
+  const replyDueDate = caseItem.replyDueDate || (caseItem as any).reply_due_date;
+  if (replyDueDate) {
+    const dueDate = new Date(replyDueDate);
+    dueDate.setHours(0, 0, 0, 0);
+    const daysUntilDue = differenceInDays(dueDate, now);
+    
+    if (daysUntilDue < 0) {
+      // Overdue - Timeline Breach
+      return 'Red';
+    } else if (daysUntilDue <= 15) {
+      // Due within 15 days - At Risk
+      return 'Amber';
+    } else {
+      // Due in 15+ days - On Track
+      return 'Green';
+    }
+  }
+
+  // 2. Fallback to existing SLA logic if no Reply Due Date
   // Check if case has upcoming hearing (within 30 days)
   if (caseItem.nextHearing) {
     const hearingDate = new Date(caseItem.nextHearing.date);
@@ -39,6 +58,9 @@ export function calculateSLAStatus(
   }
   
   // Calculate based on days since last update
+  const lastUpdate = new Date(caseItem.lastUpdated);
+  const daysSinceUpdate = differenceInDays(now, lastUpdate);
+  
   if (daysSinceUpdate <= config.greenThreshold) {
     return 'Green';
   } else if (daysSinceUpdate <= config.amberThreshold) {
