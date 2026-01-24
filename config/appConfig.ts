@@ -84,6 +84,7 @@ export const TASK_CATEGORIES = [
   'Documentation',
   'Review',
   'Filing',
+  'Hearing Prep',
   'Research',
   'Client Communication'
 ] as const;

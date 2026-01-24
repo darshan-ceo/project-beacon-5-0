@@ -16,7 +16,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { FieldTooltipWrapper } from '@/components/help/FieldTooltipWrapper';
 import { Check, ChevronDown, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { GST_STAGES } from '../../../config/appConfig';
+import { GST_STAGES, TASK_CATEGORIES } from '../../../config/appConfig';
 import { useAppState } from '@/contexts/AppStateContext';
 import { getAvailableEmployeeRoles } from '@/utils/masterDataUtils';
 
@@ -29,16 +29,7 @@ export interface AutomationFlags {
   auto_create_on_trigger: boolean;
 }
 
-const TASK_CATEGORIES = [
-  'Legal Drafting',
-  'Documentation', 
-  'Review',
-  'Client Management',
-  'Filing',
-  'Hearing Prep',
-  'Research',
-  'General'
-];
+// TASK_CATEGORIES imported from config/appConfig.ts for centralized management
 
 const PRIORITY_OPTIONS = [
   { value: 'Critical', label: 'Critical', color: 'bg-red-100 text-red-800' },
