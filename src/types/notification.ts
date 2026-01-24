@@ -1,5 +1,6 @@
 /**
  * Notification Types for Beacon Essential 5.0
+ * Updated for Supabase persistence
  */
 
 export type NotificationType = 
@@ -25,36 +26,42 @@ export type NotificationStatus = 'pending' | 'sent' | 'failed' | 'read';
 
 export interface Notification {
   id: string;
+  tenant_id: string;
   type: NotificationType;
   title: string;
   message: string;
   user_id: string;
-  related_entity_type?: 'hearing' | 'case' | 'task' | 'document';
-  related_entity_id?: string;
+  related_entity_type?: string | null;
+  related_entity_id?: string | null;
   channels: NotificationChannel[];
   status: NotificationStatus;
   read: boolean;
   created_at: string;
+  updated_at?: string;
   sent_at?: string;
-  read_at?: string;
-  metadata?: Record<string, any>;
+  read_at?: string | null;
+  metadata?: any;
 }
 
 export interface NotificationLog {
   id: string;
-  hearing_id?: string;
-  case_id?: string;
+  tenant_id: string;
+  hearing_id?: string | null;
+  case_id?: string | null;
   type: NotificationType;
-  reminder_type?: 't-1' | 'same-day';
+  reminder_type?: string | null;
   channels: NotificationChannel[];
   recipients: string[];
   sent_at: string;
   success: boolean;
-  error_message?: string;
-  metadata?: Record<string, any>;
+  error_message?: string | null;
+  metadata?: any;
+  created_at?: string;
 }
 
 export interface NotificationPreferences {
+  id?: string;
+  tenant_id?: string;
   user_id: string;
   email_enabled: boolean;
   sms_enabled: boolean;
@@ -64,5 +71,30 @@ export interface NotificationPreferences {
   task_reminders: boolean;
   case_updates: boolean;
   document_shares: boolean;
-  reminder_days: number[]; // Days before hearing to send reminder
+  reminder_days: number[];
+  quiet_hours_start?: string | null;
+  quiet_hours_end?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface DataJob {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  job_type: 'import' | 'export';
+  entity_type: string;
+  file_name?: string | null;
+  file_size?: number | null;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  counts?: any;
+  mapping?: any;
+  errors?: any;
+  file_url?: string | null;
+  format?: string | null;
+  filters?: any;
+  record_count: number;
+  created_at: string;
+  updated_at: string;
+  completed_at?: string | null;
 }

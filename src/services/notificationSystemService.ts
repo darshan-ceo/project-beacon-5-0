@@ -1,10 +1,13 @@
 /**
  * Notification System Service
  * Handles in-app notifications, notification history, and user preferences
+ * Migrated to Supabase for persistence (Phase 3)
  */
 
 import { Notification, NotificationLog, NotificationPreferences, NotificationType } from '@/types/notification';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 const isDev = import.meta.env.DEV;
 
@@ -15,45 +18,102 @@ const log = (level: 'info' | 'success' | 'error', action: string, details?: any)
 };
 
 class NotificationSystemService {
-  private notifications: Notification[] = [];
-  private notificationLogs: NotificationLog[] = [];
   private listeners: Set<(notifications: Notification[]) => void> = new Set();
+  private realtimeChannel: RealtimeChannel | null = null;
+  private cachedNotifications: Notification[] = [];
+  private currentUserId: string | null = null;
 
   constructor() {
-    this.loadFromStorage();
+    // Initialize realtime subscription when service is created
+    this.initializeRealtimeSubscription();
   }
 
   /**
-   * Load notifications from localStorage
+   * Get current user and tenant context
    */
-  private loadFromStorage(): void {
+  private async getContext(): Promise<{ userId: string; tenantId: string } | null> {
     try {
-      const stored = localStorage.getItem('beacon_notifications');
-      if (stored) {
-        this.notifications = JSON.parse(stored);
-        log('success', 'loadNotifications', { count: this.notifications.length });
-      }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
 
-      const storedLogs = localStorage.getItem('beacon_notification_logs');
-      if (storedLogs) {
-        this.notificationLogs = JSON.parse(storedLogs);
-        log('success', 'loadNotificationLogs', { count: this.notificationLogs.length });
-      }
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.tenant_id) return null;
+
+      return { userId: user.id, tenantId: profile.tenant_id };
     } catch (error) {
-      log('error', 'loadFromStorage', error);
+      log('error', 'getContext', error);
+      return null;
     }
   }
 
   /**
-   * Save notifications to localStorage
+   * Initialize Supabase Realtime subscription for live updates
    */
-  private saveToStorage(): void {
+  private async initializeRealtimeSubscription(): Promise<void> {
+    const context = await this.getContext();
+    if (!context) return;
+
+    this.currentUserId = context.userId;
+
+    // Remove existing channel if any
+    if (this.realtimeChannel) {
+      await supabase.removeChannel(this.realtimeChannel);
+    }
+
+    // Subscribe to notifications changes for this user
+    this.realtimeChannel = supabase
+      .channel('user-notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${context.userId}`
+        },
+        async (payload) => {
+          log('info', 'realtimeUpdate', payload);
+          // Refresh notifications and notify listeners
+          await this.refreshNotifications();
+        }
+      )
+      .subscribe();
+
+    log('success', 'initializeRealtimeSubscription', { userId: context.userId });
+  }
+
+  /**
+   * Refresh notifications from database
+   */
+  private async refreshNotifications(): Promise<void> {
+    const context = await this.getContext();
+    if (!context) return;
+
     try {
-      localStorage.setItem('beacon_notifications', JSON.stringify(this.notifications));
-      localStorage.setItem('beacon_notification_logs', JSON.stringify(this.notificationLogs));
-      log('success', 'saveToStorage', { count: this.notifications.length });
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', context.userId)
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (error) throw error;
+
+      this.cachedNotifications = (data || []).map(n => ({
+        ...n,
+        channels: n.channels as any[],
+        type: n.type as NotificationType,
+        status: n.status as any,
+      }));
+      
+      this.notifyListeners();
     } catch (error) {
-      log('error', 'saveToStorage', error);
+      log('error', 'refreshNotifications', error);
     }
   }
 
@@ -61,7 +121,7 @@ class NotificationSystemService {
    * Notify listeners of notification changes
    */
   private notifyListeners(): void {
-    this.listeners.forEach(listener => listener(this.notifications));
+    this.listeners.forEach(listener => listener(this.cachedNotifications));
   }
 
   /**
@@ -69,7 +129,11 @@ class NotificationSystemService {
    */
   subscribe(listener: (notifications: Notification[]) => void): () => void {
     this.listeners.add(listener);
-    listener(this.notifications); // Immediately send current state
+    
+    // Initialize if needed and send current state
+    this.refreshNotifications().then(() => {
+      listener(this.cachedNotifications);
+    });
     
     return () => {
       this.listeners.delete(listener);
@@ -90,66 +154,121 @@ class NotificationSystemService {
       channels?: ('email' | 'sms' | 'whatsapp' | 'in_app')[];
       metadata?: Record<string, any>;
     }
-  ): Promise<Notification> {
-    const notification: Notification = {
-      id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      type,
-      title,
-      message,
-      user_id: userId,
-      related_entity_type: options?.relatedEntityType,
-      related_entity_id: options?.relatedEntityId,
-      channels: options?.channels || ['in_app'],
-      status: 'pending',
-      read: false,
-      created_at: new Date().toISOString(),
-      metadata: options?.metadata,
-    };
+  ): Promise<Notification | null> {
+    try {
+      const context = await this.getContext();
+      if (!context) {
+        log('error', 'createNotification', 'No context');
+        return null;
+      }
 
-    this.notifications.unshift(notification); // Add to beginning
-    this.saveToStorage();
-    this.notifyListeners();
+      const notificationData = {
+        tenant_id: context.tenantId,
+        user_id: userId,
+        type,
+        title,
+        message,
+        related_entity_type: options?.relatedEntityType || null,
+        related_entity_id: options?.relatedEntityId || null,
+        channels: options?.channels || ['in_app'],
+        status: 'pending',
+        read: false,
+        metadata: options?.metadata || null,
+      };
 
-    log('success', 'createNotification', { type, title });
+      const { data, error } = await supabase
+        .from('notifications')
+        .insert(notificationData)
+        .select()
+        .single();
 
-    // Show toast for in-app notifications
-    if (notification.channels.includes('in_app')) {
-      toast({
-        title: notification.title,
-        description: notification.message,
-      });
+      if (error) throw error;
+
+      const notification: Notification = {
+        ...data,
+        channels: data.channels as any[],
+        type: data.type as NotificationType,
+        status: data.status as any,
+      };
+
+      log('success', 'createNotification', { type, title });
+
+      // Show toast for in-app notifications
+      if (notification.channels.includes('in_app')) {
+        toast({
+          title: notification.title,
+          description: notification.message,
+        });
+      }
+
+      return notification;
+    } catch (error) {
+      log('error', 'createNotification', error);
+      return null;
     }
-
-    return notification;
   }
 
   /**
    * Get all notifications for a user
    */
-  getNotifications(userId: string, limit: number = 50): Notification[] {
-    return this.notifications
-      .filter(n => n.user_id === userId)
-      .slice(0, limit);
+  async getNotifications(userId: string, limit: number = 50): Promise<Notification[]> {
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) throw error;
+
+      return (data || []).map(n => ({
+        ...n,
+        channels: n.channels as any[],
+        type: n.type as NotificationType,
+        status: n.status as any,
+      }));
+    } catch (error) {
+      log('error', 'getNotifications', error);
+      return [];
+    }
   }
 
   /**
    * Get unread notification count
    */
-  getUnreadCount(userId: string): number {
-    return this.notifications.filter(n => n.user_id === userId && !n.read).length;
+  async getUnreadCount(userId: string): Promise<number> {
+    try {
+      const { count, error } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('read', false);
+
+      if (error) throw error;
+
+      return count || 0;
+    } catch (error) {
+      log('error', 'getUnreadCount', error);
+      return 0;
+    }
   }
 
   /**
    * Mark notification as read
    */
   async markAsRead(notificationId: string): Promise<void> {
-    const notification = this.notifications.find(n => n.id === notificationId);
-    if (notification && !notification.read) {
-      notification.read = true;
-      notification.read_at = new Date().toISOString();
-      this.saveToStorage();
-      this.notifyListeners();
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true, read_at: new Date().toISOString(), status: 'read' })
+        .eq('id', notificationId);
+
+      if (error) throw error;
+
       log('success', 'markAsRead', { notificationId });
+    } catch (error) {
+      log('error', 'markAsRead', error);
     }
   }
 
@@ -157,19 +276,18 @@ class NotificationSystemService {
    * Mark all notifications as read for a user
    */
   async markAllAsRead(userId: string): Promise<void> {
-    let updated = 0;
-    this.notifications.forEach(n => {
-      if (n.user_id === userId && !n.read) {
-        n.read = true;
-        n.read_at = new Date().toISOString();
-        updated++;
-      }
-    });
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true, read_at: new Date().toISOString(), status: 'read' })
+        .eq('user_id', userId)
+        .eq('read', false);
 
-    if (updated > 0) {
-      this.saveToStorage();
-      this.notifyListeners();
-      log('success', 'markAllAsRead', { userId, count: updated });
+      if (error) throw error;
+
+      log('success', 'markAllAsRead', { userId });
+    } catch (error) {
+      log('error', 'markAllAsRead', error);
     }
   }
 
@@ -177,12 +295,17 @@ class NotificationSystemService {
    * Delete a notification
    */
   async deleteNotification(notificationId: string): Promise<void> {
-    const index = this.notifications.findIndex(n => n.id === notificationId);
-    if (index !== -1) {
-      this.notifications.splice(index, 1);
-      this.saveToStorage();
-      this.notifyListeners();
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId);
+
+      if (error) throw error;
+
       log('success', 'deleteNotification', { notificationId });
+    } catch (error) {
+      log('error', 'deleteNotification', error);
     }
   }
 
@@ -190,61 +313,96 @@ class NotificationSystemService {
    * Clear all notifications for a user
    */
   async clearAll(userId: string): Promise<void> {
-    const before = this.notifications.length;
-    this.notifications = this.notifications.filter(n => n.user_id !== userId);
-    const removed = before - this.notifications.length;
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('user_id', userId);
 
-    if (removed > 0) {
-      this.saveToStorage();
-      this.notifyListeners();
-      log('success', 'clearAll', { userId, removed });
+      if (error) throw error;
+
+      log('success', 'clearAll', { userId });
+    } catch (error) {
+      log('error', 'clearAll', error);
     }
   }
 
   /**
    * Log a notification attempt
    */
-  async logNotification(log: Omit<NotificationLog, 'id'>): Promise<NotificationLog> {
-    const notificationLog: NotificationLog = {
-      id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      ...log,
-    };
+  async logNotification(logData: Omit<NotificationLog, 'id' | 'tenant_id' | 'created_at'>): Promise<NotificationLog | null> {
+    try {
+      const context = await this.getContext();
+      if (!context) return null;
 
-    this.notificationLogs.unshift(notificationLog);
-    
-    // Keep only last 1000 logs
-    if (this.notificationLogs.length > 1000) {
-      this.notificationLogs = this.notificationLogs.slice(0, 1000);
+      const { data, error } = await supabase
+        .from('notification_logs')
+        .insert({
+          tenant_id: context.tenantId,
+          ...logData,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      return {
+        ...data,
+        channels: data.channels as any[],
+        type: data.type as NotificationType,
+      };
+    } catch (error) {
+      log('error', 'logNotification', error);
+      return null;
     }
-
-    this.saveToStorage();
-    return notificationLog;
   }
 
   /**
    * Get notification logs
    */
-  getNotificationLogs(filters?: {
+  async getNotificationLogs(filters?: {
     hearingId?: string;
     caseId?: string;
     type?: NotificationType;
     limit?: number;
-  }): NotificationLog[] {
-    let logs = this.notificationLogs;
+  }): Promise<NotificationLog[]> {
+    try {
+      const context = await this.getContext();
+      if (!context) return [];
 
-    if (filters?.hearingId) {
-      logs = logs.filter(l => l.hearing_id === filters.hearingId);
+      let query = supabase
+        .from('notification_logs')
+        .select('*')
+        .eq('tenant_id', context.tenantId)
+        .order('created_at', { ascending: false });
+
+      if (filters?.hearingId) {
+        query = query.eq('hearing_id', filters.hearingId);
+      }
+
+      if (filters?.caseId) {
+        query = query.eq('case_id', filters.caseId);
+      }
+
+      if (filters?.type) {
+        query = query.eq('type', filters.type);
+      }
+
+      query = query.limit(filters?.limit || 100);
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      return (data || []).map(l => ({
+        ...l,
+        channels: l.channels as any[],
+        type: l.type as NotificationType,
+      }));
+    } catch (error) {
+      log('error', 'getNotificationLogs', error);
+      return [];
     }
-
-    if (filters?.caseId) {
-      logs = logs.filter(l => l.case_id === filters.caseId);
-    }
-
-    if (filters?.type) {
-      logs = logs.filter(l => l.type === filters.type);
-    }
-
-    return logs.slice(0, filters?.limit || 100);
   }
 
   /**
@@ -252,15 +410,39 @@ class NotificationSystemService {
    */
   async getUserPreferences(userId: string): Promise<NotificationPreferences> {
     try {
-      const stored = localStorage.getItem(`notification_prefs_${userId}`);
-      if (stored) {
-        return JSON.parse(stored);
+      const context = await this.getContext();
+      if (!context) {
+        return this.getDefaultPreferences(userId);
       }
+
+      const { data, error } = await supabase
+        .from('notification_preferences')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+
+      if (data) {
+        return {
+          ...data,
+          reminder_days: data.reminder_days || [1, 0],
+        };
+      }
+
+      return this.getDefaultPreferences(userId);
     } catch (error) {
       log('error', 'getUserPreferences', error);
+      return this.getDefaultPreferences(userId);
     }
+  }
 
-    // Default preferences
+  /**
+   * Get default preferences
+   */
+  private getDefaultPreferences(userId: string): NotificationPreferences {
     return {
       user_id: userId,
       email_enabled: true,
@@ -271,7 +453,7 @@ class NotificationSystemService {
       task_reminders: true,
       case_updates: true,
       document_shares: true,
-      reminder_days: [1, 0], // T-1 day and same-day
+      reminder_days: [1, 0],
     };
   }
 
@@ -280,7 +462,31 @@ class NotificationSystemService {
    */
   async saveUserPreferences(preferences: NotificationPreferences): Promise<void> {
     try {
-      localStorage.setItem(`notification_prefs_${preferences.user_id}`, JSON.stringify(preferences));
+      const context = await this.getContext();
+      if (!context) {
+        throw new Error('Not authenticated');
+      }
+
+      const { error } = await supabase
+        .from('notification_preferences')
+        .upsert({
+          tenant_id: context.tenantId,
+          user_id: preferences.user_id,
+          email_enabled: preferences.email_enabled,
+          sms_enabled: preferences.sms_enabled,
+          whatsapp_enabled: preferences.whatsapp_enabled,
+          in_app_enabled: preferences.in_app_enabled,
+          hearing_reminders: preferences.hearing_reminders,
+          task_reminders: preferences.task_reminders,
+          case_updates: preferences.case_updates,
+          document_shares: preferences.document_shares,
+          reminder_days: preferences.reminder_days,
+          quiet_hours_start: preferences.quiet_hours_start,
+          quiet_hours_end: preferences.quiet_hours_end,
+        }, { onConflict: 'tenant_id,user_id' });
+
+      if (error) throw error;
+
       log('success', 'saveUserPreferences', { userId: preferences.user_id });
       
       toast({
@@ -291,6 +497,17 @@ class NotificationSystemService {
       log('error', 'saveUserPreferences', error);
       throw error;
     }
+  }
+
+  /**
+   * Cleanup on service destroy
+   */
+  async destroy(): Promise<void> {
+    if (this.realtimeChannel) {
+      await supabase.removeChannel(this.realtimeChannel);
+      this.realtimeChannel = null;
+    }
+    this.listeners.clear();
   }
 }
 
