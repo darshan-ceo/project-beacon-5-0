@@ -19,7 +19,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger, DrawerFooter, DrawerClose } from '@/components/ui/drawer';
 import { toast } from '@/hooks/use-toast';
 import { CalendarSyncPanel } from './CalendarSyncPanel';
-import { integrationsService } from '@/services/integrationsService';
+import { integrationsService, CalendarIntegrationSettings } from '@/services/integrationsService';
 import { calendarService } from '@/services/calendar/calendarService';
 
 interface HearingDrawerProps {
@@ -60,9 +60,16 @@ export const HearingDrawer: React.FC<HearingDrawerProps> = ({
 
   const isEnabled = featureFlagService.isEnabled('hearings_module_v1');
   
-  // Calendar settings
-  const currentOrg = state.clients[0];
-  const calendarSettings = currentOrg ? integrationsService.loadCalendarSettings(currentOrg.id) : null;
+  // Calendar settings - now async
+  const [calendarSettings, setCalendarSettings] = useState<CalendarIntegrationSettings | null>(null);
+  
+  useEffect(() => {
+    const loadSettings = async () => {
+      const settings = await integrationsService.loadCalendarSettings();
+      setCalendarSettings(settings);
+    };
+    loadSettings();
+  }, []);
 
   // Initialize form data
   useEffect(() => {

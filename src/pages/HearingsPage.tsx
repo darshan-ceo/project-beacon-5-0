@@ -20,7 +20,7 @@ import { CalendarSyncStatsCard } from '@/components/hearings/CalendarSyncStatsCa
 import { CalendarSyncErrorModal } from '@/components/hearings/CalendarSyncErrorModal';
 import { HearingsBulkActions } from '@/components/hearings/HearingsBulkActions';
 import { HearingMetrics } from '@/components/hearings/HearingMetrics';
-import { integrationsService } from '@/services/integrationsService';
+import { integrationsService, CalendarIntegrationSettings } from '@/services/integrationsService';
 import { calendarService } from '@/services/calendar/calendarService';
 
 
@@ -151,6 +151,16 @@ export const HearingsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState(searchParams.get('view') || 'list');
   const [selectedHearingIds, setSelectedHearingIds] = useState<Set<string>>(new Set());
   const [showErrorModal, setShowErrorModal] = useState(false);
+  const [calendarSettings, setCalendarSettings] = useState<CalendarIntegrationSettings | null>(null);
+  
+  // Load calendar settings asynchronously
+  useEffect(() => {
+    const loadSettings = async () => {
+      const settings = await integrationsService.loadCalendarSettings();
+      setCalendarSettings(settings);
+    };
+    loadSettings();
+  }, []);
 
   // Update URL when tab changes
   useEffect(() => {
@@ -225,10 +235,6 @@ export const HearingsPage: React.FC = () => {
       setFilters(prev => ({ ...prev, ...newFilters }));
     }
   }, [searchParams]);
-
-  // Load calendar settings (use first client as org for now)
-  const currentOrg = state.clients[0];
-  const calendarSettings = currentOrg ? integrationsService.loadCalendarSettings(currentOrg.id) : null;
 
   // Simple filtering
   const filteredHearings = state.hearings.filter(hearing => {
