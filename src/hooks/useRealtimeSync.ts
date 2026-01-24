@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAppState } from '@/contexts/AppStateContext';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { normalizeStage } from '@/utils/stageUtils';
+import { calculateSLAStatus } from '@/services/slaService';
 
 /**
  * Hook for real-time data synchronization across clients
@@ -92,6 +93,16 @@ export const useRealtimeSync = () => {
             const caseData = payload.new as any;
             // Derive assignedToName from employees state
             const employee = state.employees.find(e => e.id === caseData.assigned_to);
+            
+            // Build case object for SLA calculation
+            const caseForSLA = {
+              lastUpdated: caseData.updated_at || caseData.created_at,
+              nextHearing: caseData.next_hearing_date 
+                ? { date: caseData.next_hearing_date } 
+                : undefined
+            };
+            const timelineBreachStatus = calculateSLAStatus(caseForSLA as any);
+            
             rawDispatch({ 
               type: 'ADD_CASE', 
               payload: {
@@ -122,13 +133,23 @@ export const useRealtimeSync = () => {
                 totalDemand: caseData.total_demand || caseData.totalDemand,
                 stateBenchState: caseData.state_bench_state || caseData.stateBenchState,
                 stateBenchCity: caseData.state_bench_city || caseData.stateBenchCity,
-                nextHearingDate: caseData.next_hearing_date || caseData.nextHearingDate
+                nextHearingDate: caseData.next_hearing_date || caseData.nextHearingDate,
+                timelineBreachStatus
               } as any 
             });
           } else if (payload.eventType === 'UPDATE' && payload.new) {
             const caseData = payload.new as any;
             // Derive assignedToName from employees state
             const employee = state.employees.find(e => e.id === caseData.assigned_to);
+            
+            // Build case object for SLA calculation
+            const caseForSLA = {
+              lastUpdated: caseData.updated_at,
+              nextHearing: caseData.next_hearing_date 
+                ? { date: caseData.next_hearing_date } 
+                : undefined
+            };
+            const timelineBreachStatus = calculateSLAStatus(caseForSLA as any);
             
             // Build complete payload with ALL fields mapped consistently
             // This ensures UPDATE doesn't overwrite camelCase fields with undefined
@@ -196,7 +217,10 @@ export const useRealtimeSync = () => {
                 
                 // Timestamps
                 createdDate: caseData.created_at || caseData.createdDate || '',
-                lastUpdated: caseData.updated_at || caseData.lastUpdated || ''
+                lastUpdated: caseData.updated_at || caseData.lastUpdated || '',
+                
+                // SLA status - recalculated dynamically
+                timelineBreachStatus
               } as any
             });
           } else if (payload.eventType === 'DELETE' && payload.old) {

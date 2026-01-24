@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { normalizeStage } from '@/utils/stageUtils';
 import { calculateSLAStatus } from '@/services/slaService';
 import { parseCaseNumber } from '@/utils/caseNumberGenerator';
+import { useSLARecalculation } from '@/hooks/useSLARecalculation';
 
 // State name to code mapping for imported data
 const STATE_NAME_TO_CODE: Record<string, string> = {
@@ -72,6 +73,9 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
     !globalDataLoaded || globalLoadedTenantId !== tenantId
   );
   const [error, setError] = useState<string | null>(null);
+  
+  // Enable periodic SLA recalculation (every 15 min + on window focus)
+  useSLARecalculation();
   
   // Get dispatch safely - will be undefined if context is not available
   const dispatch = appStateContext?.dispatch;
