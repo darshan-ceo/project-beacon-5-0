@@ -1,54 +1,31 @@
 // Microsoft Outlook Calendar (Graph API) provider implementation
 import { CalendarProvider, CalendarEvent, CalendarInfo } from './calendarService';
-import { CalendarIntegrationSettings, integrationsService } from '../integrationsService';
-import { OAuthManager } from '@/utils/oauthUtils';
+import { CalendarIntegrationSettings } from '../integrationsService';
+import { supabase } from '@/integrations/supabase/client';
 
 class OutlookCalendarProvider implements CalendarProvider {
   private readonly baseUrl = 'https://graph.microsoft.com/v1.0';
 
-  // Get valid access token, refreshing if necessary
-  private async getValidAccessToken(settings: CalendarIntegrationSettings): Promise<string> {
-    const tokens = integrationsService.loadTokens(settings.orgId, 'outlook');
-    if (!tokens?.access_token) {
+  // Get valid access token via edge function
+  private async getValidAccessToken(): Promise<string> {
+    const { data, error } = await supabase.functions.invoke('manage-secrets/get-calendar-token', {
+      body: { provider: 'outlook' }
+    });
+
+    if (error || !data?.access_token) {
       throw new Error('No Microsoft access token found. Please reconnect your Microsoft account.');
     }
 
-    // Check if token needs refresh
-    if (OAuthManager.isTokenExpired(tokens.expires_at) && tokens.refresh_token) {
-      try {
-        const config = OAuthManager.getMicrosoftConfig(
-          settings.microsoftClientId || '',
-          settings.microsoftTenant || 'common',
-          settings.microsoftClientSecret
-        );
-        
-        const newTokens = await OAuthManager.refreshToken('microsoft', tokens.refresh_token, config);
-        
-        // Update stored tokens
-        integrationsService.saveTokens(settings.orgId, 'outlook', {
-          access_token: newTokens.access_token,
-          refresh_token: newTokens.refresh_token || tokens.refresh_token,
-          expires_at: newTokens.expires_at,
-          user_email: tokens.user_email
-        });
-
-        return newTokens.access_token;
-      } catch (error) {
-        throw new Error('Failed to refresh Microsoft access token. Please reconnect your account.');
-      }
-    }
-
-    return tokens.access_token;
+    return data.access_token;
   }
 
   // Make authenticated API request
   private async apiRequest(
     method: string,
     endpoint: string,
-    settings: CalendarIntegrationSettings,
     body?: any
   ): Promise<any> {
-    const accessToken = await this.getValidAccessToken(settings);
+    const accessToken = await this.getValidAccessToken();
     
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method,
@@ -68,7 +45,6 @@ class OutlookCalendarProvider implements CalendarProvider {
         throw new Error(`Microsoft Graph API error (${response.status}): ${errorText}`);
       }
 
-      // Parse Microsoft Graph API error format
       const errorMessage = this.parseMicrosoftApiError(response.status, errorBody);
       const error = new Error(errorMessage);
       (error as any).statusCode = response.status;
@@ -76,7 +52,6 @@ class OutlookCalendarProvider implements CalendarProvider {
       throw error;
     }
 
-    // Handle empty responses (e.g., DELETE returns 204)
     if (response.status === 204) {
       return {};
     }
@@ -93,7 +68,6 @@ class OutlookCalendarProvider implements CalendarProvider {
     const errorCode = errorBody?.error?.code || 'UnknownError';
     const errorMessage = errorBody?.error?.message || 'Unknown error';
 
-    // Map common Microsoft error codes to user-friendly messages
     switch (status) {
       case 401:
         if (errorCode === 'InvalidAuthenticationToken') {
@@ -119,7 +93,6 @@ class OutlookCalendarProvider implements CalendarProvider {
       case 503:
         return 'Microsoft Outlook is temporarily unavailable. Please try again later.';
       default:
-        // Handle specific Microsoft error codes
         switch (errorCode) {
           case 'ErrorCalendarIsCancelledForAccept':
             return 'This meeting has been cancelled.';
@@ -138,7 +111,7 @@ class OutlookCalendarProvider implements CalendarProvider {
   // List available calendars
   async listCalendars(settings: CalendarIntegrationSettings): Promise<CalendarInfo[]> {
     try {
-      const response = await this.apiRequest('GET', '/me/calendars', settings);
+      const response = await this.apiRequest('GET', '/me/calendars');
       
       return (response.value || []).map((calendar: any) => ({
         id: calendar.id,
@@ -155,7 +128,7 @@ class OutlookCalendarProvider implements CalendarProvider {
   // Create calendar event
   async createEvent(event: CalendarEvent, settings: CalendarIntegrationSettings): Promise<string> {
     try {
-      const calendarId = event.calendarId || 'calendar'; // Use default calendar if not specified
+      const calendarId = event.calendarId || settings.defaultCalendarId || 'calendar';
       
       const outlookEvent = {
         subject: event.title,
@@ -183,13 +156,12 @@ class OutlookCalendarProvider implements CalendarProvider {
         }))
       };
 
-      // Remove undefined fields
       const cleanEvent = JSON.parse(JSON.stringify(outlookEvent, (key, value) => 
         value === undefined ? undefined : value
       ));
 
       const endpoint = calendarId === 'calendar' ? '/me/events' : `/me/calendars/${encodeURIComponent(calendarId)}/events`;
-      const response = await this.apiRequest('POST', endpoint, settings, cleanEvent);
+      const response = await this.apiRequest('POST', endpoint, cleanEvent);
 
       return response.id;
     } catch (error) {
@@ -227,12 +199,11 @@ class OutlookCalendarProvider implements CalendarProvider {
         }))
       };
 
-      // Remove undefined fields
       const cleanEvent = JSON.parse(JSON.stringify(outlookEvent, (key, value) => 
         value === undefined ? undefined : value
       ));
 
-      await this.apiRequest('PATCH', `/me/events/${encodeURIComponent(eventId)}`, settings, cleanEvent);
+      await this.apiRequest('PATCH', `/me/events/${encodeURIComponent(eventId)}`, cleanEvent);
     } catch (error) {
       console.error('Failed to update Microsoft Calendar event:', error);
       throw error;
@@ -242,9 +213,8 @@ class OutlookCalendarProvider implements CalendarProvider {
   // Delete calendar event
   async deleteEvent(eventId: string, settings: CalendarIntegrationSettings): Promise<void> {
     try {
-      await this.apiRequest('DELETE', `/me/events/${encodeURIComponent(eventId)}`, settings);
+      await this.apiRequest('DELETE', `/me/events/${encodeURIComponent(eventId)}`);
     } catch (error) {
-      // Don't throw error if event doesn't exist (already deleted)
       if (error instanceof Error && error.message.includes('404')) {
         console.warn('Microsoft Calendar event not found (may already be deleted)');
         return;

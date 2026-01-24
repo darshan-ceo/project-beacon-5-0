@@ -176,9 +176,9 @@ export const hearingsService = {
       
       // Auto-sync to calendar if enabled
       try {
-        const settings = integrationsService.loadCalendarSettings('default');
+        const settings = await integrationsService.loadCalendarSettings();
         if (settings?.autoSync && settings.provider !== 'none') {
-          const connectionStatus = integrationsService.getConnectionStatus('default', settings.provider);
+          const connectionStatus = await integrationsService.getConnectionStatus(settings.provider);
           
           if (connectionStatus.connected) {
             const eventId = await calendarService.createEvent(newHearing, settings);
@@ -384,9 +384,9 @@ export const hearingsService = {
       
       // Auto-sync calendar update if enabled
       try {
-        const settings = integrationsService.loadCalendarSettings('default');
+        const settings = await integrationsService.loadCalendarSettings();
         if (settings?.autoSync && settings.provider !== 'none') {
-          const connectionStatus = integrationsService.getConnectionStatus('default', settings.provider);
+          const connectionStatus = await integrationsService.getConnectionStatus(settings.provider);
           
           if (connectionStatus.connected) {
             // Get the full hearing object from state
@@ -462,9 +462,9 @@ export const hearingsService = {
       // Delete from calendar if synced
       if (hearing?.externalEventId) {
         try {
-          const settings = integrationsService.loadCalendarSettings('default');
+          const settings = await integrationsService.loadCalendarSettings();
           if (settings && settings.provider !== 'none') {
-            const connectionStatus = integrationsService.getConnectionStatus('default', settings.provider);
+            const connectionStatus = await integrationsService.getConnectionStatus(settings.provider);
             
             if (connectionStatus.connected) {
               await calendarService.deleteEvent(hearing as any, settings);

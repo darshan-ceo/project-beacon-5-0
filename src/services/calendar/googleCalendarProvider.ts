@@ -1,53 +1,31 @@
 // Google Calendar API provider implementation
 import { CalendarProvider, CalendarEvent, CalendarInfo } from './calendarService';
-import { CalendarIntegrationSettings, integrationsService } from '../integrationsService';
-import { OAuthManager } from '@/utils/oauthUtils';
+import { CalendarIntegrationSettings } from '../integrationsService';
+import { supabase } from '@/integrations/supabase/client';
 
 class GoogleCalendarProvider implements CalendarProvider {
   private readonly baseUrl = 'https://www.googleapis.com/calendar/v3';
 
-  // Get valid access token, refreshing if necessary
-  private async getValidAccessToken(settings: CalendarIntegrationSettings): Promise<string> {
-    const tokens = integrationsService.loadTokens(settings.orgId, 'google');
-    if (!tokens?.access_token) {
+  // Get valid access token via edge function
+  private async getValidAccessToken(): Promise<string> {
+    const { data, error } = await supabase.functions.invoke('manage-secrets/get-calendar-token', {
+      body: { provider: 'google' }
+    });
+
+    if (error || !data?.access_token) {
       throw new Error('No Google access token found. Please reconnect your Google account.');
     }
 
-    // Check if token needs refresh
-    if (OAuthManager.isTokenExpired(tokens.expires_at) && tokens.refresh_token) {
-      try {
-        const config = OAuthManager.getGoogleConfig(
-          settings.googleClientId || '',
-          settings.googleClientSecret
-        );
-        
-        const newTokens = await OAuthManager.refreshToken('google', tokens.refresh_token, config);
-        
-        // Update stored tokens
-        integrationsService.saveTokens(settings.orgId, 'google', {
-          access_token: newTokens.access_token,
-          refresh_token: newTokens.refresh_token || tokens.refresh_token,
-          expires_at: newTokens.expires_at,
-          user_email: tokens.user_email
-        });
-
-        return newTokens.access_token;
-      } catch (error) {
-        throw new Error('Failed to refresh Google access token. Please reconnect your account.');
-      }
-    }
-
-    return tokens.access_token;
+    return data.access_token;
   }
 
   // Make authenticated API request
   private async apiRequest(
     method: string,
     endpoint: string,
-    settings: CalendarIntegrationSettings,
     body?: any
   ): Promise<any> {
-    const accessToken = await this.getValidAccessToken(settings);
+    const accessToken = await this.getValidAccessToken();
     
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method,
@@ -63,12 +41,10 @@ class GoogleCalendarProvider implements CalendarProvider {
       try {
         errorBody = await response.json();
       } catch {
-        // If JSON parsing fails, use response text
         const errorText = await response.text().catch(() => 'Unknown error');
         throw new Error(`Google Calendar API error (${response.status}): ${errorText}`);
       }
 
-      // Parse Google API error format
       const errorMessage = this.parseGoogleApiError(response.status, errorBody);
       const error = new Error(errorMessage);
       (error as any).statusCode = response.status;
@@ -76,7 +52,6 @@ class GoogleCalendarProvider implements CalendarProvider {
       throw error;
     }
 
-    // Handle empty responses (e.g., DELETE)
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('application/json')) {
       return response.json();
@@ -90,7 +65,6 @@ class GoogleCalendarProvider implements CalendarProvider {
     const errorMessage = errorBody?.error?.message || 'Unknown error';
     const errorReason = errorBody?.error?.errors?.[0]?.reason;
 
-    // Map common error codes to user-friendly messages
     switch (status) {
       case 401:
         if (errorMessage.includes('invalid_token') || errorMessage.includes('expired')) {
@@ -127,7 +101,7 @@ class GoogleCalendarProvider implements CalendarProvider {
   // List available calendars
   async listCalendars(settings: CalendarIntegrationSettings): Promise<CalendarInfo[]> {
     try {
-      const response = await this.apiRequest('GET', '/users/me/calendarList', settings);
+      const response = await this.apiRequest('GET', '/users/me/calendarList');
       
       return (response.items || []).map((calendar: any) => ({
         id: calendar.id,
@@ -144,7 +118,7 @@ class GoogleCalendarProvider implements CalendarProvider {
   // Create calendar event
   async createEvent(event: CalendarEvent, settings: CalendarIntegrationSettings): Promise<string> {
     try {
-      const calendarId = event.calendarId || 'primary';
+      const calendarId = event.calendarId || settings.defaultCalendarId || 'primary';
       
       const googleEvent = {
         summary: event.title,
@@ -171,7 +145,6 @@ class GoogleCalendarProvider implements CalendarProvider {
       const response = await this.apiRequest(
         'POST', 
         `/calendars/${encodeURIComponent(calendarId)}/events`,
-        settings,
         googleEvent
       );
 
@@ -185,7 +158,7 @@ class GoogleCalendarProvider implements CalendarProvider {
   // Update calendar event
   async updateEvent(eventId: string, event: CalendarEvent, settings: CalendarIntegrationSettings): Promise<void> {
     try {
-      const calendarId = event.calendarId || 'primary';
+      const calendarId = event.calendarId || settings.defaultCalendarId || 'primary';
       
       const googleEvent = {
         summary: event.title,
@@ -212,7 +185,6 @@ class GoogleCalendarProvider implements CalendarProvider {
       await this.apiRequest(
         'PUT',
         `/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
-        settings,
         googleEvent
       );
     } catch (error) {
@@ -228,11 +200,9 @@ class GoogleCalendarProvider implements CalendarProvider {
       
       await this.apiRequest(
         'DELETE',
-        `/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
-        settings
+        `/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`
       );
     } catch (error) {
-      // Don't throw error if event doesn't exist (already deleted)
       if (error instanceof Error && error.message.includes('404')) {
         console.warn('Google Calendar event not found (may already be deleted)');
         return;

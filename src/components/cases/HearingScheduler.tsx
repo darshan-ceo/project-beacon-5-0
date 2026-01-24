@@ -86,10 +86,10 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases, selec
   }, [selectedCase]);
 
   useEffect(() => {
-    const loadCalendarStatus = () => {
+    const loadCalendarStatus = async () => {
       try {
-        const googleStatus = integrationsService.getConnectionStatus('default', 'google');
-        const outlookStatus = integrationsService.getConnectionStatus('default', 'outlook');
+        const googleStatus = await integrationsService.getConnectionStatus('google');
+        const outlookStatus = await integrationsService.getConnectionStatus('outlook');
         setCalendarStatus({ google: googleStatus, outlook: outlookStatus });
       } catch (error) {
         console.error('Failed to load calendar status:', error);
