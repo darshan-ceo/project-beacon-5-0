@@ -1,4 +1,4 @@
-import { STORAGE_KEYS } from '@/constants/StorageKeys';
+import { supabase } from '@/integrations/supabase/client';
 import type { EmailSettings, ProviderSmtpConfig, ClientSmtpConfig } from '@/types/email';
 import { PROVIDER_CONFIGS } from '@/types/email';
 import { 
@@ -6,11 +6,11 @@ import {
   providerSmtpConfigSchema, 
   clientSmtpConfigSchema 
 } from '@/utils/emailValidation';
-import { encryptCredentials, decryptCredentials, isEncryptionAvailable } from '@/utils/emailEncryption';
 
 /**
- * Email Settings Service
- * Manages email configuration storage and retrieval with encryption
+ * Email Settings Service - Phase 2 Migration
+ * Now uses Supabase for persistence via manage-secrets edge function
+ * Sensitive credentials handled server-side only
  */
 
 const DEFAULT_SETTINGS: EmailSettings = {
@@ -21,38 +21,43 @@ const DEFAULT_SETTINGS: EmailSettings = {
 };
 
 /**
- * Get email settings from localStorage
+ * Get email settings from Supabase
  */
 export async function getEmailSettings(): Promise<EmailSettings> {
   try {
-    const stored = localStorage.getItem(STORAGE_KEYS.EMAIL_SETTINGS);
-    if (!stored) {
+    const { data, error } = await supabase.functions.invoke('manage-secrets/get-email-config');
+    
+    if (error) {
+      console.error('[Email Settings] Failed to load from Supabase:', error);
+      return DEFAULT_SETTINGS;
+    }
+
+    if (!data?.config) {
       console.log('[Email Settings] No settings found, using defaults');
       return DEFAULT_SETTINGS;
     }
 
-    const settings = JSON.parse(stored) as EmailSettings;
+    const config = data.config;
     
-    // Decrypt credentials if available
-    if (settings.providerConfig?.appPassword) {
-      try {
-        settings.providerConfig.appPassword = await decryptCredentials(
-          settings.providerConfig.appPassword
-        );
-      } catch (error) {
-        console.warn('[Email Settings] Failed to decrypt provider password');
-      }
-    }
-    
-    if (settings.clientConfig?.password) {
-      try {
-        settings.clientConfig.password = await decryptCredentials(
-          settings.clientConfig.password
-        );
-      } catch (error) {
-        console.warn('[Email Settings] Failed to decrypt client password');
-      }
-    }
+    // Reconstruct settings object (passwords are not returned)
+    const settings: EmailSettings = {
+      enabled: config.enabled ?? false,
+      mode: config.mode ?? 'provider',
+      providerConfig: config.providerConfig ? {
+        provider: config.providerConfig.provider,
+        email: config.providerConfig.email,
+        appPassword: config.hasPassword ? '••••••••' : '' // Placeholder - actual password is server-side
+      } : undefined,
+      clientConfig: config.clientConfig ? {
+        host: config.clientConfig.host,
+        port: config.clientConfig.port,
+        secure: config.clientConfig.secure,
+        username: config.clientConfig.username,
+        password: config.hasPassword ? '••••••••' : '', // Placeholder
+        fromAddress: config.clientConfig.fromAddress,
+        fromName: config.clientConfig.fromName
+      } : undefined
+    };
 
     console.log('[Email Settings] Loaded settings:', { 
       enabled: settings.enabled, 
@@ -69,7 +74,7 @@ export async function getEmailSettings(): Promise<EmailSettings> {
 }
 
 /**
- * Save email settings to localStorage
+ * Save email settings to Supabase (sensitive data handled by edge function)
  */
 export async function saveEmailSettings(settings: EmailSettings): Promise<void> {
   try {
@@ -79,23 +84,46 @@ export async function saveEmailSettings(settings: EmailSettings): Promise<void> 
       throw new Error(`Invalid email settings: ${validation.error.message}`);
     }
 
-    // Clone settings for encryption
-    const toSave = JSON.parse(JSON.stringify(settings)) as EmailSettings;
+    // Prepare config for edge function
+    const config: any = {
+      enabled: settings.enabled,
+      mode: settings.mode,
+    };
 
-    // Encrypt sensitive credentials
-    if (toSave.providerConfig?.appPassword && isEncryptionAvailable()) {
-      toSave.providerConfig.appPassword = await encryptCredentials(
-        toSave.providerConfig.appPassword
-      );
-    }
-    
-    if (toSave.clientConfig?.password && isEncryptionAvailable()) {
-      toSave.clientConfig.password = await encryptCredentials(
-        toSave.clientConfig.password
-      );
+    if (settings.mode === 'provider' && settings.providerConfig) {
+      config.providerConfig = {
+        provider: settings.providerConfig.provider,
+        email: settings.providerConfig.email,
+      };
+      // Only send password if it's not the placeholder
+      if (settings.providerConfig.appPassword && !settings.providerConfig.appPassword.includes('•')) {
+        config.appPassword = settings.providerConfig.appPassword;
+      }
     }
 
-    localStorage.setItem(STORAGE_KEYS.EMAIL_SETTINGS, JSON.stringify(toSave));
+    if (settings.mode === 'client' && settings.clientConfig) {
+      config.clientConfig = {
+        host: settings.clientConfig.host,
+        port: settings.clientConfig.port,
+        secure: settings.clientConfig.secure,
+        username: settings.clientConfig.username,
+        fromAddress: settings.clientConfig.fromAddress,
+        fromName: settings.clientConfig.fromName,
+      };
+      // Only send password if it's not the placeholder
+      if (settings.clientConfig.password && !settings.clientConfig.password.includes('•')) {
+        config.password = settings.clientConfig.password;
+      }
+    }
+
+    const { error } = await supabase.functions.invoke('manage-secrets/save-email-config', {
+      body: { config }
+    });
+
+    if (error) {
+      console.error('[Email Settings] Failed to save:', error);
+      throw new Error('Failed to save email settings');
+    }
     
     console.log('[Email Settings] Settings saved successfully:', {
       enabled: settings.enabled,
@@ -149,7 +177,7 @@ export async function isEmailConfigured(): Promise<boolean> {
   if (!settings.enabled) return false;
   
   if (settings.mode === 'provider') {
-    return !!settings.providerConfig?.email && !!settings.providerConfig?.appPassword;
+    return !!settings.providerConfig?.email;
   }
   
   if (settings.mode === 'client') {
@@ -157,7 +185,6 @@ export async function isEmailConfigured(): Promise<boolean> {
       settings.clientConfig?.host &&
       settings.clientConfig?.port &&
       settings.clientConfig?.username &&
-      settings.clientConfig?.password &&
       settings.clientConfig?.fromAddress
     );
   }
@@ -168,9 +195,15 @@ export async function isEmailConfigured(): Promise<boolean> {
 /**
  * Clear all email settings
  */
-export function clearEmailSettings(): void {
-  localStorage.removeItem(STORAGE_KEYS.EMAIL_SETTINGS);
-  console.log('[Email Settings] Settings cleared');
+export async function clearEmailSettings(): Promise<void> {
+  try {
+    await supabase.functions.invoke('manage-secrets/save-email-config', {
+      body: { config: { enabled: false, mode: 'provider' } }
+    });
+    console.log('[Email Settings] Settings cleared');
+  } catch (error) {
+    console.error('[Email Settings] Failed to clear settings:', error);
+  }
 }
 
 /**

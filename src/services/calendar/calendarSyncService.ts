@@ -53,14 +53,14 @@ class CalendarSyncService {
     try {
       this.syncInProgress = true;
 
-      // Load calendar settings
-      const settings = integrationsService.loadCalendarSettings('default');
+      // Load calendar settings (now async)
+      const settings = await integrationsService.loadCalendarSettings();
       if (!settings || settings.provider === 'none' || !settings.autoSync) {
         return;
       }
 
-      // Check connection status
-      const connectionStatus = integrationsService.getConnectionStatus('default', settings.provider);
+      // Check connection status (now async)
+      const connectionStatus = await integrationsService.getConnectionStatus(settings.provider);
       if (!connectionStatus.connected) {
         console.log('Calendar not connected, skipping sync');
         return;
@@ -107,6 +107,9 @@ class CalendarSyncService {
       });
 
       await saveAppState({ ...appState, hearings: updatedHearings });
+      
+      // Update last sync timestamp
+      await integrationsService.updateLastSync();
 
       const successCount = bulkResult.results.filter((r: any) => r.success).length;
       const failCount = bulkResult.results.filter((r: any) => !r.success).length;

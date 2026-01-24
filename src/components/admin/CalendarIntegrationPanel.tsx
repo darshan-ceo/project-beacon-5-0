@@ -17,10 +17,11 @@ import {
 } from '@/services/integrationsService';
 import { calendarService } from '@/services/calendar/calendarService';
 import { OAuthManager } from '@/utils/oauthUtils';
+import { supabase } from '@/integrations/supabase/client';
 
 export const CalendarIntegrationPanel: React.FC = () => {
   const [settings, setSettings] = useState<CalendarIntegrationSettings>({
-    orgId: 'default', // In production, this would come from user context
+    orgId: 'default',
     provider: 'none',
     autoSync: true,
     reminderTime: 30,
@@ -30,28 +31,48 @@ export const CalendarIntegrationPanel: React.FC = () => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [isLoadingCalendars, setIsLoadingCalendars] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // OAuth credentials (stored separately via edge function)
+  const [oauthCredentials, setOauthCredentials] = useState({
+    googleClientId: '',
+    googleClientSecret: '',
+    microsoftClientId: '',
+    microsoftClientSecret: '',
+    microsoftTenant: 'common'
+  });
 
   // Load settings on component mount
   useEffect(() => {
-    const loadedSettings = integrationsService.loadCalendarSettings('default');
-    if (loadedSettings) {
-      setSettings(loadedSettings);
-      updateConnectionStatus(loadedSettings);
-      if (loadedSettings.provider !== 'none') {
-        loadCalendars(loadedSettings);
+    const loadSettings = async () => {
+      setIsLoading(true);
+      try {
+        const loadedSettings = await integrationsService.loadCalendarSettings();
+        if (loadedSettings) {
+          setSettings(loadedSettings);
+          await updateConnectionStatus(loadedSettings.provider);
+          if (loadedSettings.provider !== 'none') {
+            await loadCalendars(loadedSettings);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load calendar settings:', error);
+      } finally {
+        setIsLoading(false);
       }
-    }
+    };
+    loadSettings();
   }, []);
 
   // Update connection status
-  const updateConnectionStatus = (currentSettings: CalendarIntegrationSettings) => {
-    if (currentSettings.provider === 'none') {
+  const updateConnectionStatus = async (provider: 'none' | 'google' | 'outlook') => {
+    if (provider === 'none') {
       setConnectionStatus({ connected: false });
       return;
     }
 
-    const providerKey = currentSettings.provider === 'outlook' ? 'outlook' : 'google';
-    const status = integrationsService.getConnectionStatus(currentSettings.orgId, providerKey);
+    const providerKey = provider === 'outlook' ? 'outlook' : 'google';
+    const status = await integrationsService.getConnectionStatus(providerKey);
     setConnectionStatus(status);
   };
 
@@ -75,24 +96,59 @@ export const CalendarIntegrationPanel: React.FC = () => {
   };
 
   // Handle settings change
-  const handleSettingsChange = (updates: Partial<CalendarIntegrationSettings>) => {
+  const handleSettingsChange = async (updates: Partial<CalendarIntegrationSettings>) => {
     const newSettings = { ...settings, ...updates };
     setSettings(newSettings);
     
     // Update connection status when provider changes
     if (updates.provider !== undefined) {
-      updateConnectionStatus(newSettings);
+      await updateConnectionStatus(newSettings.provider);
       if (newSettings.provider !== 'none') {
-        loadCalendars(newSettings);
+        await loadCalendars(newSettings);
       } else {
         setAvailableCalendars([]);
       }
     }
   };
 
+  // Handle OAuth credential changes
+  const handleCredentialChange = (key: keyof typeof oauthCredentials, value: string) => {
+    setOauthCredentials(prev => ({ ...prev, [key]: value }));
+  };
+
   // Save settings
-  const saveSettings = () => {
-    integrationsService.saveCalendarSettings(settings);
+  const saveSettings = async () => {
+    try {
+      await integrationsService.saveCalendarSettings(settings);
+      
+      // Store OAuth credentials securely via edge function
+      if (settings.provider === 'google' && oauthCredentials.googleClientId) {
+        await supabase.functions.invoke('manage-secrets/store', {
+          body: { key: 'google_client_id', value: oauthCredentials.googleClientId }
+        });
+        if (oauthCredentials.googleClientSecret) {
+          await supabase.functions.invoke('manage-secrets/store', {
+            body: { key: 'google_client_secret', value: oauthCredentials.googleClientSecret }
+          });
+        }
+      }
+      
+      if (settings.provider === 'outlook' && oauthCredentials.microsoftClientId) {
+        await supabase.functions.invoke('manage-secrets/store', {
+          body: { key: 'microsoft_client_id', value: oauthCredentials.microsoftClientId }
+        });
+        if (oauthCredentials.microsoftClientSecret) {
+          await supabase.functions.invoke('manage-secrets/store', {
+            body: { key: 'microsoft_client_secret', value: oauthCredentials.microsoftClientSecret }
+          });
+        }
+        await supabase.functions.invoke('manage-secrets/store', {
+          body: { key: 'microsoft_tenant', value: oauthCredentials.microsoftTenant }
+        });
+      }
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+    }
   };
 
   // Start OAuth connection
@@ -100,7 +156,7 @@ export const CalendarIntegrationPanel: React.FC = () => {
     if (settings.provider === 'none') return;
 
     const requiredFields = getRequiredFields();
-    const missingFields = requiredFields.filter(field => !settings[field as keyof CalendarIntegrationSettings]);
+    const missingFields = requiredFields.filter(field => !oauthCredentials[field as keyof typeof oauthCredentials]);
     
     if (missingFields.length > 0) {
       toast({
@@ -115,7 +171,7 @@ export const CalendarIntegrationPanel: React.FC = () => {
     
     try {
       // Save settings BEFORE starting OAuth flow
-      integrationsService.saveCalendarSettings(settings);
+      await saveSettings();
       
       toast({
         title: "Settings Saved",
@@ -125,14 +181,14 @@ export const CalendarIntegrationPanel: React.FC = () => {
       let config;
       if (settings.provider === 'google') {
         config = OAuthManager.getGoogleConfig(
-          settings.googleClientId!,
-          settings.googleClientSecret
+          oauthCredentials.googleClientId,
+          oauthCredentials.googleClientSecret
         );
       } else {
         config = OAuthManager.getMicrosoftConfig(
-          settings.microsoftClientId!,
-          settings.microsoftTenant || 'common',
-          settings.microsoftClientSecret
+          oauthCredentials.microsoftClientId,
+          oauthCredentials.microsoftTenant || 'common',
+          oauthCredentials.microsoftClientSecret
         );
       }
 
@@ -140,7 +196,6 @@ export const CalendarIntegrationPanel: React.FC = () => {
     } catch (error) {
       console.error('OAuth start failed:', error);
       
-      // Enhanced error handling for redirect_uri_mismatch
       const errorMessage = error instanceof Error ? error.message : String(error);
       const isRedirectUriError = errorMessage.toLowerCase().includes('redirect_uri') || 
                                   errorMessage.includes('400') ||
@@ -151,7 +206,7 @@ export const CalendarIntegrationPanel: React.FC = () => {
           title: "OAuth Redirect URI Mismatch",
           description: `Please ensure your ${settings.provider === 'google' ? 'Google Cloud Console' : 'Azure Portal'} has the correct redirect URI configured: ${window.location.origin}/oauth/callback`,
           variant: "destructive",
-          duration: 10000, // Longer duration for important error
+          duration: 10000,
         });
       } else {
         toast({
@@ -166,11 +221,11 @@ export const CalendarIntegrationPanel: React.FC = () => {
   };
 
   // Disconnect account
-  const handleDisconnect = () => {
+  const handleDisconnect = async () => {
     if (settings.provider === 'none') return;
 
     const providerKey = settings.provider === 'outlook' ? 'outlook' : 'google';
-    integrationsService.clearTokens(settings.orgId, providerKey);
+    await integrationsService.clearTokens(providerKey);
     setConnectionStatus({ connected: false });
     setAvailableCalendars([]);
     
@@ -184,7 +239,6 @@ export const CalendarIntegrationPanel: React.FC = () => {
   const handleTestConnection = async () => {
     if (settings.provider === 'none') return;
     
-    // Validate required fields first
     if (!hasRequiredCredentials()) {
       toast({
         title: "Missing Credentials",
@@ -205,8 +259,8 @@ export const CalendarIntegrationPanel: React.FC = () => {
       });
 
       if (result.success) {
-        updateConnectionStatus(settings);
-        loadCalendars(settings);
+        await updateConnectionStatus(settings.provider);
+        await loadCalendars(settings);
       }
     } catch (error) {
       toast({
@@ -236,15 +290,23 @@ export const CalendarIntegrationPanel: React.FC = () => {
     if (settings.provider === 'none') return false;
     
     if (settings.provider === 'google') {
-      return !!(settings.googleClientId && settings.googleClientSecret);
+      return !!(oauthCredentials.googleClientId && oauthCredentials.googleClientSecret);
     }
     
     if (settings.provider === 'outlook') {
-      return !!(settings.microsoftClientId && settings.microsoftClientSecret);
+      return !!(oauthCredentials.microsoftClientId && oauthCredentials.microsoftClientSecret);
     }
     
     return false;
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="w-6 h-6 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -278,8 +340,8 @@ export const CalendarIntegrationPanel: React.FC = () => {
                 <Label>Google Client ID</Label>
                 <Input 
                   placeholder="Your Google OAuth Client ID"
-                  value={settings.googleClientId || ''}
-                  onChange={(e) => handleSettingsChange({ googleClientId: e.target.value })}
+                  value={oauthCredentials.googleClientId}
+                  onChange={(e) => handleCredentialChange('googleClientId', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
@@ -287,8 +349,8 @@ export const CalendarIntegrationPanel: React.FC = () => {
                 <Input 
                   type="password"
                   placeholder="Your Google OAuth Client Secret"
-                  value={settings.googleClientSecret || ''}
-                  onChange={(e) => handleSettingsChange({ googleClientSecret: e.target.value })}
+                  value={oauthCredentials.googleClientSecret}
+                  onChange={(e) => handleCredentialChange('googleClientSecret', e.target.value)}
                 />
               </div>
             </div>
@@ -307,8 +369,8 @@ export const CalendarIntegrationPanel: React.FC = () => {
                 <Label>Azure App (Client) ID</Label>
                 <Input 
                   placeholder="Your Azure Application Client ID"
-                  value={settings.microsoftClientId || ''}
-                  onChange={(e) => handleSettingsChange({ microsoftClientId: e.target.value })}
+                  value={oauthCredentials.microsoftClientId}
+                  onChange={(e) => handleCredentialChange('microsoftClientId', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
@@ -316,15 +378,15 @@ export const CalendarIntegrationPanel: React.FC = () => {
                 <Input 
                   type="password"
                   placeholder="Your Azure Application Client Secret"
-                  value={settings.microsoftClientSecret || ''}
-                  onChange={(e) => handleSettingsChange({ microsoftClientSecret: e.target.value })}
+                  value={oauthCredentials.microsoftClientSecret}
+                  onChange={(e) => handleCredentialChange('microsoftClientSecret', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Tenant</Label>
                 <Select 
-                  value={settings.microsoftTenant || 'common'}
-                  onValueChange={(value) => handleSettingsChange({ microsoftTenant: value })}
+                  value={oauthCredentials.microsoftTenant}
+                  onValueChange={(value) => handleCredentialChange('microsoftTenant', value)}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -476,14 +538,33 @@ export const CalendarIntegrationPanel: React.FC = () => {
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
-                Automatically sync legal forum hearings to calendar
+                Automatically sync hearings to your calendar
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label>Auto-Sync Interval</Label>
+              <Label>Reminder Time</Label>
               <Select 
-                value={(settings.syncInterval || 5).toString()}
+                value={settings.reminderTime?.toString() || '30'}
+                onValueChange={(value) => handleSettingsChange({ reminderTime: parseInt(value) })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="15">15 minutes before</SelectItem>
+                  <SelectItem value="30">30 minutes before</SelectItem>
+                  <SelectItem value="60">1 hour before</SelectItem>
+                  <SelectItem value="120">2 hours before</SelectItem>
+                  <SelectItem value="1440">1 day before</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Sync Interval</Label>
+              <Select 
+                value={settings.syncInterval?.toString() || '60'}
                 onValueChange={(value) => handleSettingsChange({ syncInterval: parseInt(value) })}
               >
                 <SelectTrigger>
@@ -497,95 +578,36 @@ export const CalendarIntegrationPanel: React.FC = () => {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                How often to check for unsynced hearings
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Reminder Time (minutes)</Label>
-              <Input 
-                type="number" 
-                value={settings.reminderTime}
-                onChange={(e) => handleSettingsChange({ reminderTime: parseInt(e.target.value) || 30 })}
-                min="5"
-                max="1440"
-              />
-              <p className="text-xs text-muted-foreground">
-                Default reminder time for calendar events
+                How often to sync hearings in the background
               </p>
             </div>
           </div>
         </>
       )}
 
-      {/* Troubleshooting Section */}
+      {/* Setup Help */}
       {settings.provider !== 'none' && (
         <>
           <Separator />
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium flex items-center gap-2">
-              <Info className="h-4 w-4" />
-              Configuration Help
-            </h4>
-            
-            <div className="space-y-2 text-xs">
-              <div className="p-3 rounded-md bg-muted/50 space-y-2">
-                <p className="font-medium">Required OAuth Configuration:</p>
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-muted-foreground">Redirect URI:</span>
-                    <code className="bg-background px-2 py-0.5 rounded text-[10px]">
-                      {window.location.origin}/oauth/callback
-                    </code>
-                  </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-muted-foreground">JavaScript Origin:</span>
-                    <code className="bg-background px-2 py-0.5 rounded text-[10px]">
-                      {window.location.origin}
-                    </code>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                {settings.provider === 'google' && (
-                  <a
-                    href="https://console.cloud.google.com/apis/credentials"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1"
-                  >
-                    <Button variant="outline" size="sm" className="w-full text-xs">
-                      <ExternalLink className="h-3 w-3 mr-1" />
-                      Google Cloud Console
-                    </Button>
-                  </a>
-                )}
-                {settings.provider === 'outlook' && (
-                  <a
-                    href="https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1"
-                  >
-                    <Button variant="outline" size="sm" className="w-full text-xs">
-                      <ExternalLink className="h-3 w-3 mr-1" />
-                      Azure Portal
-                    </Button>
-                  </a>
-                )}
-              </div>
-
-              {connectionStatus.error && (
-                <div className="p-2 rounded-md bg-destructive/10 border border-destructive/20">
-                  <p className="font-medium text-destructive">Common Issues:</p>
-                  <ul className="mt-1 space-y-1 text-muted-foreground list-disc list-inside">
-                    <li>Redirect URI not matching exactly</li>
-                    <li>OAuth client deleted in cloud console</li>
-                    <li>API not enabled (Calendar API / Microsoft Graph)</li>
-                    <li>OAuth consent screen not configured</li>
-                  </ul>
-                </div>
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium">Setup Guide</h4>
+            <div className="text-xs text-muted-foreground space-y-2">
+              {settings.provider === 'google' && (
+                <>
+                  <p>1. Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center">Google Cloud Console <ExternalLink className="w-3 h-3 ml-1" /></a></p>
+                  <p>2. Create OAuth 2.0 credentials with redirect URI: <code className="bg-muted px-1 rounded">{window.location.origin}/oauth/callback</code></p>
+                  <p>3. Enable the Google Calendar API</p>
+                  <p>4. Copy the Client ID and Client Secret above</p>
+                </>
+              )}
+              {settings.provider === 'outlook' && (
+                <>
+                  <p>1. Go to <a href="https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center">Azure Portal <ExternalLink className="w-3 h-3 ml-1" /></a></p>
+                  <p>2. Register a new application</p>
+                  <p>3. Add redirect URI: <code className="bg-muted px-1 rounded">{window.location.origin}/oauth/callback</code></p>
+                  <p>4. Create a client secret and copy both IDs above</p>
+                  <p>5. Add API permissions: Calendars.ReadWrite</p>
+                </>
               )}
             </div>
           </div>
@@ -593,9 +615,13 @@ export const CalendarIntegrationPanel: React.FC = () => {
       )}
 
       {/* Save Button */}
-      <Button onClick={saveSettings} className="w-full">
-        Save Settings
-      </Button>
+      {settings.provider !== 'none' && (
+        <div className="pt-4">
+          <Button onClick={saveSettings} className="w-full">
+            Save Settings
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

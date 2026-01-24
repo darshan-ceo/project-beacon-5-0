@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/integrations/supabase/client';
 
 export const OAuthCallback = () => {
   const [searchParams] = useSearchParams();
@@ -51,35 +52,32 @@ export const OAuthCallback = () => {
         setProvider(detectedProvider);
         setConfigChecklist(getConfigChecklist(detectedProvider));
 
-        // Load settings to get client credentials
-        const settings = integrationsService.loadCalendarSettings('default');
-        if (!settings) {
+        // Load OAuth credentials from secure storage
+        const { data: clientIdData } = await supabase.functions.invoke('manage-secrets/exists', {
+          body: { key: detectedProvider === 'google' ? 'google_client_id' : 'microsoft_client_id' }
+        });
+        
+        if (!clientIdData?.exists) {
           throw new Error(
-            'Calendar settings not found. Please return to Settings > Integrations and ensure your credentials are saved before connecting.'
+            'Calendar credentials not found. Please return to Settings > Integrations and ensure your credentials are saved before connecting.'
           );
         }
 
-        // Validate provider-specific credentials
-        if (detectedProvider === 'google' && (!settings.googleClientId || !settings.googleClientSecret)) {
-          throw new Error('Google Calendar credentials are incomplete. Please check your Client ID and Client Secret.');
-        }
-        
-        if (detectedProvider === 'microsoft' && (!settings.microsoftClientId || !settings.microsoftClientSecret)) {
-          throw new Error('Microsoft Outlook credentials are incomplete. Please check your Client ID and Client Secret.');
+        // For OAuth callback, we need the client credentials from sessionStorage (saved before OAuth flow)
+        // The edge function stores them, but we need them client-side for the token exchange
+        const storedClientId = sessionStorage.getItem(`oauth_${detectedProvider}_client_id`);
+        const storedClientSecret = sessionStorage.getItem(`oauth_${detectedProvider}_client_secret`);
+        const storedTenant = sessionStorage.getItem('oauth_microsoft_tenant') || 'common';
+
+        if (!storedClientId || !storedClientSecret) {
+          throw new Error('OAuth credentials expired. Please try connecting again from Settings.');
         }
 
         // Get OAuth config
         const providerType = detectedProvider === 'google' ? 'google' : 'microsoft';
         const config = providerType === 'google' 
-          ? OAuthManager.getGoogleConfig(
-              settings.googleClientId!,
-              settings.googleClientSecret!
-            )
-          : OAuthManager.getMicrosoftConfig(
-              settings.microsoftClientId!,
-              settings.microsoftTenant || 'common',
-              settings.microsoftClientSecret!
-            );
+          ? OAuthManager.getGoogleConfig(storedClientId, storedClientSecret)
+          : OAuthManager.getMicrosoftConfig(storedClientId, storedTenant, storedClientSecret);
 
         // Handle the OAuth callback
         const result = await OAuthManager.handleCallback(providerType, config);
@@ -89,14 +87,19 @@ export const OAuthCallback = () => {
           throw { error: result.error, error_description: result.error_description };
         }
 
-        // Save tokens (map microsoft to outlook for storage)
+        // Save tokens via edge function (map microsoft to outlook for storage)
         const storageProvider = detectedProvider === 'microsoft' ? 'outlook' : 'google';
-        integrationsService.saveTokens('default', storageProvider, {
+        await integrationsService.saveTokens(storageProvider, {
           access_token: result.access_token,
           refresh_token: result.refresh_token,
           expires_at: result.expires_at,
           user_email: result.user_email,
         });
+
+        // Clean up session storage
+        sessionStorage.removeItem(`oauth_${detectedProvider}_client_id`);
+        sessionStorage.removeItem(`oauth_${detectedProvider}_client_secret`);
+        sessionStorage.removeItem('oauth_microsoft_tenant');
 
         setStatus('success');
         
