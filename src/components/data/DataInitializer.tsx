@@ -468,6 +468,7 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           billingRate: e.billing_rate || e.billingRate,
           billable: e.billable ?? true,
           incentiveEligible: e.incentive_eligible ?? e.incentiveEligible,
+          defaultTaskCategory: e.default_task_category || e.defaultTaskCategory,
         }));
         
         // Data integrity verification for hierarchy
