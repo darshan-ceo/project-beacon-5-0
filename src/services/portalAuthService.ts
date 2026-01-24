@@ -1,6 +1,8 @@
 /**
  * Portal Authentication Service
  * Handles authentication for client portal users using isolated Supabase Auth client
+ * 
+ * Security: Session data is fetched from database on each validation, not stored in localStorage
  */
 
 import { portalSupabase } from "@/integrations/supabase/portalClient";
@@ -12,12 +14,9 @@ export interface PortalSession {
   tenantId: string;
   username: string;
   userId: string;
-  expiresAt: number;
+  portalRole: string;
   isAuthenticated: boolean;
 }
-
-const PORTAL_SESSION_KEY = 'portal_session';
-const SESSION_DURATION_HOURS = 24;
 
 export const portalAuthService = {
   /**
@@ -32,7 +31,6 @@ export const portalAuthService = {
       // Step 0: Clean up any stale sessions to avoid auth conflicts
       console.log('[PortalAuth] Step 0: Clearing stale sessions...');
       try {
-        this.clearSession();
         await portalSupabase.auth.signOut();
         console.log('[PortalAuth] Step 0 SUCCESS: Stale sessions cleared');
       } catch (cleanupError) {
@@ -56,7 +54,6 @@ export const portalAuthService = {
 
       if (lookupError) {
         console.error('[PortalAuth] FAILED at Step 1: Lookup edge function error', lookupError);
-        // Check if this is a network/connection issue vs a functional error
         const isNetworkError = lookupError.message?.toLowerCase().includes('network') ||
                                lookupError.message?.toLowerCase().includes('fetch') ||
                                lookupError.message?.toLowerCase().includes('timeout');
@@ -68,7 +65,6 @@ export const portalAuthService = {
 
       if (lookupData?.error) {
         console.log('[PortalAuth] FAILED at Step 1: Lookup returned error:', lookupData.error);
-        // Check if it's a "not found" type error
         if (lookupData.error.toLowerCase().includes('not found') || 
             lookupData.error.toLowerCase().includes('invalid username')) {
           return { success: false, error: 'Username not found. Please check your username and try again.' };
@@ -99,8 +95,6 @@ export const portalAuthService = {
       if (authError) {
         console.error('[PortalAuth] FAILED at Step 2: Auth error');
         console.error('[PortalAuth] Auth error message:', authError.message);
-        console.error('[PortalAuth] Auth error status:', authError.status);
-        console.error('[PortalAuth] Auth error full:', JSON.stringify(authError));
         
         if (authError.message.includes('Invalid login credentials')) {
           return { 
@@ -124,21 +118,10 @@ export const portalAuthService = {
 
       console.log('[PortalAuth] Step 2 SUCCESS: Authenticated user:', authData.user.id);
 
-      // Step 3: Get client portal user record
-      console.log('[PortalAuth] Step 3: Fetching portal user record...');
-      const { data: portalUser, error: portalError } = await portalSupabase
-        .from('client_portal_users')
-        .select('client_id, tenant_id, portal_role, clients(display_name)')
-        .eq('user_id', authData.user.id)
-        .eq('is_active', true)
-        .single();
-
-      if (portalError || !portalUser) {
-        console.error('[PortalAuth] FAILED at Step 3: Portal user fetch error');
-        console.error('[PortalAuth] Portal error message:', portalError?.message);
-        console.error('[PortalAuth] Portal error code:', portalError?.code);
-        console.error('[PortalAuth] Portal error full:', JSON.stringify(portalError));
-        
+      // Step 3: Fetch session data from database (server-side source of truth)
+      const session = await this.fetchSessionFromDatabase(authData.user.id, trimmedUsername);
+      
+      if (!session) {
         // Sign out since they're not a valid portal user
         await portalSupabase.auth.signOut();
         return { 
@@ -147,28 +130,11 @@ export const portalAuthService = {
         };
       }
 
-      console.log('[PortalAuth] Step 3 SUCCESS: Portal user found:', JSON.stringify(portalUser));
-
-      // Step 4: Create and save session
-      console.log('[PortalAuth] Step 4: Creating session...');
-      const expiresAt = Date.now() + (SESSION_DURATION_HOURS * 60 * 60 * 1000);
-      const session: PortalSession = {
-        clientId: portalUser.client_id,
-        clientName: (portalUser.clients as any)?.display_name || 'Unknown Client',
-        tenantId: portalUser.tenant_id,
-        username,
-        userId: authData.user.id,
-        expiresAt,
-        isAuthenticated: true,
-      };
-
-      // Update last login
+      // Step 4: Update last login timestamp
       await portalSupabase
         .from('client_portal_users')
         .update({ last_login_at: new Date().toISOString() })
         .eq('user_id', authData.user.id);
-
-      this.saveSession(session);
 
       console.log('[PortalAuth] === LOGIN SUCCESS ===');
       console.log('[PortalAuth] Session created for:', session.clientName);
@@ -177,40 +143,69 @@ export const portalAuthService = {
     } catch (error) {
       console.error('[PortalAuth] === LOGIN EXCEPTION ===');
       console.error('[PortalAuth] Caught error:', error);
-      console.error('[PortalAuth] Error type:', typeof error);
-      console.error('[PortalAuth] Error stringify:', JSON.stringify(error));
       return { success: false, error: 'An unexpected error occurred. Please try again.' };
     }
   },
 
   /**
-   * Save session to localStorage
+   * Fetch portal session data from database (server-side source of truth)
+   * Called on login and session validation - no localStorage involved
    */
-  saveSession(session: PortalSession): void {
+  async fetchSessionFromDatabase(userId: string, username?: string): Promise<PortalSession | null> {
     try {
-      localStorage.setItem(PORTAL_SESSION_KEY, JSON.stringify(session));
+      console.log('[PortalAuth] Fetching session from database for user:', userId);
+      
+      const { data: portalUser, error: portalError } = await portalSupabase
+        .from('client_portal_users')
+        .select('client_id, tenant_id, portal_role, clients(display_name, portal_access)')
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .single();
+
+      if (portalError || !portalUser) {
+        console.error('[PortalAuth] Failed to fetch portal user:', portalError?.message);
+        return null;
+      }
+
+      // Extract username from portal_access if not provided
+      const clientData = portalUser.clients as any;
+      const portalAccess = clientData?.portal_access;
+      const resolvedUsername = username || portalAccess?.username || 'portal_user';
+
+      const session: PortalSession = {
+        clientId: portalUser.client_id,
+        clientName: clientData?.display_name || 'Unknown Client',
+        tenantId: portalUser.tenant_id,
+        username: resolvedUsername,
+        userId: userId,
+        portalRole: portalUser.portal_role || 'viewer',
+        isAuthenticated: true,
+      };
+
+      console.log('[PortalAuth] Session fetched successfully:', session.clientName);
+      return session;
     } catch (error) {
-      console.error('[PortalAuth] Failed to save session:', error);
+      console.error('[PortalAuth] Exception fetching session:', error);
+      return null;
     }
   },
 
   /**
-   * Get current portal session
+   * Get current portal session by validating Supabase auth and fetching from database
+   * This is the secure replacement for localStorage-based getSession()
    */
-  getSession(): PortalSession | null {
+  async getSession(): Promise<PortalSession | null> {
     try {
-      const sessionData = localStorage.getItem(PORTAL_SESSION_KEY);
-      if (!sessionData) return null;
-
-      const session: PortalSession = JSON.parse(sessionData);
+      // Check if Supabase portal auth is valid
+      const { data: { session: authSession } } = await portalSupabase.auth.getSession();
       
-      // Check if session has expired
-      if (session.expiresAt < Date.now()) {
-        this.clearSession();
+      if (!authSession?.user) {
+        console.log('[PortalAuth] No active Supabase session');
         return null;
       }
 
-      return session;
+      // Fetch session data from database (source of truth)
+      return await this.fetchSessionFromDatabase(authSession.user.id);
     } catch (error) {
       console.error('[PortalAuth] Failed to get session:', error);
       return null;
@@ -218,15 +213,26 @@ export const portalAuthService = {
   },
 
   /**
-   * Check if portal session is valid (both local session and Supabase auth)
+   * Synchronous session check - uses cached auth state
+   * For quick UI checks only; full validation should use async getSession()
    */
-  isSessionValid(): boolean {
-    const session = this.getSession();
-    return session !== null && session.isAuthenticated && session.expiresAt > Date.now();
+  getSessionSync(): PortalSession | null {
+    // This is now a no-op returning null
+    // UI should use async getSession() or rely on context state
+    console.warn('[PortalAuth] getSessionSync() is deprecated, use async getSession()');
+    return null;
   },
 
   /**
-   * Validate that portal Supabase auth matches local session
+   * Check if portal session is valid (async database check)
+   */
+  async isSessionValid(): Promise<boolean> {
+    const session = await this.getSession();
+    return session !== null && session.isAuthenticated;
+  },
+
+  /**
+   * Validate that portal Supabase auth is active
    */
   async validateSupabaseSession(): Promise<{ valid: boolean; userId?: string }> {
     try {
@@ -242,37 +248,15 @@ export const portalAuthService = {
   },
 
   /**
-   * Clear portal session (logout)
-   */
-  clearSession(): void {
-    try {
-      localStorage.removeItem(PORTAL_SESSION_KEY);
-    } catch (error) {
-      console.error('[PortalAuth] Failed to clear session:', error);
-    }
-  },
-
-  /**
    * Logout portal user - uses isolated portal client
    */
   async logout(): Promise<void> {
     try {
       // Sign out from portal Supabase client (doesn't affect admin auth)
       await portalSupabase.auth.signOut();
+      console.log('[PortalAuth] Logged out successfully');
     } catch (error) {
       console.error('[PortalAuth] Supabase signOut error:', error);
-    }
-    this.clearSession();
-  },
-
-  /**
-   * Extend session expiry
-   */
-  extendSession(): void {
-    const session = this.getSession();
-    if (session) {
-      session.expiresAt = Date.now() + (SESSION_DURATION_HOURS * 60 * 60 * 1000);
-      this.saveSession(session);
     }
   },
 

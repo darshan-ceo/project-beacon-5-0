@@ -1,10 +1,13 @@
 /**
  * Portal Authentication Context
  * Manages authentication state for client portal users (separate from main app auth)
+ * 
+ * Security: Session data is fetched from database, not stored in localStorage
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { portalAuthService, PortalSession } from '@/services/portalAuthService';
+import { portalSupabase } from '@/integrations/supabase/portalClient';
 import { getAuthErrorMessage } from '@/utils/errorUtils';
 
 interface PortalAuthContextType {
@@ -14,7 +17,7 @@ interface PortalAuthContextType {
   error: string | null;
   login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
-  checkSession: () => void;
+  refreshSession: () => Promise<void>;
 }
 
 const PortalAuthContext = createContext<PortalAuthContextType | undefined>(undefined);
@@ -36,27 +39,59 @@ export const PortalAuthProvider: React.FC<PortalAuthProviderProps> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const checkSession = useCallback(() => {
-    const session = portalAuthService.getSession();
-    setPortalSession(session);
-    setIsLoading(false);
+  /**
+   * Refresh session from database (server-side source of truth)
+   */
+  const refreshSession = useCallback(async () => {
+    try {
+      const session = await portalAuthService.getSession();
+      setPortalSession(session);
+    } catch (err) {
+      console.error('[PortalAuthContext] Failed to refresh session:', err);
+      setPortalSession(null);
+    }
   }, []);
 
-  // Check for existing session on mount
+  /**
+   * Initialize: Check for existing Supabase auth and fetch session from database
+   */
   useEffect(() => {
-    checkSession();
-  }, [checkSession]);
-
-  // Set up session check interval
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (portalSession && !portalAuthService.isSessionValid()) {
+    const initializeAuth = async () => {
+      setIsLoading(true);
+      try {
+        // Check if there's an active Supabase portal session
+        const session = await portalAuthService.getSession();
+        setPortalSession(session);
+      } catch (err) {
+        console.error('[PortalAuthContext] Init error:', err);
         setPortalSession(null);
+      } finally {
+        setIsLoading(false);
       }
-    }, 60000); // Check every minute
+    };
 
-    return () => clearInterval(interval);
-  }, [portalSession]);
+    initializeAuth();
+
+    // Listen to portal Supabase auth state changes
+    const { data: { subscription } } = portalSupabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('[PortalAuthContext] Auth state changed:', event);
+        
+        if (event === 'SIGNED_OUT' || !session) {
+          setPortalSession(null);
+        } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          // Defer the session fetch to avoid Supabase auth deadlock
+          setTimeout(async () => {
+            await refreshSession();
+          }, 0);
+        }
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [refreshSession]);
 
   const login = async (username: string, password: string): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
@@ -69,7 +104,6 @@ export const PortalAuthProvider: React.FC<PortalAuthProviderProps> = ({ children
         setPortalSession(result.session);
         return { success: true };
       } else {
-        // Use the error utility to get a meaningful message
         const errorMessage = getAuthErrorMessage(result.error) || 'Invalid username or password';
         setError(errorMessage);
         return { success: false, error: errorMessage };
@@ -101,7 +135,7 @@ export const PortalAuthProvider: React.FC<PortalAuthProviderProps> = ({ children
     error,
     login,
     logout,
-    checkSession,
+    refreshSession,
   };
 
   return (

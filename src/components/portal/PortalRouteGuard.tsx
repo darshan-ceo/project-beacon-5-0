@@ -1,6 +1,8 @@
 /**
  * Portal Route Guard
- * Protects portal routes and validates both local session AND Supabase auth
+ * Protects portal routes using database-backed session validation
+ * 
+ * Security: Validates Supabase auth and fetches session from database (no localStorage)
  */
 
 import React, { useEffect, useState } from 'react';
@@ -14,7 +16,7 @@ interface PortalRouteGuardProps {
 }
 
 export const PortalRouteGuard: React.FC<PortalRouteGuardProps> = ({ children }) => {
-  const { isAuthenticated, isLoading, portalSession, logout } = usePortalAuth();
+  const { isAuthenticated, isLoading, portalSession, logout, refreshSession } = usePortalAuth();
   const location = useLocation();
   const [validatingAuth, setValidatingAuth] = useState(true);
   const [authValid, setAuthValid] = useState(false);
@@ -25,27 +27,26 @@ export const PortalRouteGuard: React.FC<PortalRouteGuardProps> = ({ children }) 
         return;
       }
 
-      if (!isAuthenticated || !portalSession) {
-        console.log('[PortalRouteGuard] No local portal session');
-        setAuthValid(false);
-        setValidatingAuth(false);
-        return;
-      }
-
-      // Validate that Supabase portal auth session matches local session
+      // Validate that Supabase portal auth session is active
       console.log('[PortalRouteGuard] Validating Supabase portal auth...');
       const { valid, userId } = await portalAuthService.validateSupabaseSession();
 
       if (!valid) {
-        console.log('[PortalRouteGuard] No valid Supabase portal session, clearing local session');
-        await logout();
+        console.log('[PortalRouteGuard] No valid Supabase portal session');
         setAuthValid(false);
         setValidatingAuth(false);
         return;
       }
 
-      if (userId !== portalSession.userId) {
-        console.log('[PortalRouteGuard] Supabase userId mismatch, clearing session');
+      // Check if context has session, if not refresh from database
+      if (!portalSession) {
+        console.log('[PortalRouteGuard] No context session, refreshing from database...');
+        await refreshSession();
+      }
+
+      // Verify userId matches (extra security check)
+      if (portalSession && userId !== portalSession.userId) {
+        console.log('[PortalRouteGuard] User ID mismatch, logging out');
         console.log('[PortalRouteGuard] Expected:', portalSession.userId, 'Got:', userId);
         await logout();
         setAuthValid(false);
@@ -53,13 +54,19 @@ export const PortalRouteGuard: React.FC<PortalRouteGuardProps> = ({ children }) 
         return;
       }
 
-      console.log('[PortalRouteGuard] Portal auth validated successfully');
-      setAuthValid(true);
+      // If we have valid Supabase auth and matching session, we're good
+      if (valid && (portalSession || !isLoading)) {
+        console.log('[PortalRouteGuard] Portal auth validated successfully');
+        setAuthValid(isAuthenticated);
+      } else {
+        setAuthValid(false);
+      }
+      
       setValidatingAuth(false);
     };
 
     validateAuth();
-  }, [isAuthenticated, isLoading, portalSession, logout]);
+  }, [isAuthenticated, isLoading, portalSession, logout, refreshSession]);
 
   // Show loading state while checking authentication
   if (isLoading || validatingAuth) {
