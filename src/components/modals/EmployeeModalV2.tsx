@@ -114,13 +114,7 @@ const moduleAccessOptions = [
   'Billing',
 ];
 
-const taskCategoryOptions = [
-  'Drafting',
-  'Research',
-  'Filing',
-  'Hearing Prep',
-  'Client Meeting',
-];
+import { TASK_CATEGORIES } from '../../../config/appConfig';
 
 import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 
@@ -1362,7 +1356,7 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
             <SelectValue placeholder="Select category" />
           </SelectTrigger>
           <SelectContent>
-            {taskCategoryOptions.map((cat) => (
+            {TASK_CATEGORIES.map((cat) => (
               <SelectItem key={cat} value={cat}>
                 {cat}
               </SelectItem>

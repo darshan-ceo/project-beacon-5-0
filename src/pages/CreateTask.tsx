@@ -22,6 +22,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -32,6 +39,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { TASK_CATEGORIES } from '../../config/appConfig';
 import { useAppState } from '@/contexts/AppStateContext';
 import { supabase } from '@/integrations/supabase/client';
 import { TaskAttachment } from '@/types/taskMessages';
@@ -108,6 +116,7 @@ export const CreateTask: React.FC = () => {
     dueDate: tomorrow as Date | undefined,
     tags: [] as string[],
     estimatedHours: '',
+    category: '',
   });
   const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -203,8 +212,24 @@ export const CreateTask: React.FC = () => {
       description: template.description,
       priority: template.priority,
       estimatedHours: template.estimatedHours.toString(),
+      category: template.category || prev.category,
     }));
     toast.success('Template applied');
+  };
+
+  // Handle assignee change with category auto-fill from employee's default
+  const handleAssigneeChange = (employeeId: string) => {
+    setFormData((prev) => {
+      const employee = state.employees.find(e => e.id === employeeId);
+      const autoCategory = employee?.defaultTaskCategory;
+      
+      return {
+        ...prev,
+        assignedTo: employeeId,
+        // Auto-fill category from employee's default if category is empty
+        category: !prev.category && autoCategory ? autoCategory : prev.category,
+      };
+    });
   };
 
   const getPriorityColor = (priority: string) => {
@@ -270,6 +295,7 @@ export const CreateTask: React.FC = () => {
           case_id: effectiveCaseId,
           client_id: effectiveClientId,
           case_number: effectiveCaseNumber,
+          task_category: formData.category || null,
         }] as any)
         .select()
         .single();
@@ -312,6 +338,7 @@ export const CreateTask: React.FC = () => {
           escalationLevel: 0,
           timezone: 'Asia/Kolkata',
           dueDateValidated: true,
+          taskCategory: formData.category || undefined,
           audit_trail: { created_by: user.id, created_at: taskData.created_at, updated_by: user.id, updated_at: taskData.created_at, change_log: [] },
         },
       });
@@ -530,7 +557,7 @@ export const CreateTask: React.FC = () => {
               Task Settings
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {/* Assignee with Combobox */}
+            {/* Assignee with Combobox + Category Auto-fill */}
             <div className="space-y-1.5 col-span-2 sm:col-span-1">
               <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
                 <User className="h-3.5 w-3.5" />
@@ -539,10 +566,33 @@ export const CreateTask: React.FC = () => {
               <EmployeeCombobox
                 employees={state.employees}
                 value={formData.assignedTo}
-                onValueChange={(val) => setFormData((prev) => ({ ...prev, assignedTo: val }))}
+                onValueChange={handleAssigneeChange}
                 placeholder="Select assignee..."
                 className="h-9"
               />
+            </div>
+
+            {/* Category Dropdown */}
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <Tag className="h-3.5 w-3.5" />
+                Category
+              </Label>
+              <Select
+                value={formData.category}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, category: value }))}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TASK_CATEGORIES.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Priority with visual badges */}
