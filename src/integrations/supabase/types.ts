@@ -1483,6 +1483,84 @@ export type Database = {
           },
         ]
       }
+      data_jobs: {
+        Row: {
+          completed_at: string | null
+          counts: Json | null
+          created_at: string | null
+          entity_type: string
+          errors: Json | null
+          file_name: string | null
+          file_size: number | null
+          file_url: string | null
+          filters: Json | null
+          format: string | null
+          id: string
+          job_type: string
+          mapping: Json | null
+          record_count: number | null
+          status: string
+          tenant_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          counts?: Json | null
+          created_at?: string | null
+          entity_type: string
+          errors?: Json | null
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          filters?: Json | null
+          format?: string | null
+          id?: string
+          job_type: string
+          mapping?: Json | null
+          record_count?: number | null
+          status: string
+          tenant_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          counts?: Json | null
+          created_at?: string | null
+          entity_type?: string
+          errors?: Json | null
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          filters?: Json | null
+          format?: string | null
+          id?: string
+          job_type?: string
+          mapping?: Json | null
+          record_count?: number | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "data_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_folders: {
         Row: {
           case_id: string | null
@@ -2852,6 +2930,231 @@ export type Database = {
           },
           {
             foreignKeyName: "matter_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_logs: {
+        Row: {
+          case_id: string | null
+          channels: string[]
+          created_at: string | null
+          error_message: string | null
+          hearing_id: string | null
+          id: string
+          metadata: Json | null
+          recipients: string[]
+          reminder_type: string | null
+          sent_at: string
+          success: boolean | null
+          tenant_id: string
+          type: string
+        }
+        Insert: {
+          case_id?: string | null
+          channels: string[]
+          created_at?: string | null
+          error_message?: string | null
+          hearing_id?: string | null
+          id?: string
+          metadata?: Json | null
+          recipients: string[]
+          reminder_type?: string | null
+          sent_at: string
+          success?: boolean | null
+          tenant_id: string
+          type: string
+        }
+        Update: {
+          case_id?: string | null
+          channels?: string[]
+          created_at?: string | null
+          error_message?: string | null
+          hearing_id?: string | null
+          id?: string
+          metadata?: Json | null
+          recipients?: string[]
+          reminder_type?: string | null
+          sent_at?: string
+          success?: boolean | null
+          tenant_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_logs_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "case_activity_summary"
+            referencedColumns: ["case_id"]
+          },
+          {
+            foreignKeyName: "notification_logs_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_logs_hearing_id_fkey"
+            columns: ["hearing_id"]
+            isOneToOne: false
+            referencedRelation: "hearings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "notification_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_preferences: {
+        Row: {
+          case_updates: boolean | null
+          created_at: string | null
+          document_shares: boolean | null
+          email_enabled: boolean | null
+          hearing_reminders: boolean | null
+          id: string
+          in_app_enabled: boolean | null
+          quiet_hours_end: string | null
+          quiet_hours_start: string | null
+          reminder_days: number[] | null
+          sms_enabled: boolean | null
+          task_reminders: boolean | null
+          tenant_id: string
+          updated_at: string | null
+          user_id: string
+          whatsapp_enabled: boolean | null
+        }
+        Insert: {
+          case_updates?: boolean | null
+          created_at?: string | null
+          document_shares?: boolean | null
+          email_enabled?: boolean | null
+          hearing_reminders?: boolean | null
+          id?: string
+          in_app_enabled?: boolean | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          reminder_days?: number[] | null
+          sms_enabled?: boolean | null
+          task_reminders?: boolean | null
+          tenant_id: string
+          updated_at?: string | null
+          user_id: string
+          whatsapp_enabled?: boolean | null
+        }
+        Update: {
+          case_updates?: boolean | null
+          created_at?: string | null
+          document_shares?: boolean | null
+          email_enabled?: boolean | null
+          hearing_reminders?: boolean | null
+          id?: string
+          in_app_enabled?: boolean | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          reminder_days?: number[] | null
+          sms_enabled?: boolean | null
+          task_reminders?: boolean | null
+          tenant_id?: string
+          updated_at?: string | null
+          user_id?: string
+          whatsapp_enabled?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_preferences_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "notification_preferences_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          channels: string[] | null
+          created_at: string | null
+          id: string
+          message: string
+          metadata: Json | null
+          read: boolean | null
+          read_at: string | null
+          related_entity_id: string | null
+          related_entity_type: string | null
+          status: string | null
+          tenant_id: string
+          title: string
+          type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          channels?: string[] | null
+          created_at?: string | null
+          id?: string
+          message: string
+          metadata?: Json | null
+          read?: boolean | null
+          read_at?: string | null
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          status?: string | null
+          tenant_id: string
+          title: string
+          type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          channels?: string[] | null
+          created_at?: string | null
+          id?: string
+          message?: string
+          metadata?: Json | null
+          read?: boolean | null
+          read_at?: string | null
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          status?: string | null
+          tenant_id?: string
+          title?: string
+          type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "notifications_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"

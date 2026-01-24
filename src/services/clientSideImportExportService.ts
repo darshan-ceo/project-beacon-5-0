@@ -1,6 +1,7 @@
 /**
  * Client-Side Import/Export Service
  * Handles all import/export operations using client-side processing
+ * Migrated to Supabase for job persistence (Phase 3)
  */
 
 import * as XLSX from 'xlsx';
@@ -15,14 +16,33 @@ import {
   PendingRecord, 
   ColumnMapping 
 } from '@/types/importExport';
+import { DataJob } from '@/types/notification';
 import { entityTemplatesService } from './entityTemplatesService';
-import { mappingService } from './mappingService';
 import { importIntegrationService } from './importIntegrationService';
 import { supabase } from '@/integrations/supabase/client';
 
 class ClientSideImportExportService {
-  private generateJobId(): string {
-    return `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  /**
+   * Get current user and tenant context
+   */
+  private async getContext(): Promise<{ userId: string; tenantId: string } | null> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.tenant_id) return null;
+
+      return { userId: user.id, tenantId: profile.tenant_id };
+    } catch (error) {
+      console.error('getContext failed:', error);
+      return null;
+    }
   }
 
   /**
@@ -32,7 +52,6 @@ class ClientSideImportExportService {
     try {
       console.log('downloadTemplate called for:', entityType);
       
-      // Check if entityType is valid
       if (!['court', 'client', 'judge', 'employee'].includes(entityType)) {
         throw new Error(`Invalid entity type: ${entityType}`);
       }
@@ -44,21 +63,14 @@ class ClientSideImportExportService {
         throw new Error(`No template found for entity type: ${entityType}`);
       }
       
-      // Create workbook
       const wb = XLSX.utils.book_new();
       
-      // Prepare headers and sample data
       const headers = template.columns.map(col => col.label);
       const sampleData = template.columns.map(col => col.examples && col.examples[0] ? col.examples[0] : 'Sample Data');
       
-      console.log('Headers:', headers);
-      console.log('Sample data:', sampleData);
-      
-      // Create worksheet with headers and sample row
       const wsData = [headers, sampleData];
       const ws = XLSX.utils.aoa_to_sheet(wsData);
       
-      // Add comments/help text
       template.columns.forEach((col, index) => {
         const cellRef = XLSX.utils.encode_cell({ r: 0, c: index });
         if (!ws[cellRef]) ws[cellRef] = { v: col.label };
@@ -68,23 +80,15 @@ class ClientSideImportExportService {
         }];
       });
       
-      // Set column widths
       ws['!cols'] = template.columns.map(() => ({ wch: 20 }));
-      
-      // Add worksheet to workbook
       XLSX.utils.book_append_sheet(wb, ws, entityType.charAt(0).toUpperCase() + entityType.slice(1));
       
-      // Generate blob with correct MIME type and buffer
       const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
       const blob = new Blob([wbout], { 
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=utf-8' 
       });
       
-      console.log('Template blob created successfully, size:', blob.size);
-      return {
-        success: true,
-        data: blob
-      };
+      return { success: true, data: blob };
     } catch (error) {
       console.error('Template generation failed:', error);
       return {
@@ -95,10 +99,15 @@ class ClientSideImportExportService {
   }
 
   /**
-   * Process uploaded file and create import job
+   * Process uploaded file and create import job in Supabase
    */
   async uploadForImport(entityType: EntityType, file: File): Promise<ImportResponse> {
     try {
+      const context = await this.getContext();
+      if (!context) {
+        throw new Error('Not authenticated');
+      }
+
       // Read file
       const arrayBuffer = await file.arrayBuffer();
       const workbook = XLSX.read(arrayBuffer, { type: 'array' });
@@ -110,54 +119,59 @@ class ClientSideImportExportService {
       }
       
       const headers = (jsonData[0] as string[]).map(h => String(h || '').trim());
-      console.log('[Import] Headers extracted:', headers);
-      
-      // Filter out blank rows
       const rawRows = jsonData.slice(1).filter((row: any) => 
         Array.isArray(row) && row.some(cell => String(cell || '').trim() !== '')
       );
       
-      // CRITICAL FIX: Pad all rows to match header length
-      // XLSX truncates trailing empty cells, causing index misalignment for later columns
-      const rows = rawRows.map((row: any[], rowIndex: number) => {
+      const rows = rawRows.map((row: any[]) => {
         const paddedRow = [...row];
         while (paddedRow.length < headers.length) {
           paddedRow.push('');
         }
-        console.log(`[Import] Row ${rowIndex + 2} padded: ${row.length} -> ${paddedRow.length} cells`);
         return paddedRow;
       });
-      
-      // Create import job
+
+      // Create job in Supabase
+      const { data: jobData, error: jobError } = await supabase
+        .from('data_jobs')
+        .insert({
+          tenant_id: context.tenantId,
+          user_id: context.userId,
+          job_type: 'import',
+          entity_type: entityType,
+          file_name: file.name,
+          file_size: file.size,
+          status: 'pending',
+          counts: {
+            total: rows.length,
+            valid: 0,
+            invalid: 0,
+            processed: 0
+          },
+          record_count: rows.length,
+        })
+        .select()
+        .single();
+
+      if (jobError) throw jobError;
+
+      // Store row data temporarily in localStorage (large data not suitable for JSONB)
+      const tempData = { headers, rows };
+      localStorage.setItem(`import_data_${jobData.id}`, JSON.stringify(tempData));
+
       const job: ImportJob = {
-        id: this.generateJobId(),
+        id: jobData.id,
         entityType,
         fileName: file.name,
         fileSize: file.size,
         status: 'pending',
-        userId: 'current_user',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        counts: {
-          total: rows.length,
-          valid: 0,
-          invalid: 0,
-          processed: 0
-        }
+        userId: context.userId,
+        createdAt: jobData.created_at,
+        updatedAt: jobData.updated_at,
+        counts: jobData.counts as any,
       };
       
-      // Store job data in localStorage for mock persistence
-      const jobData = {
-        job,
-        headers,
-        rows
-      };
-      localStorage.setItem(`import_job_${job.id}`, JSON.stringify(jobData));
-      
-      return {
-        success: true,
-        data: job
-      };
+      return { success: true, data: job };
     } catch (error) {
       console.error('File upload failed:', error);
       return {
@@ -168,24 +182,39 @@ class ClientSideImportExportService {
   }
 
   /**
-   * Get import job details
+   * Get import job details from Supabase
    */
   async getImportJob(jobId: string): Promise<{ success: boolean; data: ImportJob | null; error?: string }> {
     try {
-      const jobData = localStorage.getItem(`import_job_${jobId}`);
-      if (!jobData) {
-        return {
-          success: false,
-          data: null,
-          error: 'Import job not found'
-        };
+      const { data, error } = await supabase
+        .from('data_jobs')
+        .select('*')
+        .eq('id', jobId)
+        .eq('job_type', 'import')
+        .single();
+
+      if (error) throw error;
+
+      if (!data) {
+        return { success: false, data: null, error: 'Import job not found' };
       }
-      
-      const { job } = JSON.parse(jobData);
-      return {
-        success: true,
-        data: job
+
+      const job: ImportJob = {
+        id: data.id,
+        entityType: data.entity_type as EntityType,
+        fileName: data.file_name || '',
+        fileSize: data.file_size || 0,
+        status: data.status as any,
+        userId: data.user_id,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+        completedAt: data.completed_at || undefined,
+        counts: data.counts as any,
+        mapping: data.mapping as any,
+        errors: data.errors as any,
       };
+
+      return { success: true, data: job };
     } catch (error) {
       return {
         success: false,
@@ -197,7 +226,6 @@ class ClientSideImportExportService {
 
   /**
    * Validate import data without inserting to database
-   * Used to show accurate counts in Preview step
    */
   async validateImportData(jobId: string, mapping: ColumnMapping): Promise<{
     success: boolean;
@@ -207,19 +235,25 @@ class ClientSideImportExportService {
     error?: string;
   }> {
     try {
-      const jobData = localStorage.getItem(`import_job_${jobId}`);
+      // Get job from Supabase
+      const { data: jobData } = await supabase
+        .from('data_jobs')
+        .select('*')
+        .eq('id', jobId)
+        .single();
+
       if (!jobData) {
-        return {
-          success: false,
-          validRecords: [],
-          invalidRecords: [],
-          errors: [],
-          error: 'Import job not found'
-        };
+        return { success: false, validRecords: [], invalidRecords: [], errors: [], error: 'Import job not found' };
       }
 
-      const { job, headers, rows } = JSON.parse(jobData);
-      const template = await entityTemplatesService.getTemplate(job.entityType);
+      // Get row data from localStorage
+      const tempData = localStorage.getItem(`import_data_${jobId}`);
+      if (!tempData) {
+        return { success: false, validRecords: [], invalidRecords: [], errors: [], error: 'Import data not found' };
+      }
+
+      const { headers, rows } = JSON.parse(tempData);
+      const template = await entityTemplatesService.getTemplate(jobData.entity_type as EntityType);
       const requiredFields = template.columns.filter(col => col.isRequired).map(col => col.key);
 
       const validRecords: any[] = [];
@@ -230,24 +264,18 @@ class ClientSideImportExportService {
         const record: Record<string, any> = {};
         const rowErrors: string[] = [];
 
-        // Map columns with case-insensitive header matching
         Object.entries(mapping).forEach(([templateKey, mapConfig]) => {
           if (mapConfig.sourceColumn) {
-            // Case-insensitive header matching to handle variations
             const sourceColumn = mapConfig.sourceColumn.toLowerCase().trim();
-            const sourceIndex = headers.findIndex(h => 
+            const sourceIndex = headers.findIndex((h: string) => 
               String(h || '').toLowerCase().trim() === sourceColumn
             );
             if (sourceIndex !== -1 && sourceIndex < row.length) {
               record[templateKey] = row[sourceIndex];
-              console.log(`[Import] Row ${rowIndex + 2}: Mapped "${templateKey}" from column "${headers[sourceIndex]}" (index ${sourceIndex}) = "${row[sourceIndex]}"`);
-            } else {
-              console.log(`[Import] Row ${rowIndex + 2}: Column "${mapConfig.sourceColumn}" not found in headers or index ${sourceIndex} out of bounds`);
             }
           }
         });
 
-        // Validate required fields
         requiredFields.forEach(field => {
           const value = record[field];
           if (!value || String(value).trim() === '') {
@@ -259,7 +287,6 @@ class ClientSideImportExportService {
           validRecords.push({ ...record, _rowIndex: rowIndex });
         } else {
           const errorMessage = rowErrors.join('; ');
-          // Store validation error on record for getPendingRecords to use
           invalidRecords.push({ ...record, _rowIndex: rowIndex + 2, _validationError: errorMessage });
           errors.push({
             id: `error_${rowIndex}`,
@@ -274,12 +301,7 @@ class ClientSideImportExportService {
         }
       });
 
-      return {
-        success: true,
-        validRecords,
-        invalidRecords,
-        errors
-      };
+      return { success: true, validRecords, invalidRecords, errors };
     } catch (error) {
       return {
         success: false,
@@ -293,18 +315,19 @@ class ClientSideImportExportService {
 
   /**
    * Commit import job with mapping
-   * Migrated to Supabase persistence with Redux state sync
    */
   async commitImport(jobId: string, mapping: ColumnMapping): Promise<{ success: boolean; data: ImportJob | null; error?: string }> {
     try {
-      const jobData = localStorage.getItem(`import_job_${jobId}`);
+      const { data: jobData } = await supabase
+        .from('data_jobs')
+        .select('*')
+        .eq('id', jobId)
+        .single();
+
       if (!jobData) {
         throw new Error('Import job not found');
       }
-      
-      const { job } = JSON.parse(jobData);
-      
-      // Re-run validation to get fresh data
+
       const validationResult = await this.validateImportData(jobId, mapping);
       if (!validationResult.success) {
         throw new Error(validationResult.error || 'Validation failed');
@@ -313,31 +336,29 @@ class ClientSideImportExportService {
       const validRecords = validationResult.validRecords;
       let invalidRecords = validationResult.invalidRecords;
       let errors = validationResult.errors;
-      
-      // Update processing status
-      job.status = 'processing';
-      job.mapping = mapping;
-      job.updatedAt = new Date().toISOString();
 
-      // Insert valid records into Supabase
+      // Update job status to processing
+      await (supabase as any)
+        .from('data_jobs')
+        .update({ status: 'processing', mapping })
+        .eq('id', jobId);
+
       let insertedCount = 0;
 
       if (validRecords.length > 0) {
         try {
           const insertResult = await importIntegrationService.insertRecords(
-            job.entityType,
+            jobData.entity_type as EntityType,
             validRecords
           );
           
           insertedCount = insertResult.insertedCount;
           
-          // Handle insertion errors
           if (insertResult.errors.length > 0) {
             insertResult.errors.forEach(err => {
               const failedIndex = validRecords.findIndex(r => r === err.record);
               if (failedIndex !== -1) {
                 const failedRecord = validRecords.splice(failedIndex, 1)[0];
-                // Store the actual error message with the record for getPendingRecords to use
                 failedRecord._errorMessage = `Database error: ${err.error}`;
                 invalidRecords.push(failedRecord);
                 errors.push({
@@ -368,33 +389,53 @@ class ClientSideImportExportService {
         localStorage.setItem(`pending_records_${jobId}`, JSON.stringify(invalidRecords));
       }
 
-      // Update job with actual insertion results
-      job.status = 'completed';
-      job.counts.processed = insertedCount;
-      job.counts.valid = insertedCount;
-      job.counts.invalid = invalidRecords.length;
-      job.errors = errors;
-      job.completedAt = new Date().toISOString();
-      
-      // Re-read job data to preserve headers and rows
-      const currentJobData = localStorage.getItem(`import_job_${jobId}`);
-      if (currentJobData) {
-        const parsed = JSON.parse(currentJobData);
-        localStorage.setItem(`import_job_${jobId}`, JSON.stringify({ ...parsed, job }));
-      }
-      
-      // Trigger Redux/DataInitializer refresh by dispatching a storage event
+      // Update job in Supabase
+      const { data: updatedJob, error: updateError } = await supabase
+        .from('data_jobs')
+        .update({
+          status: 'completed',
+          counts: {
+            total: (jobData.counts as any)?.total || 0,
+            valid: insertedCount,
+            invalid: invalidRecords.length,
+            processed: insertedCount
+          },
+          errors: errors,
+          completed_at: new Date().toISOString(),
+        })
+        .eq('id', jobId)
+        .select()
+        .single();
+
+      if (updateError) throw updateError;
+
+      // Clean up temp data
+      localStorage.removeItem(`import_data_${jobId}`);
+
+      // Trigger refresh
       if (insertedCount > 0) {
         window.dispatchEvent(new StorageEvent('storage', {
-          key: `refresh_${job.entityType}`,
+          key: `refresh_${jobData.entity_type}`,
           newValue: Date.now().toString()
         }));
       }
-      
-      return {
-        success: true,
-        data: job
+
+      const job: ImportJob = {
+        id: updatedJob.id,
+        entityType: updatedJob.entity_type as EntityType,
+        fileName: updatedJob.file_name || '',
+        fileSize: updatedJob.file_size || 0,
+        status: updatedJob.status as any,
+        userId: updatedJob.user_id,
+        createdAt: updatedJob.created_at,
+        updatedAt: updatedJob.updated_at,
+        completedAt: updatedJob.completed_at || undefined,
+        counts: updatedJob.counts as any,
+        mapping: updatedJob.mapping as any,
+        errors: updatedJob.errors as any,
       };
+
+      return { success: true, data: job };
     } catch (error) {
       return {
         success: false,
@@ -429,7 +470,6 @@ class ClientSideImportExportService {
               row: record._rowIndex || index + 2,
               column: '',
               value: '',
-              // Use actual error message if stored, otherwise fallback to generic message
               error: record._errorMessage || record._validationError || 'Validation failed - check required fields',
               severity: 'error' as const,
               canAutoFix: false
@@ -453,26 +493,44 @@ class ClientSideImportExportService {
    */
   async exportData(request: ExportRequest): Promise<ExportResponse> {
     try {
+      const context = await this.getContext();
+      if (!context) {
+        throw new Error('Not authenticated');
+      }
+
+      // Create job in Supabase
+      const { data: jobData, error: jobError } = await (supabase as any)
+        .from('data_jobs')
+        .insert({
+          tenant_id: context.tenantId,
+          user_id: context.userId,
+          job_type: 'export',
+          entity_type: request.entityType,
+          format: request.format,
+          status: 'processing',
+          filters: request.filters,
+          record_count: 0,
+        })
+        .select()
+        .single();
+
+      if (jobError) throw jobError;
+
       const job: ExportJob = {
-        id: this.generateJobId(),
+        id: jobData.id,
         entityType: request.entityType,
         format: request.format,
         status: 'processing',
-        userId: request.userId,
-        createdAt: new Date().toISOString(),
+        userId: context.userId,
+        createdAt: jobData.created_at,
         filters: request.filters,
         recordCount: 0
       };
-      
-      localStorage.setItem(`export_job_${job.id}`, JSON.stringify(job));
-      
+
       // Start export in background
-      this.performExport(job.id, request).catch(console.error);
-      
-      return {
-        success: true,
-        data: job
-      };
+      this.performExport(jobData.id, request, context.tenantId).catch(console.error);
+
+      return { success: true, data: job };
     } catch (error) {
       return {
         success: false,
@@ -481,61 +539,44 @@ class ClientSideImportExportService {
     }
   }
 
-  private async performExport(jobId: string, request: ExportRequest): Promise<void> {
+  private async performExport(jobId: string, request: ExportRequest, tenantId: string): Promise<void> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('tenant_id')
-        .eq('id', user.id)
-        .single();
-
-      if (!profile?.tenant_id) throw new Error('Tenant not found');
-
-      // Query Supabase for entity data
       const tableName = this.getTableName(request.entityType);
       const { data, error } = await (supabase as any)
         .from(tableName)
         .select('*')
-        .eq('tenant_id', profile.tenant_id);
+        .eq('tenant_id', tenantId);
 
       if (error) throw error;
 
-      // Transform data to match export template
       const transformedData = this.transformForExport(request.entityType, data || []);
-
-      // Generate Excel file
       const ws = XLSX.utils.json_to_sheet(transformedData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, request.entityType);
 
-      // Convert to binary
       const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
       const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-
-      // Store blob URL
       const url = URL.createObjectURL(blob);
 
-      // Update job status
-      const jobData = localStorage.getItem(`export_job_${jobId}`);
-      if (jobData) {
-        const job = JSON.parse(jobData);
-        job.status = 'completed';
-        job.recordCount = transformedData.length;
-        job.completedAt = new Date().toISOString();
-        job.fileUrl = url;
-        localStorage.setItem(`export_job_${jobId}`, JSON.stringify(job));
-      }
+      // Store URL in localStorage (blob URLs can't be stored in DB)
+      localStorage.setItem(`export_file_${jobId}`, url);
+
+      // Update job in Supabase
+      await supabase
+        .from('data_jobs')
+        .update({
+          status: 'completed',
+          record_count: transformedData.length,
+          completed_at: new Date().toISOString(),
+        })
+        .eq('id', jobId);
+
     } catch (error) {
       console.error('Export failed:', error);
-      const jobData = localStorage.getItem(`export_job_${jobId}`);
-      if (jobData) {
-        const job = JSON.parse(jobData);
-        job.status = 'failed';
-        localStorage.setItem(`export_job_${jobId}`, JSON.stringify(job));
-      }
+      await supabase
+        .from('data_jobs')
+        .update({ status: 'failed' })
+        .eq('id', jobId);
     }
   }
 
@@ -601,23 +642,40 @@ class ClientSideImportExportService {
   }
 
   /**
-   * Get export job status
+   * Get export job status from Supabase
    */
   async getExportJob(jobId: string): Promise<{ success: boolean; data: ExportJob | null; error?: string }> {
     try {
-      const jobData = localStorage.getItem(`export_job_${jobId}`);
-      if (!jobData) {
-        return {
-          success: false,
-          data: null,
-          error: 'Export job not found'
-        };
+      const { data, error } = await supabase
+        .from('data_jobs')
+        .select('*')
+        .eq('id', jobId)
+        .eq('job_type', 'export')
+        .single();
+
+      if (error) throw error;
+
+      if (!data) {
+        return { success: false, data: null, error: 'Export job not found' };
       }
-      
-      return {
-        success: true,
-        data: JSON.parse(jobData)
+
+      // Get file URL from localStorage
+      const fileUrl = localStorage.getItem(`export_file_${jobId}`);
+
+      const job: ExportJob = {
+        id: data.id,
+        entityType: data.entity_type as EntityType,
+        format: (data.format || 'xlsx') as 'xlsx' | 'csv',
+        status: data.status as any,
+        userId: data.user_id,
+        createdAt: data.created_at,
+        completedAt: data.completed_at || undefined,
+        filters: data.filters as any,
+        recordCount: data.record_count || 0,
+        fileUrl: fileUrl || undefined,
       };
+
+      return { success: true, data: job };
     } catch (error) {
       return {
         success: false,
@@ -632,12 +690,13 @@ class ClientSideImportExportService {
    */
   async downloadExport(jobId: string): Promise<TemplateResponse> {
     try {
-      const jobData = localStorage.getItem(`export_job_${jobId}`);
-      if (!jobData) {
+      const jobResult = await this.getExportJob(jobId);
+      
+      if (!jobResult.success || !jobResult.data) {
         throw new Error('Export job not found');
       }
-      
-      const job = JSON.parse(jobData);
+
+      const job = jobResult.data;
       
       if (job.status !== 'completed') {
         throw new Error('Export is not ready for download');
@@ -647,19 +706,52 @@ class ClientSideImportExportService {
         throw new Error('Download URL not available');
       }
       
-      // Fetch the blob from the stored URL
       const response = await fetch(job.fileUrl);
       const blob = await response.blob();
       
-      return {
-        success: true,
-        data: blob
-      };
+      return { success: true, data: blob };
     } catch (error) {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Download failed'
       };
+    }
+  }
+
+  /**
+   * Get all jobs for current user
+   */
+  async getJobs(jobType?: 'import' | 'export'): Promise<DataJob[]> {
+    try {
+      const context = await this.getContext();
+      if (!context) return [];
+
+      let query = supabase
+        .from('data_jobs')
+        .select('*')
+        .eq('user_id', context.userId)
+        .order('created_at', { ascending: false });
+
+      if (jobType) {
+        query = query.eq('job_type', jobType);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      return (data || []).map(d => ({
+        ...d,
+        job_type: d.job_type as 'import' | 'export',
+        status: d.status as 'pending' | 'processing' | 'completed' | 'failed',
+        counts: d.counts as any,
+        mapping: d.mapping as any,
+        errors: d.errors as any,
+        filters: d.filters as any,
+      }));
+    } catch (error) {
+      console.error('Error fetching jobs:', error);
+      return [];
     }
   }
 }

@@ -14,6 +14,7 @@ export interface ImportJob {
   userId: string;
   createdAt: string;
   updatedAt: string;
+  completedAt?: string;
   counts: {
     total: number;
     valid: number;

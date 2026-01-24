@@ -1,6 +1,7 @@
 /**
  * Notification Bell Component
  * Displays notification count and dropdown with recent notifications
+ * Updated for Supabase realtime (Phase 3)
  */
 
 import React, { useEffect, useState } from 'react';
@@ -11,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { notificationSystemService } from '@/services/notificationSystemService';
 import { NotificationList } from './NotificationList';
 import { Notification } from '@/types/notification';
+import { supabase } from '@/integrations/supabase/client';
 
 interface NotificationBellProps {
   userId: string;
@@ -22,14 +24,37 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ userId }) =>
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    // Subscribe to notification updates
+    // Subscribe to notification updates via service
     const unsubscribe = notificationSystemService.subscribe((updatedNotifications) => {
       const userNotifications = updatedNotifications.filter(n => n.user_id === userId);
       setNotifications(userNotifications);
       setUnreadCount(userNotifications.filter(n => !n.read).length);
     });
 
-    return unsubscribe;
+    // Also set up Supabase realtime for immediate updates
+    const channel = supabase
+      .channel(`notifications-${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${userId}`
+        },
+        async () => {
+          // Refresh notifications when changes occur
+          const fresh = await notificationSystemService.getNotifications(userId);
+          setNotifications(fresh);
+          setUnreadCount(fresh.filter(n => !n.read).length);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      unsubscribe();
+      supabase.removeChannel(channel);
+    };
   }, [userId]);
 
   const handleMarkAllAsRead = async () => {
