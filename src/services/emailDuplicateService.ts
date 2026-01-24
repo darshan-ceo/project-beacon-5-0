@@ -76,7 +76,7 @@ export const checkEmailDuplicate = async (
     // Check clients (email field)
     const { data: clients } = await supabase
       .from('clients')
-      .select('id, display_name, email')
+      .select('id, display_name, email, signatories')
       .not('email', 'is', null);
 
     if (clients) {
@@ -89,6 +89,44 @@ export const checkEmailDuplicate = async (
             moduleName: 'Client',
             entityId: client.id
           });
+        }
+      }
+    }
+
+    // Check signatories stored in clients.signatories JSONB column
+    const { data: clientsWithSignatories } = await supabase
+      .from('clients')
+      .select('id, display_name, signatories')
+      .not('signatories', 'is', null);
+
+    if (clientsWithSignatories) {
+      for (const client of clientsWithSignatories) {
+        const signatories = client.signatories as Array<{
+          id?: string;
+          fullName?: string;
+          emails?: Array<{ email: string; isPrimary?: boolean }>;
+        }> | null;
+        
+        if (signatories && Array.isArray(signatories)) {
+          for (const sig of signatories) {
+            if (excludeEntityId && sig.id === excludeEntityId) continue;
+            
+            if (sig.emails && Array.isArray(sig.emails)) {
+              let foundMatch = false;
+              for (const emailObj of sig.emails) {
+                if (emailObj.email?.toLowerCase().trim() === normalizedEmail) {
+                  matches.push({
+                    entityName: `${sig.fullName || 'Unknown'} (${client.display_name})`,
+                    moduleName: 'Signatory',
+                    entityId: sig.id || client.id
+                  });
+                  foundMatch = true;
+                  break;
+                }
+              }
+              if (foundMatch) break;
+            }
+          }
         }
       }
     }

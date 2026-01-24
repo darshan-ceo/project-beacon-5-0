@@ -3,7 +3,7 @@ import { normalizePhone } from '@/utils/phoneUtils';
 
 export interface DuplicateMatch {
   entityName: string;
-  moduleName: 'Contact' | 'Employee' | 'Client' | 'Court' | 'Judge' | 'Profile';
+  moduleName: 'Contact' | 'Employee' | 'Client' | 'Court' | 'Judge' | 'Profile' | 'Signatory';
   entityId: string;
 }
 
@@ -142,6 +142,54 @@ export const checkPhoneDuplicate = async (
             moduleName: 'Court',
             entityId: court.id
           });
+        }
+      }
+    }
+
+    // Check signatories stored in clients.signatories JSONB column
+    const { data: clientsWithSignatories } = await supabase
+      .from('clients')
+      .select('id, display_name, signatories')
+      .not('signatories', 'is', null);
+
+    if (clientsWithSignatories) {
+      for (const client of clientsWithSignatories) {
+        const signatories = client.signatories as Array<{
+          id?: string;
+          fullName?: string;
+          phones?: Array<{ countryCode?: string; number?: string; phone?: string }>;
+        }> | null;
+        
+        if (signatories && Array.isArray(signatories)) {
+          for (const sig of signatories) {
+            if (excludeEntityId && sig.id === excludeEntityId) continue;
+            
+            if (sig.phones && Array.isArray(sig.phones)) {
+              let foundMatch = false;
+              for (const phone of sig.phones) {
+                const phoneNumber = phone.number || phone.phone || '';
+                const phoneCountryCode = phone.countryCode || countryCode;
+                
+                if (phoneNumber) {
+                  const cleanNumber = phoneNumber.replace(/\D/g, '').replace(/^0+/, '');
+                  const sigNormalizedWithInputCode = normalizePhone(phoneCountryCode, cleanNumber);
+                  const sigNormalizedWithDefault = normalizePhone('+91', cleanNumber);
+                  
+                  if (sigNormalizedWithInputCode === normalizedPhone ||
+                      sigNormalizedWithDefault === normalizedPhone) {
+                    matches.push({
+                      entityName: `${sig.fullName || 'Unknown'} (${client.display_name})`,
+                      moduleName: 'Signatory',
+                      entityId: sig.id || client.id
+                    });
+                    foundMatch = true;
+                    break;
+                  }
+                }
+              }
+              if (foundMatch) break;
+            }
+          }
         }
       }
     }
