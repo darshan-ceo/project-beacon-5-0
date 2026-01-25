@@ -192,7 +192,7 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
                 {canEditTasks && (
                   <DropdownMenuItem onClick={(e) => {
                     e.stopPropagation();
-                    navigate(`/tasks/${task.id}?edit=true`);
+                    navigate(`/tasks/${task.id}?mode=followup`);
                   }}>
                     <MessageSquare className="mr-2 h-4 w-4" />
                     Add Follow-Up
@@ -201,7 +201,7 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
                 {canEditTasks && (
                   <DropdownMenuItem onClick={(e) => {
                     e.stopPropagation();
-                    navigate(`/tasks/${task.id}?edit=true`);
+                    navigate(`/tasks/${task.id}?mode=edit`);
                   }}>
                     <Edit className="mr-2 h-4 w-4" />
                     Edit Task

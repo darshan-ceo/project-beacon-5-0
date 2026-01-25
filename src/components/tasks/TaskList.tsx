@@ -526,11 +526,11 @@ export const TaskList: React.FC<TaskListProps> = ({
                         </DropdownMenuItem>
                         {canEditTasks && (
                           <>
-                            <DropdownMenuItem onClick={() => navigate(`/tasks/${task.id}?edit=true`)}>
+                            <DropdownMenuItem onClick={() => navigate(`/tasks/${task.id}?mode=followup`)}>
                               <MessageSquare className="mr-2 h-4 w-4" />
                               Add Follow-Up
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => navigate(`/tasks/${task.id}?edit=true`)}>
+                            <DropdownMenuItem onClick={() => navigate(`/tasks/${task.id}?mode=edit`)}>
                               <Edit className="mr-2 h-4 w-4" />
                               Edit Task
                             </DropdownMenuItem>
