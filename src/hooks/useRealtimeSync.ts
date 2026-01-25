@@ -642,22 +642,28 @@ export const useRealtimeSync = () => {
             });
           } else if (payload.eventType === 'UPDATE' && payload.new) {
             const courtData = payload.new as any;
+            
+            // Build payload, filtering out undefined/null to prevent overwriting existing values during merge
+            const courtPayload: Record<string, any> = {
+              id: courtData.id, // ID is always required
+            };
+            
+            // Only include fields that have actual values - prevents null from overwriting existing data
+            if (courtData.name !== undefined && courtData.name !== null) courtPayload.name = courtData.name;
+            if (courtData.type !== undefined && courtData.type !== null) courtPayload.type = courtData.type;
+            if (courtData.jurisdiction !== undefined && courtData.jurisdiction !== null) courtPayload.jurisdiction = courtData.jurisdiction;
+            if (courtData.address !== undefined && courtData.address !== null) courtPayload.address = parseCourtAddress(courtData.address);
+            if (courtData.city !== undefined && courtData.city !== null) courtPayload.city = courtData.city;
+            if (courtData.phone !== undefined && courtData.phone !== null) courtPayload.phone = courtData.phone;
+            if (courtData.email !== undefined && courtData.email !== null) courtPayload.email = courtData.email;
+            if (courtData.status !== undefined && courtData.status !== null) courtPayload.status = courtData.status;
+            if (courtData.bench_location !== undefined && courtData.bench_location !== null) courtPayload.benchLocation = courtData.bench_location;
+            if (courtData.tax_jurisdiction !== undefined && courtData.tax_jurisdiction !== null) courtPayload.taxJurisdiction = courtData.tax_jurisdiction;
+            if (courtData.officer_designation !== undefined && courtData.officer_designation !== null) courtPayload.officerDesignation = courtData.officer_designation;
+            
             rawDispatch({ 
               type: 'UPDATE_COURT', 
-              payload: {
-                id: courtData.id,
-                name: courtData.name,
-                type: courtData.type,
-                jurisdiction: courtData.jurisdiction,
-                address: parseCourtAddress(courtData.address),
-                city: courtData.city,
-                phone: courtData.phone,
-                email: courtData.email,
-                status: courtData.status || 'Active',
-                benchLocation: courtData.bench_location,
-                taxJurisdiction: courtData.tax_jurisdiction,
-                officerDesignation: courtData.officer_designation,
-              } as any 
+              payload: courtPayload as any 
             });
           } else if (payload.eventType === 'DELETE' && payload.old) {
             rawDispatch({ type: 'DELETE_COURT', payload: (payload.old as any).id });
