@@ -45,6 +45,15 @@ const workingDayOptions = [
 
 export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: courtData, mode }) => {
   const { state, dispatch } = useAppState();
+
+  // DEBUG: Trace courtData (props from store) vs formData (local state)
+  console.log('[CourtModal] RENDER', {
+    mode,
+    courtDataId: courtData?.id,
+    courtData_taxJurisdiction: courtData?.taxJurisdiction,
+    courtData_officerDesignation: courtData?.officerDesignation,
+    courtData_address: courtData?.address,
+  });
   const [formData, setFormData] = useState<{
     name: string;
     type: 'Supreme Court' | 'High Court' | 'District Court' | 'Tribunal' | 'Commission';
@@ -266,6 +275,14 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         taxJurisdiction
       );
       
+      // DEBUG: Log hydration values
+      console.log('[CourtModal] HYDRATING', {
+        taxJurisdiction,
+        officerDesignation,
+        parsedAddress,
+        courtData_address_raw: courtData.address,
+      });
+
       setFormData({
         name: courtData.name,
         type: courtData.type,
