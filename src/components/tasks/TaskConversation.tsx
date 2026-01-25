@@ -7,7 +7,8 @@ import {
   Loader2,
   MessageSquare,
   Plus,
-  ArrowLeft
+  ArrowLeft,
+  Edit
 } from 'lucide-react';
 import { TaskHeader } from './TaskHeader';
 import { CollapsibleDescription } from './CollapsibleDescription';
@@ -29,6 +30,7 @@ import { TaskStickyContextHeader } from './TaskStickyContextHeader';
 import { TaskDetailsPanel } from './TaskDetailsPanel';
 import { TaskInlineReferences } from './TaskInlineReferences';
 import { TaskActivityTimeline } from './TaskActivityTimeline';
+import { TaskEditSheet } from './TaskEditSheet';
 import { supabase } from '@/integrations/supabase/client';
 import { tasksService } from '@/services/tasksService';
 import { toast } from 'sonner';
@@ -37,7 +39,7 @@ import { useTaskContext } from '@/hooks/useTaskContext';
 
 export const TaskConversation: React.FC = () => {
   const { taskId } = useParams<{ taskId: string }>();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { state, dispatch } = useAppState();
   const { hasPermission } = useAdvancedRBAC();
@@ -52,8 +54,12 @@ export const TaskConversation: React.FC = () => {
   const [isTaskLoading, setIsTaskLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  // Determine if we're in edit mode (view mode is read-only)
-  const isEditMode = searchParams.get('edit') === 'true';
+  // Mode handling: 'view' (read-only), 'followup' (conversation with composer), 'edit' (task property form)
+  // Support both legacy ?edit=true and new ?mode=xxx params
+  const mode = searchParams.get('mode') || (searchParams.get('edit') === 'true' ? 'followup' : 'view');
+  const isViewMode = mode === 'view';
+  const isFollowUpMode = mode === 'followup';
+  const isEditMode = mode === 'edit';
   
   // RBAC permission checks
   const canDeleteTasks = hasPermission('tasks', 'delete');
@@ -354,7 +360,7 @@ export const TaskConversation: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            {isEditMode && (
+            {isFollowUpMode && (
               <QuickStatusButton
                 currentStatus={task.status || 'Not Started'}
                 onStatusChange={handleQuickStatusChange}
@@ -363,7 +369,7 @@ export const TaskConversation: React.FC = () => {
               />
             )}
 
-            {isEditMode && canDeleteTasks && (
+            {(isFollowUpMode || isEditMode) && canDeleteTasks && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon">
@@ -432,8 +438,8 @@ export const TaskConversation: React.FC = () => {
         </div>
       </ScrollArea>
 
-      {/* Quick Compose Bar - Only show in edit mode */}
-      {isEditMode ? (
+      {/* Quick Compose Bar - Only show in follow-up mode */}
+      {isFollowUpMode ? (
         <ComposeMessage
           onSend={handleSendMessage}
           currentStatus={task.status}
@@ -441,17 +447,37 @@ export const TaskConversation: React.FC = () => {
           taskId={taskId}
         />
       ) : (
-        /* Floating Add Follow-up Button in View Mode */
-        <div className="border-t bg-card p-4">
+        /* Floating Action Buttons in View Mode */
+        <div className="border-t bg-card p-4 flex gap-3">
           <Button
-            onClick={() => navigate(`/tasks/${taskId}?edit=true`)}
-            className="w-full gap-2"
+            variant="outline"
+            onClick={() => navigate(`/tasks/${taskId}?mode=followup`)}
+            className="flex-1 gap-2"
           >
             <Plus className="h-4 w-4" />
             Add Follow-up
           </Button>
+          {canEditTasks && (
+            <Button
+              onClick={() => navigate(`/tasks/${taskId}?mode=edit`)}
+              className="flex-1 gap-2"
+            >
+              <Edit className="h-4 w-4" />
+              Edit Task
+            </Button>
+          )}
         </div>
       )}
+
+      {/* Task Edit Sheet - Opens when mode=edit */}
+      <TaskEditSheet
+        task={task}
+        isOpen={isEditMode}
+        onClose={() => navigate(`/tasks/${taskId}`)}
+        onSuccess={() => {
+          // Refresh happens via state update
+        }}
+      />
     </div>
   );
 };
