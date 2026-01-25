@@ -1,0 +1,384 @@
+{
+  "moduleId": "system-settings",
+  "version": "1.0.0",
+  "lastUpdated": "2025-01-25",
+
+  "warningLevels": {
+    "critical": {
+      "color": "red",
+      "icon": "AlertTriangle",
+      "description": "Irreversible or high-impact actions that can cause data loss or security breach"
+    },
+    "warning": {
+      "color": "yellow",
+      "icon": "AlertCircle",
+      "description": "Actions that may cause issues but are recoverable"
+    },
+    "info": {
+      "color": "blue",
+      "icon": "Info",
+      "description": "Important context that users should understand"
+    }
+  },
+
+  "irreversibleActions": [
+    {
+      "id": "CLEAR_ALL_DATA",
+      "section": "data-management",
+      "severity": "critical",
+      "title": "Clear All Data",
+      "description": "This permanently deletes ALL data including cases, clients, documents, tasks, and settings across the entire tenant.",
+      "consequence": "Complete and permanent data loss. No recovery possible without external backup.",
+      "prerequisites": [
+        "Export complete backup to local storage",
+        "Verify backup file is valid and complete",
+        "Obtain written authorization from organization head",
+        "Confirm you are in the correct environment (not production)"
+      ],
+      "confirmation": {
+        "type": "text_match",
+        "prompt": "Type 'DELETE ALL DATA' to confirm",
+        "matchText": "DELETE ALL DATA"
+      },
+      "recovery": "Cannot recover. Must restore from external backup if available.",
+      "auditLevel": "CRITICAL",
+      "notifyOnAction": ["tenant_admin", "system_admin"]
+    },
+    {
+      "id": "RESET_TO_DEFAULTS",
+      "section": "general",
+      "severity": "warning",
+      "title": "Reset All Settings to Defaults",
+      "description": "Reverts all configuration to factory defaults.",
+      "consequence": "All custom configurations lost. Email settings, integrations, and workflows must be reconfigured.",
+      "prerequisites": [
+        "Document current configuration",
+        "Export settings backup"
+      ],
+      "recovery": "Manually reconfigure. Import from backup if documented.",
+      "auditLevel": "HIGH"
+    },
+    {
+      "id": "DISABLE_2FA_GLOBAL",
+      "section": "security",
+      "severity": "critical",
+      "title": "Disable Two-Factor Authentication",
+      "description": "Removes 2FA requirement from all user accounts.",
+      "consequence": "Significantly increases risk of unauthorized access. May violate compliance requirements.",
+      "prerequisites": [
+        "Document security justification",
+        "Obtain CISO/Security officer approval"
+      ],
+      "recovery": "Re-enable 2FA. Users must re-enroll.",
+      "auditLevel": "CRITICAL",
+      "complianceImplications": ["SOC 2", "ISO 27001", "GDPR"]
+    },
+    {
+      "id": "DELETE_CUSTOM_ROLE",
+      "section": "security",
+      "severity": "warning",
+      "title": "Delete Custom Role",
+      "description": "Permanently removes a custom role definition.",
+      "consequence": "Users with this role lose associated permissions immediately.",
+      "prerequisites": [
+        "Reassign users to alternative role first",
+        "Document role permissions for recreation if needed"
+      ],
+      "recovery": "Must recreate role manually with same permissions.",
+      "auditLevel": "HIGH"
+    }
+  ],
+
+  "securityRisks": [
+    {
+      "id": "IP_WHITELIST_EMPTY",
+      "section": "security",
+      "severity": "info",
+      "trigger": "IP whitelist is empty",
+      "risk": "Access allowed from any IP address worldwide",
+      "mitigation": "Add specific IP addresses or CIDR ranges to restrict access",
+      "acceptableWhen": "Organization has no fixed IP addresses or uses VPN with dynamic IPs"
+    },
+    {
+      "id": "IP_WHITELIST_LOCKOUT",
+      "section": "security",
+      "severity": "critical",
+      "trigger": "Saving IP whitelist that doesn't include current IP",
+      "risk": "Immediate lockout of all users including the admin making the change",
+      "mitigation": "Always include your current IP. Have backend access as backup.",
+      "recovery": "Requires direct database access to clear whitelist"
+    },
+    {
+      "id": "SESSION_TIMEOUT_LONG",
+      "section": "security",
+      "severity": "warning",
+      "trigger": "Session timeout > 60 minutes",
+      "risk": "Extended sessions increase unauthorized access risk from unattended workstations",
+      "mitigation": "Set to 30 minutes or less for compliance",
+      "complianceNote": "Many frameworks require 15-30 minute timeouts"
+    },
+    {
+      "id": "SESSION_TIMEOUT_SHORT",
+      "section": "security",
+      "severity": "info",
+      "trigger": "Session timeout < 15 minutes",
+      "risk": "Users may experience frequent logouts, frustration",
+      "mitigation": "Balance security with usability. Consider 30 minutes.",
+      "acceptableWhen": "High-security environments with sensitive data access"
+    },
+    {
+      "id": "PASSWORD_POLICY_LOW",
+      "section": "security",
+      "severity": "warning",
+      "trigger": "Password policy set to 'Low'",
+      "risk": "Weak passwords are vulnerable to brute force attacks",
+      "mitigation": "Set to Medium or High. Enable 2FA as compensating control."
+    },
+    {
+      "id": "PRODUCTION_MODE_DISABLED",
+      "section": "data-management",
+      "severity": "warning",
+      "trigger": "Production mode is OFF in production environment",
+      "risk": "Sample data generation available, reduced confirmation dialogs",
+      "mitigation": "Enable Production Mode before go-live"
+    },
+    {
+      "id": "EMAIL_PASSWORD_WEAK",
+      "section": "notifications",
+      "severity": "warning",
+      "trigger": "Using main email password instead of app-specific password",
+      "risk": "Main account compromise if credentials leaked",
+      "mitigation": "Generate app-specific password from email provider security settings"
+    },
+    {
+      "id": "GST_PRODUCTION_UNTESTED",
+      "section": "integrations",
+      "severity": "warning",
+      "trigger": "Switching to GST Production without prior Sandbox testing",
+      "risk": "Invalid queries to real GST portal, potential rate limiting",
+      "mitigation": "Test all flows in Sandbox mode first"
+    },
+    {
+      "id": "API_LOGGING_PRODUCTION",
+      "section": "integrations",
+      "severity": "info",
+      "trigger": "API logging enabled in production",
+      "risk": "Performance degradation, storage bloat, potential sensitive data in logs",
+      "mitigation": "Disable unless actively debugging"
+    },
+    {
+      "id": "AI_REVIEW_DISABLED",
+      "section": "ai-communications",
+      "severity": "warning",
+      "trigger": "AI review requirement disabled",
+      "risk": "Unreviewed AI-generated content may reach clients",
+      "mitigation": "Enable review for all client-facing communications"
+    }
+  ],
+
+  "performanceWarnings": [
+    {
+      "id": "CACHE_DURATION_LOW",
+      "section": "general",
+      "trigger": "Cache duration < 1 hour",
+      "impact": "Increased server load, slower page loads",
+      "recommendation": "Set to 24 hours unless data freshness is critical"
+    },
+    {
+      "id": "QUERY_TIMEOUT_LOW",
+      "section": "general",
+      "trigger": "Query timeout < 15 seconds",
+      "impact": "Complex reports may fail",
+      "recommendation": "Set to 30-60 seconds for report-heavy usage"
+    },
+    {
+      "id": "FILE_SIZE_HIGH",
+      "section": "general",
+      "trigger": "Max file size > 200MB",
+      "impact": "Upload timeouts, storage costs, memory pressure",
+      "recommendation": "Keep under 100MB unless specific large file requirements"
+    },
+    {
+      "id": "COMPRESSION_DISABLED",
+      "section": "general",
+      "trigger": "Response compression disabled",
+      "impact": "60-80% higher bandwidth usage, slower loads",
+      "recommendation": "Always enable unless debugging"
+    }
+  ],
+
+  "complianceWarnings": [
+    {
+      "id": "AUDIT_RETENTION_LOW",
+      "frameworks": ["SOC 2", "ISO 27001", "HIPAA"],
+      "trigger": "Audit retention < 365 days",
+      "requirement": "Many frameworks require 1-7 year retention",
+      "recommendation": "Set to 365 days minimum, 2555 (7 years) for healthcare/finance"
+    },
+    {
+      "id": "PASSWORD_EXPIRY_NONE",
+      "frameworks": ["PCI-DSS", "HIPAA"],
+      "trigger": "Password expiry set to 0 (never)",
+      "requirement": "Some frameworks require 60-90 day rotation",
+      "recommendation": "Set to 90 days, or 0 with strong 2FA enforcement"
+    },
+    {
+      "id": "SESSION_COMPLIANCE",
+      "frameworks": ["HIPAA", "PCI-DSS"],
+      "trigger": "Session timeout > 30 minutes",
+      "requirement": "Healthcare and payment systems often require shorter sessions",
+      "recommendation": "15-30 minutes for compliance-sensitive environments"
+    }
+  ],
+
+  "legalImplications": [
+    {
+      "id": "NOTIFICATION_FAILURE",
+      "section": "notifications",
+      "trigger": "Email configuration invalid",
+      "implication": "Missed deadline notifications may lead to malpractice claims",
+      "mitigation": "Test email configuration thoroughly. Monitor delivery failures."
+    },
+    {
+      "id": "DATA_EXPORT_INCOMPLETE",
+      "section": "data-management",
+      "trigger": "Export excludes document files",
+      "implication": "Backup may not include complete case documentation",
+      "mitigation": "Use full export including document files for complete backup"
+    },
+    {
+      "id": "HIERARCHY_INCORRECT",
+      "section": "legal-hierarchy",
+      "trigger": "Authority hierarchy doesn't match jurisdiction",
+      "implication": "Incorrect case filing, potential statute of limitations issues",
+      "mitigation": "Validate hierarchy with practicing attorneys in jurisdiction"
+    }
+  ],
+
+  "incidentResponse": {
+    "lockout": {
+      "title": "User Lockout Recovery",
+      "scenarios": [
+        {
+          "scenario": "Admin locked out by IP whitelist",
+          "severity": "critical",
+          "steps": [
+            "Access backend database directly",
+            "Execute: UPDATE system_settings SET ip_whitelist = NULL WHERE tenant_id = 'xxx'",
+            "Clear browser cache and retry login",
+            "Document incident in security log"
+          ]
+        },
+        {
+          "scenario": "All admins locked out (no admin roles)",
+          "severity": "critical",
+          "steps": [
+            "Access backend database directly",
+            "Identify a user to grant admin: SELECT id, email FROM profiles WHERE tenant_id = 'xxx'",
+            "Grant admin role via database",
+            "User logs in and restores proper role assignments"
+          ]
+        }
+      ]
+    },
+    "dataLoss": {
+      "title": "Data Loss Recovery",
+      "scenarios": [
+        {
+          "scenario": "Accidental Clear All Data",
+          "severity": "critical",
+          "steps": [
+            "STOP - Do not make any more changes",
+            "Check for recent backup export files",
+            "If backup exists, import via Data Management",
+            "If no backup, contact support for potential database snapshot recovery",
+            "Document timeline and root cause"
+          ]
+        }
+      ]
+    },
+    "securityBreach": {
+      "title": "Security Incident Response",
+      "scenarios": [
+        {
+          "scenario": "Suspected unauthorized access",
+          "severity": "critical",
+          "steps": [
+            "Review audit log for suspicious activity",
+            "Force logout all sessions (if available)",
+            "Reset affected user passwords",
+            "Enable/strengthen 2FA requirements",
+            "Review and tighten IP whitelist if appropriate",
+            "Document incident timeline and actions taken"
+          ]
+        }
+      ]
+    }
+  },
+
+  "rolePermissions": {
+    "description": "Who can modify which settings sections",
+    "matrix": {
+      "general": {
+        "admin": "full",
+        "implementor": "full",
+        "partner": "view",
+        "advancedUser": "none"
+      },
+      "security": {
+        "admin": "full",
+        "implementor": "initial",
+        "partner": "view",
+        "advancedUser": "none"
+      },
+      "notifications": {
+        "admin": "full",
+        "implementor": "full",
+        "partner": "full",
+        "advancedUser": "view"
+      },
+      "legal": {
+        "admin": "full",
+        "implementor": "full",
+        "partner": "view",
+        "advancedUser": "view"
+      },
+      "ai-communications": {
+        "admin": "full",
+        "implementor": "full",
+        "partner": "full",
+        "advancedUser": "view"
+      },
+      "integrations": {
+        "admin": "full",
+        "implementor": "full",
+        "partner": "view",
+        "advancedUser": "none"
+      },
+      "address": {
+        "admin": "full",
+        "implementor": "full",
+        "partner": "view",
+        "advancedUser": "none"
+      },
+      "templates": {
+        "admin": "full",
+        "implementor": "full",
+        "partner": "full",
+        "advancedUser": "view"
+      },
+      "legal-hierarchy": {
+        "admin": "full",
+        "implementor": "full",
+        "partner": "view",
+        "advancedUser": "none"
+      },
+      "data-management": {
+        "admin": "full",
+        "implementor": "initial",
+        "partner": "none",
+        "advancedUser": "none"
+      }
+    }
+  }
+}

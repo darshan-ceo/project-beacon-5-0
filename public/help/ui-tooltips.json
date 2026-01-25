@@ -1495,6 +1495,441 @@
           }
         }
       ]
+    },
+    "system_settings": {
+      "fields": [
+        {
+          "id": "ss_max_file_size",
+          "label": "Maximum File Upload Size",
+          "explanation": "Limits individual file uploads in MB",
+          "tooltip": {
+            "title": "Maximum File Upload Size (MB)",
+            "content": "Limits individual file uploads. Legal documents rarely exceed 50MB. Larger limits require more server resources. Default: 50MB. Values above 100MB may cause upload timeouts on slower connections."
+          },
+          "warning": "Increasing beyond 100MB may cause upload failures",
+          "accessibility": { "ariaLabel": "Set maximum file upload size" }
+        },
+        {
+          "id": "ss_cache_duration",
+          "label": "Cache Duration",
+          "explanation": "How long browsers cache static resources",
+          "tooltip": {
+            "title": "Cache Duration (Hours)",
+            "content": "Controls how long static resources are cached in browsers. Lower values ensure fresher data but increase server load. Recommended: 24 hours for balanced performance."
+          },
+          "warning": "Values under 1 hour significantly increase server load",
+          "accessibility": { "ariaLabel": "Set cache duration in hours" }
+        },
+        {
+          "id": "ss_query_timeout",
+          "label": "Query Timeout",
+          "explanation": "Maximum time for database queries",
+          "tooltip": {
+            "title": "Query Timeout (Seconds)",
+            "content": "Maximum time for database queries before timeout. Complex reports need longer timeouts. Too low: queries fail. Too high: resources tied up. Recommended: 30-60 seconds."
+          },
+          "warning": "Values below 15s may cause complex report failures",
+          "accessibility": { "ariaLabel": "Set database query timeout" }
+        },
+        {
+          "id": "ss_enable_compression",
+          "label": "Response Compression",
+          "explanation": "Compress data before sending to browsers",
+          "tooltip": {
+            "title": "Enable Response Compression",
+            "content": "Compresses API responses before sending to browsers. Reduces bandwidth by 60-80% with slight CPU overhead. Recommended: Always enable unless debugging network issues."
+          },
+          "accessibility": { "ariaLabel": "Toggle response compression" }
+        },
+        {
+          "id": "ss_backup_frequency",
+          "label": "Backup Frequency",
+          "explanation": "How often automatic backups are created",
+          "tooltip": {
+            "title": "Automatic Backup Frequency",
+            "content": "Controls automatic backup schedule. Daily for production systems. Hourly for high-activity deployments. More frequent backups provide better recovery options but use more storage."
+          },
+          "accessibility": { "ariaLabel": "Set backup frequency" }
+        },
+        {
+          "id": "ss_session_timeout",
+          "label": "Session Timeout",
+          "explanation": "Auto-logout after inactivity period",
+          "tooltip": {
+            "title": "Session Timeout (Minutes)",
+            "content": "Automatic logout after inactivity. Shorter = more secure but may frustrate users. Longer = convenient but higher unauthorized access risk. Industry standard: 30 minutes. Compliance may require 15-30 minutes."
+          },
+          "securityWarning": "Values above 60 minutes may violate SOC 2 and ISO 27001 requirements",
+          "accessibility": { "ariaLabel": "Set session timeout in minutes" }
+        },
+        {
+          "id": "ss_password_policy",
+          "label": "Password Complexity",
+          "explanation": "Minimum password requirements",
+          "tooltip": {
+            "title": "Password Complexity Policy",
+            "content": "Low: 8+ characters. Medium: 8+ with special character (recommended). High: 12+ with mixed case and special. Higher complexity = more secure but harder to remember. Changes apply at next password change."
+          },
+          "accessibility": { "ariaLabel": "Select password complexity level" }
+        },
+        {
+          "id": "ss_two_factor_auth",
+          "label": "Two-Factor Authentication",
+          "explanation": "Require verification code with password",
+          "tooltip": {
+            "title": "Require Two-Factor Authentication",
+            "content": "When enabled, users must verify with a second factor (email/SMS code). Options: Disabled, Admin Only (recommended minimum), All Users. Significantly reduces unauthorized access risk."
+          },
+          "securityWarning": "Disabling 2FA significantly increases security risk",
+          "accessibility": { "ariaLabel": "Configure two-factor authentication requirement" }
+        },
+        {
+          "id": "ss_ip_whitelist",
+          "label": "IP Address Whitelist",
+          "explanation": "Restrict access to specific IPs",
+          "tooltip": {
+            "title": "IP Address Whitelist",
+            "content": "Restrict system access to specific IP addresses. One IP per line, CIDR notation supported (e.g., 192.168.1.0/24). Empty = all IPs allowed. TEST CAREFULLY before enabling."
+          },
+          "securityWarning": "CRITICAL: Incorrect IPs can lock out ALL users including yourself. Ensure backend access before enabling.",
+          "accessibility": { "ariaLabel": "Configure IP whitelist" }
+        },
+        {
+          "id": "ss_login_attempt_limit",
+          "label": "Failed Login Limit",
+          "explanation": "Attempts before account lockout",
+          "tooltip": {
+            "title": "Failed Login Attempts Before Lockout",
+            "content": "Number of failed attempts before temporary account lockout. Lower = more secure against brute force. Higher = fewer support calls. Recommended: 5 attempts balances security with usability."
+          },
+          "warning": "Values below 3 cause frequent lockouts from typos",
+          "accessibility": { "ariaLabel": "Set failed login attempt limit" }
+        },
+        {
+          "id": "ss_lockout_duration",
+          "label": "Lockout Duration",
+          "explanation": "How long locked accounts stay locked",
+          "tooltip": {
+            "title": "Account Lockout Duration (Minutes)",
+            "content": "How long accounts remain locked after exceeding failed login limit. Longer = better deterrence but more support burden. Recommended: 30 minutes deters attacks while allowing recovery."
+          },
+          "accessibility": { "ariaLabel": "Set lockout duration in minutes" }
+        },
+        {
+          "id": "ss_password_expiry",
+          "label": "Password Expiry",
+          "explanation": "Days before forced password change",
+          "tooltip": {
+            "title": "Password Expiry (Days)",
+            "content": "Days before users must change password. 0 = never expires. Regular rotation reduces compromised password risk. Recommended: 90 days for compliance, or 0 with strong 2FA."
+          },
+          "complianceNote": "Many regulations require 60-90 day rotation",
+          "accessibility": { "ariaLabel": "Set password expiry period" }
+        },
+        {
+          "id": "ss_email_provider",
+          "label": "Email Provider",
+          "explanation": "Email service for notifications",
+          "tooltip": {
+            "title": "Email Provider Selection",
+            "content": "Gmail: Requires app password (not account password). Yahoo: App password required. Outlook: OAuth or app password. Custom SMTP: Full control over mail server. Test configuration before enabling for all users."
+          },
+          "accessibility": { "ariaLabel": "Select email provider" }
+        },
+        {
+          "id": "ss_email_app_password",
+          "label": "Email App Password",
+          "explanation": "App-specific password for SMTP",
+          "tooltip": {
+            "title": "App Password (Not Account Password)",
+            "content": "Use a dedicated app-specific password, NOT your regular email password. Generate from your email provider's security settings. App passwords can be revoked independently for security."
+          },
+          "securityWarning": "Never use your main account password. Generate app-specific password from provider security settings.",
+          "accessibility": { "ariaLabel": "Enter email app password" }
+        },
+        {
+          "id": "ss_sms_enabled",
+          "label": "SMS Notifications",
+          "explanation": "Enable text message alerts",
+          "tooltip": {
+            "title": "Enable SMS Notifications",
+            "content": "Send text message alerts for hearings and deadlines. Requires SMS gateway configuration (Twilio, MSG91, etc.). Incurs per-message costs. Test before enabling organization-wide."
+          },
+          "accessibility": { "ariaLabel": "Toggle SMS notifications" }
+        },
+        {
+          "id": "ss_reminder_days",
+          "label": "Reminder Schedule",
+          "explanation": "Days before hearings to send reminders",
+          "tooltip": {
+            "title": "Hearing Reminder Schedule",
+            "content": "Comma-separated days before hearings to send reminders. Example: '1,3,7' sends reminders 7 days, 3 days, and 1 day before. Too many reminders may be ignored; too few may be missed."
+          },
+          "accessibility": { "ariaLabel": "Configure reminder days" }
+        },
+        {
+          "id": "ss_case_number_format",
+          "label": "Case Number Format",
+          "explanation": "Pattern for auto-generated case IDs",
+          "tooltip": {
+            "title": "Case Number Format Pattern",
+            "content": "Pattern for auto-generating case IDs. Tokens: {YYYY}=year, {MM}=month, {####}=sequence. Example: 'CASE-{YYYY}-{####}' generates 'CASE-2025-0001'. Changes affect only NEW cases."
+          },
+          "warning": "Changing format affects only new cases. Existing case numbers remain unchanged.",
+          "accessibility": { "ariaLabel": "Configure case number format" }
+        },
+        {
+          "id": "ss_financial_year_start",
+          "label": "Financial Year Start",
+          "explanation": "First month of financial year",
+          "tooltip": {
+            "title": "Financial Year Start Month",
+            "content": "First month of your organization's financial year. April for India (Apr-Mar), January for international (Jan-Dec). Affects financial year display and some deadline calculations."
+          },
+          "accessibility": { "ariaLabel": "Select financial year start month" }
+        },
+        {
+          "id": "ss_default_response_time",
+          "label": "Response SLA",
+          "explanation": "Target time to respond to queries",
+          "tooltip": {
+            "title": "Standard Response SLA (Hours)",
+            "content": "Target time to respond to client queries. Used for SLA tracking and escalation alerts. Industry standard: 24-48 hours for routine matters. Adjust based on capacity and client expectations."
+          },
+          "accessibility": { "ariaLabel": "Set response SLA in hours" }
+        },
+        {
+          "id": "ss_calendar_provider",
+          "label": "Calendar Provider",
+          "explanation": "Calendar service for sync",
+          "tooltip": {
+            "title": "Calendar Integration Provider",
+            "content": "Google: Requires OAuth consent and Google Cloud setup. Microsoft: Azure AD application required. Both sync hearings bidirectionally. Calendar events include case references for context."
+          },
+          "accessibility": { "ariaLabel": "Select calendar provider" }
+        },
+        {
+          "id": "ss_calendar_auto_sync",
+          "label": "Auto-Sync Hearings",
+          "explanation": "Automatically sync to calendars",
+          "tooltip": {
+            "title": "Automatic Calendar Sync",
+            "content": "When enabled, hearings automatically sync to connected calendars in real-time. Manual mode: Sync on demand only. Auto-sync recommended for seamless calendar updates."
+          },
+          "accessibility": { "ariaLabel": "Toggle automatic calendar sync" }
+        },
+        {
+          "id": "ss_gst_mode",
+          "label": "GST Integration Mode",
+          "explanation": "GST portal connection mode",
+          "tooltip": {
+            "title": "GST Integration Mode",
+            "content": "Production: Real GST portal data - ensure credentials are correct. Sandbox: Test data only for development. Disabled: GST features turned off. Always test in Sandbox before switching to Production."
+          },
+          "warning": "Production mode queries real GST portal - verify credentials first",
+          "accessibility": { "ariaLabel": "Select GST integration mode" }
+        },
+        {
+          "id": "ss_storage_provider",
+          "label": "Storage Provider",
+          "explanation": "Where documents are stored",
+          "tooltip": {
+            "title": "Document Storage Provider",
+            "content": "Local: Server filesystem (development only). Supabase: Lovable Cloud storage (recommended). AWS S3: Amazon cloud storage. Azure Blob: Microsoft cloud. Cloud storage recommended for production scalability."
+          },
+          "accessibility": { "ariaLabel": "Select document storage provider" }
+        },
+        {
+          "id": "ss_api_logging",
+          "label": "API Logging",
+          "explanation": "Log external API calls",
+          "tooltip": {
+            "title": "Enable API Request Logging",
+            "content": "Logs all external API calls for debugging integration issues. Useful for troubleshooting but may impact performance and use storage. Disable in production unless actively debugging."
+          },
+          "warning": "May impact performance. Disable in production unless debugging.",
+          "accessibility": { "ariaLabel": "Toggle API request logging" }
+        },
+        {
+          "id": "ss_production_mode",
+          "label": "Production Mode",
+          "explanation": "Enable production safeguards",
+          "tooltip": {
+            "title": "Production Mode Toggle",
+            "content": "Enables production safeguards: Disables sample data generation, adds confirmation dialogs for destructive actions, enables full audit logging. Enable before go-live. Disable only for development/testing."
+          },
+          "warning": "Disable only for development/testing environments",
+          "accessibility": { "ariaLabel": "Toggle production mode" }
+        },
+        {
+          "id": "ss_export_data",
+          "label": "Export All Data",
+          "explanation": "Download complete backup",
+          "tooltip": {
+            "title": "Export All Data",
+            "content": "Downloads complete system data as JSON backup. Includes cases, clients, tasks, documents metadata (not files), and settings. Use for migration or disaster recovery. Always export before major changes."
+          },
+          "accessibility": { "ariaLabel": "Export all data as backup" }
+        },
+        {
+          "id": "ss_import_data",
+          "label": "Import Data",
+          "explanation": "Restore from backup",
+          "tooltip": {
+            "title": "Import Data from Backup",
+            "content": "Restores data from previously exported JSON file. MERGES with existing data - does not replace. Test import on staging environment first. Duplicate handling based on record IDs."
+          },
+          "warning": "Test import on staging environment first. Data is MERGED, not replaced.",
+          "accessibility": { "ariaLabel": "Import data from backup file" }
+        },
+        {
+          "id": "ss_clear_all_data",
+          "label": "Clear All Data",
+          "explanation": "PERMANENTLY delete all data",
+          "tooltip": {
+            "title": "Clear All Data",
+            "content": "PERMANENTLY DELETES all cases, clients, tasks, documents, and settings. This action CANNOT BE UNDONE. Export backup first. Type confirmation required. Use only in development or when absolutely certain."
+          },
+          "securityWarning": "IRREVERSIBLE ACTION - All data will be permanently deleted. Export backup before proceeding. Cannot be undone.",
+          "accessibility": { "ariaLabel": "Clear all data permanently" }
+        },
+        {
+          "id": "ss_production_readiness",
+          "label": "Production Readiness Check",
+          "explanation": "Validate configuration for go-live",
+          "tooltip": {
+            "title": "Production Readiness Check",
+            "content": "Validates system configuration against production requirements: RLS policies enabled, authentication configured, backup scheduled, security settings validated, email tested. Address all issues before go-live."
+          },
+          "accessibility": { "ariaLabel": "Run production readiness check" }
+        },
+        {
+          "id": "ss_authority_levels",
+          "label": "Authority Levels",
+          "explanation": "Legal hierarchy structure",
+          "tooltip": {
+            "title": "Legal Authority Hierarchy",
+            "content": "Defines the progression of legal authorities: Assessment → Adjudication → Tribunal → High Court → Supreme Court. Affects case categorization, appeal workflows, and statutory deadline calculations."
+          },
+          "warning": "Deactivating a level hides it from forms but preserves existing case data",
+          "accessibility": { "ariaLabel": "Configure authority levels" }
+        },
+        {
+          "id": "ss_matter_types",
+          "label": "Matter Types",
+          "explanation": "Sub-categories under authorities",
+          "tooltip": {
+            "title": "Matter Type Configuration",
+            "content": "Sub-categories under authority levels (e.g., Tribunal → State Bench, Principal Bench). Enable 'Allows Matter Types' on the authority level first. Provides additional case classification granularity."
+          },
+          "accessibility": { "ariaLabel": "Configure matter types" }
+        },
+        {
+          "id": "ss_hearing_outcomes",
+          "label": "Hearing Outcomes",
+          "explanation": "Standard hearing results",
+          "tooltip": {
+            "title": "Hearing Outcome Definitions",
+            "content": "Pre-defined outcomes for hearings: Adjourned, Order Reserved, Disposed, Part-Heard, etc. Standard outcomes enable consistent reporting and dashboard metrics. Custom outcomes can be added."
+          },
+          "accessibility": { "ariaLabel": "Configure hearing outcomes" }
+        },
+        {
+          "id": "ss_document_templates",
+          "label": "Document Templates",
+          "explanation": "Pre-formatted document templates",
+          "tooltip": {
+            "title": "Document Template Management",
+            "content": "Create and manage templates for letters, notices, and legal documents. Templates support variable placeholders ({{client_name}}, {{case_number}}) that auto-fill from case data during generation."
+          },
+          "accessibility": { "ariaLabel": "Manage document templates" }
+        },
+        {
+          "id": "ss_ai_enabled",
+          "label": "AI Features",
+          "explanation": "Enable AI-powered assistance",
+          "tooltip": {
+            "title": "Enable AI Features",
+            "content": "Master toggle for all AI-powered features including document analysis, case research, and assisted drafting. Uses Lovable AI supported models. No external API key required."
+          },
+          "accessibility": { "ariaLabel": "Toggle AI features" }
+        },
+        {
+          "id": "ss_ai_review_required",
+          "label": "AI Review Required",
+          "explanation": "Require human review of AI content",
+          "tooltip": {
+            "title": "Require Review Before Sending",
+            "content": "When enabled, AI-generated content must be reviewed by a human before delivery to clients. Strongly recommended for all client-facing communications to prevent AI hallucinations reaching clients."
+          },
+          "securityWarning": "Disabling may result in unreviewed AI content reaching clients",
+          "accessibility": { "ariaLabel": "Toggle AI review requirement" }
+        },
+        {
+          "id": "ss_audit_retention",
+          "label": "Audit Log Retention",
+          "explanation": "How long audit logs are kept",
+          "tooltip": {
+            "title": "Audit Log Retention (Days)",
+            "content": "How long security audit logs are retained. Longer retention = better compliance but more storage. Recommended: 365 days (1 year) for most compliance frameworks. Some regulations require 7-year retention."
+          },
+          "complianceNote": "SOC 2, ISO 27001, HIPAA may require specific retention periods",
+          "accessibility": { "ariaLabel": "Set audit log retention period" }
+        }
+      ],
+      "buttons": [
+        {
+          "id": "ss_save_settings",
+          "label": "Save Settings",
+          "explanation": "Save all configuration changes",
+          "tooltip": {
+            "title": "Save Settings",
+            "content": "Saves all configuration changes to the database. Most settings take effect immediately or on next page load. Critical settings (IP whitelist, production mode) may require confirmation."
+          },
+          "accessibility": { "ariaLabel": "Save all settings" }
+        },
+        {
+          "id": "ss_reset_defaults",
+          "label": "Reset to Defaults",
+          "explanation": "Revert to factory settings",
+          "tooltip": {
+            "title": "Reset All Settings to Defaults",
+            "content": "Reverts all configuration to factory defaults. All custom configurations will be lost including email settings, integrations, and workflow rules. Document current settings before resetting."
+          },
+          "warning": "All custom configurations will be lost. Document settings before resetting.",
+          "accessibility": { "ariaLabel": "Reset settings to defaults" }
+        },
+        {
+          "id": "ss_test_email",
+          "label": "Test Email",
+          "explanation": "Send test notification email",
+          "tooltip": {
+            "title": "Test Email Configuration",
+            "content": "Sends a test email to the admin address to verify SMTP configuration is working correctly. Check inbox (and spam folder) for test message. Fix any errors before enabling email for all users."
+          },
+          "accessibility": { "ariaLabel": "Send test email" }
+        },
+        {
+          "id": "ss_connect_calendar",
+          "label": "Connect Calendar",
+          "explanation": "Initiate OAuth calendar connection",
+          "tooltip": {
+            "title": "Connect Calendar",
+            "content": "Opens OAuth flow to connect Google Calendar or Microsoft Outlook. Grant calendar permissions when prompted. After connecting, select which calendar to sync hearings to."
+          },
+          "accessibility": { "ariaLabel": "Connect calendar via OAuth" }
+        },
+        {
+          "id": "ss_run_readiness_check",
+          "label": "Run Check",
+          "explanation": "Execute production readiness validation",
+          "tooltip": {
+            "title": "Run Production Readiness Check",
+            "content": "Validates all system configuration against production requirements. Generates report with passed checks, warnings, and errors. Address all issues before go-live. Re-run after fixes to verify."
+          },
+          "accessibility": { "ariaLabel": "Run production readiness check" }
+        }
+      ]
     }
   }
 }

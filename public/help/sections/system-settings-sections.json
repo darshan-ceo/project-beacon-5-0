@@ -1,0 +1,1300 @@
+{
+  "moduleId": "system-settings",
+  "version": "1.0.0",
+  "sections": {
+    "general": {
+      "id": "general",
+      "title": "General Settings",
+      "icon": "Settings",
+      "description": "Configure basic system parameters including file upload limits, caching, and performance optimization settings that affect the entire application.",
+      
+      "whatThisDoes": "Controls fundamental system behavior including file handling limits, browser caching policies, database query timeouts, and response compression. These settings directly impact application performance and user experience.",
+      
+      "whyItIsCritical": "Incorrect configuration can cause upload failures, slow page loads, report timeouts, or excessive server load. Settings affect ALL users immediately.",
+      
+      "whenToUseIt": [
+        "Initial system deployment and configuration",
+        "When users report slow performance or upload failures",
+        "When adding large document handling capabilities",
+        "During performance optimization initiatives"
+      ],
+      
+      "systemWideImpact": "All file uploads, API responses, and cached resources are affected. Changes take effect on next page load for each user.",
+      
+      "roleGuidance": {
+        "admin": {
+          "access": "Full read/write access",
+          "actions": [
+            "Adjust file size limits based on document types",
+            "Optimize cache duration for organization's needs",
+            "Set query timeout appropriate for report complexity"
+          ],
+          "considerations": "Monitor performance metrics before and after changes"
+        },
+        "implementor": {
+          "access": "Full access during deployment",
+          "actions": [
+            "Configure initial settings based on requirements",
+            "Document baseline configuration",
+            "Validate with performance testing"
+          ],
+          "considerations": "Establish defaults that balance performance with functionality"
+        },
+        "partner": {
+          "access": "View only",
+          "purpose": "Understand system behavior affecting their workflow"
+        }
+      },
+      
+      "fields": [
+        {
+          "id": "maxFileSize",
+          "label": "Maximum File Upload Size (MB)",
+          "type": "number",
+          "default": 50,
+          "range": { "min": 1, "max": 500 },
+          "description": "Maximum size for individual file uploads",
+          "impact": "Larger limits allow bigger documents but increase server resource usage",
+          "recommendation": "50MB covers most legal documents. Increase only if needed for large media files.",
+          "warning": "Values above 100MB may cause upload timeouts on slower connections",
+          "whatHappensIfChanged": "Immediately affects all new uploads. Existing files are not affected."
+        },
+        {
+          "id": "cacheDuration",
+          "label": "Cache Duration (Hours)",
+          "type": "number",
+          "default": 24,
+          "range": { "min": 1, "max": 168 },
+          "description": "How long browsers cache static resources",
+          "impact": "Shorter duration = fresher data but more server load",
+          "recommendation": "24 hours balances freshness with performance",
+          "warning": "Values under 1 hour significantly increase server load",
+          "whatHappensIfChanged": "Affects how often browsers re-download static files"
+        },
+        {
+          "id": "queryTimeout",
+          "label": "Query Timeout (Seconds)",
+          "type": "number",
+          "default": 30,
+          "range": { "min": 5, "max": 300 },
+          "description": "Maximum time for database queries before timeout",
+          "impact": "Complex reports need longer timeouts, but too high ties up resources",
+          "recommendation": "30 seconds for normal use, 60-120 for heavy reporting",
+          "warning": "Values below 15 seconds may cause complex report failures",
+          "whatHappensIfChanged": "Immediately affects all database operations"
+        },
+        {
+          "id": "enableCompression",
+          "label": "Enable Response Compression",
+          "type": "boolean",
+          "default": true,
+          "description": "Compress API responses before sending to browsers",
+          "impact": "Reduces bandwidth by 60-80% with slight CPU overhead",
+          "recommendation": "Always enable unless debugging network issues",
+          "whatHappensIfChanged": "Affects all API responses immediately"
+        },
+        {
+          "id": "backupFrequency",
+          "label": "Automatic Backup Frequency",
+          "type": "select",
+          "default": "daily",
+          "options": ["hourly", "daily", "weekly", "manual"],
+          "description": "How often automatic backups are created",
+          "impact": "More frequent = better recovery options but more storage",
+          "recommendation": "Daily for production, hourly for high-activity systems",
+          "whatHappensIfChanged": "Next backup runs according to new schedule"
+        },
+        {
+          "id": "maxConcurrentUsers",
+          "label": "Max Concurrent Users",
+          "type": "number",
+          "default": 100,
+          "range": { "min": 10, "max": 1000 },
+          "description": "Maximum simultaneous active sessions",
+          "impact": "Prevents system overload during peak usage",
+          "recommendation": "Set based on team size plus 50% buffer",
+          "whatHappensIfChanged": "Excess users see 'system busy' message"
+        }
+      ],
+      
+      "commonMistakes": [
+        {
+          "mistake": "Setting file size too low",
+          "consequence": "Users cannot upload standard legal documents",
+          "prevention": "Test with largest expected document types before finalizing"
+        },
+        {
+          "mistake": "Query timeout too short",
+          "consequence": "Complex reports fail consistently",
+          "prevention": "Test all report types, especially end-of-year summaries"
+        },
+        {
+          "mistake": "Disabling compression",
+          "consequence": "Slower page loads, higher bandwidth costs",
+          "prevention": "Leave enabled unless actively debugging"
+        }
+      ],
+      
+      "safeConfigurationExamples": {
+        "smallFirm": {
+          "description": "1-10 users, standard documents",
+          "settings": {
+            "maxFileSize": 50,
+            "cacheDuration": 24,
+            "queryTimeout": 30,
+            "enableCompression": true,
+            "backupFrequency": "daily"
+          }
+        },
+        "mediumFirm": {
+          "description": "10-50 users, moderate reporting",
+          "settings": {
+            "maxFileSize": 100,
+            "cacheDuration": 12,
+            "queryTimeout": 60,
+            "enableCompression": true,
+            "backupFrequency": "daily"
+          }
+        },
+        "largeFirm": {
+          "description": "50+ users, heavy reporting and large files",
+          "settings": {
+            "maxFileSize": 200,
+            "cacheDuration": 6,
+            "queryTimeout": 120,
+            "enableCompression": true,
+            "backupFrequency": "hourly"
+          }
+        }
+      }
+    },
+
+    "security": {
+      "id": "security",
+      "title": "Security & Roles",
+      "icon": "Shield",
+      "description": "Manage authentication settings, password policies, session controls, and access rules. These settings are critical for protecting sensitive legal data and ensuring compliance.",
+      
+      "whatThisDoes": "Controls how users authenticate, how long sessions last, what password complexity is required, which IP addresses can access the system, and how failed login attempts are handled.",
+      
+      "whyItIsCritical": "Security misconfiguration is the #1 cause of data breaches. Incorrect settings can expose confidential client data, allow unauthorized access, or lock out legitimate users.",
+      
+      "whenToUseIt": [
+        "Initial security configuration during deployment",
+        "After security audit recommendations",
+        "When compliance requirements change",
+        "After a security incident or near-miss"
+      ],
+      
+      "systemWideImpact": "Affects authentication for ALL users immediately. IP whitelist changes can lock out users. Session timeout changes affect all active sessions.",
+      
+      "roleGuidance": {
+        "admin": {
+          "access": "Full read/write access",
+          "actions": [
+            "Configure session timeout per compliance requirements",
+            "Set password policy matching security standards",
+            "Enable and enforce 2FA for admin accounts",
+            "Manage IP whitelist with extreme caution"
+          ],
+          "considerations": "Document all security decisions. Have backup admin access before changing IP whitelist."
+        },
+        "implementor": {
+          "access": "Initial setup only",
+          "actions": [
+            "Configure baseline security during deployment",
+            "Enable 2FA before go-live",
+            "Set password policy per client requirements"
+          ],
+          "considerations": "Hand off security management to admin team post go-live"
+        },
+        "partner": {
+          "access": "View only",
+          "purpose": "Understand security posture affecting data protection"
+        }
+      },
+      
+      "fields": [
+        {
+          "id": "sessionTimeout",
+          "label": "Session Timeout (Minutes)",
+          "type": "number",
+          "default": 30,
+          "range": { "min": 5, "max": 480 },
+          "description": "Automatic logout after inactivity",
+          "impact": "Shorter = more secure but may frustrate users. Longer = convenient but higher risk.",
+          "recommendation": "30 minutes for standard use. 15 minutes for high-security environments.",
+          "securityWarning": "Values above 60 minutes may violate SOC 2 and ISO 27001 requirements",
+          "complianceNote": "Many industries require 15-30 minute session timeouts",
+          "whatHappensIfChanged": "Users are logged out after the new timeout period of inactivity",
+          "whoCanChange": ["admin"]
+        },
+        {
+          "id": "passwordPolicy",
+          "label": "Password Complexity Policy",
+          "type": "select",
+          "default": "medium",
+          "options": [
+            { "value": "low", "label": "Low - 8+ characters" },
+            { "value": "medium", "label": "Medium - 8+ with special character" },
+            { "value": "high", "label": "High - 12+ with mixed case and special" }
+          ],
+          "description": "Minimum password requirements for all users",
+          "impact": "Higher complexity = more secure but harder to remember",
+          "recommendation": "Medium for most organizations. High for those handling extremely sensitive data.",
+          "whatHappensIfChanged": "Existing passwords remain valid. New requirements apply at next password change.",
+          "whoCanChange": ["admin"]
+        },
+        {
+          "id": "requireTwoFactor",
+          "label": "Require Two-Factor Authentication",
+          "type": "select",
+          "default": "admin_only",
+          "options": [
+            { "value": "disabled", "label": "Disabled" },
+            { "value": "admin_only", "label": "Admin users only" },
+            { "value": "all_users", "label": "All users" }
+          ],
+          "description": "Require verification code in addition to password",
+          "impact": "Significantly reduces risk of unauthorized access",
+          "recommendation": "At minimum, require for all admin accounts",
+          "securityWarning": "Disabling 2FA significantly increases unauthorized access risk",
+          "whatHappensIfChanged": "Users must enroll in 2FA on next login if now required",
+          "whoCanChange": ["admin"]
+        },
+        {
+          "id": "ipWhitelist",
+          "label": "IP Address Whitelist",
+          "type": "textarea",
+          "default": "",
+          "description": "Restrict access to specific IP addresses (one per line, CIDR supported)",
+          "impact": "Only listed IPs can access the system when configured",
+          "recommendation": "Use for high-security environments. Leave empty for standard access.",
+          "securityWarning": "Incorrect IPs can lock out ALL users including yourself. Ensure you have alternative access before enabling.",
+          "whatHappensIfChanged": "Immediately blocks access from non-whitelisted IPs",
+          "irreversibleRisk": "If locked out, requires backend access to reset",
+          "whoCanChange": ["admin"]
+        },
+        {
+          "id": "loginAttemptLimit",
+          "label": "Failed Login Attempts Before Lockout",
+          "type": "number",
+          "default": 5,
+          "range": { "min": 3, "max": 20 },
+          "description": "Number of failed attempts before temporary account lockout",
+          "impact": "Lower = more secure against brute force. Higher = fewer support calls.",
+          "recommendation": "5 attempts balances security with usability",
+          "warning": "Values below 3 cause frequent lockouts from typos",
+          "whatHappensIfChanged": "Applies to all future login attempts",
+          "whoCanChange": ["admin"]
+        },
+        {
+          "id": "lockoutDuration",
+          "label": "Account Lockout Duration (Minutes)",
+          "type": "number",
+          "default": 30,
+          "range": { "min": 5, "max": 1440 },
+          "description": "How long accounts remain locked after exceeding failed login limit",
+          "impact": "Longer = better deterrence but more support burden",
+          "recommendation": "30 minutes deters automated attacks while allowing recovery",
+          "whatHappensIfChanged": "Affects all future lockouts",
+          "whoCanChange": ["admin"]
+        },
+        {
+          "id": "passwordExpiry",
+          "label": "Password Expiry (Days)",
+          "type": "number",
+          "default": 90,
+          "range": { "min": 0, "max": 365 },
+          "description": "Days before users must change password (0 = never expires)",
+          "impact": "Regular rotation reduces risk of compromised passwords being used long-term",
+          "recommendation": "90 days for compliance. 0 if using strong 2FA.",
+          "complianceNote": "Many regulations require 60-90 day rotation",
+          "whatHappensIfChanged": "Users with expired passwords prompted to change on next login",
+          "whoCanChange": ["admin"]
+        },
+        {
+          "id": "auditRetention",
+          "label": "Audit Log Retention (Days)",
+          "type": "number",
+          "default": 365,
+          "range": { "min": 90, "max": 2555 },
+          "description": "How long security audit logs are retained",
+          "impact": "Longer retention = better compliance but more storage",
+          "recommendation": "365 days (1 year) for most compliance frameworks",
+          "complianceNote": "Some regulations require 7-year retention",
+          "whatHappensIfChanged": "Logs older than retention period are archived/deleted",
+          "whoCanChange": ["admin"]
+        }
+      ],
+      
+      "commonMistakes": [
+        {
+          "mistake": "Setting IP whitelist without verifying IP addresses",
+          "consequence": "All users including admins locked out of system",
+          "prevention": "Test with your current IP first. Ensure backend access as backup."
+        },
+        {
+          "mistake": "Disabling 2FA for convenience",
+          "consequence": "Increased risk of unauthorized access to admin functions",
+          "prevention": "Keep 2FA enabled for all admin accounts at minimum"
+        },
+        {
+          "mistake": "Session timeout too long for compliance",
+          "consequence": "Audit failure, potential security incident",
+          "prevention": "Check compliance requirements before setting above 30 minutes"
+        },
+        {
+          "mistake": "Failed login limit too low",
+          "consequence": "Frequent user lockouts, support burden",
+          "prevention": "Set to 5+ to allow for typos while still deterring attacks"
+        }
+      ],
+      
+      "irreversibleActions": [
+        {
+          "action": "IP Whitelist lockout",
+          "description": "If incorrect IPs entered, requires backend database access to reset",
+          "prevention": "Always test with your current IP. Have backup access method."
+        }
+      ],
+      
+      "safeConfigurationExamples": {
+        "standardSecurity": {
+          "description": "Balanced security for most organizations",
+          "settings": {
+            "sessionTimeout": 30,
+            "passwordPolicy": "medium",
+            "requireTwoFactor": "admin_only",
+            "ipWhitelist": "",
+            "loginAttemptLimit": 5,
+            "lockoutDuration": 30,
+            "passwordExpiry": 90
+          }
+        },
+        "highSecurity": {
+          "description": "Maximum security for sensitive environments",
+          "settings": {
+            "sessionTimeout": 15,
+            "passwordPolicy": "high",
+            "requireTwoFactor": "all_users",
+            "loginAttemptLimit": 3,
+            "lockoutDuration": 60,
+            "passwordExpiry": 60
+          }
+        }
+      }
+    },
+
+    "notifications": {
+      "id": "notifications",
+      "title": "Notification Settings",
+      "icon": "Bell",
+      "description": "Configure email, SMS, and push notification preferences. Set up notification triggers for case updates, task assignments, and deadline reminders.",
+      
+      "whatThisDoes": "Controls how the system sends notifications to users and clients including email configuration, SMS gateway settings, reminder schedules, and notification templates.",
+      
+      "whyItIsCritical": "Missed notifications can result in missed deadlines, delayed client communication, and malpractice risk. Proper configuration ensures timely alerts reach the right people.",
+      
+      "whenToUseIt": [
+        "Initial system setup to configure email sending",
+        "When changing email providers or credentials",
+        "When adjusting reminder frequencies based on feedback",
+        "When enabling SMS notifications"
+      ],
+      
+      "systemWideImpact": "Affects all outgoing communications. Incorrect email configuration prevents any emails from being sent.",
+      
+      "roleGuidance": {
+        "admin": {
+          "access": "Full read/write access",
+          "actions": [
+            "Configure email provider credentials",
+            "Set organization-wide reminder defaults",
+            "Enable/disable notification channels",
+            "Test notification delivery"
+          ]
+        },
+        "implementor": {
+          "access": "Full access",
+          "actions": [
+            "Configure email during deployment",
+            "Set up notification templates",
+            "Test all notification channels"
+          ]
+        },
+        "partner": {
+          "access": "Full access",
+          "purpose": "Configure notification preferences for their team"
+        }
+      },
+      
+      "fields": [
+        {
+          "id": "emailProvider",
+          "label": "Email Provider",
+          "type": "select",
+          "default": "gmail",
+          "options": ["gmail", "yahoo", "outlook", "custom_smtp"],
+          "description": "Email service used for sending notifications",
+          "impact": "Determines authentication method and server settings",
+          "recommendation": "Gmail with app password for simplicity. Custom SMTP for enterprise.",
+          "whatHappensIfChanged": "Must reconfigure credentials. Test before saving."
+        },
+        {
+          "id": "emailAppPassword",
+          "label": "Email App Password",
+          "type": "password",
+          "description": "App-specific password for SMTP authentication (NOT your main password)",
+          "impact": "Required for email sending to work",
+          "securityWarning": "Use a dedicated app password. Never use your main account password.",
+          "recommendation": "Generate from provider's security settings",
+          "whatHappensIfChanged": "Emails will fail until valid password configured"
+        },
+        {
+          "id": "smsEnabled",
+          "label": "Enable SMS Notifications",
+          "type": "boolean",
+          "default": false,
+          "description": "Send text message alerts for hearings and deadlines",
+          "impact": "Incurs per-message costs. Requires SMS gateway configuration.",
+          "recommendation": "Enable for critical deadline alerts",
+          "whatHappensIfChanged": "SMS notifications start/stop immediately"
+        },
+        {
+          "id": "smsGateway",
+          "label": "SMS Gateway Provider",
+          "type": "select",
+          "options": ["twilio", "msg91", "textlocal", "custom"],
+          "description": "SMS service provider for text notifications",
+          "impact": "Determines API configuration and costs",
+          "recommendation": "MSG91 for India, Twilio for international"
+        },
+        {
+          "id": "reminderDays",
+          "label": "Hearing Reminder Schedule",
+          "type": "text",
+          "default": "1,3,7",
+          "description": "Comma-separated days before hearings to send reminders",
+          "impact": "Controls when users receive hearing reminders",
+          "recommendation": "1,3,7 sends reminders 7 days, 3 days, and 1 day before",
+          "warning": "Too many reminders may be ignored. Too few may be missed.",
+          "whatHappensIfChanged": "Applies to all future hearing reminders"
+        },
+        {
+          "id": "taskReminders",
+          "label": "Task Due Date Reminders",
+          "type": "boolean",
+          "default": true,
+          "description": "Send reminders for upcoming task deadlines",
+          "recommendation": "Enable to prevent missed deadlines"
+        },
+        {
+          "id": "clientPortalNotifications",
+          "label": "Client Portal Notifications",
+          "type": "boolean",
+          "default": true,
+          "description": "Notify portal users of case updates",
+          "recommendation": "Enable for transparency with clients"
+        },
+        {
+          "id": "dailyDigest",
+          "label": "Daily Digest Email",
+          "type": "boolean",
+          "default": false,
+          "description": "Send daily summary instead of individual notifications",
+          "recommendation": "Enable to reduce email volume"
+        },
+        {
+          "id": "digestTime",
+          "label": "Daily Digest Time",
+          "type": "time",
+          "default": "08:00",
+          "description": "Time to send daily digest email",
+          "recommendation": "Early morning for day planning"
+        },
+        {
+          "id": "notificationSenderName",
+          "label": "Sender Name",
+          "type": "text",
+          "default": "Project Beacon",
+          "description": "Name appearing in email 'From' field",
+          "recommendation": "Use organization name for recognition"
+        },
+        {
+          "id": "notificationReplyTo",
+          "label": "Reply-To Email",
+          "type": "email",
+          "description": "Email address for user replies",
+          "recommendation": "Use monitored inbox for client responses"
+        },
+        {
+          "id": "notificationFooter",
+          "label": "Email Footer Text",
+          "type": "textarea",
+          "description": "Footer appended to all notification emails",
+          "recommendation": "Include contact info and confidentiality notice"
+        }
+      ],
+      
+      "commonMistakes": [
+        {
+          "mistake": "Using main email password instead of app password",
+          "consequence": "Authentication fails, emails not sent",
+          "prevention": "Generate app-specific password from provider security settings"
+        },
+        {
+          "mistake": "Not testing email before enabling for all users",
+          "consequence": "All notifications fail silently",
+          "prevention": "Use test button to verify configuration first"
+        },
+        {
+          "mistake": "Too many reminder days",
+          "consequence": "Users ignore reminders due to volume",
+          "prevention": "Limit to 3-4 reminders per hearing"
+        }
+      ],
+      
+      "safeConfigurationExamples": {
+        "basicEmail": {
+          "description": "Email-only notifications",
+          "settings": {
+            "emailProvider": "gmail",
+            "smsEnabled": false,
+            "reminderDays": "1,3,7",
+            "taskReminders": true,
+            "dailyDigest": false
+          }
+        },
+        "fullCommunications": {
+          "description": "Email + SMS with digest",
+          "settings": {
+            "emailProvider": "custom_smtp",
+            "smsEnabled": true,
+            "reminderDays": "1,2,3,7",
+            "taskReminders": true,
+            "dailyDigest": true,
+            "digestTime": "08:00"
+          }
+        }
+      }
+    },
+
+    "legal": {
+      "id": "legal",
+      "title": "Legal Configuration",
+      "icon": "Scale",
+      "description": "Configure case management parameters including case number formats, financial year settings, and workflow rules specific to legal practice.",
+      
+      "whatThisDoes": "Defines how cases are numbered, what financial year boundaries apply, default statuses for new cases, and SLA parameters for response times.",
+      
+      "whyItIsCritical": "Case numbering affects filing, retrieval, and reporting. Incorrect financial year breaks statutory deadline calculations. SLA settings drive escalation alerts.",
+      
+      "whenToUseIt": [
+        "Initial deployment to match organization's case numbering scheme",
+        "At start of new financial year",
+        "When changing workflow rules",
+        "When SLA requirements change"
+      ],
+      
+      "systemWideImpact": "Case number format affects all new cases. Financial year affects deadline calculations. SLA affects all alerts.",
+      
+      "roleGuidance": {
+        "admin": {
+          "access": "Full read/write access",
+          "actions": [
+            "Set case number format matching organizational standards",
+            "Configure financial year per jurisdiction",
+            "Adjust SLA settings based on capacity"
+          ]
+        },
+        "implementor": {
+          "access": "Full access",
+          "actions": [
+            "Configure based on client requirements",
+            "Document numbering scheme for training"
+          ]
+        },
+        "partner": {
+          "access": "View only"
+        }
+      },
+      
+      "fields": [
+        {
+          "id": "caseNumberFormat",
+          "label": "Case Number Format",
+          "type": "text",
+          "default": "CASE-{YYYY}-{####}",
+          "description": "Pattern for auto-generated case IDs",
+          "tokens": {
+            "{YYYY}": "4-digit year",
+            "{YY}": "2-digit year",
+            "{MM}": "Month (01-12)",
+            "{####}": "4-digit sequence (resets annually)",
+            "{######}": "6-digit sequence"
+          },
+          "recommendation": "Include year for easy sorting. Use enough digits for expected volume.",
+          "warning": "Changing format affects only NEW cases. Existing case numbers preserved.",
+          "whatHappensIfChanged": "New cases use new format. Existing cases unchanged."
+        },
+        {
+          "id": "financialYearStart",
+          "label": "Financial Year Start Month",
+          "type": "select",
+          "default": "april",
+          "options": ["january", "april", "july", "october"],
+          "description": "First month of your organization's financial year",
+          "recommendation": "April for India, January for international",
+          "impact": "Affects financial year display and some deadline calculations",
+          "whatHappensIfChanged": "Existing cases retain their financial year. New cases use new setting."
+        },
+        {
+          "id": "defaultCaseStatus",
+          "label": "Default Status for New Cases",
+          "type": "select",
+          "default": "open",
+          "options": ["draft", "pending", "open", "under_review"],
+          "description": "Initial status assigned to newly created cases",
+          "recommendation": "Open for immediate work. Draft for review workflows.",
+          "whatHappensIfChanged": "Applies to all new cases"
+        },
+        {
+          "id": "defaultResponseTime",
+          "label": "Standard Response SLA (Hours)",
+          "type": "number",
+          "default": 24,
+          "range": { "min": 1, "max": 168 },
+          "description": "Target time to respond to client queries",
+          "recommendation": "24 hours for routine matters. Adjust based on capacity.",
+          "whatHappensIfChanged": "Affects SLA tracking for new items"
+        },
+        {
+          "id": "urgentCaseTAT",
+          "label": "Urgent Case Turnaround (Hours)",
+          "type": "number",
+          "default": 8,
+          "range": { "min": 1, "max": 72 },
+          "description": "Maximum time for urgent/priority cases",
+          "recommendation": "8 hours during business day",
+          "whatHappensIfChanged": "Affects priority indicators on dashboard"
+        },
+        {
+          "id": "documentReviewDays",
+          "label": "Document Review Period (Days)",
+          "type": "number",
+          "default": 3,
+          "range": { "min": 1, "max": 14 },
+          "description": "Default time allowed for document review",
+          "recommendation": "3 days for standard documents",
+          "whatHappensIfChanged": "Affects task due dates for review items"
+        }
+      ],
+      
+      "commonMistakes": [
+        {
+          "mistake": "Changing case number format mid-project",
+          "consequence": "Mixed formats cause confusion in reporting",
+          "prevention": "Finalize format before go-live. Accept legacy format for existing cases."
+        },
+        {
+          "mistake": "Wrong financial year setting",
+          "consequence": "Reports group cases incorrectly",
+          "prevention": "Verify jurisdiction requirements"
+        },
+        {
+          "mistake": "Unrealistic SLA times",
+          "consequence": "Constant overdue alerts, alert fatigue",
+          "prevention": "Set achievable targets, adjust based on actual performance"
+        }
+      ]
+    },
+
+    "ai-communications": {
+      "id": "ai-communications",
+      "title": "AI & Communications",
+      "icon": "Bot",
+      "description": "Configure AI assistant settings and communication templates. Enable AI-powered features for document analysis, case research, and automated responses.",
+      
+      "whatThisDoes": "Controls AI model selection, token limits, safety settings, and communication template management for automated and assisted responses.",
+      
+      "whyItIsCritical": "AI responses go to clients. Quality and accuracy directly affect client trust. Cost control prevents unexpected API charges.",
+      
+      "whenToUseIt": [
+        "Configuring AI assistance features",
+        "Managing communication templates",
+        "Adjusting AI response parameters",
+        "Controlling AI feature availability"
+      ],
+      
+      "systemWideImpact": "AI settings affect all users accessing AI features. Template changes affect all automated communications.",
+      
+      "roleGuidance": {
+        "admin": {
+          "access": "Full read/write access",
+          "actions": [
+            "Enable/disable AI features",
+            "Set usage limits to control costs",
+            "Configure safety settings"
+          ]
+        },
+        "implementor": {
+          "access": "Full access",
+          "actions": [
+            "Configure initial AI settings",
+            "Set up communication templates"
+          ]
+        },
+        "partner": {
+          "access": "Full access for templates",
+          "purpose": "Customize communication for their practice"
+        }
+      },
+      
+      "fields": [
+        {
+          "id": "aiEnabled",
+          "label": "Enable AI Features",
+          "type": "boolean",
+          "default": true,
+          "description": "Master toggle for all AI-powered features",
+          "whatHappensIfChanged": "Immediately enables/disables AI across system"
+        },
+        {
+          "id": "aiModel",
+          "label": "Default AI Model",
+          "type": "select",
+          "options": ["gemini-2.5-flash", "gemini-2.5-pro", "gpt-5-mini", "gpt-5"],
+          "default": "gemini-2.5-flash",
+          "description": "AI model used for assistive features",
+          "recommendation": "Flash for speed, Pro for complex analysis"
+        },
+        {
+          "id": "aiMaxTokens",
+          "label": "Max Response Tokens",
+          "type": "number",
+          "default": 4096,
+          "range": { "min": 256, "max": 32000 },
+          "description": "Maximum length of AI-generated responses",
+          "recommendation": "4096 for most use cases"
+        },
+        {
+          "id": "aiReviewRequired",
+          "label": "Require Review Before Sending",
+          "type": "boolean",
+          "default": true,
+          "description": "AI-generated content must be reviewed before client delivery",
+          "recommendation": "Always enable for client-facing communications",
+          "securityWarning": "Disabling may result in unreviewed content reaching clients"
+        },
+        {
+          "id": "aiDailyLimit",
+          "label": "Daily AI Request Limit",
+          "type": "number",
+          "default": 100,
+          "description": "Maximum AI requests per day across all users",
+          "recommendation": "Set based on expected usage and budget"
+        },
+        {
+          "id": "communicationTemplates",
+          "label": "Communication Templates",
+          "type": "template_manager",
+          "description": "Pre-defined templates for common communications"
+        },
+        {
+          "id": "autoResponseEnabled",
+          "label": "Enable Auto-Responses",
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically respond to certain client queries",
+          "warning": "Requires careful template configuration"
+        },
+        {
+          "id": "aiSafetyLevel",
+          "label": "AI Safety Level",
+          "type": "select",
+          "options": ["standard", "strict"],
+          "default": "standard",
+          "description": "Content filtering level for AI responses"
+        }
+      ],
+      
+      "commonMistakes": [
+        {
+          "mistake": "Disabling review requirement",
+          "consequence": "AI hallucinations may reach clients",
+          "prevention": "Always require human review for client communications"
+        },
+        {
+          "mistake": "Daily limit too low",
+          "consequence": "Users unable to use AI mid-day",
+          "prevention": "Monitor usage and adjust limits accordingly"
+        }
+      ]
+    },
+
+    "integrations": {
+      "id": "integrations",
+      "title": "Integrations",
+      "icon": "Link",
+      "description": "Connect external services like calendars, GST portal, and cloud storage. Configure OAuth applications and API credentials.",
+      
+      "whatThisDoes": "Manages connections to external services including Google/Microsoft calendars, GST portal for signatory data, and cloud storage providers.",
+      
+      "whyItIsCritical": "Integrations sync critical data. Calendar sync ensures hearings appear in user calendars. GST integration provides accurate signatory information.",
+      
+      "whenToUseIt": [
+        "Setting up calendar synchronization",
+        "Connecting to GST portal",
+        "Configuring cloud storage",
+        "Troubleshooting integration issues"
+      ],
+      
+      "systemWideImpact": "Integration settings affect all users. Calendar sync creates events for all users with connected calendars.",
+      
+      "roleGuidance": {
+        "admin": {
+          "access": "Full read/write access",
+          "actions": [
+            "Configure OAuth applications",
+            "Set up GST portal credentials",
+            "Manage integration connections"
+          ]
+        },
+        "implementor": {
+          "access": "Full access",
+          "actions": [
+            "Initial integration setup",
+            "Test all connections before go-live"
+          ]
+        },
+        "partner": {
+          "access": "View only"
+        }
+      },
+      
+      "fields": [
+        {
+          "id": "calendarProvider",
+          "label": "Calendar Provider",
+          "type": "select",
+          "options": ["none", "google", "microsoft"],
+          "default": "none",
+          "description": "Calendar service for hearing synchronization",
+          "recommendation": "Google for Gmail users, Microsoft for Outlook users"
+        },
+        {
+          "id": "calendarAutoSync",
+          "label": "Auto-Sync Hearings",
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically sync hearings to connected calendars",
+          "recommendation": "Enable for seamless calendar updates"
+        },
+        {
+          "id": "calendarReminderMinutes",
+          "label": "Calendar Reminder (Minutes)",
+          "type": "number",
+          "default": 30,
+          "description": "Default reminder time for calendar events"
+        },
+        {
+          "id": "gstMode",
+          "label": "GST Integration Mode",
+          "type": "select",
+          "options": ["disabled", "sandbox", "production"],
+          "default": "disabled",
+          "description": "GST portal connection mode",
+          "recommendation": "Test in sandbox before switching to production",
+          "warning": "Production mode queries real GST portal"
+        },
+        {
+          "id": "gstConsentApi",
+          "label": "Enable GSP Consent API",
+          "type": "boolean",
+          "default": false,
+          "description": "Use OTP-based signatory import (more accurate)",
+          "recommendation": "Enable for verified signatory data"
+        },
+        {
+          "id": "gstGspUsername",
+          "label": "GSP Username",
+          "type": "text",
+          "description": "GST Suvidha Provider credentials"
+        },
+        {
+          "id": "storageProvider",
+          "label": "Document Storage Provider",
+          "type": "select",
+          "options": ["local", "supabase", "s3", "azure"],
+          "default": "supabase",
+          "description": "Where uploaded documents are stored",
+          "recommendation": "Supabase for Lovable Cloud, S3/Azure for enterprise"
+        },
+        {
+          "id": "storageEncryption",
+          "label": "Encrypt Stored Documents",
+          "type": "boolean",
+          "default": true,
+          "description": "Encrypt documents at rest",
+          "recommendation": "Always enable for compliance"
+        },
+        {
+          "id": "apiLogging",
+          "label": "Enable API Request Logging",
+          "type": "boolean",
+          "default": false,
+          "description": "Log all external API calls for debugging",
+          "warning": "May impact performance. Disable in production unless debugging."
+        },
+        {
+          "id": "webhookUrl",
+          "label": "Webhook Notification URL",
+          "type": "url",
+          "description": "External URL to receive event notifications",
+          "recommendation": "Use for custom integrations"
+        }
+      ],
+      
+      "commonMistakes": [
+        {
+          "mistake": "Enabling GST production without testing sandbox",
+          "consequence": "Invalid queries to real GST portal",
+          "prevention": "Always test in sandbox first"
+        },
+        {
+          "mistake": "API logging in production",
+          "consequence": "Performance degradation, storage bloat",
+          "prevention": "Enable only when actively debugging"
+        },
+        {
+          "mistake": "Not completing OAuth flow",
+          "consequence": "Calendar sync silently fails",
+          "prevention": "Verify connection status after setup"
+        }
+      ]
+    },
+
+    "address": {
+      "id": "address",
+      "title": "Address & Location",
+      "icon": "MapPin",
+      "description": "Configure address formats, state/city databases, and location settings used throughout the application.",
+      
+      "whatThisDoes": "Manages the list of states and cities available in dropdowns, address format templates, and GST jurisdiction mappings.",
+      
+      "whyItIsCritical": "Consistent address data ensures proper jurisdiction assignment, accurate GST calculations, and correct court location mapping.",
+      
+      "systemWideImpact": "State/city lists affect all address dropdowns. Custom cities are tenant-specific.",
+      
+      "roleGuidance": {
+        "admin": {
+          "access": "Full read/write access",
+          "actions": ["Add custom cities", "Manage GST jurisdiction mappings"]
+        },
+        "implementor": {
+          "access": "Full access",
+          "actions": ["Initial location setup"]
+        }
+      },
+      
+      "fields": [
+        {
+          "id": "defaultCountry",
+          "label": "Default Country",
+          "type": "select",
+          "default": "IN",
+          "description": "Default country for new addresses"
+        },
+        {
+          "id": "customCities",
+          "label": "Custom Cities",
+          "type": "city_manager",
+          "description": "Add cities not in the default database"
+        },
+        {
+          "id": "addressFormat",
+          "label": "Address Display Format",
+          "type": "select",
+          "options": ["standard", "compact", "detailed"],
+          "default": "standard",
+          "description": "How addresses are displayed in the UI"
+        },
+        {
+          "id": "gstJurisdictionMapping",
+          "label": "GST Jurisdiction Mapping",
+          "type": "mapping_editor",
+          "description": "Map states to GST jurisdiction codes"
+        }
+      ]
+    },
+
+    "templates": {
+      "id": "templates",
+      "title": "Templates & Outcomes",
+      "icon": "FileText",
+      "description": "Manage document templates and outcome configurations for consistent reporting.",
+      
+      "whatThisDoes": "Allows creation and management of document templates for letters, notices, and reports. Defines hearing outcomes for standardized tracking.",
+      
+      "whyItIsCritical": "Templates ensure consistent branding and required content. Outcome definitions enable accurate case disposition reporting.",
+      
+      "systemWideImpact": "Templates available to all users with document access. Outcomes affect case status options.",
+      
+      "roleGuidance": {
+        "admin": {
+          "access": "Full access",
+          "actions": ["Create templates", "Define outcomes"]
+        },
+        "partner": {
+          "access": "Full access",
+          "purpose": "Customize for practice needs"
+        }
+      },
+      
+      "fields": [
+        {
+          "id": "documentTemplates",
+          "label": "Document Templates",
+          "type": "template_manager",
+          "description": "Create and manage document templates"
+        },
+        {
+          "id": "hearingOutcomes",
+          "label": "Hearing Outcome Definitions",
+          "type": "outcome_editor",
+          "description": "Define standard hearing outcomes"
+        },
+        {
+          "id": "caseOutcomes",
+          "label": "Case Disposition Outcomes",
+          "type": "outcome_editor",
+          "description": "Define case closure reasons"
+        },
+        {
+          "id": "templateCategories",
+          "label": "Template Categories",
+          "type": "category_manager",
+          "description": "Organize templates by category"
+        },
+        {
+          "id": "defaultLetterhead",
+          "label": "Default Letterhead",
+          "type": "file_upload",
+          "description": "Organization letterhead for documents"
+        }
+      ]
+    },
+
+    "legal-hierarchy": {
+      "id": "legal-hierarchy",
+      "title": "Legal Hierarchy",
+      "icon": "GitBranch",
+      "description": "Define the hierarchical structure of legal authorities and matter types affecting case categorization.",
+      
+      "whatThisDoes": "Configures the authority level hierarchy (Assessment → Adjudication → Tribunal → High Court → Supreme Court) and their sub-categories (matter types).",
+      
+      "whyItIsCritical": "Case filing requires correct authority selection. Hierarchy affects appeal workflow and case progression tracking.",
+      
+      "systemWideImpact": "Authority levels appear in all case forms. Deactivating a level hides it from new cases but preserves existing data.",
+      
+      "roleGuidance": {
+        "admin": {
+          "access": "Full access",
+          "actions": ["Add/modify authority levels", "Define matter types"]
+        },
+        "implementor": {
+          "access": "Full access",
+          "actions": ["Configure based on practice area"]
+        }
+      },
+      
+      "fields": [
+        {
+          "id": "authorityLevels",
+          "label": "Authority Levels",
+          "type": "hierarchy_editor",
+          "description": "Define legal authority hierarchy",
+          "defaultLevels": ["Assessment", "Adjudication", "Tribunal", "High Court", "Supreme Court"]
+        },
+        {
+          "id": "matterTypes",
+          "label": "Matter Types",
+          "type": "matter_type_editor",
+          "description": "Sub-categories under authority levels",
+          "examples": ["State Bench", "Principal Bench", "Divisional Bench"]
+        },
+        {
+          "id": "requiresLocation",
+          "label": "Location Requirement",
+          "type": "per_level_toggle",
+          "description": "Whether each level requires location specification"
+        },
+        {
+          "id": "appealPath",
+          "label": "Appeal Path Configuration",
+          "type": "path_editor",
+          "description": "Define valid appeal progressions"
+        },
+        {
+          "id": "limitationPeriods",
+          "label": "Limitation Periods",
+          "type": "period_editor",
+          "description": "Default limitation periods by authority level"
+        },
+        {
+          "id": "courtFeeStructure",
+          "label": "Court Fee Structure",
+          "type": "fee_editor",
+          "description": "Fee structures by authority and matter type"
+        }
+      ],
+      
+      "commonMistakes": [
+        {
+          "mistake": "Deactivating level with active cases",
+          "consequence": "Cases appear with 'Unknown' authority",
+          "prevention": "Check for active cases before deactivating"
+        }
+      ]
+    },
+
+    "data-management": {
+      "id": "data-management",
+      "title": "Data Management",
+      "icon": "Database",
+      "description": "Backup, restore, export, and cleanup utilities. Production mode controls and system health monitoring.",
+      
+      "whatThisDoes": "Provides tools for data backup and recovery, bulk export for migration, cleanup utilities for orphaned records, and production readiness validation.",
+      
+      "whyItIsCritical": "Contains IRREVERSIBLE actions that can permanently delete data. Critical for disaster recovery and compliance.",
+      
+      "whenToUseIt": [
+        "Before major system changes",
+        "For compliance data exports",
+        "When migrating to new system",
+        "For periodic cleanup"
+      ],
+      
+      "systemWideImpact": "Data operations affect ALL tenants. Clear All Data is PERMANENT.",
+      
+      "roleGuidance": {
+        "admin": {
+          "access": "Full access",
+          "actions": [
+            "Export backups regularly",
+            "Run production readiness checks",
+            "Manage data cleanup"
+          ],
+          "warnings": ["NEVER use Clear All Data in production without backup"]
+        },
+        "implementor": {
+          "access": "Initial setup only",
+          "actions": ["Generate sample data for testing", "Run initial cleanup"]
+        },
+        "partner": {
+          "access": "NONE",
+          "reason": "Data operations are admin-only for security"
+        }
+      },
+      
+      "fields": [
+        {
+          "id": "productionMode",
+          "label": "Production Mode",
+          "type": "boolean",
+          "default": false,
+          "description": "Enable production safeguards",
+          "impact": "Disables sample data, adds confirmation dialogs, enables full audit logging",
+          "recommendation": "Enable before go-live",
+          "whatHappensIfChanged": "Immediately enables/disables safeguards"
+        },
+        {
+          "id": "exportData",
+          "label": "Export All Data",
+          "type": "action_button",
+          "description": "Download complete system data as JSON backup",
+          "recommendation": "Export before any major changes or migrations"
+        },
+        {
+          "id": "importData",
+          "label": "Import Data",
+          "type": "file_upload",
+          "description": "Restore data from previously exported JSON",
+          "warning": "MERGES with existing data. Test on staging first.",
+          "whatHappensIfChanged": "Data merged immediately upon import"
+        },
+        {
+          "id": "clearAllData",
+          "label": "Clear All Data",
+          "type": "danger_action",
+          "description": "PERMANENTLY DELETE all cases, clients, documents, and settings",
+          "irreversible": true,
+          "securityWarning": "CANNOT BE UNDONE. Export backup before proceeding.",
+          "confirmation": "Type 'DELETE ALL DATA' to confirm",
+          "whoCanChange": ["admin"]
+        },
+        {
+          "id": "generateSampleData",
+          "label": "Generate Sample Data",
+          "type": "action_button",
+          "description": "Create test data for demonstration",
+          "warning": "Only available when Production Mode is OFF",
+          "whoCanChange": ["admin", "implementor"]
+        },
+        {
+          "id": "clientCleanup",
+          "label": "Client Cleanup Manager",
+          "type": "cleanup_wizard",
+          "description": "Find and remove orphaned or duplicate client records"
+        },
+        {
+          "id": "productionReadiness",
+          "label": "Production Readiness Check",
+          "type": "validation_report",
+          "description": "Validate system configuration against production requirements",
+          "checks": [
+            "RLS policies enabled on all tables",
+            "Authentication configured correctly",
+            "Backup schedule set",
+            "Security settings validated",
+            "Email configuration tested"
+          ]
+        },
+        {
+          "id": "systemHealth",
+          "label": "System Health Dashboard",
+          "type": "health_monitor",
+          "description": "Real-time system health and performance metrics"
+        }
+      ],
+      
+      "irreversibleActions": [
+        {
+          "action": "Clear All Data",
+          "consequence": "All data permanently deleted including cases, clients, documents, tasks, and settings",
+          "cannotBeUndone": true,
+          "prerequisites": ["Export backup first", "Verify you're in correct environment", "Have written authorization"]
+        }
+      ],
+      
+      "commonMistakes": [
+        {
+          "mistake": "Clearing data without backup",
+          "consequence": "Permanent, unrecoverable data loss",
+          "prevention": "ALWAYS export before clearing. Verify export is complete."
+        },
+        {
+          "mistake": "Importing to production without testing",
+          "consequence": "Data corruption, duplicate records",
+          "prevention": "Test import on staging environment first"
+        },
+        {
+          "mistake": "Generating sample data in production",
+          "consequence": "Test data mixed with real client data",
+          "prevention": "Enable Production Mode before go-live to disable this option"
+        }
+      ]
+    }
+  }
+}

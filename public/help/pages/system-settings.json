@@ -1,0 +1,294 @@
+{
+  "pageId": "system-settings",
+  "title": "System Settings",
+  "icon": "Settings",
+  "securityLevel": "ADMIN_ONLY",
+  "auditRequired": true,
+  "version": "1.0.0",
+  "lastUpdated": "2025-01-25",
+
+  "overview": {
+    "summary": "Central configuration hub for all system-wide settings affecting performance, security, legal workflows, integrations, and data management across the entire organization.",
+    "systemWideImpact": "Changes made here propagate immediately to ALL active user sessions. Some settings require page refresh to take effect. Critical settings trigger confirmation dialogs.",
+    "governanceNote": "All setting modifications are logged in the Audit Log with timestamp, user ID, old value, and new value for compliance and security review.",
+    "accessControl": "Only users with 'settings.admin' permission can modify these settings. Partners have view-only access to understand system behavior."
+  },
+
+  "criticality": {
+    "level": "CRITICAL",
+    "reason": "Misconfiguration can lock out users, expose sensitive data, break integrations, or cause data loss",
+    "reviewFrequency": "Quarterly security review recommended",
+    "changeManagement": "Document all changes in ticketing system before implementation"
+  },
+
+  "roleAccess": {
+    "admin": {
+      "access": "FULL",
+      "description": "Complete access to all settings including security and data management",
+      "responsibilities": [
+        "Configure and maintain all system settings",
+        "Review security configuration quarterly",
+        "Export backups before major changes",
+        "Monitor audit log for unauthorized changes"
+      ]
+    },
+    "implementor": {
+      "access": "INITIAL_SETUP",
+      "description": "Full access during deployment phase, limited after go-live",
+      "responsibilities": [
+        "Initial system configuration during deployment",
+        "Document all configuration decisions",
+        "Validate production readiness checklist",
+        "Hand off to admin team post go-live"
+      ]
+    },
+    "partner": {
+      "access": "VIEW_ONLY",
+      "description": "Can view settings to understand system behavior",
+      "responsibilities": [
+        "Understand notification settings affecting clients",
+        "Review legal configuration for compliance",
+        "Cannot modify any settings"
+      ]
+    },
+    "advancedUser": {
+      "access": "NONE",
+      "description": "No access to system settings",
+      "note": "Contact administrator for configuration needs"
+    }
+  },
+
+  "sections": [
+    {
+      "id": "general",
+      "title": "General Settings",
+      "icon": "Settings",
+      "description": "Core system parameters including file handling, caching, and performance optimization",
+      "criticality": "MEDIUM",
+      "fieldCount": 6,
+      "roleAccess": {
+        "admin": "FULL",
+        "implementor": "FULL",
+        "partner": "VIEW"
+      }
+    },
+    {
+      "id": "security",
+      "title": "Security & Roles",
+      "icon": "Shield",
+      "description": "Authentication, session management, password policies, and access control rules",
+      "criticality": "CRITICAL",
+      "fieldCount": 8,
+      "roleAccess": {
+        "admin": "FULL",
+        "implementor": "INITIAL_ONLY",
+        "partner": "VIEW"
+      },
+      "warnings": ["Misconfiguration can lock out all users or expose sensitive data"]
+    },
+    {
+      "id": "notifications",
+      "title": "Notification Settings",
+      "icon": "Bell",
+      "description": "Email, SMS, and push notification configuration for case updates and reminders",
+      "criticality": "MEDIUM",
+      "fieldCount": 12,
+      "roleAccess": {
+        "admin": "FULL",
+        "implementor": "FULL",
+        "partner": "FULL"
+      }
+    },
+    {
+      "id": "legal",
+      "title": "Legal Configuration",
+      "icon": "Scale",
+      "description": "Case numbering, financial year, SLA settings, and legal workflow parameters",
+      "criticality": "HIGH",
+      "fieldCount": 6,
+      "roleAccess": {
+        "admin": "FULL",
+        "implementor": "FULL",
+        "partner": "VIEW"
+      }
+    },
+    {
+      "id": "ai-communications",
+      "title": "AI & Communications",
+      "icon": "Bot",
+      "description": "AI assistant configuration, communication templates, and automated response settings",
+      "criticality": "MEDIUM",
+      "fieldCount": 8,
+      "roleAccess": {
+        "admin": "FULL",
+        "implementor": "FULL",
+        "partner": "FULL"
+      }
+    },
+    {
+      "id": "integrations",
+      "title": "Integrations",
+      "icon": "Link",
+      "description": "External service connections including calendars, GST portal, and cloud storage",
+      "criticality": "HIGH",
+      "fieldCount": 10,
+      "roleAccess": {
+        "admin": "FULL",
+        "implementor": "FULL",
+        "partner": "VIEW"
+      }
+    },
+    {
+      "id": "address",
+      "title": "Address & Location",
+      "icon": "MapPin",
+      "description": "State/city databases, address formats, and jurisdiction mappings",
+      "criticality": "LOW",
+      "fieldCount": 4,
+      "roleAccess": {
+        "admin": "FULL",
+        "implementor": "FULL",
+        "partner": "VIEW"
+      }
+    },
+    {
+      "id": "templates",
+      "title": "Templates & Outcomes",
+      "icon": "FileText",
+      "description": "Document templates, hearing outcome definitions, and reporting configurations",
+      "criticality": "MEDIUM",
+      "fieldCount": 5,
+      "roleAccess": {
+        "admin": "FULL",
+        "implementor": "FULL",
+        "partner": "FULL"
+      }
+    },
+    {
+      "id": "legal-hierarchy",
+      "title": "Legal Hierarchy",
+      "icon": "GitBranch",
+      "description": "Authority levels, matter types, and case categorization structure",
+      "criticality": "HIGH",
+      "fieldCount": 6,
+      "roleAccess": {
+        "admin": "FULL",
+        "implementor": "FULL",
+        "partner": "VIEW"
+      },
+      "warnings": ["Changes affect case categorization across entire system"]
+    },
+    {
+      "id": "data-management",
+      "title": "Data Management",
+      "icon": "Database",
+      "description": "Backup/restore, data export, cleanup utilities, and production mode controls",
+      "criticality": "CRITICAL",
+      "fieldCount": 8,
+      "roleAccess": {
+        "admin": "FULL",
+        "implementor": "INITIAL_ONLY",
+        "partner": "NONE"
+      },
+      "warnings": ["Contains irreversible actions - export backup first"]
+    }
+  ],
+
+  "workflows": {
+    "initialSetup": {
+      "title": "Initial System Configuration",
+      "estimatedTime": "2-4 hours",
+      "steps": [
+        {
+          "step": 1,
+          "title": "Configure General Settings",
+          "description": "Set file size limits, cache duration, and performance parameters",
+          "section": "general"
+        },
+        {
+          "step": 2,
+          "title": "Set Security Policies",
+          "description": "Configure session timeout, password policy, and 2FA requirements",
+          "section": "security",
+          "critical": true
+        },
+        {
+          "step": 3,
+          "title": "Configure Notifications",
+          "description": "Set up email provider and notification templates",
+          "section": "notifications"
+        },
+        {
+          "step": 4,
+          "title": "Define Legal Configuration",
+          "description": "Set case number format, financial year, and SLA parameters",
+          "section": "legal"
+        },
+        {
+          "step": 5,
+          "title": "Set Up Integrations",
+          "description": "Connect calendars, GST portal, and cloud storage",
+          "section": "integrations"
+        },
+        {
+          "step": 6,
+          "title": "Configure Legal Hierarchy",
+          "description": "Define authority levels and matter types",
+          "section": "legal-hierarchy"
+        },
+        {
+          "step": 7,
+          "title": "Validate Production Readiness",
+          "description": "Run production readiness check and address issues",
+          "section": "data-management"
+        }
+      ]
+    },
+    "quarterlyReview": {
+      "title": "Quarterly Security Review",
+      "estimatedTime": "1 hour",
+      "steps": [
+        {
+          "step": 1,
+          "title": "Review Audit Log",
+          "description": "Check for unauthorized setting changes"
+        },
+        {
+          "step": 2,
+          "title": "Validate Security Settings",
+          "description": "Confirm session timeout, 2FA, and password policies"
+        },
+        {
+          "step": 3,
+          "title": "Check Integration Health",
+          "description": "Verify all integrations are connected and functional"
+        },
+        {
+          "step": 4,
+          "title": "Export Backup",
+          "description": "Create full system backup for disaster recovery"
+        },
+        {
+          "step": 5,
+          "title": "Document Changes",
+          "description": "Update configuration documentation with any changes"
+        }
+      ]
+    }
+  },
+
+  "quickTips": [
+    "Always export a backup before making significant configuration changes",
+    "Test notification settings with a single user before enabling for all",
+    "Use sandbox mode for GST integration testing before switching to production",
+    "Document all custom configurations in your organization's knowledge base",
+    "Review the audit log monthly for unexpected setting changes"
+  ],
+
+  "relatedArticles": [
+    { "title": "Production Readiness Checklist", "url": "/help?article=production-readiness" },
+    { "title": "Security Best Practices", "url": "/help?article=security-best-practices" },
+    { "title": "Integration Setup Guide", "url": "/help?article=integration-setup" },
+    { "title": "Backup and Recovery", "url": "/help?article=backup-recovery" }
+  ]
+}
