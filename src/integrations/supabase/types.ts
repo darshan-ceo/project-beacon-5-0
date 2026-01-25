@@ -3655,6 +3655,178 @@ export type Database = {
           },
         ]
       }
+      stage_checklist_items: {
+        Row: {
+          attested_at: string | null
+          attested_by: string | null
+          created_at: string
+          evidence_file_id: string | null
+          id: string
+          item_key: string
+          label: string
+          note: string | null
+          required: boolean
+          rule_type: string
+          stage_instance_id: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          attested_at?: string | null
+          attested_by?: string | null
+          created_at?: string
+          evidence_file_id?: string | null
+          id?: string
+          item_key: string
+          label: string
+          note?: string | null
+          required?: boolean
+          rule_type?: string
+          stage_instance_id: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          attested_at?: string | null
+          attested_by?: string | null
+          created_at?: string
+          evidence_file_id?: string | null
+          id?: string
+          item_key?: string
+          label?: string
+          note?: string | null
+          required?: boolean
+          rule_type?: string
+          stage_instance_id?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stage_checklist_items_attested_by_fkey"
+            columns: ["attested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_checklist_items_evidence_file_id_fkey"
+            columns: ["evidence_file_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_checklist_items_evidence_file_id_fkey"
+            columns: ["evidence_file_id"]
+            isOneToOne: false
+            referencedRelation: "pending_review_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_checklist_items_stage_instance_id_fkey"
+            columns: ["stage_instance_id"]
+            isOneToOne: false
+            referencedRelation: "stage_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_checklist_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "stage_checklist_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stage_instances: {
+        Row: {
+          case_id: string
+          created_at: string
+          created_by: string | null
+          cycle_no: number
+          ended_at: string | null
+          id: string
+          stage_key: string
+          started_at: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          created_by?: string | null
+          cycle_no?: number
+          ended_at?: string | null
+          id?: string
+          stage_key: string
+          started_at?: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          created_by?: string | null
+          cycle_no?: number
+          ended_at?: string | null
+          id?: string
+          stage_key?: string
+          started_at?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stage_instances_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "case_activity_summary"
+            referencedColumns: ["case_id"]
+          },
+          {
+            foreignKeyName: "stage_instances_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_instances_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_instances_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "stage_instances_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stage_transition_approvals: {
         Row: {
           action: string
