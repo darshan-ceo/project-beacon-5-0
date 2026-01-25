@@ -1106,6 +1106,395 @@
           }
         }
       ]
+    },
+    "access_roles_comprehensive": {
+      "fields": [
+        {
+          "id": "ar_user_search",
+          "label": "Search Users",
+          "explanation": "Find employees by name or email",
+          "tooltip": {
+            "title": "Search Employee Directory",
+            "content": "Search by name, email, or designation. Partial matches work. Only active employees appear by default - use Status filter to include inactive. Example: 'Priya' or 'priya@firm.com'."
+          },
+          "accessibility": {
+            "ariaLabel": "Search for users"
+          }
+        },
+        {
+          "id": "ar_status_filter",
+          "label": "Status Filter",
+          "explanation": "Filter by employee status",
+          "tooltip": {
+            "title": "Employee Status Filter",
+            "content": "Active: Currently employed, can log in. Inactive: Former employees or on leave - cannot log in but retain historical role data for audit purposes. All: Shows everyone."
+          },
+          "accessibility": {
+            "ariaLabel": "Filter by status"
+          }
+        },
+        {
+          "id": "ar_role_filter",
+          "label": "Role Filter",
+          "explanation": "Show only users with specific role",
+          "tooltip": {
+            "title": "Filter by Assigned Role",
+            "content": "Shows only users who have the selected role assigned. Useful for auditing role distribution - e.g., 'How many people have admin access?' or 'Who are all the managers?'"
+          },
+          "accessibility": {
+            "ariaLabel": "Filter by role"
+          }
+        },
+        {
+          "id": "ar_role_name",
+          "label": "Role Name (System)",
+          "explanation": "Internal identifier for the role",
+          "tooltip": {
+            "title": "System Role Name",
+            "content": "Lowercase with underscores only (e.g., 'senior_tax_manager'). Used in code and database. Cannot be changed after creation. Keep it short and descriptive."
+          },
+          "accessibility": {
+            "ariaLabel": "Enter system role name"
+          }
+        },
+        {
+          "id": "ar_role_display_name",
+          "label": "Display Name",
+          "explanation": "Human-readable role name",
+          "tooltip": {
+            "title": "Role Display Name",
+            "content": "The name shown in UI and reports (e.g., 'Senior Tax Manager'). Can contain spaces and mixed case. This is what users see when viewing role assignments."
+          },
+          "accessibility": {
+            "ariaLabel": "Enter display name"
+          }
+        },
+        {
+          "id": "ar_role_description",
+          "label": "Role Description",
+          "explanation": "Purpose and intended users",
+          "tooltip": {
+            "title": "Role Description",
+            "content": "Explain who should have this role and what it enables. Example: 'For senior tax professionals handling complex GST litigation. Includes full case access and report generation.' Helps future admins understand the role's purpose."
+          },
+          "accessibility": {
+            "ariaLabel": "Enter role description"
+          }
+        },
+        {
+          "id": "ar_data_scope",
+          "label": "Data Scope",
+          "explanation": "Controls which records user can see",
+          "tooltip": {
+            "title": "Data Visibility Scope",
+            "content": "CRITICAL SETTING: Own Cases = Only records assigned to this user. Team Cases = Records of user + their direct/indirect reports (requires hierarchy setup). All Cases = Every record in organization. ⚠️ Changes take effect immediately on next page load.",
+            "securityWarning": "Setting 'All Cases' allows seeing confidential matters for all clients. Use with caution."
+          },
+          "accessibility": {
+            "ariaLabel": "Select data scope"
+          }
+        },
+        {
+          "id": "ar_reports_to",
+          "label": "Reports To",
+          "explanation": "Manager for hierarchy visibility",
+          "tooltip": {
+            "title": "Reporting Relationship",
+            "content": "Select this employee's direct manager. CRITICAL for 'Team Cases' scope: Managers can see all cases of their reports. Leave empty only for top-level partners. Affects Team Hierarchy visualization."
+          },
+          "accessibility": {
+            "ariaLabel": "Select reports to"
+          }
+        },
+        {
+          "id": "ar_permission_checkbox",
+          "label": "Permission Toggle",
+          "explanation": "Enable or disable specific permission",
+          "tooltip": {
+            "title": "Permission Assignment",
+            "content": "Check to grant this permission to the role. Permissions combine across roles - user gets union of all assigned role permissions. Format: [module].[action] (e.g., cases.edit, documents.delete)."
+          },
+          "accessibility": {
+            "ariaLabel": "Toggle permission"
+          }
+        },
+        {
+          "id": "ar_module_access",
+          "label": "Module Access",
+          "explanation": "Sidebar visibility for this module",
+          "tooltip": {
+            "title": "Module Access Control",
+            "content": "When enabled: Module appears in sidebar, user can navigate to it. When disabled: Module hidden from sidebar AND direct URL access blocked. Users see 'Access Denied' if they try direct URL."
+          },
+          "accessibility": {
+            "ariaLabel": "Toggle module access"
+          }
+        },
+        {
+          "id": "ar_portal_client",
+          "label": "Linked Client",
+          "explanation": "Client entity this portal user represents",
+          "tooltip": {
+            "title": "Portal Client Link",
+            "content": "CRITICAL: Select the Client entity this portal user belongs to. Portal user can ONLY see cases linked to this client. Double-check selection - wrong client exposes confidential data."
+          },
+          "accessibility": {
+            "ariaLabel": "Select linked client"
+          }
+        },
+        {
+          "id": "ar_portal_email",
+          "label": "Portal User Email",
+          "explanation": "Email address for portal login",
+          "tooltip": {
+            "title": "Portal Login Email",
+            "content": "Email address the client contact will use to log in. Invitation email sent here. VERIFY this email belongs to actual client contact before sending - prevents data breach from wrong recipient."
+          },
+          "accessibility": {
+            "ariaLabel": "Enter portal user email"
+          }
+        },
+        {
+          "id": "ar_portal_access_level",
+          "label": "Portal Access Level",
+          "explanation": "What client can see in portal",
+          "tooltip": {
+            "title": "Portal Access Level",
+            "content": "View Documents: Download documents marked 'Portal Visible'. View Hearings: See hearing schedule and details. Full Access: Complete case overview, documents, hearings, and messaging. Choose minimum needed."
+          },
+          "accessibility": {
+            "ariaLabel": "Select access level"
+          }
+        }
+      ],
+      "buttons": [
+        {
+          "id": "ar_sync_roles",
+          "label": "Sync All Roles",
+          "explanation": "Synchronize roles from Employee Master",
+          "tooltip": {
+            "title": "Synchronize Roles",
+            "content": "Copies role assignments from Employee Master to RBAC system. Use after bulk employee import or if roles appear out of sync. Safe to run multiple times. May take a few minutes for large organizations."
+          },
+          "accessibility": {
+            "ariaLabel": "Sync all roles"
+          }
+        },
+        {
+          "id": "ar_refresh",
+          "label": "Refresh",
+          "explanation": "Reload RBAC data from database",
+          "tooltip": {
+            "title": "Refresh Data",
+            "content": "Reloads all role, permission, and assignment data from the database. Use after another admin makes changes, or if data appears stale."
+          },
+          "accessibility": {
+            "ariaLabel": "Refresh data"
+          }
+        },
+        {
+          "id": "ar_create_role",
+          "label": "Create Role",
+          "explanation": "Define a new custom role",
+          "tooltip": {
+            "title": "Create Custom Role",
+            "content": "Opens form to define a new role. Enter system name (lowercase_underscores), display name, and description. ⚠️ New roles start with ZERO permissions - you must edit permissions after creation.",
+            "securityWarning": "Consider cloning existing role instead of starting empty to avoid forgetting critical permissions."
+          },
+          "accessibility": {
+            "ariaLabel": "Create new role"
+          }
+        },
+        {
+          "id": "ar_edit_permissions",
+          "label": "Edit Permissions",
+          "explanation": "Modify role's permission set",
+          "tooltip": {
+            "title": "Edit Role Permissions",
+            "content": "Opens permission editor showing all modules and actions. Check/uncheck to grant/revoke permissions. ⚠️ Changes affect ALL users with this role IMMEDIATELY on their next page load.",
+            "securityWarning": "Never grant 'rbac.admin' permission to non-admin roles - allows privilege escalation."
+          },
+          "accessibility": {
+            "ariaLabel": "Edit permissions"
+          }
+        },
+        {
+          "id": "ar_delete_role",
+          "label": "Delete Role",
+          "explanation": "Permanently remove custom role",
+          "tooltip": {
+            "title": "Delete Custom Role",
+            "content": "IRREVERSIBLE: Permanently removes this custom role. All users with this role lose associated permissions. System roles (admin, partner, etc.) cannot be deleted.",
+            "securityWarning": "Cannot be undone. Ensure users have alternative role assignments before deleting."
+          },
+          "accessibility": {
+            "ariaLabel": "Delete role"
+          }
+        },
+        {
+          "id": "ar_assign_role_plus",
+          "label": "Assign Role [+]",
+          "explanation": "Add a role to this user",
+          "tooltip": {
+            "title": "Assign Role to User",
+            "content": "Opens role selector to add a role to this user. Users can have multiple roles - permissions combine (most permissive wins). Assignment takes effect on user's next page load."
+          },
+          "accessibility": {
+            "ariaLabel": "Assign role to user"
+          }
+        },
+        {
+          "id": "ar_remove_role_x",
+          "label": "Remove Role [x]",
+          "explanation": "Revoke this role from user",
+          "tooltip": {
+            "title": "Remove Role from User",
+            "content": "Immediately removes this role from the user. They lose associated permissions on next page load. ⚠️ Removing all roles effectively locks user out of system.",
+            "securityWarning": "User may lose access to work they're currently viewing."
+          },
+          "accessibility": {
+            "ariaLabel": "Remove role from user"
+          }
+        },
+        {
+          "id": "ar_preview_permissions",
+          "label": "Preview Permissions [Eye]",
+          "explanation": "See user's effective permissions",
+          "tooltip": {
+            "title": "Preview Effective Permissions",
+            "content": "Opens modal showing all permissions this user has across all their assigned roles. Useful for troubleshooting 'why can't user X do Y' issues. Shows combined permissions from all roles."
+          },
+          "accessibility": {
+            "ariaLabel": "Preview user permissions"
+          }
+        },
+        {
+          "id": "ar_expand_all",
+          "label": "Expand All",
+          "explanation": "Show full organization tree",
+          "tooltip": {
+            "title": "Expand Hierarchy",
+            "content": "Expands all nodes in the organization chart to show the complete reporting structure. Useful for screenshots, documentation, or full hierarchy review."
+          },
+          "accessibility": {
+            "ariaLabel": "Expand all hierarchy nodes"
+          }
+        },
+        {
+          "id": "ar_collapse_all",
+          "label": "Collapse All",
+          "explanation": "Hide expanded hierarchy levels",
+          "tooltip": {
+            "title": "Collapse Hierarchy",
+            "content": "Collapses all nodes to show only top-level employees. Use to simplify view when focusing on specific branches."
+          },
+          "accessibility": {
+            "ariaLabel": "Collapse all hierarchy nodes"
+          }
+        },
+        {
+          "id": "ar_invite_portal_user",
+          "label": "Invite Portal User",
+          "explanation": "Create portal access for client",
+          "tooltip": {
+            "title": "Invite Client to Portal",
+            "content": "Opens form to create portal access. Select client, enter email, choose access level. Sends invitation email. ⚠️ VERIFY email belongs to actual client contact before sending.",
+            "securityWarning": "Wrong email sends confidential case access to wrong person."
+          },
+          "accessibility": {
+            "ariaLabel": "Invite portal user"
+          }
+        },
+        {
+          "id": "ar_toggle_portal_active",
+          "label": "Toggle Active",
+          "explanation": "Enable or disable portal access",
+          "tooltip": {
+            "title": "Toggle Portal Access",
+            "content": "Enable: Client can log in and view their cases. Disable: Blocks login but preserves account for future reactivation. Better than delete for temporary suspension."
+          },
+          "accessibility": {
+            "ariaLabel": "Toggle portal user active status"
+          }
+        },
+        {
+          "id": "ar_delete_portal_user",
+          "label": "Delete Portal User",
+          "explanation": "Permanently remove portal access",
+          "tooltip": {
+            "title": "Delete Portal User",
+            "content": "IRREVERSIBLE: Permanently removes portal account. Client loses all access immediately. Use for case closure or client offboarding. Consider deactivation instead if temporary.",
+            "securityWarning": "Cannot be undone. Client will need new invitation to regain access."
+          },
+          "accessibility": {
+            "ariaLabel": "Delete portal user"
+          }
+        },
+        {
+          "id": "ar_select_all_permissions",
+          "label": "Select All",
+          "explanation": "Grant all permissions in this section",
+          "tooltip": {
+            "title": "Select All Permissions",
+            "content": "Checks all permission checkboxes in the current module or section. Use for full-access roles. ⚠️ Review carefully before saving - grants complete access to this module.",
+            "securityWarning": "Granting all permissions may include sensitive actions like delete or manage."
+          },
+          "accessibility": {
+            "ariaLabel": "Select all permissions"
+          }
+        },
+        {
+          "id": "ar_clear_all_permissions",
+          "label": "Clear All",
+          "explanation": "Remove all permissions in this section",
+          "tooltip": {
+            "title": "Clear All Permissions",
+            "content": "Unchecks all permission checkboxes in the current module or section. Use when starting fresh or removing access to an entire module."
+          },
+          "accessibility": {
+            "ariaLabel": "Clear all permissions"
+          }
+        }
+      ],
+      "features": [
+        {
+          "id": "ar_data_visibility_alert",
+          "label": "Data Visibility Rule",
+          "explanation": "How data scope affects record visibility",
+          "tooltip": {
+            "title": "Understanding Data Visibility",
+            "content": "Document, Task, and Hearing visibility is automatically inherited from Case visibility scope. Role permissions only control WHAT ACTIONS users can perform (view/create/edit/delete), not WHICH RECORDS they can see. Data scope determines visibility.",
+            "example": "User with 'documents.view' permission and 'Own Cases' scope can only view documents attached to their own cases - not documents from other users' cases."
+          },
+          "accessibility": {
+            "ariaLabel": "Data visibility rule explanation"
+          }
+        },
+        {
+          "id": "ar_access_chain_inspector",
+          "label": "Access Chain Inspector",
+          "explanation": "View user's complete access context",
+          "tooltip": {
+            "title": "Access Chain Inspector",
+            "content": "Shows selected employee's complete access profile: Role, Data Scope, Direct Reports, and counts of Cases/Clients/Tasks they can access. Use to troubleshoot visibility issues or verify access configuration."
+          },
+          "accessibility": {
+            "ariaLabel": "Access chain inspector"
+          }
+        },
+        {
+          "id": "ar_hierarchy_statistics",
+          "label": "Hierarchy Statistics",
+          "explanation": "Organization structure metrics",
+          "tooltip": {
+            "title": "Organization Statistics",
+            "content": "Quick metrics: Total Employees (active), Managers (have reports), Hierarchy Levels (depth), Avg Team Size (reports per manager). Use to validate organization structure is correctly configured."
+          },
+          "accessibility": {
+            "ariaLabel": "Hierarchy statistics"
+          }
+        }
+      ]
     }
   }
 }

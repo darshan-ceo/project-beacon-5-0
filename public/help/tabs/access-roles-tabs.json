@@ -1,0 +1,881 @@
+{
+  "moduleId": "access-roles",
+  "version": "1.0.0",
+  "lastUpdated": "2025-01-25",
+  "tabs": [
+    {
+      "id": "user-assignments",
+      "title": "User Assignments",
+      "subtitle": "Assign RBAC roles to employees and preview effective permissions",
+      "icon": "users",
+      "order": 1,
+
+      "whatThisSectionDoes": {
+        "primary": "Lists all employees with their current role assignments, enabling role addition, removal, and permission preview.",
+        "details": [
+          "Displays employee status (Active/Inactive) with role badges",
+          "Provides search and filter for large organizations",
+          "Shows permission preview for any selected user",
+          "Enables role assignment and revocation"
+        ]
+      },
+
+      "whyItIsCritical": {
+        "summary": "This is the direct control point for who can access what in your organization.",
+        "implications": [
+          "Role assignments affect RLS policies at the database level",
+          "Incorrect assignments can expose confidential client data",
+          "Missing assignments can block legitimate work",
+          "Changes propagate immediately on user's next page load"
+        ]
+      },
+
+      "whenToUseIt": [
+        "Onboarding new employees - assign initial role",
+        "Employee role changes - update when responsibilities change",
+        "Offboarding - remove roles (or deactivate employee)",
+        "Access troubleshooting - verify user has correct role",
+        "Quarterly access reviews - audit role distribution"
+      ],
+
+      "stepByStepUsage": [
+        {
+          "action": "Search for employee",
+          "details": "Use the search box to find by name or email. Partial matches work."
+        },
+        {
+          "action": "Filter by Status",
+          "details": "Toggle Active/Inactive to focus on current or former employees."
+        },
+        {
+          "action": "Filter by Role",
+          "details": "Select a role to see only users with that role assigned."
+        },
+        {
+          "action": "Assign new role",
+          "details": "Click [+] button next to user, select role from dropdown."
+        },
+        {
+          "action": "Remove role",
+          "details": "Click [x] on the role badge you want to remove."
+        },
+        {
+          "action": "Preview permissions",
+          "details": "Click [Eye] icon to see effective permissions across all assigned roles."
+        }
+      ],
+
+      "roleBasedGuidance": {
+        "admin": {
+          "canDo": ["Assign any role to any user", "Remove any role from any user", "Preview all user permissions", "Access bulk operations"],
+          "shouldDo": ["Document role changes in ticketing system", "Verify business justification for admin role grants", "Review assignments quarterly"],
+          "avoid": ["Assigning admin role without documentation", "Removing roles without notifying user", "Making bulk changes without backup plan"]
+        },
+        "partner": {
+          "canDo": ["View all user assignments", "Request role changes via admin"],
+          "shouldDo": ["Review own team's roles monthly", "Report access anomalies to admin"],
+          "avoid": ["Assuming role assignment capability without admin coordination"]
+        },
+        "implementor": {
+          "canDo": ["Initial role setup during deployment", "Bulk assignment via import"],
+          "shouldDo": ["Document all assignments for handoff", "Validate against organizational chart"],
+          "avoid": ["Retaining admin access post-handoff"]
+        }
+      },
+
+      "securityWarnings": [
+        {
+          "id": "admin-role-grant",
+          "title": "Admin Role Assignment",
+          "severity": "CRITICAL",
+          "description": "Assigning 'admin' role grants full system access including Access & Roles management.",
+          "guidance": "Limit to 2-3 designated users. Require documented business justification."
+        },
+        {
+          "id": "role-removal-lockout",
+          "title": "Role Removal May Cause Lockout",
+          "severity": "HIGH",
+          "description": "Removing all roles from a user effectively locks them out of the system.",
+          "guidance": "Deactivate employees instead of removing all roles to preserve audit history."
+        }
+      ],
+
+      "commonMistakes": [
+        {
+          "mistake": "Assigning multiple conflicting roles",
+          "impact": "Unexpected permission combinations - permissions are additive",
+          "prevention": "Review effective permissions after multi-role assignment"
+        },
+        {
+          "mistake": "Not updating roles when employee position changes",
+          "impact": "Access creep - accumulated permissions exceed job requirements",
+          "prevention": "Include role review in position change checklist"
+        }
+      ],
+
+      "fields": [
+        {
+          "id": "user_search",
+          "label": "Search Users",
+          "description": "Find employees by name, email, or designation",
+          "example": "Search 'Priya' or 'priya@firm.com'"
+        },
+        {
+          "id": "status_filter",
+          "label": "Status Filter",
+          "description": "Toggle between Active (current) and Inactive (former) employees",
+          "values": ["Active", "Inactive", "All"]
+        },
+        {
+          "id": "role_filter",
+          "label": "Role Filter",
+          "description": "Show only users with a specific role assigned",
+          "example": "Select 'Manager' to see all managers"
+        }
+      ],
+
+      "buttons": [
+        {
+          "id": "assign_role_plus",
+          "label": "[+] Assign Role",
+          "action": "Opens role selection dropdown for the user",
+          "irreversible": false
+        },
+        {
+          "id": "remove_role_x",
+          "label": "[x] Remove Role",
+          "action": "Removes the clicked role from user immediately",
+          "irreversible": false,
+          "warning": "User loses associated permissions on next page load"
+        },
+        {
+          "id": "preview_permissions",
+          "label": "[Eye] Preview Permissions",
+          "action": "Opens modal showing effective permissions across all assigned roles",
+          "irreversible": false
+        }
+      ]
+    },
+
+    {
+      "id": "role-definitions",
+      "title": "Role Definitions",
+      "subtitle": "View, create, and modify role permission sets",
+      "icon": "shield",
+      "order": 2,
+
+      "whatThisSectionDoes": {
+        "primary": "Manages the permission templates (roles) that can be assigned to users.",
+        "details": [
+          "Displays all system and custom roles as cards",
+          "Shows permission count and user count per role",
+          "Enables permission editing for each role",
+          "Allows creation of custom roles"
+        ]
+      },
+
+      "whyItIsCritical": {
+        "summary": "Role definitions are the permission templates - changes here affect ALL users with that role immediately.",
+        "implications": [
+          "Editing a role's permissions instantly changes access for all assigned users",
+          "System roles have predefined permissions that can be modified but not deleted",
+          "Custom roles provide flexibility for organization-specific access patterns"
+        ]
+      },
+
+      "whenToUseIt": [
+        "Setting up organization-specific access patterns",
+        "Adding new modules and setting default access",
+        "Restricting access to sensitive features",
+        "Creating specialized roles for unique positions"
+      ],
+
+      "stepByStepUsage": [
+        {
+          "action": "Review existing roles",
+          "details": "Scan role cards to understand current structure. Note user counts."
+        },
+        {
+          "action": "Create custom role",
+          "details": "Click 'Create Role' → Enter name (lowercase_underscores) → Display Name → Description → Create"
+        },
+        {
+          "action": "Edit permissions",
+          "details": "Click 'Edit Permissions' on role card → Toggle module permissions → Save Changes"
+        },
+        {
+          "action": "Use bulk selection",
+          "details": "In permission editor: 'Select All' for full access or 'Clear All' to start fresh"
+        }
+      ],
+
+      "roleBasedGuidance": {
+        "admin": {
+          "canDo": ["Create custom roles", "Edit any role's permissions", "Delete custom roles", "View all role statistics"],
+          "shouldDo": ["Document custom role purposes", "Review role usage quarterly", "Test permission changes before production"],
+          "avoid": ["Modifying system roles without understanding impact", "Creating too many granular roles"]
+        },
+        "partner": {
+          "canDo": ["View role definitions", "Understand permission structure"],
+          "shouldDo": ["Request appropriate roles for team via admin", "Review which permissions staff roles include"],
+          "avoid": ["Assuming ability to modify roles directly"]
+        },
+        "implementor": {
+          "canDo": ["Create initial role structure", "Clone existing roles as templates", "Configure permissions during deployment"],
+          "shouldDo": ["Document all role decisions", "Train client admins on role management", "Establish naming conventions"],
+          "avoid": ["Creating roles without descriptions", "Over-engineering role structure"]
+        }
+      },
+
+      "securityWarnings": [
+        {
+          "id": "rbac-permission",
+          "title": "RBAC Module Permission",
+          "severity": "CRITICAL",
+          "description": "Granting 'rbac' module permissions allows users to manage Access & Roles - effectively admin access.",
+          "guidance": "Never grant 'rbac' module permissions to non-admin roles."
+        },
+        {
+          "id": "instant-propagation",
+          "title": "Instant Permission Propagation",
+          "severity": "HIGH",
+          "description": "Permission changes affect all users with this role immediately.",
+          "guidance": "Test changes with a single user first. Notify affected users before changes."
+        }
+      ],
+
+      "commonMistakes": [
+        {
+          "mistake": "Creating roles without descriptions",
+          "impact": "Future admins don't understand role purpose",
+          "prevention": "Always add description explaining intended users and access level"
+        },
+        {
+          "mistake": "Granting delete permissions broadly",
+          "impact": "Risk of accidental or malicious data deletion",
+          "prevention": "Reserve delete permissions for Manager+ roles"
+        },
+        {
+          "mistake": "Not testing role after creation",
+          "impact": "Users assigned untested role may have wrong access",
+          "prevention": "Log in as test user with new role to verify access"
+        },
+        {
+          "mistake": "Empty custom role without permissions",
+          "impact": "Users assigned get no access anywhere",
+          "prevention": "Always edit permissions immediately after creating role"
+        }
+      ],
+
+      "systemRoles": [
+        {
+          "name": "admin",
+          "displayName": "Administrator",
+          "description": "Full system access including Access & Roles management",
+          "editable": true,
+          "deletable": false
+        },
+        {
+          "name": "partner",
+          "displayName": "Partner/CA",
+          "description": "Senior leadership with broad access and oversight capabilities",
+          "editable": true,
+          "deletable": false
+        },
+        {
+          "name": "manager",
+          "displayName": "Manager",
+          "description": "Team leads with supervisory access to team data",
+          "editable": true,
+          "deletable": false
+        },
+        {
+          "name": "advocate",
+          "displayName": "Advocate",
+          "description": "Legal professionals with case management capabilities",
+          "editable": true,
+          "deletable": false
+        },
+        {
+          "name": "staff",
+          "displayName": "Staff",
+          "description": "Support staff with limited access to assigned work",
+          "editable": true,
+          "deletable": false
+        },
+        {
+          "name": "ca",
+          "displayName": "Chartered Accountant",
+          "description": "Tax professionals with financial and compliance access",
+          "editable": true,
+          "deletable": false
+        }
+      ],
+
+      "buttons": [
+        {
+          "id": "create_role",
+          "label": "Create Role",
+          "action": "Opens modal to define new custom role",
+          "irreversible": false,
+          "warning": "New roles start with NO permissions - must edit after creation"
+        },
+        {
+          "id": "edit_permissions",
+          "label": "Edit Permissions",
+          "action": "Opens permission editor for the selected role",
+          "irreversible": false,
+          "warning": "Changes affect ALL users with this role immediately"
+        },
+        {
+          "id": "delete_role",
+          "label": "Delete Role",
+          "action": "Permanently removes custom role",
+          "irreversible": true,
+          "warning": "Cannot be undone. Users with this role lose associated permissions."
+        }
+      ]
+    },
+
+    {
+      "id": "team-hierarchy",
+      "title": "Team Hierarchy",
+      "subtitle": "Visualize and validate the reporting structure that drives 'Team Cases' visibility",
+      "icon": "git-branch",
+      "order": 3,
+
+      "whatThisSectionDoes": {
+        "primary": "Shows the organizational tree based on 'Reports To' field in Employee Master.",
+        "details": [
+          "Displays visual org chart with reporting relationships",
+          "Shows statistics: Total Employees, Managers, Hierarchy Levels, Avg Team Size",
+          "Provides Access Chain Inspector for any selected employee",
+          "Validates hierarchy for 'Team Cases' scope resolution"
+        ]
+      },
+
+      "whyItIsCritical": {
+        "summary": "'Team Cases' data scope relies entirely on this hierarchy for visibility calculation.",
+        "implications": [
+          "Broken hierarchy means staff cannot see cases they should",
+          "Managers without reports appear as isolated nodes",
+          "Partners without hierarchy may see zero cases despite 'Team Cases' scope",
+          "Circular relationships cause unpredictable access"
+        ]
+      },
+
+      "whenToUseIt": [
+        "Verifying hierarchy after bulk employee import",
+        "Troubleshooting 'I can't see my team's cases' issues",
+        "Planning organizational restructures",
+        "Onboarding new managers - verify their team appears correctly"
+      ],
+
+      "stepByStepUsage": [
+        {
+          "action": "Expand full hierarchy",
+          "details": "Use 'Expand All' button to see complete org chart"
+        },
+        {
+          "action": "Inspect employee access",
+          "details": "Click any employee card to select. Right panel shows Access Chain Inspector."
+        },
+        {
+          "action": "Review visibility chain",
+          "details": "Inspector shows: Role, Data Scope, Direct Reports, and accessible Cases/Clients/Tasks counts"
+        },
+        {
+          "action": "Identify orphans",
+          "details": "Root-level nodes without reports and without 'Reports To' are orphans - fix in Employee Master"
+        }
+      ],
+
+      "roleBasedGuidance": {
+        "admin": {
+          "canDo": ["View full hierarchy", "Identify all orphan nodes", "Access Chain Inspector for any user"],
+          "shouldDo": ["Fix orphaned employees in Employee Master", "Validate hierarchy after imports", "Document expected structure"],
+          "avoid": ["Ignoring orphan warnings", "Assuming hierarchy auto-corrects"]
+        },
+        "partner": {
+          "canDo": ["View hierarchy for own team", "Verify direct reports appear correctly"],
+          "shouldDo": ["Confirm team structure matches expectations", "Report hierarchy issues to admin"],
+          "avoid": ["Assuming visibility issues are permission problems"]
+        },
+        "implementor": {
+          "canDo": ["Initial hierarchy validation", "Document expected vs actual structure"],
+          "shouldDo": ["Validate against client org chart", "Fix hierarchy issues before go-live"],
+          "avoid": ["Proceeding with broken hierarchy"]
+        }
+      },
+
+      "securityWarnings": [
+        {
+          "id": "hierarchy-visibility",
+          "title": "Hierarchy Determines Visibility",
+          "severity": "HIGH",
+          "description": "Employees without 'Reports To' appear as root nodes and may have unexpected visibility.",
+          "guidance": "Every non-partner employee should have 'Reports To' set."
+        },
+        {
+          "id": "manager-cascade",
+          "title": "Manager Visibility Cascades",
+          "severity": "MEDIUM",
+          "description": "Managers can see ALL cases/tasks of their entire downline (direct and indirect reports).",
+          "guidance": "Consider carefully when assigning manager roles with 'Team Cases' scope."
+        }
+      ],
+
+      "commonMistakes": [
+        {
+          "mistake": "Circular reporting relationships",
+          "impact": "Infinite loops in visibility calculation",
+          "prevention": "System validates and rejects circular relationships"
+        },
+        {
+          "mistake": "Staff set to 'Team Cases' but no hierarchy defined",
+          "impact": "User sees zero cases despite having cases assigned",
+          "prevention": "Validate 'Reports To' in Employee Master for all 'Team Cases' users"
+        },
+        {
+          "mistake": "Manager with 'Own Cases' scope",
+          "impact": "Manager cannot see team data despite hierarchy being correct",
+          "prevention": "Managers should have 'Team Cases' scope at minimum"
+        },
+        {
+          "mistake": "Missing 'Reports To' during employee import",
+          "impact": "Imported employees appear as orphan root nodes",
+          "prevention": "Include 'Reports To' as required field in import templates"
+        }
+      ],
+
+      "statistics": [
+        {
+          "id": "total_employees",
+          "label": "Total Employees",
+          "description": "Count of all active employees in hierarchy"
+        },
+        {
+          "id": "managers_count",
+          "label": "Managers",
+          "description": "Employees who have at least one direct report"
+        },
+        {
+          "id": "hierarchy_levels",
+          "label": "Hierarchy Levels",
+          "description": "Depth of org chart from top to bottom"
+        },
+        {
+          "id": "avg_team_size",
+          "label": "Avg Team Size",
+          "description": "Average number of direct reports per manager"
+        }
+      ],
+
+      "buttons": [
+        {
+          "id": "expand_all",
+          "label": "Expand All",
+          "action": "Expands entire organization tree for full view",
+          "irreversible": false
+        },
+        {
+          "id": "collapse_all",
+          "label": "Collapse All",
+          "action": "Collapses tree to show only top-level nodes",
+          "irreversible": false
+        }
+      ]
+    },
+
+    {
+      "id": "portal-users",
+      "title": "Portal Users",
+      "subtitle": "Manage external client access to the Client Portal",
+      "icon": "globe",
+      "order": 4,
+
+      "whatThisSectionDoes": {
+        "primary": "Controls external client access to view case information through the Client Portal.",
+        "details": [
+          "Lists all client portal accounts with status",
+          "Shows linked client and last login time",
+          "Enables portal access creation, modification, and revocation",
+          "Controls what clients can see in their portal"
+        ]
+      },
+
+      "whyItIsCritical": {
+        "summary": "External users can view case documents, hearing schedules, and case status - security is paramount.",
+        "implications": [
+          "Portal users can see documents marked as 'Portal Visible'",
+          "Incorrect client linking exposes wrong client's data",
+          "Portal access persists even after case closure unless manually revoked"
+        ]
+      },
+
+      "whenToUseIt": [
+        "Onboarding new clients who need portal access",
+        "Offboarding clients after case completion",
+        "Investigating client complaints about portal access",
+        "Quarterly external access review"
+      ],
+
+      "stepByStepUsage": [
+        {
+          "action": "Invite portal user",
+          "details": "Click 'Invite Portal User' → Search and select Client → Enter email → Set access level → Send Invitation"
+        },
+        {
+          "action": "Review access level",
+          "details": "View Documents / View Hearings / Full Access - choose appropriate level"
+        },
+        {
+          "action": "Disable access",
+          "details": "Toggle 'Active' status to disable without deleting (preserves audit trail)"
+        },
+        {
+          "action": "Delete portal user",
+          "details": "Click delete icon to permanently remove portal account"
+        }
+      ],
+
+      "roleBasedGuidance": {
+        "admin": {
+          "canDo": ["Create/edit/delete any portal user", "View all portal accounts", "Access portal usage logs"],
+          "shouldDo": ["Quarterly review of all portal accounts", "Disable access for completed cases", "Verify email accuracy before inviting"],
+          "avoid": ["Creating portal access without verifying client identity"]
+        },
+        "partner": {
+          "canDo": ["Invite portal users for own clients", "Manage portal access for own portfolio"],
+          "shouldDo": ["Disable portal access when cases complete", "Verify client contact email addresses"],
+          "avoid": ["Sharing portal access with unauthorized individuals"]
+        },
+        "implementor": {
+          "canDo": ["Initial portal configuration", "Set up access templates"],
+          "shouldDo": ["Configure portal visibility settings", "Document access policies for client"],
+          "avoid": ["Creating test accounts that persist to production"]
+        }
+      },
+
+      "securityWarnings": [
+        {
+          "id": "email-verification",
+          "title": "Email Verification Critical",
+          "severity": "CRITICAL",
+          "description": "Verify email address belongs to actual client contact before sending invitation.",
+          "guidance": "Use phone verification or in-person confirmation for sensitive matters."
+        },
+        {
+          "id": "portal-visibility",
+          "title": "Document Visibility in Portal",
+          "severity": "HIGH",
+          "description": "Portal users can see all documents marked as 'Portal Visible' for their linked cases.",
+          "guidance": "Review document permissions before enabling portal access."
+        },
+        {
+          "id": "access-persistence",
+          "title": "Access Persists After Case Closure",
+          "severity": "MEDIUM",
+          "description": "Portal access is not automatically revoked when cases complete.",
+          "guidance": "Include portal access review in case closure checklist."
+        }
+      ],
+
+      "commonMistakes": [
+        {
+          "mistake": "Not disabling portal access after case completion",
+          "impact": "Former clients retain access to historical case data",
+          "prevention": "Add portal access review to case closure workflow"
+        },
+        {
+          "mistake": "Sharing wrong email address",
+          "impact": "Wrong person gets access to confidential case information",
+          "prevention": "Verify email with client via phone before inviting"
+        },
+        {
+          "mistake": "Not testing portal view before going live",
+          "impact": "Client sees unexpected or inappropriate content",
+          "prevention": "Preview portal view as client before invitation"
+        },
+        {
+          "mistake": "Forgetting which document types are portal-visible",
+          "impact": "Internal documents exposed to clients",
+          "prevention": "Review document visibility settings before portal setup"
+        }
+      ],
+
+      "accessLevels": [
+        {
+          "level": "View Documents",
+          "description": "Client can view and download documents marked as Portal Visible",
+          "includes": ["Document list", "Document preview", "Document download"]
+        },
+        {
+          "level": "View Hearings",
+          "description": "Client can view hearing schedule and details",
+          "includes": ["Hearing calendar", "Hearing details", "Upcoming reminders"]
+        },
+        {
+          "level": "Full Access",
+          "description": "Complete portal access including case status and communications",
+          "includes": ["Case overview", "Documents", "Hearings", "Messages", "Status updates"]
+        }
+      ],
+
+      "buttons": [
+        {
+          "id": "invite_portal_user",
+          "label": "Invite Portal User",
+          "action": "Opens modal to create new portal access for a client",
+          "irreversible": false
+        },
+        {
+          "id": "toggle_active",
+          "label": "Toggle Active",
+          "action": "Enables or disables portal access without deleting account",
+          "irreversible": false
+        },
+        {
+          "id": "delete_portal_user",
+          "label": "Delete Portal User",
+          "action": "Permanently removes portal account",
+          "irreversible": true,
+          "warning": "Cannot be undone. Client loses all portal access immediately."
+        }
+      ]
+    },
+
+    {
+      "id": "permissions-matrix",
+      "title": "Permissions Matrix",
+      "subtitle": "View all permissions organized by module with inheritance explanation",
+      "icon": "layout-grid",
+      "order": 5,
+
+      "whatThisSectionDoes": {
+        "primary": "Reference view showing all available permissions grouped by module.",
+        "details": [
+          "Groups permissions by module (Cases, Clients, Tasks, etc.)",
+          "Shows available actions per module (View, Create, Edit, Delete, Manage)",
+          "Displays the Data Visibility Rule explaining inherited access",
+          "Serves as documentation for permission structure"
+        ]
+      },
+
+      "whyItIsCritical": {
+        "summary": "Understanding permission granularity prevents over-permissioning and security gaps.",
+        "implications": [
+          "The alert explains that Document/Task/Hearing visibility follows Case visibility",
+          "Forms the mental model for permission design",
+          "Reference for troubleshooting 'why can't user X do Y'"
+        ]
+      },
+
+      "whenToUseIt": [
+        "Planning permission structure for new roles",
+        "Audit preparation - documenting available permissions",
+        "Training new administrators",
+        "Troubleshooting access issues"
+      ],
+
+      "dataVisibilityRule": {
+        "title": "Data Visibility Rule",
+        "content": "Document, Task, and Hearing visibility is automatically inherited from Case visibility scope. Role permissions here only control what actions (view/create/edit/delete) users can perform, not which records they can see.",
+        "example": "A user with 'documents.view' permission but 'Own Cases' scope can only view documents attached to their own cases - they cannot see documents from other users' cases regardless of permission."
+      },
+
+      "roleBasedGuidance": {
+        "admin": {
+          "useCase": "Reference when designing custom roles, validating permission coverage"
+        },
+        "partner": {
+          "useCase": "Understand what permissions exist and their implications"
+        },
+        "implementor": {
+          "useCase": "Document permission catalog for client, plan role structure"
+        }
+      },
+
+      "modules": [
+        {
+          "name": "cases",
+          "actions": ["view", "create", "edit", "delete", "manage"],
+          "notes": "Manage includes status changes and advanced operations"
+        },
+        {
+          "name": "clients",
+          "actions": ["view", "create", "edit", "delete"],
+          "notes": "Client visibility follows case assignment and data scope"
+        },
+        {
+          "name": "tasks",
+          "actions": ["view", "create", "edit", "delete"],
+          "notes": "Task visibility inherits from case visibility"
+        },
+        {
+          "name": "documents",
+          "actions": ["view", "create", "edit", "delete"],
+          "notes": "Document visibility inherits from case visibility"
+        },
+        {
+          "name": "hearings",
+          "actions": ["view", "create", "edit", "delete"],
+          "notes": "Hearing visibility inherits from case visibility"
+        },
+        {
+          "name": "reports",
+          "actions": ["view", "create", "export"],
+          "notes": "Report data respects user's data scope"
+        },
+        {
+          "name": "rbac",
+          "actions": ["view", "manage", "admin"],
+          "notes": "Admin grants full Access & Roles control - CRITICAL permission"
+        },
+        {
+          "name": "settings",
+          "actions": ["view", "edit"],
+          "notes": "View for personal preferences, Edit for system settings"
+        }
+      ]
+    },
+
+    {
+      "id": "audit-log",
+      "title": "Audit Log",
+      "subtitle": "Compliance trail of all RBAC-related changes",
+      "icon": "file-text",
+      "order": 6,
+
+      "whatThisSectionDoes": {
+        "primary": "Immutable record of all permission and access changes for compliance and security review.",
+        "details": [
+          "Lists role assignment/revocation events with timestamps",
+          "Shows action type, entity type, and affected user",
+          "Provides evidence trail for security audits",
+          "Cannot be edited or deleted"
+        ]
+      },
+
+      "whyItIsCritical": {
+        "summary": "Compliance requirement for most regulatory frameworks - answers 'who changed what and when'.",
+        "implications": [
+          "Required evidence for SOC 2, ISO 27001, and similar audits",
+          "Essential tool for security incident investigation",
+          "Immutable - provides tamper-proof evidence"
+        ]
+      },
+
+      "whenToUseIt": [
+        "Investigating unauthorized access incidents",
+        "Preparing for compliance audits (SOC2, ISO 27001)",
+        "Reviewing changes after security incident",
+        "Monthly security review process"
+      ],
+
+      "stepByStepUsage": [
+        {
+          "action": "Review recent entries",
+          "details": "Entries sorted by timestamp descending - newest first"
+        },
+        {
+          "action": "Identify action types",
+          "details": "ASSIGN_ROLE, REVOKE_ROLE, UPDATE_PERMISSIONS, CREATE_ROLE, etc."
+        },
+        {
+          "action": "Cross-reference user",
+          "details": "Match user_id with User Assignments tab to identify affected user"
+        },
+        {
+          "action": "Export for audit",
+          "details": "Use export function to download audit log for compliance documentation"
+        }
+      ],
+
+      "roleBasedGuidance": {
+        "admin": {
+          "canDo": ["Full audit log access", "Export logs", "Set up log monitoring"],
+          "shouldDo": ["Review monthly for anomalies", "Export quarterly for compliance archive", "Investigate unexpected admin role assignments"],
+          "avoid": ["Ignoring audit log - it's your security evidence trail"]
+        },
+        "partner": {
+          "canDo": ["View audit log (may be filtered to team scope)"],
+          "shouldDo": ["Review for own team's access changes"],
+          "avoid": ["Assuming all changes are visible - scope may be filtered"]
+        },
+        "implementor": {
+          "canDo": ["Full access during deployment"],
+          "shouldDo": ["Document baseline audit state", "Export initial configuration for reference"],
+          "avoid": ["Making changes without documenting in external system"]
+        }
+      },
+
+      "logEntryTypes": [
+        {
+          "type": "ASSIGN_ROLE",
+          "description": "Role was assigned to a user",
+          "details_include": ["user_id", "role_name", "assigned_by"]
+        },
+        {
+          "type": "REVOKE_ROLE",
+          "description": "Role was removed from a user",
+          "details_include": ["user_id", "role_name", "revoked_by"]
+        },
+        {
+          "type": "UPDATE_PERMISSIONS",
+          "description": "Role permissions were modified",
+          "details_include": ["role_name", "changes", "modified_by"]
+        },
+        {
+          "type": "CREATE_ROLE",
+          "description": "New custom role was created",
+          "details_include": ["role_name", "created_by"]
+        },
+        {
+          "type": "DELETE_ROLE",
+          "description": "Custom role was deleted",
+          "details_include": ["role_name", "deleted_by", "affected_users"]
+        },
+        {
+          "type": "PORTAL_ACCESS_GRANTED",
+          "description": "Portal access was created for a client",
+          "details_include": ["client_id", "portal_user_email", "granted_by"]
+        },
+        {
+          "type": "PORTAL_ACCESS_REVOKED",
+          "description": "Portal access was disabled or deleted",
+          "details_include": ["client_id", "portal_user_email", "revoked_by"]
+        }
+      ],
+
+      "securityWarnings": [
+        {
+          "id": "log-immutability",
+          "title": "Audit Logs Cannot Be Deleted",
+          "severity": "INFO",
+          "description": "Audit logs are immutable by design - this is a security feature, not a limitation.",
+          "guidance": "If you need to 'correct' an entry, add a new entry explaining the correction."
+        }
+      ],
+
+      "commonMistakes": [
+        {
+          "mistake": "Not reviewing audit log regularly",
+          "impact": "Unauthorized access may go undetected",
+          "prevention": "Schedule monthly audit log review"
+        },
+        {
+          "mistake": "Not exporting for compliance archive",
+          "impact": "May not meet retention requirements for audits",
+          "prevention": "Export quarterly, store in compliance document system"
+        }
+      ],
+
+      "retentionPolicy": {
+        "onlineRetention": "12 months of logs available in interface",
+        "archiveRetention": "Older logs archived but retrievable on request",
+        "exportFormat": "CSV and JSON available for compliance systems"
+      }
+    }
+  ]
+}

@@ -423,58 +423,105 @@
   {
     "id": "access-roles-setup",
     "title": "Access & Roles Configuration",
-    "description": "Set up role-based access control and data visibility for your team",
+    "description": "Set up role-based access control, data visibility, and team hierarchy for secure operations",
     "module": "access-roles",
     "roles": ["Admin"],
-    "estimatedTime": "10 minutes",
+    "estimatedTime": "15 minutes",
+    "securityCritical": true,
     "steps": [
       {
         "id": "access-overview",
-        "title": "Access & Roles Overview",
-        "content": "Welcome to Access & Roles! This is where you control who can see and do what in Project Beacon. Security starts here.",
+        "title": "Security Control Center",
+        "content": "⚠️ CRITICAL MODULE: Access & Roles controls who can see and do what across your entire organization. Changes here affect all users immediately. Misconfiguration can expose client data or lock out staff.",
         "target": "[data-tour='access-roles-header']",
+        "placement": "bottom",
+        "securityNote": "All changes are logged in the Audit Log for compliance."
+      },
+      {
+        "id": "user-assignments-tab",
+        "title": "User Assignments Tab",
+        "content": "Start here to manage role assignments. Search for employees, assign roles, and preview their effective permissions. This is where you control individual access.",
+        "target": "[data-tour='user-assignments-tab']",
         "placement": "bottom"
       },
       {
-        "id": "roles-tab",
-        "title": "Understanding Roles",
-        "content": "Roles define permission sets. Project Beacon comes with default roles: Admin, Partner/CA, Manager, Advocate, and Staff. Each has different access levels.",
-        "target": "[data-tour='roles-tab']",
-        "placement": "bottom"
-      },
-      {
-        "id": "data-scope-explanation",
-        "title": "Data Scope Concept",
-        "content": "Data Scope controls visibility: 'Own Cases' (personal), 'Team Cases' (your reports), 'All Cases' (organization-wide). Critical for data security.",
-        "target": "[data-tour='data-scope-selector']",
+        "id": "assign-role",
+        "title": "Assigning Roles",
+        "content": "Click [+] to assign a role. Users can have multiple roles - permissions combine additively (most permissive wins). Assignment takes effect on user's next page load.",
+        "target": "[data-tour='assign-role-button']",
         "placement": "right"
       },
       {
-        "id": "module-access",
-        "title": "Module Access Control",
-        "content": "Each role can access specific modules. Unchecked modules are hidden from the sidebar and inaccessible even via direct URL.",
-        "target": "[data-tour='module-access-panel']",
+        "id": "preview-permissions",
+        "title": "Preview Permissions",
+        "content": "Click the [Eye] icon to see a user's effective permissions across all assigned roles. Essential for troubleshooting 'I can't access...' issues.",
+        "target": "[data-tour='preview-permissions-button']",
         "placement": "left"
       },
       {
-        "id": "create-role",
-        "title": "Creating Custom Roles",
-        "content": "Click 'Create Role' to define custom roles beyond the defaults. Clone an existing role to start with similar permissions.",
-        "target": "[data-tour='create-role-button']",
+        "id": "role-definitions-tab",
+        "title": "Role Definitions Tab",
+        "content": "View and edit role permission sets. System roles (Admin, Partner, Manager, Staff) are pre-configured. Create custom roles for specialized positions.",
+        "target": "[data-tour='role-definitions-tab']",
         "placement": "bottom"
       },
       {
-        "id": "permission-matrix",
-        "title": "Permission Matrix",
-        "content": "Use the Permission Matrix to see all roles and permissions in a grid. Great for auditing and comparing access levels.",
-        "target": "[data-tour='permission-matrix-button']",
+        "id": "edit-role-permissions",
+        "title": "Editing Permissions",
+        "content": "Click 'Edit Permissions' on any role card. Check/uncheck permissions per module. ⚠️ WARNING: Changes affect ALL users with this role immediately.",
+        "target": "[data-tour='edit-permissions-button']",
+        "placement": "right",
+        "securityNote": "Never grant 'rbac.admin' to non-admin roles - allows privilege escalation."
+      },
+      {
+        "id": "data-scope-critical",
+        "title": "⚠️ CRITICAL: Data Scope",
+        "content": "Data Scope is the PRIMARY visibility control: 'Own Cases' = personal only, 'Team Cases' = you + your reports, 'All Cases' = organization-wide. Set in Employee Master. Incorrect scope exposes confidential data.",
+        "target": "[data-tour='data-scope-info']",
+        "placement": "bottom",
+        "securityNote": "Default to 'Own Cases' for staff. Use 'All Cases' only for partners and compliance officers."
+      },
+      {
+        "id": "team-hierarchy-tab",
+        "title": "Team Hierarchy Tab",
+        "content": "Visualize reporting relationships that drive 'Team Cases' visibility. Managers see all cases of their direct and indirect reports. Validate hierarchy before using Team Cases scope.",
+        "target": "[data-tour='team-hierarchy-tab']",
+        "placement": "bottom"
+      },
+      {
+        "id": "hierarchy-inspector",
+        "title": "Access Chain Inspector",
+        "content": "Click any employee in the hierarchy to see their complete access profile: Role, Scope, Reports, and accessible Cases/Clients/Tasks counts. Use to troubleshoot visibility issues.",
+        "target": "[data-tour='access-chain-inspector']",
+        "placement": "left"
+      },
+      {
+        "id": "portal-users-tab",
+        "title": "Portal Users Tab",
+        "content": "Manage external client access to the Client Portal. Portal users can view case documents and hearing schedules for their linked cases only.",
+        "target": "[data-tour='portal-users-tab']",
+        "placement": "bottom",
+        "securityNote": "⚠️ Verify email belongs to actual client contact before sending invitation."
+      },
+      {
+        "id": "audit-log-tab",
+        "title": "Audit Log Tab",
+        "content": "View immutable record of all permission changes. Required for compliance (SOC2, ISO 27001). Use for security investigations and quarterly access reviews.",
+        "target": "[data-tour='audit-log-tab']",
+        "placement": "bottom"
+      },
+      {
+        "id": "security-best-practices",
+        "title": "Security Best Practices",
+        "content": "✅ Maintain 2+ admin accounts always ✅ Document all admin grants ✅ Review access quarterly ✅ Use 'Own Cases' as default ✅ Test role changes before deployment",
+        "target": "[data-tour='security-tips']",
         "placement": "top"
       },
       {
-        "id": "test-access",
-        "title": "Testing Access",
-        "content": "After configuration, log in as different roles to verify access works correctly. Test before deploying to your team.",
-        "target": "[data-tour='test-access-tip']",
+        "id": "common-pitfalls",
+        "title": "⚠️ Common Pitfalls to Avoid",
+        "content": "❌ Removing last admin (lockout risk) ❌ Granting 'All Cases' without justification ❌ Staff with delete permissions ❌ Portal invites to wrong email ❌ Not updating roles when positions change",
+        "target": "[data-tour='pitfalls-warning']",
         "placement": "bottom"
       }
     ]
