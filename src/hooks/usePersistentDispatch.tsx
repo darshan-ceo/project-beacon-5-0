@@ -337,56 +337,19 @@ export const usePersistentDispatch = (
           await storage.delete('documents', action.payload);
           break;
           
-        // Courts
-        case 'ADD_COURT': {
-          const isValidUUID = (v: any) => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
-          const payload = { ...action.payload } as any;
-          
-          // Remove client-generated id if it's not a valid UUID
-          if (!isValidUUID(payload.id)) {
-            delete payload.id;
-          }
-          
-          // Persist to backend and get the UUID back
-          const saved = await storage.create('courts', payload);
-          
-          // Dispatch with the database-generated UUID to keep UI state consistent
-          originalDispatch({ type: 'ADD_COURT', payload: { ...action.payload, id: (saved as any).id } as any });
-          
-          // Call success callback if provided
-          if (onPersistSuccess) {
-            await onPersistSuccess();
-          }
-          return; // Prevent the generic dispatch below from firing
-        }
+        // Courts - SKIP persistence, handled by courtsService
+        case 'ADD_COURT':
         case 'UPDATE_COURT':
-          await storage.update('courts', action.payload.id, action.payload);
+          console.log('⏭️ Skipping COURT persistence - handled by courtsService');
           break;
         case 'DELETE_COURT':
           await storage.delete('courts', action.payload);
           break;
           
-        // Judges
-        case 'ADD_JUDGE': {
-          const isValidUUID = (v: any) => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
-          const payload = { ...action.payload } as any;
-          // Remove client-generated id if it's not a valid UUID
-          if (!isValidUUID(payload.id)) {
-            delete payload.id;
-          }
-          // Persist to backend and get the UUID back
-          const saved = await storage.create('judges', payload);
-          // Dispatch with the database-generated UUID to keep UI state consistent
-          originalDispatch({ type: 'ADD_JUDGE', payload: { ...action.payload, id: (saved as any).id } as any });
-          
-          // Call success callback if provided
-          if (onPersistSuccess) {
-            await onPersistSuccess();
-          }
-          return; // Prevent the generic dispatch below from firing
-        }
+        // Judges - SKIP persistence, handled by judgesService
+        case 'ADD_JUDGE':
         case 'UPDATE_JUDGE':
-          await storage.update('judges', action.payload.id, action.payload);
+          console.log('⏭️ Skipping JUDGE persistence - handled by judgesService');
           break;
         case 'DELETE_JUDGE':
           await storage.delete('judges', action.payload);
