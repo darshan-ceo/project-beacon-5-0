@@ -2011,6 +2011,7 @@ export type Database = {
           updated_at: string | null
           updated_by: string | null
           weekly_off: string | null
+          weekly_off_days: string[] | null
           whatsapp_access: boolean | null
           work_shift: string | null
           workload_capacity: number | null
@@ -2069,6 +2070,7 @@ export type Database = {
           updated_at?: string | null
           updated_by?: string | null
           weekly_off?: string | null
+          weekly_off_days?: string[] | null
           whatsapp_access?: boolean | null
           work_shift?: string | null
           workload_capacity?: number | null
@@ -2127,6 +2129,7 @@ export type Database = {
           updated_at?: string | null
           updated_by?: string | null
           weekly_off?: string | null
+          weekly_off_days?: string[] | null
           whatsapp_access?: boolean | null
           work_shift?: string | null
           workload_capacity?: number | null

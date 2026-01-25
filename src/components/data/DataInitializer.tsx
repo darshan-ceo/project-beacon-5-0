@@ -466,6 +466,7 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           employmentType: e.employment_type || e.employmentType,
           confirmationDate: e.confirmation_date || e.confirmationDate,
           weeklyOff: e.weekly_off || e.weeklyOff,
+          weeklyOffDays: e.weekly_off_days || e.weeklyOffDays || [],
           workShift: e.work_shift || e.workShift,
           employeeCode: e.employee_code || e.employeeCode,
           // Billing fields

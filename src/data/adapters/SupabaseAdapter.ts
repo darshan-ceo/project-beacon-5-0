@@ -1801,6 +1801,7 @@ export class SupabaseAdapter implements StoragePort {
           if (normalized.profilePhoto && !normalized.profile_photo) normalized.profile_photo = normalized.profilePhoto;
           if (normalized.workShift && !normalized.work_shift) normalized.work_shift = normalized.workShift;
           if (normalized.weeklyOff && !normalized.weekly_off) normalized.weekly_off = normalized.weeklyOff;
+          if (normalized.weeklyOffDays && !normalized.weekly_off_days) normalized.weekly_off_days = normalized.weeklyOffDays;
           if (normalized.confirmationDate && !normalized.confirmation_date) normalized.confirmation_date = normalized.confirmationDate;
           if (normalized.createdAt && !normalized.created_at) normalized.created_at = normalized.createdAt;
           if (normalized.updatedAt && !normalized.updated_at) normalized.updated_at = normalized.updatedAt;
@@ -1855,6 +1856,7 @@ export class SupabaseAdapter implements StoragePort {
           delete normalized.profilePhoto;
           delete normalized.workShift;
           delete normalized.weeklyOff;
+          delete normalized.weeklyOffDays;
           delete normalized.confirmationDate;
           delete normalized.createdAt;
           delete normalized.updatedAt;
