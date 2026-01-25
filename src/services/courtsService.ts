@@ -159,28 +159,35 @@ class CourtsService {
       // Persist to Supabase
       await storage.update('courts', courtId, persistPayload as any);
 
-      // Fetch the full updated court from database
-      const existingCourt = await storage.getById<any>('courts', courtId);
+      // CRITICAL: Re-fetch the FULL court row from Supabase to ensure complete data
+      // Do NOT rely on partial payloads or realtime events
+      const dbCourt = await storage.getById<any>('courts', courtId);
+      
+      if (!dbCourt) {
+        throw new Error(`Court ${courtId} not found after update`);
+      }
+      
+      // Build full court object from fresh database record
       const fullCourt: Court = {
-        id: courtId,
-        name: existingCourt?.name || updates.name || '',
-        type: existingCourt?.type || updates.type || 'District Court',
-        jurisdiction: existingCourt?.jurisdiction || updates.jurisdiction || '',
-        address: existingCourt?.address || addressValue || '',
-        city: existingCourt?.city || updates.city || '',
-        phone: existingCourt?.phone || updates.phone,
-        email: existingCourt?.email || updates.email,
-        status: existingCourt?.status || updates.status || 'Active',
-        benchLocation: existingCourt?.bench_location || updates.benchLocation,
-        taxJurisdiction: existingCourt?.tax_jurisdiction || normalizedUpdates.taxJurisdiction,
-        officerDesignation: existingCourt?.officer_designation || normalizedUpdates.officerDesignation,
+        id: dbCourt.id,
+        name: dbCourt.name || '',
+        type: dbCourt.type || 'District Court',
+        jurisdiction: dbCourt.jurisdiction || '',
+        address: this.parseAddress(dbCourt.address),
+        city: dbCourt.city || '',
+        phone: dbCourt.phone,
+        email: dbCourt.email,
+        status: dbCourt.status || 'Active',
+        benchLocation: dbCourt.bench_location,
+        taxJurisdiction: dbCourt.tax_jurisdiction,
+        officerDesignation: dbCourt.officer_designation,
         activeCases: 0,
         avgHearingTime: '30 mins',
         digitalFiling: updates.digitalFiling ?? false,
         workingDays: updates.workingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
       };
 
-      console.log('✅ Court updated, dispatching:', fullCourt);
+      console.log('✅ Court updated with full DB record:', fullCourt);
 
       // Dispatch full court object to context
       dispatch({ type: 'UPDATE_COURT', payload: fullCourt });
