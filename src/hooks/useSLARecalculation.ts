@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useRef } from 'react';
-import { useAppState } from '@/contexts/AppStateContext';
+import { useAppStateSafe } from '@/contexts/AppStateContext';
 import { calculateSLAStatus } from '@/services/slaService';
 
 /**
@@ -11,10 +11,17 @@ import { calculateSLAStatus } from '@/services/slaService';
  * - Recalculates when window regains focus (user returns to tab)
  */
 export const useSLARecalculation = () => {
-  const { state, rawDispatch } = useAppState();
+  const appState = useAppStateSafe();
   const isRecalculatingRef = useRef(false);
+  
+  // Handle context not being available (during hot reload or before provider mounts)
+  const state = appState?.state;
+  const rawDispatch = appState?.rawDispatch;
 
   const recalculateSLAStatuses = useCallback(() => {
+    // Skip if context is not available or no dispatch function
+    if (!state || !rawDispatch) return;
+    
     // Prevent concurrent recalculations
     if (isRecalculatingRef.current) return;
     isRecalculatingRef.current = true;
@@ -47,9 +54,12 @@ export const useSLARecalculation = () => {
     }
 
     isRecalculatingRef.current = false;
-  }, [state.cases, rawDispatch]);
+  }, [state?.cases, rawDispatch]);
 
   useEffect(() => {
+    // Skip if context is not available
+    if (!state) return;
+    
     // Only run if we have cases loaded
     if (state.cases.length === 0) return;
 
@@ -70,7 +80,7 @@ export const useSLARecalculation = () => {
       clearInterval(interval);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [recalculateSLAStatuses, state.cases.length]);
+  }, [recalculateSLAStatuses, state?.cases?.length]);
 
   return { recalculateSLAStatuses };
 };
