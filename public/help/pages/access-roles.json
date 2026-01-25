@@ -1,0 +1,140 @@
+{
+  "title": "Access & Roles Management",
+  "description": "Configure user roles, permissions, and data visibility rules for secure access control",
+  "overview": "The Access & Roles module is the security control center for Project Beacon. Here you define who can access what data, which modules they can use, and how data visibility is determined by organizational hierarchy. Proper configuration is critical for data security and compliance.",
+  "keyFeatures": [
+    {
+      "title": "Role-Based Access Control (RBAC)",
+      "description": "Define roles with specific permission sets that determine module access and actions",
+      "icon": "shield"
+    },
+    {
+      "title": "Data Scope Management",
+      "description": "Control data visibility using 'Own Cases', 'Team Cases', or 'All Cases' scopes",
+      "icon": "eye"
+    },
+    {
+      "title": "Module Access Control",
+      "description": "Restrict access to specific modules based on role assignments",
+      "icon": "lock"
+    },
+    {
+      "title": "Team Hierarchy",
+      "description": "Define reporting relationships that affect team-level data visibility",
+      "icon": "users"
+    },
+    {
+      "title": "Permission Inheritance",
+      "description": "Roles inherit permissions from parent roles in the hierarchy",
+      "icon": "git-branch"
+    },
+    {
+      "title": "Audit Trail",
+      "description": "Track all permission changes and access events for compliance",
+      "icon": "clipboard-list"
+    }
+  ],
+  "tabGuide": {
+    "roles": {
+      "title": "Roles",
+      "description": "View and manage system roles with their associated permissions",
+      "whenToUse": "When creating new roles, modifying existing role permissions, or reviewing role definitions"
+    },
+    "users": {
+      "title": "Users",
+      "description": "Manage user accounts and their role assignments",
+      "whenToUse": "When assigning roles to users, reviewing user access levels, or troubleshooting access issues"
+    },
+    "permissions": {
+      "title": "Permissions",
+      "description": "Fine-grained control over individual actions within modules",
+      "whenToUse": "When customizing what actions are allowed for specific roles beyond standard presets"
+    },
+    "data-scope": {
+      "title": "Data Scope",
+      "description": "Configure visibility rules for case and client data",
+      "whenToUse": "When setting up data visibility policies based on organizational hierarchy"
+    },
+    "audit": {
+      "title": "Audit Log",
+      "description": "Review access-related events and permission changes",
+      "whenToUse": "For compliance audits, security reviews, or investigating access issues"
+    }
+  },
+  "buttonGuide": {
+    "createRole": {
+      "title": "Create Role",
+      "description": "Define a new role with custom permissions",
+      "action": "Opens role creation wizard"
+    },
+    "assignRole": {
+      "title": "Assign Role",
+      "description": "Assign a role to one or more users",
+      "action": "Opens user selection dialog"
+    },
+    "cloneRole": {
+      "title": "Clone Role",
+      "description": "Create a copy of an existing role for modification",
+      "action": "Creates duplicate role with editable permissions"
+    },
+    "viewPermissionMatrix": {
+      "title": "Permission Matrix",
+      "description": "See all permissions across all roles in a grid view",
+      "action": "Opens full-screen permission comparison matrix"
+    }
+  },
+  "quickStart": [
+    {
+      "step": 1,
+      "title": "Review Default Roles",
+      "description": "Examine the pre-configured roles (Admin, Partner/CA, Manager, Advocate, Staff) and their permissions"
+    },
+    {
+      "step": 2,
+      "title": "Understand Data Scopes",
+      "description": "Learn the difference between 'Own Cases' (personal), 'Team Cases' (reporting hierarchy), and 'All Cases' (organization-wide)"
+    },
+    {
+      "step": 3,
+      "title": "Configure Module Access",
+      "description": "For each role, select which modules should be visible in the sidebar"
+    },
+    {
+      "step": 4,
+      "title": "Set Up Team Hierarchy",
+      "description": "Define who reports to whom in Employee Master to enable 'Team Cases' visibility"
+    },
+    {
+      "step": 5,
+      "title": "Test Access Levels",
+      "description": "Log in as different roles to verify the access configuration works as expected"
+    }
+  ],
+  "relatedTours": [
+    {
+      "id": "access-roles-setup",
+      "title": "Access & Roles Setup",
+      "description": "Step-by-step guide to configuring roles and permissions"
+    },
+    {
+      "id": "data-scope-configuration",
+      "title": "Data Scope Configuration",
+      "description": "Learn to set up proper data visibility rules"
+    }
+  ],
+  "relatedArticles": [
+    {
+      "title": "Understanding Role-Based Access Control",
+      "url": "/help/articles/rbac-explained"
+    },
+    {
+      "title": "Data Scope Visibility Guide",
+      "url": "/help/articles/data-scope-visibility"
+    },
+    {
+      "title": "Permission Best Practices",
+      "url": "/help/articles/permission-best-practices"
+    }
+  ],
+  "roles": ["Admin", "Partner/CA"]
+}

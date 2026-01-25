@@ -1,0 +1,116 @@
+{
+  "title": "Judges & Bench Management",
+  "description": "Maintain judge profiles, bench assignments, and specialization tracking",
+  "overview": "The Judges module maintains a comprehensive directory of judicial officers across all courts and tribunals. Track judge specializations, bench assignments, case history, and professional backgrounds to inform case strategy and scheduling decisions.",
+  "keyFeatures": [
+    {
+      "title": "Judge Directory",
+      "description": "Comprehensive database of judicial officers with contact and profile details",
+      "icon": "user"
+    },
+    {
+      "title": "Bench Assignments",
+      "description": "Track which judges sit on which benches and their tenure",
+      "icon": "layout-grid"
+    },
+    {
+      "title": "Specialization Tracking",
+      "description": "Record areas of expertise (Tax, Constitutional, Commercial, etc.)",
+      "icon": "award"
+    },
+    {
+      "title": "Case History",
+      "description": "Link judges to cases they've presided over for reference",
+      "icon": "history"
+    },
+    {
+      "title": "Availability Calendar",
+      "description": "Track judge leave schedules and sitting days",
+      "icon": "calendar"
+    },
+    {
+      "title": "Notes & Observations",
+      "description": "Record professional observations and case-handling tendencies",
+      "icon": "file-text"
+    }
+  ],
+  "tabGuide": {
+    "directory": {
+      "title": "Judge Directory",
+      "description": "Browse and search all registered judges",
+      "whenToUse": "When looking up judge details, adding new judges, or updating profiles"
+    },
+    "benches": {
+      "title": "Bench Configuration",
+      "description": "View and manage bench compositions",
+      "whenToUse": "When setting up new benches or updating judge assignments"
+    },
+    "specializations": {
+      "title": "Specializations",
+      "description": "Manage expertise categories and assignments",
+      "whenToUse": "When categorizing judges by area of expertise"
+    },
+    "calendar": {
+      "title": "Availability",
+      "description": "View judge sitting schedules and availability",
+      "whenToUse": "When planning hearing dates or checking judge availability"
+    }
+  },
+  "buttonGuide": {
+    "addJudge": {
+      "title": "Add Judge",
+      "description": "Create a new judge profile with full details",
+      "action": "Opens judge creation form"
+    },
+    "assignToBench": {
+      "title": "Assign to Bench",
+      "description": "Link a judge to a specific bench with effective dates",
+      "action": "Opens bench assignment dialog"
+    },
+    "viewCaseHistory": {
+      "title": "View Case History",
+      "description": "See all cases this judge has presided over",
+      "action": "Opens case history panel with filtering options"
+    }
+  },
+  "quickStart": [
+    {
+      "step": 1,
+      "title": "Add Judge Profiles",
+      "description": "Create entries for judges you frequently appear before"
+    },
+    {
+      "step": 2,
+      "title": "Set Specializations",
+      "description": "Tag judges with their areas of expertise"
+    },
+    {
+      "step": 3,
+      "title": "Configure Benches",
+      "description": "Set up bench compositions with judge assignments"
+    },
+    {
+      "step": 4,
+      "title": "Link to Authorities",
+      "description": "Connect judges to their respective courts/tribunals"
+    }
+  ],
+  "relatedTours": [
+    {
+      "id": "judge-profile-setup",
+      "title": "Judge Profile Setup",
+      "description": "Create comprehensive judge profiles"
+    }
+  ],
+  "relatedArticles": [
+    {
+      "title": "Judge Profile Best Practices",
+      "url": "/help/articles/judge-profile-guide"
+    },
+    {
+      "title": "Bench Configuration Guide",
+      "url": "/help/articles/bench-configuration"
+    }
+  ],
+  "roles": ["Admin", "Partner/CA", "Manager", "Advocate"]
+}

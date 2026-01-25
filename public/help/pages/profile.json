@@ -1,0 +1,118 @@
+{
+  "title": "User Profile Settings",
+  "description": "Manage your personal account settings, preferences, and security options",
+  "overview": "Your Profile page allows you to manage personal settings, update contact information, configure notification preferences, and manage security options like password changes and two-factor authentication.",
+  "keyFeatures": [
+    {
+      "title": "Personal Information",
+      "description": "Update your name, contact details, and profile picture",
+      "icon": "user"
+    },
+    {
+      "title": "Notification Preferences",
+      "description": "Choose how and when you receive notifications",
+      "icon": "bell"
+    },
+    {
+      "title": "Security Settings",
+      "description": "Manage password, 2FA, and session settings",
+      "icon": "shield"
+    },
+    {
+      "title": "Display Preferences",
+      "description": "Theme, language, and interface customization",
+      "icon": "palette"
+    },
+    {
+      "title": "Email Signature",
+      "description": "Configure your email signature for communications",
+      "icon": "mail"
+    },
+    {
+      "title": "Activity Log",
+      "description": "View your recent login and activity history",
+      "icon": "activity"
+    }
+  ],
+  "tabGuide": {
+    "personal": {
+      "title": "Personal Info",
+      "description": "Update your profile information",
+      "whenToUse": "When changing name, email, phone, or profile photo"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "description": "Configure notification delivery preferences",
+      "whenToUse": "When adjusting email, SMS, or in-app notification settings"
+    },
+    "security": {
+      "title": "Security",
+      "description": "Manage password and authentication settings",
+      "whenToUse": "When changing password or enabling 2FA"
+    },
+    "preferences": {
+      "title": "Preferences",
+      "description": "Customize your interface settings",
+      "whenToUse": "When changing theme, language, or display options"
+    }
+  },
+  "buttonGuide": {
+    "saveChanges": {
+      "title": "Save Changes",
+      "description": "Save your profile updates",
+      "action": "Saves all modified settings"
+    },
+    "changePassword": {
+      "title": "Change Password",
+      "description": "Update your login password",
+      "action": "Opens password change form"
+    },
+    "enable2fa": {
+      "title": "Enable 2FA",
+      "description": "Set up two-factor authentication",
+      "action": "Starts 2FA setup wizard"
+    },
+    "uploadPhoto": {
+      "title": "Upload Photo",
+      "description": "Add or change your profile picture",
+      "action": "Opens photo upload dialog"
+    }
+  },
+  "quickStart": [
+    {
+      "step": 1,
+      "title": "Complete Your Profile",
+      "description": "Add your full name, contact details, and profile photo"
+    },
+    {
+      "step": 2,
+      "title": "Set Notification Preferences",
+      "description": "Choose which notifications you want to receive and how"
+    },
+    {
+      "step": 3,
+      "title": "Enable 2FA",
+      "description": "Set up two-factor authentication for enhanced security"
+    },
+    {
+      "step": 4,
+      "title": "Configure Display Preferences",
+      "description": "Choose your preferred theme and interface settings"
+    }
+  ],
+  "relatedArticles": [
+    {
+      "title": "Profile Settings Guide",
+      "url": "/help/articles/profile-settings"
+    },
+    {
+      "title": "Security Best Practices",
+      "url": "/help/articles/security-best-practices"
+    },
+    {
+      "title": "Notification Preferences",
+      "url": "/help/articles/notification-preferences"
+    }
+  ],
+  "roles": ["Admin", "Partner/CA", "Manager", "Advocate", "Staff"]
+}

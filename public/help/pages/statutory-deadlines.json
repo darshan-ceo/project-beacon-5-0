@@ -1,0 +1,130 @@
+{
+  "title": "Statutory Deadlines Configuration",
+  "description": "Configure and manage statutory time limits for legal proceedings and compliance",
+  "overview": "The Statutory Deadlines module is critical for compliance management. Configure event types with their statutory time limits, and the system automatically calculates deadlines based on case events. Missing statutory deadlines can result in case dismissal or waiver of rights, making this configuration essential.",
+  "keyFeatures": [
+    {
+      "title": "Event Type Management",
+      "description": "Define event types (Notice, Order, Appeal) with statutory time limits",
+      "icon": "calendar-clock"
+    },
+    {
+      "title": "Automatic Calculation",
+      "description": "System calculates deadlines based on base date and event type rules",
+      "icon": "calculator"
+    },
+    {
+      "title": "Extension Tracking",
+      "description": "Track extensions granted and their impact on deadlines",
+      "icon": "clock"
+    },
+    {
+      "title": "Authority-Specific Rules",
+      "description": "Configure different time limits for different authorities",
+      "icon": "building-2"
+    },
+    {
+      "title": "Holiday Adjustment",
+      "description": "Automatically adjust deadlines for court holidays and weekends",
+      "icon": "calendar-off"
+    },
+    {
+      "title": "Deadline Alerts",
+      "description": "Automated reminders as deadlines approach",
+      "icon": "bell"
+    }
+  ],
+  "tabGuide": {
+    "event-types": {
+      "title": "Event Types",
+      "description": "Define and manage statutory event type configurations",
+      "whenToUse": "When adding new event types or modifying existing statutory time limits"
+    },
+    "deadlines": {
+      "title": "Active Deadlines",
+      "description": "View all calculated deadlines across cases",
+      "whenToUse": "When monitoring upcoming deadlines or checking deadline status"
+    },
+    "extensions": {
+      "title": "Extensions",
+      "description": "Track deadline extensions and their justifications",
+      "whenToUse": "When recording extensions or reviewing extension history"
+    },
+    "holidays": {
+      "title": "Holiday Calendar",
+      "description": "Configure court holidays and non-working days",
+      "whenToUse": "When adding new holidays or updating holiday calendars"
+    }
+  },
+  "buttonGuide": {
+    "addEventType": {
+      "title": "Add Event Type",
+      "description": "Create a new statutory event type with time limit rules",
+      "action": "Opens event type configuration form"
+    },
+    "calculateDeadline": {
+      "title": "Calculate Deadline",
+      "description": "Manually calculate a deadline based on event and base date",
+      "action": "Opens deadline calculator with preview"
+    },
+    "recordExtension": {
+      "title": "Record Extension",
+      "description": "Document a deadline extension with reason and new date",
+      "action": "Opens extension recording form"
+    },
+    "importHolidays": {
+      "title": "Import Holidays",
+      "description": "Bulk import holiday calendar from file",
+      "action": "Opens import wizard for holiday data"
+    }
+  },
+  "quickStart": [
+    {
+      "step": 1,
+      "title": "Configure Event Types",
+      "description": "Set up event types like 'Notice Received', 'Order Passed' with their statutory limits (e.g., 30 days, 90 days)"
+    },
+    {
+      "step": 2,
+      "title": "Set Authority Rules",
+      "description": "Configure different time limits for different authority levels (e.g., 60 days for High Court appeal)"
+    },
+    {
+      "step": 3,
+      "title": "Import Holiday Calendar",
+      "description": "Add court holidays and weekends for accurate deadline calculation"
+    },
+    {
+      "step": 4,
+      "title": "Configure Alerts",
+      "description": "Set up reminder thresholds (e.g., 7 days, 3 days, 1 day before deadline)"
+    },
+    {
+      "step": 5,
+      "title": "Test Calculation",
+      "description": "Use a sample event to verify deadline calculations are correct"
+    }
+  ],
+  "relatedTours": [
+    {
+      "id": "statutory-deadlines-setup",
+      "title": "Statutory Deadlines Setup",
+      "description": "Configure event types and time limits"
+    }
+  ],
+  "relatedArticles": [
+    {
+      "title": "Statutory Deadline Calculation Guide",
+      "url": "/help/articles/statutory-deadline-calculation"
+    },
+    {
+      "title": "GST Litigation Time Limits Reference",
+      "url": "/help/articles/gst-time-limits"
+    },
+    {
+      "title": "Managing Deadline Extensions",
+      "url": "/help/articles/deadline-extensions"
+    }
+  ],
+  "roles": ["Admin", "Partner/CA", "Manager"]
+}
