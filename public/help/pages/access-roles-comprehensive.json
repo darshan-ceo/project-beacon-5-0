@@ -1,0 +1,448 @@
+{
+  "pageId": "access-roles",
+  "version": "2.0.0",
+  "lastUpdated": "2025-01-25",
+  "title": "Access & Roles Management",
+  "subtitle": "Security Control Center for Role-Based Access, Data Visibility, and Permission Governance",
+  "securityLevel": "CRITICAL",
+  "auditRequired": true,
+  "requiredRoles": ["admin"],
+  "recommendedRoles": ["partner", "implementor"],
+
+  "overview": {
+    "summary": "The Access & Roles module is the security foundation of Project Beacon. It controls who can access what data, which actions they can perform, and how information flows across your organization. Every user interaction with sensitive data is governed by the rules configured here.",
+    "criticality": "CRITICAL - Changes here affect data visibility for ALL users organization-wide. Misconfiguration can expose sensitive client data to unauthorized personnel or lock out critical staff from their work.",
+    "governance": "All changes are logged in the Audit Log with immutable timestamps. Supabase RLS policies enforce these rules at the database level. Review permissions quarterly and document all custom role decisions in your governance system.",
+    "complianceRelevance": [
+      "SOC 2 Type II - Access Control",
+      "ISO 27001 - Information Security",
+      "GDPR - Data Protection by Design",
+      "Bar Council Guidelines - Client Confidentiality"
+    ]
+  },
+
+  "whatThisModuleDoes": {
+    "primary": [
+      "Defines RBAC roles with specific permission sets for module access and actions",
+      "Controls data visibility using 'Own Cases', 'Team Cases', or 'All Cases' scopes",
+      "Manages team hierarchy that determines cascading data visibility",
+      "Governs external client portal access permissions"
+    ],
+    "secondary": [
+      "Provides real-time permission preview for any user",
+      "Maintains immutable audit log of all access changes",
+      "Visualizes organizational hierarchy for access planning",
+      "Displays comprehensive permissions matrix by module"
+    ]
+  },
+
+  "whyThisIsCritical": {
+    "dataProtection": "Incorrect data scope settings can expose confidential client matters to unauthorized team members. A staff member with 'All Cases' scope can see every case in the organization.",
+    "accessControl": "Role assignments determine which modules appear in sidebar and which actions are available. Missing permissions block legitimate work; excess permissions create security risks.",
+    "auditCompliance": "Regulatory bodies require demonstrable access controls. This module provides the evidence trail for compliance audits.",
+    "operationalContinuity": "Lockout scenarios (removing all admins) can halt business operations. Backup admin accounts are essential."
+  },
+
+  "whenToUseThisModule": {
+    "routine": [
+      "Onboarding new employees - assign appropriate roles based on designation",
+      "Quarterly access reviews - verify role assignments match current responsibilities",
+      "Team restructuring - update hierarchy to reflect reporting changes",
+      "Client portal setup - configure external access for new clients"
+    ],
+    "exceptional": [
+      "Security incident investigation - review audit logs for unauthorized access",
+      "Compliance audit preparation - export access reports and role documentation",
+      "Role restructuring - create custom roles for specialized positions",
+      "Troubleshooting 'I can't see my cases' issues - validate hierarchy and scope"
+    ]
+  },
+
+  "keyFeatures": [
+    {
+      "id": "rbac",
+      "title": "Role-Based Access Control (RBAC)",
+      "description": "Define roles with specific permission sets that determine module access and available actions. Roles combine additively - users with multiple roles get the union of all permissions.",
+      "criticality": "HIGH",
+      "irreversibleWarning": false,
+      "affectedAreas": ["Sidebar visibility", "Action buttons", "API access"]
+    },
+    {
+      "id": "data-scope",
+      "title": "Data Scope Management",
+      "description": "Control data visibility using 'Own Cases', 'Team Cases', or 'All Cases' scopes. This is the PRIMARY control for what data users can see.",
+      "criticality": "CRITICAL",
+      "irreversibleWarning": true,
+      "warning": "Data scope changes take effect immediately. Users may lose access to cases they are currently viewing or working on. No confirmation dialog - changes are instant.",
+      "affectedAreas": ["Case list visibility", "Client visibility", "Task visibility", "Document visibility"]
+    },
+    {
+      "id": "module-access",
+      "title": "Module Access Control",
+      "description": "Restrict sidebar visibility and URL access to specific modules. Users without module permission see neither the menu item nor can access via direct URL.",
+      "criticality": "HIGH",
+      "irreversibleWarning": false,
+      "affectedAreas": ["Sidebar navigation", "Direct URL access", "API endpoints"]
+    },
+    {
+      "id": "team-hierarchy",
+      "title": "Team Hierarchy Visualization",
+      "description": "View and validate reporting relationships that determine 'Team Cases' visibility. Managers see all cases assigned to their direct and indirect reports.",
+      "criticality": "MEDIUM",
+      "irreversibleWarning": false,
+      "affectedAreas": ["Team Cases scope resolution", "Task visibility", "Dashboard aggregations"]
+    },
+    {
+      "id": "portal-users",
+      "title": "Portal User Management",
+      "description": "Control external client access to the Client Portal. Portal users can view case status, documents, and hearing schedules for their linked cases only.",
+      "criticality": "HIGH",
+      "irreversibleWarning": false,
+      "warning": "Portal users can see case documents marked as 'Portal Visible'. Verify document permissions before enabling portal access.",
+      "affectedAreas": ["External access", "Document sharing", "Case visibility"]
+    },
+    {
+      "id": "audit-log",
+      "title": "Audit Log",
+      "description": "Track all permission changes for compliance and security review. Logs are immutable - cannot be edited or deleted.",
+      "criticality": "COMPLIANCE",
+      "irreversibleWarning": false,
+      "affectedAreas": ["Compliance reporting", "Security investigations"]
+    }
+  ],
+
+  "securityWarnings": {
+    "critical": [
+      {
+        "id": "privilege-escalation",
+        "title": "Privilege Escalation Risk",
+        "description": "Granting 'rbac.admin' permission to non-admin roles allows those users to give themselves additional permissions, effectively becoming admins.",
+        "prevention": "Never grant 'rbac' module permissions to standard roles. Reserve for designated administrators only.",
+        "severity": "CRITICAL"
+      },
+      {
+        "id": "data-exposure",
+        "title": "Unintended Data Exposure",
+        "description": "Setting 'All Cases' data scope allows users to see every case in the organization, including matters for competing clients or sensitive personnel issues.",
+        "prevention": "Default to 'Own Cases' for staff. Use 'Team Cases' for managers. Reserve 'All Cases' for partners and compliance officers.",
+        "severity": "CRITICAL"
+      },
+      {
+        "id": "admin-lockout",
+        "title": "Administrator Lockout",
+        "description": "Removing admin role from all users or deactivating the only admin account locks everyone out of Access & Roles.",
+        "prevention": "Maintain minimum 2 active admin accounts at all times. Never remove admin role from yourself without another admin present.",
+        "severity": "HIGH"
+      },
+      {
+        "id": "portal-breach",
+        "title": "Portal Access Misconfiguration",
+        "description": "Linking wrong client to portal user grants access to another client's confidential case information.",
+        "prevention": "Double-verify client email address matches actual client contact. Use email domain verification where possible.",
+        "severity": "HIGH"
+      }
+    ],
+    "important": [
+      {
+        "id": "delete-permission",
+        "title": "Delete Permission Distribution",
+        "description": "Granting 'delete' permission on cases or clients to staff roles risks permanent data loss.",
+        "prevention": "Reserve delete permissions for Manager+ roles. Consider soft-delete workflows instead.",
+        "severity": "MEDIUM"
+      },
+      {
+        "id": "role-propagation",
+        "title": "Immediate Permission Propagation",
+        "description": "Role and permission changes take effect on next page load. Users may gain or lose access while actively working.",
+        "prevention": "Notify affected users before making permission changes. Schedule changes during off-hours when possible.",
+        "severity": "MEDIUM"
+      }
+    ]
+  },
+
+  "irreversibleActions": [
+    {
+      "action": "Delete custom role",
+      "consequence": "Role is permanently removed. Users with this role lose associated permissions. Cannot be recovered - must recreate manually.",
+      "mitigation": "Export role definition before deletion. Document role permissions in external system."
+    },
+    {
+      "action": "Remove employee from organization",
+      "consequence": "User loses all access. Historical audit entries preserved with user ID.",
+      "mitigation": "Deactivate instead of delete to preserve access history."
+    }
+  ],
+
+  "commonConfigurationMistakes": {
+    "roleAssignment": [
+      {
+        "mistake": "Assigning admin role to too many users",
+        "impact": "Difficult to audit, increased risk of accidental changes, harder to maintain least-privilege",
+        "prevention": "Limit admin role to 2-3 designated users. Create 'power user' roles with restricted permissions for others."
+      },
+      {
+        "mistake": "No backup admin account",
+        "impact": "Single point of failure - if primary admin leaves or is locked out, no one can manage access",
+        "prevention": "Always maintain 2+ active users with admin role from different people."
+      },
+      {
+        "mistake": "Staff with delete permissions",
+        "impact": "Risk of accidental or malicious data deletion",
+        "prevention": "Reserve delete permissions for Manager+ roles. Use archive/soft-delete workflows."
+      },
+      {
+        "mistake": "Not removing roles when employees change positions",
+        "impact": "Access creep - users accumulate permissions beyond their current role",
+        "prevention": "Include role review in position change checklist. Quarterly access audits."
+      }
+    ],
+    "dataScope": [
+      {
+        "mistake": "Partner with 'Own Cases' scope",
+        "impact": "Partners cannot see firm-wide data needed for oversight and client conflicts",
+        "prevention": "Partners should always have 'All Cases' scope."
+      },
+      {
+        "mistake": "Manager with 'Own Cases' scope",
+        "impact": "Managers cannot see their team's cases, breaking supervision workflow",
+        "prevention": "Managers need 'Team Cases' scope at minimum."
+      },
+      {
+        "mistake": "No hierarchy defined for 'Team Cases' users",
+        "impact": "'Team Cases' scope shows nothing because no team relationship exists",
+        "prevention": "Validate 'Reports To' field in Employee Master before setting 'Team Cases' scope."
+      },
+      {
+        "mistake": "Staff set to 'All Cases' without business need",
+        "impact": "Unnecessary data exposure, potential conflicts of interest",
+        "prevention": "Default staff to 'Own Cases'. Document business justification for broader scope."
+      }
+    ],
+    "moduleAccess": [
+      {
+        "mistake": "Hiding Reports module from all non-admin users",
+        "impact": "No analytics access for managers and partners",
+        "prevention": "Grant Reports view access to Manager+ roles."
+      },
+      {
+        "mistake": "Hiding Settings from all non-admin users",
+        "impact": "Users cannot configure personal preferences",
+        "prevention": "Create read-only Settings access for personal preferences."
+      },
+      {
+        "mistake": "Granting full module access when only view is needed",
+        "impact": "Excess permissions, violates least-privilege principle",
+        "prevention": "Start with view-only access, add edit/delete only when justified."
+      }
+    ],
+    "hierarchy": [
+      {
+        "mistake": "Circular reporting relationships",
+        "impact": "Infinite loops in visibility calculation, unpredictable access",
+        "prevention": "System validates and rejects circular relationships."
+      },
+      {
+        "mistake": "Missing 'Reports To' during employee import",
+        "impact": "Employees appear as orphan root nodes, 'Team Cases' fails",
+        "prevention": "Include 'Reports To' as required field in import templates."
+      },
+      {
+        "mistake": "Flat hierarchy for large teams",
+        "impact": "All staff report to one manager, creating access bottleneck",
+        "prevention": "Establish proper organizational levels with team leads."
+      }
+    ]
+  },
+
+  "roleBasedGuidance": {
+    "admin": {
+      "responsibilities": [
+        "Full CRUD on all user roles and permissions",
+        "Create and manage custom roles",
+        "Perform quarterly access reviews",
+        "Investigate and resolve access issues",
+        "Export compliance reports",
+        "Manage portal user access"
+      ],
+      "restrictions": [
+        "Cannot delete system-defined roles (admin, partner, manager, etc.)",
+        "Should not be the only admin - maintain backup"
+      ],
+      "bestPractices": [
+        "Document all custom role creations in ticketing system",
+        "Review audit log monthly for unusual activity",
+        "Test role changes in staging environment first",
+        "Maintain written justification for 'All Cases' scope grants"
+      ]
+    },
+    "partner": {
+      "responsibilities": [
+        "View role assignments for team oversight",
+        "Assign standard roles to staff (with admin approval)",
+        "Review team access monthly",
+        "Report access anomalies to admin"
+      ],
+      "restrictions": [
+        "Cannot create custom roles",
+        "Cannot modify system role permissions",
+        "Cannot manage portal users outside own client portfolio"
+      ],
+      "bestPractices": [
+        "Ensure all team members have correct 'Reports To' assignment",
+        "Verify new hires receive appropriate role within 24 hours",
+        "Request access reduction when staff responsibilities decrease"
+      ]
+    },
+    "implementor": {
+      "responsibilities": [
+        "Initial role structure setup during deployment",
+        "Configure custom roles based on organizational needs",
+        "Document role decisions for handoff to client admin",
+        "Validate hierarchy matches organizational chart"
+      ],
+      "restrictions": [
+        "Production changes limited post go-live",
+        "Should not retain admin access after handoff"
+      ],
+      "bestPractices": [
+        "Create role documentation before handoff",
+        "Train designated client admins on role management",
+        "Establish baseline access configuration for reference",
+        "Document expected vs actual user counts per role"
+      ]
+    }
+  },
+
+  "stepByStepGuides": {
+    "assignRoleToUser": {
+      "title": "Assign Role to User",
+      "estimatedTime": "2 minutes",
+      "steps": [
+        "Navigate to Access & Roles → User Assignments tab",
+        "Use search box to find employee by name or email",
+        "Click the [+] button next to the user's current roles",
+        "Select the role to assign from the dropdown",
+        "Verify the role appears in the user's role badges",
+        "Click [Eye] icon to preview effective permissions",
+        "Confirm user has expected access"
+      ],
+      "notes": [
+        "Users can have multiple roles - permissions combine",
+        "Role takes effect on user's next page load",
+        "No notification is sent - inform user manually"
+      ]
+    },
+    "createCustomRole": {
+      "title": "Create Custom Role",
+      "estimatedTime": "5 minutes",
+      "steps": [
+        "Navigate to Access & Roles → Role Definitions tab",
+        "Click 'Create Role' button",
+        "Enter Role Name (lowercase, underscores only, e.g., senior_tax_manager)",
+        "Enter Display Name (human readable, e.g., 'Senior Tax Manager')",
+        "Add Description explaining the role's purpose and intended users",
+        "Click 'Create Role' - role is created with NO permissions",
+        "Find the new role card and click 'Edit Permissions'",
+        "Check permissions for each module as needed",
+        "Click 'Save Changes'",
+        "Test by assigning to a test user and verifying access"
+      ],
+      "notes": [
+        "New roles start with zero permissions",
+        "Consider cloning an existing role as template",
+        "Document role purpose in external system for future reference"
+      ]
+    },
+    "troubleshootAccessIssue": {
+      "title": "Troubleshoot 'I Can't See My Cases' Issue",
+      "estimatedTime": "5-10 minutes",
+      "steps": [
+        "Navigate to Access & Roles → User Assignments tab",
+        "Search for the affected user",
+        "Click [Eye] icon to view their effective permissions",
+        "Check 1: Do they have 'cases.view' permission? If no, assign appropriate role",
+        "Check 2: What is their data scope? (Own/Team/All)",
+        "If 'Own Cases' - verify cases are assigned to this user",
+        "If 'Team Cases' - go to Team Hierarchy tab",
+        "Verify user's 'Reports To' is set in Employee Master",
+        "Verify their manager owns/is assigned the cases",
+        "Check Access Chain Inspector for visibility explanation"
+      ],
+      "notes": [
+        "Most 'can't see' issues are data scope or hierarchy problems",
+        "Permission issues prevent access entirely (401 errors)",
+        "Scope issues filter data (empty lists)"
+      ]
+    },
+    "quarterlyAccessReview": {
+      "title": "Quarterly Access Review",
+      "estimatedTime": "30-60 minutes",
+      "steps": [
+        "Navigate to Access & Roles → Audit Log tab",
+        "Review all role changes since last review",
+        "Flag any unexpected admin role assignments",
+        "Go to User Assignments tab",
+        "Filter by Status = Inactive, verify no active roles",
+        "Review each active user's role assignments",
+        "Cross-reference with HR active employee list",
+        "Go to Role Definitions tab",
+        "Review each custom role's permission set",
+        "Document any changes needed",
+        "Go to Portal Users tab",
+        "Verify all portal users correspond to active clients",
+        "Disable portal access for completed cases",
+        "Export summary report for compliance file"
+      ],
+      "notes": [
+        "Schedule review for same week each quarter",
+        "Include legal/compliance team for sensitive organizations",
+        "Store review documentation for audit purposes"
+      ]
+    }
+  },
+
+  "relatedArticles": [
+    {
+      "title": "Role Permissions Explained",
+      "url": "/help/faqs/role-permissions-explained.md",
+      "description": "Detailed breakdown of each permission and its implications"
+    },
+    {
+      "title": "Data Scope & Visibility Guide",
+      "url": "/help/faqs/data-scope-visibility.md",
+      "description": "How Own/Team/All scopes affect data visibility"
+    },
+    {
+      "title": "RBAC Troubleshooting",
+      "url": "/help/faqs/rbac-troubleshooting.md",
+      "description": "Common access issues and solutions"
+    }
+  ],
+
+  "relatedTours": [
+    {
+      "id": "access-roles-setup",
+      "title": "Access & Roles Configuration",
+      "description": "Interactive walkthrough of role-based access control setup"
+    }
+  ],
+
+  "glossary": [
+    {
+      "term": "RBAC",
+      "definition": "Role-Based Access Control - security model where permissions are assigned to roles, and roles are assigned to users"
+    },
+    {
+      "term": "Data Scope",
+      "definition": "Setting that determines which records a user can see: Own Cases, Team Cases, or All Cases"
+    },
+    {
+      "term": "RLS",
+      "definition": "Row-Level Security - database-level enforcement of access rules, ensuring unauthorized data never leaves the server"
+    },
+    {
+      "term": "Principle of Least Privilege",
+      "definition": "Security concept: users should have only the minimum access necessary to perform their job functions"
+    }
+  ]
+}

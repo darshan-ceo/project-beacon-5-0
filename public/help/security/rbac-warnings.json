@@ -1,0 +1,330 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2025-01-25",
+  "module": "access-roles",
+  "securityLevel": "CRITICAL",
+
+  "criticalWarnings": [
+    {
+      "id": "SW001",
+      "title": "Privilege Escalation Risk",
+      "severity": "CRITICAL",
+      "category": "access-control",
+      "triggerConditions": [
+        "Granting 'rbac.admin' permission to any non-admin role",
+        "Granting 'rbac.manage' permission to non-admin role",
+        "Assigning admin role to user without documented approval"
+      ],
+      "description": "Users with RBAC management permissions can modify their own permissions or grant themselves additional access, effectively becoming full administrators.",
+      "impact": {
+        "confidentiality": "HIGH - Can access all organization data",
+        "integrity": "HIGH - Can modify any permission or role",
+        "availability": "MEDIUM - Can lock out other users"
+      },
+      "prevention": [
+        "Never grant 'rbac' module permissions to standard roles",
+        "Limit admin role to 2-3 designated users",
+        "Require documented business justification for admin access",
+        "Implement dual-control for admin role assignments"
+      ],
+      "detection": "Review audit log weekly for unexpected RBAC permission changes",
+      "remediation": "Immediately revoke unauthorized RBAC permissions; investigate how access was obtained"
+    },
+    {
+      "id": "SW002",
+      "title": "Unintended Data Exposure via Data Scope",
+      "severity": "CRITICAL",
+      "category": "data-visibility",
+      "triggerConditions": [
+        "Setting 'All Cases' scope for non-partner/non-admin users",
+        "Setting 'Team Cases' scope without validating hierarchy",
+        "Bulk importing employees without data scope review"
+      ],
+      "description": "Incorrect data scope settings can expose confidential client matters to unauthorized team members. Users see all records matching their scope regardless of case assignment.",
+      "impact": {
+        "confidentiality": "CRITICAL - Client confidentiality breach",
+        "integrity": "LOW - Read access doesn't enable modification",
+        "availability": "NONE"
+      },
+      "prevention": [
+        "Default all new users to 'Own Cases' scope",
+        "Document business justification for 'All Cases' grants",
+        "Use 'Team Cases' only when hierarchy is validated",
+        "Review data scope during quarterly access audits"
+      ],
+      "detection": "Audit users with 'All Cases' scope; verify against authorized list",
+      "remediation": "Reduce data scope to appropriate level; notify affected users"
+    },
+    {
+      "id": "SW003",
+      "title": "Administrator Lockout",
+      "severity": "HIGH",
+      "category": "availability",
+      "triggerConditions": [
+        "Removing admin role from only remaining admin",
+        "Deactivating all admin-role users",
+        "Deleting admin user without transferring role"
+      ],
+      "description": "If all users with admin role are removed or deactivated, no one can manage Access & Roles, effectively locking the organization out of security management.",
+      "impact": {
+        "confidentiality": "NONE",
+        "integrity": "NONE",
+        "availability": "CRITICAL - Cannot manage access control"
+      },
+      "prevention": [
+        "Maintain minimum 2 active admin accounts at all times",
+        "Never remove admin role from yourself without another admin present",
+        "Create 'break glass' admin account with strong password stored securely",
+        "System should warn when removing last admin (if implemented)"
+      ],
+      "detection": "Monitor admin count; alert when drops below 2",
+      "remediation": "Contact Lovable support for emergency admin restoration"
+    },
+    {
+      "id": "SW004",
+      "title": "Client Portal Data Breach",
+      "severity": "HIGH",
+      "category": "external-access",
+      "triggerConditions": [
+        "Linking wrong client entity to portal user",
+        "Sending portal invitation to wrong email address",
+        "Not verifying email ownership before portal creation"
+      ],
+      "description": "Portal users can view case documents and hearing schedules. Incorrect client-portal linkage exposes one client's confidential information to another party.",
+      "impact": {
+        "confidentiality": "HIGH - Client confidentiality breach",
+        "integrity": "LOW - Portal access is typically read-only",
+        "availability": "NONE"
+      },
+      "prevention": [
+        "Verify email address matches actual client contact via phone",
+        "Use email domain verification where possible",
+        "Double-check client selection before sending invitation",
+        "Preview portal view before enabling access"
+      ],
+      "detection": "Review portal access log for unusual access patterns",
+      "remediation": "Immediately disable incorrect portal access; notify affected client; document incident"
+    },
+    {
+      "id": "SW005",
+      "title": "Excessive Delete Permissions",
+      "severity": "MEDIUM",
+      "category": "data-integrity",
+      "triggerConditions": [
+        "Granting 'delete' permission on cases/clients to staff roles",
+        "Granting 'delete' permission broadly without soft-delete workflow"
+      ],
+      "description": "Users with delete permissions can permanently remove case data, client records, or documents. Without soft-delete, this data is unrecoverable.",
+      "impact": {
+        "confidentiality": "NONE",
+        "integrity": "HIGH - Permanent data loss",
+        "availability": "MEDIUM - Missing data affects operations"
+      },
+      "prevention": [
+        "Reserve delete permissions for Manager+ roles",
+        "Implement soft-delete (archive) workflows where possible",
+        "Require approval for bulk deletions",
+        "Maintain database backups for recovery"
+      ],
+      "detection": "Monitor deletion activity in audit log; flag high-volume deletions",
+      "remediation": "Restore from backup if available; review and adjust delete permissions"
+    }
+  ],
+
+  "operationalWarnings": [
+    {
+      "id": "OW001",
+      "title": "Immediate Permission Propagation",
+      "severity": "MEDIUM",
+      "category": "change-management",
+      "description": "Role and permission changes take effect on the user's next page load. Users may gain or lose access while actively working.",
+      "bestPractice": [
+        "Notify affected users before making permission changes",
+        "Schedule major permission changes during off-hours",
+        "Test changes on a single user before bulk rollout",
+        "Document changes in ticketing system for traceability"
+      ]
+    },
+    {
+      "id": "OW002",
+      "title": "Role Change Without Hierarchy Update",
+      "severity": "MEDIUM",
+      "category": "configuration",
+      "description": "Changing a user's role to Manager without setting 'Reports To' for their team means they have 'Team Cases' scope but no team to see.",
+      "bestPractice": [
+        "Update Employee Master hierarchy before or simultaneously with role change",
+        "Verify hierarchy in Team Hierarchy tab after role change",
+        "Test visibility as the affected user after changes"
+      ]
+    },
+    {
+      "id": "OW003",
+      "title": "Custom Role Without Documentation",
+      "severity": "LOW",
+      "category": "governance",
+      "description": "Custom roles without descriptions make future administration difficult. New admins won't understand the role's purpose.",
+      "bestPractice": [
+        "Always add description explaining intended users and access level",
+        "Document custom roles in external governance system",
+        "Include creation rationale in ticketing system"
+      ]
+    },
+    {
+      "id": "OW004",
+      "title": "Portal Access Not Revoked After Case Closure",
+      "severity": "MEDIUM",
+      "category": "access-lifecycle",
+      "description": "Portal access is not automatically revoked when cases complete. Former clients retain access to historical case data.",
+      "bestPractice": [
+        "Add portal access review to case closure checklist",
+        "Quarterly audit of all portal accounts",
+        "Consider time-limited portal access for project-based engagements"
+      ]
+    },
+    {
+      "id": "OW005",
+      "title": "Access Creep from Position Changes",
+      "severity": "LOW",
+      "category": "access-lifecycle",
+      "description": "Users who change positions often retain old roles while gaining new ones, accumulating permissions beyond their current role.",
+      "bestPractice": [
+        "Include complete role review in position change checklist",
+        "Remove old roles when assigning new ones",
+        "Quarterly access audit to detect role accumulation"
+      ]
+    }
+  ],
+
+  "complianceRequirements": [
+    {
+      "id": "CR001",
+      "framework": "SOC 2 Type II",
+      "requirement": "Access Control (CC6.1)",
+      "description": "Implement logical and physical access controls to protect against threats.",
+      "rbacImplication": "Documented role definitions, periodic access reviews, audit logging",
+      "evidence": ["Role permission documentation", "Quarterly access review reports", "Audit log exports"]
+    },
+    {
+      "id": "CR002",
+      "framework": "ISO 27001",
+      "requirement": "A.9 Access Control",
+      "description": "Ensure authorized user access and prevent unauthorized access to systems and services.",
+      "rbacImplication": "Principle of least privilege, role-based access, access review process",
+      "evidence": ["RBAC policy document", "User access matrix", "Access review meeting minutes"]
+    },
+    {
+      "id": "CR003",
+      "framework": "GDPR",
+      "requirement": "Article 25 - Data Protection by Design",
+      "description": "Implement appropriate technical measures to ensure data protection principles.",
+      "rbacImplication": "Data minimization through scopes, documented access decisions, audit trail",
+      "evidence": ["Data scope justification log", "Access decision documentation", "Audit log"]
+    },
+    {
+      "id": "CR004",
+      "framework": "Bar Council Guidelines",
+      "requirement": "Client Confidentiality",
+      "description": "Maintain client confidence and protect client information from unauthorized access.",
+      "rbacImplication": "Conflict of interest prevention via data scope, client portal controls",
+      "evidence": ["Data scope settings per user", "Portal access log", "Case assignment records"]
+    }
+  ],
+
+  "auditCheckpoints": [
+    {
+      "id": "AC001",
+      "frequency": "Weekly",
+      "check": "Admin Role Grants",
+      "action": "Review audit log for ASSIGN_ROLE where role=admin",
+      "expectedFinding": "All admin grants have documented justification"
+    },
+    {
+      "id": "AC002",
+      "frequency": "Monthly",
+      "check": "Permission Changes",
+      "action": "Review audit log for UPDATE_PERMISSIONS events",
+      "expectedFinding": "All changes tied to approved change requests"
+    },
+    {
+      "id": "AC003",
+      "frequency": "Quarterly",
+      "check": "User Access Review",
+      "action": "Compare active user list with HR records; review role appropriateness",
+      "expectedFinding": "All active users are current employees; roles match job function"
+    },
+    {
+      "id": "AC004",
+      "frequency": "Quarterly",
+      "check": "Portal Access Review",
+      "action": "Review all portal accounts; verify active client relationship",
+      "expectedFinding": "All portal users correspond to active clients"
+    },
+    {
+      "id": "AC005",
+      "frequency": "Annually",
+      "check": "Role Structure Review",
+      "action": "Evaluate if role definitions still match organizational needs",
+      "expectedFinding": "Roles align with current job functions; obsolete roles removed"
+    }
+  ],
+
+  "incidentResponseProcedures": [
+    {
+      "incident": "Suspected Unauthorized Access",
+      "steps": [
+        "Immediately review audit log for affected user's recent activity",
+        "Check data scope and role assignments for the user",
+        "Identify what data may have been accessed",
+        "Disable user account if breach is confirmed",
+        "Document timeline and affected data",
+        "Notify compliance/legal if client data was accessed",
+        "Implement corrective controls to prevent recurrence"
+      ]
+    },
+    {
+      "incident": "Admin Account Compromise",
+      "steps": [
+        "Immediately change password for compromised account",
+        "Review audit log for all actions by compromised account",
+        "Identify any permission changes made",
+        "Revert unauthorized permission changes",
+        "Disable compromised account",
+        "Create new admin account for legitimate user",
+        "Conduct security review of all role assignments"
+      ]
+    },
+    {
+      "incident": "Complete Admin Lockout",
+      "steps": [
+        "Contact Lovable support immediately",
+        "Provide proof of organization ownership",
+        "Request emergency admin access restoration",
+        "Once restored, create backup admin accounts",
+        "Document incident and implement prevention measures"
+      ]
+    }
+  ],
+
+  "quickReferenceCard": {
+    "title": "RBAC Security Quick Reference",
+    "doAlways": [
+      "Maintain 2+ active admin accounts",
+      "Document all admin role grants",
+      "Review access quarterly",
+      "Use 'Own Cases' as default scope",
+      "Verify email before portal access"
+    ],
+    "doNever": [
+      "Grant RBAC permissions to non-admin roles",
+      "Set 'All Cases' scope without justification",
+      "Remove last admin account",
+      "Share portal invitations via insecure channels",
+      "Grant delete permissions to staff roles"
+    ],
+    "escalateTo": {
+      "securityIncidents": "Admin + Compliance Officer",
+      "accessRequests": "Admin (with manager approval)",
+      "emergencyAccess": "Lovable Support"
+    }
+  }
+}
