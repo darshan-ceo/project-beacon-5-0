@@ -156,13 +156,30 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     setIsAddressMasterEnabled(featureFlagService.isEnabled('address_master_v1'));
     
     if (courtData && (mode === 'edit' || mode === 'view')) {
-      // Parse address - handle both string (imported) and object formats
-      const parsedAddress = typeof courtData.address === 'string' 
-        ? parseCourtAddress(courtData.address, courtData)
-        : (courtData.address as EnhancedAddressData) || {
-            line1: '', line2: '', locality: '', district: '', 
-            cityId: '', stateId: '', pincode: '', countryId: 'IN', source: 'manual'
-          };
+      // Parse address - handle string (imported), JSON string, and object formats
+      let parsedAddress: EnhancedAddressData;
+      if (typeof courtData.address === 'string') {
+        // Try to parse as JSON first (new format stored as text)
+        if (courtData.address.trim().startsWith('{')) {
+          try {
+            const parsed = JSON.parse(courtData.address);
+            if (parsed && typeof parsed === 'object' && 'line1' in parsed) {
+              parsedAddress = parsed as EnhancedAddressData;
+            } else {
+              parsedAddress = parseCourtAddress(courtData.address, courtData);
+            }
+          } catch {
+            parsedAddress = parseCourtAddress(courtData.address, courtData);
+          }
+        } else {
+          parsedAddress = parseCourtAddress(courtData.address, courtData);
+        }
+      } else {
+        parsedAddress = (courtData.address as EnhancedAddressData) || {
+          line1: '', line2: '', locality: '', district: '', 
+          cityId: '', stateId: '', pincode: '', countryId: 'IN', source: 'manual'
+        };
+      }
       
       // Extract city from address string if not in court record
       const cityValue = courtData.city || 
