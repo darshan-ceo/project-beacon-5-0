@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -101,6 +101,9 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Track which court.id has been initialized to prevent re-hydration on prop reference changes
+  const initializedCourtId = useRef<string | null>(null);
 
   // State name to code mapping for imported data
   const STATE_NAME_TO_CODE: Record<string, string> = {
@@ -213,19 +216,60 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     return match?.value;
   };
 
-  // Reset saving/deleting states when modal opens to prevent stuck state
+  // Reset saving/deleting states when modal opens/closes
   useEffect(() => {
     if (isOpen) {
       setIsSaving(false);
       setIsDeleting(false);
       setErrors({});
+    } else {
+      // Reset initialization tracker when modal closes so next open re-hydrates fresh
+      initializedCourtId.current = null;
     }
   }, [isOpen]);
 
+  // Hydrate form ONLY once per court.id - do NOT re-run on prop reference changes
   useEffect(() => {
     setIsAddressMasterEnabled(featureFlagService.isEnabled('address_master_v1'));
     
+    // For create mode, always reset form but only once
+    if (mode === 'create') {
+      if (initializedCourtId.current !== 'new') {
+        initializedCourtId.current = 'new';
+        setFormData({
+          name: '',
+          type: 'District Court',
+          authorityLevel: undefined,
+          matterTypes: [],
+          jurisdiction: '',
+          address: { ...DEFAULT_ADDRESS },
+          digitalFiling: false,
+          digitalFilingPortal: '',
+          digitalFilingPortalUrl: '',
+          digitalFilingInstructions: '',
+          workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+          phone: '',
+          email: '',
+          benchLocation: '',
+          city: '',
+          status: 'Active',
+          taxJurisdiction: undefined,
+          officerDesignation: undefined
+        });
+      }
+      return;
+    }
+    
+    // For edit/view mode, only hydrate ONCE per court.id
     if (courtData && (mode === 'edit' || mode === 'view')) {
+      // Skip if already initialized for this court - preserve user edits
+      if (initializedCourtId.current === courtData.id) {
+        return;
+      }
+      
+      // Mark as initialized for this court
+      initializedCourtId.current = courtData.id;
+      
       // Normalize address using helper - ensures all fields exist with proper defaults
       const parsedAddress = normalizeAddress(courtData.address, courtData);
       
@@ -260,37 +304,8 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         taxJurisdiction,
         officerDesignation,
       });
-    } else if (mode === 'create') {
-      setFormData({
-        name: '',
-        type: 'District Court',
-        authorityLevel: undefined,
-        jurisdiction: '',
-        address: {
-          line1: '',
-          line2: '',
-          locality: '',
-          district: '',
-          cityId: '',
-          stateId: '',
-          countryId: 'IN',
-          source: 'manual'
-        } as EnhancedAddressData,
-        digitalFiling: false,
-        digitalFilingPortal: '',
-        digitalFilingPortalUrl: '',
-        digitalFilingInstructions: '',
-        workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-        phone: '',
-        email: '',
-        benchLocation: '',
-        city: '',
-        status: 'Active',
-        taxJurisdiction: undefined,
-        officerDesignation: undefined
-      });
     }
-  }, [courtData, mode]);
+  }, [courtData?.id, mode]); // ONLY depend on court ID and mode, NOT entire courtData object
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
