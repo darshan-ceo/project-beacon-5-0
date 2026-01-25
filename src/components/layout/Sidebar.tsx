@@ -139,16 +139,16 @@ const sidebarSections: SidebarSection[] = [
     ]
   },
   
-  // SECTION 5: ANALYTICS
+  // SECTION 5: ANALYTICS - All operational roles included; actual access controlled by RBAC + Module Access
   {
     id: 'analytics',
     label: 'ANALYTICS',
     icon: LineChart,
     defaultOpen: false,
     collapsible: true,
-    roles: ['Admin', 'Partner', 'Partner/CA', 'Manager'],
+    roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'],
     items: [
-      { icon: BarChart3, label: 'Reports', href: '/reports', roles: ['Admin', 'Partner', 'Partner/CA', 'Manager'], tourId: 'reports-nav' },
+      { icon: BarChart3, label: 'Reports', href: '/reports', roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'reports-nav' },
     ]
   },
   
@@ -319,24 +319,39 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
     setSidebarTheme(sidebarTheme === 'dark' ? 'light' : 'dark');
   };
 
-  // Filter sections by:
-  // 1. Legacy role array (for admin-only sections like ADMINISTRATION, DEVELOPER)
+  // Filter sections by RBAC-first approach:
+  // 1. RBAC permissions (database-driven, primary authority)
   // 2. Module access (employee.moduleAccess field)
-  // 3. RBAC permissions (database-driven, for content modules)
+  // 3. Legacy role array (only for admin-only sections: ADMINISTRATION, DEVELOPER)
   const filteredSections = useMemo(() => {
+    // Admin-only sections where legacy role check is strictly enforced
+    const adminOnlySections = ['administration', 'developer'];
+    
     return allSections
-      .filter(section => section.roles.includes(normalizedRole))
+      .filter(section => {
+        // For admin-only sections, enforce legacy role check
+        if (adminOnlySections.includes(section.id)) {
+          return section.roles.includes(normalizedRole);
+        }
+        // For all other sections, allow through to item-level filtering
+        return true;
+      })
       .map(section => ({
         ...section,
         items: filterMenuItems(
-          section.items.filter(item => 
-            // Legacy role check (for admin-only items)
-            item.roles.includes(normalizedRole) && 
-            // Module access check (employee.moduleAccess)
-            hasModuleAccess(item.href) &&
-            // RBAC permission check (database-driven)
-            hasRbacAccess(item.href)
-          )
+          section.items.filter(item => {
+            // 1. RBAC permission check (primary authority)
+            const rbacAllowed = hasRbacAccess(item.href);
+            
+            // 2. Module access check (employee.moduleAccess)
+            const moduleAllowed = hasModuleAccess(item.href);
+            
+            // 3. Legacy role check (only for admin-only sections)
+            const isAdminSection = adminOnlySections.includes(section.id);
+            const legacyAllowed = isAdminSection ? item.roles.includes(normalizedRole) : true;
+            
+            return rbacAllowed && moduleAllowed && legacyAllowed;
+          })
         )
       }))
       .filter(section => section.items.length > 0);
