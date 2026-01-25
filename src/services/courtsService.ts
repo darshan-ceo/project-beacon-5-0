@@ -23,22 +23,6 @@ export interface UpdateCourtData extends Partial<CreateCourtData> {
 
 class CourtsService {
   /**
-   * Parse address from JSON string to object (for UI consistency)
-   */
-  private parseAddress(addr: any): any {
-    if (!addr) return null;
-    if (typeof addr === 'string') {
-      try {
-        const parsed = JSON.parse(addr);
-        if (parsed && typeof parsed === 'object') return parsed;
-      } catch {
-        return { line1: addr };
-      }
-    }
-    return addr;
-  }
-
-  /**
    * Create a new court with persistence and dispatch
    */
   async create(courtData: Partial<Court>, dispatch: any): Promise<Court> {
@@ -53,19 +37,13 @@ class CourtsService {
       // Normalize payload before persistence
       const normalizedData = normalizeCourtPayload(courtData);
 
-      // Stringify address if it's an object (DB column is text)
-      const addressValue = typeof normalizedData.address === 'object' 
-        ? JSON.stringify(normalizedData.address) 
-        : (normalizedData.address || '');
-
-      // Build complete court object (spread normalizedData first, then override address)
+      // Build complete court object
       const newCourt: Court = {
-        ...normalizedData,
         id: '', // Server will generate UUID
         name: normalizedData.name || '',
         type: normalizedData.type || 'District Court',
         jurisdiction: normalizedData.jurisdiction || '',
-        address: addressValue, // Stringified address takes precedence
+        address: normalizedData.address || '',
         activeCases: 0,
         avgHearingTime: '30 mins',
         digitalFiling: normalizedData.digitalFiling || false,
@@ -75,16 +53,15 @@ class CourtsService {
         email: normalizedData.email,
         benchLocation: normalizedData.benchLocation,
         status: normalizedData.status || 'Active',
-        taxJurisdiction: normalizedData.taxJurisdiction,
-        officerDesignation: normalizedData.officerDesignation,
+        ...normalizedData
       };
 
-      // Persist to Supabase with explicitly stringified address
+      // Persist to Supabase
       const created = await storage.create('courts', {
         name: newCourt.name,
         type: newCourt.type,
         jurisdiction: newCourt.jurisdiction,
-        address: addressValue,
+        address: newCourt.address,
         city: newCourt.city,
         phone: newCourt.phone,
         email: newCourt.email,
@@ -128,66 +105,43 @@ class CourtsService {
       // Normalize payload before persistence
       const normalizedUpdates = normalizeCourtPayload(updates);
 
-      // Stringify address if it's an object (DB column is text) - use normalizedUpdates for consistency
-      const addressValue = normalizedUpdates.address !== undefined
-        ? (typeof normalizedUpdates.address === 'object' 
-            ? JSON.stringify(normalizedUpdates.address) 
-            : normalizedUpdates.address)
-        : undefined;
-
-      // Build persistence payload using normalized values
-      const persistPayload: Record<string, any> = {
-        updated_at: new Date().toISOString(),
-      };
-
-      // Only include fields that are being updated
-      if (updates.name !== undefined) persistPayload.name = updates.name;
-      if (updates.type !== undefined) persistPayload.type = updates.type;
-      if (updates.jurisdiction !== undefined) persistPayload.jurisdiction = updates.jurisdiction;
-      if (addressValue !== undefined) persistPayload.address = addressValue;
-      if (updates.city !== undefined) persistPayload.city = updates.city;
-      if (updates.phone !== undefined) persistPayload.phone = updates.phone;
-      if (updates.email !== undefined) persistPayload.email = updates.email;
-      if (updates.status !== undefined) persistPayload.status = updates.status;
-      if (updates.benchLocation !== undefined) persistPayload.bench_location = updates.benchLocation;
-      // Use normalizedUpdates for mapped fields to ensure correct snake_case
-      if (normalizedUpdates.taxJurisdiction !== undefined) persistPayload.tax_jurisdiction = normalizedUpdates.taxJurisdiction;
-      if (normalizedUpdates.officerDesignation !== undefined) persistPayload.officer_designation = normalizedUpdates.officerDesignation;
-
-      console.log('📝 Court update payload:', { courtId, persistPayload });
-
       // Persist to Supabase
-      await storage.update('courts', courtId, persistPayload as any);
+      await storage.update('courts', courtId, {
+        ...(updates.name && { name: updates.name }),
+        ...(updates.type && { type: updates.type }),
+        ...(updates.jurisdiction && { jurisdiction: updates.jurisdiction }),
+        ...(updates.address && { address: updates.address }),
+        ...(updates.city && { city: updates.city }),
+        ...(updates.phone && { phone: updates.phone }),
+        ...(updates.email && { email: updates.email }),
+        ...(updates.status && { status: updates.status }),
+        ...(updates.benchLocation && { bench_location: updates.benchLocation }),
+        ...(updates.taxJurisdiction !== undefined && { tax_jurisdiction: updates.taxJurisdiction }),
+        ...(updates.officerDesignation !== undefined && { officer_designation: updates.officerDesignation }),
+        updated_at: new Date().toISOString(),
+      } as any);
 
-      // CRITICAL: Re-fetch the FULL court row from Supabase to ensure complete data
-      // Do NOT rely on partial payloads or realtime events
-      const dbCourt = await storage.getById<any>('courts', courtId);
-      
-      if (!dbCourt) {
-        throw new Error(`Court ${courtId} not found after update`);
-      }
-      
-      // Build full court object from fresh database record
+      // Fetch the full updated court from database
+      const existingCourt = await storage.getById<any>('courts', courtId);
       const fullCourt: Court = {
-        id: dbCourt.id,
-        name: dbCourt.name || '',
-        type: dbCourt.type || 'District Court',
-        jurisdiction: dbCourt.jurisdiction || '',
-        address: this.parseAddress(dbCourt.address),
-        city: dbCourt.city || '',
-        phone: dbCourt.phone,
-        email: dbCourt.email,
-        status: dbCourt.status || 'Active',
-        benchLocation: dbCourt.bench_location,
-        taxJurisdiction: dbCourt.tax_jurisdiction,
-        officerDesignation: dbCourt.officer_designation,
+        id: courtId,
+        name: existingCourt?.name || updates.name || '',
+        type: existingCourt?.type || updates.type || 'District Court',
+        jurisdiction: existingCourt?.jurisdiction || updates.jurisdiction || '',
+        address: existingCourt?.address || updates.address || '',
+        city: existingCourt?.city || updates.city || '',
+        phone: existingCourt?.phone || updates.phone,
+        email: existingCourt?.email || updates.email,
+        status: existingCourt?.status || updates.status || 'Active',
+        benchLocation: existingCourt?.bench_location || updates.benchLocation,
+        taxJurisdiction: existingCourt?.tax_jurisdiction || updates.taxJurisdiction,
+        officerDesignation: existingCourt?.officer_designation || updates.officerDesignation,
         activeCases: 0,
         avgHearingTime: '30 mins',
-        digitalFiling: updates.digitalFiling ?? false,
-        workingDays: updates.workingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+        digitalFiling: false,
+        workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+        ...updates // Apply updates on top
       };
-
-      console.log('✅ Court updated with full DB record:', fullCourt);
 
       // Dispatch full court object to context
       dispatch({ type: 'UPDATE_COURT', payload: fullCourt });
@@ -252,7 +206,7 @@ class CourtsService {
         name: c.name,
         type: c.type,
         jurisdiction: c.jurisdiction,
-        address: this.parseAddress(c.address),
+        address: c.address,
         city: c.city,
         phone: c.phone,
         email: c.email,
@@ -286,7 +240,7 @@ class CourtsService {
         name: court.name,
         type: court.type,
         jurisdiction: court.jurisdiction,
-        address: this.parseAddress(court.address),
+        address: court.address,
         city: court.city,
         phone: court.phone,
         email: court.email,

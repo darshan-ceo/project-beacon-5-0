@@ -602,21 +602,6 @@ export const useRealtimeSync = () => {
         },
         (payload) => {
           console.log('[Realtime] Courts change:', payload.eventType, payload);
-          
-          // Parse address JSON string to object for UI consistency
-          const parseCourtAddress = (addr: any) => {
-            if (!addr) return null;
-            if (typeof addr === 'string') {
-              try {
-                const parsed = JSON.parse(addr);
-                if (parsed && typeof parsed === 'object') return parsed;
-              } catch {
-                return { line1: addr };
-              }
-            }
-            return addr;
-          };
-          
           if (payload.eventType === 'INSERT' && payload.new) {
             const courtData = payload.new as any;
             rawDispatch({ 
@@ -626,7 +611,7 @@ export const useRealtimeSync = () => {
                 name: courtData.name,
                 type: courtData.type,
                 jurisdiction: courtData.jurisdiction,
-                address: parseCourtAddress(courtData.address),
+                address: courtData.address,
                 city: courtData.city,
                 phone: courtData.phone,
                 email: courtData.email,
@@ -641,9 +626,24 @@ export const useRealtimeSync = () => {
               } as any 
             });
           } else if (payload.eventType === 'UPDATE' && payload.new) {
-            // IGNORE realtime UPDATE for courts - courtsService.update() handles full entity dispatch
-            // Realtime payloads may be partial and overwrite complete data in store
-            console.log('[Realtime] Courts UPDATE ignored - service handles full entity dispatch');
+            const courtData = payload.new as any;
+            rawDispatch({ 
+              type: 'UPDATE_COURT', 
+              payload: {
+                id: courtData.id,
+                name: courtData.name,
+                type: courtData.type,
+                jurisdiction: courtData.jurisdiction,
+                address: courtData.address,
+                city: courtData.city,
+                phone: courtData.phone,
+                email: courtData.email,
+                status: courtData.status || 'Active',
+                benchLocation: courtData.bench_location,
+                taxJurisdiction: courtData.tax_jurisdiction,
+                officerDesignation: courtData.officer_designation,
+              } as any 
+            });
           } else if (payload.eventType === 'DELETE' && payload.old) {
             rawDispatch({ type: 'DELETE_COURT', payload: (payload.old as any).id });
           }

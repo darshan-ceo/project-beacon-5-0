@@ -45,15 +45,6 @@ const workingDayOptions = [
 
 export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: courtData, mode }) => {
   const { state, dispatch } = useAppState();
-
-  // DEBUG: Trace courtData (props from store) vs formData (local state)
-  console.log('[CourtModal] RENDER', {
-    mode,
-    courtDataId: courtData?.id,
-    courtData_taxJurisdiction: courtData?.taxJurisdiction,
-    courtData_officerDesignation: courtData?.officerDesignation,
-    courtData_address: courtData?.address,
-  });
   const [formData, setFormData] = useState<{
     name: string;
     type: 'Supreme Court' | 'High Court' | 'District Court' | 'Tribunal' | 'Commission';
@@ -138,19 +129,6 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     return STATE_NAME_TO_CODE[normalized] || stateValue;
   };
 
-  // Default address structure for normalization
-  const DEFAULT_ADDRESS: EnhancedAddressData = {
-    line1: '',
-    line2: '',
-    locality: '',
-    district: '',
-    cityId: '',
-    stateId: '',
-    pincode: '',
-    countryId: 'IN',
-    source: 'manual'
-  } as EnhancedAddressData;
-
   // Parse address string to extract pincode, state, city for imported data
   const parseCourtAddress = (addressStr: string, court: any): EnhancedAddressData => {
     // Extract 6-digit pincode using regex
@@ -162,127 +140,51 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     const stateId = normalizeStateId(rawState);
     
     return {
-      ...DEFAULT_ADDRESS,
       line1: addressStr,
+      line2: '',
+      locality: '',
+      district: '',
+      cityId: '',
       stateId: stateId,
       pincode: pincode,
-    };
-  };
-
-  // Normalize any address input to full EnhancedAddressData - ensures all fields exist
-  const normalizeAddress = (addr: any, court: any): EnhancedAddressData => {
-    if (!addr) return { ...DEFAULT_ADDRESS };
-    
-    // Parse JSON string if needed
-    let parsed = addr;
-    if (typeof addr === 'string') {
-      if (addr.trim().startsWith('{')) {
-        try {
-          parsed = JSON.parse(addr);
-        } catch {
-          // Legacy plain text - put in line1
-          return parseCourtAddress(addr, court);
-        }
-      } else {
-        // Plain text address
-        return parseCourtAddress(addr, court);
-      }
-    }
-    
-    // If parsed is not an object, treat as plain text
-    if (typeof parsed !== 'object' || parsed === null) {
-      return { ...DEFAULT_ADDRESS, line1: String(parsed || '') };
-    }
-    
-    // Merge with defaults to ensure all fields exist
-    return {
-      line1: parsed.line1 || '',
-      line2: parsed.line2 || '',
-      locality: parsed.locality || '',
-      district: parsed.district || '',
-      cityId: parsed.cityId || '',
-      stateId: parsed.stateId || normalizeStateId(court?.state || ''),
-      pincode: parsed.pincode || '',
-      countryId: parsed.countryId || 'IN',
-      source: parsed.source || 'manual',
-      // Preserve any additional fields for display
-      cityName: parsed.cityName,
-      stateName: parsed.stateName,
+      countryId: 'IN',
+      source: 'manual'
     } as EnhancedAddressData;
   };
 
-  // Validate officer designation against available options for the jurisdiction
-  const validateOfficerDesignation = (
-    value: string | undefined | null, 
-    jurisdiction: TaxJurisdiction | undefined
-  ): OfficerDesignation | undefined => {
-    if (!value || !jurisdiction) return undefined;
-    const officers = getOfficersByJurisdiction(jurisdiction);
-    const match = officers.find(o => o.value === value);
-    return match?.value;
-  };
-
-  // Reset saving/deleting states when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      setIsSaving(false);
-      setIsDeleting(false);
-      setErrors({});
-    }
-  }, [isOpen]);
-
-  // Hydrate form from props - component remounts via key when court changes
   useEffect(() => {
     setIsAddressMasterEnabled(featureFlagService.isEnabled('address_master_v1'));
     
-    if (mode === 'create') {
-      setFormData({
-        name: '',
-        type: 'District Court',
-        authorityLevel: undefined,
-        matterTypes: [],
-        jurisdiction: '',
-        address: { ...DEFAULT_ADDRESS },
-        digitalFiling: false,
-        digitalFilingPortal: '',
-        digitalFilingPortalUrl: '',
-        digitalFilingInstructions: '',
-        workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-        phone: '',
-        email: '',
-        benchLocation: '',
-        city: '',
-        status: 'Active',
-        taxJurisdiction: undefined,
-        officerDesignation: undefined
-      });
-      return;
-    }
-    
     if (courtData && (mode === 'edit' || mode === 'view')) {
-      
-      // Normalize address using helper - ensures all fields exist with proper defaults
-      const parsedAddress = normalizeAddress(courtData.address, courtData);
+      // Parse address - handle string (imported), JSON string, and object formats
+      let parsedAddress: EnhancedAddressData;
+      if (typeof courtData.address === 'string') {
+        // Try to parse as JSON first (new format stored as text)
+        if (courtData.address.trim().startsWith('{')) {
+          try {
+            const parsed = JSON.parse(courtData.address);
+            if (parsed && typeof parsed === 'object' && 'line1' in parsed) {
+              parsedAddress = parsed as EnhancedAddressData;
+            } else {
+              parsedAddress = parseCourtAddress(courtData.address, courtData);
+            }
+          } catch {
+            parsedAddress = parseCourtAddress(courtData.address, courtData);
+          }
+        } else {
+          parsedAddress = parseCourtAddress(courtData.address, courtData);
+        }
+      } else {
+        parsedAddress = (courtData.address as EnhancedAddressData) || {
+          line1: '', line2: '', locality: '', district: '', 
+          cityId: '', stateId: '', pincode: '', countryId: 'IN', source: 'manual'
+        };
+      }
       
       // Extract city from address string if not in court record
       const cityValue = courtData.city || 
         (typeof courtData.address === 'string' ? extractCityFromAddress(courtData.address) : '') || '';
       
-      // Get tax jurisdiction and validate officer designation against available options
-      const taxJurisdiction = courtData.taxJurisdiction as TaxJurisdiction | undefined;
-      const officerDesignation = validateOfficerDesignation(
-        courtData.officerDesignation,
-        taxJurisdiction
-      );
-      
-      // DEBUG: Log hydration values
-      console.log('[CourtModal] HYDRATING', {
-        taxJurisdiction,
-        officerDesignation,
-        parsedAddress,
-        courtData_address_raw: courtData.address,
-      });
-
       setFormData({
         name: courtData.name,
         type: courtData.type,
@@ -300,8 +202,37 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         benchLocation: courtData.benchLocation || '',
         city: cityValue,
         status: courtData.status || 'Active',
-        taxJurisdiction,
-        officerDesignation,
+        taxJurisdiction: courtData.taxJurisdiction as TaxJurisdiction | undefined,
+        officerDesignation: courtData.officerDesignation as OfficerDesignation | undefined
+      });
+    } else if (mode === 'create') {
+      setFormData({
+        name: '',
+        type: 'District Court',
+        authorityLevel: undefined,
+        jurisdiction: '',
+        address: {
+          line1: '',
+          line2: '',
+          locality: '',
+          district: '',
+          cityId: '',
+          stateId: '',
+          countryId: 'IN',
+          source: 'manual'
+        } as EnhancedAddressData,
+        digitalFiling: false,
+        digitalFilingPortal: '',
+        digitalFilingPortalUrl: '',
+        digitalFilingInstructions: '',
+        workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+        phone: '',
+        email: '',
+        benchLocation: '',
+        city: '',
+        status: 'Active',
+        taxJurisdiction: undefined,
+        officerDesignation: undefined
       });
     }
   }, [courtData, mode]);
@@ -447,8 +378,6 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         description: error?.message || 'Failed to save legal forum. Please try again.',
         variant: 'destructive'
       });
-    } finally {
-      // Always reset saving state, even on success (modal may stay mounted)
       setIsSaving(false);
     }
   };
