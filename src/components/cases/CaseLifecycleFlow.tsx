@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { StageManagementModal } from '@/components/modals/StageManagementModal';
 import { UnifiedStageDialog } from '@/components/lifecycle/UnifiedStageDialog';
-import { CycleTimeline } from '@/components/lifecycle/CycleTimeline';
+import { EnhancedCycleTimeline } from '@/components/lifecycle/EnhancedCycleTimeline';
+import { StageTransitionHistory } from '@/components/lifecycle/StageTransitionHistory';
 import { featureFlagService } from '@/services/featureFlagService';
 import { HearingModal } from '@/components/modals/HearingModal';
 import { FormRenderModal } from '@/components/documents/FormRenderModal';
@@ -477,18 +478,22 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
         </motion.div>
       )}
 
-      {/* Cycle Timeline (if feature enabled) */}
+      {/* Stage History & Transition History - Enhanced Visual Timeline */}
       {selectedCase && featureFlagService.isEnabled('lifecycle_cycles_v1') && (
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.4 }}
+          className="grid grid-cols-1 lg:grid-cols-2 gap-6"
         >
-        <CycleTimeline 
-          caseId={selectedCase.id} 
-          currentStage={selectedCase.currentStage}
-          caseData={selectedCase}
-        />
+          {/* Stage History & Cycles - Left Column */}
+          <EnhancedCycleTimeline 
+            caseId={selectedCase.id} 
+            currentStage={selectedCase.currentStage}
+          />
+          
+          {/* Transition History - Right Column */}
+          <StageTransitionHistory caseId={selectedCase.id} />
         </motion.div>
       )}
 
