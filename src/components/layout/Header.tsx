@@ -1,7 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Bell, 
   ChevronDown,
   Shield,
   LogOut,
@@ -84,13 +83,6 @@ export const Header: React.FC = () => {
           </Badge>
         )}
         
-        {/* Notifications */}
-        <Button variant="ghost" size="sm" className="relative">
-          <Bell className="h-5 w-5" />
-          <span className="absolute -top-1 -right-1 h-4 w-4 bg-primary text-primary-foreground text-xs rounded-full flex items-center justify-center">
-            3
-          </span>
-        </Button>
 
         {/* Unified User Menu */}
         <DropdownMenu>
