@@ -47,7 +47,8 @@ const normalizeStateId = (stateValue: string): string => {
 // Version 8: Fixed profile/access pages to use actual RLS-filtered state counts
 // Version 9: Fixed manager lookup to handle snake_case reporting_to field
 // Version 10: Fixed access breakdown to use RLS-filtered cases instead of frontend visibility calculation
-const DATA_SCHEMA_VERSION = 10;
+// Version 11: Fixed court taxJurisdiction/officerDesignation mapping and address JSON parsing
+const DATA_SCHEMA_VERSION = 11;
 
 // Global flags to persist data loaded state across component remounts
 // This prevents the "Loading your data..." screen from appearing when switching tabs
@@ -498,28 +499,45 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
           })
         });
 
-        const courts = (courtsData.data || []).map((c: any) => ({
-          ...c,
-          activeCases: c.active_cases || c.activeCases || 0,
-          avgHearingTime: c.avg_hearing_time || c.avgHearingTime || 'N/A',
-          digitalFiling: c.digital_filing || c.digitalFiling || false,
-          digitalFilingPortal: c.digital_filing_portal || c.digitalFilingPortal,
-          digitalFilingPortalUrl: c.digital_filing_portal_url || c.digitalFilingPortalUrl,
-          digitalFilingInstructions: c.digital_filing_instructions || c.digitalFilingInstructions,
-          workingDays: c.working_days || c.workingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-          addressId: c.address_id || c.addressId,
-          benchLocation: c.bench_location || c.benchLocation,
-          authorityLevel: c.level || c.authority_level || c.authorityLevel,
-          // Additional fields for complete mapping
-          phone: c.phone || '',
-          email: c.email || '',
-          city: c.city || '',
-          state: normalizeStateId(c.state || ''),
-          jurisdiction: c.jurisdiction || '',
-          status: c.status || 'Active',
-          code: c.code || '',
-          establishedYear: c.established_year || c.establishedYear,
-        }));
+        const courts = (courtsData.data || []).map((c: any) => {
+          // Parse address if stored as JSON string
+          let parsedAddress = c.address;
+          if (typeof c.address === 'string' && c.address.trim().startsWith('{')) {
+            try {
+              parsedAddress = JSON.parse(c.address);
+            } catch {
+              // Keep as string if not valid JSON
+            }
+          }
+          
+          return {
+            ...c,
+            activeCases: c.active_cases || c.activeCases || 0,
+            avgHearingTime: c.avg_hearing_time || c.avgHearingTime || 'N/A',
+            digitalFiling: c.digital_filing || c.digitalFiling || false,
+            digitalFilingPortal: c.digital_filing_portal || c.digitalFilingPortal,
+            digitalFilingPortalUrl: c.digital_filing_portal_url || c.digitalFilingPortalUrl,
+            digitalFilingInstructions: c.digital_filing_instructions || c.digitalFilingInstructions,
+            workingDays: c.working_days || c.workingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+            addressId: c.address_id || c.addressId,
+            benchLocation: c.bench_location || c.benchLocation,
+            authorityLevel: c.level || c.authority_level || c.authorityLevel,
+            // Tax jurisdiction and officer designation mapping
+            taxJurisdiction: c.tax_jurisdiction || c.taxJurisdiction,
+            officerDesignation: c.officer_designation || c.officerDesignation,
+            // Parsed address (handles JSON string format)
+            address: parsedAddress,
+            // Additional fields for complete mapping
+            phone: c.phone || '',
+            email: c.email || '',
+            city: c.city || '',
+            state: normalizeStateId(c.state || ''),
+            jurisdiction: c.jurisdiction || '',
+            status: c.status || 'Active',
+            code: c.code || '',
+            establishedYear: c.established_year || c.establishedYear,
+          };
+        });
 
         const judges = (judgesData.data || []).map((j: any) => ({
           ...j,
