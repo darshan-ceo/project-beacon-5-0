@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAppState } from '@/contexts/AppStateContext';
@@ -569,6 +570,7 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
             reporting_to: formData.reportingTo,
             manager_id: formData.managerId,
             weekly_off: formData.weeklyOff,
+            weekly_off_days: formData.weeklyOff === 'Custom' ? formData.weeklyOffDays : null,
             work_shift: formData.workShift,
             workload_capacity: formData.workloadCapacity,
             profile_photo: formData.profilePhoto,
@@ -1100,13 +1102,17 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
         />
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         <Label htmlFor="weeklyOff">Weekly Off</Label>
         <Select
           value={formData.weeklyOff || ''}
-          onValueChange={(value) =>
-            handleInputChange('weeklyOff', value as Employee['weeklyOff'])
-          }
+          onValueChange={(value) => {
+            handleInputChange('weeklyOff', value as Employee['weeklyOff']);
+            // Clear custom days when switching away from Custom
+            if (value !== 'Custom') {
+              handleInputChange('weeklyOffDays', []);
+            }
+          }}
           disabled={isReadOnly}
         >
           <SelectTrigger>
@@ -1118,6 +1124,84 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
             <SelectItem value="Custom">Custom</SelectItem>
           </SelectContent>
         </Select>
+        
+        {/* CONDITIONAL: Custom Weekly Off Configuration */}
+        {formData.weeklyOff === 'Custom' && !isReadOnly && (
+          <div className="mt-4 p-4 bg-muted/50 rounded-lg border space-y-4">
+            {/* Section Title with Help */}
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-medium">Configure Custom Weekly Off</h4>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p>This is commonly used in professional service offices such as GST litigation, compliance, filing, and consulting teams where workdays depend on court schedules and statutory deadlines.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            
+            {/* Static Help Text */}
+            <p className="text-xs text-muted-foreground">
+              Use this option when the employee does not follow a standard Sunday or alternate Saturday weekly off.
+            </p>
+            
+            {/* Multi-select Checkbox Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => (
+                <div key={day} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`day-${day}`}
+                    checked={(formData.weeklyOffDays || []).includes(day)}
+                    onCheckedChange={(checked) => {
+                      const currentDays = formData.weeklyOffDays || [];
+                      const newDays = checked
+                        ? [...currentDays, day]
+                        : currentDays.filter(d => d !== day);
+                      handleInputChange('weeklyOffDays', newDays);
+                    }}
+                    disabled={isReadOnly}
+                  />
+                  <Label htmlFor={`day-${day}`} className="text-sm font-normal cursor-pointer">
+                    {day}
+                  </Label>
+                </div>
+              ))}
+            </div>
+            
+            {/* Conditional Info Message for No Days Selected */}
+            {(formData.weeklyOffDays || []).length === 0 && (
+              <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/30 p-2 rounded">
+                <Info className="h-3.5 w-3.5 shrink-0" />
+                <span>If no days are selected, it means the employee does not have a fixed weekly off.</span>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Read-only Summary (View Mode) */}
+        {isReadOnly && formData.weeklyOff && (
+          <div className="mt-2 text-sm text-muted-foreground bg-muted/30 p-2 rounded">
+            <span className="font-medium">Weekly Off: </span>
+            {formData.weeklyOff === 'Custom' ? (
+              (formData.weeklyOffDays || []).length > 0 
+                ? formData.weeklyOffDays!.join(', ')
+                : <Badge variant="outline" className="text-amber-600 border-amber-300 ml-1">Custom (No fixed weekly off)</Badge>
+            ) : (
+              formData.weeklyOff
+            )}
+          </div>
+        )}
+        
+        {/* Edit Mode Summary when Custom is selected */}
+        {!isReadOnly && formData.weeklyOff === 'Custom' && (formData.weeklyOffDays || []).length === 0 && (
+          <div className="flex items-center gap-2 text-xs text-amber-600">
+            <Info className="h-3.5 w-3.5 shrink-0" />
+            <span>Custom weekly off configured without fixed off days.</span>
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">

@@ -407,6 +407,7 @@ export interface Employee {
   employmentType?: 'Permanent' | 'Contract' | 'Intern' | 'Consultant';
   confirmationDate?: string;
   weeklyOff?: 'Sunday' | 'Alternate Saturday' | 'Custom';
+  weeklyOffDays?: string[]; // Array of selected days when weeklyOff is 'Custom'
   workShift?: 'Regular' | 'Remote' | 'Flexible';
   
   // Credentials Tab
