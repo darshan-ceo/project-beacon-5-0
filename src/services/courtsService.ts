@@ -23,6 +23,22 @@ export interface UpdateCourtData extends Partial<CreateCourtData> {
 
 class CourtsService {
   /**
+   * Parse address from JSON string to object (for UI consistency)
+   */
+  private parseAddress(addr: any): any {
+    if (!addr) return null;
+    if (typeof addr === 'string') {
+      try {
+        const parsed = JSON.parse(addr);
+        if (parsed && typeof parsed === 'object') return parsed;
+      } catch {
+        return { line1: addr };
+      }
+    }
+    return addr;
+  }
+
+  /**
    * Create a new court with persistence and dispatch
    */
   async create(courtData: Partial<Court>, dispatch: any): Promise<Court> {
@@ -112,11 +128,11 @@ class CourtsService {
       // Normalize payload before persistence
       const normalizedUpdates = normalizeCourtPayload(updates);
 
-      // Stringify address if it's an object (DB column is text)
-      const addressValue = updates.address !== undefined
-        ? (typeof updates.address === 'object' 
-            ? JSON.stringify(updates.address) 
-            : updates.address)
+      // Stringify address if it's an object (DB column is text) - use normalizedUpdates for consistency
+      const addressValue = normalizedUpdates.address !== undefined
+        ? (typeof normalizedUpdates.address === 'object' 
+            ? JSON.stringify(normalizedUpdates.address) 
+            : normalizedUpdates.address)
         : undefined;
 
       // Build persistence payload using normalized values
@@ -229,7 +245,7 @@ class CourtsService {
         name: c.name,
         type: c.type,
         jurisdiction: c.jurisdiction,
-        address: c.address,
+        address: this.parseAddress(c.address),
         city: c.city,
         phone: c.phone,
         email: c.email,
@@ -263,7 +279,7 @@ class CourtsService {
         name: court.name,
         type: court.type,
         jurisdiction: court.jurisdiction,
-        address: court.address,
+        address: this.parseAddress(court.address),
         city: court.city,
         phone: court.phone,
         email: court.email,
