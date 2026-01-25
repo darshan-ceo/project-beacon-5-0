@@ -152,6 +152,15 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     } as EnhancedAddressData;
   };
 
+  // Reset saving/deleting states when modal opens to prevent stuck state
+  useEffect(() => {
+    if (isOpen) {
+      setIsSaving(false);
+      setIsDeleting(false);
+      setErrors({});
+    }
+  }, [isOpen]);
+
   useEffect(() => {
     setIsAddressMasterEnabled(featureFlagService.isEnabled('address_master_v1'));
     
@@ -378,6 +387,8 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         description: error?.message || 'Failed to save legal forum. Please try again.',
         variant: 'destructive'
       });
+    } finally {
+      // Always reset saving state, even on success (modal may stay mounted)
       setIsSaving(false);
     }
   };
