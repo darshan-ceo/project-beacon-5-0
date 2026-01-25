@@ -48,7 +48,8 @@ const normalizeStateId = (stateValue: string): string => {
 // Version 9: Fixed manager lookup to handle snake_case reporting_to field
 // Version 10: Fixed access breakdown to use RLS-filtered cases instead of frontend visibility calculation
 // Version 11: Fixed court taxJurisdiction/officerDesignation mapping and address JSON parsing
-const DATA_SCHEMA_VERSION = 11;
+// Version 12: Fixed realtime sync to parse court address JSON - prevents raw string overwrite
+const DATA_SCHEMA_VERSION = 12;
 
 // Global flags to persist data loaded state across component remounts
 // This prevents the "Loading your data..." screen from appearing when switching tabs

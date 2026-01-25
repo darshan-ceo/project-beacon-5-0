@@ -602,6 +602,21 @@ export const useRealtimeSync = () => {
         },
         (payload) => {
           console.log('[Realtime] Courts change:', payload.eventType, payload);
+          
+          // Parse address JSON string to object for UI consistency
+          const parseCourtAddress = (addr: any) => {
+            if (!addr) return null;
+            if (typeof addr === 'string') {
+              try {
+                const parsed = JSON.parse(addr);
+                if (parsed && typeof parsed === 'object') return parsed;
+              } catch {
+                return { line1: addr };
+              }
+            }
+            return addr;
+          };
+          
           if (payload.eventType === 'INSERT' && payload.new) {
             const courtData = payload.new as any;
             rawDispatch({ 
@@ -611,7 +626,7 @@ export const useRealtimeSync = () => {
                 name: courtData.name,
                 type: courtData.type,
                 jurisdiction: courtData.jurisdiction,
-                address: courtData.address,
+                address: parseCourtAddress(courtData.address),
                 city: courtData.city,
                 phone: courtData.phone,
                 email: courtData.email,
@@ -634,7 +649,7 @@ export const useRealtimeSync = () => {
                 name: courtData.name,
                 type: courtData.type,
                 jurisdiction: courtData.jurisdiction,
-                address: courtData.address,
+                address: parseCourtAddress(courtData.address),
                 city: courtData.city,
                 phone: courtData.phone,
                 email: courtData.email,
