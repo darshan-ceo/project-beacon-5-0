@@ -747,5 +747,114 @@
         "placement": "top"
       }
     ]
+  },
+  {
+    "id": "system-settings-tour",
+    "title": "System Settings Configuration",
+    "description": "Complete walkthrough of system configuration with security and governance focus",
+    "module": "system-settings",
+    "roles": ["Admin"],
+    "estimatedTime": "20 minutes",
+    "securityCritical": true,
+    "steps": [
+      {
+        "id": "settings-intro",
+        "title": "System Settings Overview",
+        "content": "⚠️ ADMIN-ONLY MODULE: System Settings is the central configuration hub affecting ALL users and workflows. Changes propagate immediately. All modifications are logged for audit compliance.",
+        "target": "[data-tour='settings-header']",
+        "placement": "bottom"
+      },
+      {
+        "id": "settings-navigation",
+        "title": "Settings Navigation",
+        "content": "Use the sidebar to navigate between settings sections. Sections are organized by function: General, Security, Notifications, Legal, AI, Integrations, Address, Templates, Hierarchy, and Data Management.",
+        "target": "[data-tour='settings-sidebar']",
+        "placement": "right"
+      },
+      {
+        "id": "general-section",
+        "title": "General Settings",
+        "content": "Configure performance parameters: file size limits, cache duration, query timeouts. These affect ALL users. Start with defaults and adjust based on actual usage patterns.",
+        "target": "[data-tour='general-settings']",
+        "placement": "right"
+      },
+      {
+        "id": "security-section",
+        "title": "Security Settings - CRITICAL",
+        "content": "🔒 SECURITY CRITICAL: Configure session timeout (30 min recommended), password policy (Medium+), and 2FA (admin only minimum). Incorrect settings can expose client data or lock out users.",
+        "target": "[data-tour='security-settings']",
+        "placement": "right"
+      },
+      {
+        "id": "ip-whitelist-warning",
+        "title": "IP Whitelist Warning",
+        "content": "⚠️ DANGER: IP whitelist can lock out ALL users including yourself. Always include your current IP. Have backend access ready before enabling. Test with VPN to verify.",
+        "target": "[data-tour='ip-whitelist']",
+        "placement": "top"
+      },
+      {
+        "id": "notifications-section",
+        "title": "Notification Settings",
+        "content": "Configure email provider with app-specific password (not main password). Test email delivery before enabling for all users. Set reminder schedule for hearings (1,3,7 days recommended).",
+        "target": "[data-tour='notification-settings']",
+        "placement": "right"
+      },
+      {
+        "id": "email-test",
+        "title": "Test Email Configuration",
+        "content": "Always use 'Test Email' button to verify configuration works. Check inbox AND spam folder. Fix errors before enabling notifications. Failed emails mean missed deadlines.",
+        "target": "[data-tour='test-email-button']",
+        "placement": "left"
+      },
+      {
+        "id": "legal-section",
+        "title": "Legal Configuration",
+        "content": "Set case number format BEFORE creating cases - changes affect only new cases. Configure financial year per your jurisdiction (April for India). Set realistic SLA times.",
+        "target": "[data-tour='legal-settings']",
+        "placement": "right"
+      },
+      {
+        "id": "integrations-section",
+        "title": "Integration Settings",
+        "content": "Connect calendars via OAuth for hearing sync. For GST portal: ALWAYS test in Sandbox mode first before switching to Production. Production mode queries real GST portal.",
+        "target": "[data-tour='integration-settings']",
+        "placement": "right"
+      },
+      {
+        "id": "hierarchy-section",
+        "title": "Legal Hierarchy",
+        "content": "Define authority levels (Assessment → Supreme Court) and matter types. This affects case categorization and appeal workflows. Deactivating a level hides it from forms but preserves existing data.",
+        "target": "[data-tour='hierarchy-settings']",
+        "placement": "right"
+      },
+      {
+        "id": "data-management-section",
+        "title": "Data Management - DANGER ZONE",
+        "content": "⛔ CRITICAL SECTION: Contains irreversible actions including 'Clear All Data'. Enable Production Mode before go-live. ALWAYS export backup before any data operations.",
+        "target": "[data-tour='data-management']",
+        "placement": "right"
+      },
+      {
+        "id": "production-mode",
+        "title": "Production Mode",
+        "content": "Enable Production Mode to: disable sample data generation, add confirmation dialogs for destructive actions, enable full audit logging. This should be ON for all live deployments.",
+        "target": "[data-tour='production-mode-toggle']",
+        "placement": "top"
+      },
+      {
+        "id": "readiness-check",
+        "title": "Production Readiness Check",
+        "content": "Run this check before go-live. Validates: RLS policies, authentication, backups, security settings, email configuration. Address ALL issues before deploying to production users.",
+        "target": "[data-tour='readiness-check-button']",
+        "placement": "top"
+      },
+      {
+        "id": "save-settings",
+        "title": "Save Your Changes",
+        "content": "Click 'Save Settings' to apply all changes. Most settings take effect immediately. Critical settings (IP whitelist, production mode) may show confirmation dialogs. Changes are logged for audit.",
+        "target": "[data-tour='save-settings-button']",
+        "placement": "top"
+      }
+    ]
   }
 ]
