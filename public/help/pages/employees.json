@@ -1,0 +1,135 @@
+{
+  "title": "Employee Management",
+  "description": "Manage team members, role assignments, reporting hierarchy, and access permissions",
+  "overview": "The Employee Management module is where you configure your firm's team structure. Define employees, assign operational roles, set data visibility scopes, and configure module access. This directly affects what each team member can see and do in the system.",
+  "keyFeatures": [
+    {
+      "title": "Employee Directory",
+      "description": "Complete database of all team members with contact and profile details",
+      "icon": "users"
+    },
+    {
+      "title": "Role Assignment",
+      "description": "Assign operational roles (Partner, Manager, Advocate, Staff) to employees",
+      "icon": "user-check"
+    },
+    {
+      "title": "Data Scope Configuration",
+      "description": "Set visibility rules: 'Own Cases', 'Team Cases', or 'All Cases'",
+      "icon": "eye"
+    },
+    {
+      "title": "Module Access Control",
+      "description": "Restrict which modules each employee can access",
+      "icon": "lock"
+    },
+    {
+      "title": "Reporting Hierarchy",
+      "description": "Define manager relationships for team visibility",
+      "icon": "git-branch"
+    },
+    {
+      "title": "Billing & Default Settings",
+      "description": "Set default task categories, billing rates, and work preferences",
+      "icon": "settings"
+    }
+  ],
+  "tabGuide": {
+    "directory": {
+      "title": "Employee List",
+      "description": "Browse and manage all employees",
+      "whenToUse": "When adding new employees, updating profiles, or searching for team members"
+    },
+    "hierarchy": {
+      "title": "Team Hierarchy",
+      "description": "Visualize and edit reporting relationships",
+      "whenToUse": "When setting up or modifying the organizational structure"
+    },
+    "access": {
+      "title": "Access Settings",
+      "description": "Configure data scope and module access for employees",
+      "whenToUse": "When adjusting what employees can see and access"
+    },
+    "billing": {
+      "title": "Billing Settings",
+      "description": "Manage billing rates and default task categories",
+      "whenToUse": "When setting up billing configurations for team members"
+    }
+  },
+  "buttonGuide": {
+    "addEmployee": {
+      "title": "Add Employee",
+      "description": "Create a new employee profile",
+      "action": "Opens employee creation form with all required fields"
+    },
+    "setManager": {
+      "title": "Set Manager",
+      "description": "Assign a reporting manager to an employee",
+      "action": "Opens manager selection dialog"
+    },
+    "configureAccess": {
+      "title": "Configure Access",
+      "description": "Set data scope and module permissions",
+      "action": "Opens access configuration panel"
+    },
+    "viewOrgChart": {
+      "title": "View Org Chart",
+      "description": "Visualize the complete organizational hierarchy",
+      "action": "Opens interactive org chart visualization"
+    }
+  },
+  "quickStart": [
+    {
+      "step": 1,
+      "title": "Add Team Members",
+      "description": "Create employee profiles for all team members with email and contact details"
+    },
+    {
+      "step": 2,
+      "title": "Assign Roles",
+      "description": "Set operational roles (Partner, Manager, Advocate, Staff) for each employee"
+    },
+    {
+      "step": 3,
+      "title": "Define Reporting Structure",
+      "description": "Set 'Reports To' for each employee to create the team hierarchy"
+    },
+    {
+      "step": 4,
+      "title": "Configure Data Scope",
+      "description": "Choose appropriate data visibility (Own/Team/All Cases) based on role"
+    },
+    {
+      "step": 5,
+      "title": "Set Module Access",
+      "description": "Select which modules each employee should have access to"
+    }
+  ],
+  "relatedTours": [
+    {
+      "id": "employee-setup-tour",
+      "title": "Employee Setup Guide",
+      "description": "Step-by-step employee configuration"
+    },
+    {
+      "id": "team-hierarchy-tour",
+      "title": "Team Hierarchy Configuration",
+      "description": "Set up reporting relationships"
+    }
+  ],
+  "relatedArticles": [
+    {
+      "title": "Employee Data Scope Explained",
+      "url": "/help/articles/employee-data-scope"
+    },
+    {
+      "title": "Module Access Configuration",
+      "url": "/help/articles/module-access-config"
+    },
+    {
+      "title": "Role Assignment Best Practices",
+      "url": "/help/articles/role-assignment-guide"
+    }
+  ],
+  "roles": ["Admin", "Partner/CA"]
+}

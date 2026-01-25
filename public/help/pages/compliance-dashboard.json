@@ -1,0 +1,130 @@
+{
+  "title": "Compliance Dashboard",
+  "description": "Monitor compliance status, SLA adherence, and deadline tracking across all cases",
+  "overview": "The Compliance Dashboard provides a real-time view of your firm's compliance posture. Track statutory deadline adherence, SLA compliance, overdue items, and risk exposure. This is your early warning system for potential compliance issues.",
+  "keyFeatures": [
+    {
+      "title": "Deadline Overview",
+      "description": "At-a-glance view of upcoming and overdue statutory deadlines",
+      "icon": "calendar-clock"
+    },
+    {
+      "title": "SLA Tracking",
+      "description": "Monitor service level agreement compliance for tasks and cases",
+      "icon": "gauge"
+    },
+    {
+      "title": "Risk Indicators",
+      "description": "Color-coded risk levels for cases approaching deadlines",
+      "icon": "alert-triangle"
+    },
+    {
+      "title": "Trend Analysis",
+      "description": "Historical compliance trends and patterns",
+      "icon": "trending-up"
+    },
+    {
+      "title": "Team Performance",
+      "description": "Compliance metrics by team member and role",
+      "icon": "users"
+    },
+    {
+      "title": "Alert Configuration",
+      "description": "Customize alert thresholds and notification rules",
+      "icon": "bell"
+    }
+  ],
+  "tabGuide": {
+    "overview": {
+      "title": "Overview",
+      "description": "Summary dashboard with key compliance metrics",
+      "whenToUse": "For quick daily review of compliance status"
+    },
+    "deadlines": {
+      "title": "Deadlines",
+      "description": "Detailed view of all statutory deadlines",
+      "whenToUse": "When reviewing upcoming deadlines or investigating overdue items"
+    },
+    "sla": {
+      "title": "SLA Compliance",
+      "description": "Service level agreement tracking and metrics",
+      "whenToUse": "When monitoring internal SLA adherence"
+    },
+    "risks": {
+      "title": "Risk Register",
+      "description": "Cases flagged for compliance risks",
+      "whenToUse": "When prioritizing high-risk cases for attention"
+    },
+    "reports": {
+      "title": "Reports",
+      "description": "Generate compliance reports for management review",
+      "whenToUse": "For periodic compliance reviews and audits"
+    }
+  },
+  "buttonGuide": {
+    "refreshDashboard": {
+      "title": "Refresh",
+      "description": "Update dashboard with latest data",
+      "action": "Reloads all compliance metrics"
+    },
+    "exportReport": {
+      "title": "Export Report",
+      "description": "Download compliance report as PDF or Excel",
+      "action": "Opens export configuration dialog"
+    },
+    "configureAlerts": {
+      "title": "Configure Alerts",
+      "description": "Set up compliance alert thresholds",
+      "action": "Opens alert configuration panel"
+    },
+    "viewDetails": {
+      "title": "View Details",
+      "description": "Drill down into specific compliance area",
+      "action": "Opens detailed view for selected metric"
+    }
+  },
+  "quickStart": [
+    {
+      "step": 1,
+      "title": "Review Overview",
+      "description": "Check the main dashboard for any red or amber indicators"
+    },
+    {
+      "step": 2,
+      "title": "Address Overdue Items",
+      "description": "Click on overdue count to see detailed list and take action"
+    },
+    {
+      "step": 3,
+      "title": "Review Upcoming Deadlines",
+      "description": "Check deadlines for the next 7 days and ensure assignments"
+    },
+    {
+      "step": 4,
+      "title": "Configure Alerts",
+      "description": "Set up email/SMS alerts for approaching deadlines"
+    }
+  ],
+  "relatedTours": [
+    {
+      "id": "compliance-dashboard-tour",
+      "title": "Compliance Dashboard Overview",
+      "description": "Understand all compliance metrics and indicators"
+    }
+  ],
+  "relatedArticles": [
+    {
+      "title": "Understanding Compliance Metrics",
+      "url": "/help/articles/compliance-metrics"
+    },
+    {
+      "title": "SLA Configuration Guide",
+      "url": "/help/articles/sla-configuration"
+    },
+    {
+      "title": "Risk Management Best Practices",
+      "url": "/help/articles/risk-management"
+    }
+  ],
+  "roles": ["Admin", "Partner/CA", "Manager"]
+}

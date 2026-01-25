@@ -1,0 +1,114 @@
+{
+  "title": "Contacts Directory",
+  "description": "Manage all contacts including client contacts, opposing counsel, and external parties",
+  "overview": "The Contacts Directory centralizes all contact information beyond client contacts. Manage opposing counsel, government officers, witnesses, experts, and other external parties involved in your cases. Link contacts to cases and track all interactions.",
+  "keyFeatures": [
+    {
+      "title": "Contact Categories",
+      "description": "Organize contacts by type: Client, Counsel, Government, Witness, Expert",
+      "icon": "folder"
+    },
+    {
+      "title": "Contact Linking",
+      "description": "Associate contacts with specific cases and clients",
+      "icon": "link"
+    },
+    {
+      "title": "Communication Tracking",
+      "description": "Log calls, emails, and meetings with contacts",
+      "icon": "phone"
+    },
+    {
+      "title": "Duplicate Detection",
+      "description": "Prevent duplicate entries with automatic detection",
+      "icon": "copy"
+    },
+    {
+      "title": "Quick Actions",
+      "description": "One-click email, call, or message to contacts",
+      "icon": "zap"
+    },
+    {
+      "title": "Export & Import",
+      "description": "Bulk manage contacts via Excel/CSV",
+      "icon": "upload"
+    }
+  ],
+  "tabGuide": {
+    "all": {
+      "title": "All Contacts",
+      "description": "Browse the complete contact directory",
+      "whenToUse": "When searching for any contact or browsing the directory"
+    },
+    "client-contacts": {
+      "title": "Client Contacts",
+      "description": "View contacts linked to clients",
+      "whenToUse": "When looking for client-specific contact persons"
+    },
+    "counsel": {
+      "title": "Opposing Counsel",
+      "description": "Manage opposing attorney contacts",
+      "whenToUse": "When adding or looking up opposing counsel information"
+    },
+    "government": {
+      "title": "Government Officers",
+      "description": "Tax officers and government contacts",
+      "whenToUse": "When managing GST officer or department contacts"
+    }
+  },
+  "buttonGuide": {
+    "addContact": {
+      "title": "Add Contact",
+      "description": "Create a new contact entry",
+      "action": "Opens contact creation form"
+    },
+    "importContacts": {
+      "title": "Import Contacts",
+      "description": "Bulk import contacts from file",
+      "action": "Opens import wizard with template"
+    },
+    "linkToCase": {
+      "title": "Link to Case",
+      "description": "Associate contact with a case",
+      "action": "Opens case selection dialog"
+    },
+    "logInteraction": {
+      "title": "Log Interaction",
+      "description": "Record a call, email, or meeting",
+      "action": "Opens interaction logging form"
+    }
+  },
+  "quickStart": [
+    {
+      "step": 1,
+      "title": "Add Key Contacts",
+      "description": "Start by adding frequently contacted parties"
+    },
+    {
+      "step": 2,
+      "title": "Categorize Contacts",
+      "description": "Assign appropriate category to each contact"
+    },
+    {
+      "step": 3,
+      "title": "Link to Cases",
+      "description": "Associate contacts with relevant cases"
+    },
+    {
+      "step": 4,
+      "title": "Set Communication Preferences",
+      "description": "Record preferred contact methods and times"
+    }
+  ],
+  "relatedArticles": [
+    {
+      "title": "Contact Management Guide",
+      "url": "/help/articles/contact-management"
+    },
+    {
+      "title": "Bulk Contact Import",
+      "url": "/help/articles/contact-import"
+    }
+  ],
+  "roles": ["Admin", "Partner/CA", "Manager", "Advocate", "Staff"]
+}

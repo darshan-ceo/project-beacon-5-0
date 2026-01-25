@@ -419,5 +419,286 @@
         "placement": "bottom"
       }
     ]
+  },
+  {
+    "id": "access-roles-setup",
+    "title": "Access & Roles Configuration",
+    "description": "Set up role-based access control and data visibility for your team",
+    "module": "access-roles",
+    "roles": ["Admin"],
+    "estimatedTime": "10 minutes",
+    "steps": [
+      {
+        "id": "access-overview",
+        "title": "Access & Roles Overview",
+        "content": "Welcome to Access & Roles! This is where you control who can see and do what in Project Beacon. Security starts here.",
+        "target": "[data-tour='access-roles-header']",
+        "placement": "bottom"
+      },
+      {
+        "id": "roles-tab",
+        "title": "Understanding Roles",
+        "content": "Roles define permission sets. Project Beacon comes with default roles: Admin, Partner/CA, Manager, Advocate, and Staff. Each has different access levels.",
+        "target": "[data-tour='roles-tab']",
+        "placement": "bottom"
+      },
+      {
+        "id": "data-scope-explanation",
+        "title": "Data Scope Concept",
+        "content": "Data Scope controls visibility: 'Own Cases' (personal), 'Team Cases' (your reports), 'All Cases' (organization-wide). Critical for data security.",
+        "target": "[data-tour='data-scope-selector']",
+        "placement": "right"
+      },
+      {
+        "id": "module-access",
+        "title": "Module Access Control",
+        "content": "Each role can access specific modules. Unchecked modules are hidden from the sidebar and inaccessible even via direct URL.",
+        "target": "[data-tour='module-access-panel']",
+        "placement": "left"
+      },
+      {
+        "id": "create-role",
+        "title": "Creating Custom Roles",
+        "content": "Click 'Create Role' to define custom roles beyond the defaults. Clone an existing role to start with similar permissions.",
+        "target": "[data-tour='create-role-button']",
+        "placement": "bottom"
+      },
+      {
+        "id": "permission-matrix",
+        "title": "Permission Matrix",
+        "content": "Use the Permission Matrix to see all roles and permissions in a grid. Great for auditing and comparing access levels.",
+        "target": "[data-tour='permission-matrix-button']",
+        "placement": "top"
+      },
+      {
+        "id": "test-access",
+        "title": "Testing Access",
+        "content": "After configuration, log in as different roles to verify access works correctly. Test before deploying to your team.",
+        "target": "[data-tour='test-access-tip']",
+        "placement": "bottom"
+      }
+    ]
+  },
+  {
+    "id": "legal-hierarchy-setup",
+    "title": "Legal Hierarchy Configuration",
+    "description": "Configure courts, tribunals, and authority levels for your practice",
+    "module": "legal-authorities",
+    "roles": ["Admin", "Partner/CA"],
+    "estimatedTime": "12 minutes",
+    "steps": [
+      {
+        "id": "hierarchy-intro",
+        "title": "Understanding Legal Hierarchy",
+        "content": "The legal hierarchy defines how cases move through the appellate system. Configure this correctly for proper case routing and deadline management.",
+        "target": "[data-tour='legal-hierarchy-header']",
+        "placement": "bottom"
+      },
+      {
+        "id": "authority-levels",
+        "title": "Authority Levels",
+        "content": "Start by defining authority levels: Supreme Court → High Court → Tribunal → Appellate Authority → Adjudicating Authority. This is the appeal chain.",
+        "target": "[data-tour='authority-levels-panel']",
+        "placement": "right"
+      },
+      {
+        "id": "add-authority",
+        "title": "Adding Authorities",
+        "content": "Click 'Add Authority' to create entries for courts and tribunals you appear before. Include full names, codes, and jurisdiction details.",
+        "target": "[data-tour='add-authority-button']",
+        "placement": "bottom"
+      },
+      {
+        "id": "jurisdiction-mapping",
+        "title": "Jurisdiction Configuration",
+        "content": "Map each authority to its geographic jurisdiction. This helps auto-select the correct forum based on client location.",
+        "target": "[data-tour='jurisdiction-panel']",
+        "placement": "left"
+      },
+      {
+        "id": "matter-types",
+        "title": "Matter Types",
+        "content": "Define which case types (GST, Customs, Income Tax) each authority handles. This filters options during case creation.",
+        "target": "[data-tour='matter-types-panel']",
+        "placement": "right"
+      },
+      {
+        "id": "view-hierarchy-tree",
+        "title": "Hierarchy Visualization",
+        "content": "Click 'View Hierarchy' to see the complete appellate structure as a tree diagram. Verify connections are correct.",
+        "target": "[data-tour='view-hierarchy-button']",
+        "placement": "top"
+      }
+    ]
+  },
+  {
+    "id": "employee-setup-tour",
+    "title": "Employee Management Setup",
+    "description": "Configure your team with proper roles, access, and hierarchy",
+    "module": "employees",
+    "roles": ["Admin", "Partner/CA"],
+    "estimatedTime": "8 minutes",
+    "steps": [
+      {
+        "id": "employee-intro",
+        "title": "Employee Management",
+        "content": "This is where you configure your team. Every employee needs a profile with role, data scope, and module access defined.",
+        "target": "[data-tour='employee-header']",
+        "placement": "bottom"
+      },
+      {
+        "id": "add-employee",
+        "title": "Adding Employees",
+        "content": "Click 'Add Employee' to create a new team member. Enter name, email, and select their operational role.",
+        "target": "[data-tour='add-employee-button']",
+        "placement": "bottom"
+      },
+      {
+        "id": "role-assignment",
+        "title": "Role Assignment",
+        "content": "Select the operational role: Partner/CA, Manager, Advocate, or Staff. This determines recommended data scope and default permissions.",
+        "target": "[data-tour='role-selector']",
+        "placement": "right"
+      },
+      {
+        "id": "data-scope-config",
+        "title": "Data Scope Configuration",
+        "content": "Set data scope based on role: Partners see 'All Cases', Managers see 'Team Cases', Staff see 'Own Cases'. Adjust as needed.",
+        "target": "[data-tour='data-scope-config']",
+        "placement": "left"
+      },
+      {
+        "id": "reports-to",
+        "title": "Reporting Structure",
+        "content": "Set 'Reports To' to create the team hierarchy. This affects 'Team Cases' visibility - managers see their reports' cases.",
+        "target": "[data-tour='reports-to-field']",
+        "placement": "right"
+      },
+      {
+        "id": "module-access-emp",
+        "title": "Module Access",
+        "content": "Select which modules this employee can access. Unselected modules are hidden from their sidebar.",
+        "target": "[data-tour='module-access-checkboxes']",
+        "placement": "left"
+      },
+      {
+        "id": "org-chart",
+        "title": "View Organization Chart",
+        "content": "Click 'View Org Chart' to see the complete team hierarchy. Verify reporting relationships are correct.",
+        "target": "[data-tour='org-chart-button']",
+        "placement": "top"
+      }
+    ]
+  },
+  {
+    "id": "statutory-deadlines-setup",
+    "title": "Statutory Deadlines Configuration",
+    "description": "Set up event types and deadline calculation rules",
+    "module": "statutory-deadlines",
+    "roles": ["Admin", "Partner/CA", "Manager"],
+    "estimatedTime": "10 minutes",
+    "steps": [
+      {
+        "id": "deadline-intro",
+        "title": "Statutory Deadlines",
+        "content": "Statutory deadlines are critical in litigation. Configure event types here, and the system automatically calculates due dates for your cases.",
+        "target": "[data-tour='statutory-deadlines-header']",
+        "placement": "bottom"
+      },
+      {
+        "id": "event-types",
+        "title": "Event Types",
+        "content": "Event types define triggering events (Notice Received, Order Passed) with their statutory time limits. Pre-configured for common GST events.",
+        "target": "[data-tour='event-types-list']",
+        "placement": "right"
+      },
+      {
+        "id": "add-event-type",
+        "title": "Adding Event Types",
+        "content": "Click 'Add Event Type' to create new deadline rules. Specify the event name and statutory days allowed (e.g., 30 days for reply).",
+        "target": "[data-tour='add-event-type-button']",
+        "placement": "bottom"
+      },
+      {
+        "id": "authority-specific",
+        "title": "Authority-Specific Rules",
+        "content": "Some events have different deadlines per authority. Configure overrides for specific courts or tribunals here.",
+        "target": "[data-tour='authority-overrides']",
+        "placement": "left"
+      },
+      {
+        "id": "holiday-calendar",
+        "title": "Holiday Calendar",
+        "content": "Import court holidays to adjust deadline calculations. Deadlines falling on holidays are automatically extended to next working day.",
+        "target": "[data-tour='holiday-calendar']",
+        "placement": "right"
+      },
+      {
+        "id": "alert-config",
+        "title": "Alert Configuration",
+        "content": "Configure when deadline reminders are sent: 7 days, 3 days, 1 day before. Set recipients and notification channels.",
+        "target": "[data-tour='alert-config-button']",
+        "placement": "top"
+      },
+      {
+        "id": "test-calculation",
+        "title": "Test Deadline Calculation",
+        "content": "Use 'Calculate Deadline' with sample data to verify your configuration. Check that holidays are correctly excluded.",
+        "target": "[data-tour='calculate-deadline-button']",
+        "placement": "bottom"
+      }
+    ]
+  },
+  {
+    "id": "compliance-dashboard-tour",
+    "title": "Compliance Dashboard Overview",
+    "description": "Monitor deadline compliance and identify risks across your practice",
+    "module": "compliance-dashboard",
+    "roles": ["Admin", "Partner/CA", "Manager"],
+    "estimatedTime": "6 minutes",
+    "steps": [
+      {
+        "id": "compliance-intro",
+        "title": "Compliance Dashboard",
+        "content": "Your early warning system for compliance risks. See deadline status, SLA adherence, and risk indicators at a glance.",
+        "target": "[data-tour='compliance-dashboard-header']",
+        "placement": "bottom"
+      },
+      {
+        "id": "overview-metrics",
+        "title": "Key Metrics",
+        "content": "The overview shows: Overdue items (red), Due this week (amber), On track (green). Click any metric to see details.",
+        "target": "[data-tour='overview-metrics']",
+        "placement": "bottom"
+      },
+      {
+        "id": "deadline-view",
+        "title": "Deadline Details",
+        "content": "The Deadlines tab shows all upcoming and overdue statutory deadlines. Filter by case, authority, or date range.",
+        "target": "[data-tour='deadlines-tab']",
+        "placement": "bottom"
+      },
+      {
+        "id": "risk-indicators",
+        "title": "Risk Indicators",
+        "content": "Cases are color-coded by risk: Red = overdue or imminent deadline, Amber = deadline within 7 days, Green = on track.",
+        "target": "[data-tour='risk-indicators']",
+        "placement": "right"
+      },
+      {
+        "id": "team-performance",
+        "title": "Team Performance",
+        "content": "See compliance metrics by team member. Identify who needs support or has capacity for more work.",
+        "target": "[data-tour='team-performance']",
+        "placement": "left"
+      },
+      {
+        "id": "export-report",
+        "title": "Export Reports",
+        "content": "Click 'Export Report' to download compliance status as PDF or Excel for management review or audit documentation.",
+        "target": "[data-tour='export-report-button']",
+        "placement": "top"
+      }
+    ]
   }
 ]

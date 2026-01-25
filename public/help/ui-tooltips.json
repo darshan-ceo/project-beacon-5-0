@@ -560,6 +560,552 @@
           }
         }
       ]
+    },
+    "access_roles": {
+      "fields": [
+        {
+          "id": "ar_role_name",
+          "label": "Role Name",
+          "explanation": "Unique identifier for this role",
+          "tooltip": {
+            "title": "Role Name",
+            "content": "Enter a descriptive name for this role (e.g., 'Senior Advocate', 'Tax Manager'). This name appears in role assignment dropdowns and access reports."
+          },
+          "accessibility": {
+            "ariaLabel": "Enter role name"
+          }
+        },
+        {
+          "id": "ar_role_description",
+          "label": "Role Description",
+          "explanation": "Explain the purpose and scope of this role",
+          "tooltip": {
+            "title": "Role Description",
+            "content": "Describe who should have this role and what access it provides. This helps administrators choose the correct role when assigning to users."
+          },
+          "accessibility": {
+            "ariaLabel": "Enter role description"
+          }
+        },
+        {
+          "id": "ar_data_scope",
+          "label": "Data Scope",
+          "explanation": "Controls what data users with this role can see",
+          "tooltip": {
+            "title": "Data Visibility Scope",
+            "content": "Own Cases: See only cases assigned to you. Team Cases: See cases for you and your direct reports. All Cases: See all cases in the organization. Choose based on the role's organizational level."
+          },
+          "accessibility": {
+            "ariaLabel": "Select data scope"
+          }
+        },
+        {
+          "id": "ar_module_access",
+          "label": "Module Access",
+          "explanation": "Select modules this role can access",
+          "tooltip": {
+            "title": "Module Access Control",
+            "content": "Check modules that should appear in the sidebar for this role. Unchecked modules are completely hidden. Users cannot navigate to restricted modules even with direct URLs."
+          },
+          "accessibility": {
+            "ariaLabel": "Configure module access"
+          }
+        },
+        {
+          "id": "ar_permission_level",
+          "label": "Permission Level",
+          "explanation": "Base permission set for this role",
+          "tooltip": {
+            "title": "Permission Level",
+            "content": "Admin: Full access to all features. Manager: Can manage team and create records. Staff: Standard CRUD operations. Viewer: Read-only access. Custom: Define specific permissions below."
+          },
+          "accessibility": {
+            "ariaLabel": "Select permission level"
+          }
+        }
+      ],
+      "buttons": [
+        {
+          "id": "ar_create_role",
+          "label": "Create Role",
+          "explanation": "Add a new role to the system",
+          "tooltip": {
+            "title": "Create New Role",
+            "content": "Opens the role creation form. Define name, description, data scope, and permissions. New roles are immediately available for user assignment."
+          },
+          "accessibility": {
+            "ariaLabel": "Create new role"
+          }
+        },
+        {
+          "id": "ar_clone_role",
+          "label": "Clone Role",
+          "explanation": "Copy an existing role as starting point",
+          "tooltip": {
+            "title": "Clone Existing Role",
+            "content": "Creates a duplicate of the selected role with all its permissions. Modify the copy to create similar roles quickly. Original role remains unchanged."
+          },
+          "accessibility": {
+            "ariaLabel": "Clone existing role"
+          }
+        },
+        {
+          "id": "ar_view_matrix",
+          "label": "Permission Matrix",
+          "explanation": "Compare permissions across all roles",
+          "tooltip": {
+            "title": "Permission Matrix View",
+            "content": "Opens a grid showing all roles vs all permissions. Quickly identify gaps or overlaps in access control. Export matrix for audit documentation."
+          },
+          "accessibility": {
+            "ariaLabel": "View permission matrix"
+          }
+        }
+      ]
+    },
+    "legal_authorities": {
+      "fields": [
+        {
+          "id": "la_authority_name",
+          "label": "Authority Name",
+          "explanation": "Official name of the court/tribunal",
+          "tooltip": {
+            "title": "Authority Name",
+            "content": "Enter the full official name (e.g., 'Gujarat High Court', 'Customs, Excise and Service Tax Appellate Tribunal - Ahmedabad'). Use official designations for consistency."
+          },
+          "accessibility": {
+            "ariaLabel": "Enter authority name"
+          }
+        },
+        {
+          "id": "la_authority_code",
+          "label": "Authority Code",
+          "explanation": "Short unique identifier",
+          "tooltip": {
+            "title": "Authority Code",
+            "content": "Short alphanumeric code for quick reference (e.g., 'GHC', 'CESTAT-AHM'). Used in case numbers and internal references. Must be unique across all authorities."
+          },
+          "accessibility": {
+            "ariaLabel": "Enter authority code"
+          }
+        },
+        {
+          "id": "la_authority_level",
+          "label": "Authority Level",
+          "explanation": "Position in the appellate hierarchy",
+          "tooltip": {
+            "title": "Authority Level",
+            "content": "Select the tier in the legal hierarchy: Supreme Court → High Court → Tribunal → Appellate Authority → Adjudicating Authority. Determines appeal routing and deadline rules."
+          },
+          "accessibility": {
+            "ariaLabel": "Select authority level"
+          }
+        },
+        {
+          "id": "la_jurisdiction",
+          "label": "Jurisdiction",
+          "explanation": "Geographic coverage of this authority",
+          "tooltip": {
+            "title": "Jurisdiction",
+            "content": "Define the territorial jurisdiction: National, State-specific, or Zone-specific. Used to match cases to correct authorities based on client location."
+          },
+          "accessibility": {
+            "ariaLabel": "Select jurisdiction"
+          }
+        },
+        {
+          "id": "la_bench_location",
+          "label": "Bench Location",
+          "explanation": "Physical location where the authority sits",
+          "tooltip": {
+            "title": "Bench Location",
+            "content": "City and address where hearings are conducted. Some authorities have multiple bench locations (e.g., CESTAT has benches in multiple cities). Add each bench separately."
+          },
+          "accessibility": {
+            "ariaLabel": "Enter bench location"
+          }
+        },
+        {
+          "id": "la_matter_types",
+          "label": "Matter Types",
+          "explanation": "Case categories handled by this authority",
+          "tooltip": {
+            "title": "Matter Types",
+            "content": "Select case types this authority handles (e.g., GST, Customs, Income Tax). Filters case creation options based on selected authority. Multiple selections allowed."
+          },
+          "accessibility": {
+            "ariaLabel": "Select matter types"
+          }
+        }
+      ],
+      "buttons": [
+        {
+          "id": "la_add_authority",
+          "label": "Add Authority",
+          "explanation": "Create a new court/tribunal entry",
+          "tooltip": {
+            "title": "Add New Authority",
+            "content": "Opens form to add a new court, tribunal, or statutory authority. All required fields must be completed. Authority becomes available for case assignment immediately."
+          },
+          "accessibility": {
+            "ariaLabel": "Add new authority"
+          }
+        },
+        {
+          "id": "la_view_hierarchy",
+          "label": "View Hierarchy",
+          "explanation": "See the appellate structure diagram",
+          "tooltip": {
+            "title": "View Legal Hierarchy",
+            "content": "Opens visual tree diagram showing the appellate structure. See how authorities connect in the appeal chain. Useful for understanding case progression paths."
+          },
+          "accessibility": {
+            "ariaLabel": "View legal hierarchy"
+          }
+        }
+      ]
+    },
+    "judges": {
+      "fields": [
+        {
+          "id": "jd_judge_name",
+          "label": "Judge Name",
+          "explanation": "Full name with honorific",
+          "tooltip": {
+            "title": "Judge Name",
+            "content": "Enter full name with appropriate honorific (e.g., 'Hon'ble Justice A.B. Sharma', 'Shri M.K. Patel, Member (Technical)'). Use official designations as per court records."
+          },
+          "accessibility": {
+            "ariaLabel": "Enter judge name"
+          }
+        },
+        {
+          "id": "jd_designation",
+          "label": "Designation",
+          "explanation": "Official position/title",
+          "tooltip": {
+            "title": "Designation",
+            "content": "Current designation (e.g., 'Chief Justice', 'Member (Judicial)', 'Additional Commissioner'). Update when designation changes. Historical designations tracked in profile history."
+          },
+          "accessibility": {
+            "ariaLabel": "Enter designation"
+          }
+        },
+        {
+          "id": "jd_authority",
+          "label": "Authority",
+          "explanation": "Court/Tribunal where judge presides",
+          "tooltip": {
+            "title": "Authority Assignment",
+            "content": "Select the court or tribunal where this judge currently sits. A judge may be assigned to multiple benches within the same authority. Select primary assignment here."
+          },
+          "accessibility": {
+            "ariaLabel": "Select authority"
+          }
+        },
+        {
+          "id": "jd_specialization",
+          "label": "Specialization",
+          "explanation": "Areas of expertise",
+          "tooltip": {
+            "title": "Judge Specialization",
+            "content": "Select areas of expertise: Tax Law, Constitutional Law, Commercial Law, etc. Helps match cases to benches. Multiple selections allowed. Based on known case history and background."
+          },
+          "accessibility": {
+            "ariaLabel": "Select specialization"
+          }
+        },
+        {
+          "id": "jd_bench_assignment",
+          "label": "Bench Assignment",
+          "explanation": "Current bench(es) where judge sits",
+          "tooltip": {
+            "title": "Bench Assignment",
+            "content": "Select bench(es) where this judge currently sits. Include effective dates. Judges may sit on multiple benches (e.g., Single Bench, Division Bench). Track all current assignments."
+          },
+          "accessibility": {
+            "ariaLabel": "Configure bench assignment"
+          }
+        }
+      ],
+      "buttons": [
+        {
+          "id": "jd_add_judge",
+          "label": "Add Judge",
+          "explanation": "Create a new judge profile",
+          "tooltip": {
+            "title": "Add New Judge",
+            "content": "Opens form to create a new judge profile. Complete basic information and authority assignment. Additional details like specialization and bench assignments can be added later."
+          },
+          "accessibility": {
+            "ariaLabel": "Add new judge"
+          }
+        },
+        {
+          "id": "jd_view_cases",
+          "label": "View Cases",
+          "explanation": "See cases presided by this judge",
+          "tooltip": {
+            "title": "View Case History",
+            "content": "Opens list of all cases where this judge has presided. Filter by date range, case type, or outcome. Useful for understanding judge's past rulings and preferences."
+          },
+          "accessibility": {
+            "ariaLabel": "View judge case history"
+          }
+        }
+      ]
+    },
+    "employees": {
+      "fields": [
+        {
+          "id": "emp_full_name",
+          "label": "Full Name",
+          "explanation": "Employee's complete name",
+          "tooltip": {
+            "title": "Employee Name",
+            "content": "Enter full legal name as it should appear in system. This name is used in case assignments, document signatures, and all official correspondence."
+          },
+          "accessibility": {
+            "ariaLabel": "Enter employee full name"
+          }
+        },
+        {
+          "id": "emp_email",
+          "label": "Email Address",
+          "explanation": "Primary work email for login and notifications",
+          "tooltip": {
+            "title": "Work Email",
+            "content": "Enter official work email. This becomes the login username and receives all system notifications. Must be unique across all employees. Cannot be changed after creation."
+          },
+          "accessibility": {
+            "ariaLabel": "Enter employee email"
+          }
+        },
+        {
+          "id": "emp_role",
+          "label": "Role",
+          "explanation": "Operational role in the organization",
+          "tooltip": {
+            "title": "Employee Role",
+            "content": "Select operational role: Partner/CA, Manager, Advocate, Staff. Determines default permissions and recommended data scope. Can differ from RBAC role for specialized access."
+          },
+          "accessibility": {
+            "ariaLabel": "Select employee role"
+          }
+        },
+        {
+          "id": "emp_data_scope",
+          "label": "Data Scope",
+          "explanation": "What cases can this employee see?",
+          "tooltip": {
+            "title": "Data Visibility Scope",
+            "content": "Own Cases: Only cases where they are assigned. Team Cases: Cases for them and their direct reports. All Cases: Organization-wide visibility. Recommended defaults: Partner→All, Manager→Team, Staff→Own."
+          },
+          "accessibility": {
+            "ariaLabel": "Select data scope"
+          }
+        },
+        {
+          "id": "emp_reports_to",
+          "label": "Reports To",
+          "explanation": "Direct manager for this employee",
+          "tooltip": {
+            "title": "Reporting Manager",
+            "content": "Select the employee's direct manager. This creates the team hierarchy used for 'Team Cases' visibility. Manager sees cases of all their direct and indirect reports."
+          },
+          "accessibility": {
+            "ariaLabel": "Select reporting manager"
+          }
+        },
+        {
+          "id": "emp_module_access",
+          "label": "Module Access",
+          "explanation": "Which modules can this employee access?",
+          "tooltip": {
+            "title": "Module Access Configuration",
+            "content": "Select modules visible in sidebar for this employee. Unselected modules are hidden and inaccessible. Overrides role-based defaults. Admin/Partner roles bypass restrictions."
+          },
+          "accessibility": {
+            "ariaLabel": "Configure module access"
+          }
+        },
+        {
+          "id": "emp_default_task_category",
+          "label": "Default Task Category",
+          "explanation": "Auto-selected category when creating tasks",
+          "tooltip": {
+            "title": "Default Task Category",
+            "content": "Pre-selects this category when employee creates tasks. Used for billing classification. Categories: Advisory, Litigation, Compliance, etc. Can be overridden per task."
+          },
+          "accessibility": {
+            "ariaLabel": "Select default task category"
+          }
+        }
+      ],
+      "buttons": [
+        {
+          "id": "emp_add_employee",
+          "label": "Add Employee",
+          "explanation": "Create a new employee profile",
+          "tooltip": {
+            "title": "Add New Employee",
+            "content": "Opens employee creation form. Required: Name, Email, Role. Sends invitation email to the employee. They must complete signup to activate account."
+          },
+          "accessibility": {
+            "ariaLabel": "Add new employee"
+          }
+        },
+        {
+          "id": "emp_view_org_chart",
+          "label": "View Org Chart",
+          "explanation": "See the team hierarchy diagram",
+          "tooltip": {
+            "title": "Organization Chart",
+            "content": "Opens interactive visualization of the reporting hierarchy. Click nodes to view employee details. Drag to rearrange. Export as image for documentation."
+          },
+          "accessibility": {
+            "ariaLabel": "View organization chart"
+          }
+        },
+        {
+          "id": "emp_configure_access",
+          "label": "Configure Access",
+          "explanation": "Set data scope and module permissions",
+          "tooltip": {
+            "title": "Access Configuration",
+            "content": "Opens detailed access settings panel. Configure data scope, module access, and special permissions. Changes take effect on employee's next login."
+          },
+          "accessibility": {
+            "ariaLabel": "Configure employee access"
+          }
+        }
+      ]
+    },
+    "statutory_deadlines": {
+      "fields": [
+        {
+          "id": "sd_event_type",
+          "label": "Event Type",
+          "explanation": "Category of statutory event",
+          "tooltip": {
+            "title": "Event Type",
+            "content": "Select the type of event: Notice Received, Order Passed, Appeal Filed, etc. Each event type has predefined statutory time limits. System calculates deadline automatically."
+          },
+          "accessibility": {
+            "ariaLabel": "Select event type"
+          }
+        },
+        {
+          "id": "sd_base_date",
+          "label": "Base Date",
+          "explanation": "Date from which deadline is calculated",
+          "tooltip": {
+            "title": "Base Date for Calculation",
+            "content": "The date when the triggering event occurred (e.g., date notice was received, date order was passed). Deadline is calculated by adding statutory days to this date."
+          },
+          "accessibility": {
+            "ariaLabel": "Enter base date"
+          }
+        },
+        {
+          "id": "sd_statutory_days",
+          "label": "Statutory Days",
+          "explanation": "Time limit prescribed by law",
+          "tooltip": {
+            "title": "Statutory Time Limit",
+            "content": "Number of days allowed by statute (e.g., 30 days for reply to notice, 90 days for appeal to Tribunal). Pre-filled based on event type but can be overridden for special cases."
+          },
+          "accessibility": {
+            "ariaLabel": "Enter statutory days"
+          }
+        },
+        {
+          "id": "sd_calculated_deadline",
+          "label": "Calculated Deadline",
+          "explanation": "System-computed due date",
+          "tooltip": {
+            "title": "Deadline Calculation",
+            "content": "Auto-calculated: Base Date + Statutory Days, adjusted for court holidays and weekends if configured. This is the final due date. Can be extended if extension is granted."
+          },
+          "accessibility": {
+            "ariaLabel": "View calculated deadline"
+          }
+        },
+        {
+          "id": "sd_extension_deadline",
+          "label": "Extension Deadline",
+          "explanation": "Extended due date if granted",
+          "tooltip": {
+            "title": "Extended Deadline",
+            "content": "New deadline after extension is granted. Overrides calculated deadline. Document extension reason and approval in remarks. Track extension count for compliance."
+          },
+          "accessibility": {
+            "ariaLabel": "Enter extension deadline"
+          }
+        },
+        {
+          "id": "sd_authority",
+          "label": "Authority",
+          "explanation": "Authority to which deadline applies",
+          "tooltip": {
+            "title": "Relevant Authority",
+            "content": "Select the authority where filing/response is due. Different authorities may have different statutory limits for same event type. Used for jurisdiction-specific deadline rules."
+          },
+          "accessibility": {
+            "ariaLabel": "Select authority"
+          }
+        }
+      ],
+      "buttons": [
+        {
+          "id": "sd_add_event_type",
+          "label": "Add Event Type",
+          "explanation": "Create a new statutory event configuration",
+          "tooltip": {
+            "title": "Add Event Type",
+            "content": "Opens form to define new event type with statutory time limits. Configure default days, authority-specific overrides, and alert thresholds."
+          },
+          "accessibility": {
+            "ariaLabel": "Add new event type"
+          }
+        },
+        {
+          "id": "sd_calculate",
+          "label": "Calculate Deadline",
+          "explanation": "Compute deadline from event details",
+          "tooltip": {
+            "title": "Calculate Deadline",
+            "content": "Triggers deadline calculation based on entered event type and base date. Shows preview with any holiday adjustments before saving."
+          },
+          "accessibility": {
+            "ariaLabel": "Calculate deadline"
+          }
+        },
+        {
+          "id": "sd_record_extension",
+          "label": "Record Extension",
+          "explanation": "Document a deadline extension",
+          "tooltip": {
+            "title": "Record Extension",
+            "content": "Opens form to record an extension granted by authority. Enter new deadline, reason, and approval reference. Updates deadline status and sends notifications."
+          },
+          "accessibility": {
+            "ariaLabel": "Record deadline extension"
+          }
+        },
+        {
+          "id": "sd_configure_alerts",
+          "label": "Configure Alerts",
+          "explanation": "Set up deadline reminder notifications",
+          "tooltip": {
+            "title": "Deadline Alert Configuration",
+            "content": "Configure when reminders are sent: e.g., 7 days before, 3 days before, 1 day before. Set recipients and notification channels (email, SMS, in-app)."
+          },
+          "accessibility": {
+            "ariaLabel": "Configure deadline alerts"
+          }
+        }
+      ]
     }
   }
 }

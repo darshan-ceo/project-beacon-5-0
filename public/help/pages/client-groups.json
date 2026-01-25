@@ -1,0 +1,109 @@
+{
+  "title": "Client Groups Management",
+  "description": "Organize related clients into groups for consolidated management and reporting",
+  "overview": "Client Groups allow you to organize related entities (subsidiaries, sister concerns, related parties) under a parent structure. This enables consolidated case views, group-level reporting, and efficient management of multi-entity clients.",
+  "keyFeatures": [
+    {
+      "title": "Group Creation",
+      "description": "Create groups to organize related clients",
+      "icon": "folder-plus"
+    },
+    {
+      "title": "Hierarchy Structure",
+      "description": "Define parent-child relationships between clients",
+      "icon": "git-branch"
+    },
+    {
+      "title": "Consolidated View",
+      "description": "View all cases across group members in one place",
+      "icon": "layout-dashboard"
+    },
+    {
+      "title": "Group Reporting",
+      "description": "Generate reports at group level",
+      "icon": "file-bar-chart"
+    },
+    {
+      "title": "Head Client",
+      "description": "Designate a primary client for the group",
+      "icon": "crown"
+    },
+    {
+      "title": "Bulk Operations",
+      "description": "Apply actions across all group members",
+      "icon": "layers"
+    }
+  ],
+  "tabGuide": {
+    "groups": {
+      "title": "Group List",
+      "description": "View and manage all client groups",
+      "whenToUse": "When creating, editing, or browsing client groups"
+    },
+    "members": {
+      "title": "Group Members",
+      "description": "View clients within a selected group",
+      "whenToUse": "When managing group membership or reviewing group composition"
+    },
+    "consolidated": {
+      "title": "Consolidated View",
+      "description": "See all cases and activities across the group",
+      "whenToUse": "When reviewing group-wide case status or activities"
+    }
+  },
+  "buttonGuide": {
+    "createGroup": {
+      "title": "Create Group",
+      "description": "Create a new client group",
+      "action": "Opens group creation form"
+    },
+    "addMember": {
+      "title": "Add Member",
+      "description": "Add a client to the group",
+      "action": "Opens client selection dialog"
+    },
+    "setHeadClient": {
+      "title": "Set Head Client",
+      "description": "Designate the primary client for this group",
+      "action": "Opens head client selection"
+    },
+    "groupReport": {
+      "title": "Group Report",
+      "description": "Generate consolidated report for the group",
+      "action": "Opens report configuration for group"
+    }
+  },
+  "quickStart": [
+    {
+      "step": 1,
+      "title": "Create Group",
+      "description": "Create a group with a descriptive name and code"
+    },
+    {
+      "step": 2,
+      "title": "Set Head Client",
+      "description": "Designate the primary entity for the group"
+    },
+    {
+      "step": 3,
+      "title": "Add Members",
+      "description": "Add related clients to the group"
+    },
+    {
+      "step": 4,
+      "title": "Review Consolidated View",
+      "description": "Check the combined view of all group activities"
+    }
+  ],
+  "relatedArticles": [
+    {
+      "title": "Client Group Strategy Guide",
+      "url": "/help/articles/client-group-strategy"
+    },
+    {
+      "title": "Consolidated Reporting for Groups",
+      "url": "/help/articles/group-reporting"
+    }
+  ],
+  "roles": ["Admin", "Partner/CA", "Manager"]
+}

@@ -1,0 +1,130 @@
+{
+  "title": "Client Management",
+  "description": "Manage client profiles, contacts, GSTIN verification, and client portal access",
+  "overview": "The Client Management module is your central hub for managing all client relationships. Create detailed client profiles with GSTIN auto-verification, manage multiple contacts per client, organize clients into groups, and configure portal access for client self-service.",
+  "keyFeatures": [
+    {
+      "title": "Client Directory",
+      "description": "Comprehensive client database with search and filtering",
+      "icon": "building"
+    },
+    {
+      "title": "GSTIN Auto-Fill",
+      "description": "Automatic verification and data population from GSTIN",
+      "icon": "check-circle"
+    },
+    {
+      "title": "Contact Management",
+      "description": "Track multiple contacts per client with roles and preferences",
+      "icon": "users"
+    },
+    {
+      "title": "Client Groups",
+      "description": "Organize related clients under parent groups",
+      "icon": "folder-tree"
+    },
+    {
+      "title": "Portal Access",
+      "description": "Configure client self-service portal credentials and permissions",
+      "icon": "globe"
+    },
+    {
+      "title": "Communication History",
+      "description": "Track all client communications and interactions",
+      "icon": "message-square"
+    }
+  ],
+  "tabGuide": {
+    "list": {
+      "title": "Client List",
+      "description": "Browse and search all clients",
+      "whenToUse": "When looking up client details, adding new clients, or managing existing profiles"
+    },
+    "groups": {
+      "title": "Client Groups",
+      "description": "Manage client group structures",
+      "whenToUse": "When organizing related clients or managing group-level settings"
+    },
+    "portal": {
+      "title": "Portal Access",
+      "description": "Configure client portal users and permissions",
+      "whenToUse": "When setting up or managing client portal credentials"
+    },
+    "communications": {
+      "title": "Communications",
+      "description": "View communication history across clients",
+      "whenToUse": "When reviewing past communications or tracking client interactions"
+    }
+  },
+  "buttonGuide": {
+    "addClient": {
+      "title": "Add Client",
+      "description": "Create a new client profile",
+      "action": "Opens client creation form with GSTIN lookup"
+    },
+    "verifyGstin": {
+      "title": "Verify GSTIN",
+      "description": "Lookup and verify GSTIN to auto-fill client details",
+      "action": "Fetches data from GST portal and populates form"
+    },
+    "addContact": {
+      "title": "Add Contact",
+      "description": "Add a contact person to this client",
+      "action": "Opens contact creation form"
+    },
+    "grantPortalAccess": {
+      "title": "Grant Portal Access",
+      "description": "Create portal login credentials for client",
+      "action": "Opens portal user creation workflow"
+    }
+  },
+  "quickStart": [
+    {
+      "step": 1,
+      "title": "Add Client with GSTIN",
+      "description": "Enter GSTIN to auto-populate client details from GST portal"
+    },
+    {
+      "step": 2,
+      "title": "Complete Profile",
+      "description": "Add any additional details not captured from GSTIN"
+    },
+    {
+      "step": 3,
+      "title": "Add Key Contacts",
+      "description": "Create contact entries for client's key personnel"
+    },
+    {
+      "step": 4,
+      "title": "Set Up Portal Access",
+      "description": "Create portal credentials if client needs self-service access"
+    },
+    {
+      "step": 5,
+      "title": "Create First Case",
+      "description": "Link the client to their first case in Case Management"
+    }
+  ],
+  "relatedTours": [
+    {
+      "id": "client-onboarding-tour",
+      "title": "Client Onboarding",
+      "description": "Complete client setup workflow"
+    }
+  ],
+  "relatedArticles": [
+    {
+      "title": "GSTIN Verification Guide",
+      "url": "/help/articles/gstin-verification"
+    },
+    {
+      "title": "Client Portal Setup",
+      "url": "/help/articles/client-portal-setup"
+    },
+    {
+      "title": "Client Group Management",
+      "url": "/help/articles/client-groups"
+    }
+  ],
+  "roles": ["Admin", "Partner/CA", "Manager", "Advocate", "Staff"]
+}

@@ -1,0 +1,125 @@
+{
+  "title": "Legal Authorities Management",
+  "description": "Configure courts, tribunals, and statutory authorities for case jurisdiction and routing",
+  "overview": "The Legal Authorities module is the master data repository for all courts, tribunals, tax authorities, and other statutory bodies. Proper configuration ensures accurate case categorization, jurisdiction tracking, and compliance with authority-specific deadlines and procedures.",
+  "keyFeatures": [
+    {
+      "title": "Authority Levels",
+      "description": "Hierarchical classification of authorities (High Court, Tribunal, Appellate, etc.)",
+      "icon": "building-2"
+    },
+    {
+      "title": "Jurisdiction Mapping",
+      "description": "Link authorities to geographic jurisdictions (State, City, Zone)",
+      "icon": "map"
+    },
+    {
+      "title": "Matter Types",
+      "description": "Define case categories handled by each authority level",
+      "icon": "folder-tree"
+    },
+    {
+      "title": "Bench Configuration",
+      "description": "Set up bench locations and sitting schedules",
+      "icon": "briefcase"
+    },
+    {
+      "title": "Officer Designations",
+      "description": "Track officer titles and roles within each authority",
+      "icon": "user-check"
+    },
+    {
+      "title": "Contact Directory",
+      "description": "Maintain contact details and addresses for authorities",
+      "icon": "phone"
+    }
+  ],
+  "tabGuide": {
+    "authorities": {
+      "title": "Authorities List",
+      "description": "Browse and manage all configured legal authorities",
+      "whenToUse": "When adding new authorities, updating existing entries, or searching for authority details"
+    },
+    "hierarchy": {
+      "title": "Legal Hierarchy",
+      "description": "View and configure authority level classifications",
+      "whenToUse": "When setting up the appellate structure or modifying authority level definitions"
+    },
+    "jurisdictions": {
+      "title": "Jurisdictions",
+      "description": "Manage geographic jurisdiction mappings",
+      "whenToUse": "When adding new cities, zones, or updating jurisdiction boundaries"
+    },
+    "matter-types": {
+      "title": "Matter Types",
+      "description": "Configure case types and their authority associations",
+      "whenToUse": "When adding new case categories or updating matter type rules"
+    }
+  },
+  "buttonGuide": {
+    "addAuthority": {
+      "title": "Add Authority",
+      "description": "Create a new court, tribunal, or statutory authority entry",
+      "action": "Opens authority creation form with all required fields"
+    },
+    "importAuthorities": {
+      "title": "Import Authorities",
+      "description": "Bulk import authorities from Excel/CSV file",
+      "action": "Opens import wizard with template download"
+    },
+    "viewHierarchy": {
+      "title": "View Hierarchy",
+      "description": "Visualize the appellate structure in a tree diagram",
+      "action": "Opens interactive hierarchy visualization"
+    }
+  },
+  "quickStart": [
+    {
+      "step": 1,
+      "title": "Configure Authority Levels",
+      "description": "Set up the hierarchy (e.g., Supreme Court → High Court → Tribunal → Adjudicating Authority)"
+    },
+    {
+      "step": 2,
+      "title": "Add Authority Entries",
+      "description": "Create entries for each court/tribunal with complete details"
+    },
+    {
+      "step": 3,
+      "title": "Map Jurisdictions",
+      "description": "Link authorities to their geographic coverage areas"
+    },
+    {
+      "step": 4,
+      "title": "Define Matter Types",
+      "description": "Specify which case types each authority level handles"
+    },
+    {
+      "step": 5,
+      "title": "Test Case Assignment",
+      "description": "Create a test case to verify authority selection works correctly"
+    }
+  ],
+  "relatedTours": [
+    {
+      "id": "legal-hierarchy-setup",
+      "title": "Legal Hierarchy Setup",
+      "description": "Configure the appellate structure from scratch"
+    }
+  ],
+  "relatedArticles": [
+    {
+      "title": "Understanding Legal Hierarchy in GST Litigation",
+      "url": "/help/articles/gst-legal-hierarchy"
+    },
+    {
+      "title": "Authority Level Configuration Guide",
+      "url": "/help/articles/authority-levels-guide"
+    },
+    {
+      "title": "Jurisdiction Mapping Best Practices",
+      "url": "/help/articles/jurisdiction-mapping"
+    }
+  ],
+  "roles": ["Admin", "Partner/CA", "Manager"]
+}
