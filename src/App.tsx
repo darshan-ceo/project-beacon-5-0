@@ -168,6 +168,14 @@ const AppContent = () => {
                   </AdminLayout>
                 </ProtectedRoute>
               } />
+              {/* Dashboard alias route - prevents 404 when tours navigate to /dashboard */}
+              <Route path="/dashboard" element={
+                <ProtectedRoute>
+                  <AdminLayout>
+                    <EnhancedDashboard />
+                  </AdminLayout>
+                </ProtectedRoute>
+              } />
               <Route path="/clients" element={
                 <ProtectedRoute>
                   <AdminLayout>

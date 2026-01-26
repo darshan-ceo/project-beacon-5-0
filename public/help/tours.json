@@ -209,51 +209,37 @@
         "action": "click"
       },
       {
-        "target": "[data-tour='task-board']",
+        "target": "[data-tour='board-tab']",
         "title": "Task Board View",
         "content": "View tasks in different formats: list view for details, board view for workflow stages, or calendar view for deadlines.",
-        "position": "top",
+        "position": "bottom",
         "action": "none"
       },
       {
-        "target": "[data-tour='create-task-btn']",
+        "target": "[data-tour='create-task-button']",
         "title": "Create New Task",
-        "content": "Click 'New Task' to create work items. Tasks can be case-specific or general administrative work.",
+        "content": "Click 'Create Task' to create work items. Tasks can be case-specific or general administrative work.",
         "position": "left",
         "action": "click"
       },
       {
-        "target": "[data-tour='task-form']",
-        "title": "Task Details",
-        "content": "Provide task description, priority level, due date, and estimated time. Link tasks to specific cases for better organization.",
-        "position": "top",
-        "action": "none"
-      },
-      {
-        "target": "[data-tour='task-assignment']",
-        "title": "Assign Tasks",
-        "content": "Assign tasks to team members, set dependencies, and configure approval workflows. Assigned users receive notifications.",
-        "position": "left",
-        "action": "none"
-      },
-      {
-        "target": "[data-tour='task-progress']",
-        "title": "Track Progress",
-        "content": "Monitor task completion, time spent, and progress updates. Use status updates to keep stakeholders informed.",
-        "position": "right",
-        "action": "none"
-      },
-      {
-        "target": "[data-tour='task-templates']",
+        "target": "[data-tour='templates-tab']",
         "title": "Task Templates",
         "content": "Use pre-defined task templates for common workflows like case intake, discovery, or trial preparation to ensure consistency.",
-        "position": "top",
+        "position": "bottom",
         "action": "none"
       },
       {
-        "target": "[data-tour='sla-tracking']",
-        "title": "SLA Monitoring",
-        "content": "Track service level agreements and deadline compliance. The system alerts you when tasks approach their deadlines.",
+        "target": "[data-tour='automation-tab']",
+        "title": "Task Automation",
+        "content": "Set up automation rules to create tasks automatically based on case events, hearing outcomes, or deadlines.",
+        "position": "bottom",
+        "action": "none"
+      },
+      {
+        "target": "[data-tour='escalation-tab']",
+        "title": "Escalation Matrix",
+        "content": "Configure escalation rules for overdue tasks. The system alerts managers when tasks approach or breach their deadlines.",
         "position": "bottom",
         "action": "none"
       }
@@ -1094,59 +1080,38 @@
     "steps": [
       {
         "id": "co-dashboard",
-        "title": "Daily Dashboard",
-        "content": "Start your day here. Dashboard shows SLA alerts, today's tasks, upcoming hearings, and recent activity. Check red indicators first - they need immediate attention.",
-        "target": "[data-tour='dashboard-overview']",
-        "placement": "bottom"
+        "title": "Start at Dashboard",
+        "content": "Start your day at the dashboard. Check key metrics, SLA alerts, today's tasks, and upcoming hearings. Red indicators need immediate attention.",
+        "target": "[data-tour='dashboard-nav']",
+        "placement": "right"
+      },
+      {
+        "id": "co-case-nav",
+        "title": "Navigate to Cases",
+        "content": "Click Cases in the sidebar to access case management. This is your central hub for all case-related work.",
+        "target": "[data-tour='cases-nav']",
+        "placement": "right"
+      },
+      {
+        "id": "co-new-case",
+        "title": "Create New Case",
+        "content": "Click '+ New Case' to create a case. Fill in case details including client, case type, priority, and assign team members.",
+        "target": "[data-tour='new-case-btn']",
+        "placement": "left"
       },
       {
         "id": "co-case-list",
-        "title": "Case List Filters",
-        "content": "Use quick filters: 'My Cases' for assigned work, 'Team Cases' for oversight, 'SLA Breach' for urgency. Combine filters for precise views.",
-        "target": "[data-tour='case-filters']",
-        "placement": "bottom"
-      },
-      {
-        "id": "co-sla-indicators",
-        "title": "SLA Status Colors",
-        "content": "🟢 Green = On track. 🟡 Yellow = Approaching deadline. 🔴 Red = Breached or imminent. Click any indicator for deadline details.",
-        "target": "[data-tour='sla-column']",
-        "placement": "left"
-      },
-      {
-        "id": "co-case-tabs",
-        "title": "Case Tab Navigation",
-        "content": "Each case has tabs: Overview, Lifecycle, Timeline, Documents, Hearings, AI Assistant, Communications. Use tabs for focused work.",
-        "target": "[data-tour='case-tabs']",
+        "title": "Case List",
+        "content": "View all your cases here. Use filters to find specific cases by status, client, stage, or assigned team member. Click any case to view details.",
+        "target": "[data-tour='case-list']",
         "placement": "top"
       },
       {
-        "id": "co-timeline",
-        "title": "Timeline Review",
-        "content": "Timeline shows all case events chronologically. Use filters for specific event types. Essential for hearing preparation and audit trails.",
-        "target": "[data-tour='timeline-tab']",
-        "placement": "right"
-      },
-      {
-        "id": "co-quick-actions",
-        "title": "Quick Actions Menu",
-        "content": "Access common actions: Schedule Hearing, Create Task, Send Update. Use keyboard shortcuts (hover buttons to see) for speed.",
-        "target": "[data-tour='quick-actions']",
+        "id": "co-case-actions",
+        "title": "Case Actions",
+        "content": "Access quick actions like editing case details, adding documents, creating tasks, or changing case status from the action menu.",
+        "target": "[data-tour='case-actions']",
         "placement": "left"
-      },
-      {
-        "id": "co-ai-assistant",
-        "title": "AI Assistant Tab",
-        "content": "Ask AI for case summaries, draft assistance, or research. AI has context of current case. Be specific in your prompts for best results.",
-        "target": "[data-tour='ai-tab']",
-        "placement": "right"
-      },
-      {
-        "id": "co-bulk-actions",
-        "title": "Bulk Operations",
-        "content": "Select multiple cases for bulk actions: status update, assignment change, export. Always verify selection count before executing.",
-        "target": "[data-tour='bulk-select']",
-        "placement": "top"
       }
     ]
   },
@@ -1161,44 +1126,37 @@
       {
         "id": "dw-morning",
         "title": "Morning: Dashboard Check",
-        "content": "Start here every morning. Check: 1) Red SLA alerts, 2) Today's tasks, 3) Today's hearings, 4) Overnight notifications. Takes 5 minutes.",
-        "target": "[data-tour='main-dashboard']",
+        "content": "Start every morning at the Dashboard. Check: 1) SLA alerts (red indicators), 2) Today's tasks, 3) Today's hearings, 4) Notifications. Takes 5 minutes.",
+        "target": "[data-tour='dashboard-header']",
+        "placement": "bottom"
+      },
+      {
+        "id": "dw-kpis",
+        "title": "Review Key Metrics",
+        "content": "These cards show active cases, pending tasks, upcoming hearings, and overdue items. Click any card to drill down for details.",
+        "target": "[data-tour='kpi-cards']",
         "placement": "bottom"
       },
       {
         "id": "dw-tasks",
         "title": "Morning: Task Triage",
-        "content": "Open Task Board. Filter to 'My Tasks'. Review overdue (red), update in-progress statuses, prioritize today's due items.",
-        "target": "[data-tour='task-board']",
+        "content": "Navigate to Tasks from the sidebar. Review overdue tasks (red), update in-progress statuses, prioritize today's due items.",
+        "target": "[data-tour='tasks-nav']",
         "placement": "right"
       },
       {
         "id": "dw-hearings",
         "title": "Check Hearings Calendar",
-        "content": "Review today and tomorrow's hearings. Verify preparation status. Check for any scheduling conflicts or last-minute changes.",
-        "target": "[data-tour='hearing-calendar']",
-        "placement": "left"
+        "content": "Review today and tomorrow's hearings in the Hearings module. Verify preparation status. Check for any scheduling conflicts.",
+        "target": "[data-tour='hearings-nav']",
+        "placement": "right"
       },
       {
-        "id": "dw-work",
-        "title": "Throughout Day: Status Updates",
-        "content": "As you work, update task status immediately. Move to 'In Progress' when starting, 'Done' when finishing. This keeps dashboards accurate.",
-        "target": "[data-tour='task-status']",
+        "id": "dw-recent",
+        "title": "Review Recent Activity",
+        "content": "End of day: check recent activity for team updates, document uploads, and status changes. Ensure nothing was missed.",
+        "target": "[data-tour='recent-activity']",
         "placement": "top"
-      },
-      {
-        "id": "dw-comms",
-        "title": "Log Communications",
-        "content": "After client calls or meetings, log them immediately. Click '+ Log Communication' to record. Fresh details are more accurate.",
-        "target": "[data-tour='log-comm']",
-        "placement": "left"
-      },
-      {
-        "id": "dw-eod",
-        "title": "End of Day: Wrap Up",
-        "content": "Before leaving: 1) Update all task statuses, 2) Record any hearing outcomes, 3) Send pending client updates, 4) Check tomorrow's schedule.",
-        "target": "[data-tour='eod-checklist']",
-        "placement": "bottom"
       }
     ]
   },
@@ -1211,43 +1169,49 @@
     "estimatedTime": "7 minutes",
     "steps": [
       {
+        "id": "hl-nav",
+        "title": "Access Hearings",
+        "content": "Navigate to Hearings from the sidebar to view all scheduled court appearances and manage the hearing calendar.",
+        "target": "[data-tour='hearings-nav']",
+        "placement": "right"
+      },
+      {
         "id": "hl-schedule",
         "title": "Schedule New Hearing",
-        "content": "Click 'Schedule Hearing'. Select case, date/time, court, and judge. Check calendar for conflicts before confirming.",
+        "content": "Click 'Schedule Hearing' to create a new court appearance. Select case, date/time, court, and judge. Check calendar for conflicts.",
         "target": "[data-tour='schedule-btn']",
         "placement": "left"
       },
       {
-        "id": "hl-conflict",
-        "title": "Conflict Detection",
-        "content": "System warns if you have overlapping hearings. Red indicator shows conflict. Reschedule one of the conflicting hearings.",
-        "target": "[data-tour='conflict-indicator']",
-        "placement": "top"
+        "id": "hl-calendar",
+        "title": "Calendar View",
+        "content": "Switch between List and Calendar views. Calendar view helps identify scheduling conflicts and plan your day visually.",
+        "target": "[data-tour='hearing-calendar']",
+        "placement": "bottom"
       },
       {
-        "id": "hl-reminders",
-        "title": "Set Reminders",
-        "content": "Configure reminders: 1 week for preparation, 1 day for final check. Reminders go to assigned advocate and any attendees.",
-        "target": "[data-tour='reminder-settings']",
+        "id": "hl-case-selector",
+        "title": "Select Case",
+        "content": "When scheduling, select the case this hearing is for. The system will automatically link documents and tasks.",
+        "target": "[data-tour='hearing-case-selector']",
         "placement": "right"
       },
       {
-        "id": "hl-prep",
-        "title": "Preparation Checklist",
-        "content": "Use Preparation tab before hearing. Check documents gathered, arguments prepared, case timeline reviewed. Mark 'Prepared' when ready.",
-        "target": "[data-tour='prep-tab']",
+        "id": "hl-datetime",
+        "title": "Set Date and Time",
+        "content": "Choose the hearing date and time carefully. The system will warn about conflicts with other scheduled hearings.",
+        "target": "[data-tour='hearing-datetime']",
         "placement": "left"
       },
       {
         "id": "hl-outcome",
         "title": "Record Outcome",
-        "content": "After hearing, click 'Record Outcome'. Select result type: Adjourned, Order Passed, etc. This triggers appropriate follow-up tasks.",
-        "target": "[data-tour='outcome-btn']",
+        "content": "After the hearing, record the outcome (Adjourned, Order Passed, etc.). This triggers appropriate follow-up tasks and updates case status.",
+        "target": "[data-tour='hearing-outcome']",
         "placement": "top"
-      },
-      {
-        "id": "hl-next",
-        "title": "Link Next Hearing",
+      }
+    ]
+  },
         "content": "If adjourned, schedule next hearing from outcome form. This links hearings together and maintains continuity in case history.",
         "target": "[data-tour='next-hearing']",
         "placement": "right"

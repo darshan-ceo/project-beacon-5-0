@@ -187,6 +187,7 @@ export const EnhancedDashboard: React.FC = () => {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+        data-tour="dashboard-header"
       >
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-foreground">Practice Analytics</h1>
@@ -194,7 +195,7 @@ export const EnhancedDashboard: React.FC = () => {
             Comprehensive insights and metrics for your workspace
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap" data-tour="quick-actions">
           {/* Last Updated */}
           <span className="text-xs text-muted-foreground hidden md:inline">
             Last updated: {format(lastUpdated, 'HH:mm')}
@@ -228,11 +229,12 @@ export const EnhancedDashboard: React.FC = () => {
         </div>
       </motion.div>
 
-      {/* Stats Bar */}
+      {/* Stats Bar - KPI Cards */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
+        data-tour="kpi-cards"
       >
         <DashboardStatsBar />
       </motion.div>
@@ -254,6 +256,7 @@ export const EnhancedDashboard: React.FC = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.15 }}
+              data-tour="upcoming-deadlines"
             >
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {kpiWidgets.map((tile) => (
@@ -288,6 +291,7 @@ export const EnhancedDashboard: React.FC = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.25 }}
+              data-tour="recent-activity"
             >
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {listWidgets.map((tile) => (
