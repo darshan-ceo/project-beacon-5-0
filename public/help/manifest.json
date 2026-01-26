@@ -1,0 +1,194 @@
+{
+  "version": "1.0",
+  "lastAuditDate": "2025-01-26",
+  "description": "Help documentation requirements and coverage manifest",
+  "minimumCoverage": {
+    "tooltips": 0.8,
+    "tours": 1.0,
+    "operations": 1.0,
+    "faq": 0.7,
+    "pagesHelp": 1.0
+  },
+  "modules": {
+    "dashboard": {
+      "name": "Dashboard",
+      "requiredTooltips": ["dashboard_kpi_cards", "dashboard_quick_actions", "dashboard_upcoming_deadlines"],
+      "requiredTours": ["dashboard-tour"],
+      "requiredOperations": null,
+      "requiredPagesHelp": "dashboard.json",
+      "requiredFAQTopics": ["getting-started"]
+    },
+    "case-management": {
+      "name": "Case Management",
+      "requiredTooltips": [
+        "cm_sla_status",
+        "cm_advance_stage",
+        "cm_case_filters",
+        "cm_lifecycle_tab",
+        "cm_timeline_tab",
+        "cm_new_case_btn"
+      ],
+      "requiredTours": ["case-operations-tour", "case-lifecycle-tour"],
+      "requiredOperations": "case-management-ops.json",
+      "requiredPagesHelp": "case-management.json",
+      "requiredFAQTopics": ["case-creation", "stage-advancement", "sla-management"]
+    },
+    "hearings": {
+      "name": "Hearings",
+      "requiredTooltips": [
+        "hr_calendar_view",
+        "hr_list_view",
+        "hr_outcome_select",
+        "hr_schedule_btn",
+        "hr_adjourn_btn"
+      ],
+      "requiredTours": ["hearing-lifecycle-tour"],
+      "requiredOperations": "hearings-ops.json",
+      "requiredPagesHelp": "hearings.json",
+      "requiredFAQTopics": ["scheduling", "outcomes", "adjournments"]
+    },
+    "tasks": {
+      "name": "Tasks",
+      "requiredTooltips": [
+        "task_board_columns",
+        "task_drag_drop",
+        "task_automation_tab",
+        "task_escalation_tab",
+        "task_create_btn"
+      ],
+      "requiredTours": ["task-board-tour", "task-automation-tour"],
+      "requiredOperations": "tasks-ops.json",
+      "requiredPagesHelp": "tasks.json",
+      "requiredFAQTopics": ["task-management", "automation", "escalation"]
+    },
+    "documents": {
+      "name": "Documents",
+      "requiredTooltips": [
+        "doc_upload_btn",
+        "doc_template_select",
+        "doc_version_history",
+        "doc_folder_nav"
+      ],
+      "requiredTours": ["document-management-tour"],
+      "requiredOperations": "documents-ops.json",
+      "requiredPagesHelp": "documents.json",
+      "requiredFAQTopics": ["uploads", "templates", "versioning"]
+    },
+    "clients": {
+      "name": "Clients",
+      "requiredTooltips": [
+        "client_add_btn",
+        "client_group_filter",
+        "client_portal_access",
+        "client_contacts_tab"
+      ],
+      "requiredTours": ["client-management-tour"],
+      "requiredOperations": "clients-ops.json",
+      "requiredPagesHelp": "clients.json",
+      "requiredFAQTopics": ["client-creation", "groups", "portal"]
+    },
+    "communications": {
+      "name": "Communications",
+      "requiredTooltips": [
+        "comm_channel_filter",
+        "comm_compose_btn",
+        "comm_template_select"
+      ],
+      "requiredTours": null,
+      "requiredOperations": "communications-ops.json",
+      "requiredPagesHelp": "communications.json",
+      "requiredFAQTopics": ["email", "sms"]
+    },
+    "reports": {
+      "name": "Reports",
+      "requiredTooltips": [
+        "report_type_select",
+        "report_date_range",
+        "report_export_btn",
+        "report_filters"
+      ],
+      "requiredTours": ["reports-tour"],
+      "requiredOperations": "reports-ops.json",
+      "requiredPagesHelp": "reports.json",
+      "requiredFAQTopics": ["report-generation", "exports"]
+    },
+    "masters": {
+      "name": "Master Data",
+      "requiredTooltips": [
+        "master_add_btn",
+        "master_import_btn",
+        "master_export_btn",
+        "master_status_toggle"
+      ],
+      "requiredTours": ["masters-tour"],
+      "requiredOperations": "masters-ops.json",
+      "requiredPagesHelp": "masters.json",
+      "requiredFAQTopics": ["master-data", "import-export"]
+    },
+    "settings": {
+      "name": "System Settings",
+      "requiredTooltips": [
+        "settings_general_tab",
+        "settings_notifications_tab",
+        "settings_integrations_tab",
+        "settings_save_btn"
+      ],
+      "requiredTours": ["system-settings-tour"],
+      "requiredOperations": "settings-ops.json",
+      "requiredPagesHelp": "settings.json",
+      "requiredFAQTopics": ["configuration", "notifications"]
+    },
+    "access-roles": {
+      "name": "Access & Roles",
+      "requiredTooltips": [
+        "rbac_assignments_tab",
+        "rbac_definitions_tab",
+        "rbac_hierarchy_tab",
+        "rbac_matrix_tab"
+      ],
+      "requiredTours": ["access-roles-tour"],
+      "requiredOperations": "access-roles-ops.json",
+      "requiredPagesHelp": "access-roles.json",
+      "requiredFAQTopics": ["roles", "permissions", "hierarchy"]
+    },
+    "data-io": {
+      "name": "Data Import/Export",
+      "requiredTooltips": [
+        "dataio_import_tab",
+        "dataio_export_tab",
+        "dataio_mapping_step",
+        "dataio_validate_btn"
+      ],
+      "requiredTours": ["data-io-tour"],
+      "requiredOperations": "data-io-ops.json",
+      "requiredPagesHelp": "data-io.json",
+      "requiredFAQTopics": ["import", "export", "mapping"]
+    },
+    "profile": {
+      "name": "User Profile",
+      "requiredTooltips": [
+        "profile_avatar_upload",
+        "profile_password_change",
+        "profile_preferences"
+      ],
+      "requiredTours": null,
+      "requiredOperations": null,
+      "requiredPagesHelp": "profile.json",
+      "requiredFAQTopics": ["account"]
+    }
+  },
+  "enforcement": {
+    "development": {
+      "level": "warning",
+      "action": "console.warn + toast"
+    },
+    "qa": {
+      "level": "blocking",
+      "action": "blocks UAT status"
+    },
+    "production": {
+      "level": "feature-gate",
+      "action": "feature flags check help completion"
+    }
+  }
+}
