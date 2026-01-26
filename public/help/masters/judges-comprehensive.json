@@ -1,0 +1,299 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2025-11-03",
+  "masterId": "judges",
+  "title": "Judges Master",
+  "subtitle": "Judicial Officers and Bench Composition",
+  "icon": "Gavel",
+  "securityLevel": "ADMIN_PARTNER",
+  
+  "roleInLitigation": {
+    "summary": "Judges preside over hearings and deliver orders. Accurate judge data enables proper bench assignment, hearing scheduling, and case strategy based on judicial tendencies.",
+    "lifecycle": [
+      {
+        "stage": "Hearing Scheduling",
+        "role": "Judge assignment determines which bench hears the matter",
+        "impact": "Wrong judge = hearing before unavailable or incorrect bench"
+      },
+      {
+        "stage": "Case Strategy",
+        "role": "Specializations and past decisions inform litigation approach",
+        "impact": "Missing specialization = poor case-judge matching"
+      },
+      {
+        "stage": "Order Tracking",
+        "role": "Orders attributed to specific judges for precedent research",
+        "impact": "Wrong attribution = unreliable case history"
+      },
+      {
+        "stage": "Appeals",
+        "role": "Higher bench composition tracked for appeal preparation",
+        "impact": "Stale status = appeals to transferred/retired judges"
+      },
+      {
+        "stage": "Analytics",
+        "role": "Judge-wise case outcomes and disposal rates",
+        "impact": "Duplicates = inflated case counts, skewed metrics"
+      }
+    ],
+    "businessValue": "Reliable judge data ensures hearings are scheduled with available judges, strategies align with judicial tendencies, and precedent research is accurate."
+  },
+  
+  "systemDependencies": {
+    "description": "Judges depend on Legal Authorities and are referenced by Hearings. Court must exist before judge can be added.",
+    "dependencies": [
+      {
+        "entity": "Legal Authorities",
+        "relationship": "judge.court_id FK (REQUIRED)",
+        "usage": "Judge must be assigned to a court/tribunal",
+        "impactOfBadData": "Judge appears at wrong court, hearing venue mismatch"
+      },
+      {
+        "entity": "Hearings",
+        "relationship": "hearing.judge_ids[] FK array",
+        "usage": "Multiple judges can be assigned to a hearing (bench)",
+        "impactOfBadData": "Wrong judges on hearing record, incorrect bench composition"
+      },
+      {
+        "entity": "Cases",
+        "relationship": "case.nextHearing.judgeId (derived)",
+        "usage": "Case card shows assigned judge for upcoming hearing",
+        "impactOfBadData": "Case shows wrong/outdated judge information"
+      },
+      {
+        "entity": "Reports",
+        "relationship": "Judge-wise analytics aggregation",
+        "usage": "Case outcomes, disposal rates grouped by judge",
+        "impactOfBadData": "Duplicate judges = fragmented metrics"
+      }
+    ],
+    "prerequisite": "Legal Authority (court) MUST exist before adding judges assigned to it"
+  },
+  
+  "dataQualityRisks": [
+    {
+      "risk": "Judge Assigned to Wrong Court",
+      "severity": "HIGH",
+      "cause": "Incorrect court_id selection during entry",
+      "consequence": "Judge appears in wrong court's dropdown, hearing has invalid judge-court combination",
+      "prevention": "Always select court first, verify assignment matches official roster",
+      "remediation": "Update judge's court_id, review and correct affected hearing records"
+    },
+    {
+      "risk": "Outdated Judge Status",
+      "severity": "HIGH",
+      "cause": "Not marking transfers, retirements, or leaves",
+      "consequence": "Hearings scheduled with unavailable judges, embarrassing errors in court",
+      "prevention": "Monthly status review, subscribe to court notification bulletins",
+      "remediation": "Update status immediately, reassign pending hearings"
+    },
+    {
+      "risk": "Missing Specializations",
+      "severity": "MEDIUM",
+      "cause": "Incomplete profile entry",
+      "consequence": "Poor case-judge matching, missed strategic opportunities",
+      "prevention": "Require at least one specialization on create",
+      "remediation": "Review judge's recent orders to identify expertise areas"
+    },
+    {
+      "risk": "Duplicate Judges",
+      "severity": "HIGH",
+      "cause": "Same judge added when transferred to new court without updating original",
+      "consequence": "Case history fragmented across multiple records",
+      "prevention": "Search by name before adding, use transfer workflow instead of new entry",
+      "remediation": "Merge duplicate records, consolidate hearing references"
+    },
+    {
+      "risk": "Stale Contact Information",
+      "severity": "LOW",
+      "cause": "Chamber location or phone changes, no update",
+      "consequence": "Failed urgent communications",
+      "prevention": "Update contact when bench reconstituted",
+      "remediation": "Verify with court registry, update record"
+    }
+  ],
+  
+  "managementRoles": {
+    "Admin": {
+      "permissions": ["Create", "Edit", "Delete (soft)", "Import", "Export", "Merge duplicates"],
+      "responsibilities": [
+        "Bulk import from court rosters",
+        "Quarterly status review",
+        "Handle transfers and retirements",
+        "Merge duplicates"
+      ],
+      "restrictions": ["Cannot delete judge with linked hearings (must reassign first)"]
+    },
+    "Partner": {
+      "permissions": ["Create", "Edit"],
+      "responsibilities": [
+        "Add judges they appear before",
+        "Keep judge info current for their matters"
+      ],
+      "restrictions": ["Cannot delete", "Cannot change court_id after hearings linked"]
+    },
+    "Manager": {
+      "permissions": ["Create", "Edit (limited)"],
+      "responsibilities": [
+        "Add new judicial appointments",
+        "Report status changes to Admin"
+      ],
+      "restrictions": ["Cannot delete", "Cannot change specializations"]
+    },
+    "Advocate": {
+      "permissions": ["View", "Create (limited)"],
+      "responsibilities": [
+        "Request edits for inaccuracies",
+        "Add judges when appearing before new benches"
+      ],
+      "restrictions": ["Limited create permissions", "No delete"]
+    }
+  },
+  
+  "bestPractices": {
+    "initialSetup": [
+      "Create Legal Authorities (courts) BEFORE adding judges",
+      "Import from official court roster/cause list",
+      "Verify bench composition from court website",
+      "Set status correctly (Active, On Leave, etc.)"
+    ],
+    "dataEntry": [
+      "Always select court FIRST, then fill other fields",
+      "Add full name with honorific (Hon'ble Justice/Member)",
+      "Include appointment date for years-of-service calculations",
+      "Add at least one specialization based on actual case types heard"
+    ],
+    "maintenance": [
+      "Track transfers: Update court_id, add transfer note with date",
+      "Retirement protocol: Change status to 'Retired' with effective date",
+      "Leave tracking: Update status to 'On Leave' for extended absences",
+      "Bench reconstitution: Update assignments when benches change"
+    ],
+    "privacy": [
+      "Store only official contact details (chamber, registry)",
+      "Never store personal phone or email",
+      "Notes should contain only professional observations"
+    ]
+  },
+  
+  "judgeStatusTypes": {
+    "description": "Judge status affects hearing eligibility and display",
+    "statuses": [
+      {
+        "status": "Active",
+        "description": "Currently sitting on bench, available for hearings",
+        "display": "Shown in all dropdowns",
+        "action": "None"
+      },
+      {
+        "status": "On Leave",
+        "description": "Temporary absence (medical, administrative)",
+        "display": "Shown with warning indicator",
+        "action": "Avoid scheduling new hearings"
+      },
+      {
+        "status": "Transferred",
+        "description": "Moved to different court/bench",
+        "display": "Hidden from original court dropdowns",
+        "action": "Create new record at new court or update court_id"
+      },
+      {
+        "status": "Retired",
+        "description": "No longer serving",
+        "display": "Hidden from dropdowns, visible in history",
+        "action": "Record retirement date, preserve for historical reference"
+      },
+      {
+        "status": "Elevated",
+        "description": "Promoted to higher court (e.g., HC to SC)",
+        "display": "Hidden from original court",
+        "action": "Create new record at elevated court"
+      },
+      {
+        "status": "Deceased",
+        "description": "No longer living",
+        "display": "Hidden from all dropdowns",
+        "action": "Mark with date, preserve for historical reference"
+      }
+    ]
+  },
+  
+  "specializationGuidance": {
+    "description": "Specializations inform case strategy and matching",
+    "categories": [
+      {
+        "area": "Tax Law",
+        "examples": ["Income Tax", "GST", "Customs", "Central Excise"],
+        "relevance": "Direct tax vs indirect tax expertise"
+      },
+      {
+        "area": "Constitutional",
+        "examples": ["Writ Petitions", "Fundamental Rights", "Constitutional Interpretation"],
+        "relevance": "Important for HC/SC matters"
+      },
+      {
+        "area": "Commercial",
+        "examples": ["Corporate", "Banking", "Securities", "Insolvency"],
+        "relevance": "NCLT, NCLAT matters"
+      },
+      {
+        "area": "Service",
+        "examples": ["Employment", "Pension", "Disciplinary"],
+        "relevance": "CAT, CGAT matters"
+      },
+      {
+        "area": "Administrative",
+        "examples": ["Regulatory", "Licensing", "Procedural"],
+        "relevance": "Quasi-judicial tribunal matters"
+      }
+    ],
+    "howToAssign": "Base specialization on case types actually heard, not general qualifications. Review recent orders for patterns."
+  },
+  
+  "troubleshooting": [
+    {
+      "issue": "Judge not appearing in hearing dropdown",
+      "cause": "Judge status is not 'Active' or court_id doesn't match hearing's court",
+      "solution": "Verify judge status is Active and court assignment matches the hearing's court"
+    },
+    {
+      "issue": "Multiple entries for same judge",
+      "cause": "Judge was added again after transfer instead of updating existing record",
+      "solution": "Merge duplicate records using Admin tools, consolidate hearing references"
+    },
+    {
+      "issue": "Hearing shows retired judge",
+      "cause": "Judge status not updated after retirement",
+      "solution": "Update judge status to 'Retired', reassign pending hearings"
+    },
+    {
+      "issue": "Wrong bench composition in reports",
+      "cause": "Hearing has incorrect judge_ids array",
+      "solution": "Edit hearing to correct judge assignments"
+    }
+  ],
+  
+  "relatedHelp": [
+    "legal-authorities-comprehensive",
+    "master-data-governance"
+  ],
+  
+  "faqs": [
+    {
+      "question": "How do I handle a judge transfer?",
+      "answer": "Update the existing judge record's court_id to the new court. Add a note documenting the transfer date. Past hearing records remain linked correctly."
+    },
+    {
+      "question": "Can I delete a judge?",
+      "answer": "Judges with linked hearings cannot be deleted. Change status to 'Retired' or 'Transferred' to remove from active dropdowns while preserving history."
+    },
+    {
+      "question": "How do I track a multi-member bench?",
+      "answer": "Add all bench members as separate judge records. When scheduling hearings, select multiple judges to represent the full bench composition."
+    },
+    {
+      "question": "What contact info should I store for a judge?",
+      "answer": "Only official contact: chamber address, registry phone/email. Never store personal contact details for privacy and ethics compliance."
+    }
+  ]
+}

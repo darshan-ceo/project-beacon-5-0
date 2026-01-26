@@ -1,0 +1,390 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2025-11-03",
+  "masterId": "statutory-deadlines",
+  "title": "Statutory Deadlines Master",
+  "subtitle": "Legal Time Limits, Event Types, and Holiday Calendars",
+  "icon": "Clock",
+  "securityLevel": "ADMIN_PARTNER",
+  
+  "roleInLitigation": {
+    "summary": "Statutory deadlines define legal time limits for actions - reply periods, appeal windows, compliance dates. Missing a deadline can result in case dismissal, penalties, or loss of rights. This master is CRITICAL for compliance.",
+    "lifecycle": [
+      {
+        "stage": "Case Intake",
+        "role": "Deadline rules triggered based on notice/order type",
+        "impact": "Wrong rule = miscalculated reply date, potential non-compliance"
+      },
+      {
+        "stage": "Deadline Calculation",
+        "role": "System calculates due dates from base date using rules",
+        "impact": "Wrong base_date_type = deadline off by weeks/months"
+      },
+      {
+        "stage": "Task Creation",
+        "role": "Compliance tasks auto-generated from deadlines",
+        "impact": "Missing task = no reminder, missed deadline"
+      },
+      {
+        "stage": "Compliance Tracking",
+        "role": "Dashboard shows upcoming/overdue deadlines",
+        "impact": "Wrong data = false compliance status, missed alerts"
+      },
+      {
+        "stage": "Extensions",
+        "role": "Extension rules determine if/when deadlines can be extended",
+        "impact": "Wrong extension config = missed extension opportunity or false expectation"
+      }
+    ],
+    "businessValue": "Accurate statutory deadline configuration is CRITICAL for compliance. A single miscalculated deadline can result in case dismissal, penalties, or malpractice claims."
+  },
+  
+  "systemComponents": {
+    "description": "Statutory deadline system has three interconnected components",
+    "components": [
+      {
+        "component": "Event Types",
+        "purpose": "Define deadline rules (trigger → deadline calculation)",
+        "table": "statutory_event_types",
+        "examples": ["Notice Reply (30 days)", "Appeal Filing (90 days)", "Order Compliance (60 days)"]
+      },
+      {
+        "component": "Holiday Calendar",
+        "purpose": "Exclude non-working days from deadline calculations",
+        "table": "holidays",
+        "examples": ["National holidays", "Court-specific holidays", "Jurisdiction holidays"]
+      },
+      {
+        "component": "Case Deadlines",
+        "purpose": "Calculated deadlines for specific cases",
+        "table": "case_statutory_deadlines",
+        "examples": ["Case A reply due 2025-12-15", "Case B appeal deadline 2026-01-30"]
+      }
+    ]
+  },
+  
+  "systemDependencies": {
+    "description": "Deadlines are calculated from event types and affect tasks, notifications, and compliance tracking",
+    "dependencies": [
+      {
+        "entity": "Cases",
+        "relationship": "case.reply_due_date (calculated field)",
+        "usage": "Primary reply deadline shown on case card",
+        "impactOfBadData": "Wrong deadline displayed, compliance tracking fails"
+      },
+      {
+        "entity": "Case Statutory Deadlines",
+        "relationship": "case_statutory_deadlines.event_type_id FK",
+        "usage": "Links case to applicable deadline rules",
+        "impactOfBadData": "Missing or wrong deadline calculations"
+      },
+      {
+        "entity": "Tasks",
+        "relationship": "Auto-created from deadline triggers",
+        "usage": "Compliance tasks with due dates from deadlines",
+        "impactOfBadData": "Tasks have wrong due dates or aren't created"
+      },
+      {
+        "entity": "Notifications",
+        "relationship": "Triggered by deadline proximity",
+        "usage": "Reminders before deadlines",
+        "impactOfBadData": "Missed or premature notifications"
+      },
+      {
+        "entity": "Compliance Dashboard",
+        "relationship": "Aggregates deadline status",
+        "usage": "Shows at-risk, upcoming, overdue deadlines",
+        "impactOfBadData": "False compliance metrics, missed at-risk cases"
+      },
+      {
+        "entity": "Holidays",
+        "relationship": "Excluded from working day calculations",
+        "usage": "Accurate deadline when using 'working days'",
+        "impactOfBadData": "Deadlines fall on holidays, calculation off"
+      }
+    ]
+  },
+  
+  "eventTypeConfiguration": {
+    "description": "Event types define the rules for deadline calculation",
+    "keyFields": [
+      {
+        "field": "base_date_type",
+        "description": "Which date triggers the deadline countdown",
+        "options": [
+          {"value": "notice_date", "meaning": "Date on the notice/order document"},
+          {"value": "order_date", "meaning": "Date order was passed (may differ from notice date)"},
+          {"value": "receipt_date", "meaning": "Date taxpayer received the notice"},
+          {"value": "service_date", "meaning": "Date of valid service"}
+        ],
+        "criticalNote": "Wrong base_date_type is the #1 cause of deadline errors"
+      },
+      {
+        "field": "deadline_type",
+        "description": "Unit of time measurement",
+        "options": [
+          {"value": "days", "meaning": "Calendar days (includes weekends)"},
+          {"value": "working_days", "meaning": "Excludes holidays (uses holiday calendar)"},
+          {"value": "months", "meaning": "Calendar months from base date"}
+        ],
+        "criticalNote": "Working days requires current holiday calendar"
+      },
+      {
+        "field": "deadline_count",
+        "description": "Number of days/months from base date",
+        "source": "Must match statutory provision exactly",
+        "examples": ["30 days for ASMT-10 reply", "90 days for GSTAT appeal"]
+      },
+      {
+        "field": "authority_level",
+        "description": "Which authority level this rule applies to",
+        "purpose": "Same event type may have different limits at different levels",
+        "example": "Reply to Adjudication: 30 days, Reply to Appellate: 45 days"
+      },
+      {
+        "field": "extension_allowed",
+        "description": "Whether deadline can be extended",
+        "impact": "Controls extension request workflow",
+        "note": "Some statutory deadlines cannot be extended"
+      },
+      {
+        "field": "legal_reference",
+        "description": "Section/Rule citation",
+        "purpose": "Audit trail showing statutory basis",
+        "example": "Section 73(10) of CGST Act, 2017"
+      }
+    ]
+  },
+  
+  "dataQualityRisks": [
+    {
+      "risk": "Wrong Deadline Count",
+      "severity": "CRITICAL",
+      "cause": "Incorrect deadline_count value not matching statute",
+      "consequence": "Reply dates miscalculated by days/weeks, missed statutory deadline",
+      "prevention": "Verify against statute before entry, cross-reference with legal team",
+      "remediation": "Correct immediately, recalculate all affected case deadlines"
+    },
+    {
+      "risk": "Wrong Base Date Type",
+      "severity": "CRITICAL",
+      "cause": "Confusion between notice_date, order_date, receipt_date",
+      "consequence": "Deadline off by weeks/months depending on timing gap",
+      "prevention": "Document base date rules per event type, require legal review",
+      "remediation": "Correct event type, manually review affected case deadlines"
+    },
+    {
+      "risk": "Missing Event Types",
+      "severity": "HIGH",
+      "cause": "Incomplete setup during implementation",
+      "consequence": "No auto-calculation for certain case types",
+      "prevention": "Complete event type catalog during implementation, review for gaps",
+      "remediation": "Add missing event types, backfill case deadlines"
+    },
+    {
+      "risk": "Stale Holiday Calendar",
+      "severity": "HIGH",
+      "cause": "Not updated annually, missing current year holidays",
+      "consequence": "Working day calculations wrong, deadlines fall on holidays",
+      "prevention": "Import new year holidays in December/January each year",
+      "remediation": "Update calendar immediately, recalculate working day deadlines"
+    },
+    {
+      "risk": "Wrong Extension Rules",
+      "severity": "MEDIUM",
+      "cause": "Incorrect extension_allowed or extension_days configuration",
+      "consequence": "Team expects extension that isn't available, or misses extension opportunity",
+      "prevention": "Verify extension provisions in statute",
+      "remediation": "Correct configuration, notify team of accurate extension rules"
+    },
+    {
+      "risk": "Authority Level Mismatch",
+      "severity": "HIGH",
+      "cause": "Rule created for wrong authority level",
+      "consequence": "Deadline rule applies to wrong stage of litigation",
+      "prevention": "Verify authority level matches intended forum",
+      "remediation": "Correct authority_level, review affected cases"
+    }
+  ],
+  
+  "managementRoles": {
+    "Admin": {
+      "permissions": ["Full CRUD on event types", "Holiday import", "Rule testing", "Bulk recalculation"],
+      "responsibilities": [
+        "Configure complete event type catalog",
+        "Annual holiday calendar updates",
+        "Verify rules against legislation changes",
+        "Handle deadline recalculations"
+      ],
+      "restrictions": ["Changes affect all tenants if global rules"]
+    },
+    "Partner": {
+      "permissions": ["View all", "Limited edit (non-critical fields)"],
+      "responsibilities": [
+        "Review statutory limits for accuracy",
+        "Report legislative changes",
+        "Verify deadline calculations on cases"
+      ],
+      "restrictions": ["Cannot change deadline_count or base_date_type without Admin"]
+    },
+    "Manager": {
+      "permissions": ["Create event types", "View all"],
+      "responsibilities": [
+        "Add new event types as case types expand",
+        "Report calculation issues"
+      ],
+      "restrictions": ["Cannot modify existing rules", "No holiday management"]
+    },
+    "Implementor": {
+      "permissions": ["Full access during setup"],
+      "responsibilities": [
+        "Initial event type catalog creation",
+        "Holiday calendar import",
+        "Deadline calculation testing"
+      ],
+      "restrictions": ["Access reduced post go-live"]
+    }
+  },
+  
+  "holidayCalendarManagement": {
+    "description": "Holiday calendar is critical for working day calculations",
+    "importProcess": [
+      "Download official holiday list from government/court sources",
+      "Format as required (date, name, jurisdiction)",
+      "Import via Admin panel or bulk upload",
+      "Verify import against source"
+    ],
+    "jurisdictionHandling": {
+      "national": "Apply to all deadline calculations (e.g., Republic Day)",
+      "state": "Apply only to cases in that state (e.g., State Formation Day)",
+      "courtSpecific": "Apply only to specific courts (e.g., Court vacation)"
+    },
+    "maintenanceSchedule": {
+      "annual": "Import new year calendar in December/January",
+      "adhoc": "Add declared holidays as announced",
+      "review": "Quarterly check for completeness"
+    },
+    "commonMistakes": [
+      "Forgetting to import new year holidays",
+      "Missing court-specific vacation periods",
+      "Not including state holidays for regional cases"
+    ]
+  },
+  
+  "bestPractices": {
+    "eventTypeCreation": [
+      "Always enter legal_reference with section/rule number",
+      "Verify deadline_count against current statute (laws change)",
+      "Document base_date_type reasoning in description",
+      "Test calculation with sample dates before go-live"
+    ],
+    "deadlineManagement": [
+      "Use 'Calculate Deadline' tool to verify before relying on auto-calculation",
+      "Review auto-created tasks for deadline accuracy",
+      "Monitor extension counts for policy compliance",
+      "Document reason when manually overriding calculated dates"
+    ],
+    "holidayMaintenance": [
+      "Import new calendar each December before year-end",
+      "Include both central and state holidays",
+      "Add court vacation periods for relevant jurisdictions",
+      "Verify against official government gazette"
+    ],
+    "complianceMonitoring": [
+      "Review compliance dashboard daily for at-risk deadlines",
+      "Set multiple reminder days (e.g., 7, 3, 1 days before)",
+      "Escalate overdue items immediately",
+      "Document extension requests and approvals"
+    ]
+  },
+  
+  "deadlineCalculationLogic": {
+    "description": "How the system calculates deadlines",
+    "formula": "Due Date = Base Date + Deadline Count (adjusted for type)",
+    "examples": [
+      {
+        "scenario": "30 calendar days from notice date",
+        "base_date": "2025-01-15",
+        "deadline_type": "days",
+        "deadline_count": 30,
+        "result": "2025-02-14"
+      },
+      {
+        "scenario": "30 working days from notice date",
+        "base_date": "2025-01-15",
+        "deadline_type": "working_days",
+        "deadline_count": 30,
+        "result": "Approximately 2025-02-26 (excludes holidays)",
+        "note": "Actual date depends on holiday calendar"
+      },
+      {
+        "scenario": "3 months from order date",
+        "base_date": "2025-01-15",
+        "deadline_type": "months",
+        "deadline_count": 3,
+        "result": "2025-04-15"
+      }
+    ],
+    "edgeCases": [
+      "If deadline falls on holiday → next working day",
+      "Month-end dates (e.g., Jan 31 + 1 month → Feb 28/29)",
+      "Leap year handling for February dates"
+    ]
+  },
+  
+  "troubleshooting": [
+    {
+      "issue": "Deadline not calculating for case",
+      "cause": "No event type matches case's notice type or authority level",
+      "solution": "Verify event type exists for this combination, create if missing"
+    },
+    {
+      "issue": "Deadline shows weekend/holiday",
+      "cause": "Using 'days' instead of 'working_days' or holiday calendar incomplete",
+      "solution": "Change to working_days if statutory allows, or update holiday calendar"
+    },
+    {
+      "issue": "Task not auto-created from deadline",
+      "cause": "Event type doesn't have task template configured",
+      "solution": "Add task template to event type configuration"
+    },
+    {
+      "issue": "Working day calculation seems wrong",
+      "cause": "Holiday calendar missing entries for jurisdiction",
+      "solution": "Review and update holiday calendar for affected jurisdiction"
+    },
+    {
+      "issue": "Extension not available when expected",
+      "cause": "extension_allowed is false on event type",
+      "solution": "Verify against statute - if extensions are allowed, update configuration"
+    }
+  ],
+  
+  "relatedHelp": [
+    "legal-authorities-comprehensive",
+    "master-data-governance"
+  ],
+  
+  "faqs": [
+    {
+      "question": "How do I add a new type of deadline?",
+      "answer": "Create a new event type with: name, base_date_type (which date triggers it), deadline_type (days/working_days/months), deadline_count (from statute), and legal_reference. Test with sample dates."
+    },
+    {
+      "question": "When should I update the holiday calendar?",
+      "answer": "Import the new year calendar in December/January. Add any mid-year declared holidays as announced. Review quarterly for completeness."
+    },
+    {
+      "question": "What if a deadline is wrong on a case?",
+      "answer": "Check event type configuration first. If rule is wrong, fix it and recalculate. If case-specific, you can manually override the calculated date (document reason)."
+    },
+    {
+      "question": "How do extensions work?",
+      "answer": "If extension_allowed is true on the event type, the system tracks extension count and calculates new deadline. extension_days defines maximum extension period."
+    },
+    {
+      "question": "What's the difference between days and working_days?",
+      "answer": "Days = calendar days including weekends. Working_days = excludes holidays from calendar. Use working_days when statute says 'working days' or 'excluding holidays'."
+    }
+  ]
+}

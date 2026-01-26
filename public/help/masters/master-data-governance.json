@@ -1,0 +1,188 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2025-11-03",
+  "title": "Master Data Governance",
+  "securityLevel": "ADMIN_PARTNER",
+  
+  "overview": {
+    "summary": "Master data forms the foundation of Project Beacon's litigation management system. These reference entities define the WHO (Employees, Contacts, Judges), WHERE (Legal Authorities), and WHEN (Statutory Deadlines) of case management.",
+    "systemImpact": "Incorrect or incomplete master data propagates errors across cases, hearings, tasks, and reports. A single wrong court assignment can cause missed deadlines and compliance failures.",
+    "governanceNote": "Master data changes are audited. Deletions are soft by design to preserve referential integrity with historical records."
+  },
+  
+  "dependencyMap": {
+    "description": "Master data flows downstream to operational entities. Understanding these dependencies prevents data corruption.",
+    "visualFlow": "Legal Authorities → Cases → Hearings ← Judges | Employees → Tasks | Contacts → Clients → Portal",
+    "dependencies": [
+      {
+        "source": "Legal Authorities",
+        "downstream": ["Cases", "Hearings", "Judges", "Statutory Deadlines"],
+        "impactDescription": "Defines jurisdiction, court hierarchy, and applicable deadline rules",
+        "criticalFields": ["authority_level", "jurisdiction", "matter_types"],
+        "riskIfIncorrect": "Wrong statutory deadlines applied, cases routed to invalid courts"
+      },
+      {
+        "source": "Judges",
+        "downstream": ["Hearings", "Cases (bench assignment)"],
+        "impactDescription": "Determines who presides over hearings and delivers orders",
+        "criticalFields": ["court_id", "status", "specializations"],
+        "riskIfIncorrect": "Hearings assigned to unavailable judges, incorrect bench information"
+      },
+      {
+        "source": "Employees",
+        "downstream": ["Cases", "Tasks", "RBAC", "Notifications", "Team Hierarchy"],
+        "impactDescription": "Controls case ownership, task routing, data visibility, and permissions",
+        "criticalFields": ["role", "data_scope", "reporting_to", "is_active"],
+        "riskIfIncorrect": "Cases orphaned, notifications fail, security breaches via wrong permissions"
+      },
+      {
+        "source": "Contacts",
+        "downstream": ["Clients", "Cases (opposing counsel)", "Communications", "Portal Users"],
+        "impactDescription": "Enables client relationships, case party identification, and portal access",
+        "criticalFields": ["client_id", "data_scope", "is_primary", "portal_access"],
+        "riskIfIncorrect": "Wrong person receives confidential information, portal access to unauthorized users"
+      },
+      {
+        "source": "Statutory Deadlines",
+        "downstream": ["Cases (reply dates)", "Tasks (auto-creation)", "Compliance Dashboard", "Notifications"],
+        "impactDescription": "Calculates legal time limits, creates compliance tasks, triggers deadline alerts",
+        "criticalFields": ["base_date_type", "deadline_count", "deadline_type", "authority_level"],
+        "riskIfIncorrect": "Miscalculated deadlines, missed filings, potential case dismissal"
+      }
+    ]
+  },
+  
+  "dataQualityPrinciples": [
+    {
+      "principle": "Single Source of Truth",
+      "description": "Each entity should exist only once. No duplicate courts, judges, or contacts.",
+      "implementation": "Use deduplication checks before import, search before create"
+    },
+    {
+      "principle": "Complete Before Linking",
+      "description": "Fill all required fields before linking master data to cases or other entities.",
+      "implementation": "Form validation prevents incomplete entries from being linked"
+    },
+    {
+      "principle": "Validate Against Authority",
+      "description": "Verify data against authoritative sources (Bar Council, GST Portal, Court directories).",
+      "implementation": "Cross-reference official sources, use GSP API for GST data"
+    },
+    {
+      "principle": "Audit Regularly",
+      "description": "Review master data quarterly for stale, orphaned, or incorrect records.",
+      "implementation": "Use 'Last Updated' filter to find records not touched in 90+ days"
+    },
+    {
+      "principle": "Soft Delete Only",
+      "description": "Never hard-delete master data. Mark as inactive to preserve case history.",
+      "implementation": "Status field changes to 'Inactive' rather than DELETE operation"
+    }
+  ],
+  
+  "governanceRoles": {
+    "Admin": {
+      "permissions": "Full CRUD on all masters, import/export, bulk operations, audit review",
+      "responsibilities": "Initial setup, onboarding/offboarding, quarterly audits, data cleanup",
+      "restrictions": "Cannot bypass soft-delete for linked records"
+    },
+    "Partner": {
+      "permissions": "Create and edit masters for own practice areas and clients",
+      "responsibilities": "Maintain accuracy of contacts and authorities in their cases",
+      "restrictions": "Cannot delete, cannot modify system-critical fields (authority_level)"
+    },
+    "Manager": {
+      "permissions": "Create entries, limited edit (non-critical fields only)",
+      "responsibilities": "Add new entries as directed, report data issues to Admin",
+      "restrictions": "Cannot delete, cannot change permissions or hierarchy"
+    },
+    "Staff": {
+      "permissions": "View-only access to reference data",
+      "responsibilities": "Report inaccuracies to Manager or Admin",
+      "restrictions": "No create, update, or delete access"
+    },
+    "Implementor": {
+      "permissions": "Full access during deployment phase",
+      "responsibilities": "Initial data import, hierarchy setup, validation",
+      "restrictions": "Access revoked or reduced post go-live"
+    }
+  },
+  
+  "maintenanceSchedule": {
+    "daily": [
+      "Review new entries for completeness",
+      "Check for duplicate alerts from import jobs"
+    ],
+    "weekly": [
+      "Verify contact information for active clients",
+      "Review employee status changes"
+    ],
+    "monthly": [
+      "Audit 'Last Updated' for stale records",
+      "Run deduplication check across all masters",
+      "Review orphaned records report"
+    ],
+    "quarterly": [
+      "Full master data audit with compliance report",
+      "Review role assignments and data scope settings",
+      "Update statutory deadline rules for new legislation",
+      "Refresh holiday calendar if near year-end"
+    ],
+    "annually": [
+      "Import new year holiday calendar",
+      "Archive inactive records older than retention period",
+      "Review and update authority hierarchy for new courts"
+    ]
+  },
+  
+  "commonErrors": [
+    {
+      "error": "Duplicate Legal Authority",
+      "cause": "Same court imported from multiple sources",
+      "symptom": "Cases split across duplicates, reports show inflated counts",
+      "fix": "Merge duplicates using Admin merge tool, update case references"
+    },
+    {
+      "error": "Circular Employee Hierarchy",
+      "cause": "A reports to B, B reports to A",
+      "symptom": "Infinite loop in Team Cases visibility calculation",
+      "fix": "Break cycle by reassigning one manager, use hierarchy visualization"
+    },
+    {
+      "error": "Orphaned Contact",
+      "cause": "Client deleted but contact not archived",
+      "symptom": "Contact appears in lists but can't be linked to cases",
+      "fix": "Archive orphaned contacts or reassign to new client"
+    },
+    {
+      "error": "Wrong Deadline Calculation",
+      "cause": "base_date_type mismatch (notice_date vs order_date)",
+      "symptom": "Reply due dates incorrect by weeks/months",
+      "fix": "Verify base_date_type in statutory event type configuration"
+    },
+    {
+      "error": "Judge at Wrong Court",
+      "cause": "Incorrect court_id selection during entry",
+      "symptom": "Judge appears in wrong court's dropdown, hearing data incorrect",
+      "fix": "Update judge's court assignment, verify hearing records"
+    }
+  ],
+  
+  "integrationPoints": {
+    "gstPortal": {
+      "affects": ["Legal Authorities (GSTAT benches)", "Contacts (signatory import)"],
+      "syncDirection": "One-way from GST Portal",
+      "frequency": "On-demand via OTP consent"
+    },
+    "calendar": {
+      "affects": ["Hearings (via Legal Authorities)", "Employees (invitees)"],
+      "syncDirection": "Bidirectional",
+      "frequency": "Real-time or scheduled sync"
+    },
+    "notifications": {
+      "affects": ["Contacts (email/SMS)", "Employees (assignments)"],
+      "syncDirection": "Outbound only",
+      "frequency": "Event-triggered"
+    }
+  }
+}

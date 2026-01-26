@@ -1930,6 +1930,445 @@
           "accessibility": { "ariaLabel": "Run production readiness check" }
         }
       ]
+    },
+    "legal_authorities": {
+      "fields": [
+        {
+          "id": "la_name",
+          "label": "Authority Name",
+          "explanation": "Official name of the court or tribunal",
+          "tooltip": {
+            "title": "Legal Authority Name",
+            "content": "Full official name as it appears on orders and notifications. Example: 'Goods and Services Tax Appellate Tribunal, Mumbai Bench'. Used in all case documents and reports."
+          },
+          "systemDependency": "Displayed on cases, hearings, and generated documents",
+          "accessibility": { "ariaLabel": "Enter authority name" }
+        },
+        {
+          "id": "la_code",
+          "label": "Authority Code",
+          "explanation": "Unique short code for the authority",
+          "tooltip": {
+            "title": "Authority Code",
+            "content": "Short unique identifier (e.g., 'GSTAT/MH/01', 'HC-DEL'). Used in case numbering, reports, and integrations. Once set and linked to cases, avoid changing."
+          },
+          "systemDependency": "Referenced in case numbers and report filters",
+          "accessibility": { "ariaLabel": "Enter authority code" }
+        },
+        {
+          "id": "la_authority_level",
+          "label": "Authority Level",
+          "explanation": "Position in appellate hierarchy",
+          "tooltip": {
+            "title": "Authority Level (CRITICAL)",
+            "content": "Determines appellate hierarchy and applicable statutory deadlines. Options: AO (Assessing Officer), ADJ (Adjudicating Authority), AA (Appellate Authority), TRIB (Tribunal), HC (High Court), SC (Supreme Court). Wrong level = wrong deadline rules."
+          },
+          "systemDependency": "Triggers statutory deadline rules, affects appeal forum calculation",
+          "warning": "Changing after cases linked may cause deadline recalculation issues",
+          "accessibility": { "ariaLabel": "Select authority level" }
+        },
+        {
+          "id": "la_jurisdiction",
+          "label": "Jurisdiction",
+          "explanation": "Geographic or subject-matter coverage",
+          "tooltip": {
+            "title": "Jurisdiction",
+            "content": "Territorial or subject-matter coverage of this authority. Used for case routing and filtering. Example: 'Maharashtra', 'All India', 'Central Excise matters'."
+          },
+          "systemDependency": "Affects case filtering and jurisdiction-based reports",
+          "accessibility": { "ariaLabel": "Enter jurisdiction" }
+        },
+        {
+          "id": "la_matter_types",
+          "label": "Matter Types",
+          "explanation": "Case categories handled at this authority",
+          "tooltip": {
+            "title": "Applicable Matter Types",
+            "content": "Types of cases this authority handles (GST, Income Tax, Customs, etc.). Controls which matter types appear when creating cases at this authority. Leave empty to allow all types."
+          },
+          "systemDependency": "Filters matter type dropdown in case creation",
+          "accessibility": { "ariaLabel": "Select matter types" }
+        },
+        {
+          "id": "la_bench_location",
+          "label": "Bench Location",
+          "explanation": "Physical location of the bench",
+          "tooltip": {
+            "title": "Bench Location",
+            "content": "Physical address where hearings occur. Critical for GSTAT (multiple benches per state). Include full address for calendar invites and hearing preparation."
+          },
+          "systemDependency": "Used in hearing venue and calendar integrations",
+          "accessibility": { "ariaLabel": "Enter bench location" }
+        },
+        {
+          "id": "la_status",
+          "label": "Status",
+          "explanation": "Active or inactive",
+          "tooltip": {
+            "title": "Authority Status",
+            "content": "Active: Shown in dropdowns, can link new cases. Inactive: Hidden from dropdowns, preserves existing case links. Use Inactive for closed or merged courts."
+          },
+          "systemDependency": "Controls visibility in case creation dropdowns",
+          "accessibility": { "ariaLabel": "Select status" }
+        },
+        {
+          "id": "la_digital_filing",
+          "label": "Accepts Digital Filing",
+          "explanation": "Whether e-filing is accepted",
+          "tooltip": {
+            "title": "Digital Filing Support",
+            "content": "Indicates if this authority accepts electronic filings. Affects document submission workflow and compliance tracking. Enable only if court has official e-filing portal."
+          },
+          "accessibility": { "ariaLabel": "Toggle digital filing support" }
+        }
+      ]
+    },
+    "judges": {
+      "fields": [
+        {
+          "id": "jm_name",
+          "label": "Judge Name",
+          "explanation": "Full name with honorific",
+          "tooltip": {
+            "title": "Judge Name",
+            "content": "Full name including honorific (e.g., 'Hon'ble Justice R.K. Sharma', 'Member (Technical) S. Gupta'). Appears on hearing records and case assignments."
+          },
+          "systemDependency": "Displayed in hearings and case details",
+          "accessibility": { "ariaLabel": "Enter judge name" }
+        },
+        {
+          "id": "jm_court_assignment",
+          "label": "Court Assignment",
+          "explanation": "Which Legal Authority this judge sits at",
+          "tooltip": {
+            "title": "Court Assignment (REQUIRED)",
+            "content": "The Legal Authority where this judge is currently assigned. Must exist in Legal Authorities master. Judge will only appear in hearing dropdowns for this court."
+          },
+          "systemDependency": "Determines which hearing forms show this judge",
+          "warning": "Judge won't appear in dropdowns until court is assigned",
+          "accessibility": { "ariaLabel": "Select court assignment" }
+        },
+        {
+          "id": "jm_specialization",
+          "label": "Specializations",
+          "explanation": "Areas of expertise",
+          "tooltip": {
+            "title": "Judge Specializations",
+            "content": "Areas of legal expertise (Tax Law, Constitutional, Commercial, etc.). Based on actual case types heard, not general qualifications. Used for case-judge matching recommendations."
+          },
+          "systemDependency": "Informs case strategy recommendations",
+          "accessibility": { "ariaLabel": "Select specializations" }
+        },
+        {
+          "id": "jm_bench",
+          "label": "Bench",
+          "explanation": "Specific bench within the court",
+          "tooltip": {
+            "title": "Bench Assignment",
+            "content": "For courts with multiple benches (A, B, C or numbered). Affects hearing scheduling and cause list filtering. Update when bench reconstituted."
+          },
+          "systemDependency": "Used in hearing scheduling and cause list",
+          "accessibility": { "ariaLabel": "Enter bench assignment" }
+        },
+        {
+          "id": "jm_status",
+          "label": "Status",
+          "explanation": "Current status of the judge",
+          "tooltip": {
+            "title": "Judge Status",
+            "content": "Active: Available for hearings. On Leave: Temporary absence. Transferred: Moved to different court. Retired: No longer serving. Elevated: Promoted to higher court. Affects dropdown visibility."
+          },
+          "systemDependency": "Non-Active judges hidden from hearing forms",
+          "warning": "Always update status on transfer/retirement to prevent scheduling errors",
+          "accessibility": { "ariaLabel": "Select judge status" }
+        },
+        {
+          "id": "jm_appointment_date",
+          "label": "Appointment Date",
+          "explanation": "Date of appointment to current position",
+          "tooltip": {
+            "title": "Appointment Date",
+            "content": "When the judge was appointed to current position. Used to calculate years of service. Update when promoted or transferred."
+          },
+          "accessibility": { "ariaLabel": "Select appointment date" }
+        }
+      ]
+    },
+    "contacts": {
+      "fields": [
+        {
+          "id": "cm_name",
+          "label": "Contact Name",
+          "explanation": "Full name of the contact",
+          "tooltip": {
+            "title": "Contact Name",
+            "content": "Full name as it should appear in communications. Include salutation for formal contacts (Mr./Ms./Dr.). Used in email salutations and document generation."
+          },
+          "systemDependency": "Used in communications and document templates",
+          "accessibility": { "ariaLabel": "Enter contact name" }
+        },
+        {
+          "id": "cm_client_link",
+          "label": "Link to Client",
+          "explanation": "Associate contact with a client organization",
+          "tooltip": {
+            "title": "Client Linkage",
+            "content": "Links this contact to a client organization. Client-linked contacts can receive portal access and inherit client visibility. Leave unlinked for standalone contacts (prospects, opposing counsel)."
+          },
+          "systemDependency": "Enables portal access, determines visibility",
+          "warning": "Verify correct client before linking - affects portal access",
+          "accessibility": { "ariaLabel": "Select client to link" }
+        },
+        {
+          "id": "cm_data_scope",
+          "label": "Data Scope",
+          "explanation": "Who can see this contact",
+          "tooltip": {
+            "title": "Contact Visibility (Data Scope)",
+            "content": "OWN: Only you can see this contact. TEAM: Your team can see. ALL: Everyone in organization can see. Applies mainly to standalone contacts; client-linked contacts inherit client visibility."
+          },
+          "systemDependency": "Controls who sees this contact in lists and dropdowns",
+          "accessibility": { "ariaLabel": "Select data scope" }
+        },
+        {
+          "id": "cm_roles",
+          "label": "Roles",
+          "explanation": "Contact's function in client relationship",
+          "tooltip": {
+            "title": "Contact Roles",
+            "content": "Signatory: Authorized to sign documents. Coordinator: Primary point of contact. Billing: Handles invoices. Decision Maker: Has authority on case matters. Assign all applicable roles."
+          },
+          "systemDependency": "Affects signatory dropdowns, notification routing",
+          "accessibility": { "ariaLabel": "Select contact roles" }
+        },
+        {
+          "id": "cm_is_primary",
+          "label": "Primary Contact",
+          "explanation": "Main point of contact for client",
+          "tooltip": {
+            "title": "Primary Contact Flag",
+            "content": "When enabled, this contact receives key notifications and is shown first in contact lists. Each client should have exactly one primary contact. Verify identity before marking as primary."
+          },
+          "systemDependency": "Receives important client notifications",
+          "warning": "Wrong person as primary = confidential info to wrong recipient",
+          "accessibility": { "ariaLabel": "Toggle primary contact" }
+        },
+        {
+          "id": "cm_email",
+          "label": "Email Address",
+          "explanation": "Primary email for communications",
+          "tooltip": {
+            "title": "Contact Email",
+            "content": "Primary email address for notifications and communications. Verify accuracy before saving - failed delivery affects deadline reminders. Use official business email, not personal."
+          },
+          "systemDependency": "Used for all email notifications",
+          "accessibility": { "ariaLabel": "Enter email address" }
+        },
+        {
+          "id": "cm_portal_access",
+          "label": "Portal Access",
+          "explanation": "Enable client portal login",
+          "tooltip": {
+            "title": "Client Portal Access",
+            "content": "When enabled, contact can log into client portal to view their cases, documents, and communicate with team. CRITICAL: Verify identity before enabling. Only for client-linked contacts."
+          },
+          "systemDependency": "Creates auth credentials and portal access",
+          "warning": "Wrong portal access = confidential data breach. Always verify identity first.",
+          "accessibility": { "ariaLabel": "Toggle portal access" }
+        }
+      ]
+    },
+    "employees": {
+      "fields": [
+        {
+          "id": "em_name",
+          "label": "Employee Name",
+          "explanation": "Full name of the team member",
+          "tooltip": {
+            "title": "Employee Name",
+            "content": "Full name as it should appear in the system. Used in case assignments, task routing, and audit logs. Keep consistent across all systems."
+          },
+          "systemDependency": "Displayed in assignments, tasks, and audit trail",
+          "accessibility": { "ariaLabel": "Enter employee name" }
+        },
+        {
+          "id": "em_email",
+          "label": "Email",
+          "explanation": "Official email for login and notifications",
+          "tooltip": {
+            "title": "Employee Email",
+            "content": "Official email address used for login and receiving notifications. Must be unique. Update immediately if email changes - affects all notifications."
+          },
+          "systemDependency": "Used for authentication and all notifications",
+          "warning": "Stale email = missed notifications",
+          "accessibility": { "ariaLabel": "Enter employee email" }
+        },
+        {
+          "id": "em_role",
+          "label": "Role",
+          "explanation": "Organizational role determining permissions",
+          "tooltip": {
+            "title": "Employee Role",
+            "content": "Admin: Full system access. Partner: Firm-wide view, most permissions. Manager: Team oversight, create permissions. Advocate: Case work, limited admin. Staff: Support, restricted access."
+          },
+          "systemDependency": "Controls RBAC permissions across all modules",
+          "warning": "Over-privileged roles = security risk",
+          "accessibility": { "ariaLabel": "Select role" }
+        },
+        {
+          "id": "em_data_scope",
+          "label": "Data Scope",
+          "explanation": "What data this employee can see",
+          "tooltip": {
+            "title": "Data Scope (CRITICAL)",
+            "content": "OWN Cases: Only assigned cases. TEAM Cases: Assigned + team's cases (via hierarchy). ALL Cases: Every case in organization. Match to role: Partners=ALL, Managers=TEAM, Staff=OWN."
+          },
+          "systemDependency": "Controls visibility of cases, tasks, clients across entire system",
+          "warning": "Wrong scope = can't see needed data OR sees too much",
+          "accessibility": { "ariaLabel": "Select data scope" }
+        },
+        {
+          "id": "em_reporting_to",
+          "label": "Reports To",
+          "explanation": "Manager in org hierarchy",
+          "tooltip": {
+            "title": "Reporting Manager",
+            "content": "Who this employee reports to. CRITICAL for TEAM visibility - employees see their direct and indirect reports' cases. Partners typically report to themselves or leave blank."
+          },
+          "systemDependency": "Determines Team Cases visibility chain",
+          "warning": "Missing manager = TEAM scope shows nothing extra",
+          "accessibility": { "ariaLabel": "Select manager" }
+        },
+        {
+          "id": "em_module_access",
+          "label": "Module Access",
+          "explanation": "Which modules appear in sidebar",
+          "tooltip": {
+            "title": "Module Access",
+            "content": "Controls which modules appear in the employee's sidebar. Does NOT control permissions (that's via RBAC). Use to simplify interface for specific roles."
+          },
+          "systemDependency": "Controls sidebar navigation only",
+          "accessibility": { "ariaLabel": "Select module access" }
+        },
+        {
+          "id": "em_is_active",
+          "label": "Active Status",
+          "explanation": "Whether employee can access system",
+          "tooltip": {
+            "title": "Active Status",
+            "content": "Active: Can log in and work. Inactive: Cannot log in, hidden from dropdowns, but record preserved for audit. ALWAYS deactivate departed employees, never delete."
+          },
+          "systemDependency": "Controls login ability and dropdown visibility",
+          "warning": "Never delete employees - breaks audit trail",
+          "accessibility": { "ariaLabel": "Toggle active status" }
+        },
+        {
+          "id": "em_billable",
+          "label": "Billable",
+          "explanation": "Time entries generate billing records",
+          "tooltip": {
+            "title": "Billable Employee",
+            "content": "When enabled, time entries by this employee are included in billing calculations. Disable for support staff whose time isn't billed to clients."
+          },
+          "systemDependency": "Affects time tracking and billing reports",
+          "accessibility": { "ariaLabel": "Toggle billable status" }
+        }
+      ]
+    },
+    "statutory_deadlines": {
+      "fields": [
+        {
+          "id": "sd_event_name",
+          "label": "Event Type Name",
+          "explanation": "Descriptive name for this deadline type",
+          "tooltip": {
+            "title": "Event Type Name",
+            "content": "Clear name describing what triggers this deadline (e.g., 'ASMT-10 Reply', 'GSTAT Appeal Filing', 'Order Compliance'). Used in dropdowns and reports."
+          },
+          "systemDependency": "Displayed in deadline selection and compliance reports",
+          "accessibility": { "ariaLabel": "Enter event type name" }
+        },
+        {
+          "id": "sd_base_date_type",
+          "label": "Base Date Type",
+          "explanation": "Which date triggers the deadline countdown",
+          "tooltip": {
+            "title": "Base Date Type (CRITICAL)",
+            "content": "Which date starts the countdown: notice_date (date on notice), order_date (date order passed), receipt_date (date taxpayer received). Wrong selection = deadline off by weeks."
+          },
+          "systemDependency": "Starting point for all deadline calculations",
+          "warning": "Wrong base_date_type is #1 cause of deadline errors",
+          "accessibility": { "ariaLabel": "Select base date type" }
+        },
+        {
+          "id": "sd_deadline_type",
+          "label": "Deadline Type",
+          "explanation": "Unit of time for calculation",
+          "tooltip": {
+            "title": "Deadline Type",
+            "content": "days: Calendar days including weekends. working_days: Excludes holidays (requires current calendar). months: Calendar months. Match to statutory language exactly."
+          },
+          "systemDependency": "Determines calculation method",
+          "warning": "working_days requires up-to-date holiday calendar",
+          "accessibility": { "ariaLabel": "Select deadline type" }
+        },
+        {
+          "id": "sd_deadline_count",
+          "label": "Deadline Count",
+          "explanation": "Number of days/months from base date",
+          "tooltip": {
+            "title": "Deadline Count (CRITICAL)",
+            "content": "Number from the statute (e.g., 30 for 30-day reply period). This is the core deadline limit. Verify against current legislation - limits change."
+          },
+          "systemDependency": "The actual statutory limit applied to cases",
+          "warning": "Wrong count = miscalculated deadlines, potential non-compliance",
+          "accessibility": { "ariaLabel": "Enter deadline count" }
+        },
+        {
+          "id": "sd_authority_level",
+          "label": "Authority Level",
+          "explanation": "Which forum this deadline applies to",
+          "tooltip": {
+            "title": "Applicable Authority Level",
+            "content": "Which level of authority this deadline applies to (AO, ADJ, AA, TRIB, HC, SC). Same event type may have different limits at different levels."
+          },
+          "systemDependency": "Matches deadline rule to case's authority level",
+          "accessibility": { "ariaLabel": "Select authority level" }
+        },
+        {
+          "id": "sd_extension_allowed",
+          "label": "Extension Allowed",
+          "explanation": "Whether deadline can be extended",
+          "tooltip": {
+            "title": "Extension Allowed",
+            "content": "When enabled, deadline can be extended via extension request workflow. Some statutory deadlines cannot be extended (hard deadlines). Check statute before enabling."
+          },
+          "systemDependency": "Controls extension request availability",
+          "accessibility": { "ariaLabel": "Toggle extension allowed" }
+        },
+        {
+          "id": "sd_legal_reference",
+          "label": "Legal Reference",
+          "explanation": "Statute section citation",
+          "tooltip": {
+            "title": "Legal Reference",
+            "content": "Section/Rule citation for audit trail (e.g., 'Section 73(10) CGST Act, 2017', 'Rule 36(4)'). Required for compliance documentation."
+          },
+          "systemDependency": "Audit trail for statutory compliance",
+          "accessibility": { "ariaLabel": "Enter legal reference" }
+        },
+        {
+          "id": "sd_auto_task",
+          "label": "Auto-Create Task",
+          "explanation": "Automatically create compliance task",
+          "tooltip": {
+            "title": "Auto-Create Compliance Task",
+            "content": "When enabled, system automatically creates a task when this deadline is triggered. Task includes deadline date and responsible party. Ensures nothing falls through cracks."
+          },
+          "systemDependency": "Creates tasks in task management module",
+          "accessibility": { "ariaLabel": "Toggle auto-create task" }
+        }
+      ]
     }
   }
 }

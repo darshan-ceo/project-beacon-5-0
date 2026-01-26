@@ -1,0 +1,342 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2025-11-03",
+  "masterId": "contacts",
+  "title": "Contacts Master",
+  "subtitle": "People Directory and Client Relationships",
+  "icon": "Users",
+  "securityLevel": "ALL_ROLES",
+  
+  "roleInLitigation": {
+    "summary": "Contacts represent people involved in or affected by cases - client representatives, opposing counsel, government officers, and other stakeholders. They enable communication, case party identification, and client portal access.",
+    "lifecycle": [
+      {
+        "stage": "Client Onboarding",
+        "role": "Contacts linked to client become authorized representatives",
+        "impact": "Wrong contact = communications to unauthorized persons"
+      },
+      {
+        "stage": "Case Party Identification",
+        "role": "Opposing counsel and department officers tracked per case",
+        "impact": "Missing contacts = incomplete case party records"
+      },
+      {
+        "stage": "Communications",
+        "role": "Email, SMS, and notifications routed via contact info",
+        "impact": "Stale info = failed delivery, missed deadlines"
+      },
+      {
+        "stage": "Portal Access",
+        "role": "Primary contacts can receive client portal credentials",
+        "impact": "Wrong portal access = confidential data breach"
+      },
+      {
+        "stage": "Document Service",
+        "role": "Service addresses for legal documents",
+        "impact": "Wrong address = invalid service"
+      }
+    ],
+    "businessValue": "Accurate contact data ensures communications reach the right people, portal access is properly controlled, and case parties are correctly identified."
+  },
+  
+  "systemDependencies": {
+    "description": "Contacts can be standalone (prospects) or linked to clients. They're referenced for portal access and communications.",
+    "dependencies": [
+      {
+        "entity": "Clients",
+        "relationship": "contact.client_id FK (optional)",
+        "usage": "Links contact to a client organization",
+        "impactOfBadData": "Contact appears unlinked, can't be used for client communications"
+      },
+      {
+        "entity": "Client Portal Users",
+        "relationship": "portal_user.contact_id",
+        "usage": "Contact receives portal login credentials",
+        "impactOfBadData": "Wrong person gets access to confidential case data"
+      },
+      {
+        "entity": "Communications",
+        "relationship": "Email/SMS routing via contact info",
+        "usage": "Notifications and bulk communications",
+        "impactOfBadData": "Failed delivery, bounced emails, privacy violations"
+      },
+      {
+        "entity": "Cases",
+        "relationship": "Case party references (opposing counsel, etc.)",
+        "usage": "Track all parties involved in litigation",
+        "impactOfBadData": "Incomplete party records, service issues"
+      },
+      {
+        "entity": "Documents",
+        "relationship": "Document recipients and signatories",
+        "usage": "Track who received/signed documents",
+        "impactOfBadData": "Wrong attribution, audit trail issues"
+      }
+    ]
+  },
+  
+  "contactTypes": {
+    "description": "Contacts can be standalone or client-linked with different use cases",
+    "types": [
+      {
+        "type": "Client-Linked Contact",
+        "description": "Contact associated with a specific client (company representative)",
+        "useCase": "Client employees, authorized signatories, billing contacts",
+        "visibility": "Visible to all team members handling that client",
+        "portalEligible": true
+      },
+      {
+        "type": "Standalone Contact",
+        "description": "Contact not linked to any client",
+        "useCase": "Prospects, opposing counsel, government officers, other professionals",
+        "visibility": "Based on data_scope setting (OWN/TEAM/ALL)",
+        "portalEligible": false
+      },
+      {
+        "type": "System Contact",
+        "description": "Internal team members (synced from Employees)",
+        "useCase": "Internal communications and assignments",
+        "visibility": "All team members",
+        "portalEligible": false
+      }
+    ]
+  },
+  
+  "dataQualityRisks": [
+    {
+      "risk": "Duplicate Contacts",
+      "severity": "HIGH",
+      "cause": "Import without deduplication, same person added for multiple clients",
+      "consequence": "Split communication history, redundant records, confusion",
+      "prevention": "Dedupe before import using email/phone match, search before create",
+      "remediation": "Merge duplicates preserving complete communication history"
+    },
+    {
+      "risk": "Wrong Client Linkage",
+      "severity": "CRITICAL",
+      "cause": "Incorrect client_id selection during entry",
+      "consequence": "Contact sees wrong cases in portal, communications go to wrong client",
+      "prevention": "Verify client before linking, double-check during portal provisioning",
+      "remediation": "Correct client_id, revoke incorrect portal access immediately"
+    },
+    {
+      "risk": "Stale Contact Information",
+      "severity": "HIGH",
+      "cause": "Personnel changes, no update after employee turnover",
+      "consequence": "Failed notifications, important updates not delivered",
+      "prevention": "Quarterly email verification, monitor bounce rates",
+      "remediation": "Update contact info, mark old email as secondary"
+    },
+    {
+      "risk": "Privacy Violation via Portal",
+      "severity": "CRITICAL",
+      "cause": "Portal access granted to wrong contact or before identity verification",
+      "consequence": "Confidential case information exposed to unauthorized person",
+      "prevention": "Verify identity before portal provisioning, use OTP verification",
+      "remediation": "Immediately revoke access, audit activity logs, notify affected clients"
+    },
+    {
+      "risk": "Orphaned Contacts",
+      "severity": "MEDIUM",
+      "cause": "Client deleted without cleaning up contacts",
+      "consequence": "Zombie records in system, can't be linked to cases",
+      "prevention": "Soft-delete clients, archive related contacts",
+      "remediation": "Archive or reassign orphaned contacts"
+    }
+  ],
+  
+  "managementRoles": {
+    "Admin": {
+      "permissions": ["Create", "Edit", "Delete (soft)", "Import", "Export", "Portal provisioning"],
+      "responsibilities": [
+        "Bulk import from client lists",
+        "Quarterly deduplication",
+        "Portal access management",
+        "Privacy compliance (deletion requests)"
+      ],
+      "restrictions": ["Must verify identity before portal provisioning"]
+    },
+    "Partner": {
+      "permissions": ["Full CRUD for own clients' contacts"],
+      "responsibilities": [
+        "Manage contacts for their client relationships",
+        "Verify contact info accuracy",
+        "Request portal access for clients"
+      ],
+      "restrictions": ["Cannot delete contacts linked to other users' cases"]
+    },
+    "Manager": {
+      "permissions": ["Create", "Edit"],
+      "responsibilities": [
+        "Add case party contacts as needed",
+        "Maintain contact info for assigned cases"
+      ],
+      "restrictions": ["Cannot delete", "Cannot provision portal access"]
+    },
+    "Advocate": {
+      "permissions": ["Create", "Edit (limited)"],
+      "responsibilities": [
+        "Add opposing counsel during case work",
+        "Update contact info when changes noted"
+      ],
+      "restrictions": ["Limited to own-scope contacts", "No portal access management"]
+    },
+    "Staff": {
+      "permissions": ["Create (limited)", "View"],
+      "responsibilities": [
+        "Add contacts as directed",
+        "Report inaccuracies"
+      ],
+      "restrictions": ["No edit/delete", "No portal access"]
+    }
+  },
+  
+  "dataScopeGuidance": {
+    "description": "data_scope controls who can see standalone contacts",
+    "scopes": [
+      {
+        "scope": "OWN",
+        "visibility": "Only the creator can see this contact",
+        "useCase": "Personal contacts, prospects being cultivated, sensitive relationships",
+        "recommendation": "Use for prospects until they become clients"
+      },
+      {
+        "scope": "TEAM",
+        "visibility": "Creator and their direct reports can see",
+        "useCase": "Team-shared resources like government contacts, panel advocates",
+        "recommendation": "Use for contacts shared within a practice group"
+      },
+      {
+        "scope": "ALL",
+        "visibility": "Everyone in the organization can see",
+        "useCase": "Common contacts like court registries, shared service providers",
+        "recommendation": "Use for organizational-level contacts"
+      }
+    ],
+    "note": "Client-linked contacts inherit visibility from the client, data_scope is less relevant"
+  },
+  
+  "contactRoles": {
+    "description": "Roles define the contact's function in client/case context",
+    "roles": [
+      {
+        "role": "Signatory",
+        "description": "Authorized to sign documents on behalf of client",
+        "systemUse": "Shown in signatory dropdowns for document generation",
+        "verification": "Must verify authorization before assigning"
+      },
+      {
+        "role": "Coordinator",
+        "description": "Primary point of contact for case coordination",
+        "systemUse": "Receives task updates and deadline reminders",
+        "verification": "Client should confirm designated coordinator"
+      },
+      {
+        "role": "Billing",
+        "description": "Handles invoices and payment queries",
+        "systemUse": "Receives billing communications",
+        "verification": "Finance team confirmation"
+      },
+      {
+        "role": "Decision Maker",
+        "description": "Has authority to make case decisions",
+        "systemUse": "Escalation point for critical matters",
+        "verification": "Client organization structure"
+      },
+      {
+        "role": "Legal Representative",
+        "description": "Opposing or third-party counsel",
+        "systemUse": "Service of documents, communications",
+        "verification": "Vakalatnama or Bar registration"
+      }
+    ]
+  },
+  
+  "bestPractices": {
+    "dataEntry": [
+      "Verify email before marking as primary (send test if possible)",
+      "Use official email domains, not personal emails for business contacts",
+      "Store multiple phone numbers if available (office, mobile)",
+      "Assign all applicable roles, not just one"
+    ],
+    "clientLinking": [
+      "Link to client only when relationship is confirmed",
+      "Use standalone for prospects until client record is created",
+      "Verify correct client before linking (company name matching)"
+    ],
+    "portalAccess": [
+      "Verify identity before provisioning (ID check, OTP)",
+      "Explain portal features and access scope to contact",
+      "Document consent for portal access",
+      "Review portal users quarterly, revoke inactive access"
+    ],
+    "privacy": [
+      "Honor data deletion requests via soft-delete with audit trail",
+      "Don't store sensitive personal information beyond necessary",
+      "Restrict access to personal contacts using OWN scope",
+      "Document consent for communications"
+    ],
+    "deduplication": [
+      "Run monthly duplicate check using email/phone match",
+      "Search before creating new contacts",
+      "When merging, preserve complete communication history",
+      "Update all case references to merged contact"
+    ]
+  },
+  
+  "troubleshooting": [
+    {
+      "issue": "Contact not appearing in client's contact list",
+      "cause": "Contact not linked to client (client_id is null)",
+      "solution": "Edit contact, set client_id to correct client"
+    },
+    {
+      "issue": "Portal access not working for contact",
+      "cause": "Portal user record not created or is_active is false",
+      "solution": "Check client_portal_users table, ensure record exists and is_active"
+    },
+    {
+      "issue": "Notifications not being received",
+      "cause": "Stale email address or email marked as bounced",
+      "solution": "Verify email is current, check bounce status in communication logs"
+    },
+    {
+      "issue": "Contact visible to wrong team members",
+      "cause": "data_scope set too broadly (ALL instead of OWN)",
+      "solution": "Update data_scope to appropriate level"
+    },
+    {
+      "issue": "Duplicate contacts showing in dropdowns",
+      "cause": "Same person added multiple times",
+      "solution": "Use Admin merge tool to consolidate, update references"
+    }
+  ],
+  
+  "relatedHelp": [
+    "employees-comprehensive",
+    "master-data-governance"
+  ],
+  
+  "faqs": [
+    {
+      "question": "What's the difference between standalone and client-linked contacts?",
+      "answer": "Standalone contacts are independent (prospects, opposing counsel). Client-linked contacts are associated with a specific client and inherit client visibility. Link when relationship is confirmed."
+    },
+    {
+      "question": "How do I give a contact portal access?",
+      "answer": "Ensure contact is linked to a client, verify their identity, then use Portal Access provisioning. System creates auth credentials and portal_user record."
+    },
+    {
+      "question": "Can the same person be a contact for multiple clients?",
+      "answer": "Currently, a contact can only be linked to one client. If same person represents multiple clients, create separate contact records or use standalone with case-level associations."
+    },
+    {
+      "question": "How do I handle a GDPR deletion request?",
+      "answer": "Use soft-delete with audit trail documenting the request. System retains minimal records for legal compliance while removing from active use."
+    },
+    {
+      "question": "What happens if I mark wrong person as primary?",
+      "answer": "Primary contacts receive important notifications. If wrong person marked, immediately update primary flag and review recent communications for any issues."
+    }
+  ]
+}
