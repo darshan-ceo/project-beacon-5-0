@@ -30,6 +30,11 @@ const MODULE_ALIASES: Record<string, string> = {
   hearing: 'hearings',
   report: 'reports',
   setting: 'settings',
+  // Task sub-module aliases (no transformation needed, but included for completeness)
+  'tasks.templates': 'tasks.templates',
+  'tasks.automation': 'tasks.automation',
+  'tasks.escalation': 'tasks.escalation',
+  'tasks.ai': 'tasks.ai',
 };
 
 // Priority order: admin > partner > manager > advocate > ca > staff > clerk > client > user
