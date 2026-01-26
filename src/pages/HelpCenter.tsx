@@ -231,20 +231,7 @@ export const HelpCenter: React.FC = () => {
           </p>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {quickActions.map((action, index) => (
-            <Card key={index} className="cursor-pointer hover:shadow-md transition-shadow" onClick={action.action}>
-              <CardHeader className="text-center pb-4">
-                <action.icon className="h-8 w-8 mx-auto text-primary" />
-                <CardTitle className="text-base">{action.title}</CardTitle>
-                <CardDescription className="text-sm">{action.description}</CardDescription>
-              </CardHeader>
-            </Card>
-          ))}
-        </div>
-
-        <Separator />
+        {/* Tabs below provide the same navigation - removed duplicate quick action cards */}
 
         {/* Content Tabs */}
         <Tabs value={selectedTab} onValueChange={setSelectedTab}>
