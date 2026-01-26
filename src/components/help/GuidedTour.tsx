@@ -6,6 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { helpService } from '@/services/helpService';
+import { useShepherdTour } from '@/hooks/useShepherdTour';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 import { cn } from '@/lib/utils';
 
@@ -16,6 +19,7 @@ interface Tour {
   module: string;
   steps: TourStep[];
   roles: string[];
+  startPath?: string;
 }
 
 interface TourStep {
@@ -24,6 +28,7 @@ interface TourStep {
   content: string;
   position?: 'top' | 'bottom' | 'left' | 'right';
   action?: 'click' | 'hover' | 'none';
+  placement?: string;
 }
 
 interface GuidedTourProps {
@@ -31,6 +36,21 @@ interface GuidedTourProps {
   userRole: string;
   module?: string;
 }
+
+// Module to route path mapping
+const modulePathMap: Record<string, string> = {
+  'cases': '/cases',
+  'case-management': '/cases',
+  'documents': '/documents',
+  'hearings': '/hearings',
+  'tasks': '/tasks',
+  'reports': '/reports',
+  'clients': '/clients',
+  'access-roles': '/settings/access-roles',
+  'client-portal': '/client-portal',
+  'settings': '/settings',
+  'dashboard': '/'
+};
 
 export const GuidedTour: React.FC<GuidedTourProps> = ({
   onClose,
@@ -43,6 +63,9 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({
   const [isRunning, setIsRunning] = useState(false);
   const [loading, setLoading] = useState(true);
   const [tourStats, setTourStats] = useState({ completed: new Set() });
+  
+  const { startTour: startShepherdTour, cancelTour } = useShepherdTour();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const loadTours = async () => {
@@ -60,9 +83,43 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({
   }, [userRole, module]);
 
   const handleStartTour = async (tourId: string) => {
-    // Tour service removed - tours are no longer supported
-    console.log('Tours feature has been disabled');
+    const tour = tours.find(t => t.id === tourId);
+    if (!tour) {
+      toast.error('Tour not found');
+      return;
+    }
+
+    // Navigate to the starting path if specified
+    const startPath = tour.startPath || modulePathMap[tour.module] || '/';
+    
+    // Close the dialog first
     onClose();
+
+    // Navigate to the tour's starting location
+    navigate(startPath);
+
+    // Wait for navigation and DOM to settle
+    setTimeout(() => {
+      startShepherdTour({
+        id: tour.id,
+        title: tour.title,
+        steps: tour.steps,
+        onComplete: () => {
+          toast.success(`Completed: ${tour.title}`, {
+            description: 'Great job! You\'ve finished this guided tour.'
+          });
+          // Track completion
+          setTourStats(prev => ({
+            completed: new Set([...prev.completed, tour.id])
+          }));
+        },
+        onCancel: () => {
+          toast.info('Tour paused', {
+            description: 'You can restart this tour anytime from the Help menu.'
+          });
+        }
+      });
+    }, 500);
   };
 
   const nextStep = () => {
