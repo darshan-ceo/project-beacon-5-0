@@ -1,0 +1,250 @@
+{
+  "moduleId": "settings",
+  "moduleName": "System Settings",
+  "version": "1.0",
+  "lastUpdated": "2025-01-26",
+  "overview": {
+    "description": "Configure system-wide settings for security, notifications, integrations, and operational parameters",
+    "whatItDoes": "Central control panel for all system configuration including firm branding, security policies, notification rules, and third-party integrations",
+    "whyItMatters": "Settings affect every user and operation. Misconfiguration can cause security breaches, workflow disruptions, or compliance violations.",
+    "keyBenefits": [
+      "Centralized configuration management",
+      "Security policy enforcement",
+      "Customization without code changes",
+      "Audit trail for all setting changes"
+    ],
+    "criticalNote": "⚠️ Settings changes take effect immediately for all users. Review carefully before saving."
+  },
+  "operations": {
+    "configure-general": {
+      "title": "Configure General Settings",
+      "description": "Set up basic firm information, timezone, and display preferences",
+      "steps": [
+        "Navigate to Settings > General",
+        "Enter firm name and display settings",
+        "Upload logo for branding (appears in documents and portal)",
+        "Set timezone for all date/time displays",
+        "Configure date format (DD/MM/YYYY, MM/DD/YYYY, etc.)",
+        "Set default currency for financial fields",
+        "Configure fiscal year start month",
+        "Save changes"
+      ],
+      "tips": [
+        "Logo should be high resolution for document quality",
+        "Timezone affects deadline calculations - set correctly",
+        "Fiscal year affects financial reporting periods"
+      ]
+    },
+    "configure-security": {
+      "title": "Configure Security Settings",
+      "description": "Set authentication policies, session management, and access controls",
+      "steps": [
+        "Navigate to Settings > Security",
+        "Configure session timeout (15-480 minutes)",
+        "Set password policy requirements",
+        "Enable/disable two-factor authentication requirement",
+        "Configure IP whitelist if needed",
+        "Set failed login attempt limits",
+        "Configure account lockout duration",
+        "Save changes"
+      ],
+      "tips": [
+        "Balance security with usability",
+        "Shorter timeouts are more secure but may frustrate users",
+        "2FA significantly improves security for all users"
+      ],
+      "warnings": [
+        "IP whitelist can lock out users working remotely - add VPN IPs",
+        "Enabling 2FA requires all users to set up authenticator apps",
+        "Very short session timeouts may cause work loss"
+      ],
+      "securityBestPractices": [
+        "Session timeout: 30-60 minutes for standard use",
+        "Require 2FA for Admin and Partner roles at minimum",
+        "Set password minimum length to 12+ characters",
+        "Enable account lockout after 5 failed attempts"
+      ]
+    },
+    "configure-notifications": {
+      "title": "Configure Notification Settings",
+      "description": "Set up email, SMS, and in-app notification preferences",
+      "steps": [
+        "Navigate to Settings > Notifications",
+        "Configure email sender address and display name",
+        "Set up SMS provider credentials (if using)",
+        "Define notification triggers for each event type",
+        "Set default reminder timings for deadlines",
+        "Configure escalation rules for overdue items",
+        "Set digest vs. real-time preference defaults",
+        "Save changes"
+      ],
+      "tips": [
+        "Test email delivery before going live",
+        "Use digest mode to reduce email volume",
+        "Escalation rules should match management expectations"
+      ],
+      "warnings": [
+        "Incorrect email configuration will prevent all notifications",
+        "SMS has per-message costs - review before enabling"
+      ]
+    },
+    "configure-integrations": {
+      "title": "Configure Integrations",
+      "description": "Set up connections to external services like calendars, storage, and APIs",
+      "steps": [
+        "Navigate to Settings > Integrations",
+        "Select the integration to configure",
+        "Follow provider-specific setup steps",
+        "Enter API keys or authorize via OAuth",
+        "Test the connection",
+        "Configure sync preferences",
+        "Save and activate"
+      ],
+      "availableIntegrations": [
+        "Google Calendar - Sync hearings and deadlines",
+        "Microsoft Outlook - Calendar and email integration",
+        "Cloud Storage - Document backup to external storage",
+        "GSTIN API - Automatic client data fetch"
+      ],
+      "tips": [
+        "Test integrations in sandbox before production",
+        "Keep API keys secure and rotate periodically",
+        "Monitor sync logs for errors"
+      ]
+    },
+    "configure-workflows": {
+      "title": "Configure Workflow Settings",
+      "description": "Set up case stages, approval workflows, and automation rules",
+      "steps": [
+        "Navigate to Settings > Workflows",
+        "Configure case stage definitions and transitions",
+        "Set up SLA rules for each stage",
+        "Define approval workflows for documents/tasks",
+        "Configure automation trigger conditions",
+        "Set up notification rules for workflow events",
+        "Save changes"
+      ],
+      "tips": [
+        "Map workflows to actual business processes",
+        "Test stage transitions with sample cases",
+        "Keep workflows simple - complexity reduces adoption"
+      ]
+    },
+    "configure-defaults": {
+      "title": "Configure Default Values",
+      "description": "Set system-wide defaults for new records",
+      "steps": [
+        "Navigate to Settings > Defaults",
+        "Set default case priority, status, and assignment rules",
+        "Configure default document categories and retention",
+        "Set default task templates for common operations",
+        "Configure default notification preferences for new users",
+        "Save changes"
+      ],
+      "tips": [
+        "Defaults reduce data entry effort",
+        "Review defaults periodically as processes evolve",
+        "Users can override defaults when needed"
+      ]
+    },
+    "backup-restore": {
+      "title": "Backup and Restore",
+      "description": "Manage system backups and data recovery",
+      "steps": [
+        "Navigate to Settings > Backup",
+        "View backup schedule and history",
+        "Trigger manual backup if needed",
+        "Download backup files for offline storage",
+        "For restore: Contact support with backup file"
+      ],
+      "tips": [
+        "Download periodic backups for disaster recovery",
+        "Verify backup integrity regularly",
+        "Document restore procedures for emergency access"
+      ],
+      "warnings": [
+        "Restore operations require system downtime",
+        "Full restore replaces all current data - use with extreme caution"
+      ]
+    }
+  },
+  "securityWarnings": {
+    "critical": [
+      {
+        "setting": "IP Whitelist",
+        "risk": "Can permanently lock out all users if misconfigured",
+        "mitigation": "Always include current IP and emergency backup IP before saving"
+      },
+      {
+        "setting": "2FA Disable",
+        "risk": "Reduces account security for all users",
+        "mitigation": "Only disable temporarily for troubleshooting, re-enable immediately"
+      }
+    ],
+    "important": [
+      {
+        "setting": "Session Timeout",
+        "risk": "Very long timeouts (>4 hours) increase session hijack risk",
+        "mitigation": "Use 30-60 minute timeouts for balance of security and usability"
+      },
+      {
+        "setting": "Data Retention",
+        "risk": "Short retention may violate compliance requirements",
+        "mitigation": "Check regulatory requirements before reducing retention periods"
+      }
+    ]
+  },
+  "commonMistakes": [
+    {
+      "mistake": "Enabling IP whitelist without including own IP",
+      "impact": "Immediate lockout from system",
+      "prevention": "Always test whitelist before saving, keep emergency access method"
+    },
+    {
+      "mistake": "Changing timezone after data entry has begun",
+      "impact": "All timestamps appear incorrect, deadline confusion",
+      "prevention": "Set timezone during initial setup, never change in production"
+    },
+    {
+      "mistake": "Setting very aggressive session timeouts",
+      "impact": "Users lose work frequently, frustration and workarounds",
+      "prevention": "Balance security with usability, 30-60 minutes is typically optimal"
+    },
+    {
+      "mistake": "Disabling notifications for critical events",
+      "impact": "Missed deadlines, compliance violations",
+      "prevention": "Always keep deadline and SLA breach notifications enabled"
+    }
+  ],
+  "roleBasedGuidance": {
+    "admin": {
+      "access": "Full access to all settings",
+      "responsibilities": "Configure, maintain, and audit all system settings",
+      "tips": "Document all changes, test in staging first, maintain change log"
+    },
+    "partner": {
+      "access": "View settings, limited edit for firm branding",
+      "responsibilities": "Approve major configuration changes",
+      "tips": "Review settings monthly, understand security implications"
+    },
+    "implementor": {
+      "access": "Full access during implementation phase",
+      "responsibilities": "Initial setup, configuration, and knowledge transfer",
+      "tips": "Document all configurations, create admin training materials"
+    }
+  },
+  "faqs": [
+    {
+      "question": "How do I recover from an IP whitelist lockout?",
+      "answer": "Contact system support with admin credentials. They can disable whitelist from backend. Always keep emergency contact info accessible outside the system."
+    },
+    {
+      "question": "Can I undo a settings change?",
+      "answer": "Settings have audit logs showing previous values. Manual restoration is required - contact admin to revert."
+    },
+    {
+      "question": "Do settings changes affect existing data?",
+      "answer": "Most settings affect new operations only. Some (like timezone) affect display of existing data. Review change impact before saving."
+    }
+  ]
+}

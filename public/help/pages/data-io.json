@@ -1,0 +1,199 @@
+{
+  "pageId": "data-io",
+  "pageName": "Data Import/Export",
+  "version": "1.0",
+  "lastUpdated": "2025-01-26",
+  "overview": {
+    "title": "Data Import/Export",
+    "description": "Bulk data operations for migration, backup, integration, and reporting",
+    "purpose": "Move data in and out of the system efficiently while maintaining data integrity"
+  },
+  "whatIsThis": {
+    "summary": "The Data I/O module provides tools for importing data from external sources and exporting system data for backup, analysis, or integration with other systems.",
+    "keyFeatures": [
+      "Bulk import from Excel, CSV, JSON",
+      "Export to multiple formats",
+      "Field mapping and transformation",
+      "Validation before commit",
+      "Scheduled exports for automation"
+    ]
+  },
+  "whyItMatters": {
+    "businessValue": "Efficient data import saves weeks during implementation. Regular exports provide backup and enable advanced analytics in external tools.",
+    "risks": [
+      "Incorrect imports corrupt production data",
+      "Missing backups risk data loss",
+      "Poor data quality imports cascade errors"
+    ]
+  },
+  "tabs": {
+    "import": {
+      "title": "Import",
+      "description": "Bring external data into the system",
+      "workflow": [
+        "Select entity type",
+        "Download template",
+        "Fill and upload data",
+        "Map fields",
+        "Validate",
+        "Commit import"
+      ],
+      "supportedEntities": [
+        "Cases",
+        "Clients",
+        "Hearings",
+        "Tasks",
+        "Contacts",
+        "Master Data"
+      ],
+      "tips": [
+        "Always test with small batches first",
+        "Use official templates for best results",
+        "Back up before large imports"
+      ]
+    },
+    "export": {
+      "title": "Export",
+      "description": "Extract system data for external use",
+      "workflow": [
+        "Select entity type",
+        "Apply filters",
+        "Choose columns",
+        "Select format",
+        "Generate and download"
+      ],
+      "formats": [
+        "Excel (.xlsx) - Best for human review",
+        "CSV (.csv) - Best for integration",
+        "JSON - Best for API integration"
+      ],
+      "tips": [
+        "Filter data to keep exports manageable",
+        "Include IDs if planning to re-import"
+      ]
+    },
+    "history": {
+      "title": "History",
+      "description": "Track all import/export operations",
+      "features": [
+        "Complete audit log",
+        "Success/failure counts",
+        "Error reports",
+        "Original file access"
+      ],
+      "tips": [
+        "Check history when investigating data issues",
+        "Keep error reports for troubleshooting patterns"
+      ]
+    },
+    "scheduled": {
+      "title": "Scheduled Jobs",
+      "description": "Automated recurring exports",
+      "features": [
+        "Daily, weekly, monthly schedules",
+        "Email delivery",
+        "Cloud storage upload",
+        "Retention management"
+      ],
+      "tips": [
+        "Set up weekly backup exports",
+        "Use for regular reporting to stakeholders"
+      ]
+    }
+  },
+  "roleBasedGuidance": {
+    "staff": {
+      "access": "Export own data only",
+      "restrictions": "Cannot import or export team/all data",
+      "tips": "Use exports for personal productivity tracking"
+    },
+    "manager": {
+      "access": "Import/export team data",
+      "focus": "Team data management, quality verification",
+      "tips": "Regular exports help verify data quality"
+    },
+    "admin": {
+      "access": "Full import/export capabilities",
+      "focus": "Data migration, backup management",
+      "tips": "Set up automated backup schedules, document all imports"
+    },
+    "implementor": {
+      "access": "Full access for initial migration",
+      "focus": "Data migration, mapping configuration",
+      "tips": "Create reusable mapping templates, document transformations"
+    }
+  },
+  "commonActions": [
+    {
+      "action": "Import client list from Excel",
+      "steps": [
+        "Go to Import tab",
+        "Select 'Clients' entity",
+        "Download template",
+        "Fill with client data",
+        "Upload file",
+        "Map columns",
+        "Validate and import"
+      ]
+    },
+    {
+      "action": "Export cases for backup",
+      "steps": [
+        "Go to Export tab",
+        "Select 'Cases' entity",
+        "Set date range filter",
+        "Choose all columns",
+        "Select Excel format",
+        "Generate and download"
+      ]
+    },
+    {
+      "action": "Schedule weekly backup",
+      "steps": [
+        "Configure an export",
+        "Click 'Schedule'",
+        "Set frequency to Weekly",
+        "Configure delivery method",
+        "Activate schedule"
+      ]
+    }
+  ],
+  "bestPractices": [
+    "Always test imports with small samples first",
+    "Back up data before any import operation",
+    "Use official templates for imports",
+    "Document field mappings for future reference",
+    "Set up automated backup exports",
+    "Review import history regularly"
+  ],
+  "warnings": [
+    {
+      "severity": "critical",
+      "warning": "Import operations cannot be easily undone",
+      "mitigation": "Always back up before importing, test with small batches"
+    },
+    {
+      "severity": "important",
+      "warning": "Large imports may timeout",
+      "mitigation": "Split files into smaller batches (1000-5000 records)"
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Can I undo an import?",
+      "answer": "Not automatically. You would need to identify and delete imported records manually or restore from backup. This is why testing with small batches is essential."
+    },
+    {
+      "question": "What's the maximum file size for import?",
+      "answer": "10MB for most file types. For larger datasets, split into multiple files or contact admin for server-side import."
+    },
+    {
+      "question": "How do I update existing records via import?",
+      "answer": "Include the system ID column in your import file. Records with matching IDs will be updated rather than created new."
+    },
+    {
+      "question": "Why is my import failing validation?",
+      "answer": "Check the validation report for specific errors. Common issues: missing required fields, date format mismatches, reference data not found."
+    }
+  ]
+}

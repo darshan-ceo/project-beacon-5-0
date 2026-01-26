@@ -1,0 +1,204 @@
+{
+  "moduleId": "reports",
+  "moduleName": "Reports & Analytics",
+  "version": "1.0",
+  "lastUpdated": "2025-01-26",
+  "overview": {
+    "description": "Generate insights with comprehensive reporting tools for cases, performance, and compliance",
+    "whatItDoes": "Create, customize, and schedule reports across all system data with export capabilities",
+    "whyItMatters": "Data-driven decisions require accurate, timely reports. Proper reporting ensures compliance, identifies bottlenecks, and enables strategic planning.",
+    "keyBenefits": [
+      "Pre-built reports for common needs",
+      "Custom report builder for specific requirements",
+      "Scheduled delivery to stakeholders",
+      "Export in multiple formats (PDF, Excel, CSV)"
+    ]
+  },
+  "operations": {
+    "run-predefined-report": {
+      "title": "Run Pre-Defined Report",
+      "description": "Generate standard reports from the report library",
+      "steps": [
+        "Navigate to Reports from the sidebar",
+        "Browse report categories (Cases, Hearings, Tasks, Performance, Financial)",
+        "Select the desired report type",
+        "Set date range and filters",
+        "Click 'Generate Report'",
+        "View results in browser or download"
+      ],
+      "tips": [
+        "Use quick date ranges (This Month, Last Quarter, YTD)",
+        "Apply filters before generating for faster results",
+        "Bookmark frequently used reports"
+      ],
+      "reportTypes": [
+        "Case Status Summary - Active cases by stage and priority",
+        "Hearing Calendar - Upcoming and past hearings",
+        "Task Completion - Tasks by status and assignee",
+        "SLA Compliance - Deadline adherence metrics",
+        "Client Portfolio - Cases by client with financials",
+        "Team Productivity - Work distribution and completion rates"
+      ]
+    },
+    "create-custom-report": {
+      "title": "Create Custom Report",
+      "description": "Build tailored reports with specific columns, filters, and groupings",
+      "steps": [
+        "Go to Reports > Custom Reports tab",
+        "Click 'New Custom Report'",
+        "Select data source (Cases, Hearings, Tasks, Clients, etc.)",
+        "Choose columns to include",
+        "Add filters to narrow data",
+        "Set grouping and sorting options",
+        "Add calculated fields if needed",
+        "Preview the report",
+        "Save with a descriptive name"
+      ],
+      "tips": [
+        "Start with a pre-defined report and customize",
+        "Use grouping for summary views",
+        "Test with date ranges before saving"
+      ],
+      "warnings": [
+        "Complex reports with many columns may be slow",
+        "Large date ranges can timeout - use pagination"
+      ]
+    },
+    "schedule-report": {
+      "title": "Schedule Automated Reports",
+      "description": "Set up recurring report generation and email delivery",
+      "steps": [
+        "Open a saved report (pre-defined or custom)",
+        "Click 'Schedule' button",
+        "Select frequency (Daily, Weekly, Monthly)",
+        "Set delivery day/time",
+        "Add recipient email addresses",
+        "Choose format (PDF, Excel)",
+        "Set subject line and optional message",
+        "Activate the schedule"
+      ],
+      "tips": [
+        "Schedule reports for early morning delivery",
+        "Use PDF for stakeholders, Excel for analysts",
+        "Include date placeholders in subject lines"
+      ],
+      "warnings": [
+        "Scheduled reports use filters set at schedule time",
+        "Update schedule if filter criteria change"
+      ]
+    },
+    "export-report": {
+      "title": "Export Report Data",
+      "description": "Download report results in various formats",
+      "steps": [
+        "Generate or open a report",
+        "Click 'Export' button",
+        "Select format (PDF, Excel, CSV)",
+        "For PDF: Choose page layout options",
+        "For Excel: Select which sheets to include",
+        "Download begins automatically"
+      ],
+      "formats": {
+        "pdf": "Best for sharing, includes formatting and branding",
+        "excel": "Best for further analysis, includes raw data",
+        "csv": "Best for data integration, plain text format"
+      }
+    },
+    "dashboard-widgets": {
+      "title": "Add Dashboard Widgets",
+      "description": "Pin key metrics to your dashboard for quick visibility",
+      "steps": [
+        "Generate a report with desired metrics",
+        "Click 'Add to Dashboard' button",
+        "Select widget type (Number, Chart, Table)",
+        "Configure refresh frequency",
+        "Position on dashboard",
+        "Save dashboard layout"
+      ],
+      "widgetTypes": [
+        "KPI Card - Single number with trend indicator",
+        "Bar Chart - Comparison across categories",
+        "Line Chart - Trends over time",
+        "Pie Chart - Distribution breakdown",
+        "Mini Table - Top 5/10 items list"
+      ]
+    },
+    "compliance-reports": {
+      "title": "Generate Compliance Reports",
+      "description": "Create reports for audit and regulatory requirements",
+      "steps": [
+        "Go to Reports > Compliance tab",
+        "Select report type (Audit Trail, SLA Compliance, Data Access)",
+        "Set date range and scope",
+        "Apply entity filters if needed",
+        "Generate and review",
+        "Export with certification if required"
+      ],
+      "reportTypes": [
+        "Audit Trail - All system changes with user attribution",
+        "SLA Compliance - Deadline adherence by case/client",
+        "Access Log - Who accessed what data and when",
+        "Document History - Version and access history per document"
+      ],
+      "securityNote": "Compliance reports may contain sensitive data - handle with appropriate care"
+    }
+  },
+  "commonMistakes": [
+    {
+      "mistake": "Running reports without date filters",
+      "impact": "Slow performance, excessive data, browser crashes",
+      "prevention": "Always set reasonable date ranges, use pagination for large datasets"
+    },
+    {
+      "mistake": "Scheduling reports to wrong recipients",
+      "impact": "Sensitive data exposure, compliance violations",
+      "prevention": "Double-check recipient list, use role-based distribution lists"
+    },
+    {
+      "mistake": "Not refreshing cached reports",
+      "impact": "Decisions based on stale data",
+      "prevention": "Note 'Last Updated' timestamp, manually refresh when needed"
+    },
+    {
+      "mistake": "Creating too many custom reports with overlapping data",
+      "impact": "Confusion about which report to use, maintenance overhead",
+      "prevention": "Standardize on key reports, retire duplicates"
+    }
+  ],
+  "roleBasedGuidance": {
+    "staff": {
+      "focus": "Personal productivity reports, assigned case reports",
+      "permissions": "Limited to own data and team-shared reports",
+      "tips": "Use task completion reports for daily planning"
+    },
+    "manager": {
+      "focus": "Team performance, SLA monitoring, client portfolio",
+      "permissions": "Full team data, can create and schedule reports",
+      "tips": "Schedule weekly performance reports for team reviews"
+    },
+    "partner": {
+      "focus": "Firm-wide metrics, financial performance, compliance",
+      "permissions": "All data access, executive dashboard",
+      "tips": "Use dashboard widgets for real-time visibility"
+    },
+    "admin": {
+      "focus": "System reports, audit trails, data integrity",
+      "permissions": "All reports including system and compliance",
+      "tips": "Run monthly data quality reports, monitor audit logs"
+    }
+  },
+  "faqs": [
+    {
+      "question": "Why is my report taking so long to generate?",
+      "answer": "Large date ranges or complex filters slow reports. Try narrowing the date range, reducing columns, or exporting to Excel for large datasets."
+    },
+    {
+      "question": "Can I share a report with external parties?",
+      "answer": "Export to PDF and share the file. Do not share report links as they require system login."
+    },
+    {
+      "question": "How do I edit a scheduled report?",
+      "answer": "Go to Reports > Scheduled, find the report, click Edit to modify schedule, recipients, or filters."
+    }
+  ]
+}

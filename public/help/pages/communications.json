@@ -1,0 +1,142 @@
+{
+  "pageId": "communications",
+  "pageName": "Communications",
+  "version": "1.0",
+  "lastUpdated": "2025-01-26",
+  "overview": {
+    "title": "Communications Hub",
+    "description": "Central module for managing all client and team communications across email, SMS, and internal messaging channels",
+    "purpose": "Track, send, and manage all case-related communications with complete audit trails"
+  },
+  "whatIsThis": {
+    "summary": "The Communications module provides a unified interface for managing all correspondence related to your cases and clients, including emails, SMS messages, and internal notes.",
+    "keyFeatures": [
+      "Multi-channel communication (Email, SMS, In-App)",
+      "Case and client-linked message history",
+      "Template-based messaging for consistency",
+      "Delivery status tracking",
+      "Complete communication audit trail"
+    ]
+  },
+  "whyItMatters": {
+    "businessValue": "Proper communication management ensures nothing falls through the cracks, maintains client relationships, and provides documentation for disputes or compliance.",
+    "risks": [
+      "Lost client communications damage relationships",
+      "Untracked correspondence creates liability",
+      "Inconsistent messaging affects firm brand"
+    ]
+  },
+  "sections": {
+    "inbox": {
+      "title": "Inbox",
+      "description": "View all incoming communications across channels",
+      "features": [
+        "Unified inbox for all channels",
+        "Filtering by case, client, or channel",
+        "Read/unread status tracking",
+        "Quick reply functionality"
+      ],
+      "tips": [
+        "Process inbox daily to maintain responsiveness",
+        "Link unlinked messages to cases for complete history"
+      ]
+    },
+    "compose": {
+      "title": "Compose Message",
+      "description": "Create and send new communications",
+      "features": [
+        "Rich text email composition",
+        "SMS with character count",
+        "Template selection and customization",
+        "Attachment support",
+        "Schedule for later sending"
+      ],
+      "tips": [
+        "Use templates for consistent professional messaging",
+        "Preview before sending for quality control"
+      ]
+    },
+    "templates": {
+      "title": "Message Templates",
+      "description": "Pre-defined message formats for common communications",
+      "features": [
+        "Template library by category",
+        "Variable placeholders for personalization",
+        "Version control for templates",
+        "Role-based template access"
+      ],
+      "tips": [
+        "Create templates for recurring message types",
+        "Include all necessary details in templates to reduce editing"
+      ]
+    },
+    "history": {
+      "title": "Communication History",
+      "description": "Complete log of all sent and received communications",
+      "features": [
+        "Searchable message archive",
+        "Delivery status for each message",
+        "Timeline view per case or client",
+        "Export for audit"
+      ],
+      "tips": [
+        "Use history to prepare for client calls",
+        "Export relevant communications for case files"
+      ]
+    }
+  },
+  "roleBasedGuidance": {
+    "staff": {
+      "access": "Send and view communications for assigned cases",
+      "focus": "Day-to-day client correspondence",
+      "tips": "Always link communications to relevant cases"
+    },
+    "manager": {
+      "access": "View team communications, template management",
+      "focus": "Quality oversight, escalation handling",
+      "tips": "Review team communications for consistency"
+    },
+    "admin": {
+      "access": "All communications, channel configuration",
+      "focus": "System setup, integration management",
+      "tips": "Configure channels and verify delivery settings"
+    }
+  },
+  "commonActions": [
+    {
+      "action": "Send case update to client",
+      "steps": ["Open case", "Click 'Send Update'", "Select template or compose", "Send"],
+      "frequency": "Frequent"
+    },
+    {
+      "action": "View communication history",
+      "steps": ["Open case or client", "Navigate to Communications tab", "Browse or search messages"],
+      "frequency": "Frequent"
+    },
+    {
+      "action": "Create new template",
+      "steps": ["Go to Templates section", "Click 'New Template'", "Define content with placeholders", "Save"],
+      "frequency": "Occasional"
+    }
+  ],
+  "bestPractices": [
+    "Link all communications to relevant cases for complete records",
+    "Use templates for consistency and efficiency",
+    "Check delivery status for important messages",
+    "Respond to client communications within 24 hours"
+  ],
+  "faqs": [
+    {
+      "question": "Why didn't my email get delivered?",
+      "answer": "Check delivery status in communication history. Common issues: invalid email address, spam filtering, or email service configuration. Retry or use alternative contact method."
+    },
+    {
+      "question": "Can clients see internal notes?",
+      "answer": "No. Internal notes are visible only to team members. Use the 'Internal' channel for notes that should not be visible to clients."
+    },
+    {
+      "question": "How do I find old communications?",
+      "answer": "Use the History section with search. Filter by date range, case, client, or keywords to narrow results."
+    }
+  ]
+}

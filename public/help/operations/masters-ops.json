@@ -1,0 +1,254 @@
+{
+  "moduleId": "masters",
+  "moduleName": "Master Data Management",
+  "version": "1.0",
+  "lastUpdated": "2025-01-26",
+  "overview": {
+    "description": "Configure and maintain foundational reference data that powers the entire system",
+    "whatItDoes": "Manage lookup tables for legal authorities, judges, contacts, employees, statutory deadlines, and other reference data",
+    "whyItMatters": "Master data is the foundation of system accuracy. Incorrect master data causes errors in case management, deadline calculations, document generation, and compliance.",
+    "keyBenefits": [
+      "Centralized reference data management",
+      "Cascading updates across system",
+      "Data quality enforcement",
+      "Audit trail for all changes"
+    ],
+    "criticalNote": "Changes to master data affect ALL cases and operations. Proceed with caution."
+  },
+  "operations": {
+    "manage-legal-authorities": {
+      "title": "Manage Legal Authorities",
+      "description": "Configure courts, tribunals, and quasi-judicial bodies where cases are filed",
+      "steps": [
+        "Navigate to Masters > Legal Authorities",
+        "Click '+ Add Authority' to create new",
+        "Select authority type (Court, Tribunal, Commission, etc.)",
+        "Enter name, code, jurisdiction, and level",
+        "Add bench locations if applicable",
+        "Set officer designations for this authority type",
+        "Configure applicable matter types",
+        "Save the authority"
+      ],
+      "tips": [
+        "Use consistent naming conventions",
+        "Set jurisdiction correctly for case routing",
+        "Link matter types that apply to each authority"
+      ],
+      "warnings": [
+        "Deactivating an authority hides it from new cases but preserves existing links",
+        "Authority hierarchy affects statutory deadline calculations"
+      ],
+      "dataImpact": {
+        "downstream": ["Case creation authority selection", "Hearing venue options", "Deadline calculations", "Document templates with authority placeholders"]
+      }
+    },
+    "manage-judges": {
+      "title": "Manage Judges/Officers",
+      "description": "Maintain directory of judicial officers for hearing assignments",
+      "steps": [
+        "Navigate to Masters > Judges",
+        "Click '+ Add Judge' to create new",
+        "Enter name, designation, and authority assignment",
+        "Add contact information if known",
+        "Set status (Active, Transferred, Retired)",
+        "Link to bench/court location",
+        "Save the record"
+      ],
+      "tips": [
+        "Update judge assignments when benches change",
+        "Historical records help with past case research",
+        "Designation affects how name appears in documents"
+      ],
+      "warnings": [
+        "Do not delete retired judges - mark as Retired to preserve case history"
+      ]
+    },
+    "manage-employees": {
+      "title": "Manage Employees",
+      "description": "Configure team members for case assignments and access control",
+      "steps": [
+        "Navigate to Masters > Employees",
+        "Click '+ Add Employee' to create new",
+        "Enter name, email, phone, and designation",
+        "Select employee type (Advocate, CA, Staff, Partner, etc.)",
+        "Assign department and reporting manager",
+        "Set module access permissions",
+        "Configure user account (creates login credentials)",
+        "Save the employee record"
+      ],
+      "tips": [
+        "Employee type determines available roles",
+        "Module access controls sidebar visibility",
+        "Reporting manager enables hierarchy views"
+      ],
+      "warnings": [
+        "Deactivating employees immediately revokes system access",
+        "Cases assigned to deactivated employees need reassignment"
+      ],
+      "securityNote": "Employee configuration directly affects system access - review carefully"
+    },
+    "manage-statutory-deadlines": {
+      "title": "Configure Statutory Deadlines",
+      "description": "Set up event types and calculation rules for automatic deadline tracking",
+      "steps": [
+        "Navigate to Masters > Statutory Deadlines",
+        "Click '+ Add Event Type' to create new deadline category",
+        "Enter event code, name, and description",
+        "Select applicable authority level",
+        "Configure deadline calculation rules",
+        "Set base event (trigger) for calculation",
+        "Define default days, extension limits, and warning thresholds",
+        "Link to task templates for auto-creation",
+        "Save the configuration"
+      ],
+      "tips": [
+        "Map to actual statutory provisions",
+        "Include extension rules for completeness",
+        "Test calculations before production use"
+      ],
+      "warnings": [
+        "Incorrect deadline rules affect compliance for ALL cases",
+        "Changes apply to new cases only - existing deadlines preserve original rules"
+      ],
+      "criticalImportance": "Statutory deadline misconfiguration is a major compliance risk. Double-verify rules with legal team."
+    },
+    "manage-contacts": {
+      "title": "Manage External Contacts",
+      "description": "Maintain directory of external parties, advocates, and consultants",
+      "steps": [
+        "Navigate to Masters > Contacts",
+        "Click '+ Add Contact' to create new",
+        "Select contact type (Opposing Counsel, Expert, Consultant, etc.)",
+        "Enter name, organization, and role",
+        "Add contact details (email, phone, address)",
+        "Link to clients or cases if applicable",
+        "Set visibility scope",
+        "Save the contact"
+      ],
+      "tips": [
+        "Use tags for easy categorization",
+        "Link contacts to relevant cases for quick access",
+        "Keep contact info current for effective communication"
+      ]
+    },
+    "import-master-data": {
+      "title": "Bulk Import Master Data",
+      "description": "Import master records from Excel or CSV for initial setup or updates",
+      "steps": [
+        "Go to Data I/O > Import",
+        "Select master data type",
+        "Download the import template",
+        "Fill data following template structure",
+        "Upload completed file",
+        "Map columns to system fields",
+        "Validate data (errors shown inline)",
+        "Preview changes before applying",
+        "Confirm import"
+      ],
+      "tips": [
+        "Use templates for correct format",
+        "Test with small batches first",
+        "Back up existing data before large imports"
+      ],
+      "warnings": [
+        "Import errors can corrupt master data - use staging environment first",
+        "Duplicate codes will fail validation"
+      ]
+    },
+    "export-master-data": {
+      "title": "Export Master Data",
+      "description": "Download master records for backup, analysis, or migration",
+      "steps": [
+        "Navigate to the master data table",
+        "Apply filters if exporting subset",
+        "Click 'Export' button",
+        "Select format (Excel, CSV)",
+        "Choose columns to include",
+        "Download the file"
+      ],
+      "tips": [
+        "Regular exports provide backup",
+        "Use exports for audit documentation",
+        "Excel preserves formatting, CSV is system-agnostic"
+      ]
+    }
+  },
+  "dataGovernance": {
+    "qualityRules": [
+      "All master records must have unique codes",
+      "Status must be explicitly set (Active/Inactive)",
+      "Descriptions should be meaningful for end-user clarity",
+      "Changes must be reviewed by designated data stewards"
+    ],
+    "maintenanceSchedule": {
+      "daily": "Verify new entries for accuracy",
+      "weekly": "Review pending approvals",
+      "monthly": "Audit for duplicates and inconsistencies",
+      "quarterly": "Full data quality review",
+      "annually": "Archive inactive records"
+    },
+    "stewardship": {
+      "admin": "Full CRUD access, approval authority",
+      "manager": "Create and update, submit for approval",
+      "staff": "View only, suggest changes via requests"
+    }
+  },
+  "commonMistakes": [
+    {
+      "mistake": "Creating duplicate master records with slight variations",
+      "impact": "Inconsistent data across cases, reporting errors",
+      "prevention": "Search before creating, use merge tools for duplicates"
+    },
+    {
+      "mistake": "Deleting master records instead of deactivating",
+      "impact": "Broken references in historical cases, audit trail gaps",
+      "prevention": "Always deactivate, never delete production master data"
+    },
+    {
+      "mistake": "Changing master codes after records are in use",
+      "impact": "Broken integrations, report failures, data corruption",
+      "prevention": "Codes are immutable once created - create new record if needed"
+    },
+    {
+      "mistake": "Not testing statutory deadline rules before production",
+      "impact": "Incorrect deadlines calculated for cases, compliance violations",
+      "prevention": "Test all calculation rules in staging, verify with legal team"
+    }
+  ],
+  "roleBasedGuidance": {
+    "staff": {
+      "access": "View only for most master data",
+      "actions": "Can request changes via admin",
+      "tips": "Report data issues to your manager"
+    },
+    "manager": {
+      "access": "Create and edit non-critical master data",
+      "actions": "Cannot modify employees or statutory deadlines",
+      "tips": "Maintain quality within your area, escalate complex changes"
+    },
+    "admin": {
+      "access": "Full access to all master data",
+      "actions": "All CRUD operations, can approve imports",
+      "tips": "Review all changes carefully, maintain audit documentation"
+    },
+    "implementor": {
+      "access": "Full access during implementation",
+      "actions": "Bulk import, configuration, initial setup",
+      "tips": "Document all configurations, train admins before handoff"
+    }
+  },
+  "faqs": [
+    {
+      "question": "Can I undo a master data change?",
+      "answer": "Use the audit log to see previous values. For critical data, request admin restore from backup. System doesn't support automatic undo."
+    },
+    {
+      "question": "Why can't I delete a master record?",
+      "answer": "Records linked to cases cannot be deleted to preserve data integrity. Deactivate instead to hide from new selections while preserving history."
+    },
+    {
+      "question": "How do I merge duplicate master records?",
+      "answer": "Contact admin. The process involves updating all references to the primary record, then deactivating the duplicate. Cannot be automated."
+    }
+  ]
+}

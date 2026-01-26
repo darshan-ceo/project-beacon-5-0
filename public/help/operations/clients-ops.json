@@ -1,0 +1,236 @@
+{
+  "moduleId": "clients",
+  "moduleName": "Client Management",
+  "version": "1.0",
+  "lastUpdated": "2025-01-26",
+  "overview": {
+    "description": "Manage client profiles, groups, contacts, and portal access for your legal practice",
+    "whatItDoes": "Centralized client database with GSTIN autofill, contact management, group organization, and secure portal access for client self-service",
+    "whyItMatters": "Accurate client data is foundational to case management, billing, communications, and compliance. Errors here cascade to all downstream modules.",
+    "keyBenefits": [
+      "Single source of truth for client information",
+      "GSTIN autofill reduces data entry errors",
+      "Client groups enable portfolio management",
+      "Portal access gives clients visibility without admin overhead"
+    ]
+  },
+  "operations": {
+    "create-client": {
+      "title": "Add New Client",
+      "description": "Register a new client in the system with complete profile information",
+      "steps": [
+        "Navigate to Clients from the sidebar",
+        "Click '+ New Client' button",
+        "Select client type (Individual, Company, LLP, Partnership, Trust, etc.)",
+        "Enter display name (how client appears in dropdowns)",
+        "Enter GSTIN if applicable - system auto-fetches legal name and address",
+        "Fill PAN, contact email, phone, and address details",
+        "Assign to a client group if applicable",
+        "Set data scope (My Data, Team Data, or All Data visibility)",
+        "Click 'Save' to create the client"
+      ],
+      "tips": [
+        "Use GSTIN autofill for companies to ensure accuracy",
+        "Display name can be different from legal name for easier identification",
+        "Assign owner for data scope enforcement"
+      ],
+      "warnings": [
+        "Duplicate GSTIN/PAN will be flagged - check for existing records first",
+        "Client type cannot be changed after creation for compliance reasons"
+      ],
+      "relatedOperations": ["edit-client", "add-contact", "assign-group"]
+    },
+    "edit-client": {
+      "title": "Update Client Information",
+      "description": "Modify existing client profile, contacts, or settings",
+      "steps": [
+        "Find the client using search or filters",
+        "Click on the client row to open details",
+        "Click 'Edit' button or pencil icon",
+        "Update required fields",
+        "Review changes in the summary",
+        "Click 'Save Changes'"
+      ],
+      "tips": [
+        "Changes to client name will reflect across all linked cases",
+        "Update address before GSTIN if address changed officially"
+      ],
+      "warnings": [
+        "Changing GSTIN triggers re-validation and may affect linked cases",
+        "Deactivating a client hides them from new case creation"
+      ]
+    },
+    "add-contact": {
+      "title": "Add Client Contact",
+      "description": "Add authorized representatives, signatories, or key contacts for a client",
+      "steps": [
+        "Open the client profile",
+        "Navigate to 'Contacts' tab",
+        "Click '+ Add Contact'",
+        "Enter contact name, designation, and role",
+        "Add email addresses (multiple allowed)",
+        "Add phone numbers (multiple allowed)",
+        "Set as primary contact if applicable",
+        "Specify roles (Signatory, Authorized Rep, Billing Contact)",
+        "Save the contact"
+      ],
+      "tips": [
+        "Mark primary contacts for default communication",
+        "Signatories should match authorized signing authority",
+        "Add notes for contact preferences (e.g., 'Prefers WhatsApp')"
+      ]
+    },
+    "manage-groups": {
+      "title": "Manage Client Groups",
+      "description": "Organize clients into groups for portfolio management and reporting",
+      "steps": [
+        "Go to Clients > Groups tab",
+        "Click '+ New Group' to create a group",
+        "Enter group code, name, and description",
+        "Select head client (parent company) if applicable",
+        "Save the group",
+        "Assign clients to the group from client profiles"
+      ],
+      "tips": [
+        "Use groups for corporate families or industry segments",
+        "Head client designation helps with consolidated reporting",
+        "Group-level reports show aggregate metrics"
+      ]
+    },
+    "portal-access": {
+      "title": "Configure Client Portal Access",
+      "description": "Enable and manage secure portal access for client self-service",
+      "steps": [
+        "Open client profile",
+        "Navigate to 'Portal Access' section",
+        "Click 'Enable Portal Access' or 'Manage Users'",
+        "Enter the portal user's email",
+        "Select portal role (Viewer, Editor, Admin)",
+        "Click 'Send Invite' to generate credentials",
+        "User receives email with login instructions"
+      ],
+      "tips": [
+        "Viewer: Can see cases and documents, cannot upload",
+        "Editor: Can upload documents and add notes",
+        "Admin: Full access including user management"
+      ],
+      "warnings": [
+        "Portal access immediately grants visibility to all client cases",
+        "Deactivate access promptly when contacts leave the organization"
+      ],
+      "securityConsiderations": [
+        "Portal users can only see their own client's data",
+        "Document access respects case-level permissions",
+        "All portal activity is logged for audit"
+      ]
+    },
+    "search-filter": {
+      "title": "Search and Filter Clients",
+      "description": "Find clients using various search criteria and filters",
+      "steps": [
+        "Use the search bar for quick text search (name, GSTIN, PAN)",
+        "Apply filters for client type, status, group, or owner",
+        "Sort by name, creation date, or case count",
+        "Export filtered results to Excel if needed"
+      ],
+      "tips": [
+        "Partial GSTIN search works (e.g., first 5 digits)",
+        "Combine filters for precise results",
+        "Save frequently used filter combinations"
+      ]
+    },
+    "import-clients": {
+      "title": "Bulk Import Clients",
+      "description": "Import multiple clients from Excel or CSV file",
+      "steps": [
+        "Go to Data I/O > Import",
+        "Select 'Clients' as entity type",
+        "Download the import template",
+        "Fill client data in the template",
+        "Upload the completed file",
+        "Map columns to system fields",
+        "Preview and validate data",
+        "Confirm import"
+      ],
+      "tips": [
+        "Use template to ensure correct format",
+        "GSTIN validation runs automatically",
+        "Duplicates are flagged for review"
+      ],
+      "warnings": [
+        "Large imports may take time - do not close browser",
+        "Invalid GSTINs will be imported but flagged for correction"
+      ]
+    }
+  },
+  "commonMistakes": [
+    {
+      "mistake": "Creating duplicate clients with slight name variations",
+      "impact": "Fragmented case history and billing records",
+      "prevention": "Always search by GSTIN/PAN before creating new clients"
+    },
+    {
+      "mistake": "Not updating contact information when staff changes",
+      "impact": "Communications go to wrong people, delays in case progress",
+      "prevention": "Quarterly review of client contacts, deactivate departed contacts"
+    },
+    {
+      "mistake": "Granting portal access without proper authorization",
+      "impact": "Unauthorized access to confidential case data",
+      "prevention": "Verify contact authority before enabling portal, use formal requests"
+    },
+    {
+      "mistake": "Incorrect GSTIN leading to wrong legal name autofill",
+      "impact": "Notices/documents have wrong party names, compliance issues",
+      "prevention": "Double-check GSTIN before accepting autofill, verify from official records"
+    }
+  ],
+  "roleBasedGuidance": {
+    "staff": {
+      "focus": "Client creation, contact updates, basic searches",
+      "restrictions": "Cannot modify client groups or portal settings",
+      "tips": "Always verify client data with source documents before entry"
+    },
+    "manager": {
+      "focus": "Client group management, data quality oversight, portal configuration",
+      "permissions": "Full client management including portal access",
+      "tips": "Review client data monthly, ensure contacts are current"
+    },
+    "admin": {
+      "focus": "Bulk operations, data import/export, system configuration",
+      "permissions": "All client operations including deletion and data migration",
+      "tips": "Audit portal access quarterly, enforce naming conventions"
+    }
+  },
+  "integrations": {
+    "gstin": {
+      "name": "GSTIN Autofill",
+      "description": "Automatic legal name and address fetch from government database",
+      "howToUse": "Enter valid 15-digit GSTIN, click autofill icon, verify fetched data"
+    },
+    "caseManagement": {
+      "name": "Case Linking",
+      "description": "Clients are linked to cases, changes propagate automatically",
+      "howToUse": "Select client when creating case, client profile shows all linked cases"
+    },
+    "communications": {
+      "name": "Communication History",
+      "description": "All emails and messages to client are logged",
+      "howToUse": "View communications tab in client profile for full history"
+    }
+  },
+  "faqs": [
+    {
+      "question": "Can I merge duplicate client records?",
+      "answer": "Not directly. Contact admin to manually consolidate records by moving cases and contacts to the primary client, then deactivating the duplicate."
+    },
+    {
+      "question": "How do I transfer a client to another owner?",
+      "answer": "Edit the client profile, change the Owner field to the new user. This affects data scope visibility for My Data filters."
+    },
+    {
+      "question": "What happens when I deactivate a client?",
+      "answer": "Deactivated clients are hidden from new case creation but existing cases remain accessible. Reactivate anytime from the client profile."
+    }
+  ]
+}
