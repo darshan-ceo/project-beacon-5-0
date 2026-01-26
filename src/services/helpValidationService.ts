@@ -90,8 +90,9 @@ class HelpValidationService {
 
       // Track operations files that exist
       const operationsModules = [
-        'case-management', 'hearings', 'tasks', 'documents', 
-        'clients', 'communications', 'reports'
+        'access-roles', 'ai-assistant', 'case-management', 'clients',
+        'communications', 'data-io', 'documents', 'hearings',
+        'masters', 'reports', 'settings', 'tasks', 'timeline'
       ];
       for (const mod of operationsModules) {
         try {
@@ -106,8 +107,11 @@ class HelpValidationService {
 
       // Track pages help files
       const pagesModules = [
-        'dashboard', 'case-management', 'hearings', 'tasks', 
-        'documents', 'clients', 'reports', 'settings', 'access-roles'
+        'dashboard', 'case-management', 'hearings', 'tasks', 'documents',
+        'clients', 'reports', 'settings', 'access-roles', 'communications',
+        'data-io', 'profile', 'client-portal', 'compliance-dashboard',
+        'contacts', 'employees', 'judges', 'legal-authorities',
+        'statutory-deadlines', 'system-settings', 'help-center'
       ];
       for (const mod of pagesModules) {
         try {
@@ -122,8 +126,14 @@ class HelpValidationService {
 
       // Track FAQ files
       const faqTopics = [
-        'getting-started', 'case-management', 'hearings', 
-        'tasks', 'documents', 'troubleshooting'
+        'getting-started', 'case-management', 'hearings', 'tasks', 'documents',
+        'troubleshooting', 'calendar-integration', 'case-stage-transitions',
+        'client-gstin-autofill', 'data-scope-visibility', 'document-versioning',
+        'employee-module-access', 'hearing-outcome', 'legal-hierarchy-setup',
+        'manage-stage-checklist', 'master-data-quality', 'notification-templates',
+        'operational-workflows', 'rbac-troubleshooting', 'role-permissions-explained',
+        'statutory-deadline-calculation', 'system-settings-configuration',
+        'task-automation-rules'
       ];
       for (const topic of faqTopics) {
         try {
@@ -285,17 +295,20 @@ class HelpValidationService {
     const moduleKeyMap: Record<string, string[]> = {
       'case-management': ['case-management', 'cases'],
       'hearings': ['hearings'],
-      'tasks': ['tasks'],
-      'documents': ['documents'],
+      'tasks': ['tasks', 'task-automation'],
+      'documents': ['documents', 'document-management'],
       'clients': ['clients'],
       'communications': ['communications'],
       'reports': ['reports'],
-      'masters': ['masters', 'master-data'],
+      'masters': ['masters', 'master-data', 'legal-authorities', 'judges', 'contacts', 'employees', 'statutory-deadlines'],
       'settings': ['settings', 'system-settings'],
       'access-roles': ['access-roles', 'rbac'],
       'dashboard': ['dashboard'],
       'data-io': ['data-io', 'import-export'],
-      'profile': ['profile', 'user-profile']
+      'profile': ['profile', 'user-profile'],
+      'client-portal': ['client-portal'],
+      'ai-assistant': ['ai-assistant'],
+      'timeline': ['timeline']
     };
 
     const keys = moduleKeyMap[moduleId] || [moduleId];
