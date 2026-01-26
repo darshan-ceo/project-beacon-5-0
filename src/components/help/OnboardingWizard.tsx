@@ -3,7 +3,7 @@
  * Role-based learning path with progress tracking
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,12 +19,16 @@ import {
   Clock,
   ChevronRight,
   Trophy,
-  Sparkles
+  Sparkles,
+  AlertCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useLearningProgress } from '@/hooks/useLearningProgress';
+import { useShepherdTour, TourConfig } from '@/hooks/useShepherdTour';
 import { helpDiscoveryService, type OnboardingPath, type OnboardingStep } from '@/services/helpDiscoveryService';
+import { getOnboardingContent } from '@/config/onboardingContentMap';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface OnboardingWizardProps {
   userRole: string;
@@ -52,12 +56,30 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
   const navigate = useNavigate();
   const [path, setPath] = useState<OnboardingPath | null>(null);
   const [loading, setLoading] = useState(true);
+  const [toursData, setToursData] = useState<any[]>([]);
+  const { startTour, isRunning } = useShepherdTour();
   const { 
     progress, 
     markOnboardingStepCompleted, 
     isOnboardingStepCompleted,
     hasAchievement 
   } = useLearningProgress();
+
+  // Load tours data
+  useEffect(() => {
+    const loadTours = async () => {
+      try {
+        const response = await fetch('/help/tours.json');
+        if (response.ok) {
+          const data = await response.json();
+          setToursData(data);
+        }
+      } catch (error) {
+        console.error('[Onboarding] Failed to load tours:', error);
+      }
+    };
+    loadTours();
+  }, []);
 
   useEffect(() => {
     const loadPath = async () => {
@@ -79,19 +101,85 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
     loadPath();
   }, [userRole, progress.completedOnboardingSteps]);
 
-  const handleStepClick = (step: OnboardingStep) => {
-    // Navigate or start the step
-    if (step.type === 'tour') {
-      console.log('[Onboarding] Start tour:', step.id);
-      // Could integrate with tour system
-    } else if (step.type === 'article') {
-      navigate(`/help/articles/${step.id}`);
+  const handleStartTour = useCallback((tourId: string, stepId: string) => {
+    // Find the tour in the loaded tours data
+    const tourData = toursData.find(t => t.id === tourId);
+    
+    if (!tourData) {
+      console.warn(`[Onboarding] Tour not found: ${tourId}`);
+      toast.error('Tour Not Available', {
+        description: 'This guided tour is being prepared. Please try an article instead.',
+        action: {
+          label: 'View Articles',
+          onClick: () => navigate('/help?tab=discover')
+        }
+      });
+      return;
     }
-  };
+
+    // Convert tour data to TourConfig format
+    const tourConfig: TourConfig = {
+      id: tourData.id,
+      title: tourData.title,
+      steps: tourData.steps.map((step: any) => ({
+        target: step.target,
+        title: step.title,
+        content: step.content,
+        position: step.position || step.placement || 'bottom',
+        action: step.action || 'none'
+      })),
+      onComplete: () => {
+        markOnboardingStepCompleted(stepId);
+        toast.success('Tour Completed!', {
+          description: `You've completed the ${tourData.title} tour.`
+        });
+      },
+      onCancel: () => {
+        console.log('[Onboarding] Tour cancelled:', tourId);
+      }
+    };
+
+    // Navigate to the appropriate page first if needed
+    const contentMapping = getOnboardingContent(stepId);
+    if (contentMapping.fallbackPath && contentMapping.fallbackPath !== '/help') {
+      navigate(contentMapping.fallbackPath);
+      // Give the page time to load before starting the tour
+      setTimeout(() => {
+        startTour(tourConfig);
+      }, 500);
+    } else {
+      startTour(tourConfig);
+    }
+  }, [toursData, startTour, navigate, markOnboardingStepCompleted]);
+
+  const handleStepClick = useCallback((step: OnboardingStep) => {
+    const contentMapping = getOnboardingContent(step.id);
+    
+    if (step.type === 'tour') {
+      // Start the mapped tour
+      handleStartTour(contentMapping.contentId, step.id);
+    } else if (step.type === 'article') {
+      // Navigate to the mapped article
+      navigate(`/help/articles/${contentMapping.contentId}`);
+    } else if (step.type === 'video') {
+      // Future: handle video playback
+      toast.info('Video Coming Soon', {
+        description: 'Video tutorials are being prepared.'
+      });
+    } else if (step.type === 'quiz') {
+      // Future: handle quiz
+      toast.info('Quiz Coming Soon', {
+        description: 'Interactive quizzes are being prepared.'
+      });
+    }
+  }, [handleStartTour, navigate]);
 
   const handleMarkComplete = (step: OnboardingStep, e: React.MouseEvent) => {
     e.stopPropagation();
     markOnboardingStepCompleted(step.id);
+    toast.success('Step Completed', {
+      description: `Marked "${step.title}" as complete.`
+    });
   };
 
   if (loading) {
@@ -182,15 +270,16 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
               const isCompleted = isOnboardingStepCompleted(step.id);
               const isNext = !isCompleted && 
                 path.steps.slice(0, index).every(s => isOnboardingStepCompleted(s.id));
+              const contentMapping = getOnboardingContent(step.id);
               
               return (
                 <div
                   key={step.id}
                   className={cn(
-                    "p-4 border rounded-lg cursor-pointer transition-all",
+                    "p-4 border rounded-lg cursor-pointer transition-all hover:shadow-sm",
                     isCompleted && "bg-green-500/5 border-green-500/20",
                     isNext && "ring-2 ring-primary/20 bg-primary/5",
-                    !isCompleted && !isNext && "opacity-60"
+                    !isCompleted && !isNext && "opacity-60 hover:opacity-80"
                   )}
                   onClick={() => handleStepClick(step)}
                 >
@@ -253,8 +342,9 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                             variant={isNext ? "default" : "outline"} 
                             size="sm" 
                             className="h-7 text-xs gap-1"
+                            disabled={isRunning()}
                           >
-                            {isCompleted ? 'Review' : 'Start'}
+                            {isCompleted ? 'Review' : step.type === 'tour' ? 'Start Tour' : 'Read'}
                             <ChevronRight className="h-3 w-3" />
                           </Button>
                         </div>
