@@ -1,0 +1,211 @@
+{
+  "moduleId": "case-management",
+  "title": "Case Management Operations",
+  "purpose": "Central hub for managing case lifecycle from creation to closure, coordinating all litigation activities",
+  
+  "workflowContext": {
+    "upstream": ["Clients (case ownership)", "Legal Authorities (jurisdiction)", "Employees (assignment)"],
+    "downstream": ["Hearings (scheduling)", "Tasks (work items)", "Documents (evidence)", "Timeline (history)", "Communications (updates)"],
+    "dataFlow": "Cases receive client and authority context, then spawn hearings, tasks, and documents throughout the litigation lifecycle"
+  },
+  
+  "tabs": [
+    {
+      "id": "overview",
+      "name": "Overview",
+      "purpose": "Portfolio dashboard showing all cases with key metrics",
+      "whenToUse": "Daily case review, finding specific cases, monitoring SLA status",
+      "keyActions": ["Filter by status/stage/assignee", "Search by case number", "Bulk status updates", "Export case list"]
+    },
+    {
+      "id": "lifecycle",
+      "name": "Lifecycle",
+      "purpose": "Track case progression through legal stages",
+      "whenToUse": "Advancing cases between stages, reviewing stage prerequisites, handling remands",
+      "keyActions": ["Advance to next stage", "View stage checklist", "Record remand", "View cycle history"]
+    },
+    {
+      "id": "timeline",
+      "name": "Timeline",
+      "purpose": "Chronological record of all case events",
+      "whenToUse": "Pre-hearing preparation, case history review, audit trail",
+      "keyActions": ["Filter by event type", "Add manual entries", "Export timeline", "View related documents"]
+    },
+    {
+      "id": "documents",
+      "name": "Documents",
+      "purpose": "Case-linked document repository",
+      "whenToUse": "Uploading evidence, organizing case files, generating documents from templates",
+      "keyActions": ["Upload documents", "Categorize files", "Link to hearings", "Generate from template"]
+    },
+    {
+      "id": "hearings",
+      "name": "Hearings",
+      "purpose": "Case-specific hearing management",
+      "whenToUse": "Scheduling new hearings, reviewing past hearings, tracking outcomes",
+      "keyActions": ["Schedule hearing", "Record outcome", "View order documents", "Set reminders"]
+    },
+    {
+      "id": "ai-assistant",
+      "name": "AI Assistant",
+      "purpose": "Intelligent case analysis and drafting support",
+      "whenToUse": "Complex case analysis, draft generation, precedent research",
+      "keyActions": ["Ask case questions", "Generate summaries", "Draft documents", "Research precedents"]
+    },
+    {
+      "id": "communications",
+      "name": "Communications",
+      "purpose": "Client and stakeholder correspondence",
+      "whenToUse": "Sending updates, tracking message delivery, logging external communications",
+      "keyActions": ["Send email update", "Use templates", "Track delivery", "Log phone calls"]
+    }
+  ],
+  
+  "quickActions": [
+    {
+      "action": "Create New Case",
+      "trigger": "Click '+ New Case' button or use Ctrl+N",
+      "outcome": "Opens case creation wizard with client selection",
+      "bestPractice": "Ensure client exists first; have notice details ready"
+    },
+    {
+      "action": "Advance Stage",
+      "trigger": "Click 'Advance Stage' in Lifecycle tab",
+      "outcome": "Moves case to next legal stage if prerequisites met",
+      "bestPractice": "Complete stage checklist items before advancing"
+    },
+    {
+      "action": "Schedule Hearing",
+      "trigger": "Click 'Schedule Hearing' from case context",
+      "outcome": "Creates hearing linked to current case",
+      "bestPractice": "Check calendar for conflicts before confirming"
+    },
+    {
+      "action": "Send Client Update",
+      "trigger": "Click 'Send Update' in Communications tab",
+      "outcome": "Sends templated or custom email to client contacts",
+      "bestPractice": "Use templates for consistency; preview before sending"
+    }
+  ],
+  
+  "commonWorkflows": [
+    {
+      "name": "Daily Case Review",
+      "steps": [
+        "Open Case Management from sidebar",
+        "Apply 'My Cases' filter to see assigned cases",
+        "Check SLA status indicators (red = breached)",
+        "Review cases with hearings in next 7 days",
+        "Note urgent items for immediate action"
+      ],
+      "frequency": "Daily (5-10 min)",
+      "roleRelevance": ["Advocate", "Manager"]
+    },
+    {
+      "name": "Weekly Stage Review",
+      "steps": [
+        "Filter cases by 'Ready to Advance' status",
+        "Open each case's Lifecycle tab",
+        "Verify stage prerequisites are complete",
+        "Advance eligible cases to next stage",
+        "Document any blockers for stuck cases"
+      ],
+      "frequency": "Weekly",
+      "roleRelevance": ["Manager", "Partner"]
+    },
+    {
+      "name": "Pre-Hearing Case Preparation",
+      "steps": [
+        "Open case with upcoming hearing",
+        "Navigate to Timeline tab for event history",
+        "Review all documents in Documents tab",
+        "Check AI Assistant for case summary",
+        "Verify all prerequisites in Hearings tab"
+      ],
+      "frequency": "1-2 days before hearing",
+      "roleRelevance": ["Advocate", "Partner"]
+    },
+    {
+      "name": "Case Closure Process",
+      "steps": [
+        "Verify final order is uploaded",
+        "Ensure all tasks are completed or cancelled",
+        "Send final communication to client",
+        "Advance to 'Closed' stage",
+        "Archive case if no further action needed"
+      ],
+      "frequency": "As cases conclude",
+      "roleRelevance": ["Manager", "Partner"]
+    }
+  ],
+  
+  "roleGuidance": {
+    "Partner": {
+      "focus": "High-level portfolio oversight, critical case decisions",
+      "keyMetrics": "Total cases, SLA breaches, high-value matters",
+      "recommendedViews": "All Cases with demand > 1Cr, Breached SLA filter",
+      "dailyActions": ["Review partner-assigned cases", "Approve stage advances for complex matters"]
+    },
+    "Manager": {
+      "focus": "Team workload balancing, SLA monitoring, process compliance",
+      "keyMetrics": "Team case distribution, approaching deadlines, stage velocity",
+      "recommendedViews": "Team Cases grouped by assignee, SLA dashboard",
+      "dailyActions": ["Redistribute workload if needed", "Check stage bottlenecks"]
+    },
+    "Advocate": {
+      "focus": "Day-to-day case work, document preparation, hearing attendance",
+      "keyMetrics": "My cases count, today's tasks, upcoming hearings",
+      "recommendedViews": "My Cases with upcoming hearing filter",
+      "dailyActions": ["Update case status after actions", "Prepare for tomorrow's hearings"]
+    },
+    "Staff": {
+      "focus": "Data entry, document uploads, administrative support",
+      "keyMetrics": "Documents uploaded, cases updated",
+      "recommendedViews": "Cases needing document upload",
+      "dailyActions": ["Upload received documents", "Update case metadata as directed"]
+    }
+  },
+  
+  "warnings": [
+    {
+      "type": "caution",
+      "title": "Stage Advancement is Irreversible",
+      "message": "Once a case advances to the next stage, it cannot be moved back except through a formal Remand process. Verify all prerequisites before advancing."
+    },
+    {
+      "type": "caution",
+      "title": "Closing Cases Restricts Editing",
+      "message": "Closed cases become read-only. Ensure all data is complete before marking a case as closed."
+    },
+    {
+      "type": "info",
+      "title": "SLA Calculations",
+      "message": "SLA status is calculated based on statutory deadlines and reply due dates. Yellow indicates 50% time elapsed; red indicates deadline passed."
+    },
+    {
+      "type": "tip",
+      "title": "Keyboard Shortcuts",
+      "message": "Use Ctrl+K to open quick search, Ctrl+N for new case, and arrow keys to navigate case list."
+    }
+  ],
+  
+  "relatedModules": ["Hearings", "Tasks", "Documents", "Timeline", "Communications", "AI Assistant"],
+  
+  "troubleshooting": [
+    {
+      "issue": "Case not appearing in list",
+      "causes": ["Wrong filter applied", "Assigned to different user", "Data scope restriction"],
+      "solution": "Clear all filters, check Data Scope setting, verify assignment"
+    },
+    {
+      "issue": "Cannot advance stage",
+      "causes": ["Prerequisites not met", "Case is read-only", "Insufficient permissions"],
+      "solution": "Check stage checklist, verify case status, confirm role permissions"
+    },
+    {
+      "issue": "SLA showing incorrectly",
+      "causes": ["Missing reply due date", "Wrong statutory event type", "Holiday calendar not updated"],
+      "solution": "Verify case dates, check statutory deadline configuration"
+    }
+  ]
+}

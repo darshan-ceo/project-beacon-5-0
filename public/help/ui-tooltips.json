@@ -2369,6 +2369,211 @@
           "accessibility": { "ariaLabel": "Toggle auto-create task" }
         }
       ]
+    },
+    "operations": {
+      "description": "Tooltips for operational modules: Case Management, Hearings, Tasks, Documents, Timeline, AI Assistant, Communications",
+      "fields": [
+        {
+          "id": "ops_sla_indicator",
+          "label": "SLA Status",
+          "explanation": "Case deadline compliance indicator",
+          "tooltip": {
+            "title": "SLA Status Indicator",
+            "content": "Color-coded compliance status. 🟢 Green: On track, plenty of time. 🟡 Yellow: Approaching deadline (50%+ elapsed). 🔴 Red: Deadline breached or imminent. Click to see deadline details."
+          },
+          "accessibility": { "ariaLabel": "SLA status indicator" }
+        },
+        {
+          "id": "ops_case_stage",
+          "label": "Case Stage",
+          "explanation": "Current position in litigation lifecycle",
+          "tooltip": {
+            "title": "Case Stage",
+            "content": "Legal stage of the case (Assessment, Adjudication, Tribunal, High Court, etc.). Stage determines applicable deadlines, workflows, and checklists. Click to see stage history."
+          },
+          "accessibility": { "ariaLabel": "Case stage indicator" }
+        },
+        {
+          "id": "ops_advance_stage",
+          "label": "Advance Stage",
+          "explanation": "Move case to next litigation stage",
+          "tooltip": {
+            "title": "Advance Stage",
+            "content": "⚠️ Moves case to next stage in lifecycle. Action is logged but NOT reversible except through formal Remand. Verify all prerequisites are complete before advancing."
+          },
+          "accessibility": { "ariaLabel": "Advance case stage" }
+        },
+        {
+          "id": "ops_hearing_outcome",
+          "label": "Hearing Outcome",
+          "explanation": "Record what happened at hearing",
+          "tooltip": {
+            "title": "Hearing Outcome Types",
+            "content": "Adjourned: Postponed to future date. Order Reserved: Arguments done, order pending. Order Passed: Decision issued. Part Heard: To continue. Disposed: Case concluded. Select appropriate outcome to trigger correct follow-up actions."
+          },
+          "accessibility": { "ariaLabel": "Select hearing outcome" }
+        },
+        {
+          "id": "ops_hearing_conflict",
+          "label": "Conflict Warning",
+          "explanation": "Scheduling conflict detected",
+          "tooltip": {
+            "title": "Hearing Conflict Warning",
+            "content": "⚠️ This hearing overlaps with another scheduled hearing for the same advocate. Review calendar and reschedule one of the conflicting hearings to avoid attendance issues."
+          },
+          "accessibility": { "ariaLabel": "Hearing conflict warning" }
+        },
+        {
+          "id": "ops_task_status",
+          "label": "Task Status",
+          "explanation": "Current task workflow state",
+          "tooltip": {
+            "title": "Task Status States",
+            "content": "Backlog: Created, not scheduled. To Do: Ready to start. In Progress: Actively working. In Review: Awaiting approval. Blocked: External dependency. Done: Completed. Cancelled: No longer needed."
+          },
+          "accessibility": { "ariaLabel": "Task status" }
+        },
+        {
+          "id": "ops_task_escalation",
+          "label": "Escalation Level",
+          "explanation": "Task overdue escalation tier",
+          "tooltip": {
+            "title": "Escalation Level",
+            "content": "Indicates how overdue this task is. Level 1: 1-3 days overdue (yellow). Level 2: 4-7 days (orange). Level 3: 7+ days (red). Higher levels notify more senior staff and may require manager intervention."
+          },
+          "accessibility": { "ariaLabel": "Task escalation level" }
+        },
+        {
+          "id": "ops_automation_trigger",
+          "label": "Automation Trigger",
+          "explanation": "Event that starts automation rule",
+          "tooltip": {
+            "title": "Automation Triggers",
+            "content": "Events that fire automation rules: Case Created, Stage Changed, Hearing Scheduled, Hearing Concluded, Document Uploaded, Deadline Approaching. Rule executes when trigger matches conditions."
+          },
+          "accessibility": { "ariaLabel": "Select automation trigger" }
+        },
+        {
+          "id": "ops_document_category",
+          "label": "Document Category",
+          "explanation": "Classification of document type",
+          "tooltip": {
+            "title": "Document Categories",
+            "content": "Notice: Demand/SCN. Reply: Submissions. Order: Court decisions. Petition: Appeals. Evidence: Supporting docs. Correspondence: Letters. Internal: Memos/notes. Categorization enables filtering and proper organization."
+          },
+          "accessibility": { "ariaLabel": "Select document category" }
+        },
+        {
+          "id": "ops_document_version",
+          "label": "Version",
+          "explanation": "Document version number",
+          "tooltip": {
+            "title": "Document Versioning",
+            "content": "Version number (v1, v2, etc.) tracks document revisions. Upload new versions to keep history. All versions preserved for audit. Current version marked with badge. Click to view version history."
+          },
+          "accessibility": { "ariaLabel": "Document version" }
+        },
+        {
+          "id": "ops_portal_visible",
+          "label": "Portal Visible",
+          "explanation": "Document visible to client",
+          "tooltip": {
+            "title": "Client Portal Visibility",
+            "content": "⚠️ When enabled, client can see this document in their portal. Review content before enabling. Internal notes should NEVER be portal visible. Verify permissions before sharing sensitive documents."
+          },
+          "accessibility": { "ariaLabel": "Toggle portal visibility" }
+        },
+        {
+          "id": "ops_timeline_entry",
+          "label": "Timeline Entry",
+          "explanation": "Chronological case event",
+          "tooltip": {
+            "title": "Timeline Entry Types",
+            "content": "Auto-generated from system events (hearings, tasks, documents). Manual entries: Milestone (significant event) or Note (internal comment). Auto-entries are read-only for audit integrity."
+          },
+          "accessibility": { "ariaLabel": "Timeline entry" }
+        },
+        {
+          "id": "ops_ai_context",
+          "label": "AI Context",
+          "explanation": "Data available to AI Assistant",
+          "tooltip": {
+            "title": "AI Assistant Context",
+            "content": "AI has access to current case data: details, timeline, hearings, documents. Cannot access other cases or external databases. For cross-case analysis, provide relevant info in your prompt."
+          },
+          "accessibility": { "ariaLabel": "AI context scope" }
+        },
+        {
+          "id": "ops_message_status",
+          "label": "Message Status",
+          "explanation": "Communication delivery status",
+          "tooltip": {
+            "title": "Message Delivery Status",
+            "content": "Pending: Queued. Sent: Left our server. Delivered: Reached recipient server. Read: Opened (if read receipts enabled). Failed: Could not deliver. Bounced: Invalid address."
+          },
+          "accessibility": { "ariaLabel": "Message delivery status" }
+        },
+        {
+          "id": "ops_template_variable",
+          "label": "Template Variable",
+          "explanation": "Dynamic field in message template",
+          "tooltip": {
+            "title": "Template Variables",
+            "content": "Placeholders like {{client_name}}, {{case_number}} auto-fill from case data. Variables must match exactly. Preview message before sending to verify all variables resolved correctly."
+          },
+          "accessibility": { "ariaLabel": "Template variable" }
+        },
+        {
+          "id": "ops_bulk_filter",
+          "label": "Bulk Filter",
+          "explanation": "Filter for bulk operations",
+          "tooltip": {
+            "title": "Bulk Operation Filters",
+            "content": "Apply filters before bulk actions to target specific items. Always review count before executing. Bulk actions are logged but may not be easily reversible. Double-check filter results."
+          },
+          "accessibility": { "ariaLabel": "Bulk operation filter" }
+        },
+        {
+          "id": "ops_data_scope_filter",
+          "label": "Data Scope",
+          "explanation": "Visibility filter for cases/tasks",
+          "tooltip": {
+            "title": "Data Scope Filter",
+            "content": "My Cases: Only your assigned items. Team Cases: Your team's items (based on hierarchy). All Cases: Everything you have permission to see. Filter affects list and counts."
+          },
+          "accessibility": { "ariaLabel": "Data scope filter" }
+        },
+        {
+          "id": "ops_quick_action",
+          "label": "Quick Action",
+          "explanation": "Common action shortcut",
+          "tooltip": {
+            "title": "Quick Actions",
+            "content": "Frequently used actions accessible with one click. Keyboard shortcuts also available (hover for shortcut key). Use quick actions to speed up common workflows."
+          },
+          "accessibility": { "ariaLabel": "Quick action button" }
+        },
+        {
+          "id": "ops_export_format",
+          "label": "Export Format",
+          "explanation": "File format for download",
+          "tooltip": {
+            "title": "Export Formats",
+            "content": "PDF: Best for final documents, preserves formatting. Excel: For data analysis and manipulation. CSV: Simple data export. Choose based on how you'll use the exported data."
+          },
+          "accessibility": { "ariaLabel": "Select export format" }
+        },
+        {
+          "id": "ops_calendar_sync",
+          "label": "Calendar Sync",
+          "explanation": "External calendar integration",
+          "tooltip": {
+            "title": "Calendar Synchronization",
+            "content": "Sync hearings to external calendars (Google, Outlook). Enable in Settings > Integrations. Once connected, hearings auto-sync. Click calendar icon on hearing for manual sync/download."
+          },
+          "accessibility": { "ariaLabel": "Calendar sync" }
+        }
+      ]
     }
   }
 }
