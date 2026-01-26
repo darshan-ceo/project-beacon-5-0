@@ -1,0 +1,236 @@
+{
+  "moduleId": "hearings",
+  "title": "Hearings Operations",
+  "purpose": "Schedule, prepare for, and record outcomes of court proceedings throughout the litigation lifecycle",
+  
+  "workflowContext": {
+    "upstream": ["Cases (parent context)", "Legal Authorities (venue)", "Judges (presiding)"],
+    "downstream": ["Tasks (auto-created follow-ups)", "Timeline (hearing events)", "Documents (orders uploaded)"],
+    "dataFlow": "Hearings are created from cases, scheduled at courts with judges, and generate tasks and documents upon conclusion"
+  },
+  
+  "tabs": [
+    {
+      "id": "calendar",
+      "name": "Calendar",
+      "purpose": "Visual scheduling and time management",
+      "whenToUse": "Planning weekly schedule, identifying conflicts, rescheduling",
+      "keyActions": ["Month/Week/Day view toggle", "Drag to reschedule", "Click to view details", "Filter by court/advocate"]
+    },
+    {
+      "id": "list",
+      "name": "List",
+      "purpose": "Searchable table of all hearings",
+      "whenToUse": "Finding specific hearings, bulk operations, exporting",
+      "keyActions": ["Advanced search", "Sort by date/court/status", "Bulk status update", "Export to Excel"]
+    },
+    {
+      "id": "preparation",
+      "name": "Preparation",
+      "purpose": "Pre-hearing readiness tracking",
+      "whenToUse": "Day before hearing, ensuring all documents ready",
+      "keyActions": ["View checklist", "Mark items complete", "Generate briefing note", "Assign prep tasks"]
+    },
+    {
+      "id": "outcomes",
+      "name": "Outcomes",
+      "purpose": "Post-hearing result recording",
+      "whenToUse": "After hearing concludes, recording orders",
+      "keyActions": ["Select outcome type", "Enter order details", "Upload order document", "Schedule next hearing"]
+    }
+  ],
+  
+  "quickActions": [
+    {
+      "action": "Schedule New Hearing",
+      "trigger": "Click '+ Schedule Hearing' or from case context",
+      "outcome": "Opens hearing form with case pre-selected",
+      "bestPractice": "Check calendar for conflicts first; set reminders"
+    },
+    {
+      "action": "Record Outcome",
+      "trigger": "Click 'Record Outcome' on concluded hearing",
+      "outcome": "Opens outcome form with result options",
+      "bestPractice": "Upload order document immediately; link next hearing if adjourned"
+    },
+    {
+      "action": "Reschedule Hearing",
+      "trigger": "Drag hearing on calendar or use 'Reschedule' button",
+      "outcome": "Updates hearing date, preserves original date in history",
+      "bestPractice": "Add reason for rescheduling; notify parties manually"
+    },
+    {
+      "action": "Copy to Calendar",
+      "trigger": "Click calendar sync icon on hearing",
+      "outcome": "Generates ICS file or syncs to connected calendar",
+      "bestPractice": "Set up calendar integration for automatic sync"
+    }
+  ],
+  
+  "commonWorkflows": [
+    {
+      "name": "Schedule New Hearing",
+      "steps": [
+        "Select case from dropdown or navigate from case page",
+        "Choose hearing date and time slot",
+        "Select forum (court) and bench if applicable",
+        "Assign judge(s) from court roster",
+        "Set reminder notifications (1 day, 1 week)",
+        "Add internal notes for team",
+        "Save and verify on calendar"
+      ],
+      "frequency": "As needed",
+      "roleRelevance": ["Advocate", "Manager", "Staff"]
+    },
+    {
+      "name": "Record Hearing Outcome",
+      "steps": [
+        "Open concluded hearing from calendar or list",
+        "Click 'Record Outcome'",
+        "Select outcome type (Adjourned, Order Passed, Dismissed, etc.)",
+        "Enter order summary and key points",
+        "Upload order document if available",
+        "If adjourned: Schedule next hearing date",
+        "If order: Create follow-up tasks as needed"
+      ],
+      "frequency": "After each hearing",
+      "roleRelevance": ["Advocate", "Manager"]
+    },
+    {
+      "name": "Weekly Calendar Review",
+      "steps": [
+        "Open Calendar in Week view",
+        "Review all hearings for next 7 days",
+        "Check preparation status for each",
+        "Identify any scheduling conflicts",
+        "Verify team availability for hearing dates",
+        "Update any pending rescheduling requests"
+      ],
+      "frequency": "Weekly (Monday morning)",
+      "roleRelevance": ["Manager", "Partner"]
+    },
+    {
+      "name": "Hearing Preparation (Day Before)",
+      "steps": [
+        "Open hearing's Preparation tab",
+        "Review checklist items",
+        "Verify all documents are uploaded and accessible",
+        "Check case timeline for recent developments",
+        "Review opposing party submissions",
+        "Prepare arguments summary",
+        "Mark hearing as 'Prepared'"
+      ],
+      "frequency": "Day before each hearing",
+      "roleRelevance": ["Advocate"]
+    }
+  ],
+  
+  "outcomeTypes": [
+    {
+      "type": "Adjourned",
+      "description": "Hearing postponed to a future date",
+      "nextSteps": ["Schedule next hearing date", "Update case timeline"],
+      "tasksGenerated": ["Prepare for next hearing"]
+    },
+    {
+      "type": "Order Reserved",
+      "description": "Arguments concluded, order will be pronounced later",
+      "nextSteps": ["Monitor for order pronouncement", "Set follow-up reminder"],
+      "tasksGenerated": ["Follow up on reserved order"]
+    },
+    {
+      "type": "Order Passed",
+      "description": "Final or interim order issued",
+      "nextSteps": ["Upload order document", "Review order implications", "Create compliance tasks"],
+      "tasksGenerated": ["Analyze order", "Client communication", "Compliance actions"]
+    },
+    {
+      "type": "Part Heard",
+      "description": "Hearing partially completed, to continue",
+      "nextSteps": ["Note where proceedings stopped", "Schedule continuation"],
+      "tasksGenerated": ["Prepare for continuation"]
+    },
+    {
+      "type": "Dismissed",
+      "description": "Case dismissed by court",
+      "nextSteps": ["Upload dismissal order", "Advise client on appeal options"],
+      "tasksGenerated": ["Client meeting", "Appeal assessment"]
+    },
+    {
+      "type": "Disposed",
+      "description": "Case finally resolved",
+      "nextSteps": ["Upload final order", "Close case if no appeal"],
+      "tasksGenerated": ["Case closure checklist"]
+    }
+  ],
+  
+  "roleGuidance": {
+    "Partner": {
+      "focus": "Critical hearings, complex matters, client-facing appearances",
+      "keyMetrics": "Partner-attended hearings, high-value matters calendar",
+      "recommendedViews": "My Hearings filter, high-demand cases",
+      "dailyActions": ["Review tomorrow's partner hearings", "Check outcome of team hearings"]
+    },
+    "Manager": {
+      "focus": "Team scheduling, workload distribution, preparation oversight",
+      "keyMetrics": "Team hearing count, preparation status, outcome recording timeliness",
+      "recommendedViews": "Team calendar, unprepared hearings list",
+      "dailyActions": ["Check team availability", "Review unrecorded outcomes"]
+    },
+    "Advocate": {
+      "focus": "Attendance, preparation, outcome recording",
+      "keyMetrics": "My hearings this week, preparation checklist completion",
+      "recommendedViews": "My Hearings calendar view",
+      "dailyActions": ["Prepare for tomorrow", "Record today's outcomes"]
+    },
+    "Staff": {
+      "focus": "Data entry, document uploads, scheduling assistance",
+      "keyMetrics": "Hearings scheduled, documents uploaded",
+      "recommendedViews": "Unscheduled cases list",
+      "dailyActions": ["Upload order documents", "Update hearing details as directed"]
+    }
+  },
+  
+  "warnings": [
+    {
+      "type": "caution",
+      "title": "Rescheduling Does Not Notify Parties",
+      "message": "When you reschedule a hearing, the system records the change but does NOT automatically send notifications. Always send manual notifications to all parties."
+    },
+    {
+      "type": "caution",
+      "title": "Record Outcomes Promptly",
+      "message": "Unrecorded hearing outcomes delay task creation and timeline updates. Record outcomes within 24 hours of hearing."
+    },
+    {
+      "type": "info",
+      "title": "Conflict Detection",
+      "message": "The system detects scheduling conflicts when the same advocate has overlapping hearings. Conflicts are shown in red on the calendar."
+    },
+    {
+      "type": "tip",
+      "title": "Batch Scheduling",
+      "message": "For multiple hearings on same day at same court, use batch scheduling to save time."
+    }
+  ],
+  
+  "relatedModules": ["Case Management", "Legal Authorities", "Judges", "Documents", "Tasks"],
+  
+  "troubleshooting": [
+    {
+      "issue": "Judge not appearing in dropdown",
+      "causes": ["Judge not linked to selected court", "Judge marked inactive", "Wrong court selected"],
+      "solution": "Verify judge's court assignment in Judges master, check judge status"
+    },
+    {
+      "issue": "Calendar not loading",
+      "causes": ["Too many hearings in range", "Browser cache issue"],
+      "solution": "Narrow date range, clear browser cache, try different view"
+    },
+    {
+      "issue": "Cannot record outcome",
+      "causes": ["Hearing still in future", "Already recorded", "Insufficient permissions"],
+      "solution": "Check hearing date, verify outcome status, confirm role permissions"
+    }
+  ]
+}

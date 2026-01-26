@@ -1,0 +1,251 @@
+{
+  "moduleId": "documents",
+  "title": "Documents Operations",
+  "purpose": "Store, organize, and share case-related documents securely with version control and access management",
+  
+  "workflowContext": {
+    "upstream": ["Cases (document context)", "Clients (client-level docs)", "Hearings (order uploads)"],
+    "downstream": ["Communications (attachments)", "Timeline (upload events)", "Client Portal (shared docs)"],
+    "dataFlow": "Documents are uploaded and linked to cases/clients, organized in folders, versioned for audit trail, and optionally shared with clients via portal"
+  },
+  
+  "tabs": [
+    {
+      "id": "library",
+      "name": "Document Library",
+      "purpose": "Browse and search all documents",
+      "whenToUse": "Finding documents, navigating folder structure, bulk operations",
+      "keyActions": ["Navigate folders", "Search by name/tag", "Filter by category", "Bulk download"]
+    },
+    {
+      "id": "upload",
+      "name": "Upload",
+      "purpose": "Add new documents to the system",
+      "whenToUse": "Uploading received documents, adding evidence, filing responses",
+      "keyActions": ["Drag-drop upload", "Set category", "Link to case/hearing", "Add tags"]
+    },
+    {
+      "id": "templates",
+      "name": "Templates",
+      "purpose": "Generate documents from predefined templates",
+      "whenToUse": "Creating standard documents, generating replies, drafting submissions",
+      "keyActions": ["Select template", "Fill variables", "Preview", "Download/Save"]
+    },
+    {
+      "id": "recent",
+      "name": "Recent",
+      "purpose": "Quick access to recently accessed documents",
+      "whenToUse": "Finding documents you worked on recently",
+      "keyActions": ["View recent uploads", "View recent views", "Quick open"]
+    },
+    {
+      "id": "shared",
+      "name": "Shared",
+      "purpose": "Documents shared with external parties",
+      "whenToUse": "Managing client-visible documents, reviewing what's shared",
+      "keyActions": ["View shared docs", "Manage permissions", "Revoke access", "Track views"]
+    }
+  ],
+  
+  "quickActions": [
+    {
+      "action": "Upload Document",
+      "trigger": "Click 'Upload' or drag file to upload area",
+      "outcome": "Document uploaded and linked to context",
+      "bestPractice": "Always categorize and tag documents for easy retrieval"
+    },
+    {
+      "action": "Generate from Template",
+      "trigger": "Click 'Generate' on template card",
+      "outcome": "Opens variable input form, generates document",
+      "bestPractice": "Preview before downloading; link to case for audit trail"
+    },
+    {
+      "action": "Share with Client",
+      "trigger": "Click 'Share' on document, select 'Client Portal'",
+      "outcome": "Document becomes visible in client's portal",
+      "bestPractice": "Verify document before sharing; set expiry if sensitive"
+    },
+    {
+      "action": "Upload New Version",
+      "trigger": "Click 'Upload Version' on existing document",
+      "outcome": "New version added, previous versions preserved",
+      "bestPractice": "Add version notes explaining changes"
+    }
+  ],
+  
+  "commonWorkflows": [
+    {
+      "name": "Upload Case Document",
+      "steps": [
+        "Navigate to case's Documents tab or Document Library",
+        "Click 'Upload' or drag file",
+        "Select document category (Notice, Reply, Order, etc.)",
+        "Add relevant tags for searchability",
+        "Link to hearing if applicable",
+        "Add remarks/description",
+        "Save document"
+      ],
+      "frequency": "As documents received",
+      "roleRelevance": ["Advocate", "Staff"]
+    },
+    {
+      "name": "Generate Document from Template",
+      "steps": [
+        "Open Templates tab",
+        "Search or browse for appropriate template",
+        "Click 'Generate'",
+        "Select case to pull data from",
+        "Review auto-filled variables",
+        "Edit any custom fields",
+        "Preview generated document",
+        "Download or save to case"
+      ],
+      "frequency": "As needed",
+      "roleRelevance": ["Advocate", "Manager"]
+    },
+    {
+      "name": "Share Document with Client",
+      "steps": [
+        "Locate document in library or case",
+        "Verify document is approved for sharing",
+        "Click 'Share' action",
+        "Select 'Client Portal' as destination",
+        "Set access permissions (view-only, download)",
+        "Optionally set expiry date",
+        "Confirm sharing",
+        "Notify client via Communications"
+      ],
+      "frequency": "As needed",
+      "roleRelevance": ["Advocate", "Manager"]
+    },
+    {
+      "name": "Document Version Update",
+      "steps": [
+        "Find existing document",
+        "Click 'Upload Version'",
+        "Upload revised file",
+        "Add version notes (what changed)",
+        "Previous version auto-archived",
+        "Verify new version is marked as current"
+      ],
+      "frequency": "When documents are revised",
+      "roleRelevance": ["Advocate", "Staff"]
+    }
+  ],
+  
+  "documentCategories": [
+    {
+      "category": "Notice",
+      "description": "Demand notices, show cause notices, SCN",
+      "icon": "FileWarning",
+      "autoTags": ["notice", "demand", "scn"]
+    },
+    {
+      "category": "Reply",
+      "description": "Responses to notices, submissions",
+      "icon": "Reply",
+      "autoTags": ["reply", "submission", "response"]
+    },
+    {
+      "category": "Order",
+      "description": "Court orders, tribunal orders, assessment orders",
+      "icon": "Gavel",
+      "autoTags": ["order", "judgment", "decision"]
+    },
+    {
+      "category": "Petition",
+      "description": "Appeals, writ petitions, review applications",
+      "icon": "FileText",
+      "autoTags": ["petition", "appeal", "application"]
+    },
+    {
+      "category": "Evidence",
+      "description": "Supporting documents, invoices, contracts",
+      "icon": "Files",
+      "autoTags": ["evidence", "exhibit", "support"]
+    },
+    {
+      "category": "Correspondence",
+      "description": "Letters, emails, communications",
+      "icon": "Mail",
+      "autoTags": ["letter", "email", "correspondence"]
+    },
+    {
+      "category": "Internal",
+      "description": "Notes, memos, internal analysis",
+      "icon": "Lock",
+      "autoTags": ["internal", "memo", "note"]
+    }
+  ],
+  
+  "roleGuidance": {
+    "Partner": {
+      "focus": "Review critical documents, approve sharing decisions",
+      "keyMetrics": "Documents pending review, shared document count",
+      "recommendedViews": "Pending Review filter, Recent Shared",
+      "dailyActions": ["Review documents flagged for approval", "Check shared document activity"]
+    },
+    "Manager": {
+      "focus": "Organize folder structure, manage templates, oversee document quality",
+      "keyMetrics": "Upload completion rate, template usage",
+      "recommendedViews": "Team uploads, Template analytics",
+      "dailyActions": ["Review team uploads", "Update templates as needed"]
+    },
+    "Advocate": {
+      "focus": "Upload and categorize documents, generate from templates, prepare case files",
+      "keyMetrics": "Documents uploaded, templates used",
+      "recommendedViews": "Case Documents tab, Templates",
+      "dailyActions": ["Upload received documents", "Generate required documents"]
+    },
+    "Staff": {
+      "focus": "Upload documents as directed, maintain organization",
+      "keyMetrics": "Documents uploaded, categorization accuracy",
+      "recommendedViews": "Upload queue, Recent uploads",
+      "dailyActions": ["Process document upload requests", "Verify categorization"]
+    }
+  },
+  
+  "warnings": [
+    {
+      "type": "caution",
+      "title": "Deleted Documents Cannot Be Recovered",
+      "message": "Permanent deletion removes all versions. Use Archive instead to preserve documents while hiding them from active views."
+    },
+    {
+      "type": "caution",
+      "title": "Shared Documents Visible to Clients",
+      "message": "Documents shared to Client Portal are immediately visible. Verify content before sharing. Internal notes should never be shared."
+    },
+    {
+      "type": "info",
+      "title": "Maximum File Size: 50MB",
+      "message": "Files larger than 50MB cannot be uploaded. Split large files or compress before uploading."
+    },
+    {
+      "type": "tip",
+      "title": "Use Tags for Searchability",
+      "message": "Well-tagged documents are 3x easier to find. Use consistent tags across your team."
+    }
+  ],
+  
+  "relatedModules": ["Case Management", "Hearings", "Communications", "Client Portal"],
+  
+  "troubleshooting": [
+    {
+      "issue": "Upload fails with error",
+      "causes": ["File too large", "Unsupported format", "Network timeout"],
+      "solution": "Check file size (<50MB), verify format (PDF, DOCX, JPG, PNG), retry upload"
+    },
+    {
+      "issue": "Cannot find document",
+      "causes": ["Wrong folder", "Deleted/archived", "Search term mismatch"],
+      "solution": "Check all folders, include archived in search, try different search terms"
+    },
+    {
+      "issue": "Client cannot see shared document",
+      "causes": ["Sharing not saved", "Client portal access disabled", "Document expired"],
+      "solution": "Verify share status, check client portal settings, check expiry date"
+    }
+  ]
+}

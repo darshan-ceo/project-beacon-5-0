@@ -1,0 +1,284 @@
+{
+  "moduleId": "ai-assistant",
+  "title": "AI Assistant Operations",
+  "purpose": "Intelligent analysis, drafting assistance, and case insights powered by AI to accelerate legal work",
+  
+  "workflowContext": {
+    "upstream": ["Case data (context)", "Documents (content analysis)", "Hearings (outcome patterns)", "Timeline (history)"],
+    "downstream": ["Generated drafts (documents)", "Recommendations (tasks)", "Insights (strategy)"],
+    "dataFlow": "AI Assistant reads case context from all linked data, processes user queries, and generates contextual responses, drafts, or recommendations"
+  },
+  
+  "capabilities": [
+    {
+      "capability": "Case Summary",
+      "description": "Generate concise case summaries for various audiences",
+      "examplePrompts": [
+        "Summarize this case for a client update email",
+        "Give me a 2-paragraph brief of the case status",
+        "What are the key facts and current status?"
+      ],
+      "outputFormat": "Structured text with key points highlighted",
+      "dataUsed": ["Case details", "Timeline", "Hearings", "Current status"]
+    },
+    {
+      "capability": "Legal Research",
+      "description": "Find relevant precedents and legal principles",
+      "examplePrompts": [
+        "What are relevant precedents for ITC denial under Section 17(5)?",
+        "Find cases where penalty was waived due to procedural lapses",
+        "What is the limitation period for filing appeal against this order?"
+      ],
+      "outputFormat": "Citations with relevance summary",
+      "dataUsed": ["Case type", "Legal issues", "Authority level"]
+    },
+    {
+      "capability": "Draft Assistance",
+      "description": "Generate draft documents and responses",
+      "examplePrompts": [
+        "Draft a reply to this demand notice",
+        "Prepare arguments for the upcoming hearing",
+        "Draft an email to client explaining the order"
+      ],
+      "outputFormat": "Formatted document draft",
+      "dataUsed": ["Case details", "Notice content", "Timeline", "Documents"]
+    },
+    {
+      "capability": "Strategy Analysis",
+      "description": "Analyze case strengths, weaknesses, and options",
+      "examplePrompts": [
+        "What are the strengths and weaknesses of this case?",
+        "Should we appeal or accept this order?",
+        "What are the risks of contesting vs settling?"
+      ],
+      "outputFormat": "SWOT-style analysis with recommendations",
+      "dataUsed": ["All case data", "Similar case patterns"]
+    },
+    {
+      "capability": "Deadline Intelligence",
+      "description": "Analyze and explain deadline implications",
+      "examplePrompts": [
+        "What are the upcoming deadlines for this case?",
+        "How is the reply due date calculated?",
+        "What happens if we miss the appeal deadline?"
+      ],
+      "outputFormat": "Prioritized deadline list with explanations",
+      "dataUsed": ["Statutory deadlines", "Case dates", "Holiday calendar"]
+    },
+    {
+      "capability": "Document Analysis",
+      "description": "Extract and analyze information from documents",
+      "examplePrompts": [
+        "What are the key issues raised in this notice?",
+        "Compare this order with the previous one",
+        "Extract all dates and amounts from this document"
+      ],
+      "outputFormat": "Structured extraction with analysis",
+      "dataUsed": ["Uploaded documents", "Document content"]
+    }
+  ],
+  
+  "promptingGuide": {
+    "principles": [
+      {
+        "principle": "Be Specific",
+        "good": "Draft a reply addressing the ITC reversal demand of Rs. 45 lakhs under Section 17(5)(h)",
+        "bad": "Help with this case",
+        "why": "Specific prompts get precise, actionable responses"
+      },
+      {
+        "principle": "Provide Context",
+        "good": "Given the recent HC ruling in ABC vs State that Section 17(5) requires actual use test, analyze our position",
+        "bad": "What does Section 17(5) say?",
+        "why": "Context helps AI tailor response to your specific situation"
+      },
+      {
+        "principle": "Request Format",
+        "good": "Provide the analysis in bullet points with citations",
+        "bad": "Tell me about this",
+        "why": "Specifying format ensures usable output"
+      },
+      {
+        "principle": "Iterate and Refine",
+        "good": "Make it more formal and add legal citations",
+        "bad": "This is wrong",
+        "why": "Follow-up prompts refine output effectively"
+      }
+    ],
+    "promptTemplates": [
+      {
+        "scenario": "Client Update Email",
+        "template": "Draft a client update email explaining [specific development] in simple terms. Include next steps and timeline."
+      },
+      {
+        "scenario": "Hearing Preparation",
+        "template": "For the hearing on [date] before [forum], prepare: 1) Key arguments, 2) Anticipated counter-arguments, 3) Supporting precedents"
+      },
+      {
+        "scenario": "Order Analysis",
+        "template": "Analyze the order dated [date]. Highlight: 1) Key findings, 2) Compliance requirements, 3) Appeal options with deadlines"
+      },
+      {
+        "scenario": "Case Strategy",
+        "template": "For this case with demand of [amount], analyze: 1) Litigation risk, 2) Settlement options, 3) Recommended approach with reasoning"
+      }
+    ]
+  },
+  
+  "quickActions": [
+    {
+      "action": "Quick Summary",
+      "trigger": "Click 'Summarize Case' button",
+      "outcome": "Generates 2-3 paragraph case summary",
+      "bestPractice": "Use for quick catch-up on cases you haven't reviewed recently"
+    },
+    {
+      "action": "Draft Reply",
+      "trigger": "Click 'Draft Document' → Select 'Reply'",
+      "outcome": "Generates reply draft based on notice and case data",
+      "bestPractice": "Always review and edit AI drafts before using"
+    },
+    {
+      "action": "Research Precedents",
+      "trigger": "Type research query in chat",
+      "outcome": "Returns relevant case citations with summaries",
+      "bestPractice": "Verify citations independently before citing in court"
+    },
+    {
+      "action": "Analyze Document",
+      "trigger": "Upload or select document → Ask question about it",
+      "outcome": "AI reads document and answers contextually",
+      "bestPractice": "Break complex documents into specific questions"
+    }
+  ],
+  
+  "commonWorkflows": [
+    {
+      "name": "Quick Case Briefing",
+      "steps": [
+        "Open AI Assistant from case context",
+        "Click 'Summarize Case' or type 'Give me a quick summary'",
+        "Review generated summary",
+        "Ask follow-up questions as needed",
+        "Copy relevant parts for emails or meetings"
+      ],
+      "frequency": "Before client calls, team meetings",
+      "roleRelevance": ["Partner", "Advocate"]
+    },
+    {
+      "name": "Draft Legal Document",
+      "steps": [
+        "Open AI Assistant from case context",
+        "Describe document needed with specifics",
+        "Review generated draft",
+        "Ask for modifications ('Make it more formal', 'Add more detail on X')",
+        "Copy to document editor for final formatting",
+        "Review thoroughly before submission"
+      ],
+      "frequency": "As needed",
+      "roleRelevance": ["Advocate"]
+    },
+    {
+      "name": "Prepare for Hearing",
+      "steps": [
+        "Open AI Assistant with case and upcoming hearing",
+        "Ask 'Help me prepare for the hearing on [date]'",
+        "Review suggested arguments and precedents",
+        "Ask for counter-argument anticipation",
+        "Request document list recommendation",
+        "Compile notes from AI suggestions"
+      ],
+      "frequency": "1-2 days before hearing",
+      "roleRelevance": ["Advocate", "Partner"]
+    }
+  ],
+  
+  "roleGuidance": {
+    "Partner": {
+      "focus": "Strategic analysis, complex case insights, high-level summaries",
+      "bestPrompts": ["Analyze litigation risk for this case", "What's the best outcome we can realistically achieve?", "Compare this with similar cases we've handled"],
+      "dailyActions": ["Quick brief before client meetings", "Strategy validation for complex matters"]
+    },
+    "Advocate": {
+      "focus": "Drafting assistance, precedent research, document analysis",
+      "bestPrompts": ["Draft a reply to this notice", "Find precedents for [specific issue]", "What are the key points in this order?"],
+      "dailyActions": ["Draft generation for routine documents", "Quick research during case work"]
+    },
+    "Manager": {
+      "focus": "Team briefings, case summaries for review, workload insights",
+      "bestPrompts": ["Summarize the status of all cases with hearings this week", "What are the priority items across my team's cases?"],
+      "dailyActions": ["Team briefing preparation", "Case status quick review"]
+    },
+    "Staff": {
+      "focus": "Document understanding, data extraction",
+      "bestPrompts": ["Extract all dates from this document", "What is the demand amount in this notice?", "List the documents mentioned in this order"],
+      "dailyActions": ["Data extraction from documents", "Quick lookups"]
+    }
+  },
+  
+  "warnings": [
+    {
+      "type": "caution",
+      "title": "Always Verify AI Output",
+      "message": "AI-generated content should always be reviewed by a legal professional before use. Verify all citations, calculations, and legal statements."
+    },
+    {
+      "type": "caution",
+      "title": "AI Does Not Replace Legal Judgment",
+      "message": "AI provides assistance and suggestions, not legal advice. Final decisions must be made by qualified professionals."
+    },
+    {
+      "type": "info",
+      "title": "Context-Limited",
+      "message": "AI only has access to data within the current case and linked documents. It cannot access external databases or real-time information."
+    },
+    {
+      "type": "tip",
+      "title": "Iterate for Better Results",
+      "message": "If the first response isn't quite right, refine your prompt or ask follow-up questions. AI improves with specific feedback."
+    }
+  ],
+  
+  "limitations": [
+    {
+      "limitation": "No real-time external data",
+      "description": "Cannot access current court listings, live case status from government portals, or news",
+      "workaround": "Provide relevant external information in your prompt if needed"
+    },
+    {
+      "limitation": "Training data cutoff",
+      "description": "May not have knowledge of very recent legal developments or amendments",
+      "workaround": "Specify recent changes in your prompt if asking about new law"
+    },
+    {
+      "limitation": "Cannot take actions",
+      "description": "Can only analyze and generate text; cannot create tasks, schedule hearings, or send emails",
+      "workaround": "Copy AI recommendations and execute through appropriate modules"
+    },
+    {
+      "limitation": "Single case context",
+      "description": "Works within one case at a time; cannot compare across multiple cases automatically",
+      "workaround": "Provide comparison data manually in prompt"
+    }
+  ],
+  
+  "relatedModules": ["Case Management", "Documents", "Hearings", "Timeline"],
+  
+  "troubleshooting": [
+    {
+      "issue": "AI gives generic response",
+      "causes": ["Prompt too vague", "Missing case context", "Complex query"],
+      "solution": "Be more specific, ensure case context is loaded, break into smaller questions"
+    },
+    {
+      "issue": "Citations seem incorrect",
+      "causes": ["AI hallucination", "Outdated information"],
+      "solution": "Always verify citations independently; AI may generate plausible but incorrect references"
+    },
+    {
+      "issue": "Response is too long/short",
+      "causes": ["Format not specified"],
+      "solution": "Specify desired length: 'In 3 bullet points' or 'Give a detailed 2-page analysis'"
+    }
+  ]
+}

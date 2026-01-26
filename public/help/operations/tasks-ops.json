@@ -1,0 +1,290 @@
+{
+  "moduleId": "tasks",
+  "title": "Tasks Operations",
+  "purpose": "Manage work items, automate task creation, track team productivity, and ensure nothing falls through the cracks",
+  
+  "workflowContext": {
+    "upstream": ["Cases (task context)", "Hearings (trigger tasks)", "Automation Rules (auto-create)", "Stage Changes (checklist tasks)"],
+    "downstream": ["Timeline (completion logged)", "Communications (follow-up triggers)", "Reports (productivity metrics)"],
+    "dataFlow": "Tasks are created manually or via automation, assigned to team members, tracked through completion, and logged in case timeline"
+  },
+  
+  "tabs": [
+    {
+      "id": "board",
+      "name": "Task Board",
+      "purpose": "Kanban-style visual task management",
+      "whenToUse": "Daily task review, status updates, workload visualization",
+      "keyActions": ["Drag tasks between columns", "Filter by assignee/case", "Quick edit details", "Add new task"]
+    },
+    {
+      "id": "automation",
+      "name": "Automation",
+      "purpose": "Rule-based automatic task creation",
+      "whenToUse": "Setting up recurring workflows, reducing manual task creation",
+      "keyActions": ["Create automation rule", "Edit existing rules", "View execution logs", "Enable/disable rules"]
+    },
+    {
+      "id": "escalation",
+      "name": "Escalation",
+      "purpose": "Overdue task management and escalation policies",
+      "whenToUse": "Configuring escalation matrix, reviewing breached tasks",
+      "keyActions": ["Configure escalation tiers", "View escalated tasks", "Override escalation", "Notify managers"]
+    },
+    {
+      "id": "templates",
+      "name": "Task Templates",
+      "purpose": "Reusable task bundles for common workflows",
+      "whenToUse": "Creating standard task sets, applying to new cases",
+      "keyActions": ["Create template bundle", "Apply template to case", "Edit template tasks", "Share templates"]
+    },
+    {
+      "id": "analytics",
+      "name": "Analytics",
+      "purpose": "Team productivity and task performance metrics",
+      "whenToUse": "Performance review, workload balancing, bottleneck identification",
+      "keyActions": ["View completion rates", "Team workload chart", "Average completion time", "Overdue trends"]
+    },
+    {
+      "id": "ai-assistant",
+      "name": "AI Assistant",
+      "purpose": "Smart task suggestions and schedule optimization",
+      "whenToUse": "Getting task recommendations, prioritizing work",
+      "keyActions": ["Generate task suggestions", "Optimize due dates", "Identify dependencies", "Workload balancing"]
+    }
+  ],
+  
+  "quickActions": [
+    {
+      "action": "Create New Task",
+      "trigger": "Click '+ New Task' or press 'T' key",
+      "outcome": "Opens task form with optional case linking",
+      "bestPractice": "Always link to a case when applicable; set realistic due dates"
+    },
+    {
+      "action": "Drag to Update Status",
+      "trigger": "Drag task card to different column",
+      "outcome": "Updates task status and logs change",
+      "bestPractice": "Move to 'In Progress' when starting work, not before"
+    },
+    {
+      "action": "Apply Task Bundle",
+      "trigger": "Click 'Apply Template' from case context",
+      "outcome": "Creates multiple tasks from template",
+      "bestPractice": "Review generated tasks and adjust due dates before saving"
+    },
+    {
+      "action": "Reassign Task",
+      "trigger": "Click assignee avatar and select new user",
+      "outcome": "Transfers task to new assignee, notifies both parties",
+      "bestPractice": "Add note explaining reason for reassignment"
+    }
+  ],
+  
+  "commonWorkflows": [
+    {
+      "name": "Daily Task Triage",
+      "steps": [
+        "Open Task Board with 'My Tasks' filter",
+        "Review overdue tasks (red indicators)",
+        "Update status of in-progress items",
+        "Move completed tasks to 'Done' column",
+        "Prioritize today's due tasks",
+        "Check for new assignments"
+      ],
+      "frequency": "Daily (10 min, morning)",
+      "roleRelevance": ["Advocate", "Staff", "Manager"]
+    },
+    {
+      "name": "Create Automation Rule",
+      "steps": [
+        "Navigate to Automation tab",
+        "Click 'Create New Rule'",
+        "Select trigger type (Case Created, Hearing Concluded, etc.)",
+        "Define conditions (case type, stage, etc.)",
+        "Configure task template (title, assignee, due date offset)",
+        "Test rule with sample case",
+        "Enable rule for production"
+      ],
+      "frequency": "As needed",
+      "roleRelevance": ["Manager", "Admin"]
+    },
+    {
+      "name": "Apply Task Bundle to Case",
+      "steps": [
+        "Open case requiring standard tasks",
+        "Navigate to Tasks tab or use quick action",
+        "Click 'Apply Template'",
+        "Select appropriate bundle",
+        "Review generated tasks",
+        "Adjust due dates based on case timeline",
+        "Assign to team members",
+        "Save all tasks"
+      ],
+      "frequency": "At case creation or stage change",
+      "roleRelevance": ["Advocate", "Manager"]
+    },
+    {
+      "name": "Weekly Team Review",
+      "steps": [
+        "Open Analytics tab",
+        "Review team workload distribution",
+        "Identify overloaded team members",
+        "Check overdue task trends",
+        "Review completion rates by assignee",
+        "Redistribute work if needed",
+        "Follow up on stuck tasks"
+      ],
+      "frequency": "Weekly",
+      "roleRelevance": ["Manager", "Partner"]
+    }
+  ],
+  
+  "taskStatuses": [
+    {
+      "status": "Backlog",
+      "description": "Task created but not yet scheduled",
+      "color": "gray",
+      "nextStatuses": ["To Do", "Cancelled"]
+    },
+    {
+      "status": "To Do",
+      "description": "Task scheduled and ready to start",
+      "color": "blue",
+      "nextStatuses": ["In Progress", "Blocked", "Cancelled"]
+    },
+    {
+      "status": "In Progress",
+      "description": "Work actively being done",
+      "color": "yellow",
+      "nextStatuses": ["In Review", "Done", "Blocked"]
+    },
+    {
+      "status": "In Review",
+      "description": "Work complete, awaiting approval",
+      "color": "purple",
+      "nextStatuses": ["Done", "In Progress"]
+    },
+    {
+      "status": "Blocked",
+      "description": "Cannot proceed due to dependency",
+      "color": "red",
+      "nextStatuses": ["To Do", "In Progress", "Cancelled"]
+    },
+    {
+      "status": "Done",
+      "description": "Task completed successfully",
+      "color": "green",
+      "nextStatuses": []
+    },
+    {
+      "status": "Cancelled",
+      "description": "Task no longer needed",
+      "color": "gray",
+      "nextStatuses": []
+    }
+  ],
+  
+  "automationTriggers": [
+    {
+      "trigger": "Case Created",
+      "description": "Fires when a new case is added to the system",
+      "useCase": "Initial case setup tasks, document checklist"
+    },
+    {
+      "trigger": "Stage Changed",
+      "description": "Fires when case advances to a new stage",
+      "useCase": "Stage-specific preparation tasks"
+    },
+    {
+      "trigger": "Hearing Scheduled",
+      "description": "Fires when a new hearing is created",
+      "useCase": "Hearing preparation checklist"
+    },
+    {
+      "trigger": "Hearing Concluded",
+      "description": "Fires when hearing outcome is recorded",
+      "useCase": "Post-hearing follow-up tasks"
+    },
+    {
+      "trigger": "Document Uploaded",
+      "description": "Fires when new document is added",
+      "useCase": "Document review tasks"
+    },
+    {
+      "trigger": "Deadline Approaching",
+      "description": "Fires N days before a statutory deadline",
+      "useCase": "Deadline reminder tasks"
+    }
+  ],
+  
+  "roleGuidance": {
+    "Partner": {
+      "focus": "Review escalated tasks, approve high-impact completions",
+      "keyMetrics": "Partner-assigned tasks, escalated items",
+      "recommendedViews": "Partner Tasks filter, Escalated only",
+      "dailyActions": ["Review escalated tasks", "Approve critical completions"]
+    },
+    "Manager": {
+      "focus": "Team workload balancing, automation configuration, escalation monitoring",
+      "keyMetrics": "Team task distribution, overdue count, automation rule effectiveness",
+      "recommendedViews": "Team Board view grouped by assignee",
+      "dailyActions": ["Check team workload", "Review overdue tasks", "Optimize automation rules"]
+    },
+    "Advocate": {
+      "focus": "Execute assigned tasks, update status accurately, meet deadlines",
+      "keyMetrics": "My tasks count, today's due, overdue count",
+      "recommendedViews": "My Tasks Board sorted by due date",
+      "dailyActions": ["Triage morning tasks", "Update status as work progresses", "Clear overdue items"]
+    },
+    "Staff": {
+      "focus": "Complete assigned tasks promptly, request clarification when needed",
+      "keyMetrics": "Assigned task count, completion rate",
+      "recommendedViews": "My Tasks with simple list view",
+      "dailyActions": ["Complete today's tasks", "Update progress notes"]
+    }
+  },
+  
+  "warnings": [
+    {
+      "type": "caution",
+      "title": "Overdue Tasks Escalate Automatically",
+      "message": "Tasks past due date escalate according to the escalation matrix. Update status or request extension before deadline to prevent escalation."
+    },
+    {
+      "type": "caution",
+      "title": "Completed Tasks Cannot Be Reopened",
+      "message": "Once marked as Done, tasks cannot be moved back. If more work is needed, create a new follow-up task."
+    },
+    {
+      "type": "info",
+      "title": "Automation Rules Run in Real-Time",
+      "message": "When trigger conditions are met, automation rules execute immediately. Test new rules carefully before enabling."
+    },
+    {
+      "type": "tip",
+      "title": "Use Notes for Context",
+      "message": "Add notes to tasks to provide context for the next person who works on it, or for your future self."
+    }
+  ],
+  
+  "relatedModules": ["Case Management", "Hearings", "Documents", "Timeline"],
+  
+  "troubleshooting": [
+    {
+      "issue": "Automation rule not firing",
+      "causes": ["Rule disabled", "Conditions not met", "Trigger event not matching"],
+      "solution": "Check rule status, verify conditions against actual case data, review trigger definition"
+    },
+    {
+      "issue": "Task not appearing on board",
+      "causes": ["Wrong filter applied", "Assigned to different user", "Task in hidden status column"],
+      "solution": "Clear filters, check assignee, show all columns"
+    },
+    {
+      "issue": "Cannot reassign task",
+      "causes": ["Task is completed", "User doesn't have permission", "Target user not in team"],
+      "solution": "Create new task instead, check permissions, verify user's team membership"
+    }
+  ]
+}

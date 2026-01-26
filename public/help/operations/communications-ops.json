@@ -1,0 +1,325 @@
+{
+  "moduleId": "communications",
+  "title": "Communications Operations",
+  "purpose": "Centralized client and authority correspondence tracking with templates, delivery monitoring, and audit trail",
+  
+  "workflowContext": {
+    "upstream": ["Cases (correspondence context)", "Clients (recipient details)", "Contacts (email/phone)", "Documents (attachments)"],
+    "downstream": ["Timeline (communication logged)", "Tasks (follow-up triggers)", "Client Portal (message notifications)"],
+    "dataFlow": "Communications originate from cases or clients, use templates for consistency, track delivery status, and create timeline entries for audit"
+  },
+  
+  "channels": [
+    {
+      "channel": "Email",
+      "description": "Primary channel for formal client and authority correspondence",
+      "features": ["Template support", "Attachment linking", "Delivery tracking", "Read receipts"],
+      "bestFor": "Client updates, formal notices, document sharing"
+    },
+    {
+      "channel": "SMS",
+      "description": "Quick notifications and reminders",
+      "features": ["Short message format", "Delivery confirmation", "Template support"],
+      "bestFor": "Hearing reminders, urgent alerts, quick updates",
+      "limitations": "160 character limit per message"
+    },
+    {
+      "channel": "WhatsApp",
+      "description": "Informal client communication (if enabled)",
+      "features": ["Message delivery status", "Media sharing"],
+      "bestFor": "Quick queries, document quick-shares",
+      "limitations": "Requires client consent and number verification"
+    },
+    {
+      "channel": "Manual Log",
+      "description": "Record of phone calls, in-person meetings, external correspondence",
+      "features": ["Free-form notes", "Date/time logging", "Participant tracking"],
+      "bestFor": "Phone call records, meeting notes, postal correspondence"
+    }
+  ],
+  
+  "messageTypes": [
+    {
+      "type": "Client Update",
+      "description": "Regular case progress notification to client",
+      "typicalContent": "Case status, recent developments, next steps",
+      "suggestedFrequency": "After each hearing or significant event"
+    },
+    {
+      "type": "Hearing Reminder",
+      "description": "Notification about upcoming hearing",
+      "typicalContent": "Date, time, venue, documents to bring",
+      "suggestedFrequency": "3 days and 1 day before hearing"
+    },
+    {
+      "type": "Document Request",
+      "description": "Request for missing documents from client",
+      "typicalContent": "List of required documents, deadline, upload instructions",
+      "suggestedFrequency": "As needed"
+    },
+    {
+      "type": "Order Notification",
+      "description": "Informing client about court order received",
+      "typicalContent": "Order summary, implications, recommended action",
+      "suggestedFrequency": "Within 24 hours of receiving order"
+    },
+    {
+      "type": "Invoice",
+      "description": "Fee invoice to client",
+      "typicalContent": "Services rendered, amounts, payment instructions",
+      "suggestedFrequency": "Per billing cycle"
+    },
+    {
+      "type": "Authority Correspondence",
+      "description": "Letters to government departments or courts",
+      "typicalContent": "Formal requests, submissions, queries",
+      "suggestedFrequency": "As required by case"
+    }
+  ],
+  
+  "quickActions": [
+    {
+      "action": "Send Client Update",
+      "trigger": "Click 'Send Update' from case Communications tab",
+      "outcome": "Opens email composer with case context pre-filled",
+      "bestPractice": "Use templates for consistency; personalize key details"
+    },
+    {
+      "action": "Log External Communication",
+      "trigger": "Click '+ Log Communication' → Select 'Manual Log'",
+      "outcome": "Creates record of phone call or meeting",
+      "bestPractice": "Log immediately after conversation while details are fresh"
+    },
+    {
+      "action": "Send Bulk Reminder",
+      "trigger": "Select multiple contacts → 'Send Reminder'",
+      "outcome": "Sends templated reminder to all selected contacts",
+      "bestPractice": "Review recipient list carefully; personalization limited in bulk sends"
+    },
+    {
+      "action": "Resend Failed Message",
+      "trigger": "Click 'Retry' on failed message",
+      "outcome": "Attempts to resend the failed message",
+      "bestPractice": "Verify contact details before retrying"
+    }
+  ],
+  
+  "commonWorkflows": [
+    {
+      "name": "Send Post-Hearing Update",
+      "steps": [
+        "Open case's Communications tab",
+        "Click 'Send Update'",
+        "Select 'Post-Hearing Update' template",
+        "Review auto-filled case and hearing details",
+        "Customize summary and next steps",
+        "Attach relevant documents if any",
+        "Preview message",
+        "Send to client contacts"
+      ],
+      "frequency": "After each hearing",
+      "roleRelevance": ["Advocate", "Manager"]
+    },
+    {
+      "name": "Log Phone Call with Client",
+      "steps": [
+        "Open case's Communications tab",
+        "Click '+ Log Communication'",
+        "Select 'Phone Call'",
+        "Enter date, time, duration",
+        "Select participant(s)",
+        "Write summary of discussion",
+        "Note any action items agreed",
+        "Save record"
+      ],
+      "frequency": "After each call",
+      "roleRelevance": ["Advocate", "Staff"]
+    },
+    {
+      "name": "Request Missing Documents",
+      "steps": [
+        "Open case's Communications tab",
+        "Click 'Send Update'",
+        "Select 'Document Request' template",
+        "List required documents clearly",
+        "Set response deadline",
+        "Include upload instructions (portal link)",
+        "Preview and send",
+        "Create follow-up task for deadline"
+      ],
+      "frequency": "As needed",
+      "roleRelevance": ["Advocate", "Staff"]
+    },
+    {
+      "name": "Track Message Delivery",
+      "steps": [
+        "Open Communications tab or Sent Messages view",
+        "Review status indicators (Sent, Delivered, Read, Failed)",
+        "For failed messages, check error reason",
+        "Retry or use alternate channel for failures",
+        "Follow up on unread important messages"
+      ],
+      "frequency": "Daily for important messages",
+      "roleRelevance": ["Advocate", "Staff"]
+    }
+  ],
+  
+  "templateManagement": {
+    "purpose": "Pre-defined message formats for consistent, efficient communication",
+    "benefits": [
+      "Ensures consistent messaging across team",
+      "Reduces drafting time",
+      "Includes required disclaimers and signatures",
+      "Supports variable substitution for personalization"
+    ],
+    "variableTypes": [
+      {
+        "variable": "{{client_name}}",
+        "description": "Client's display name"
+      },
+      {
+        "variable": "{{case_number}}",
+        "description": "Case reference number"
+      },
+      {
+        "variable": "{{hearing_date}}",
+        "description": "Next hearing date"
+      },
+      {
+        "variable": "{{court_name}}",
+        "description": "Court/authority name"
+      },
+      {
+        "variable": "{{advocate_name}}",
+        "description": "Assigned advocate name"
+      },
+      {
+        "variable": "{{portal_link}}",
+        "description": "Client portal access link"
+      }
+    ],
+    "creationAccess": "Managers and Admins can create templates; Advocates can use existing templates"
+  },
+  
+  "roleGuidance": {
+    "Partner": {
+      "focus": "High-value client communications, strategic updates",
+      "keyMetrics": "Partner-sent communications, VIP client correspondence",
+      "recommendedViews": "My Sent Messages, High-value client filter",
+      "dailyActions": ["Review important client responses", "Approve sensitive communications"]
+    },
+    "Manager": {
+      "focus": "Team communication quality, template management, escalation handling",
+      "keyMetrics": "Team response time, failed delivery rate, template usage",
+      "recommendedViews": "Team Communications, Failed Messages",
+      "dailyActions": ["Check failed deliveries", "Review template effectiveness"]
+    },
+    "Advocate": {
+      "focus": "Regular client updates, hearing notifications, document requests",
+      "keyMetrics": "Messages sent, response received, follow-up completion",
+      "recommendedViews": "My Cases Communications",
+      "dailyActions": ["Send post-hearing updates", "Log external communications"]
+    },
+    "Staff": {
+      "focus": "Administrative communications, reminder sends, logging",
+      "keyMetrics": "Reminders sent, calls logged",
+      "recommendedViews": "Bulk send queue, Call log",
+      "dailyActions": ["Send scheduled reminders", "Log incoming calls"]
+    }
+  },
+  
+  "deliveryTracking": {
+    "statuses": [
+      {
+        "status": "Pending",
+        "description": "Message queued for sending",
+        "action": "Wait for processing"
+      },
+      {
+        "status": "Sent",
+        "description": "Message sent to mail server",
+        "action": "Monitor for delivery confirmation"
+      },
+      {
+        "status": "Delivered",
+        "description": "Message delivered to recipient's server",
+        "action": "Await read confirmation if applicable"
+      },
+      {
+        "status": "Read",
+        "description": "Recipient opened the message",
+        "action": "Follow up if response expected"
+      },
+      {
+        "status": "Failed",
+        "description": "Message could not be delivered",
+        "action": "Check error, verify contact, retry or use alternate channel"
+      },
+      {
+        "status": "Bounced",
+        "description": "Recipient address invalid or mailbox full",
+        "action": "Update contact information, use alternate address"
+      }
+    ],
+    "commonFailures": [
+      {
+        "error": "Invalid email address",
+        "cause": "Typo or outdated email",
+        "fix": "Verify and update contact email"
+      },
+      {
+        "error": "Mailbox full",
+        "cause": "Recipient's mailbox at capacity",
+        "fix": "Wait and retry, or use alternate contact method"
+      },
+      {
+        "error": "Server rejected",
+        "cause": "Spam filter or policy block",
+        "fix": "Retry or contact recipient via alternate channel"
+      }
+    ]
+  },
+  
+  "warnings": [
+    {
+      "type": "caution",
+      "title": "Communications Are Permanently Logged",
+      "message": "All sent messages are recorded and cannot be deleted. Review content carefully before sending."
+    },
+    {
+      "type": "caution",
+      "title": "Client Emails Are Discoverable",
+      "message": "Email communications may be subject to legal discovery. Maintain professional tone and accuracy."
+    },
+    {
+      "type": "info",
+      "title": "Read Receipts Depend on Recipient Settings",
+      "message": "Read status is only tracked if recipient's email client sends read receipts. Not all clients do."
+    },
+    {
+      "type": "tip",
+      "title": "Use Templates for Consistency",
+      "message": "Templates ensure important information and disclaimers are always included."
+    }
+  ],
+  
+  "relatedModules": ["Case Management", "Clients", "Contacts", "Documents", "Timeline"],
+  
+  "troubleshooting": [
+    {
+      "issue": "Message shows as failed",
+      "causes": ["Invalid email address", "Server issue", "Attachment too large"],
+      "solution": "Check error message, verify contact details, retry with smaller attachment"
+    },
+    {
+      "issue": "Template variables not filling",
+      "causes": ["Missing case link", "Field not available", "Syntax error in template"],
+      "solution": "Ensure case is linked before using template, check template variable syntax"
+    },
+    {
+      "issue": "Cannot send to client",
+      "causes": ["No email in contact", "Contact marked inactive", "Permission restriction"],
+      "solution": "Add email to contact, verify contact status, check role permissions"
+    }
+  ]
+}
