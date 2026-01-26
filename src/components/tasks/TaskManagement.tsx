@@ -109,9 +109,17 @@ export const TaskManagement: React.FC = () => {
   const [activeTab, setActiveTab] = useState('board');
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
   
-  // RBAC permission checks
+  // RBAC permission checks - base module
   const canDeleteTasks = hasPermission('tasks', 'delete');
   const canCreateTasks = hasPermission('tasks', 'write');
+  
+  // RBAC permission checks - sub-module tabs (granular access)
+  // Templates: Manager+ can access (write permission)
+  const canAccessTemplates = hasPermission('tasks.templates', 'read') || hasPermission('tasks', 'admin');
+  // Automation, Escalation, AI: Admin/Partner only (admin permission)
+  const canAccessAutomation = hasPermission('tasks.automation', 'admin') || hasPermission('tasks', 'admin');
+  const canAccessEscalation = hasPermission('tasks.escalation', 'admin') || hasPermission('tasks', 'admin');
+  const canAccessAI = hasPermission('tasks.ai', 'admin') || hasPermission('tasks', 'admin');
   
   // Load view mode from storage
   useEffect(() => {
@@ -119,6 +127,20 @@ export const TaskManagement: React.FC = () => {
       setViewMode(mode as 'board' | 'list');
     });
   }, []);
+  
+  // Redirect to board if current tab is restricted
+  useEffect(() => {
+    const restrictedTabs: Record<string, boolean> = {
+      automation: canAccessAutomation,
+      escalation: canAccessEscalation,
+      templates: canAccessTemplates,
+      'ai-assistant': canAccessAI
+    };
+    
+    if (activeTab in restrictedTabs && !restrictedTabs[activeTab]) {
+      setActiveTab('board');
+    }
+  }, [activeTab, canAccessAutomation, canAccessEscalation, canAccessTemplates, canAccessAI]);
   // TaskModal state removed - using route-based navigation instead
 
   // Handle URL parameters for highlighting tasks and return context
@@ -812,12 +834,29 @@ export const TaskManagement: React.FC = () => {
           <div className="overflow-x-auto scrollbar-thin">
             <TabsList className="inline-flex w-max min-w-full h-auto p-1" data-tour="task-automation-tabs">
               <TabsTrigger value="board" data-tour="board-tab" className="min-w-[90px] whitespace-nowrap">Board</TabsTrigger>
-              <TabsTrigger value="automation" data-tour="automation-tab" className="min-w-[100px] whitespace-nowrap">Automation</TabsTrigger>
-              <TabsTrigger value="escalation" data-tour="escalation-tab" className="min-w-[100px] whitespace-nowrap">Escalation</TabsTrigger>
-              <TabsTrigger value="templates" data-tour="templates-tab" className="min-w-[100px] whitespace-nowrap">Templates</TabsTrigger>
+              {canAccessAutomation && (
+                <TabsTrigger value="automation" data-tour="automation-tab" className="min-w-[100px] whitespace-nowrap">
+                  <Lock className="h-3 w-3 mr-1 text-muted-foreground" />
+                  Automation
+                </TabsTrigger>
+              )}
+              {canAccessEscalation && (
+                <TabsTrigger value="escalation" data-tour="escalation-tab" className="min-w-[100px] whitespace-nowrap">
+                  <Lock className="h-3 w-3 mr-1 text-muted-foreground" />
+                  Escalation
+                </TabsTrigger>
+              )}
+              {canAccessTemplates && (
+                <TabsTrigger value="templates" data-tour="templates-tab" className="min-w-[100px] whitespace-nowrap">Templates</TabsTrigger>
+              )}
               <TabsTrigger value="analytics" data-tour="analytics-tab" className="min-w-[90px] whitespace-nowrap">Analytics</TabsTrigger>
               <TabsTrigger value="insights" data-tour="insights-tab" className="min-w-[90px] whitespace-nowrap">Insights</TabsTrigger>
-              <TabsTrigger value="ai-assistant" data-tour="ai-assistant-tab" className="min-w-[110px] whitespace-nowrap">AI Assistant</TabsTrigger>
+              {canAccessAI && (
+                <TabsTrigger value="ai-assistant" data-tour="ai-assistant-tab" className="min-w-[110px] whitespace-nowrap">
+                  <Lock className="h-3 w-3 mr-1 text-muted-foreground" />
+                  AI Assistant
+                </TabsTrigger>
+              )}
               <TabsTrigger value="collaboration" data-tour="collaboration-tab" className="min-w-[120px] whitespace-nowrap">Collaboration</TabsTrigger>
             </TabsList>
           </div>
@@ -890,17 +929,23 @@ export const TaskManagement: React.FC = () => {
           )}
         </TabsContent>
 
-        <TabsContent value="automation" className="mt-6">
-          <TaskAutomation />
-        </TabsContent>
+        {canAccessAutomation && (
+          <TabsContent value="automation" className="mt-6">
+            <TaskAutomation />
+          </TabsContent>
+        )}
 
-        <TabsContent value="escalation" className="mt-6">
-          <EscalationMatrix tasks={enrichTasksWithClientNames(state.tasks, state.clients)} />
-        </TabsContent>
+        {canAccessEscalation && (
+          <TabsContent value="escalation" className="mt-6">
+            <EscalationMatrix tasks={enrichTasksWithClientNames(state.tasks, state.clients)} />
+          </TabsContent>
+        )}
 
-        <TabsContent value="templates" className="mt-6">
-          <TaskTemplates bundles={taskBundles} />
-        </TabsContent>
+        {canAccessTemplates && (
+          <TabsContent value="templates" className="mt-6">
+            <TaskTemplates bundles={taskBundles} />
+          </TabsContent>
+        )}
 
         <TabsContent value="analytics" className="mt-6">
           <TaskAnalytics tasks={state.tasks} />
@@ -910,9 +955,11 @@ export const TaskManagement: React.FC = () => {
           <TaskInsights tasks={state.tasks} />
         </TabsContent>
 
-        <TabsContent value="ai-assistant" className="mt-6">
-          <AITaskAssistant />
-        </TabsContent>
+        {canAccessAI && (
+          <TabsContent value="ai-assistant" className="mt-6">
+            <AITaskAssistant />
+          </TabsContent>
+        )}
 
         <TabsContent value="collaboration" className="mt-6">
           <TaskCollaboration tasks={state.tasks} />

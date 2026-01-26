@@ -28,11 +28,22 @@ class RBACService {
     { module: 'clients', action: 'delete' },
     { module: 'clients', action: 'admin' },
     
-    // Tasks
+    // Tasks - Base module
     { module: 'tasks', action: 'read' },
     { module: 'tasks', action: 'write' },
     { module: 'tasks', action: 'delete' },
     { module: 'tasks', action: 'admin' },
+    
+    // Tasks - Sub-module permissions (granular tab access)
+    { module: 'tasks.templates', action: 'read' },
+    { module: 'tasks.templates', action: 'write' },
+    { module: 'tasks.templates', action: 'admin' },
+    { module: 'tasks.automation', action: 'read' },
+    { module: 'tasks.automation', action: 'admin' },
+    { module: 'tasks.escalation', action: 'read' },
+    { module: 'tasks.escalation', action: 'admin' },
+    { module: 'tasks.ai', action: 'read' },
+    { module: 'tasks.ai', action: 'admin' },
     
     // Documents
     { module: 'documents', action: 'read' },
