@@ -162,8 +162,10 @@ class HelpDiscoveryService {
         types.forEach(type => {
           if (moduleData[type]) {
             moduleData[type].forEach((item: any) => {
+              // Include module name in ID to ensure uniqueness across modules
+              const uniqueId = `tooltip-${moduleName}-${item.id}`;
               entries.push({
-                id: `tooltip-${item.id}`,
+                id: uniqueId,
                 title: item.label || item.tooltip?.title || item.id,
                 description: item.explanation || item.tooltip?.content || '',
                 source: 'tooltip',
