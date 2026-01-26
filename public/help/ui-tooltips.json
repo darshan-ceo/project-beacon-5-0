@@ -2572,6 +2572,236 @@
             "content": "Sync hearings to external calendars (Google, Outlook). Enable in Settings > Integrations. Once connected, hearings auto-sync. Click calendar icon on hearing for manual sync/download."
           },
           "accessibility": { "ariaLabel": "Calendar sync" }
+        },
+        {
+          "id": "ops_quick_add_case",
+          "label": "Quick Add Case",
+          "explanation": "Create new case from dashboard",
+          "tooltip": {
+            "title": "Quick Add Case",
+            "content": "Shortcut to create a new case directly from dashboard. Opens case creation form with essential fields. Use for rapid case intake."
+          },
+          "accessibility": { "ariaLabel": "Quick add case button" }
+        },
+        {
+          "id": "ops_quick_add_hearing",
+          "label": "Quick Add Hearing",
+          "explanation": "Schedule hearing from dashboard",
+          "tooltip": {
+            "title": "Quick Add Hearing",
+            "content": "Shortcut to schedule a hearing directly from dashboard. Select case, date, and court. Creates hearing and optional calendar sync."
+          },
+          "accessibility": { "ariaLabel": "Quick add hearing button" }
+        },
+        {
+          "id": "ops_quick_add_task",
+          "label": "Quick Add Task",
+          "explanation": "Create task from dashboard",
+          "tooltip": {
+            "title": "Quick Add Task",
+            "content": "Shortcut to create a task directly from dashboard. Assign to yourself or team member. Link to case or create standalone task."
+          },
+          "accessibility": { "ariaLabel": "Quick add task button" }
+        },
+        {
+          "id": "ops_case_list_item",
+          "label": "Case List Item",
+          "explanation": "Individual case in the list",
+          "tooltip": {
+            "title": "Case Entry",
+            "content": "Each row shows case number, client, status, and next action date. Click to open details. Use row actions menu for quick operations."
+          },
+          "accessibility": { "ariaLabel": "Case list item" }
+        },
+        {
+          "id": "ops_new_case",
+          "label": "New Case Button",
+          "explanation": "Create a new case",
+          "tooltip": {
+            "title": "Create New Case",
+            "content": "Opens case creation wizard. Required fields: title, client, case type. System auto-generates case number. Assign team and set priority."
+          },
+          "accessibility": { "ariaLabel": "Create new case" }
+        },
+        {
+          "id": "ops_case_tabs",
+          "label": "Case Detail Tabs",
+          "explanation": "Navigate case sections",
+          "tooltip": {
+            "title": "Case Tabs",
+            "content": "Switch between case views: Overview (summary), Lifecycle (stages), Timeline (history), Documents, Tasks, Hearings, Communications."
+          },
+          "accessibility": { "ariaLabel": "Case detail tabs" }
+        },
+        {
+          "id": "ops_hearing_list_item",
+          "label": "Hearing Entry",
+          "explanation": "Hearing in calendar or list",
+          "tooltip": {
+            "title": "Hearing Entry",
+            "content": "Shows date, time, court, judge, and case. Color indicates status: upcoming (blue), today (orange), past (gray). Click for details."
+          },
+          "accessibility": { "ariaLabel": "Hearing list item" }
+        },
+        {
+          "id": "ops_schedule_hearing",
+          "label": "Schedule Hearing",
+          "explanation": "Add new hearing date",
+          "tooltip": {
+            "title": "Schedule Hearing",
+            "content": "Opens hearing scheduler. Select case, date/time, court, and judge. System checks for conflicts. Set reminders and preparation tasks."
+          },
+          "accessibility": { "ariaLabel": "Schedule hearing" }
+        },
+        {
+          "id": "ops_record_outcome",
+          "label": "Record Outcome",
+          "explanation": "Log hearing result",
+          "tooltip": {
+            "title": "Record Hearing Outcome",
+            "content": "After hearing, record the result: Adjourned, Order Passed, Dismissed, etc. Triggers follow-up tasks and updates case timeline."
+          },
+          "accessibility": { "ariaLabel": "Record hearing outcome" }
+        },
+        {
+          "id": "ops_task_list_item",
+          "label": "Task Entry",
+          "explanation": "Task in list or board",
+          "tooltip": {
+            "title": "Task Entry",
+            "content": "Shows title, assignee, due date, and status. Color coding: overdue (red), due soon (amber), on track (green). Drag to change status."
+          },
+          "accessibility": { "ariaLabel": "Task list item" }
+        },
+        {
+          "id": "ops_create_task",
+          "label": "Create Task",
+          "explanation": "Add new task",
+          "tooltip": {
+            "title": "Create Task",
+            "content": "Opens task form. Enter title, description, due date. Link to case, assign to user, set priority. Use templates for common tasks."
+          },
+          "accessibility": { "ariaLabel": "Create task" }
+        },
+        {
+          "id": "ops_document_list",
+          "label": "Document List",
+          "explanation": "Files in folder",
+          "tooltip": {
+            "title": "Document List",
+            "content": "Shows files with name, type, upload date, and uploader. Sort by any column. Click to preview/download. Use filters to find documents."
+          },
+          "accessibility": { "ariaLabel": "Document list" }
+        },
+        {
+          "id": "ops_upload_document",
+          "label": "Upload Document",
+          "explanation": "Add new file",
+          "tooltip": {
+            "title": "Upload Document",
+            "content": "Add files to case. Drag-drop or browse. Select category and folder. Multiple files supported. Max size: 25MB per file."
+          },
+          "accessibility": { "ariaLabel": "Upload document" }
+        },
+        {
+          "id": "ops_client_search",
+          "label": "Client Search",
+          "explanation": "Find clients",
+          "tooltip": {
+            "title": "Search Clients",
+            "content": "Find clients by name, GSTIN, PAN, or email. Partial matches supported. Use filters for client type or status."
+          },
+          "accessibility": { "ariaLabel": "Search clients" }
+        },
+        {
+          "id": "ops_client_gstin",
+          "label": "GSTIN Lookup",
+          "explanation": "Auto-fetch from GSTIN",
+          "tooltip": {
+            "title": "GSTIN Autofill",
+            "content": "Enter 15-digit GSTIN, click fetch icon. System retrieves legal name and registered address from government database. Verify before saving."
+          },
+          "accessibility": { "ariaLabel": "GSTIN lookup" }
+        },
+        {
+          "id": "ops_communication_channel",
+          "label": "Channel Filter",
+          "explanation": "Filter by channel type",
+          "tooltip": {
+            "title": "Communication Channels",
+            "content": "Filter messages by channel: Email, SMS, Internal Notes. Each channel has different delivery and visibility rules."
+          },
+          "accessibility": { "ariaLabel": "Filter by channel" }
+        },
+        {
+          "id": "ops_report_type",
+          "label": "Report Type",
+          "explanation": "Select report category",
+          "tooltip": {
+            "title": "Report Types",
+            "content": "Choose report category: Cases, Hearings, Tasks, Performance, Financial, Compliance. Each has predefined and custom options."
+          },
+          "accessibility": { "ariaLabel": "Select report type" }
+        },
+        {
+          "id": "ops_master_add",
+          "label": "Add Master Record",
+          "explanation": "Create new reference data",
+          "tooltip": {
+            "title": "Add Master Data",
+            "content": "Create new entry in master table. Fill required fields, use consistent naming. Master data affects all linked cases."
+          },
+          "accessibility": { "ariaLabel": "Add master record" }
+        },
+        {
+          "id": "ops_settings_general",
+          "label": "General Settings",
+          "explanation": "Basic configuration",
+          "tooltip": {
+            "title": "General Settings",
+            "content": "Configure firm name, logo, timezone, and display preferences. Changes affect all users. Review before saving."
+          },
+          "accessibility": { "ariaLabel": "General settings" }
+        },
+        {
+          "id": "ops_rbac_assign",
+          "label": "Assign Role",
+          "explanation": "Grant access to user",
+          "tooltip": {
+            "title": "Role Assignment",
+            "content": "Assign role to employee. Role determines permissions and data access. Changes take effect immediately for logged-in users."
+          },
+          "accessibility": { "ariaLabel": "Assign role" }
+        },
+        {
+          "id": "ops_import_data",
+          "label": "Import Data",
+          "explanation": "Bulk data upload",
+          "tooltip": {
+            "title": "Data Import",
+            "content": "Upload data from Excel/CSV. Download template, fill data, upload, map columns, validate, import. Test with small batches first."
+          },
+          "accessibility": { "ariaLabel": "Import data" }
+        },
+        {
+          "id": "ops_export_data",
+          "label": "Export Data",
+          "explanation": "Download system data",
+          "tooltip": {
+            "title": "Data Export",
+            "content": "Download data for backup or analysis. Select entity, apply filters, choose format (Excel/CSV/JSON). Schedule for recurring exports."
+          },
+          "accessibility": { "ariaLabel": "Export data" }
+        },
+        {
+          "id": "ops_profile_settings",
+          "label": "Profile Settings",
+          "explanation": "Personal configuration",
+          "tooltip": {
+            "title": "Profile Settings",
+            "content": "Update your avatar, password, notification preferences, and display settings. Changes apply to your account only."
+          },
+          "accessibility": { "ariaLabel": "Profile settings" }
         }
       ]
     }

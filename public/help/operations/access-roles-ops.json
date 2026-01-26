@@ -1,0 +1,240 @@
+{
+  "moduleId": "access-roles",
+  "moduleName": "Access & Roles (RBAC)",
+  "version": "1.0",
+  "lastUpdated": "2025-01-26",
+  "overview": {
+    "description": "Configure role-based access control, permissions, data visibility, and organizational hierarchy",
+    "whatItDoes": "Define who can see what data, perform which actions, and how organizational structure affects access",
+    "whyItMatters": "Proper access control protects client confidentiality, ensures compliance, and prevents unauthorized operations. Misconfiguration can expose sensitive data or lock users out.",
+    "keyBenefits": [
+      "Granular permission control",
+      "Data scope enforcement (My/Team/All)",
+      "Role hierarchy for inheritance",
+      "Complete audit trail for compliance"
+    ],
+    "criticalNote": "⚠️ SECURITY CRITICAL: Changes here affect all users immediately. Misconfiguration can expose client data or prevent work."
+  },
+  "operations": {
+    "assign-role": {
+      "title": "Assign Role to Employee",
+      "description": "Grant an employee access to system features based on their role",
+      "steps": [
+        "Navigate to Access & Roles > Assignments tab",
+        "Find the employee (search or browse)",
+        "Click 'Assign Role' button",
+        "Select the appropriate role from dropdown",
+        "Set data scope (My Data, Team Data, All Data)",
+        "Configure module access if role supports it",
+        "Review the permission summary",
+        "Click 'Save Assignment'"
+      ],
+      "tips": [
+        "Start with minimal permissions, add as needed",
+        "Use Team Data scope for managers",
+        "Review assignments quarterly"
+      ],
+      "warnings": [
+        "Role changes take effect immediately",
+        "Removing Admin role can lock out users",
+        "Always keep at least 2 Admins active"
+      ],
+      "securityChecks": [
+        "Verify employee identity before granting access",
+        "Confirm manager approval for elevated roles",
+        "Document reason for Admin/Partner assignments"
+      ]
+    },
+    "create-custom-role": {
+      "title": "Create Custom Role",
+      "description": "Define a new role with specific permissions tailored to your organization",
+      "steps": [
+        "Navigate to Access & Roles > Definitions tab",
+        "Click '+ Create Role'",
+        "Enter role name and description",
+        "Select base role to inherit from (or start blank)",
+        "Configure module-level permissions (View/Create/Edit/Delete)",
+        "Set data scope restrictions",
+        "Add feature-specific permissions",
+        "Save the role definition"
+      ],
+      "tips": [
+        "Use descriptive names (e.g., 'Senior Associate' not 'Role 1')",
+        "Inherit from similar roles to reduce configuration",
+        "Test with a sample user before broad deployment"
+      ],
+      "warnings": [
+        "Custom roles need maintenance when features change",
+        "Delete permission should be restricted to senior roles"
+      ]
+    },
+    "configure-hierarchy": {
+      "title": "Configure Reporting Hierarchy",
+      "description": "Set up organizational structure for team-based data access",
+      "steps": [
+        "Navigate to Access & Roles > Hierarchy tab",
+        "View current org chart visualization",
+        "Click employee to set/change reporting manager",
+        "Drag to reposition in hierarchy",
+        "Set department assignments",
+        "Configure team leads for each group",
+        "Save hierarchy changes"
+      ],
+      "tips": [
+        "Hierarchy affects Team Data scope visibility",
+        "Managers see their direct reports' data",
+        "Multiple reporting lines supported for matrix organizations"
+      ],
+      "warnings": [
+        "Circular reporting relationships will be rejected",
+        "Hierarchy changes affect data access immediately"
+      ]
+    },
+    "manage-portal-access": {
+      "title": "Manage Client Portal Access",
+      "description": "Configure which external users can access the client portal",
+      "steps": [
+        "Navigate to Access & Roles > Portal tab",
+        "View all portal users across clients",
+        "Filter by client, status, or role",
+        "Click user to edit permissions",
+        "Enable/disable access as needed",
+        "Set portal role (Viewer/Editor/Admin)",
+        "Save changes"
+      ],
+      "tips": [
+        "Regular audits of portal access recommended",
+        "Disable access when contacts leave client organization",
+        "Viewer role for read-only stakeholders"
+      ],
+      "warnings": [
+        "Portal access grants visibility to all client's cases",
+        "Promptly revoke access for departed contacts"
+      ]
+    },
+    "view-permission-matrix": {
+      "title": "View Permission Matrix",
+      "description": "See comprehensive view of all roles and their permissions",
+      "steps": [
+        "Navigate to Access & Roles > Matrix tab",
+        "View roles as columns, modules/features as rows",
+        "Green checkmarks indicate permission granted",
+        "Click any cell to see detailed permission info",
+        "Export matrix for documentation",
+        "Compare roles side-by-side"
+      ],
+      "tips": [
+        "Use matrix for role comparison",
+        "Export for compliance documentation",
+        "Identify permission gaps or overlaps"
+      ]
+    },
+    "audit-access-logs": {
+      "title": "Review Access Audit Logs",
+      "description": "Monitor who accessed what and when for compliance and security",
+      "steps": [
+        "Navigate to Access & Roles > Audit Log tab",
+        "Set date range for review",
+        "Filter by user, action type, or module",
+        "Review log entries",
+        "Export for compliance reporting",
+        "Flag suspicious activity for investigation"
+      ],
+      "tips": [
+        "Review login patterns for anomalies",
+        "Check for after-hours access to sensitive data",
+        "Monthly audit for compliance requirements"
+      ],
+      "complianceNote": "Audit logs are retained per configured retention policy and cannot be modified"
+    }
+  },
+  "securityWarnings": {
+    "critical": [
+      {
+        "warning": "Privilege Escalation Risk",
+        "description": "Users with role assignment permission can grant themselves higher access",
+        "prevention": "Restrict role assignment to trusted Admins only, require approval for elevation"
+      },
+      {
+        "warning": "Data Exposure via All Data Scope",
+        "description": "All Data scope grants visibility to every record across the organization",
+        "prevention": "Reserve All Data scope for Partners and system roles only"
+      },
+      {
+        "warning": "Administrator Lockout",
+        "description": "Removing Admin role from all users prevents system management",
+        "prevention": "Always maintain minimum 2 active Admin accounts"
+      }
+    ],
+    "important": [
+      {
+        "warning": "Portal Access Misconfiguration",
+        "description": "Granting portal access to wrong contacts exposes client data",
+        "prevention": "Verify contact identity before granting access, require client authorization"
+      },
+      {
+        "warning": "Delete Permission Distribution",
+        "description": "Delete permissions allow permanent data removal",
+        "prevention": "Limit Delete to senior roles, consider soft-delete instead"
+      },
+      {
+        "warning": "Immediate Permission Propagation",
+        "description": "Role changes take effect instantly for logged-in users",
+        "prevention": "Notify users before permission changes, coordinate for smooth transition"
+      }
+    ]
+  },
+  "commonMistakes": [
+    {
+      "mistake": "Granting All Data scope to all employees",
+      "impact": "Everyone sees all client data, violates need-to-know principle",
+      "prevention": "Use My Data for individuals, Team Data for managers, All Data only for executives"
+    },
+    {
+      "mistake": "Creating too many custom roles with overlapping permissions",
+      "impact": "Confusion about access levels, maintenance burden",
+      "prevention": "Use role inheritance, limit custom roles to clear organizational needs"
+    },
+    {
+      "mistake": "Not reviewing role assignments after promotions/transfers",
+      "impact": "Users retain inappropriate access from previous positions",
+      "prevention": "HR process should trigger access review, quarterly audits"
+    },
+    {
+      "mistake": "Sharing Admin credentials instead of proper access",
+      "impact": "Audit trail shows wrong user, accountability issues",
+      "prevention": "Never share credentials, create proper accounts with appropriate roles"
+    }
+  ],
+  "roleBasedGuidance": {
+    "admin": {
+      "access": "Full RBAC management",
+      "responsibilities": "Configure roles, assign permissions, audit access",
+      "tips": "Document all changes, maintain at least 2 active admins"
+    },
+    "partner": {
+      "access": "View assignments, limited role assignment for own team",
+      "responsibilities": "Approve access requests, periodic access reviews",
+      "tips": "Review team access quarterly, escalate security concerns"
+    },
+    "implementor": {
+      "access": "Full access during setup",
+      "responsibilities": "Initial role configuration, permission design, training",
+      "tips": "Create role templates, document permission rationale"
+    }
+  },
+  "faqs": [
+    {
+      "question": "How do I recover from accidental Admin removal?",
+      "answer": "If another Admin exists, they can restore your access. If all Admins are locked out, contact system support for emergency recovery."
+    },
+    {
+      "question": "Can a user have multiple roles?",
+      "answer": "Users have one primary role but can have supplementary permissions. Use custom roles for complex permission combinations."
+    },
+    {
+      "question": "How do I see what a specific user can access?",
+      "answer": "Go to Assignments tab, find the user, click to see their complete permission summary including inherited and explicit permissions."
+    }
+  ]
+}

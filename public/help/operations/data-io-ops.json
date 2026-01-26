@@ -1,0 +1,241 @@
+{
+  "moduleId": "data-io",
+  "moduleName": "Data Import/Export",
+  "version": "1.0",
+  "lastUpdated": "2025-01-26",
+  "overview": {
+    "description": "Import and export data for migration, backup, integration, and reporting purposes",
+    "whatItDoes": "Bulk data operations including importing records from external sources and exporting system data for analysis or backup",
+    "whyItMatters": "Efficient data migration saves time during implementation. Regular exports provide backup and enable external analysis. Incorrect imports can corrupt system data.",
+    "keyBenefits": [
+      "Bulk data migration from legacy systems",
+      "Regular backup exports",
+      "Integration with external tools",
+      "Audit-ready data extraction"
+    ],
+    "criticalNote": "⚠️ Import operations modify production data. Always test with small batches first."
+  },
+  "operations": {
+    "import-data": {
+      "title": "Import Data",
+      "description": "Bulk import records from Excel, CSV, or other supported formats",
+      "steps": [
+        "Navigate to Data I/O > Import tab",
+        "Select entity type to import (Cases, Clients, Hearings, etc.)",
+        "Download the import template for that entity",
+        "Fill data following template structure exactly",
+        "Validate data in your spreadsheet first",
+        "Upload the completed file",
+        "Map source columns to system fields",
+        "Review mapping summary",
+        "Click 'Validate' to check for errors",
+        "Review validation results",
+        "Click 'Import' to proceed",
+        "Monitor progress and completion"
+      ],
+      "tips": [
+        "Always use official templates - custom formats may fail",
+        "Test with 5-10 records before full import",
+        "Clean data before import (remove duplicates, fix formatting)",
+        "Import during low-usage hours for large datasets"
+      ],
+      "warnings": [
+        "Import cannot be undone easily - backup first",
+        "Duplicate records may be created if matching isn't configured",
+        "Large imports can take significant time - don't close browser"
+      ],
+      "validationRules": [
+        "Required fields must be filled",
+        "Dates must match configured format",
+        "Reference fields must match existing master data",
+        "Unique fields (like GSTIN) cannot duplicate existing records"
+      ]
+    },
+    "export-data": {
+      "title": "Export Data",
+      "description": "Download system data for backup, analysis, or external use",
+      "steps": [
+        "Navigate to Data I/O > Export tab",
+        "Select entity type to export",
+        "Set date range or other filters",
+        "Choose columns to include",
+        "Select format (Excel, CSV, JSON)",
+        "Click 'Generate Export'",
+        "Wait for processing",
+        "Download the generated file"
+      ],
+      "tips": [
+        "Use filters to keep export files manageable",
+        "Excel for human review, CSV for system integration",
+        "Include system IDs if re-importing later",
+        "Regular exports provide informal backup"
+      ],
+      "formats": {
+        "excel": "Best for review and analysis, preserves formatting",
+        "csv": "Best for system integration, universal compatibility",
+        "json": "Best for API integration, preserves data structure"
+      }
+    },
+    "map-fields": {
+      "title": "Configure Field Mapping",
+      "description": "Define how source data columns map to system fields",
+      "steps": [
+        "After uploading import file, mapping screen appears",
+        "System auto-detects obvious matches",
+        "Review each source column",
+        "Select target field from dropdown",
+        "Mark fields as 'Skip' if not needed",
+        "Configure data transformations if needed",
+        "Save mapping for reuse"
+      ],
+      "tips": [
+        "Name columns in source file to match system fields",
+        "Save mapping templates for repeated imports",
+        "Check sample data in preview to verify mapping"
+      ],
+      "transformations": [
+        "Date format conversion",
+        "Text case normalization",
+        "Lookup value mapping",
+        "Default value assignment"
+      ]
+    },
+    "validate-import": {
+      "title": "Validate Import Data",
+      "description": "Check data for errors before committing import",
+      "steps": [
+        "After mapping, click 'Validate'",
+        "System checks all rows for errors",
+        "View validation report",
+        "Fix errors in source file or skip problem rows",
+        "Re-upload and validate if fixes needed",
+        "Proceed to import when validation passes"
+      ],
+      "errorTypes": [
+        "Required field missing - must be filled",
+        "Invalid format - dates, numbers, etc.",
+        "Reference not found - master data lookup failed",
+        "Duplicate key - record already exists",
+        "Data type mismatch - text in number field, etc."
+      ],
+      "tips": [
+        "Address errors in source file for cleanest import",
+        "Skip rows only for truly optional records",
+        "Export validation report for documentation"
+      ]
+    },
+    "schedule-export": {
+      "title": "Schedule Automated Exports",
+      "description": "Set up recurring data exports for backup or integration",
+      "steps": [
+        "Configure an export (entity, filters, columns)",
+        "Click 'Schedule' instead of 'Generate'",
+        "Select frequency (Daily, Weekly, Monthly)",
+        "Set delivery method (Download, Email, Cloud Storage)",
+        "Configure recipients if email delivery",
+        "Set retention period for stored exports",
+        "Activate the schedule"
+      ],
+      "tips": [
+        "Use for regular backups to external storage",
+        "Weekly exports for audit documentation",
+        "Email delivery for stakeholder reports"
+      ]
+    },
+    "import-history": {
+      "title": "View Import History",
+      "description": "Track all import operations for audit and troubleshooting",
+      "steps": [
+        "Navigate to Data I/O > History tab",
+        "View list of all imports",
+        "Filter by date, entity type, or user",
+        "Click import to see details",
+        "View success/error counts",
+        "Download error report if available",
+        "Download original file for reference"
+      ],
+      "tips": [
+        "Check history when investigating data issues",
+        "Error reports help identify problem patterns",
+        "Original files preserved for accountability"
+      ]
+    }
+  },
+  "dataSafety": {
+    "beforeImport": [
+      "Back up current data via export",
+      "Test with small sample first",
+      "Verify mapping with sample preview",
+      "Schedule during low-usage hours"
+    ],
+    "duringImport": [
+      "Don't close browser during processing",
+      "Monitor progress indicators",
+      "Note any warnings displayed"
+    ],
+    "afterImport": [
+      "Verify record counts match expectations",
+      "Spot-check sample records",
+      "Run reports to validate data",
+      "Document import for audit trail"
+    ]
+  },
+  "commonMistakes": [
+    {
+      "mistake": "Importing without testing small batch first",
+      "impact": "Widespread data issues discovered too late",
+      "prevention": "Always test with 5-10 records, verify in system, then proceed"
+    },
+    {
+      "mistake": "Using wrong date format in source file",
+      "impact": "Dates import incorrectly or fail validation",
+      "prevention": "Check system date format, use explicit formatting in Excel"
+    },
+    {
+      "mistake": "Not backing up before large import",
+      "impact": "Cannot recover if import corrupts data",
+      "prevention": "Export relevant data before any significant import"
+    },
+    {
+      "mistake": "Ignoring validation warnings",
+      "impact": "Partial or corrupted data imported",
+      "prevention": "Address all warnings, skip only intentionally"
+    }
+  ],
+  "roleBasedGuidance": {
+    "staff": {
+      "access": "Export own data only",
+      "restrictions": "Cannot import or export team/all data",
+      "tips": "Use exports for personal productivity analysis"
+    },
+    "manager": {
+      "access": "Import/export team data",
+      "permissions": "Can run imports for own team scope",
+      "tips": "Verify team data quality via regular exports"
+    },
+    "admin": {
+      "access": "Full import/export capabilities",
+      "permissions": "All entity types, all scopes, scheduling",
+      "tips": "Set up automated backup exports, document all imports"
+    },
+    "implementor": {
+      "access": "Full access for data migration",
+      "responsibilities": "Initial data load, migration validation",
+      "tips": "Create mapping templates, document transformation rules"
+    }
+  },
+  "faqs": [
+    {
+      "question": "Can I undo an import?",
+      "answer": "Not automatically. You need to identify imported records and delete them manually, or restore from backup. This is why testing with small batches is critical."
+    },
+    {
+      "question": "Why does my import keep timing out?",
+      "answer": "Large files may exceed processing limits. Split into smaller batches (1000-5000 records). Also check network stability."
+    },
+    {
+      "question": "How do I update existing records via import?",
+      "answer": "Include the system ID column in your import file. The system will match by ID and update existing records instead of creating new ones."
+    }
+  ]
+}

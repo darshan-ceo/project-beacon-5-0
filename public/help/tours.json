@@ -1258,7 +1258,446 @@
         "content": "When order is passed, upload the order document immediately. Link it to this hearing for proper case history and timeline.",
         "target": "[data-tour='upload-order']",
         "placement": "left"
-      }
-    ]
-  }
+    }
+  ]
+},
+{
+  "id": "dashboard-tour",
+  "title": "Dashboard Overview",
+  "description": "Understand your personalized dashboard with KPIs, quick actions, and upcoming deadlines",
+  "module": "dashboard",
+  "roles": ["all"],
+  "estimatedTime": "4 minutes",
+  "steps": [
+    {
+      "id": "dash-welcome",
+      "title": "Welcome to Your Dashboard",
+      "content": "This is your command center. See key metrics, quick actions, and upcoming deadlines all in one place. The dashboard updates in real-time.",
+      "target": "[data-tour='dashboard-header']",
+      "placement": "bottom"
+    },
+    {
+      "id": "dash-kpis",
+      "title": "Key Performance Indicators",
+      "content": "These cards show your most important metrics: active cases, pending tasks, upcoming hearings, and overdue items. Click any card to drill down.",
+      "target": "[data-tour='kpi-cards']",
+      "placement": "bottom"
+    },
+    {
+      "id": "dash-deadlines",
+      "title": "Upcoming Deadlines",
+      "content": "Never miss a deadline. This section shows your upcoming statutory deadlines, hearing dates, and task due dates. Red items are overdue or urgent.",
+      "target": "[data-tour='upcoming-deadlines']",
+      "placement": "left"
+    },
+    {
+      "id": "dash-actions",
+      "title": "Quick Actions",
+      "content": "Common tasks at your fingertips. Create new cases, schedule hearings, or add tasks directly from here without navigating to other modules.",
+      "target": "[data-tour='quick-actions']",
+      "placement": "right"
+    },
+    {
+      "id": "dash-recent",
+      "title": "Recent Activity",
+      "content": "See what's been happening across your cases. Track team updates, document uploads, and status changes in chronological order.",
+      "target": "[data-tour='recent-activity']",
+      "placement": "top"
+    }
+  ]
+},
+{
+  "id": "system-settings-tour",
+  "title": "System Settings Configuration",
+  "description": "Configure system-wide settings for security, notifications, and integrations",
+  "module": "settings",
+  "roles": ["Admin"],
+  "estimatedTime": "10 minutes",
+  "securityCritical": true,
+  "steps": [
+    {
+      "id": "settings-overview",
+      "title": "Settings Overview",
+      "content": "⚠️ ADMIN ONLY: System Settings affect all users. Changes take effect immediately. Review carefully before saving any changes.",
+      "target": "[data-tour='settings-header']",
+      "placement": "bottom"
+    },
+    {
+      "id": "settings-general",
+      "title": "General Settings",
+      "content": "Configure firm name, logo, timezone, and display preferences. Timezone affects all date/time calculations including deadlines.",
+      "target": "[data-tour='general-tab']",
+      "placement": "right"
+    },
+    {
+      "id": "settings-security",
+      "title": "Security Settings",
+      "content": "Critical security controls: session timeout, password policy, 2FA requirements, IP whitelist. Misconfiguration can lock users out.",
+      "target": "[data-tour='security-tab']",
+      "placement": "right"
+    },
+    {
+      "id": "settings-notifications",
+      "title": "Notification Settings",
+      "content": "Configure email and SMS notifications. Set up delivery schedules, digest preferences, and escalation rules for missed deadlines.",
+      "target": "[data-tour='notifications-tab']",
+      "placement": "right"
+    },
+    {
+      "id": "settings-integrations",
+      "title": "Integrations",
+      "content": "Connect external services: Google Calendar, Outlook, cloud storage. Each integration requires proper authentication.",
+      "target": "[data-tour='integrations-tab']",
+      "placement": "right"
+    },
+    {
+      "id": "settings-save",
+      "title": "Save Changes",
+      "content": "Always click Save to apply changes. Review the change summary before confirming. Some settings require user notification.",
+      "target": "[data-tour='save-settings']",
+      "placement": "top"
+    }
+  ]
+},
+{
+  "id": "masters-tour",
+  "title": "Master Data Management",
+  "description": "Configure foundational reference data for legal authorities, judges, and statutory deadlines",
+  "module": "masters",
+  "roles": ["Admin", "Partner"],
+  "estimatedTime": "8 minutes",
+  "steps": [
+    {
+      "id": "masters-overview",
+      "title": "Master Data Overview",
+      "content": "Master Data is the foundation of your system. Incorrect data here cascades to all cases and operations. Proceed carefully.",
+      "target": "[data-tour='masters-header']",
+      "placement": "bottom"
+    },
+    {
+      "id": "masters-authorities",
+      "title": "Legal Authorities",
+      "content": "Courts, tribunals, and quasi-judicial bodies. Add all authorities where you file cases. Authority settings affect deadline calculations.",
+      "target": "[data-tour='authorities-tab']",
+      "placement": "right"
+    },
+    {
+      "id": "masters-judges",
+      "title": "Judges Directory",
+      "content": "Maintain judicial officer records. Link judges to courts for hearing assignments. Keep status updated when judges transfer.",
+      "target": "[data-tour='judges-tab']",
+      "placement": "right"
+    },
+    {
+      "id": "masters-employees",
+      "title": "Employee Records",
+      "content": "Team members who use the system. Employee records control access permissions and case assignments. Link to user accounts.",
+      "target": "[data-tour='employees-tab']",
+      "placement": "right"
+    },
+    {
+      "id": "masters-deadlines",
+      "title": "Statutory Deadlines",
+      "content": "⚠️ CRITICAL: Deadline rules calculate due dates for cases. Incorrect rules cause compliance violations. Verify with legal team.",
+      "target": "[data-tour='deadlines-tab']",
+      "placement": "right"
+    },
+    {
+      "id": "masters-add",
+      "title": "Adding Records",
+      "content": "Click + Add to create new records. Fill all required fields. Use consistent naming conventions for searchability.",
+      "target": "[data-tour='add-master']",
+      "placement": "left"
+    }
+  ]
+},
+{
+  "id": "data-io-tour",
+  "title": "Data Import/Export Guide",
+  "description": "Bulk data operations for migration, backup, and external integration",
+  "module": "data-io",
+  "roles": ["Admin", "Implementor"],
+  "estimatedTime": "6 minutes",
+  "steps": [
+    {
+      "id": "dio-overview",
+      "title": "Data Import/Export",
+      "content": "Move data in and out of the system. Import from Excel/CSV, export for backup or analysis. Test imports carefully before production.",
+      "target": "[data-tour='data-io-header']",
+      "placement": "bottom"
+    },
+    {
+      "id": "dio-import",
+      "title": "Import Data",
+      "content": "Select entity type, download template, fill data, upload, map fields, validate, and import. Always test with small batches first.",
+      "target": "[data-tour='import-tab']",
+      "placement": "right"
+    },
+    {
+      "id": "dio-template",
+      "title": "Download Template",
+      "content": "Use official templates for best results. Templates include required columns and format examples. Don't modify column headers.",
+      "target": "[data-tour='download-template']",
+      "placement": "left"
+    },
+    {
+      "id": "dio-validate",
+      "title": "Validate Before Import",
+      "content": "⚠️ Always validate data before importing. System checks for errors, duplicates, and missing references. Fix errors in source file.",
+      "target": "[data-tour='validate-btn']",
+      "placement": "top"
+    },
+    {
+      "id": "dio-export",
+      "title": "Export Data",
+      "content": "Select entity, apply filters, choose columns and format. Excel for human review, CSV for system integration, JSON for APIs.",
+      "target": "[data-tour='export-tab']",
+      "placement": "right"
+    },
+    {
+      "id": "dio-schedule",
+      "title": "Schedule Exports",
+      "content": "Set up automated exports for regular backups. Configure frequency, format, and delivery method (email or cloud storage).",
+      "target": "[data-tour='schedule-export']",
+      "placement": "left"
+    }
+  ]
+},
+{
+  "id": "reports-tour",
+  "title": "Reports & Analytics Guide",
+  "description": "Generate insights with comprehensive reporting tools",
+  "module": "reports",
+  "roles": ["Manager", "Partner", "Admin"],
+  "estimatedTime": "5 minutes",
+  "steps": [
+    {
+      "id": "reports-overview",
+      "title": "Reports Overview",
+      "content": "Access pre-built reports and create custom analytics. Export in multiple formats, schedule automatic delivery to stakeholders.",
+      "target": "[data-tour='reports-header']",
+      "placement": "bottom"
+    },
+    {
+      "id": "reports-categories",
+      "title": "Report Categories",
+      "content": "Browse by category: Cases, Hearings, Tasks, Performance, Financial. Each category contains multiple pre-built report types.",
+      "target": "[data-tour='report-categories']",
+      "placement": "right"
+    },
+    {
+      "id": "reports-filters",
+      "title": "Apply Filters",
+      "content": "Use date ranges and entity filters before generating. Filter early for faster reports and more relevant results.",
+      "target": "[data-tour='report-filters']",
+      "placement": "left"
+    },
+    {
+      "id": "reports-generate",
+      "title": "Generate Report",
+      "content": "Click Generate to create your report. View results in browser, then export to PDF, Excel, or CSV as needed.",
+      "target": "[data-tour='generate-btn']",
+      "placement": "top"
+    },
+    {
+      "id": "reports-custom",
+      "title": "Custom Reports",
+      "content": "Build tailored reports: select data source, choose columns, add filters, set grouping. Save for reuse.",
+      "target": "[data-tour='custom-reports']",
+      "placement": "right"
+    },
+    {
+      "id": "reports-schedule",
+      "title": "Schedule Reports",
+      "content": "Automate recurring reports. Set frequency, format, and email recipients. Great for weekly status updates to stakeholders.",
+      "target": "[data-tour='schedule-report']",
+      "placement": "left"
+    }
+  ]
+},
+{
+  "id": "client-management-tour",
+  "title": "Client Management Guide",
+  "description": "Manage client profiles, contacts, groups, and portal access",
+  "module": "clients",
+  "roles": ["all"],
+  "estimatedTime": "6 minutes",
+  "steps": [
+    {
+      "id": "client-overview",
+      "title": "Client Management",
+      "content": "Central hub for all client information. Create profiles, manage contacts, organize into groups, and control portal access.",
+      "target": "[data-tour='clients-header']",
+      "placement": "bottom"
+    },
+    {
+      "id": "client-add",
+      "title": "Add New Client",
+      "content": "Click + New Client. Enter client type, name, GSTIN/PAN. Use GSTIN autofill for companies - system fetches legal name and address.",
+      "target": "[data-tour='add-client']",
+      "placement": "left"
+    },
+    {
+      "id": "client-gstin",
+      "title": "GSTIN Autofill",
+      "content": "Enter 15-digit GSTIN and click the fetch icon. System retrieves legal name and registered address from government database.",
+      "target": "[data-tour='gstin-input']",
+      "placement": "top"
+    },
+    {
+      "id": "client-contacts",
+      "title": "Manage Contacts",
+      "content": "Add authorized representatives, signatories, and billing contacts. Mark primary contacts for default communications.",
+      "target": "[data-tour='contacts-tab']",
+      "placement": "right"
+    },
+    {
+      "id": "client-groups",
+      "title": "Client Groups",
+      "content": "Organize related clients (corporate families, industry segments). Groups enable portfolio reporting and consolidated views.",
+      "target": "[data-tour='groups-tab']",
+      "placement": "right"
+    },
+    {
+      "id": "client-portal",
+      "title": "Portal Access",
+      "content": "Enable client portal for self-service. Clients can view cases, download documents, and send messages. Control access by role.",
+      "target": "[data-tour='portal-access']",
+      "placement": "left"
+    }
+  ]
+},
+{
+  "id": "task-automation-tour",
+  "title": "Task Automation Setup",
+  "description": "Create automation rules and templates for efficient task management",
+  "module": "tasks",
+  "roles": ["Admin", "Manager"],
+  "estimatedTime": "8 minutes",
+  "steps": [
+    {
+      "id": "auto-overview",
+      "title": "Task Automation",
+      "content": "Automate repetitive tasks with rules and templates. Reduce manual work and ensure nothing falls through the cracks.",
+      "target": "[data-tour='automation-header']",
+      "placement": "bottom"
+    },
+    {
+      "id": "auto-rules",
+      "title": "Automation Rules",
+      "content": "Rules trigger actions automatically. Example: When hearing is scheduled, create preparation tasks 1 week before.",
+      "target": "[data-tour='rules-tab']",
+      "placement": "right"
+    },
+    {
+      "id": "auto-create",
+      "title": "Create New Rule",
+      "content": "Click + New Rule. Select trigger event, add conditions, define actions. Test before activating.",
+      "target": "[data-tour='new-rule']",
+      "placement": "left"
+    },
+    {
+      "id": "auto-triggers",
+      "title": "Choose Trigger",
+      "content": "Select when rule should run: Case Created, Hearing Updated, Document Uploaded, Task Overdue, Stage Changed, etc.",
+      "target": "[data-tour='trigger-select']",
+      "placement": "right"
+    },
+    {
+      "id": "auto-conditions",
+      "title": "Set Conditions",
+      "content": "Add filters to control when rule fires. Example: Only trigger for GST cases, or only when priority is High.",
+      "target": "[data-tour='conditions']",
+      "placement": "right"
+    },
+    {
+      "id": "auto-actions",
+      "title": "Define Actions",
+      "content": "Specify what happens: Create Task, Send Notification, Update Status, Assign to User. Multiple actions per rule supported.",
+      "target": "[data-tour='actions']",
+      "placement": "left"
+    },
+    {
+      "id": "auto-templates",
+      "title": "Task Templates",
+      "content": "Reusable task bundles for common workflows. Example: 'Hearing Preparation' creates 5 related tasks with proper sequencing.",
+      "target": "[data-tour='templates-tab']",
+      "placement": "right"
+    },
+    {
+      "id": "auto-test",
+      "title": "Test Before Enabling",
+      "content": "⚠️ Always test rules before activation. Use the Test button to simulate with sample data. Verify expected behavior.",
+      "target": "[data-tour='test-rule']",
+      "placement": "top"
+    }
+  ]
+},
+{
+  "id": "access-roles-tour",
+  "title": "Access & Roles Configuration",
+  "description": "Set up role-based access control, permissions, and organizational hierarchy",
+  "module": "access-roles",
+  "roles": ["Admin"],
+  "estimatedTime": "12 minutes",
+  "securityCritical": true,
+  "steps": [
+    {
+      "id": "rbac-overview",
+      "title": "Access & Roles Overview",
+      "content": "⚠️ SECURITY CRITICAL: This module controls who can see and do what. Misconfiguration can expose client data or lock users out.",
+      "target": "[data-tour='access-roles-header']",
+      "placement": "bottom"
+    },
+    {
+      "id": "rbac-assignments",
+      "title": "Role Assignments",
+      "content": "Assign roles to employees. Each role grants specific permissions. Start with minimal access, add as needed.",
+      "target": "[data-tour='assignments-tab']",
+      "placement": "right"
+    },
+    {
+      "id": "rbac-definitions",
+      "title": "Role Definitions",
+      "content": "View and create roles. Each role defines module access, action permissions, and data scope limits.",
+      "target": "[data-tour='definitions-tab']",
+      "placement": "right"
+    },
+    {
+      "id": "rbac-hierarchy",
+      "title": "Organizational Hierarchy",
+      "content": "Set reporting relationships. Hierarchy affects Team Data scope - managers see their direct reports' data.",
+      "target": "[data-tour='hierarchy-tab']",
+      "placement": "right"
+    },
+    {
+      "id": "rbac-portal",
+      "title": "Portal Users",
+      "content": "Manage client portal access. View all portal users, their roles, and activity. Disable access for departed contacts.",
+      "target": "[data-tour='portal-tab']",
+      "placement": "right"
+    },
+    {
+      "id": "rbac-matrix",
+      "title": "Permission Matrix",
+      "content": "Compare roles side-by-side. See exactly which permissions each role grants. Use for auditing access policies.",
+      "target": "[data-tour='matrix-tab']",
+      "placement": "right"
+    },
+    {
+      "id": "rbac-audit",
+      "title": "Audit Log",
+      "content": "Track all access changes. See who changed what, when. Export for compliance documentation.",
+      "target": "[data-tour='audit-tab']",
+      "placement": "right"
+    },
+    {
+      "id": "rbac-warning",
+      "title": "Security Best Practices",
+      "content": "Keep at least 2 Admins active. Review assignments quarterly. Revoke access immediately when employees leave.",
+      "target": "[data-tour='security-warning']",
+      "placement": "top"
+    }
+  ]
+}
 ]

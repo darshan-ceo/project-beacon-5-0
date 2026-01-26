@@ -12,7 +12,7 @@
   "modules": {
     "dashboard": {
       "name": "Dashboard",
-      "requiredTooltips": ["dashboard_kpi_cards", "dashboard_quick_actions", "dashboard_upcoming_deadlines"],
+      "requiredTooltips": ["ops_quick_add_case", "ops_quick_add_hearing", "ops_quick_add_task"],
       "requiredTours": ["dashboard-tour"],
       "requiredOperations": null,
       "requiredPagesHelp": "dashboard.json",
@@ -21,14 +21,11 @@
     "case-management": {
       "name": "Case Management",
       "requiredTooltips": [
-        "cm_sla_status",
-        "cm_advance_stage",
-        "cm_case_filters",
-        "cm_lifecycle_tab",
-        "cm_timeline_tab",
-        "cm_new_case_btn"
+        "ops_case_list_item",
+        "ops_new_case",
+        "ops_case_tabs"
       ],
-      "requiredTours": ["case-operations-tour", "case-lifecycle-tour"],
+      "requiredTours": ["case-management-tour", "case-operations-tour"],
       "requiredOperations": "case-management-ops.json",
       "requiredPagesHelp": "case-management.json",
       "requiredFAQTopics": ["case-creation", "stage-advancement", "sla-management"]
@@ -36,13 +33,11 @@
     "hearings": {
       "name": "Hearings",
       "requiredTooltips": [
-        "hr_calendar_view",
-        "hr_list_view",
-        "hr_outcome_select",
-        "hr_schedule_btn",
-        "hr_adjourn_btn"
+        "ops_hearing_list_item",
+        "ops_schedule_hearing",
+        "ops_record_outcome"
       ],
-      "requiredTours": ["hearing-lifecycle-tour"],
+      "requiredTours": ["hearing-scheduler-tour", "hearing-lifecycle-tour"],
       "requiredOperations": "hearings-ops.json",
       "requiredPagesHelp": "hearings.json",
       "requiredFAQTopics": ["scheduling", "outcomes", "adjournments"]
@@ -50,37 +45,32 @@
     "tasks": {
       "name": "Tasks",
       "requiredTooltips": [
-        "task_board_columns",
-        "task_drag_drop",
-        "task_automation_tab",
-        "task_escalation_tab",
-        "task_create_btn"
+        "ops_task_list_item",
+        "ops_create_task",
+        "followup_remarks"
       ],
-      "requiredTours": ["task-board-tour", "task-automation-tour"],
+      "requiredTours": ["task-management-tour", "task-automation-tour"],
       "requiredOperations": "tasks-ops.json",
-      "requiredPagesHelp": "tasks.json",
+      "requiredPagesHelp": "task-automation.json",
       "requiredFAQTopics": ["task-management", "automation", "escalation"]
     },
     "documents": {
       "name": "Documents",
       "requiredTooltips": [
-        "doc_upload_btn",
-        "doc_template_select",
-        "doc_version_history",
-        "doc_folder_nav"
+        "ops_document_list",
+        "ops_upload_document",
+        "tb2_template_code"
       ],
       "requiredTours": ["document-management-tour"],
       "requiredOperations": "documents-ops.json",
-      "requiredPagesHelp": "documents.json",
+      "requiredPagesHelp": "document-management.json",
       "requiredFAQTopics": ["uploads", "templates", "versioning"]
     },
     "clients": {
       "name": "Clients",
       "requiredTooltips": [
-        "client_add_btn",
-        "client_group_filter",
-        "client_portal_access",
-        "client_contacts_tab"
+        "ops_client_search",
+        "ops_client_gstin"
       ],
       "requiredTours": ["client-management-tour"],
       "requiredOperations": "clients-ops.json",
@@ -90,9 +80,7 @@
     "communications": {
       "name": "Communications",
       "requiredTooltips": [
-        "comm_channel_filter",
-        "comm_compose_btn",
-        "comm_template_select"
+        "ops_communication_channel"
       ],
       "requiredTours": null,
       "requiredOperations": "communications-ops.json",
@@ -102,10 +90,7 @@
     "reports": {
       "name": "Reports",
       "requiredTooltips": [
-        "report_type_select",
-        "report_date_range",
-        "report_export_btn",
-        "report_filters"
+        "ops_report_type"
       ],
       "requiredTours": ["reports-tour"],
       "requiredOperations": "reports-ops.json",
@@ -115,10 +100,7 @@
     "masters": {
       "name": "Master Data",
       "requiredTooltips": [
-        "master_add_btn",
-        "master_import_btn",
-        "master_export_btn",
-        "master_status_toggle"
+        "ops_master_add"
       ],
       "requiredTours": ["masters-tour"],
       "requiredOperations": "masters-ops.json",
@@ -128,36 +110,28 @@
     "settings": {
       "name": "System Settings",
       "requiredTooltips": [
-        "settings_general_tab",
-        "settings_notifications_tab",
-        "settings_integrations_tab",
-        "settings_save_btn"
+        "ops_settings_general"
       ],
       "requiredTours": ["system-settings-tour"],
       "requiredOperations": "settings-ops.json",
-      "requiredPagesHelp": "settings.json",
+      "requiredPagesHelp": "system-settings.json",
       "requiredFAQTopics": ["configuration", "notifications"]
     },
     "access-roles": {
       "name": "Access & Roles",
       "requiredTooltips": [
-        "rbac_assignments_tab",
-        "rbac_definitions_tab",
-        "rbac_hierarchy_tab",
-        "rbac_matrix_tab"
+        "ops_rbac_assign"
       ],
       "requiredTours": ["access-roles-tour"],
       "requiredOperations": "access-roles-ops.json",
-      "requiredPagesHelp": "access-roles.json",
+      "requiredPagesHelp": "access-roles-comprehensive.json",
       "requiredFAQTopics": ["roles", "permissions", "hierarchy"]
     },
     "data-io": {
       "name": "Data Import/Export",
       "requiredTooltips": [
-        "dataio_import_tab",
-        "dataio_export_tab",
-        "dataio_mapping_step",
-        "dataio_validate_btn"
+        "ops_import_data",
+        "ops_export_data"
       ],
       "requiredTours": ["data-io-tour"],
       "requiredOperations": "data-io-ops.json",
@@ -167,9 +141,7 @@
     "profile": {
       "name": "User Profile",
       "requiredTooltips": [
-        "profile_avatar_upload",
-        "profile_password_change",
-        "profile_preferences"
+        "ops_profile_settings"
       ],
       "requiredTours": null,
       "requiredOperations": null,
