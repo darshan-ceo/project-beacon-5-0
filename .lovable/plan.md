@@ -1,126 +1,131 @@
 
-# Task Management Sub-Tab Role-Based Access Control
+# Add Task Sub-Module Permissions to Database and UI
 
-## Current State
-The Task Management module has 8 sub-tabs that are currently accessible to anyone with the `tasks` RBAC permission. Based on the screenshots and code analysis, several tabs contain critical configuration settings that should be restricted to admin-level users.
+## Problem Summary
+The new granular Task Management permissions (`tasks.templates`, `tasks.automation`, `tasks.escalation`, `tasks.ai`) are not appearing in the Access & Roles UI because they were added to client-side code but never inserted into the database `permissions` table.
 
-## Tab Analysis and Access Recommendations
-
-### Tier 1: Standard Access (All Task Users)
-These tabs support daily task operations and should be accessible to everyone with `tasks:read` permission:
-
-| Tab | Reason for Standard Access |
-|-----|---------------------------|
-| **Board** | Core daily task viewing, status updates, drag-drop operations |
-| **Analytics** | Read-only performance metrics that help employees track their work |
-| **Insights** | AI-generated recommendations are advisory, not configuration |
-| **Collaboration** | Team communication and activity viewing supports daily workflow |
-
-### Tier 2: Manager Access (Manager, Partner, Admin)
-These tabs involve workflow setup but have limited blast radius:
-
-| Tab | Reason for Manager Access |
-|-----|--------------------------|
-| **Templates** | Creating task templates affects standardization but is reversible and scoped |
-
-### Tier 3: Admin Access Only (Admin, Partner)
-These tabs contain critical system configuration that affects all users:
-
-| Tab | Reason for Admin Restriction |
-|-----|------------------------------|
-| **Automation** | Creates automatic task bundles triggered by case stages - misconfiguration can flood the system with unwanted tasks |
-| **Escalation** | Configures SLA breach handling and escalation chains - affects compliance and notifications |
-| **AI Assistant** | Requires API key configuration (Perplexity) - security-sensitive external integration |
+Your screenshot shows only the base `Tasks` module with 4 permissions (Create, Delete, View, Edit), but should show additional sub-module sections for Templates, Automation, Escalation, and AI Assistant.
 
 ---
 
-## Implementation Approach
+## Solution Overview
 
-### Step 1: Add Granular Task Permissions
-Add new sub-module permissions to the RBAC permission matrix:
+### Step 1: Database Migration - Insert New Permissions
+Add the missing task sub-module permissions to the `permissions` table:
 
+| Permission Key | Module | Action | Description |
+|----------------|--------|--------|-------------|
+| `tasks.templates.read` | tasks.templates | read | View task templates |
+| `tasks.templates.create` | tasks.templates | create | Create task templates |
+| `tasks.templates.update` | tasks.templates | update | Edit task templates |
+| `tasks.templates.delete` | tasks.templates | delete | Delete task templates |
+| `tasks.automation.read` | tasks.automation | read | View task automation rules |
+| `tasks.automation.manage` | tasks.automation | manage | Manage automation bundles |
+| `tasks.escalation.read` | tasks.escalation | read | View escalation settings |
+| `tasks.escalation.manage` | tasks.escalation | manage | Manage escalation matrix |
+| `tasks.ai.read` | tasks.ai | read | View AI assistant settings |
+| `tasks.ai.manage` | tasks.ai | manage | Configure AI assistant |
+
+SQL Migration:
+```sql
+INSERT INTO permissions (key, module, action, description) VALUES
+  ('tasks.templates.read', 'tasks.templates', 'read', 'View task templates'),
+  ('tasks.templates.create', 'tasks.templates', 'create', 'Create task templates'),
+  ('tasks.templates.update', 'tasks.templates', 'update', 'Edit task templates'),
+  ('tasks.templates.delete', 'tasks.templates', 'delete', 'Delete task templates'),
+  ('tasks.automation.read', 'tasks.automation', 'read', 'View task automation rules'),
+  ('tasks.automation.manage', 'tasks.automation', 'manage', 'Manage automation bundles'),
+  ('tasks.escalation.read', 'tasks.escalation', 'read', 'View escalation settings'),
+  ('tasks.escalation.manage', 'tasks.escalation', 'manage', 'Manage escalation matrix'),
+  ('tasks.ai.read', 'tasks.ai', 'read', 'View AI assistant settings'),
+  ('tasks.ai.manage', 'tasks.ai', 'manage', 'Configure AI assistant')
+ON CONFLICT (key) DO NOTHING;
 ```
-tasks.templates   → Templates tab access
-tasks.automation  → Automation tab access  
-tasks.escalation  → Escalation tab access
-tasks.ai          → AI Assistant tab access
-```
 
-### Step 2: Update rbacService.ts
-Add the new permissions to the available permissions list:
+### Step 2: Update RolePermissionEditor Module Labels
+Add display names for the new sub-modules so they appear with proper titles:
 
 ```typescript
-// Task sub-module permissions
-{ module: 'tasks.templates', action: 'read' },
-{ module: 'tasks.templates', action: 'write' },
-{ module: 'tasks.automation', action: 'admin' },
-{ module: 'tasks.escalation', action: 'admin' },
-{ module: 'tasks.ai', action: 'admin' },
+const MODULE_LABELS: Record<string, string> = {
+  // ... existing modules ...
+  tasks: 'Tasks',
+  'tasks.templates': 'Task Templates',
+  'tasks.automation': 'Task Automation',
+  'tasks.escalation': 'Task Escalation',
+  'tasks.ai': 'Task AI Assistant',
+};
 ```
 
-### Step 3: Update Role Definitions
-Configure default permissions per role:
+### Step 3: Seed Default Role Permissions
+Insert default role-permission mappings for the new permissions:
 
-| Role | Board | Templates | Automation | Escalation | Analytics | Insights | AI Assistant | Collaboration |
-|------|-------|-----------|------------|------------|-----------|----------|--------------|---------------|
-| **Admin** | Read/Write | Admin | Admin | Admin | Read | Read | Admin | Read/Write |
-| **Partner** | Read/Write | Admin | Admin | Admin | Read | Read | Admin | Read/Write |
-| **Manager** | Read/Write | Write | - | - | Read | Read | - | Read/Write |
-| **Advocate** | Read/Write | Read | - | - | Read | Read | - | Read |
-| **Staff** | Read | - | - | - | - | - | - | Read |
-| **Client** | - | - | - | - | - | - | - | - |
+**Admin/Partner** - Full access to all task sub-modules
+**Manager** - Templates read/write, no automation/escalation/ai
+**User/Staff** - No access to sub-modules (base tasks only)
 
-### Step 4: Update TaskManagement.tsx
-Wrap restricted tabs with permission checks:
+SQL for default role permissions:
+```sql
+-- Admin gets all task sub-module permissions
+INSERT INTO role_permissions (role, permission_key) VALUES
+  ('admin', 'tasks.templates.read'),
+  ('admin', 'tasks.templates.create'),
+  ('admin', 'tasks.templates.update'),
+  ('admin', 'tasks.templates.delete'),
+  ('admin', 'tasks.automation.read'),
+  ('admin', 'tasks.automation.manage'),
+  ('admin', 'tasks.escalation.read'),
+  ('admin', 'tasks.escalation.manage'),
+  ('admin', 'tasks.ai.read'),
+  ('admin', 'tasks.ai.manage')
+ON CONFLICT DO NOTHING;
+
+-- Partner gets same as admin
+INSERT INTO role_permissions (role, permission_key) VALUES
+  ('partner', 'tasks.templates.read'),
+  ('partner', 'tasks.templates.create'),
+  ('partner', 'tasks.templates.update'),
+  ('partner', 'tasks.templates.delete'),
+  ('partner', 'tasks.automation.read'),
+  ('partner', 'tasks.automation.manage'),
+  ('partner', 'tasks.escalation.read'),
+  ('partner', 'tasks.escalation.manage'),
+  ('partner', 'tasks.ai.read'),
+  ('partner', 'tasks.ai.manage')
+ON CONFLICT DO NOTHING;
+
+-- Manager gets templates access only
+INSERT INTO role_permissions (role, permission_key) VALUES
+  ('manager', 'tasks.templates.read'),
+  ('manager', 'tasks.templates.create'),
+  ('manager', 'tasks.templates.update')
+ON CONFLICT DO NOTHING;
+```
+
+### Step 4: Update TaskManagement.tsx Permission Checks
+Align the permission check keys to match the database format:
 
 ```typescript
-import { useAdvancedRBAC, ProtectedComponent } from '@/hooks/useAdvancedRBAC';
-
-// In the component:
-const { hasPermission } = useAdvancedRBAC();
-
+// Current (code-only format)
 const canAccessAutomation = hasPermission('tasks.automation', 'admin');
-const canAccessEscalation = hasPermission('tasks.escalation', 'admin');
+
+// Updated (database-aligned format)
+const canAccessAutomation = hasPermission('tasks.automation', 'manage');
+const canAccessEscalation = hasPermission('tasks.escalation', 'manage');
 const canAccessTemplates = hasPermission('tasks.templates', 'read');
-const canAccessAI = hasPermission('tasks.ai', 'admin');
-
-// In TabsList - conditionally render tabs:
-<TabsTrigger value="board">Board</TabsTrigger>
-{canAccessAutomation && (
-  <TabsTrigger value="automation">Automation</TabsTrigger>
-)}
-{canAccessEscalation && (
-  <TabsTrigger value="escalation">Escalation</TabsTrigger>
-)}
-{canAccessTemplates && (
-  <TabsTrigger value="templates">Templates</TabsTrigger>
-)}
-<TabsTrigger value="analytics">Analytics</TabsTrigger>
-<TabsTrigger value="insights">Insights</TabsTrigger>
-{canAccessAI && (
-  <TabsTrigger value="ai-assistant">AI Assistant</TabsTrigger>
-)}
-<TabsTrigger value="collaboration">Collaboration</TabsTrigger>
-
-// Also protect the TabsContent to prevent URL parameter bypass
+const canAccessAI = hasPermission('tasks.ai', 'manage');
 ```
 
-### Step 5: Handle Default Tab Selection
-If a user's current tab becomes restricted, redirect to the first available tab:
+### Step 5: Update supabasePermissionsResolver Module Aliases
+Ensure the resolver properly maps the new sub-module permissions:
 
 ```typescript
-useEffect(() => {
-  const restrictedTabs = {
-    automation: canAccessAutomation,
-    escalation: canAccessEscalation,
-    templates: canAccessTemplates,
-    'ai-assistant': canAccessAI
-  };
-  
-  if (activeTab in restrictedTabs && !restrictedTabs[activeTab]) {
-    setActiveTab('board');
-  }
-}, [activeTab, canAccessAutomation, canAccessEscalation, canAccessTemplates, canAccessAI]);
+private static moduleAliases: Record<string, string> = {
+  // ... existing aliases ...
+  'tasks.templates': 'tasks.templates',
+  'tasks.automation': 'tasks.automation',
+  'tasks.escalation': 'tasks.escalation',
+  'tasks.ai': 'tasks.ai',
+};
 ```
 
 ---
@@ -129,42 +134,42 @@ useEffect(() => {
 
 | File | Changes |
 |------|---------|
-| `src/services/rbacService.ts` | Add `tasks.templates`, `tasks.automation`, `tasks.escalation`, `tasks.ai` permissions |
-| `src/hooks/useAdvancedRBAC.tsx` | No changes needed - uses existing permission checking |
-| `src/components/tasks/TaskManagement.tsx` | Add permission checks for tab visibility and content protection |
-| `src/services/supabasePermissionsResolver.ts` | Add permission mappings for new sub-modules |
+| Database Migration | Insert new permissions into `permissions` table |
+| Database Migration | Insert default role_permissions for admin/partner/manager |
+| `src/components/admin/RolePermissionEditor.tsx` | Add MODULE_LABELS for task sub-modules |
+| `src/components/tasks/TaskManagement.tsx` | Update permission check action names |
+| `src/services/supabasePermissionsResolver.ts` | Verify module alias mappings |
 
 ---
 
-## Access & Roles UI Update
+## Expected Result After Implementation
 
-Add the new task sub-permissions to the RBAC configuration interface so administrators can customize:
+The Edit Permissions dialog will show:
 
+```text
+Tasks                     4/4
+├─ Create  Delete  View  Edit
+
+Task Templates            0/4
+├─ Create  Delete  View  Edit
+
+Task Automation           0/2
+├─ View    Manage
+
+Task Escalation           0/2
+├─ View    Manage
+
+Task AI Assistant         0/2
+├─ View    Manage
 ```
-TASKS MODULE
-├─ tasks (base module)
-│   ├─ read  - View task board and list
-│   ├─ write - Create/edit tasks
-│   ├─ delete - Remove tasks
-│   └─ admin - Full task management
-├─ tasks.templates
-│   ├─ read  - View templates
-│   └─ write - Create/edit templates
-├─ tasks.automation
-│   └─ admin - Configure automation bundles
-├─ tasks.escalation
-│   └─ admin - Configure escalation matrix
-└─ tasks.ai
-    └─ admin - Configure AI assistant
-```
 
----
+- **Admin role**: All task sub-module permissions selected by default
+- **Partner role**: All task sub-module permissions selected by default
+- **Manager role**: Templates read/create/update only
+- **User/Staff role**: Base tasks only, no sub-modules
+- **Client role**: No task permissions
 
-## Summary
-
-This implementation ensures:
-1. **Security**: Critical configuration tabs (Automation, Escalation, AI) are admin-only
-2. **Usability**: Standard users can still view analytics and collaborate
-3. **Flexibility**: Managers can manage templates without full admin access
-4. **Governance**: All access is auditable through RBAC system
-5. **Fail-safe**: URL parameter bypass is prevented by protecting TabsContent
+This aligns with the originally approved tiered access model:
+- Standard Access (Board, Analytics, Insights, Collaboration): Available to all with base `tasks:read`
+- Manager+ Access (Templates): Requires `tasks.templates:read`
+- Admin/Partner Only (Automation, Escalation, AI): Requires `tasks.automation:manage`, `tasks.escalation:manage`, `tasks.ai:manage`
