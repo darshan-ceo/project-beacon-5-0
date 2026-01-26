@@ -2802,6 +2802,36 @@
             "content": "Update your avatar, password, notification preferences, and display settings. Changes apply to your account only."
           },
           "accessibility": { "ariaLabel": "Profile settings" }
+        },
+        {
+          "id": "portal_case_status",
+          "label": "Case Status",
+          "explanation": "Track your case progress",
+          "tooltip": {
+            "title": "Case Status",
+            "content": "Shows the current stage of your case, next important date, and assigned advocate. Click the case card to see full details and timeline."
+          },
+          "accessibility": { "ariaLabel": "Case status indicator" }
+        },
+        {
+          "id": "portal_documents",
+          "label": "Shared Documents",
+          "explanation": "Files shared with you",
+          "tooltip": {
+            "title": "Shared Documents",
+            "content": "View and download documents related to your case. Documents are organized by type: notices, submissions, orders, and correspondence."
+          },
+          "accessibility": { "ariaLabel": "Shared documents section" }
+        },
+        {
+          "id": "portal_hearings",
+          "label": "Hearing Schedule",
+          "explanation": "Upcoming court dates",
+          "tooltip": {
+            "title": "Hearing Schedule",
+            "content": "View scheduled hearings for your cases. Includes date, time, location, and purpose. You'll receive reminders before each hearing."
+          },
+          "accessibility": { "ariaLabel": "Hearing schedule" }
         }
       ]
     }

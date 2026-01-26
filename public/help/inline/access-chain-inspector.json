@@ -1,0 +1,256 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2025-01-26",
+  "componentId": "access-chain-inspector",
+  "title": "Access Chain Inspector",
+  "description": "Understand how visibility is calculated for any user based on their role, data scope, and hierarchy position.",
+
+  "overview": {
+    "whatIsThis": "The Access Chain Inspector is a diagnostic tool that shows exactly why a user can or cannot see specific data. It traces the complete access decision path from role → data scope → hierarchy → final visibility.",
+    "whyItMatters": "When users report 'I can't see this case' or 'Why can my team member see X?', this tool provides the definitive answer by showing the complete access calculation.",
+    "whoCanUse": ["Admin", "Partner"]
+  },
+
+  "sections": [
+    {
+      "id": "user-summary",
+      "title": "User Summary Panel",
+      "description": "Top section showing the selected user's basic access profile",
+      "fields": [
+        {
+          "field": "Current Role",
+          "meaning": "The user's assigned role from Access & Roles → Assignments",
+          "example": "Manager"
+        },
+        {
+          "field": "Data Scope",
+          "meaning": "The visibility scope: Own Cases, Team Cases, or All Cases",
+          "example": "Team Cases"
+        },
+        {
+          "field": "Reports To",
+          "meaning": "Who this user reports to in the hierarchy (affects Team Cases calculation)",
+          "example": "Jane Partner"
+        },
+        {
+          "field": "Direct Reports",
+          "meaning": "Number of people reporting to this user (their team for Team Cases scope)",
+          "example": "5 team members"
+        }
+      ]
+    },
+    {
+      "id": "visibility-calculation",
+      "title": "Visibility Calculation",
+      "description": "Shows the step-by-step logic for determining what data the user can access",
+      "steps": [
+        {
+          "step": 1,
+          "name": "Role Check",
+          "description": "Verifies user has permission to access the module at all",
+          "possibleResults": ["Access Granted", "Access Denied"],
+          "example": "cases.read = true → Proceed"
+        },
+        {
+          "step": 2,
+          "name": "Data Scope Evaluation",
+          "description": "Determines which records to include based on scope setting",
+          "possibleResults": [
+            {
+              "scope": "Own Cases",
+              "logic": "Records where user is owner OR assigned"
+            },
+            {
+              "scope": "Team Cases",
+              "logic": "Own Cases + Records assigned to anyone in user's team tree"
+            },
+            {
+              "scope": "All Cases",
+              "logic": "All records in the tenant (no filtering)"
+            }
+          ]
+        },
+        {
+          "step": 3,
+          "name": "Team Tree Expansion",
+          "description": "For Team Cases scope, shows which users are included in the team",
+          "details": "Recursively includes: direct reports → their reports → and so on"
+        },
+        {
+          "step": 4,
+          "name": "Final Count",
+          "description": "Shows total visible records after all filters applied"
+        }
+      ]
+    },
+    {
+      "id": "team-tree-view",
+      "title": "Team Tree Visualization",
+      "description": "Visual representation of the user's hierarchy tree for Team Cases scope",
+      "explanation": {
+        "self": "The user being inspected (always included in their own view)",
+        "directReports": "People who have 'Reports To' set to this user",
+        "indirectReports": "People reporting to direct reports (recursive)",
+        "manager": "Who this user reports to (included if checking 'what manager sees')"
+      },
+      "example": {
+        "user": "Manager A",
+        "tree": [
+          "Manager A (self)",
+          "├── Advocate B (direct report)",
+          "│   └── Staff C (indirect report)",
+          "└── Advocate D (direct report)"
+        ],
+        "result": "With Team Cases scope, Manager A sees cases assigned to: A, B, C, and D"
+      }
+    },
+    {
+      "id": "test-case-visibility",
+      "title": "Test Specific Case",
+      "description": "Check whether the user can see a specific case and why",
+      "howToUse": [
+        "Enter a case number or select from the dropdown",
+        "The inspector shows the access decision chain",
+        "Green checkmarks indicate passing conditions",
+        "Red X marks indicate blocking conditions"
+      ],
+      "exampleResult": {
+        "case": "GST-2024-0001",
+        "userChecked": "Manager A",
+        "result": "VISIBLE",
+        "reasoning": [
+          "✓ cases.read permission granted via Manager role",
+          "✓ Data scope: Team Cases",
+          "✓ Case assigned to: Advocate B",
+          "✓ Advocate B is in Manager A's team tree",
+          "Result: Visible"
+        ]
+      },
+      "exampleNotVisible": {
+        "case": "GST-2024-0099",
+        "userChecked": "Manager A",
+        "result": "NOT VISIBLE",
+        "reasoning": [
+          "✓ cases.read permission granted via Manager role",
+          "✓ Data scope: Team Cases",
+          "✗ Case assigned to: Advocate X",
+          "✗ Advocate X is NOT in Manager A's team tree",
+          "Result: Not Visible"
+        ]
+      }
+    },
+    {
+      "id": "comparison-mode",
+      "title": "Compare Two Users",
+      "description": "Side-by-side comparison of what two users can see",
+      "useCase": "Debugging why two similar-role users have different visibility",
+      "compares": [
+        "Role assignments",
+        "Data scope settings",
+        "Team tree membership",
+        "Resulting record counts"
+      ],
+      "commonFindings": [
+        {
+          "symptom": "Same role, different visibility",
+          "likelyCause": "Different data scope settings"
+        },
+        {
+          "symptom": "Team Cases but zero visibility",
+          "likelyCause": "No one has 'Reports To' set to this user"
+        },
+        {
+          "symptom": "Manager sees fewer cases than expected",
+          "likelyCause": "Some team members' 'Reports To' not set correctly"
+        }
+      ]
+    }
+  ],
+
+  "troubleshootingGuide": {
+    "title": "Common Issues and Solutions",
+    "issues": [
+      {
+        "issue": "User reports 'I can't see any cases'",
+        "checkWith": "Access Chain Inspector",
+        "possibleCauses": [
+          "Role doesn't have cases.read permission",
+          "Data scope is 'Own Cases' but no cases assigned to user",
+          "Data scope is 'Team Cases' but no team members defined"
+        ],
+        "solution": "Check each step in the visibility calculation; fix the failing condition"
+      },
+      {
+        "issue": "Manager can't see team's cases",
+        "checkWith": "Team Tree Visualization",
+        "possibleCauses": [
+          "Data scope not set to 'Team Cases'",
+          "Team members don't have 'Reports To' set to this manager",
+          "Intermediate hierarchy level missing"
+        ],
+        "solution": "Verify each team member's 'Reports To' in Employee Master"
+      },
+      {
+        "issue": "User sees too many cases",
+        "checkWith": "Visibility Calculation",
+        "possibleCauses": [
+          "Data scope accidentally set to 'All Cases'",
+          "User has admin role granting full access",
+          "Team tree includes unintended members"
+        ],
+        "solution": "Review data scope setting; check if role grants admin access"
+      },
+      {
+        "issue": "Different visibility after role change",
+        "checkWith": "Comparison Mode",
+        "possibleCauses": [
+          "New role has different base permissions",
+          "Data scope was reset during role change",
+          "Hierarchy position changed affecting Team Cases"
+        ],
+        "solution": "Compare before/after using Comparison Mode; adjust scope if needed"
+      }
+    ]
+  },
+
+  "bestPractices": {
+    "title": "Best Practices for Using the Inspector",
+    "practices": [
+      {
+        "practice": "Use before making changes",
+        "reason": "Understand current state to predict impact of changes"
+      },
+      {
+        "practice": "Test with specific cases",
+        "reason": "Generic counts can hide edge cases; test the actual disputed record"
+      },
+      {
+        "practice": "Check team tree first for Team Cases issues",
+        "reason": "90% of Team Cases visibility problems are hierarchy misconfigurations"
+      },
+      {
+        "practice": "Compare users when debugging discrepancies",
+        "reason": "Quickly identify which setting differs between similar users"
+      },
+      {
+        "practice": "Document findings for user communication",
+        "reason": "Screenshots from inspector clearly explain 'why' to end users"
+      }
+    ]
+  },
+
+  "relatedFeatures": [
+    {
+      "feature": "Permission Matrix",
+      "relationship": "Shows role-level permissions; Inspector applies them to specific user"
+    },
+    {
+      "feature": "Team Hierarchy",
+      "relationship": "Defines the team tree that Inspector uses for Team Cases calculation"
+    },
+    {
+      "feature": "Audit Log",
+      "relationship": "Shows historical access; Inspector shows current access state"
+    }
+  ]
+}

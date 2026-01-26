@@ -147,6 +147,18 @@
       "requiredOperations": null,
       "requiredPagesHelp": "profile.json",
       "requiredFAQTopics": ["account"]
+    },
+    "client-portal": {
+      "name": "Client Portal",
+      "requiredTooltips": [
+        "portal_case_status",
+        "portal_documents",
+        "portal_hearings"
+      ],
+      "requiredTours": ["client-portal-tour"],
+      "requiredOperations": null,
+      "requiredPagesHelp": "client-portal.json",
+      "requiredFAQTopics": ["portal-access", "portal-documents"]
     }
   },
   "enforcement": {

@@ -1,5 +1,52 @@
 {
   "lastUpdated": "2025-01-26",
+  "client": {
+    "title": "Client Portal Onboarding",
+    "description": "Learn how to use the portal to track your cases and access documents",
+    "duration": "~10 minutes",
+    "steps": [
+      {
+        "id": "portal-login",
+        "type": "article",
+        "title": "Logging Into the Portal",
+        "description": "Access your secure client portal",
+        "required": true,
+        "estimatedMinutes": 2
+      },
+      {
+        "id": "view-cases",
+        "type": "article",
+        "title": "Viewing Your Cases",
+        "description": "Track the progress of your legal matters",
+        "required": true,
+        "estimatedMinutes": 3
+      },
+      {
+        "id": "download-docs",
+        "type": "article",
+        "title": "Accessing Documents",
+        "description": "View and download shared documents",
+        "required": true,
+        "estimatedMinutes": 2
+      },
+      {
+        "id": "hearing-schedule",
+        "type": "article",
+        "title": "Hearing Schedule",
+        "description": "View upcoming hearings and outcomes",
+        "required": false,
+        "estimatedMinutes": 2
+      },
+      {
+        "id": "portal-support",
+        "type": "article",
+        "title": "Getting Help",
+        "description": "Contact your legal team for assistance",
+        "required": false,
+        "estimatedMinutes": 1
+      }
+    ]
+  },
   "staff": {
     "title": "Staff Onboarding",
     "description": "Learn the essentials for daily case management work",
