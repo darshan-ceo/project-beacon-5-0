@@ -418,7 +418,14 @@ class HelpDiscoveryService {
       'settings': '/settings',
       'access-roles': '/settings/access-roles',
       'communications': '/communications',
-      'reports': '/reports'
+      'reports': '/reports',
+      'template_builder_2_0': '/documents?tab=templates&openTemplateBuilder=1',
+      'template-builder': '/documents?tab=templates&openTemplateBuilder=1',
+      'timeline': '/cases',
+      'ai-assistant': '/ai-assistant',
+      'client-portal': '/client-portal',
+      'masters': '/masters',
+      'data-io': '/data-io'
     };
 
     const path = moduleLocations[module];

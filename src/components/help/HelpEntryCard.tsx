@@ -86,13 +86,24 @@ export const HelpEntryCard: React.FC<HelpEntryCardProps> = ({
   };
 
   const handleClick = () => {
+    // Always use onSelect if provided (opens detail dialog)
     if (onSelect) {
       onSelect(entry);
-    } else if (entry.source === 'article' && entry.uiLocation?.path) {
+      return;
+    }
+    
+    // Fallback behavior when no onSelect handler
+    if (entry.source === 'article' && entry.uiLocation?.path) {
       navigate(entry.uiLocation.path);
     } else if (entry.source === 'tour') {
-      // Could trigger tour start here
       console.log('[HelpEntry] Start tour:', entry.id);
+    } else if (entry.uiLocation?.path) {
+      // For tooltips, operations, etc. - navigate to the feature
+      navigateAndHighlight({
+        path: entry.uiLocation.path,
+        tab: entry.uiLocation.tab,
+        element: entry.uiLocation.element
+      });
     }
   };
 

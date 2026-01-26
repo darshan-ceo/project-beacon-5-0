@@ -3,11 +3,11 @@
  * Unified search and discovery interface for all help content
  */
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -18,15 +18,9 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger
-} from '@/components/ui/collapsible';
-import {
   Search,
   Filter,
   X,
-  ChevronDown,
   Sparkles,
   BookOpen,
   Layers,
@@ -35,6 +29,7 @@ import {
   Lightbulb
 } from 'lucide-react';
 import { HelpEntryCard } from './HelpEntryCard';
+import { HelpDetailDialog } from './HelpDetailDialog';
 import { helpDiscoveryService, type HelpEntry, type FilterOptions } from '@/services/helpDiscoveryService';
 import { cn } from '@/lib/utils';
 
@@ -77,6 +72,15 @@ export const HelpDiscoveryHub: React.FC<HelpDiscoveryHubProps> = ({
   const [selectedModules, setSelectedModules] = useState<string[]>([]);
   const [showNewOnly, setShowNewOnly] = useState(false);
   const [sortBy, setSortBy] = useState<'relevance' | 'date' | 'module'>('relevance');
+  
+  // Detail dialog state
+  const [selectedEntry, setSelectedEntry] = useState<HelpEntry | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const handleEntrySelect = (entry: HelpEntry) => {
+    setSelectedEntry(entry);
+    setDialogOpen(true);
+  };
 
   // Initialize and load initial data
   useEffect(() => {
@@ -359,11 +363,22 @@ export const HelpDiscoveryHub: React.FC<HelpDiscoveryHubProps> = ({
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {results.map(entry => (
-              <HelpEntryCard key={entry.id} entry={entry} />
+              <HelpEntryCard 
+                key={entry.id} 
+                entry={entry} 
+                onSelect={handleEntrySelect}
+              />
             ))}
           </div>
         )}
       </div>
+
+      {/* Help Detail Dialog */}
+      <HelpDetailDialog
+        entry={selectedEntry}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
     </div>
   );
 };
