@@ -44,11 +44,30 @@ export const HelpCenter: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState('discover');
   const [showTours, setShowTours] = useState(false);
   const [moduleHelpContent, setModuleHelpContent] = useState<any>({});
+  const [changelogIds, setChangelogIds] = useState<string[]>([]);
   const { getUnreadChangelogCount } = useLearningProgress();
 
   const userRole = currentUser?.role || 'Staff';
+  const unreadCount = getUnreadChangelogCount(changelogIds);
 
   console.log('[help-fix] Help Center initialized with feature flags');
+
+  // Load changelog IDs for unread count
+  useEffect(() => {
+    const loadChangelogIds = async () => {
+      try {
+        const response = await fetch('/help/changelog.json');
+        if (response.ok) {
+          const data = await response.json();
+          const ids = (data.entries || []).map((e: any) => e.id);
+          setChangelogIds(ids);
+        }
+      } catch (error) {
+        console.error('Failed to load changelog:', error);
+      }
+    };
+    loadChangelogIds();
+  }, []);
 
   // Handle deep-link query parameters
   useEffect(() => {
@@ -144,12 +163,12 @@ export const HelpCenter: React.FC = () => {
   const availableTabs = useMemo(() => {
     return [
       { id: 'discover', label: 'Discover', icon: Compass, badge: null },
-      { id: 'whats-new', label: "What's New", icon: Sparkles, badge: null },
+      { id: 'whats-new', label: "What's New", icon: Sparkles, badge: unreadCount > 0 ? unreadCount : null },
       { id: 'onboarding', label: 'Get Started', icon: GraduationCap, badge: null },
       { id: 'modules', label: 'Modules', icon: Layers, badge: null },
       { id: 'glossary', label: 'Glossary', icon: BookOpen, badge: null }
     ];
-  }, []);
+  }, [unreadCount]);
 
   const quickActions = [
     {
