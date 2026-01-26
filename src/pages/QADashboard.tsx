@@ -14,7 +14,8 @@ import {
   Settings,
   Database,
   Zap,
-  Shield
+  Shield,
+  BookOpen
 } from 'lucide-react';
 import { envConfig } from '@/utils/envConfig';
 import { SmokeTestSuite } from '@/components/qa/SmokeTestSuite';
@@ -22,6 +23,7 @@ import { ErrorBoundary } from '@/components/qa/ErrorBoundary';
 import { EnvironmentStatus } from '@/components/qa/EnvironmentStatus';
 import { GSTMonitoringPanel } from '@/components/qa/GSTMonitoringPanel';
 import { StorageManagerPanel } from '@/components/qa/StorageManagerPanel';
+import { HelpCoverageAudit } from '@/components/help/HelpCoverageAudit';
 import { toast } from '@/hooks/use-toast';
 
 export const QADashboard: React.FC = () => {
@@ -204,8 +206,12 @@ export const QADashboard: React.FC = () => {
         )}
 
         <Tabs defaultValue="tests" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-1 p-1 h-auto">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 lg:grid-cols-9 gap-1 p-1 h-auto">
             <TabsTrigger value="tests" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Smoke Tests</TabsTrigger>
+            <TabsTrigger value="help-coverage" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap flex items-center gap-1">
+              <BookOpen className="h-3 w-3" />
+              Help Coverage
+            </TabsTrigger>
             <TabsTrigger value="storage" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Storage Manager</TabsTrigger>
             <TabsTrigger value="task-bundles" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">Task Bundles</TabsTrigger>
             <TabsTrigger value="gst-monitoring" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">GST Monitoring</TabsTrigger>
@@ -217,6 +223,10 @@ export const QADashboard: React.FC = () => {
 
           <TabsContent value="tests" className="mt-6">
             <SmokeTestSuite results={testResults} lastRun={lastRun} />
+          </TabsContent>
+
+          <TabsContent value="help-coverage" className="mt-6">
+            <HelpCoverageAudit />
           </TabsContent>
 
           <TabsContent value="storage" className="mt-6">
