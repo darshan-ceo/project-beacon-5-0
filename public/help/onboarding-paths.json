@@ -1,0 +1,234 @@
+{
+  "lastUpdated": "2025-01-26",
+  "staff": {
+    "title": "Staff Onboarding",
+    "description": "Learn the essentials for daily case management work",
+    "duration": "~30 minutes",
+    "steps": [
+      {
+        "id": "staff-welcome",
+        "type": "article",
+        "title": "Welcome to the System",
+        "description": "Quick overview of the platform and your role",
+        "required": true,
+        "estimatedMinutes": 3
+      },
+      {
+        "id": "dashboard-tour",
+        "type": "tour",
+        "title": "Dashboard Orientation",
+        "description": "Navigate the main dashboard and key metrics",
+        "required": true,
+        "estimatedMinutes": 5
+      },
+      {
+        "id": "case-operations-tour",
+        "type": "tour",
+        "title": "Case Management Basics",
+        "description": "Learn to view, search, and update cases",
+        "required": true,
+        "estimatedMinutes": 8
+      },
+      {
+        "id": "daily-workflow-tour",
+        "type": "tour",
+        "title": "Daily Workflow",
+        "description": "Master your daily task management routine",
+        "required": true,
+        "estimatedMinutes": 7
+      },
+      {
+        "id": "document-upload",
+        "type": "article",
+        "title": "Document Management",
+        "description": "Upload, organize, and share documents",
+        "required": false,
+        "estimatedMinutes": 5
+      }
+    ]
+  },
+  "advocate": {
+    "title": "Advocate Onboarding",
+    "description": "Comprehensive training for legal professionals",
+    "duration": "~45 minutes",
+    "inherit": "staff",
+    "steps": [
+      {
+        "id": "hearing-lifecycle-tour",
+        "type": "tour",
+        "title": "Hearing Management",
+        "description": "Schedule, prepare for, and record hearing outcomes",
+        "required": true,
+        "estimatedMinutes": 8
+      },
+      {
+        "id": "ai-assistant-guide",
+        "type": "article",
+        "title": "AI Assistant for Legal Work",
+        "description": "Use AI for drafting, research, and analysis",
+        "required": true,
+        "estimatedMinutes": 6
+      },
+      {
+        "id": "timeline-navigation",
+        "type": "article",
+        "title": "Case Timeline Mastery",
+        "description": "Navigate and use case history effectively",
+        "required": false,
+        "estimatedMinutes": 4
+      }
+    ]
+  },
+  "manager": {
+    "title": "Manager Onboarding",
+    "description": "Team leadership and workflow optimization",
+    "duration": "~60 minutes",
+    "inherit": "advocate",
+    "steps": [
+      {
+        "id": "task-automation-tour",
+        "type": "tour",
+        "title": "Task Automation Setup",
+        "description": "Configure automation rules and escalations",
+        "required": true,
+        "estimatedMinutes": 10
+      },
+      {
+        "id": "team-management",
+        "type": "article",
+        "title": "Team Workload Management",
+        "description": "Monitor and balance team assignments",
+        "required": true,
+        "estimatedMinutes": 5
+      },
+      {
+        "id": "sla-monitoring",
+        "type": "article",
+        "title": "SLA Compliance Monitoring",
+        "description": "Track and prevent deadline breaches",
+        "required": true,
+        "estimatedMinutes": 5
+      },
+      {
+        "id": "reports-overview",
+        "type": "article",
+        "title": "Reports and Analytics",
+        "description": "Generate insights from case data",
+        "required": false,
+        "estimatedMinutes": 6
+      }
+    ]
+  },
+  "partner": {
+    "title": "Partner Onboarding",
+    "description": "Strategic oversight and governance",
+    "duration": "~75 minutes",
+    "inherit": "manager",
+    "steps": [
+      {
+        "id": "analytics-deep-dive",
+        "type": "article",
+        "title": "Analytics Dashboard",
+        "description": "Strategic metrics and trend analysis",
+        "required": true,
+        "estimatedMinutes": 8
+      },
+      {
+        "id": "client-portfolio",
+        "type": "article",
+        "title": "Client Portfolio Management",
+        "description": "Overview of client relationships and cases",
+        "required": true,
+        "estimatedMinutes": 6
+      },
+      {
+        "id": "quality-review",
+        "type": "article",
+        "title": "Quality Review Workflows",
+        "description": "Approve and review critical case actions",
+        "required": false,
+        "estimatedMinutes": 5
+      }
+    ]
+  },
+  "admin": {
+    "title": "Administrator Onboarding",
+    "description": "Complete system configuration and governance",
+    "duration": "~90 minutes",
+    "inherit": "partner",
+    "steps": [
+      {
+        "id": "system-settings-tour",
+        "type": "tour",
+        "title": "System Configuration",
+        "description": "Configure system-wide settings",
+        "required": true,
+        "estimatedMinutes": 10
+      },
+      {
+        "id": "access-roles-tour",
+        "type": "tour",
+        "title": "Access & Roles Management",
+        "description": "Configure permissions and user roles",
+        "required": true,
+        "estimatedMinutes": 12
+      },
+      {
+        "id": "master-data-governance",
+        "type": "article",
+        "title": "Master Data Governance",
+        "description": "Manage courts, judges, and reference data",
+        "required": true,
+        "estimatedMinutes": 8
+      },
+      {
+        "id": "security-best-practices",
+        "type": "article",
+        "title": "Security Best Practices",
+        "description": "Protect your organization's data",
+        "required": true,
+        "estimatedMinutes": 6
+      }
+    ]
+  },
+  "implementor": {
+    "title": "Implementor Onboarding",
+    "description": "Full platform setup and configuration",
+    "duration": "~120 minutes",
+    "inherit": "admin",
+    "steps": [
+      {
+        "id": "initial-setup-guide",
+        "type": "article",
+        "title": "Initial System Setup",
+        "description": "Complete platform configuration checklist",
+        "required": true,
+        "estimatedMinutes": 15
+      },
+      {
+        "id": "data-migration",
+        "type": "article",
+        "title": "Data Migration Guide",
+        "description": "Import existing data safely",
+        "required": true,
+        "estimatedMinutes": 10
+      },
+      {
+        "id": "integration-setup",
+        "type": "article",
+        "title": "Integration Configuration",
+        "description": "Connect external systems and APIs",
+        "required": false,
+        "estimatedMinutes": 8
+      },
+      {
+        "id": "user-training-guide",
+        "type": "article",
+        "title": "User Training Resources",
+        "description": "Train your organization's users",
+        "required": false,
+        "estimatedMinutes": 5
+      }
+    ]
+  }
+}
