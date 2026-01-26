@@ -1,0 +1,374 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2025-11-03",
+  "masterId": "employees",
+  "title": "Employees Master",
+  "subtitle": "Team Management, Roles, and Access Control",
+  "icon": "UserCog",
+  "securityLevel": "ADMIN_ONLY",
+  
+  "roleInLitigation": {
+    "summary": "Employees are the users who work cases, tasks, and hearings. This master controls WHO can do WHAT across the entire system - roles, permissions, data visibility, and team hierarchy.",
+    "lifecycle": [
+      {
+        "stage": "Case Assignment",
+        "role": "Employees are assigned as case owners or team members",
+        "impact": "Missing employee = unassigned cases, orphaned work"
+      },
+      {
+        "stage": "Task Routing",
+        "role": "Tasks are assigned to employees for execution",
+        "impact": "Inactive employee = tasks stuck, no notifications"
+      },
+      {
+        "stage": "Access Control",
+        "role": "Role and data_scope determine what employee can see and do",
+        "impact": "Wrong permissions = security breaches or blocked workflows"
+      },
+      {
+        "stage": "Team Visibility",
+        "role": "Hierarchy (reporting_to) determines Team Cases visibility",
+        "impact": "Broken hierarchy = Team Cases shows nothing or too much"
+      },
+      {
+        "stage": "Audit Trail",
+        "role": "All actions logged with employee ID for accountability",
+        "impact": "Deleted employee = audit trail loses actor identity"
+      }
+    ],
+    "businessValue": "Correct employee configuration ensures secure access, proper work distribution, accurate visibility, and complete audit trails."
+  },
+  
+  "systemDependencies": {
+    "description": "Employees are central to the entire system. Nearly every entity references employee IDs.",
+    "dependencies": [
+      {
+        "entity": "Cases",
+        "relationship": "case.assigned_to, case.owner_id FK",
+        "usage": "Case ownership and assignment determines responsibility",
+        "impactOfBadData": "Cases orphaned, no one receives updates"
+      },
+      {
+        "entity": "Tasks",
+        "relationship": "task.assigned_to_id FK",
+        "usage": "Task routing and notifications",
+        "impactOfBadData": "Tasks unassigned, SLA tracking fails"
+      },
+      {
+        "entity": "RBAC (Role-Based Access)",
+        "relationship": "user_roles.user_id FK",
+        "usage": "Permission checks for every action",
+        "impactOfBadData": "Access denied errors or over-privileged access"
+      },
+      {
+        "entity": "Team Hierarchy",
+        "relationship": "employee.reporting_to FK (self-reference)",
+        "usage": "Calculates Team Cases visibility chain",
+        "impactOfBadData": "Circular hierarchy = infinite loop, missing manager = root node"
+      },
+      {
+        "entity": "Notifications",
+        "relationship": "Employee email for delivery",
+        "usage": "Deadline reminders, task assignments, alerts",
+        "impactOfBadData": "Failed delivery, missed critical updates"
+      },
+      {
+        "entity": "Audit Log",
+        "relationship": "audit_log.user_id FK",
+        "usage": "Who did what for compliance",
+        "impactOfBadData": "Cannot trace actor if employee deleted"
+      },
+      {
+        "entity": "Time Tracking",
+        "relationship": "time_entries.employee_id FK",
+        "usage": "Billable hours and workload analysis",
+        "impactOfBadData": "Billing inaccurate, workload reports wrong"
+      }
+    ]
+  },
+  
+  "dataScopeDeep": {
+    "description": "data_scope is THE critical field controlling what data employee sees",
+    "scopes": [
+      {
+        "scope": "OWN",
+        "label": "Own Cases",
+        "visibility": "Only cases where employee is assigned_to or owner_id",
+        "useCase": "Individual contributors, staff who work on specific assignments",
+        "recommendation": "Default for Staff and Advocate roles"
+      },
+      {
+        "scope": "TEAM",
+        "label": "Team Cases",
+        "visibility": "Own cases PLUS cases of all direct and indirect reports",
+        "useCase": "Managers who need to oversee their team's work",
+        "recommendation": "Default for Manager role, requires reporting_to hierarchy",
+        "hierarchyNote": "Uses reporting_to chain to calculate visibility"
+      },
+      {
+        "scope": "ALL",
+        "label": "All Cases",
+        "visibility": "Every case in the tenant regardless of assignment",
+        "useCase": "Partners, Admins, Operations who need firm-wide view",
+        "recommendation": "Default for Partner and Admin roles",
+        "securityNote": "Use sparingly, creates broad access"
+      }
+    ],
+    "commonMistakes": [
+      "Partner with OWN scope = can't see firm's cases",
+      "Staff with ALL scope = unnecessary broad access",
+      "Manager without team hierarchy = TEAM scope shows nothing extra"
+    ]
+  },
+  
+  "dataQualityRisks": [
+    {
+      "risk": "Circular Hierarchy",
+      "severity": "CRITICAL",
+      "cause": "A reports to B, B reports to A (directly or indirectly)",
+      "consequence": "Infinite loop in Team Cases calculation, system hangs or errors",
+      "prevention": "Validation trigger on save, hierarchy visualization review",
+      "remediation": "Break cycle by reassigning one manager, run hierarchy validation"
+    },
+    {
+      "risk": "Missing Manager Assignment",
+      "severity": "HIGH",
+      "cause": "No reporting_to set for non-Partner roles",
+      "consequence": "Employee appears as root node, TEAM scope sees no additional data",
+      "prevention": "Require reporting_to for Manager, Advocate, Staff roles",
+      "remediation": "Assign to appropriate manager, review hierarchy"
+    },
+    {
+      "risk": "Stale Email Address",
+      "severity": "HIGH",
+      "cause": "Employee leaves or email changes, record not updated",
+      "consequence": "Notifications fail, critical updates not delivered",
+      "prevention": "Deactivate on exit (don't delete), update email promptly",
+      "remediation": "Update email or deactivate employee immediately"
+    },
+    {
+      "risk": "Over-Privileged Access",
+      "severity": "CRITICAL",
+      "cause": "Too many users with Admin or Partner role",
+      "consequence": "Security risk, audit complications, accidental data changes",
+      "prevention": "Limit Admin to 2-3 users, review role assignments quarterly",
+      "remediation": "Downgrade roles to appropriate level"
+    },
+    {
+      "risk": "Wrong Data Scope",
+      "severity": "HIGH",
+      "cause": "Partner with OWN scope or Staff with ALL scope",
+      "consequence": "Can't see required data OR sees too much data",
+      "prevention": "Follow recommended scope per role type",
+      "remediation": "Correct data_scope based on business need"
+    },
+    {
+      "risk": "Orphaned Cases After Exit",
+      "severity": "HIGH",
+      "cause": "Employee leaves without reassigning cases/tasks",
+      "consequence": "Work items stuck, deadlines missed",
+      "prevention": "Offboarding checklist includes reassignment step",
+      "remediation": "Run orphaned work report, reassign to active employees"
+    }
+  ],
+  
+  "managementRoles": {
+    "Admin": {
+      "permissions": ["Full CRUD", "Role assignment", "Module access", "Deactivation", "Hierarchy management"],
+      "responsibilities": [
+        "Employee onboarding and offboarding",
+        "Role and permission management",
+        "Hierarchy configuration",
+        "Quarterly access reviews"
+      ],
+      "restrictions": ["Cannot delete own Admin access", "Cannot create circular hierarchy"]
+    },
+    "Partner": {
+      "permissions": ["View all employees", "Limited edit (contact info)"],
+      "responsibilities": [
+        "Report team changes to Admin",
+        "Approve role change requests"
+      ],
+      "restrictions": ["Cannot modify roles or permissions", "No delete access"]
+    },
+    "HR Admin (if applicable)": {
+      "permissions": ["Edit contact info", "Update personal details"],
+      "responsibilities": [
+        "Maintain employee contact information",
+        "Update when personnel changes occur"
+      ],
+      "restrictions": ["Cannot change roles, permissions, or hierarchy"]
+    },
+    "Implementor": {
+      "permissions": ["Full access during deployment"],
+      "responsibilities": [
+        "Initial hierarchy configuration",
+        "Role template setup",
+        "Module access configuration"
+      ],
+      "restrictions": ["Access reduced or revoked post go-live"]
+    }
+  },
+  
+  "onboardingChecklist": {
+    "description": "Critical steps when adding new employee",
+    "steps": [
+      {
+        "step": "Basic Information",
+        "fields": ["Full name", "Email (verified)", "Phone", "Join date"],
+        "note": "Use official email only"
+      },
+      {
+        "step": "Role Assignment",
+        "fields": ["role (Admin/Partner/Manager/Advocate/Staff)"],
+        "note": "Choose based on job function, not seniority"
+      },
+      {
+        "step": "Manager Assignment",
+        "fields": ["reporting_to (select manager)"],
+        "note": "Required for TEAM visibility to work. Partners report to themselves or leave blank"
+      },
+      {
+        "step": "Data Scope",
+        "fields": ["data_scope (OWN/TEAM/ALL)"],
+        "note": "Follow role recommendations. Don't over-provision"
+      },
+      {
+        "step": "Module Access",
+        "fields": ["module_access array"],
+        "note": "Controls sidebar visibility. Default should cover job function"
+      },
+      {
+        "step": "Authentication",
+        "fields": ["Create Supabase auth user", "Send credentials"],
+        "note": "Use strong password policy, consider 2FA for admins"
+      },
+      {
+        "step": "Verification",
+        "fields": ["Test login", "Verify visible data", "Confirm module access"],
+        "note": "New employee should verify their setup is correct"
+      }
+    ]
+  },
+  
+  "offboardingChecklist": {
+    "description": "Critical steps when employee leaves",
+    "steps": [
+      {
+        "step": "Reassign Active Work",
+        "action": "Transfer all assigned cases and tasks to active employees",
+        "tool": "Use 'Bulk Reassign' in Admin panel",
+        "importance": "CRITICAL - prevents orphaned work"
+      },
+      {
+        "step": "Deactivate (Don't Delete)",
+        "action": "Set is_active = false",
+        "reason": "Preserves audit trail, prevents login while maintaining history",
+        "importance": "HIGH - maintains compliance"
+      },
+      {
+        "step": "Revoke Auth Access",
+        "action": "Disable Supabase auth account",
+        "reason": "Prevents login even if application deactivation missed",
+        "importance": "CRITICAL - security requirement"
+      },
+      {
+        "step": "Update Hierarchy",
+        "action": "Reassign anyone reporting to departing employee",
+        "reason": "Prevents orphaned hierarchy chains",
+        "importance": "HIGH - maintains TEAM visibility"
+      },
+      {
+        "step": "Document Exit",
+        "action": "Add note with exit date and reason",
+        "reason": "Audit trail for compliance",
+        "importance": "MEDIUM - documentation"
+      }
+    ],
+    "warning": "NEVER hard-delete an employee. Audit trail requires historical actor identity."
+  },
+  
+  "bestPractices": {
+    "roleAssignment": [
+      "Admin: Limit to 2-3 trusted users (Firm owner, IT head)",
+      "Partner: Use for senior practitioners who need firm-wide view",
+      "Manager: Team leads who oversee others' work",
+      "Advocate: Individual contributors working on assigned matters",
+      "Staff: Support roles with limited case access"
+    ],
+    "hierarchyManagement": [
+      "Run hierarchy visualization after any reporting_to changes",
+      "Partners typically don't have a manager (report to themselves or null)",
+      "Every Manager should report to a Partner or Admin",
+      "Avoid deep hierarchies (>5 levels) for performance"
+    ],
+    "securityPractices": [
+      "Quarterly access review: Are role assignments still appropriate?",
+      "Enforce password policy (minimum strength in System Settings)",
+      "Enable 2FA for Admin accounts",
+      "Log and review failed login attempts"
+    ],
+    "dataIntegrity": [
+      "Keep email addresses current",
+      "Update status when employees go on extended leave",
+      "Document role changes in notes",
+      "Use consistent naming conventions"
+    ]
+  },
+  
+  "troubleshooting": [
+    {
+      "issue": "Employee sees no cases with TEAM scope",
+      "cause": "No one reports to them, so TEAM = OWN",
+      "solution": "Verify reporting_to for their direct reports is set correctly"
+    },
+    {
+      "issue": "Circular hierarchy error on save",
+      "cause": "Trying to set A reports to B when B already reports to A",
+      "solution": "Break the cycle: change one person's manager first"
+    },
+    {
+      "issue": "Employee can't access a module",
+      "cause": "Module not in their module_access array",
+      "solution": "Add module to employee's module_access settings"
+    },
+    {
+      "issue": "Notifications not being received",
+      "cause": "Email address incorrect or employee deactivated",
+      "solution": "Verify email is current and employee is active"
+    },
+    {
+      "issue": "Cases orphaned after employee left",
+      "cause": "Offboarding didn't include reassignment step",
+      "solution": "Run orphaned work report, bulk reassign to active employees"
+    }
+  ],
+  
+  "relatedHelp": [
+    "contacts-comprehensive",
+    "master-data-governance"
+  ],
+  
+  "faqs": [
+    {
+      "question": "Why shouldn't I delete employees?",
+      "answer": "Deleted employees break audit trail (can't identify who did what). Always deactivate instead - it prevents login while preserving history."
+    },
+    {
+      "question": "What's the difference between role and data_scope?",
+      "answer": "Role controls WHAT actions employee can perform (permissions). data_scope controls WHICH data they can see (visibility). Both must be configured correctly."
+    },
+    {
+      "question": "How do I fix a broken hierarchy?",
+      "answer": "Use the hierarchy visualization tool to identify breaks. Set reporting_to for employees showing as orphaned root nodes."
+    },
+    {
+      "question": "Can an employee have multiple roles?",
+      "answer": "Currently, each employee has one primary role. Use the role that best matches their primary function. For hybrid roles, choose the higher access level."
+    },
+    {
+      "question": "How often should I review access?",
+      "answer": "Quarterly review is recommended. Check: Are role assignments still appropriate? Any orphaned employees? Any over-privileged access?"
+    }
+  ]
+}

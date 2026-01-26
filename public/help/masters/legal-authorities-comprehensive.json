@@ -1,0 +1,276 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2025-11-03",
+  "masterId": "legal-authorities",
+  "title": "Legal Authorities Master",
+  "subtitle": "Courts, Tribunals, and Adjudicating Bodies",
+  "icon": "Scale",
+  "securityLevel": "ADMIN_PARTNER",
+  
+  "roleInLitigation": {
+    "summary": "Legal Authorities define WHERE cases are heard. They represent the judicial and quasi-judicial bodies that adjudicate disputes - from Assessment Officers to the Supreme Court.",
+    "lifecycle": [
+      {
+        "stage": "Case Intake",
+        "role": "Authority determines jurisdiction and applicable procedural rules",
+        "impact": "Wrong authority = wrong statutory deadlines and forum"
+      },
+      {
+        "stage": "Hearing Scheduling",
+        "role": "Provides venue information, bench locations, and judicial roster",
+        "impact": "Missing authority data = no hearing location, calendar failures"
+      },
+      {
+        "stage": "Deadline Calculation",
+        "role": "Authority level triggers specific statutory deadline rules",
+        "impact": "Wrong authority level = miscalculated reply dates"
+      },
+      {
+        "stage": "Appeals",
+        "role": "Authority hierarchy determines appeal forum",
+        "impact": "Incorrect hierarchy = appeal filed at wrong forum"
+      },
+      {
+        "stage": "Reporting",
+        "role": "Cases grouped by jurisdiction for analytics",
+        "impact": "Duplicate authorities = fragmented metrics"
+      }
+    ],
+    "businessValue": "Accurate authority data ensures cases are routed correctly, deadlines calculated properly, and hearings scheduled at valid venues."
+  },
+  
+  "systemDependencies": {
+    "description": "Legal Authorities are referenced by multiple downstream entities. Changes propagate immediately.",
+    "dependencies": [
+      {
+        "entity": "Cases",
+        "relationship": "case.court_id FK, case.forum_id FK",
+        "usage": "Determines case jurisdiction and forum for appeals",
+        "impactOfBadData": "Case shows wrong court, statutory deadlines miscalculated, reports grouped incorrectly"
+      },
+      {
+        "entity": "Hearings",
+        "relationship": "hearing.court_id FK",
+        "usage": "Provides hearing venue and location information",
+        "impactOfBadData": "Hearing scheduled at non-existent location, calendar invites have wrong address"
+      },
+      {
+        "entity": "Judges",
+        "relationship": "judge.court_id FK",
+        "usage": "Judges are assigned to specific courts",
+        "impactOfBadData": "Judges appear unlinked or at wrong court, hearing judge selection fails"
+      },
+      {
+        "entity": "Statutory Deadlines",
+        "relationship": "deadline.authority_level",
+        "usage": "Deadline rules vary by authority level (e.g., Tribunal has different limits than Assessing Officer)",
+        "impactOfBadData": "Wrong deadline rules applied, reply dates incorrect"
+      },
+      {
+        "entity": "GSTAT Benches",
+        "relationship": "Mapped via GSTAT_STATE_BENCHES constant",
+        "usage": "Auto-populates bench locations for GST Tribunal entries",
+        "impactOfBadData": "Missing or incorrect GSTAT bench options"
+      }
+    ]
+  },
+  
+  "dataQualityRisks": [
+    {
+      "risk": "Duplicate Authorities",
+      "severity": "HIGH",
+      "cause": "Same court imported from multiple sources or entered manually twice",
+      "consequence": "Cases split across duplicates, fragmented case history, inflated jurisdiction counts",
+      "prevention": "Run 'Check for duplicates' before import, search by code/name before creating",
+      "remediation": "Use Admin merge tool to consolidate, update case references"
+    },
+    {
+      "risk": "Missing Authority Level",
+      "severity": "CRITICAL",
+      "cause": "Incomplete form entry, skipped required field",
+      "consequence": "Statutory deadline rules cannot apply, case shows no appellate hierarchy",
+      "prevention": "authority_level is required field, validation blocks save without it",
+      "remediation": "Review all authorities with missing level, assign based on official classification"
+    },
+    {
+      "risk": "Stale Contact Information",
+      "severity": "MEDIUM",
+      "cause": "Registry phone/email changes, no periodic review",
+      "consequence": "Failed communications with court registry, missed notices",
+      "prevention": "Quarterly audit using 'Last Updated' filter, verify against court website",
+      "remediation": "Update contact info, add note with verification date"
+    },
+    {
+      "risk": "Wrong Jurisdiction Mapping",
+      "severity": "HIGH",
+      "cause": "Manual entry error, misunderstanding of territorial jurisdiction",
+      "consequence": "Cases routed to wrong court, forum objections possible",
+      "prevention": "Validate against official court directory, cross-check with Bar Council data",
+      "remediation": "Correct jurisdiction, review affected cases for reassignment"
+    },
+    {
+      "risk": "Incorrect GSTAT Bench",
+      "severity": "MEDIUM",
+      "cause": "Wrong state selected for Tribunal entry",
+      "consequence": "Hearing venue incorrect, travel planning failures",
+      "prevention": "Use GSTAT_STATE_BENCHES mapping, select state before bench",
+      "remediation": "Correct bench assignment, update hearing records"
+    }
+  ],
+  
+  "managementRoles": {
+    "Admin": {
+      "permissions": ["Create", "Edit", "Delete (soft)", "Import", "Export", "Merge duplicates"],
+      "responsibilities": [
+        "Initial authority hierarchy setup",
+        "Bulk import from official sources",
+        "Quarterly audit and cleanup",
+        "Configure authority levels"
+      ],
+      "restrictions": ["Cannot delete authority with active cases (must reassign first)"]
+    },
+    "Partner": {
+      "permissions": ["Create", "Edit own jurisdiction"],
+      "responsibilities": [
+        "Add new courts in practice areas they handle",
+        "Keep jurisdiction info current for their cases"
+      ],
+      "restrictions": ["Cannot delete", "Cannot change authority_level after creation"]
+    },
+    "Manager": {
+      "permissions": ["View", "Create (limited)"],
+      "responsibilities": [
+        "Request Admin for structural changes",
+        "Report data inaccuracies"
+      ],
+      "restrictions": ["Cannot edit existing authorities", "No delete access"]
+    },
+    "Implementor": {
+      "permissions": ["Full CRUD during deployment"],
+      "responsibilities": [
+        "Configure complete authority hierarchy",
+        "Import seed data from official sources",
+        "Set up GSTAT bench mappings"
+      ],
+      "restrictions": ["Access reduced post go-live"]
+    }
+  },
+  
+  "bestPractices": {
+    "initialSetup": [
+      "Import from official court directory (GST Common Portal, Bar Council, eCourts)",
+      "Configure authority levels BEFORE adding individual courts",
+      "Set up GSTAT bench mappings for all operational states",
+      "Validate imported data against 2-3 known courts"
+    ],
+    "dataEntry": [
+      "Always search before creating to avoid duplicates",
+      "Fill ALL required fields including jurisdiction and authority level",
+      "Use official court code if available (e.g., GSTAT/MH/01)",
+      "Add contact info only from official sources (court website, registry)"
+    ],
+    "maintenance": [
+      "Deactivate closed courts, don't delete (preserves case history)",
+      "Update contact info when personnel change (registry officer rotation)",
+      "Review 'Last Updated' column monthly for stale entries",
+      "Document changes in notes field for audit trail"
+    ],
+    "integration": [
+      "Link judges AFTER creating authority (judge depends on court)",
+      "Verify GSTAT bench mapping before creating Tribunal cases",
+      "Test statutory deadline calculation after adding new authority level"
+    ]
+  },
+  
+  "authorityLevelHierarchy": {
+    "description": "Authority levels define the appellate hierarchy and applicable statutory rules",
+    "levels": [
+      {
+        "code": "AO",
+        "name": "Assessing Officer",
+        "description": "Initial assessment authority (Income Tax, GST)",
+        "appealTo": "Adjudication",
+        "typicalDeadlines": "30 days for response"
+      },
+      {
+        "code": "ADJ",
+        "name": "Adjudicating Authority",
+        "description": "First level adjudication (GST proper officer)",
+        "appealTo": "Appellate Authority",
+        "typicalDeadlines": "30-60 days for reply"
+      },
+      {
+        "code": "AA",
+        "name": "Appellate Authority",
+        "description": "First appellate forum (CIT(A), Appellate Authority)",
+        "appealTo": "Tribunal",
+        "typicalDeadlines": "30-90 days for appeal"
+      },
+      {
+        "code": "TRIB",
+        "name": "Tribunal",
+        "description": "Second appellate forum (ITAT, GSTAT)",
+        "appealTo": "High Court",
+        "typicalDeadlines": "90-180 days for appeal"
+      },
+      {
+        "code": "HC",
+        "name": "High Court",
+        "description": "Constitutional court, writ jurisdiction",
+        "appealTo": "Supreme Court",
+        "typicalDeadlines": "90 days for SLP"
+      },
+      {
+        "code": "SC",
+        "name": "Supreme Court",
+        "description": "Apex court, final appellate authority",
+        "appealTo": "None (Review only)",
+        "typicalDeadlines": "Varies"
+      }
+    ]
+  },
+  
+  "troubleshooting": [
+    {
+      "issue": "Judge dropdown empty when scheduling hearing",
+      "cause": "No judges linked to selected court",
+      "solution": "Add judges to Legal Authority first, ensure court_id matches"
+    },
+    {
+      "issue": "Statutory deadline not calculating",
+      "cause": "Authority level not set or no rule for this level",
+      "solution": "Verify authority_level is set, check statutory event types for matching rules"
+    },
+    {
+      "issue": "GSTAT bench options not showing",
+      "cause": "Authority type not set to 'Tribunal' or state not selected",
+      "solution": "Set authority type to Tribunal, select state first"
+    },
+    {
+      "issue": "Duplicate court appearing in reports",
+      "cause": "Same court entered twice with different codes",
+      "solution": "Use Admin merge tool to consolidate, deduplicate cases"
+    }
+  ],
+  
+  "relatedHelp": [
+    "judges-comprehensive",
+    "statutory-deadlines-comprehensive",
+    "master-data-governance"
+  ],
+  
+  "faqs": [
+    {
+      "question": "Can I delete a Legal Authority?",
+      "answer": "Authorities with linked cases cannot be deleted. Mark as 'Inactive' instead to preserve case history while hiding from dropdowns."
+    },
+    {
+      "question": "How do I add a new GSTAT bench?",
+      "answer": "Create a new Legal Authority with type 'Tribunal' and authority level 'TRIB'. Select the state to auto-populate bench options from GSTAT_STATE_BENCHES mapping."
+    },
+    {
+      "question": "What happens if I change authority level after cases are linked?",
+      "answer": "Existing case deadlines are NOT recalculated. Only new cases use the updated level. Review affected cases manually."
+    }
+  ]
+}

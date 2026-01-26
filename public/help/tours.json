@@ -856,5 +856,232 @@
         "placement": "top"
       }
     ]
+  },
+  {
+    "id": "legal-authorities-tour",
+    "title": "Legal Authorities Configuration",
+    "description": "Learn to configure courts, tribunals, and adjudicating bodies that form the foundation of case jurisdiction",
+    "module": "masters",
+    "roles": ["Admin", "Partner/CA", "Implementor"],
+    "estimatedTime": "10 minutes",
+    "governanceCritical": true,
+    "steps": [
+      {
+        "id": "la-overview",
+        "title": "Legal Authorities Overview",
+        "content": "Legal Authorities define WHERE cases are heard. Every case, hearing, and judge is linked to a Legal Authority. Accurate authority data ensures correct statutory deadlines and proper jurisdiction.",
+        "target": "[data-tour='legal-authorities-header']",
+        "placement": "bottom"
+      },
+      {
+        "id": "la-hierarchy",
+        "title": "Authority Level Hierarchy",
+        "content": "⚠️ CRITICAL: Authority Level determines appellate hierarchy and statutory deadline rules. Levels: AO (Assessment) → ADJ (Adjudication) → AA (Appellate) → TRIB (Tribunal) → HC → SC. Wrong level = wrong deadlines.",
+        "target": "[data-tour='authority-level-select']",
+        "placement": "right"
+      },
+      {
+        "id": "la-create",
+        "title": "Add New Authority",
+        "content": "Click 'Add Authority' to create a new court or tribunal. Search existing authorities first to avoid duplicates. Duplicates cause fragmented case history.",
+        "target": "[data-tour='add-authority-button']",
+        "placement": "left"
+      },
+      {
+        "id": "la-matter-types",
+        "title": "Configure Matter Types",
+        "content": "Specify which case types this authority handles (GST, Income Tax, etc.). This filters the matter type dropdown when creating cases at this authority. Leave empty to allow all types.",
+        "target": "[data-tour='matter-types-select']",
+        "placement": "right"
+      },
+      {
+        "id": "la-jurisdiction",
+        "title": "Set Jurisdiction",
+        "content": "Define geographic or subject-matter coverage. Used for case routing and jurisdiction-based reports. Example: 'Maharashtra', 'Central Excise', 'All India'.",
+        "target": "[data-tour='jurisdiction-input']",
+        "placement": "right"
+      },
+      {
+        "id": "la-gstat-bench",
+        "title": "GSTAT Bench Configuration",
+        "content": "For GST Tribunals, select the state first to auto-populate bench locations from the GSTAT_STATE_BENCHES mapping. Each state has predefined bench locations.",
+        "target": "[data-tour='bench-location-input']",
+        "placement": "top"
+      },
+      {
+        "id": "la-judge-linking",
+        "title": "Linking Judges",
+        "content": "After creating an authority, you can add judges assigned to it. Judges MUST be linked to an authority to appear in hearing forms. Create authority first, then judges.",
+        "target": "[data-tour='judges-section']",
+        "placement": "left"
+      },
+      {
+        "id": "la-deadline-impact",
+        "title": "Deadline Rule Impact",
+        "content": "Authority level triggers statutory deadline rules. When cases are created at this authority, the system applies deadline rules matching this level. Test with sample case after setup.",
+        "target": "[data-tour='deadline-rules-link']",
+        "placement": "top"
+      },
+      {
+        "id": "la-import",
+        "title": "Bulk Import",
+        "content": "Use Import to add multiple authorities at once from official court directories. Always run 'Check for duplicates' before import to prevent fragmented data.",
+        "target": "[data-tour='import-button']",
+        "placement": "left"
+      },
+      {
+        "id": "la-deactivate",
+        "title": "Deactivate, Don't Delete",
+        "content": "⚠️ Never delete authorities with linked cases. Instead, mark as 'Inactive' to hide from dropdowns while preserving case history. System prevents deletion of linked authorities.",
+        "target": "[data-tour='status-toggle']",
+        "placement": "top"
+      }
+    ]
+  },
+  {
+    "id": "judges-tour",
+    "title": "Judges Master Configuration",
+    "description": "Configure judicial officers and bench assignments for accurate hearing scheduling",
+    "module": "masters",
+    "roles": ["Admin", "Partner/CA"],
+    "estimatedTime": "8 minutes",
+    "steps": [
+      {
+        "id": "jm-overview",
+        "title": "Judges Master Overview",
+        "content": "Judges preside over hearings and deliver orders. Each judge must be assigned to a Legal Authority. Accurate judge data ensures correct bench assignments and case-judge matching.",
+        "target": "[data-tour='judges-header']",
+        "placement": "bottom"
+      },
+      {
+        "id": "jm-prerequisite",
+        "title": "Prerequisite: Legal Authorities",
+        "content": "⚠️ IMPORTANT: Legal Authorities must exist BEFORE adding judges. A judge cannot be created without a court assignment. Create the court/tribunal first if it doesn't exist.",
+        "target": "[data-tour='court-select']",
+        "placement": "right"
+      },
+      {
+        "id": "jm-create",
+        "title": "Add New Judge",
+        "content": "Click 'Add Judge' to create a new judicial officer. Include full name with honorific (Hon'ble Justice/Member). Search first to avoid duplicates.",
+        "target": "[data-tour='add-judge-button']",
+        "placement": "left"
+      },
+      {
+        "id": "jm-court-assignment",
+        "title": "Court Assignment (Required)",
+        "content": "Select the Legal Authority where this judge is assigned. The judge will ONLY appear in hearing dropdowns for this specific court. This is a required field.",
+        "target": "[data-tour='court-assignment-select']",
+        "placement": "right"
+      },
+      {
+        "id": "jm-specializations",
+        "title": "Set Specializations",
+        "content": "Add areas of expertise (Tax Law, Constitutional, Commercial). Base on case types actually heard, not general qualifications. Used for case-judge matching recommendations.",
+        "target": "[data-tour='specialization-select']",
+        "placement": "right"
+      },
+      {
+        "id": "jm-status",
+        "title": "Status Management",
+        "content": "Keep status current: Active, On Leave, Transferred, Retired, Elevated. Non-Active judges are hidden from hearing dropdowns. Update immediately on any status change.",
+        "target": "[data-tour='status-select']",
+        "placement": "left"
+      },
+      {
+        "id": "jm-transfers",
+        "title": "Handling Transfers",
+        "content": "When a judge transfers: Update the court_id to new court (don't create new record). Add note documenting transfer. Past hearing records remain correctly linked.",
+        "target": "[data-tour='transfer-note']",
+        "placement": "top"
+      },
+      {
+        "id": "jm-hearing-link",
+        "title": "Judge in Hearings",
+        "content": "Once created, judges appear in hearing forms when the matching court is selected. Multiple judges can be assigned to represent a full bench composition.",
+        "target": "[data-tour='hearing-judge-demo']",
+        "placement": "top"
+      },
+      {
+        "id": "jm-privacy",
+        "title": "Privacy Best Practice",
+        "content": "Store only official contact details (chamber, registry). Never store personal phone or email addresses. Notes should contain only professional observations.",
+        "target": "[data-tour='contact-section']",
+        "placement": "top"
+      }
+    ]
+  },
+  {
+    "id": "contacts-tour",
+    "title": "Contact Directory Management",
+    "description": "Manage people relationships including client representatives, opposing counsel, and stakeholders",
+    "module": "masters",
+    "roles": ["Admin", "Partner/CA", "Manager"],
+    "estimatedTime": "8 minutes",
+    "steps": [
+      {
+        "id": "cm-overview",
+        "title": "Contact Directory Overview",
+        "content": "Contacts represent people involved in cases - client representatives, opposing counsel, government officers. They enable communication, portal access, and case party identification.",
+        "target": "[data-tour='contacts-header']",
+        "placement": "bottom"
+      },
+      {
+        "id": "cm-types",
+        "title": "Standalone vs Client-Linked",
+        "content": "Two types: Standalone (prospects, opposing counsel) and Client-Linked (client employees). Link to client only when relationship is confirmed. Client-linked contacts can get portal access.",
+        "target": "[data-tour='contact-type-indicator']",
+        "placement": "right"
+      },
+      {
+        "id": "cm-create",
+        "title": "Add New Contact",
+        "content": "Click 'Add Contact' to create. Search by email/phone first to avoid duplicates. Duplicates split communication history and cause confusion.",
+        "target": "[data-tour='add-contact-button']",
+        "placement": "left"
+      },
+      {
+        "id": "cm-client-link",
+        "title": "Link to Client",
+        "content": "To associate with a client, select the client organization. This enables portal access and inherits client visibility. VERIFY correct client - affects portal access.",
+        "target": "[data-tour='client-link-select']",
+        "placement": "right"
+      },
+      {
+        "id": "cm-data-scope",
+        "title": "Data Scope (Visibility)",
+        "content": "For standalone contacts: OWN (only you see), TEAM (your team sees), ALL (everyone sees). Use OWN for prospects, ALL for shared resources like court registries.",
+        "target": "[data-tour='data-scope-select']",
+        "placement": "right"
+      },
+      {
+        "id": "cm-roles",
+        "title": "Assign Roles",
+        "content": "Roles define contact's function: Signatory (signs documents), Coordinator (main contact), Billing (handles invoices), Decision Maker. Assign all applicable roles.",
+        "target": "[data-tour='roles-select']",
+        "placement": "left"
+      },
+      {
+        "id": "cm-portal-access",
+        "title": "Portal Access (Critical)",
+        "content": "⚠️ SECURITY CRITICAL: Portal access lets contact view case data. ALWAYS verify identity before enabling. Only for client-linked contacts. Wrong access = data breach.",
+        "target": "[data-tour='portal-toggle']",
+        "placement": "top"
+      },
+      {
+        "id": "cm-primary",
+        "title": "Primary Contact",
+        "content": "Mark one contact per client as Primary. Primary receives important notifications and appears first in lists. Verify identity before marking - they'll receive sensitive info.",
+        "target": "[data-tour='primary-toggle']",
+        "placement": "top"
+      },
+      {
+        "id": "cm-dedup",
+        "title": "Deduplication",
+        "content": "Run monthly duplicate check using email/phone matching. Merge duplicates to consolidate history. Use Admin merge tool when duplicates found.",
+        "target": "[data-tour='dedup-button']",
+        "placement": "top"
+      }
+    ]
   }
 ]
