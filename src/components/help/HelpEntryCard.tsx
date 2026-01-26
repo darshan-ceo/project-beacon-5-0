@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { HelpEntry } from '@/services/helpDiscoveryService';
+import { useElementHighlight } from '@/hooks/useElementHighlight';
 
 interface HelpEntryCardProps {
   entry: HelpEntry;
@@ -70,15 +71,17 @@ export const HelpEntryCard: React.FC<HelpEntryCardProps> = ({
   className
 }) => {
   const navigate = useNavigate();
+  const { navigateAndHighlight } = useElementHighlight();
   const Icon = sourceIcons[entry.source] || HelpCircle;
 
   const handleViewInApp = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (entry.uiLocation?.path) {
-      const url = entry.uiLocation.tab 
-        ? `${entry.uiLocation.path}?tab=${entry.uiLocation.tab}`
-        : entry.uiLocation.path;
-      navigate(url);
+      navigateAndHighlight({
+        path: entry.uiLocation.path,
+        tab: entry.uiLocation.tab,
+        element: entry.uiLocation.element
+      });
     }
   };
 
