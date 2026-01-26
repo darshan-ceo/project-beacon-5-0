@@ -1,0 +1,129 @@
+{
+  "lastUpdated": "2025-01-26",
+  "entries": [
+    {
+      "id": "2025-01-26-help-discovery-hub",
+      "title": "Enhanced Help & Knowledge Center",
+      "description": "Unified discovery hub for all help content with role-based filtering, What's New tracking, and personalized onboarding paths.",
+      "releaseDate": "2025-01-26",
+      "category": "feature",
+      "module": "help",
+      "roles": ["all"],
+      "highlights": [
+        "Search across all help sources in one place",
+        "Filter content by your role",
+        "Track new features with What's New",
+        "Personalized onboarding for each role"
+      ],
+      "learnMoreUrl": "/help"
+    },
+    {
+      "id": "2025-01-25-operational-help",
+      "title": "Operational Module Help Content",
+      "description": "Comprehensive workflow guidance for Case Management, Hearings, Tasks, Documents, Timeline, AI Assistant, and Communications modules.",
+      "releaseDate": "2025-01-25",
+      "category": "feature",
+      "module": "help",
+      "roles": ["all"],
+      "highlights": [
+        "Day-to-day workflow guidance",
+        "Role-specific tips and best practices",
+        "Cross-module data flow documentation",
+        "3 new guided tours for operational workflows"
+      ],
+      "tourId": "case-operations-tour"
+    },
+    {
+      "id": "2025-01-24-access-roles-help",
+      "title": "Access & Roles Governance Documentation",
+      "description": "Detailed help content for the Access & Roles module covering all 6 tabs with security warnings and best practices.",
+      "releaseDate": "2025-01-24",
+      "category": "feature",
+      "module": "access-roles",
+      "roles": ["Admin", "Partner", "Implementor"],
+      "highlights": [
+        "Security-focused documentation for RBAC",
+        "Privilege escalation prevention guidance",
+        "Role hierarchy management best practices",
+        "Audit trail interpretation"
+      ],
+      "tourId": "access-roles-tour"
+    },
+    {
+      "id": "2025-01-23-master-data-help",
+      "title": "Master Data Governance Help",
+      "description": "System-dependency documentation for master data modules showing how master records affect the litigation lifecycle.",
+      "releaseDate": "2025-01-23",
+      "category": "feature",
+      "module": "masters",
+      "roles": ["Admin", "Partner", "Manager"],
+      "highlights": [
+        "Dependency maps for master data",
+        "Data quality risk documentation",
+        "Field-level governance guidance",
+        "Impact analysis for changes"
+      ]
+    },
+    {
+      "id": "2025-01-22-task-automation-v2",
+      "title": "Enhanced Task Automation",
+      "description": "New automation triggers, improved escalation matrix, and AI-powered task suggestions.",
+      "releaseDate": "2025-01-22",
+      "category": "improvement",
+      "module": "tasks",
+      "roles": ["all"],
+      "highlights": [
+        "New trigger types: Stage change, Hearing outcome",
+        "Configurable escalation levels",
+        "AI task suggestions based on case context",
+        "Template bundles for common workflows"
+      ],
+      "tourId": "task-automation-tour"
+    },
+    {
+      "id": "2025-01-20-ai-assistant-enhancements",
+      "title": "AI Assistant Multi-Document Analysis",
+      "description": "Analyze multiple documents simultaneously and generate comprehensive case summaries.",
+      "releaseDate": "2025-01-20",
+      "category": "feature",
+      "module": "ai-assistant",
+      "roles": ["all"],
+      "highlights": [
+        "Multi-document context analysis",
+        "Improved precedent research",
+        "Draft generation with citations",
+        "Case strategy recommendations"
+      ]
+    },
+    {
+      "id": "2025-01-18-hearing-calendar-sync",
+      "title": "External Calendar Integration",
+      "description": "Sync hearings with Google Calendar and Outlook for seamless scheduling.",
+      "releaseDate": "2025-01-18",
+      "category": "feature",
+      "module": "hearings",
+      "roles": ["all"],
+      "highlights": [
+        "Google Calendar integration",
+        "Outlook sync support",
+        "Automatic reminder creation",
+        "Two-way sync for date changes"
+      ]
+    },
+    {
+      "id": "2025-01-15-sla-dashboard",
+      "title": "SLA Compliance Dashboard",
+      "description": "Real-time visibility into SLA status across all cases with breach prediction.",
+      "releaseDate": "2025-01-15",
+      "category": "feature",
+      "module": "dashboard",
+      "roles": ["Manager", "Partner", "Admin"],
+      "highlights": [
+        "Color-coded SLA indicators",
+        "Breach prediction algorithm",
+        "Team performance metrics",
+        "Export compliance reports"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,109 @@
+{
+  "case-management": {
+    "path": "/cases",
+    "tabs": {
+      "overview": { "path": "/cases", "tab": "overview" },
+      "lifecycle": { "path": "/cases", "tab": "lifecycle" },
+      "timeline": { "path": "/cases", "tab": "timeline" },
+      "documents": { "path": "/cases", "tab": "documents" },
+      "hearings": { "path": "/cases", "tab": "hearings" },
+      "ai-assistant": { "path": "/cases", "tab": "ai-assistant" },
+      "communications": { "path": "/cases", "tab": "communications" }
+    },
+    "actions": {
+      "new-case": { "path": "/cases", "action": "open-new-case-dialog" },
+      "search-cases": { "path": "/cases", "action": "focus-search" },
+      "export-cases": { "path": "/cases", "action": "open-export-dialog" }
+    }
+  },
+  "hearings": {
+    "path": "/hearings",
+    "tabs": {
+      "calendar": { "path": "/hearings", "tab": "calendar" },
+      "list": { "path": "/hearings", "tab": "list" }
+    },
+    "actions": {
+      "schedule-hearing": { "path": "/hearings", "action": "open-schedule-dialog" },
+      "record-outcome": { "path": "/hearings", "action": "open-outcome-dialog" }
+    }
+  },
+  "tasks": {
+    "path": "/tasks",
+    "tabs": {
+      "board": { "path": "/tasks", "tab": "board" },
+      "automation": { "path": "/tasks", "tab": "automation" },
+      "templates": { "path": "/tasks", "tab": "templates" },
+      "escalation": { "path": "/tasks", "tab": "escalation" },
+      "analytics": { "path": "/tasks", "tab": "analytics" },
+      "ai-assistant": { "path": "/tasks", "tab": "ai-assistant" }
+    },
+    "actions": {
+      "create-task": { "path": "/tasks", "action": "open-create-task" },
+      "create-automation": { "path": "/tasks", "tab": "automation", "action": "open-automation-dialog" }
+    }
+  },
+  "documents": {
+    "path": "/documents",
+    "tabs": {
+      "library": { "path": "/documents", "tab": "library" },
+      "upload": { "path": "/documents", "tab": "upload" },
+      "templates": { "path": "/documents", "tab": "templates" },
+      "recent": { "path": "/documents", "tab": "recent" }
+    },
+    "actions": {
+      "upload-document": { "path": "/documents", "action": "open-upload-dialog" },
+      "generate-from-template": { "path": "/documents", "tab": "templates", "action": "open-generate-dialog" }
+    }
+  },
+  "dashboard": {
+    "path": "/",
+    "tabs": {
+      "overview": { "path": "/", "tab": "overview" },
+      "analytics": { "path": "/", "tab": "analytics" }
+    }
+  },
+  "clients": {
+    "path": "/clients",
+    "actions": {
+      "add-client": { "path": "/clients", "action": "open-add-client" },
+      "import-clients": { "path": "/clients", "action": "open-import-dialog" }
+    }
+  },
+  "communications": {
+    "path": "/communications",
+    "tabs": {
+      "inbox": { "path": "/communications", "tab": "inbox" },
+      "sent": { "path": "/communications", "tab": "sent" },
+      "templates": { "path": "/communications", "tab": "templates" }
+    }
+  },
+  "reports": {
+    "path": "/reports",
+    "tabs": {
+      "case-reports": { "path": "/reports", "tab": "case-reports" },
+      "hearings": { "path": "/reports", "tab": "hearings" },
+      "sla-compliance": { "path": "/reports", "tab": "sla-compliance" },
+      "tasks": { "path": "/reports", "tab": "tasks" }
+    }
+  },
+  "settings": {
+    "path": "/settings",
+    "sections": {
+      "general": { "path": "/settings/general" },
+      "access-roles": { "path": "/settings/access-roles" },
+      "notifications": { "path": "/settings/notifications" },
+      "integrations": { "path": "/settings/integrations" }
+    }
+  },
+  "masters": {
+    "path": "/masters",
+    "sections": {
+      "employees": { "path": "/masters/employees" },
+      "courts": { "path": "/masters/courts" },
+      "judges": { "path": "/masters/judges" },
+      "contacts": { "path": "/masters/contacts" },
+      "authority-levels": { "path": "/masters/authority-levels" },
+      "statutory-deadlines": { "path": "/masters/statutory-deadlines" }
+    }
+  }
+}
