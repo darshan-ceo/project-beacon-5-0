@@ -100,8 +100,33 @@ export const useShepherdTour = () => {
         ],
         beforeShowPromise: () => {
           return new Promise<void>((resolve) => {
-            // Allow DOM to settle before showing step
-            setTimeout(resolve, 100);
+            // Enhanced element detection with retry logic
+            const maxRetries = 10;
+            let retryCount = 0;
+            
+            const checkElement = () => {
+              const target = step.target;
+              
+              // If no target or element exists, proceed
+              if (!target || document.querySelector(target)) {
+                setTimeout(resolve, 100); // Small delay for DOM stability
+                return;
+              }
+              
+              retryCount++;
+              if (retryCount < maxRetries) {
+                // Element not found - wait and retry
+                console.log(`[Tour] Waiting for element: ${target} (attempt ${retryCount}/${maxRetries})`);
+                setTimeout(checkElement, 200);
+              } else {
+                // Max retries reached - proceed anyway (Shepherd will handle gracefully)
+                console.warn(`[Tour] Element not found after ${maxRetries} attempts: ${target}`);
+                resolve();
+              }
+            };
+            
+            // Start checking after initial delay
+            setTimeout(checkElement, 100);
           });
         }
       });

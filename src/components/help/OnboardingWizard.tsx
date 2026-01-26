@@ -101,7 +101,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
     loadPath();
   }, [userRole, progress.completedOnboardingSteps]);
 
-  const handleStartTour = useCallback((tourId: string, stepId: string) => {
+  const handleStartTour = useCallback(async (tourId: string, stepId: string) => {
     // Find the tour in the loaded tours data
     const tourData = toursData.find(t => t.id === tourId);
     
@@ -139,17 +139,42 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
       }
     };
 
-    // Navigate to the appropriate page first if needed
+    // Navigate to the appropriate page first - close Help Center
     const contentMapping = getOnboardingContent(stepId);
-    if (contentMapping.fallbackPath && contentMapping.fallbackPath !== '/help') {
-      navigate(contentMapping.fallbackPath);
-      // Give the page time to load before starting the tour
-      setTimeout(() => {
-        startTour(tourConfig);
-      }, 500);
-    } else {
-      startTour(tourConfig);
+    const targetPath = contentMapping.fallbackPath || '/dashboard';
+    
+    // Always navigate away from help page before starting tour
+    if (window.location.pathname.includes('/help') || contentMapping.fallbackPath) {
+      navigate(targetPath);
+      
+      // Wait longer for navigation and DOM to fully render (1200ms)
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      
+      // Verify first step element exists before starting tour
+      const firstStepTarget = tourConfig.steps[0]?.target;
+      if (firstStepTarget) {
+        const elementExists = document.querySelector(firstStepTarget);
+        
+        if (!elementExists) {
+          // Retry once more after additional wait
+          await new Promise(resolve => setTimeout(resolve, 800));
+          const retryElement = document.querySelector(firstStepTarget);
+          
+          if (!retryElement) {
+            toast.warning('Page is loading...', {
+              description: 'The tour elements are not ready. Please try again in a moment.',
+              action: {
+                label: 'Retry',
+                onClick: () => handleStartTour(tourId, stepId)
+              }
+            });
+            return;
+          }
+        }
+      }
     }
+    
+    startTour(tourConfig);
   }, [toursData, startTour, navigate, markOnboardingStepCompleted]);
 
   const handleStepClick = useCallback((step: OnboardingStep) => {
