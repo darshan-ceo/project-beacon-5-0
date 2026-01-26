@@ -11,7 +11,7 @@
 import { supabase } from '@/integrations/supabase/client';
 
 export type AppRole = 'admin' | 'partner' | 'manager' | 'advocate' | 'ca' | 'staff' | 'clerk' | 'client' | 'user';
-export type PermissionAction = 'read' | 'write' | 'delete' | 'admin';
+export type PermissionAction = 'read' | 'write' | 'delete' | 'admin' | 'manage';
 
 interface CachedPermissions {
   permissions: Set<string>;
@@ -49,6 +49,9 @@ const ACTION_MAP: Record<string, PermissionAction> = {
   'manage': 'admin',
   'admin': 'admin',
 };
+
+// Priority order for sub-module action mapping
+const MANAGE_ACTION_KEY = 'manage';
 
 class SupabasePermissionsResolver {
   private userRoleCache = new Map<string, { role: AppRole; expiry: number }>();
@@ -273,6 +276,9 @@ class SupabasePermissionsResolver {
         return ['delete'];
       case 'admin':
         return ['manage', 'admin'];
+      case 'manage':
+        // manage action maps to 'manage' in database
+        return ['manage'];
       default:
         return [action];
     }
