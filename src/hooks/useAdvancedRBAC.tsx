@@ -16,7 +16,7 @@ export type UserRole = 'Partner' | 'Admin' | 'Manager' | 'Associate' | 'Clerk' |
 
 export interface Permission {
   module: string;
-  action: 'read' | 'write' | 'delete' | 'admin';
+  action: 'read' | 'write' | 'delete' | 'admin' | 'manage';
 }
 
 export interface User {
@@ -42,9 +42,9 @@ interface AdvancedRBACContextType {
   isRbacReady: boolean; // NEW: indicates if RBAC is fully loaded
   
   // Enhanced permission checking
-  can: (resource: string, action: 'read' | 'write' | 'delete' | 'admin') => Promise<boolean>;
-  canSync: (resource: string, action: 'read' | 'write' | 'delete' | 'admin') => boolean;
-  canMultiple: (checks: Array<{ resource: string; action: 'read' | 'write' | 'delete' | 'admin' }>) => Promise<Record<string, boolean>>;
+  can: (resource: string, action: 'read' | 'write' | 'delete' | 'admin' | 'manage') => Promise<boolean>;
+  canSync: (resource: string, action: 'read' | 'write' | 'delete' | 'admin' | 'manage') => boolean;
+  canMultiple: (checks: Array<{ resource: string; action: 'read' | 'write' | 'delete' | 'admin' | 'manage' }>) => Promise<Record<string, boolean>>;
   
   // Role management
   assignRole: (roleId: string) => Promise<void>;
@@ -176,18 +176,18 @@ export const AdvancedRBACProvider: React.FC<AdvancedRBACProviderProps> = ({
   }, [enforcementEnabled, isRbacReady, supabaseRole]);
 
   // Enhanced async permission checking
-  const can = useCallback(async (resource: string, action: 'read' | 'write' | 'delete' | 'admin'): Promise<boolean> => {
+  const can = useCallback(async (resource: string, action: 'read' | 'write' | 'delete' | 'admin' | 'manage'): Promise<boolean> => {
     if (!enforcementEnabled) return true;
     return supabasePermissionsResolver.hasPermissionAsync(supabaseRole, resource, action);
   }, [enforcementEnabled, supabaseRole]);
 
-  const canSync = useCallback((resource: string, action: 'read' | 'write' | 'delete' | 'admin'): boolean => {
+  const canSync = useCallback((resource: string, action: 'read' | 'write' | 'delete' | 'admin' | 'manage'): boolean => {
     if (!enforcementEnabled) return true;
     if (!isRbacReady) return false;
     return supabasePermissionsResolver.hasPermission(supabaseRole, resource, action);
   }, [enforcementEnabled, isRbacReady, supabaseRole]);
 
-  const canMultiple = useCallback(async (checks: Array<{ resource: string; action: 'read' | 'write' | 'delete' | 'admin' }>): Promise<Record<string, boolean>> => {
+  const canMultiple = useCallback(async (checks: Array<{ resource: string; action: 'read' | 'write' | 'delete' | 'admin' | 'manage' }>): Promise<Record<string, boolean>> => {
     if (!enforcementEnabled) {
       const result: Record<string, boolean> = {};
       checks.forEach(check => {
@@ -364,14 +364,14 @@ export const usePermission = (module: string, action: Permission['action']) => {
 };
 
 // Global permission helper function
-export const globalCan = async (resource: string, action: 'read' | 'write' | 'delete' | 'admin'): Promise<boolean> => {
+export const globalCan = async (resource: string, action: 'read' | 'write' | 'delete' | 'admin' | 'manage'): Promise<boolean> => {
   // This will be implemented when we have a global context
   // For now, return true in DEMO mode
   return true;
 };
 
 // Enhanced hook for async permission checking
-export const useAsyncPermission = (resource: string, action: 'read' | 'write' | 'delete' | 'admin') => {
+export const useAsyncPermission = (resource: string, action: 'read' | 'write' | 'delete' | 'admin' | 'manage') => {
   const { can, enforcementEnabled, isRbacReady } = useAdvancedRBAC();
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
