@@ -248,14 +248,21 @@ class HelpDiscoveryService {
   }
 
   private async _loadOperationsHelp(): Promise<HelpEntry[]> {
+    // All 13 operations files
     const modules = [
-      'case-management-ops',
-      'hearings-ops',
-      'tasks-ops',
-      'documents-ops',
-      'timeline-ops',
+      'access-roles-ops',
       'ai-assistant-ops',
-      'communications-ops'
+      'case-management-ops',
+      'clients-ops',
+      'communications-ops',
+      'data-io-ops',
+      'documents-ops',
+      'hearings-ops',
+      'masters-ops',
+      'reports-ops',
+      'settings-ops',
+      'tasks-ops',
+      'timeline-ops'
     ];
 
     const entries: HelpEntry[] = [];
