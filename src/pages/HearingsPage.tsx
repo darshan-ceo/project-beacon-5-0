@@ -460,7 +460,7 @@ export const HearingsPage: React.FC = () => {
         
         {/* Desktop Schedule Button */}
         {canCreateHearings && (
-          <Button onClick={handleCreateHearing} className="hidden md:flex">
+          <Button onClick={handleCreateHearing} className="hidden md:flex" data-tour="schedule-btn">
             <Plus className="h-4 w-4 mr-2" />
             Schedule Hearing
           </Button>
@@ -487,12 +487,12 @@ export const HearingsPage: React.FC = () => {
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="list">
+        <TabsList data-tour="hearing-calendar">
+          <TabsTrigger value="list" data-tour="hearing-list-tab">
             <List className="h-4 w-4 mr-2" />
             List View
           </TabsTrigger>
-          <TabsTrigger value="calendar">
+          <TabsTrigger value="calendar" data-tour="hearing-calendar-tab">
             <Calendar className="h-4 w-4 mr-2" />
             Calendar View
           </TabsTrigger>

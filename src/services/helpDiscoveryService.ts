@@ -405,27 +405,27 @@ class HelpDiscoveryService {
     const moduleLocations: Record<string, string> = {
       'case-management': '/cases',
       'cases': '/cases',
-      'hearings': '/hearings',
+      'hearings': '/hearings/calendar', // Fixed: use canonical hearings route
       'tasks': '/tasks',
-      'task-automation': '/tasks',
+      'task-automation': '/tasks?tab=automation',
       'documents': '/documents',
       'document-management': '/documents',
       'dashboard': '/',
       'clients': '/clients',
-      'employees': '/masters/employees',
-      'courts': '/masters/courts',
-      'judges': '/masters/judges',
+      'employees': '/employees',
+      'courts': '/courts',
+      'judges': '/judges',
       'settings': '/settings',
-      'access-roles': '/settings/access-roles',
+      'access-roles': '/access-roles', // Fixed: was /settings/access-roles which doesn't exist
       'communications': '/communications',
       'reports': '/reports',
       'template_builder_2_0': '/documents?tab=templates&openTemplateBuilder=1',
       'template-builder': '/documents?tab=templates&openTemplateBuilder=1',
       'timeline': '/cases',
       'ai-assistant': '/ai-assistant',
-      'client-portal': '/client-portal',
-      'masters': '/masters',
-      'data-io': '/data-io'
+      'client-portal': '/portal',
+      'masters': '/courts',
+      'data-io': '/help' // No dedicated data-io route yet
     };
 
     const path = moduleLocations[module];

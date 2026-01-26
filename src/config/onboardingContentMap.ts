@@ -45,18 +45,18 @@ export const onboardingStepToContent: Record<string, OnboardingContentMapping> =
   },
   'dashboard-tour': { 
     type: 'tour', 
-    contentId: 'case-management-tour', // Use existing case management tour as dashboard overview
-    fallbackPath: '/dashboard'
+    contentId: 'dashboard-tour', // Correct tour ID
+    fallbackPath: '/' // Correct route (root = dashboard)
   },
   'case-operations-tour': { 
     type: 'tour', 
-    contentId: 'case-management-tour',
+    contentId: 'case-operations-tour', // Fixed: was incorrectly mapped to case-management-tour
     fallbackPath: '/cases'
   },
   'daily-workflow-tour': { 
     type: 'tour', 
-    contentId: 'task-management-tour',
-    fallbackPath: '/tasks'
+    contentId: 'daily-workflow-tour', // Fixed: now matches the actual tour ID
+    fallbackPath: '/' // Start from dashboard for daily workflow
   },
   'document-upload': { 
     type: 'article', 
@@ -67,12 +67,12 @@ export const onboardingStepToContent: Record<string, OnboardingContentMapping> =
   // ============ Advocate Steps (inherits staff) ============
   'hearing-lifecycle-tour': { 
     type: 'tour', 
-    contentId: 'hearing-scheduler-tour',
-    fallbackPath: '/hearings'
+    contentId: 'hearing-lifecycle-tour', // Fixed: correct tour ID
+    fallbackPath: '/hearings/calendar'
   },
   'ai-assistant-guide': { 
     type: 'article', 
-    contentId: 'getting-started', // Map to existing for now
+    contentId: 'getting-started',
     fallbackPath: '/help'
   },
   'timeline-navigation': { 
@@ -98,9 +98,9 @@ export const onboardingStepToContent: Record<string, OnboardingContentMapping> =
     fallbackPath: '/help'
   },
   'reports-overview': { 
-    type: 'article', 
-    contentId: 'getting-started',
-    fallbackPath: '/help'
+    type: 'tour', 
+    contentId: 'reports-tour',
+    fallbackPath: '/reports'
   },
 
   // ============ Partner Steps (inherits manager) ============
@@ -129,12 +129,12 @@ export const onboardingStepToContent: Record<string, OnboardingContentMapping> =
   'access-roles-tour': { 
     type: 'tour', 
     contentId: 'access-roles-setup',
-    fallbackPath: '/settings/access-roles'
+    fallbackPath: '/access-roles' // Fixed: was /settings/access-roles which doesn't exist
   },
   'master-data-governance': { 
-    type: 'article', 
-    contentId: 'getting-started',
-    fallbackPath: '/help'
+    type: 'tour', 
+    contentId: 'masters-tour',
+    fallbackPath: '/courts'
   },
   'security-best-practices': { 
     type: 'article', 
@@ -149,8 +149,8 @@ export const onboardingStepToContent: Record<string, OnboardingContentMapping> =
     fallbackPath: '/help'
   },
   'data-migration': { 
-    type: 'article', 
-    contentId: 'getting-started',
+    type: 'tour', 
+    contentId: 'data-io-tour',
     fallbackPath: '/help'
   },
   'integration-setup': { 
