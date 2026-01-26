@@ -1,0 +1,345 @@
+{
+  "pageId": "client-portal",
+  "title": "Client Portal Guide",
+  "version": "1.0.0",
+  "lastUpdated": "2025-01-26",
+  "audience": "external-clients",
+  "description": "Complete guide for clients using the portal to track cases, view documents, and stay informed about legal proceedings.",
+
+  "welcome": {
+    "title": "Welcome to Your Client Portal",
+    "message": "This secure portal gives you direct access to your case information, documents, and hearing schedules. You can track progress, download important files, and stay connected with your legal team - all from one convenient location.",
+    "keyBenefits": [
+      "24/7 access to case status and updates",
+      "Secure document viewing and downloads",
+      "Real-time hearing schedule visibility",
+      "Direct communication with your legal team",
+      "Notification alerts for important developments"
+    ]
+  },
+
+  "sections": [
+    {
+      "id": "getting-started",
+      "title": "Getting Started",
+      "icon": "LogIn",
+      "description": "How to access and navigate your portal",
+      "content": {
+        "overview": "Your portal access is provided by your legal team. You'll receive login credentials via secure email.",
+        "steps": [
+          {
+            "step": 1,
+            "title": "Receive Your Credentials",
+            "description": "Your legal team will send you a username and temporary password via email. Check your spam folder if you don't see it."
+          },
+          {
+            "step": 2,
+            "title": "Log In to the Portal",
+            "description": "Visit the portal URL provided and enter your credentials. You may be asked to change your password on first login."
+          },
+          {
+            "step": 3,
+            "title": "Navigate the Dashboard",
+            "description": "Your dashboard shows all your active cases, recent documents, and upcoming hearings at a glance."
+          },
+          {
+            "step": 4,
+            "title": "Set Up Notifications",
+            "description": "Configure how you receive alerts - by email, SMS, or both - for case updates and hearing reminders."
+          }
+        ],
+        "troubleshooting": [
+          {
+            "issue": "Forgot Password",
+            "solution": "Contact your legal team to reset your password. For security, we cannot reset passwords via email."
+          },
+          {
+            "issue": "Account Locked",
+            "solution": "After 5 failed login attempts, your account is locked for 30 minutes. Contact your legal team if you need immediate access."
+          },
+          {
+            "issue": "Can't Find Login Email",
+            "solution": "Check your spam/junk folder. If not found, contact your legal team to resend the invitation."
+          }
+        ]
+      }
+    },
+    {
+      "id": "case-status",
+      "title": "Viewing Your Cases",
+      "icon": "Briefcase",
+      "description": "Track the progress of your legal matters",
+      "content": {
+        "overview": "Each case linked to your account is displayed on your dashboard. Click any case to view detailed information.",
+        "whatYouCanSee": [
+          {
+            "item": "Case Title & Number",
+            "description": "The official case identifier and reference number"
+          },
+          {
+            "item": "Current Stage",
+            "description": "Where your case stands in the legal process (e.g., 'Notice Stage', 'Hearing Scheduled', 'Order Issued')"
+          },
+          {
+            "item": "Next Action Date",
+            "description": "The next important deadline or hearing date"
+          },
+          {
+            "item": "Assigned Advocate",
+            "description": "The primary lawyer handling your case"
+          },
+          {
+            "item": "Case Timeline",
+            "description": "A chronological history of all case events and milestones"
+          }
+        ],
+        "statusMeanings": [
+          {
+            "status": "Active",
+            "meaning": "Case is ongoing with regular activity"
+          },
+          {
+            "status": "Pending Hearing",
+            "meaning": "A hearing has been scheduled and preparation is underway"
+          },
+          {
+            "status": "Awaiting Order",
+            "meaning": "Hearing completed; waiting for authority's decision"
+          },
+          {
+            "status": "Completed",
+            "meaning": "Case has concluded - view final outcome in case details"
+          }
+        ],
+        "tips": [
+          "Check your cases regularly - new documents or updates appear here first",
+          "The 'Last Updated' timestamp shows when the most recent change was made",
+          "Use the timeline view for a complete history of your case"
+        ]
+      }
+    },
+    {
+      "id": "documents",
+      "title": "Accessing Documents",
+      "icon": "FileText",
+      "description": "View and download important files",
+      "content": {
+        "overview": "All documents your legal team shares with you are available in the Documents section. Files are organized by case and document type.",
+        "documentTypes": [
+          {
+            "type": "Notices",
+            "description": "Official notices received from authorities"
+          },
+          {
+            "type": "Submissions",
+            "description": "Documents filed on your behalf"
+          },
+          {
+            "type": "Orders",
+            "description": "Official orders and decisions from authorities"
+          },
+          {
+            "type": "Correspondence",
+            "description": "Letters and communications"
+          },
+          {
+            "type": "Supporting Documents",
+            "description": "Evidence and supporting materials"
+          }
+        ],
+        "actions": [
+          {
+            "action": "View Document",
+            "description": "Click any document to open it in the built-in viewer"
+          },
+          {
+            "action": "Download Document",
+            "description": "Click the download icon to save a copy to your device"
+          },
+          {
+            "action": "Upload Document",
+            "description": "If enabled by your legal team, you can upload documents for their review"
+          }
+        ],
+        "securityNote": "All documents are encrypted in transit and at rest. Only you and your authorized legal team can access your files."
+      }
+    },
+    {
+      "id": "hearings",
+      "title": "Hearing Schedule",
+      "icon": "Calendar",
+      "description": "View upcoming and past hearings",
+      "content": {
+        "overview": "The Hearings section shows all scheduled hearings for your cases. You'll see upcoming dates, locations, and what to prepare.",
+        "hearingDetails": [
+          {
+            "field": "Date & Time",
+            "description": "When the hearing is scheduled"
+          },
+          {
+            "field": "Location",
+            "description": "Physical address or virtual meeting link"
+          },
+          {
+            "field": "Authority/Court",
+            "description": "The judicial body or authority conducting the hearing"
+          },
+          {
+            "field": "Purpose",
+            "description": "What will be discussed or decided"
+          },
+          {
+            "field": "Preparation Notes",
+            "description": "What you may need to bring or prepare"
+          }
+        ],
+        "afterHearing": {
+          "title": "After a Hearing",
+          "description": "Once a hearing concludes, you'll see the outcome recorded here. This includes the result (adjournment, order, etc.) and any notes from your legal team."
+        },
+        "notifications": [
+          "You'll receive reminders 7 days, 3 days, and 1 day before each hearing",
+          "Any date changes are immediately notified",
+          "Hearing outcomes are notified once recorded"
+        ]
+      }
+    },
+    {
+      "id": "notifications",
+      "title": "Managing Notifications",
+      "icon": "Bell",
+      "description": "Stay informed with alerts and updates",
+      "content": {
+        "overview": "The portal sends notifications for important events. You control how and when you receive these alerts.",
+        "notificationTypes": [
+          {
+            "type": "Hearing Reminders",
+            "description": "Advance notice of upcoming hearings"
+          },
+          {
+            "type": "Document Uploads",
+            "description": "When new documents are shared with you"
+          },
+          {
+            "type": "Case Updates",
+            "description": "Stage changes or significant case developments"
+          },
+          {
+            "type": "Deadline Alerts",
+            "description": "When action may be required from you"
+          }
+        ],
+        "deliveryChannels": [
+          {
+            "channel": "Email",
+            "description": "Detailed notifications to your email address"
+          },
+          {
+            "channel": "SMS",
+            "description": "Brief alerts to your mobile (if configured)"
+          },
+          {
+            "channel": "Portal Inbox",
+            "description": "All notifications are stored in your portal for reference"
+          }
+        ],
+        "managingPreferences": "Contact your legal team to adjust notification preferences."
+      }
+    },
+    {
+      "id": "support",
+      "title": "Getting Help",
+      "icon": "HelpCircle",
+      "description": "Contact your legal team",
+      "content": {
+        "overview": "If you have questions about your case or need assistance with the portal, your legal team is here to help.",
+        "contactMethods": [
+          {
+            "method": "Portal Message",
+            "description": "Use the 'Contact Team' button to send a secure message",
+            "responseTime": "Within 1 business day"
+          },
+          {
+            "method": "Email",
+            "description": "Email your assigned advocate directly",
+            "responseTime": "Within 1 business day"
+          },
+          {
+            "method": "Phone",
+            "description": "For urgent matters, call the office during business hours",
+            "responseTime": "Immediate during office hours"
+          }
+        ],
+        "commonQuestions": [
+          {
+            "question": "Why can't I see a specific document?",
+            "answer": "Your legal team controls which documents are visible in the portal. Contact them if you believe a document is missing."
+          },
+          {
+            "question": "How do I update my contact information?",
+            "answer": "Contact your legal team to update your email, phone, or address on file."
+          },
+          {
+            "question": "Can I share portal access with others?",
+            "answer": "For security reasons, sharing credentials is not recommended. Contact your legal team if another person needs access."
+          }
+        ]
+      }
+    }
+  ],
+
+  "securityInformation": {
+    "title": "Your Security",
+    "content": "We take the security of your information seriously. Here's how we protect you:",
+    "measures": [
+      {
+        "feature": "Encrypted Connection",
+        "description": "All data is transmitted using bank-grade encryption (TLS 1.3)"
+      },
+      {
+        "feature": "Secure Storage",
+        "description": "Documents are encrypted at rest and stored in secure data centers"
+      },
+      {
+        "feature": "Access Logging",
+        "description": "All portal access is logged for security monitoring"
+      },
+      {
+        "feature": "Session Timeout",
+        "description": "Your session automatically expires after inactivity to prevent unauthorized access"
+      }
+    ],
+    "yourResponsibilities": [
+      "Never share your login credentials",
+      "Log out when using shared or public computers",
+      "Report any suspicious activity to your legal team immediately",
+      "Keep your contact information up to date for security notifications"
+    ]
+  },
+
+  "quickReferenceCard": {
+    "title": "Portal Quick Reference",
+    "commonActions": [
+      {
+        "action": "Check case status",
+        "location": "Dashboard → Click case card"
+      },
+      {
+        "action": "Download a document",
+        "location": "Case → Documents → Download icon"
+      },
+      {
+        "action": "View hearing schedule",
+        "location": "Dashboard → Hearings section"
+      },
+      {
+        "action": "Read notifications",
+        "location": "Bell icon in header"
+      },
+      {
+        "action": "Contact legal team",
+        "location": "Help → Contact Team button"
+      }
+    ]
+  }
+}

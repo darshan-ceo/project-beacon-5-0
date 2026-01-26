@@ -302,6 +302,39 @@
         "Once restored, create backup admin accounts",
         "Document incident and implement prevention measures"
       ]
+    },
+    {
+      "incident": "Portal Credentials Sent to Wrong Person",
+      "steps": [
+        "Immediately disable the portal account",
+        "Check audit log for any access by the wrong recipient",
+        "Document what data may have been exposed",
+        "Notify the correct client about the incident",
+        "Create new portal account with fresh credentials",
+        "Review email verification process to prevent recurrence"
+      ]
+    },
+    {
+      "incident": "Mass Permission Change by Rogue Admin",
+      "steps": [
+        "Disable the rogue admin account immediately",
+        "Export audit log for the time period in question",
+        "Identify all permission changes made",
+        "Revert each unauthorized change systematically",
+        "Review if sensitive data was accessed during the period",
+        "Report to compliance and document for records"
+      ]
+    },
+    {
+      "incident": "Departed Employee Retains Access",
+      "steps": [
+        "Immediately disable the employee's user account",
+        "Review audit log for post-departure access",
+        "Check if any data was exported or downloaded",
+        "Disable any portal accounts the employee created",
+        "Add offboarding checklist to HR process",
+        "Consider IP-based access blocking if available"
+      ]
     }
   ],
 

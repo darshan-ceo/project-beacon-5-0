@@ -1,0 +1,420 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2025-01-26",
+  "title": "Access & Roles Quick Reference Guide",
+  "description": "Printable quick reference for administrators managing access control",
+  "format": "printable-a4",
+
+  "dataScopeCheatSheet": {
+    "title": "Data Scope Quick Reference",
+    "description": "Which scope to assign based on role and responsibility",
+    "table": [
+      {
+        "role": "Partner",
+        "recommendedScope": "All Cases",
+        "justification": "Firm-wide oversight, conflict checks",
+        "notes": "Always appropriate for partners"
+      },
+      {
+        "role": "Admin",
+        "recommendedScope": "All Cases",
+        "justification": "System administration requires full visibility",
+        "notes": "Required for support duties"
+      },
+      {
+        "role": "Manager",
+        "recommendedScope": "Team Cases",
+        "justification": "Supervise team workload and quality",
+        "notes": "Requires correct hierarchy setup"
+      },
+      {
+        "role": "Senior Advocate",
+        "recommendedScope": "Team Cases",
+        "justification": "Mentor and review team work",
+        "notes": "Only if supervising others"
+      },
+      {
+        "role": "Advocate",
+        "recommendedScope": "Own Cases",
+        "justification": "Access only assigned matters",
+        "notes": "Default for practitioners"
+      },
+      {
+        "role": "Staff",
+        "recommendedScope": "Own Cases",
+        "justification": "Access only assigned tasks",
+        "notes": "Default for support staff"
+      }
+    ],
+    "warnings": [
+      {
+        "condition": "Granting 'All Cases' to non-Partner/Admin",
+        "risk": "Potential confidentiality breach",
+        "requirement": "Document business justification"
+      },
+      {
+        "condition": "Team Cases without hierarchy",
+        "risk": "User sees no cases (empty team)",
+        "requirement": "Verify 'Reports To' is set for team members"
+      }
+    ]
+  },
+
+  "rolePermissionMatrix": {
+    "title": "Standard Permission Sets by Role",
+    "description": "Common permission combinations for standard job functions",
+    "roles": [
+      {
+        "role": "Partner",
+        "permissions": {
+          "cases": "admin",
+          "clients": "admin",
+          "documents": "admin",
+          "hearings": "admin",
+          "tasks": "admin",
+          "reports": "admin",
+          "settings": "write",
+          "rbac": "read",
+          "employees": "admin"
+        },
+        "notes": "Full operational access; limited RBAC access unless also Admin"
+      },
+      {
+        "role": "Admin",
+        "permissions": {
+          "cases": "admin",
+          "clients": "admin",
+          "documents": "admin",
+          "hearings": "admin",
+          "tasks": "admin",
+          "reports": "admin",
+          "settings": "admin",
+          "rbac": "admin",
+          "employees": "admin"
+        },
+        "notes": "Full system access including security configuration"
+      },
+      {
+        "role": "Manager",
+        "permissions": {
+          "cases": "write",
+          "clients": "write",
+          "documents": "write",
+          "hearings": "write",
+          "tasks": "write",
+          "reports": "read",
+          "settings": "read",
+          "rbac": "none",
+          "employees": "read"
+        },
+        "notes": "Team supervision; no security access"
+      },
+      {
+        "role": "Advocate",
+        "permissions": {
+          "cases": "write",
+          "clients": "read",
+          "documents": "write",
+          "hearings": "write",
+          "tasks": "write",
+          "reports": "read",
+          "settings": "none",
+          "rbac": "none",
+          "employees": "read"
+        },
+        "notes": "Case work focus; read-only on reference data"
+      },
+      {
+        "role": "Staff",
+        "permissions": {
+          "cases": "read",
+          "clients": "read",
+          "documents": "read",
+          "hearings": "read",
+          "tasks": "write",
+          "reports": "none",
+          "settings": "none",
+          "rbac": "none",
+          "employees": "read"
+        },
+        "notes": "Task execution only; minimal read access"
+      }
+    ]
+  },
+
+  "securityDosDonts": {
+    "title": "Security Do's and Don'ts",
+    "doAlways": [
+      {
+        "action": "Maintain 2+ active admin accounts",
+        "reason": "Prevents complete lockout if one account is compromised or unavailable"
+      },
+      {
+        "action": "Document all admin role grants",
+        "reason": "Audit trail for compliance; justification for access decisions"
+      },
+      {
+        "action": "Use 'Own Cases' as default scope",
+        "reason": "Principle of least privilege; expand only when needed"
+      },
+      {
+        "action": "Review access quarterly",
+        "reason": "Detect access creep; remove departed employees; verify appropriateness"
+      },
+      {
+        "action": "Verify email before portal access",
+        "reason": "Prevent wrong-person access to confidential client data"
+      },
+      {
+        "action": "Test changes on single user first",
+        "reason": "Catch issues before affecting entire organization"
+      },
+      {
+        "action": "Notify users before permission changes",
+        "reason": "Prevent confusion when access suddenly changes"
+      },
+      {
+        "action": "Set hierarchy before Team Cases scope",
+        "reason": "Scope is meaningless without defined team structure"
+      }
+    ],
+    "doNever": [
+      {
+        "action": "Grant RBAC permissions to non-admin roles",
+        "risk": "Privilege escalation - user can grant themselves any access"
+      },
+      {
+        "action": "Set 'All Cases' scope without justification",
+        "risk": "Confidentiality breach - user sees all client data"
+      },
+      {
+        "action": "Remove last admin account",
+        "risk": "Complete lockout - no one can manage access"
+      },
+      {
+        "action": "Share portal invitations via insecure channels",
+        "risk": "Credentials intercepted - wrong person gets client access"
+      },
+      {
+        "action": "Grant delete permissions to staff roles",
+        "risk": "Permanent data loss - staff may not understand implications"
+      },
+      {
+        "action": "Skip hierarchy validation for managers",
+        "risk": "Manager sees no team data despite Team Cases scope"
+      },
+      {
+        "action": "Ignore access review reminders",
+        "risk": "Access creep accumulates; departed employees retain access"
+      },
+      {
+        "action": "Create roles without descriptions",
+        "risk": "Future admins won't understand role purpose"
+      }
+    ]
+  },
+
+  "emergencyProcedures": {
+    "title": "Emergency Procedures",
+    "scenarios": [
+      {
+        "emergency": "Admin Account Compromised",
+        "immediateActions": [
+          "Change password immediately from another device",
+          "Review audit log for actions by compromised account",
+          "Revert any unauthorized permission changes",
+          "Disable account if breach is confirmed"
+        ],
+        "followUp": [
+          "Create new admin account for legitimate user",
+          "Enable 2FA if not already active",
+          "Conduct full permission audit",
+          "Document incident for compliance"
+        ]
+      },
+      {
+        "emergency": "Complete Admin Lockout",
+        "immediateActions": [
+          "Try all known admin accounts",
+          "Check if session is still active in another browser",
+          "Contact Lovable support immediately"
+        ],
+        "followUp": [
+          "Provide proof of organization ownership",
+          "Once restored, create 2+ backup admin accounts",
+          "Document 'break glass' credentials securely"
+        ]
+      },
+      {
+        "emergency": "Suspected Data Breach",
+        "immediateActions": [
+          "Identify affected user account(s)",
+          "Review data scope and recent access in audit log",
+          "Disable suspicious account if confirmed",
+          "Identify what data may have been accessed"
+        ],
+        "followUp": [
+          "Notify compliance/legal",
+          "Document timeline and affected data",
+          "Notify affected clients if required",
+          "Implement corrective controls"
+        ]
+      },
+      {
+        "emergency": "Wrong Portal Access Granted",
+        "immediateActions": [
+          "Disable incorrect portal account immediately",
+          "Review audit log for what data was accessed",
+          "Notify affected client(s)"
+        ],
+        "followUp": [
+          "Document incident",
+          "Review portal invitation process",
+          "Implement verification checklist"
+        ]
+      }
+    ]
+  },
+
+  "auditChecklist": {
+    "title": "Quarterly Access Audit Checklist",
+    "preAudit": [
+      "Export current user list with roles and data scopes",
+      "Obtain current HR active employee list",
+      "Request list of departed employees since last audit",
+      "Schedule 30 minutes with compliance officer if findings expected"
+    ],
+    "auditSteps": [
+      {
+        "step": 1,
+        "action": "Compare active users to HR list",
+        "expectedResult": "All active users are current employees",
+        "findingIf": "User not on HR list but still active"
+      },
+      {
+        "step": 2,
+        "action": "Review admin role assignments",
+        "expectedResult": "2-4 admin accounts; all documented",
+        "findingIf": "More than 4 admins or undocumented"
+      },
+      {
+        "step": 3,
+        "action": "Review 'All Cases' data scope assignments",
+        "expectedResult": "Only Partner/Admin have All Cases",
+        "findingIf": "Non-partner/admin with All Cases without justification"
+      },
+      {
+        "step": 4,
+        "action": "Review portal accounts",
+        "expectedResult": "All portal users are active clients",
+        "findingIf": "Portal user with no active case"
+      },
+      {
+        "step": 5,
+        "action": "Check for role accumulation",
+        "expectedResult": "Each user has one primary role",
+        "findingIf": "User with multiple conflicting roles"
+      }
+    ],
+    "postAudit": [
+      "Document all findings with action items",
+      "Remediate critical findings within 24 hours",
+      "Remediate standard findings within 1 week",
+      "File audit report for compliance records"
+    ]
+  },
+
+  "quickActions": {
+    "title": "Common Tasks Quick Reference",
+    "actions": [
+      {
+        "task": "Add new employee",
+        "path": "Access & Roles → Assignments → Add New",
+        "prerequisites": "Employee created in Employee Master"
+      },
+      {
+        "task": "Change user's role",
+        "path": "Access & Roles → Assignments → Edit → Role dropdown",
+        "prerequisites": "Notify user before change"
+      },
+      {
+        "task": "Change data scope",
+        "path": "Access & Roles → Assignments → Edit → Data Scope dropdown",
+        "prerequisites": "Verify hierarchy if Team Cases"
+      },
+      {
+        "task": "View user's effective permissions",
+        "path": "Access & Roles → Matrix → Search user",
+        "prerequisites": "None"
+      },
+      {
+        "task": "Create custom role",
+        "path": "Access & Roles → Definitions → Create Role",
+        "prerequisites": "Document purpose before creating"
+      },
+      {
+        "task": "View hierarchy",
+        "path": "Access & Roles → Hierarchy → Org Chart",
+        "prerequisites": "None"
+      },
+      {
+        "task": "Review audit log",
+        "path": "Access & Roles → Audit Log → Filter by action",
+        "prerequisites": "None"
+      },
+      {
+        "task": "Manage portal users",
+        "path": "Access & Roles → Portal → Portal Users",
+        "prerequisites": "Client must exist"
+      }
+    ]
+  },
+
+  "escalationMatrix": {
+    "title": "When to Escalate",
+    "scenarios": [
+      {
+        "situation": "Security incident suspected",
+        "escalateTo": "Admin + Compliance Officer",
+        "timeframe": "Immediately"
+      },
+      {
+        "situation": "Admin access request",
+        "escalateTo": "Existing Admin + Partner approval",
+        "timeframe": "Within 1 business day"
+      },
+      {
+        "situation": "'All Cases' scope request",
+        "escalateTo": "Admin (with manager approval)",
+        "timeframe": "Within 1 business day"
+      },
+      {
+        "situation": "Complete admin lockout",
+        "escalateTo": "Lovable Support",
+        "timeframe": "Immediately"
+      },
+      {
+        "situation": "Client portal breach",
+        "escalateTo": "Admin + Legal/Compliance + Affected Client",
+        "timeframe": "Immediately"
+      },
+      {
+        "situation": "Audit finding - critical",
+        "escalateTo": "Admin + Compliance Officer",
+        "timeframe": "Within 24 hours"
+      }
+    ]
+  },
+
+  "printableFormat": {
+    "title": "Print Instructions",
+    "description": "For A4 printable version:",
+    "sections": [
+      "Data Scope Cheat Sheet (1 page)",
+      "Security Do's and Don'ts (1 page)",
+      "Emergency Procedures (1 page)",
+      "Audit Checklist (1 page)"
+    ],
+    "recommendation": "Print and post near admin workstations for quick reference during incidents."
+  }
+}
