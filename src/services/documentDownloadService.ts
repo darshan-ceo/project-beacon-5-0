@@ -5,6 +5,9 @@ interface DownloadResult {
   error?: string;
 }
 
+// Office file types that can be previewed via Microsoft Office Online Viewer
+const OFFICE_PREVIEWABLE_TYPES = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
+
 /**
  * Get MIME type from file extension
  */
@@ -121,10 +124,32 @@ export const previewDocument = async (
     
     // Determine file extension
     const fileExt = fileType || filePath.split('.').pop()?.toLowerCase();
-    const previewableTypes = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'txt'];
+    const nativePreviewableTypes = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'txt'];
     
-    // For PDFs and images, use blob approach for reliable preview
-    if (previewableTypes.includes(fileExt || '')) {
+    // Handle Office files via Microsoft Office Online Viewer
+    if (OFFICE_PREVIEWABLE_TYPES.includes(fileExt || '')) {
+      console.log('📄 [documentDownloadService] Office file detected, using Microsoft Viewer');
+      
+      // Create a long-lived signed URL (1 hour)
+      const { data: signedData, error: signedError } = await supabase.storage
+        .from('documents')
+        .createSignedUrl(filePath, 3600);
+      
+      if (signedError || !signedData?.signedUrl) {
+        throw new Error(signedError?.message || 'Failed to create preview URL');
+      }
+      
+      // Encode the signed URL for Microsoft Office Online Viewer
+      const encodedUrl = encodeURIComponent(signedData.signedUrl);
+      const officeViewerUrl = `https://view.officeapps.live.com/op/view.aspx?src=${encodedUrl}`;
+      
+      window.open(officeViewerUrl, '_blank');
+      console.log('✅ [documentDownloadService] Office preview opened via Microsoft Viewer');
+      return { success: true, isOfficeViewer: true } as DownloadResult & { isOfficeViewer?: boolean };
+    }
+    
+    // Handle native browser previewable types (PDF, images, txt)
+    if (nativePreviewableTypes.includes(fileExt || '')) {
       const { data: blob, error } = await supabase.storage
         .from('documents')
         .download(filePath);
@@ -138,14 +163,14 @@ export const previewDocument = async (
         
         // Revoke after delay to allow browser to load
         setTimeout(() => URL.revokeObjectURL(url), 60000);
-        console.log('✅ [documentDownloadService] Preview opened via blob');
+        console.log('✅ [documentDownloadService] Native preview opened via blob');
         return { success: true };
       }
       
       console.log('⚠️ [documentDownloadService] Blob preview failed, falling back to signed URL');
     }
     
-    // Fallback: Use signed URL (works for most browsers)
+    // Fallback: Use signed URL directly (may trigger download for unsupported types)
     const { data: signedData, error: signedError } = await supabase.storage
       .from('documents')
       .createSignedUrl(filePath, 3600);
@@ -164,8 +189,16 @@ export const previewDocument = async (
   }
 };
 
+/**
+ * Check if a file type uses Office Online Viewer
+ */
+export const isOfficePreviewable = (fileType?: string): boolean => {
+  return OFFICE_PREVIEWABLE_TYPES.includes(fileType?.toLowerCase() || '');
+};
+
 export const documentDownloadService = {
   download: downloadDocumentAsBlob,
   preview: previewDocument,
-  getMimeType
+  getMimeType,
+  isOfficePreviewable
 };
