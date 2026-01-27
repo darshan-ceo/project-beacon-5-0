@@ -250,7 +250,6 @@ export const CaseDocuments: React.FC<CaseDocumentsProps> = ({ selectedCase }) =>
         timestamp: Date.now()
       });
 
-      // Get signed URL from Supabase Storage
       const filePath = document.path;
       if (!filePath) {
         toast({
@@ -261,21 +260,29 @@ export const CaseDocuments: React.FC<CaseDocumentsProps> = ({ selectedCase }) =>
         return;
       }
 
-      // Generate signed URL (valid for 1 hour)
-      const signedUrl = await supabaseDocumentService.getDownloadUrl(filePath, 3600);
+      const fileType = document.type || (document as any).fileType || filePath.split('.').pop()?.toLowerCase();
       
-      // Open in new tab for preview
-      window.open(signedUrl, '_blank');
+      // Use blob-based preview for reliable cross-origin handling
+      const { documentDownloadService } = await import('@/services/documentDownloadService');
+      const result = await documentDownloadService.preview(
+        filePath,
+        document.name || 'document',
+        fileType
+      );
+
+      if (!result.success) {
+        throw new Error(result.error || 'Preview failed');
+      }
       
       toast({
         title: "Opening Document",
         description: `${document.name} opened for preview`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to preview document:', error);
       toast({
         title: "Preview Failed",
-        description: "Unable to open document preview.",
+        description: error.message || "Unable to open document preview.",
         variant: "destructive"
       });
     }
@@ -293,26 +300,35 @@ export const CaseDocuments: React.FC<CaseDocumentsProps> = ({ selectedCase }) =>
         return;
       }
 
-      // Get signed URL
-      const signedUrl = await supabaseDocumentService.getDownloadUrl(filePath, 3600);
-      
-      // Trigger download
-      const link = window.document.createElement('a');
-      link.href = signedUrl;
-      link.download = document.name || document.fileName || 'document.pdf';
-      window.document.body.appendChild(link);
-      link.click();
-      window.document.body.removeChild(link);
-      
+      const fileType = document.type || document.fileType || filePath.split('.').pop()?.toLowerCase();
+      const fileName = document.name || document.fileName || `document.${fileType || 'bin'}`;
+
       toast({
-        title: "Download Started",
-        description: `Downloading ${document.name}...`,
+        title: "Preparing Download",
+        description: `Downloading ${fileName}...`,
       });
-    } catch (error) {
+
+      // Use blob-based download for reliable cross-origin handling
+      const { documentDownloadService } = await import('@/services/documentDownloadService');
+      const result = await documentDownloadService.download(
+        filePath,
+        fileName,
+        fileType
+      );
+
+      if (!result.success) {
+        throw new Error(result.error || 'Download failed');
+      }
+
+      toast({
+        title: "Download Complete",
+        description: `${fileName} downloaded successfully`,
+      });
+    } catch (error: any) {
       console.error('Download failed:', error);
       toast({
         title: "Download Failed",
-        description: "Unable to download document.",
+        description: error.message || "Unable to download document.",
         variant: "destructive"
       });
     }

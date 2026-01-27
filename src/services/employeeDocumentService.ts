@@ -49,6 +49,25 @@ const UPLOAD_CONFIGS: Record<EmployeeDocumentCategory, UploadConfig> = {
   }
 };
 
+// Helper to get MIME type from file extension
+const getMimeTypeFromExtension = (ext: string): string => {
+  const mimeTypes: Record<string, string> = {
+    'pdf': 'application/pdf',
+    'doc': 'application/msword',
+    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'xls': 'application/vnd.ms-excel',
+    'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png': 'image/png',
+    'gif': 'image/gif',
+    'webp': 'image/webp',
+    'txt': 'text/plain',
+    'csv': 'text/csv'
+  };
+  return mimeTypes[ext?.toLowerCase()] || 'application/octet-stream';
+};
+
 // Resilient auth helper - uses cached session first
 const getAuthenticatedUser = async () => {
   // First try cached session (no network request)
@@ -168,6 +187,9 @@ export const employeeDocumentService = {
 
       // Get file extension for file_type
       const fileExtension = file.name.split('.').pop()?.toLowerCase() || 'unknown';
+      
+      // Get MIME type - use file.type if available, otherwise derive from extension
+      const mimeType = file.type || getMimeTypeFromExtension(fileExtension);
 
       // Create document record in database
       const { data: docRecord, error: docError } = await supabase
@@ -181,6 +203,7 @@ export const employeeDocumentService = {
           uploaded_by: user.id,
           folder_id: 'employees',
           category: 'Miscellaneous',
+          mime_type: mimeType,
           remarks: `Employee document: ${UPLOAD_CONFIGS[category].label} for ${employeeCode}`
         })
         .select()

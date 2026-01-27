@@ -658,33 +658,39 @@ export const DocumentManagement: React.FC = () => {
       console.log('📖 [DocumentManagement] Attempting to preview document:', {
         id: doc.id,
         name: doc.name,
-        filePath: doc.filePath || doc.file_path,
-        storageUrl: doc.storageUrl
+        filePath: doc.filePath || doc.file_path
       });
 
-      // For Supabase documents, use signed URL
-      if (doc.filePath || doc.file_path) {
-        const filePath = doc.filePath || doc.file_path;
-        const signedUrl = await supabaseDocumentService.getDownloadUrl(filePath, 3600);
-        
-        console.log('✅ [DocumentManagement] Opening preview with signed URL');
-        window.open(signedUrl, '_blank');
-        
-        toast({
-          title: "Opening Document",
-          description: `${doc.name} opened for preview`,
-        });
-        return;
+      const filePath = doc.filePath || doc.file_path;
+      if (!filePath) {
+        throw new Error('No file path available for preview');
       }
 
-      // Fallback error
-      throw new Error('No file path available for preview');
+      const fileType = doc.type || doc.fileType || doc.file_type || 
+                       filePath.split('.').pop()?.toLowerCase();
       
-    } catch (error) {
+      // Import dynamically to avoid circular dependencies
+      const { documentDownloadService } = await import('@/services/documentDownloadService');
+      const result = await documentDownloadService.preview(
+        filePath,
+        doc.name || doc.fileName || 'document',
+        fileType
+      );
+
+      if (!result.success) {
+        throw new Error(result.error || 'Preview failed');
+      }
+
+      toast({
+        title: "Opening Document",
+        description: `${doc.name} opened for preview`,
+      });
+
+    } catch (error: any) {
       console.error('❌ [DocumentManagement] Preview error:', error);
       toast({
         title: "Preview Error",
-        description: "Unable to preview this document. Try downloading instead.",
+        description: error.message || "Unable to preview this document. Try downloading instead.",
         variant: "destructive",
       });
     }
@@ -698,33 +704,42 @@ export const DocumentManagement: React.FC = () => {
         filePath: doc.filePath || doc.file_path
       });
 
-      if (doc.filePath || doc.file_path) {
-        const filePath = doc.filePath || doc.file_path;
-        const signedUrl = await supabaseDocumentService.getDownloadUrl(filePath, 3600);
-        
-        // Trigger download
-        const link = document.createElement('a');
-        link.href = signedUrl;
-        link.download = doc.name || doc.fileName || 'document.pdf';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        console.log('✅ [DocumentManagement] Download started');
-        toast({
-          title: "Download Started",
-          description: `Downloading ${doc.name}`,
-        });
-        return;
+      const filePath = doc.filePath || doc.file_path;
+      if (!filePath) {
+        throw new Error('No file path available for download');
       }
 
-      throw new Error('No file path available for download');
-      
-    } catch (error) {
+      const fileType = doc.type || doc.fileType || doc.file_type || 
+                       filePath.split('.').pop()?.toLowerCase();
+      const fileName = doc.name || doc.fileName || `document.${fileType || 'bin'}`;
+
+      toast({
+        title: "Preparing Download",
+        description: `Downloading ${fileName}...`,
+      });
+
+      // Import dynamically to avoid circular dependencies
+      const { documentDownloadService } = await import('@/services/documentDownloadService');
+      const result = await documentDownloadService.download(
+        filePath,
+        fileName,
+        fileType
+      );
+
+      if (!result.success) {
+        throw new Error(result.error || 'Download failed');
+      }
+
+      toast({
+        title: "Download Complete",
+        description: `${fileName} downloaded successfully`,
+      });
+
+    } catch (error: any) {
       console.error('❌ [DocumentManagement] Download error:', error);
       toast({
         title: "Download Error",
-        description: "Unable to download this document.",
+        description: error.message || "Unable to download this document.",
         variant: "destructive",
       });
     }
