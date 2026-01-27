@@ -140,9 +140,9 @@ export const TaskEditSheet: React.FC<TaskEditSheetProps> = ({
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <SheetContent 
         side="right" 
-        className="w-full sm:max-w-xl md:max-w-2xl lg:max-w-3xl overflow-y-auto"
+        className="w-full sm:max-w-xl md:max-w-2xl lg:max-w-3xl flex flex-col p-0"
       >
-        <SheetHeader className="border-b pb-4 mb-4">
+        <SheetHeader className="border-b px-6 py-4 shrink-0">
           <div className="flex items-center justify-between">
             <div>
               <SheetTitle>Edit Task</SheetTitle>
@@ -153,7 +153,8 @@ export const TaskEditSheet: React.FC<TaskEditSheetProps> = ({
           </div>
         </SheetHeader>
 
-        <div className="pb-20">
+        {/* Scrollable Form Content */}
+        <div className="flex-1 overflow-y-auto px-6 py-6">
           <TaskForm
             formData={formData}
             setFormData={setFormData}
@@ -166,8 +167,8 @@ export const TaskEditSheet: React.FC<TaskEditSheetProps> = ({
           />
         </div>
 
-        {/* Sticky Footer */}
-        <div className="absolute bottom-0 left-0 right-0 border-t bg-background p-4 flex justify-end gap-3">
+        {/* Footer - Always at bottom */}
+        <div className="shrink-0 border-t bg-background px-6 py-4 flex justify-end gap-3">
           <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>
