@@ -17,6 +17,9 @@ const roleIcons: Record<UserRole, React.ElementType> = {
   Associate: User,
   Clerk: Briefcase,
   Client: User,
+  Advocate: User,
+  Staff: User,
+  Ca: Briefcase,
 };
 
 const roleColors: Record<UserRole, string> = {
@@ -26,6 +29,9 @@ const roleColors: Record<UserRole, string> = {
   Associate: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
   Clerk: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200',
   Client: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200',
+  Advocate: 'bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200',
+  Staff: 'bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-200',
+  Ca: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
 };
 
 export const RoleSelector: React.FC = () => {
