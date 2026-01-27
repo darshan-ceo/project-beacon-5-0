@@ -1,11 +1,27 @@
 {
-  "lastUpdated": "2025-01-26",
+  "lastUpdated": "2026-01-27",
   "entries": [
     {
-      "id": "2025-01-26-help-discovery-hub",
+      "id": "2026-01-27-task-rbac-submodules",
+      "title": "Granular Task Management Permissions",
+      "description": "New RBAC controls for Task sub-modules: Templates, Automation, Escalation, and AI Assistant tabs now have separate permission controls.",
+      "releaseDate": "2026-01-27",
+      "category": "feature",
+      "module": "tasks",
+      "roles": ["Admin", "Partner", "Manager"],
+      "highlights": [
+        "Separate permissions for Templates, Automation, Escalation, AI tabs",
+        "Manager access to Templates without Admin privileges",
+        "Admin-only access to system-critical configuration tabs",
+        "Visual lock indicators on restricted tabs"
+      ],
+      "learnMoreUrl": "/access-roles"
+    },
+    {
+      "id": "2026-01-26-help-discovery-hub",
       "title": "Enhanced Help & Knowledge Center",
       "description": "Unified discovery hub for all help content with role-based filtering, What's New tracking, and personalized onboarding paths.",
-      "releaseDate": "2025-01-26",
+      "releaseDate": "2026-01-26",
       "category": "feature",
       "module": "help",
       "roles": ["all"],
@@ -18,10 +34,10 @@
       "learnMoreUrl": "/help"
     },
     {
-      "id": "2025-01-25-operational-help",
+      "id": "2026-01-25-operational-help",
       "title": "Operational Module Help Content",
       "description": "Comprehensive workflow guidance for Case Management, Hearings, Tasks, Documents, Timeline, AI Assistant, and Communications modules.",
-      "releaseDate": "2025-01-25",
+      "releaseDate": "2026-01-25",
       "category": "feature",
       "module": "help",
       "roles": ["all"],
@@ -34,10 +50,10 @@
       "tourId": "case-operations-tour"
     },
     {
-      "id": "2025-01-24-access-roles-help",
+      "id": "2026-01-24-access-roles-help",
       "title": "Access & Roles Governance Documentation",
       "description": "Detailed help content for the Access & Roles module covering all 6 tabs with security warnings and best practices.",
-      "releaseDate": "2025-01-24",
+      "releaseDate": "2026-01-24",
       "category": "feature",
       "module": "access-roles",
       "roles": ["Admin", "Partner", "Implementor"],
@@ -50,10 +66,10 @@
       "tourId": "access-roles-tour"
     },
     {
-      "id": "2025-01-23-master-data-help",
+      "id": "2026-01-23-master-data-help",
       "title": "Master Data Governance Help",
       "description": "System-dependency documentation for master data modules showing how master records affect the litigation lifecycle.",
-      "releaseDate": "2025-01-23",
+      "releaseDate": "2026-01-23",
       "category": "feature",
       "module": "masters",
       "roles": ["Admin", "Partner", "Manager"],
@@ -65,10 +81,10 @@
       ]
     },
     {
-      "id": "2025-01-22-task-automation-v2",
+      "id": "2026-01-22-task-automation-v2",
       "title": "Enhanced Task Automation",
       "description": "New automation triggers, improved escalation matrix, and AI-powered task suggestions.",
-      "releaseDate": "2025-01-22",
+      "releaseDate": "2026-01-22",
       "category": "improvement",
       "module": "tasks",
       "roles": ["all"],
@@ -81,10 +97,10 @@
       "tourId": "task-automation-tour"
     },
     {
-      "id": "2025-01-20-ai-assistant-enhancements",
+      "id": "2026-01-20-ai-assistant-enhancements",
       "title": "AI Assistant Multi-Document Analysis",
       "description": "Analyze multiple documents simultaneously and generate comprehensive case summaries.",
-      "releaseDate": "2025-01-20",
+      "releaseDate": "2026-01-20",
       "category": "feature",
       "module": "ai-assistant",
       "roles": ["all"],
@@ -96,10 +112,10 @@
       ]
     },
     {
-      "id": "2025-01-18-hearing-calendar-sync",
+      "id": "2026-01-18-hearing-calendar-sync",
       "title": "External Calendar Integration",
       "description": "Sync hearings with Google Calendar and Outlook for seamless scheduling.",
-      "releaseDate": "2025-01-18",
+      "releaseDate": "2026-01-18",
       "category": "feature",
       "module": "hearings",
       "roles": ["all"],
@@ -111,10 +127,10 @@
       ]
     },
     {
-      "id": "2025-01-15-sla-dashboard",
+      "id": "2026-01-15-sla-dashboard",
       "title": "SLA Compliance Dashboard",
       "description": "Real-time visibility into SLA status across all cases with breach prediction.",
-      "releaseDate": "2025-01-15",
+      "releaseDate": "2026-01-15",
       "category": "feature",
       "module": "dashboard",
       "roles": ["Manager", "Partner", "Admin"],
