@@ -1,104 +1,173 @@
 
-# Fix: Officer Designation Not Displaying on Edit
+# Fix: Judge Create/Edit Buttons Not Responding
 
-## Root Cause Identified
+## Problem Identified
 
-The Officer Designation dropdown fails to display the stored value due to a **Radix UI Select timing/options mismatch issue**:
+The "Create Judge" and "Update Judge" buttons are not working because of an **architectural mismatch** between the footer button and form submission:
 
-1. Modal renders Select with `value={formData.officerDesignation || ''}` 
-2. Select options come from `getOfficersByJurisdiction(formData.taxJurisdiction)`
-3. When `formData.taxJurisdiction` is `undefined`, this returns `[]` (empty array)
-4. Radix Select has **no options to match** against the stored value
-5. Select displays placeholder instead of the actual value
+### Current (Broken) Flow:
+```
+1. User clicks "Create Judge" button
+2. FormStickyFooter calls onPrimaryAction -> handleSubmit()
+3. handleSubmit checks: if (!pendingFormData) return;  ← ALWAYS FAILS!
+4. pendingFormData is null because JudgeForm.onSubmit was never called
+5. Nothing happens
+```
 
-**Why Address Works But Officer Designation Doesn't:**
-- Address was switched to `SimpleAddressForm` with plain text inputs (no matching required)
-- Officer Designation uses a dropdown that requires option-value matching
+### Expected (Working) Flow:
+```
+1. User clicks "Create Judge" button
+2. FormStickyFooter triggers form.requestSubmit() via form ID
+3. JudgeForm's native <form onSubmit> fires
+4. Validation runs, then onSubmit(formData) is called
+5. JudgeModal receives form data and saves to database
+```
 
-## Solution: Always Provide Fallback Options
+---
 
-Modify `getOfficersByJurisdiction()` to return ALL officers when jurisdiction is undefined, ensuring the stored value always has a matching option to display.
+## Root Cause
 
-### File Changes
+The `JudgeModal` uses a **callback pattern** (`onSubmit: handleFormChange`) expecting `JudgeForm` to call it when data is ready. However:
 
-**1. `src/types/officer-designation.ts`** - Update helper function
+1. `JudgeForm` only calls `onSubmit` when its internal `<form>` submits via native event
+2. The footer button bypasses the form's submit event
+3. `pendingFormData` remains `null`, so `handleSubmit` exits early
+
+---
+
+## Solution
+
+Apply the same pattern used in `CourtModal`:
+
+### 1. Add form ID to JudgeForm
+
+**File:** `src/components/masters/judges/JudgeForm.tsx`
 
 ```typescript
-// Line 106-111: Change getOfficersByJurisdiction to return all officers as fallback
-export const getOfficersByJurisdiction = (jurisdiction: TaxJurisdiction | undefined): OfficerOption[] => {
-  if (jurisdiction === 'CGST') return CGST_OFFICERS;
-  if (jurisdiction === 'SGST') return SGST_OFFICERS;
-  // CHANGE: Return combined officers list when no jurisdiction selected
-  // This ensures stored values can always be displayed
-  return [...CGST_OFFICERS, ...SGST_OFFICERS.filter(o => 
-    !CGST_OFFICERS.some(c => c.value === o.value)
-  )];
+// Line 344: Add id prop to form
+<form id="judge-form" onSubmit={handleSubmit} className="space-y-8">
+```
+
+### 2. Trigger form submission via ID in JudgeModal
+
+**File:** `src/components/modals/JudgeModal.tsx`
+
+Change the footer from:
+```typescript
+const footer = (
+  <FormStickyFooter
+    mode={mode}
+    onCancel={onClose}
+    onPrimaryAction={handleSubmit}  // ← BROKEN: bypasses form validation
+    // ...
+  />
+);
+```
+
+To:
+```typescript
+const footer = (
+  <FormStickyFooter
+    mode={mode}
+    onCancel={onClose}
+    onPrimaryAction={mode !== 'view' ? () => {
+      const form = document.getElementById('judge-form') as HTMLFormElement;
+      if (form) form.requestSubmit();
+    } : undefined}  // ← FIXED: triggers native form submit
+    // ...
+  />
+);
+```
+
+### 3. Change JudgeForm's onSubmit callback to pass data directly
+
+**File:** `src/components/modals/JudgeModal.tsx`
+
+Update `handleFormChange` to immediately save (not just store for later):
+```typescript
+const handleFormSubmit = async (formData: JudgeFormData) => {
+  setIsSaving(true);
+  try {
+    const { judgesService } = await import('@/services/judgesService');
+    
+    if (mode === 'create') {
+      const judgePayload = {
+        name: formData.name,
+        designation: formData.designation,
+        status: formData.status,
+        courtId: formData.courtId,
+        appointmentDate: formData.appointmentDate?.toISOString().split('T')[0] || '',
+        phone: formData.phone,
+        email: formData.email,
+        // ... other fields
+      };
+      await judgesService.create(judgePayload, rawDispatch);
+    } else if (mode === 'edit' && judgeData) {
+      await judgesService.update(judgeData.id, formData, dispatch);
+    }
+    onClose();
+  } catch (error: any) {
+    toast({ title: 'Error', description: error?.message, variant: 'destructive' });
+    setIsSaving(false);
+  }
 };
+
+// In render:
+<JudgeForm
+  initialData={judgeData}
+  onSubmit={handleFormSubmit}  // Direct handler
+  onCancel={onClose}
+  mode={mode}
+/>
 ```
 
-This returns a deduplicated combined list when no jurisdiction is selected, ensuring:
-- `COMMISSIONER` (which exists in both lists) will have a matching option
-- All other designations from both lists are included
-- The stored value will always have an option to match against
+### 4. Remove duplicate submit buttons from JudgeForm
 
-**2. `src/components/modals/CourtModal.tsx`** - Add loading guard (Optional enhancement)
+The JudgeForm currently has its own submit buttons at lines 1070-1078. These should be removed since the footer now handles submission.
 
-As an additional safeguard, add a check to ensure form data is hydrated before rendering the select:
-
-```typescript
-// Around line 520-540: Add conditional rendering
-{/* Only render officer select after jurisdiction is determined or show stored value */}
-{(formData.taxJurisdiction || formData.officerDesignation) && (
-  <Select
-    value={formData.officerDesignation || ''}
-    onValueChange={(value) => setFormData(prev => ({ 
-      ...prev, 
-      officerDesignation: value as OfficerDesignation || undefined
-    }))}
-    disabled={mode === 'view' || !formData.taxJurisdiction}
-  >
-    <SelectTrigger>
-      <SelectValue placeholder={formData.taxJurisdiction ? "Select officer designation" : "Select tax jurisdiction first"} />
-    </SelectTrigger>
-    <SelectContent>
-      {getOfficersByJurisdiction(formData.taxJurisdiction).map(option => (
-        <SelectItem key={option.value} value={option.value}>
-          <span className="font-medium">{option.label}</span>
-        </SelectItem>
-      ))}
-    </SelectContent>
-  </Select>
-)}
-```
-
-## Technical Details
-
-### Why This Fix Works
-
-1. **Radix Select Requirement**: The `value` prop MUST have a corresponding `<SelectItem value={...}>` in the DOM for the selection to display
-2. **Empty Options = No Match**: When `getOfficersByJurisdiction(undefined)` returned `[]`, there were no options to match against
-3. **Fallback Options Solution**: By always providing a complete list of officers as options, the stored value (e.g., `COMMISSIONER`) will always find a match
-
-### Risk Assessment
-
-| Risk | Mitigation |
-|------|------------|
-| User might select invalid officer for jurisdiction | Dropdown is still disabled when `!formData.taxJurisdiction` - user cannot interact until jurisdiction is set |
-| Performance impact from larger options list | Negligible - only adds ~10 extra options when no jurisdiction selected |
-| Duplicate options | Deduplication logic prevents same officer appearing twice |
+---
 
 ## Files to Modify
 
-| File | Change | Impact |
-|------|--------|--------|
-| `src/types/officer-designation.ts` | Return combined officers list instead of empty when jurisdiction is undefined | Ensures stored values always display |
-| `src/components/modals/CourtModal.tsx` | Optional: Add render guard for officer select | Extra safety for hydration timing |
+| File | Change | Lines |
+|------|--------|-------|
+| `src/components/masters/judges/JudgeForm.tsx` | Add `id="judge-form"` to form element | Line 344 |
+| `src/components/masters/judges/JudgeForm.tsx` | Remove duplicate Cancel/Submit buttons at bottom | Lines 1065-1078 |
+| `src/components/modals/JudgeModal.tsx` | Use `form.requestSubmit()` pattern for footer | Lines 115-126 |
+| `src/components/modals/JudgeModal.tsx` | Merge `handleFormChange` + `handleSubmit` into single handler | Lines 35-72 |
 
-## Expected Behavior After Fix
+---
+
+## Technical Details
+
+### Why `form.requestSubmit()` Pattern Works
+
+1. **Native Form Validation**: `requestSubmit()` triggers the browser's built-in form validation before calling `onSubmit`
+2. **Form-Footer Separation**: The footer is rendered outside the `<form>` element (in the shell's footer slot), so `type="submit"` buttons don't work
+3. **Consistent Pattern**: This matches CourtModal, ClientModal, and ContactModal - proven working implementations
+
+### Data Flow After Fix
+
+```
+1. User fills form
+2. Clicks "Create Judge" in footer
+3. footer.onPrimaryAction() calls form.requestSubmit()
+4. JudgeForm validates (name, courtId, designation required)
+5. If valid, JudgeForm calls onSubmit(formData)
+6. JudgeModal.handleFormSubmit receives data
+7. judgesService.create() persists to Supabase
+8. Dispatch updates UI state
+9. Toast confirms success
+10. Modal closes
+```
+
+---
+
+## Expected Results
 
 | Scenario | Before | After |
 |----------|--------|-------|
-| Open court with SGST + Commissioner | Shows "Select officer designation" placeholder | Shows "Commissioner" |
-| Open court with no jurisdiction set | Shows placeholder, can't see stored value | Shows stored value (read-only until jurisdiction set) |
-| Change jurisdiction in edit mode | Resets officer correctly | Same - resets correctly |
-| Create new court | No change | No change |
+| Click "Create Judge" | Nothing happens | Form validates and saves |
+| Click "Update Judge" | Nothing happens | Form validates and updates |
+| Missing required field | Nothing happens | Validation toast shows |
+| Save succeeds | N/A | Success toast + modal closes |
