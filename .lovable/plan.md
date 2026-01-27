@@ -1,212 +1,295 @@
 
-# Deep Investigation Results: Officer Designation & Address Fields Not Persisting
 
-## Summary of Investigation
+# Root Cause Analysis: Officer Designation & Address Persistence Issue
 
-After extensive code analysis, I've traced the complete data flow for Legal Forum (Courts) and identified **3 critical root causes** why Officer Designation and Address fields appear to save but don't display correctly on subsequent views.
+## The Real Problem (Not What We Fixed Earlier)
+
+The previous fix (skipping realtime UPDATE events) was **correct** but **incomplete**. The actual issue is more subtle and occurs during **form hydration** in the CourtModal component.
 
 ---
 
-## Evidence: Database vs UI Comparison
+## Critical Discovery from Database Query
 
-**Database State (verified via SQL query):**
-```
-id: a6e94a58-54a8-47b3-aa7c-5020a4c81d0a
-name: Test High Court
+```sql
+address: {"line1":"A1","line2":"A2","locality":"l1",...,"cityName":"Port Blair","stateName":"Andaman and Nicobar Islands"}
+city: Ahmedabad
 tax_jurisdiction: CGST
 officer_designation: PRINCIPAL_COMMISSIONER
-address: {"line1":"A1","line2":"A2","locality":"a3","cityId":"GJ006",...}
 ```
 
-**UI State:** Shows "Select officer designation" and empty address fields despite database having correct data.
+**The database has ALL the data correctly stored!** This confirms:
+1. ✅ Persistence layer works (courtsService.update)
+2. ✅ Database schema supports these fields
+3. ✅ Data was successfully written
 
-This confirms your observation: **data IS being saved to Supabase correctly, but UI fails to display it on reload**.
+But the UI doesn't display them after reopening the modal. Why?
 
 ---
 
-## Root Cause Analysis
+## Root Cause: Form Hydration Logic Bug
 
-### Root Cause 1: Realtime Sync Overwrites Complete Data with Partial Payload
+### Issue 1: Officer Designation Validation Against Wrong Jurisdiction
 
-**Location:** `src/hooks/useRealtimeSync.ts` (lines 628-646)
-
-**Problem:** When courtsService.update() saves data successfully, Supabase fires a realtime UPDATE event. The realtime handler dispatches a **partial payload** that overwrites the full state:
+In `CourtModal.tsx` lines 205-206:
 
 ```typescript
-// Realtime handler (PROBLEMATIC)
-rawDispatch({ 
-  type: 'UPDATE_COURT', 
-  payload: {
-    id: courtData.id,
-    name: courtData.name,
-    // ... other fields mapped ...
-    taxJurisdiction: courtData.tax_jurisdiction,
-    officerDesignation: courtData.officer_designation,
-    // MISSING: address is passed as raw string, not parsed
-    address: courtData.address,  // Raw JSON string from DB
-    // MISSING: activeCases, avgHearingTime, digitalFiling...
-  } as any 
-});
+taxJurisdiction: courtData.taxJurisdiction as TaxJurisdiction | undefined,
+officerDesignation: courtData.officerDesignation as OfficerDesignation | undefined
 ```
 
-**Issue 1:** The `address` field comes from DB as a JSON string but isn't parsed. When spread over existing state, it replaces parsed address objects with raw strings.
-
-**Issue 2:** Missing fields like `activeCases`, `workingDays`, etc. become `undefined` after spread merge.
-
----
-
-### Root Cause 2: Service Layer Doesn't Skip Realtime-Triggered Dispatches
-
-**Location:** `src/services/courtsService.ts` (lines 101-164) and `src/hooks/useRealtimeSync.ts`
-
-**Problem Flow:**
-
-```text
-1. User clicks "Update Court"
-2. courtsService.update() persists to Supabase
-3. courtsService.update() dispatches UPDATE_COURT with FULL data
-4. Supabase fires realtime UPDATE event
-5. useRealtimeSync receives event
-6. useRealtimeSync dispatches UPDATE_COURT with PARTIAL data
-7. AppStateContext reducer merges {...existingCourt, ...partialPayload}
-8. Fields not in partial payload become undefined
-9. UI renders with missing officer designation and broken address
-```
-
-Per project memory `service-layer-persistence-and-sync-policy`:
-> "Real-time sync handlers should ignore UPDATE events for entities that handle their own persistence to prevent partial payloads from overwriting complete UI state."
-
-This policy isn't being followed for courts.
-
----
-
-### Root Cause 3: Address Displayed as String Instead of Parsed Object
-
-**Location:** `src/components/modals/CourtModal.tsx` (lines 158-182)
-
-**Problem:** The modal's useEffect correctly parses JSON address strings when `courtData.address` is a string. However, if the realtime sync overwrites `courtData.address` with an unparsed JSON string, and the component doesn't remount, the parsed address state is lost.
-
-The modal relies on `courtData` prop changes, but the prop is the same object reference (same court ID) with different content, which may not trigger re-hydration properly.
-
----
-
-## Solution Plan
-
-### Fix 1: Skip Court UPDATE Events in Realtime Sync
-
-Since `courtsService` handles its own persistence and dispatches a complete payload, realtime sync should **not** dispatch UPDATE_COURT events.
-
-**File:** `src/hooks/useRealtimeSync.ts`
-
-**Change:** Add guard to skip UPDATE events for courts:
+**Problem:** The code correctly loads both fields, BUT when rendering the `<Select>` dropdown for Officer Designation (line 521-539), it validates the selected value against jurisdiction-specific options:
 
 ```typescript
-} else if (payload.eventType === 'UPDATE' && payload.new) {
-  // SKIP: courtsService handles UPDATE persistence and dispatches
-  // complete payload. Realtime would overwrite with partial data.
-  console.log('[Realtime] Courts UPDATE skipped - handled by courtsService');
+<Select
+  value={formData.officerDesignation || ''}
+  onValueChange={(value) => setFormData(prev => ({ 
+    ...prev, 
+    officerDesignation: value as OfficerDesignation || undefined
+  }))}
+  disabled={mode === 'view' || !formData.taxJurisdiction}  // ← Disabled if no jurisdiction!
+>
+  <SelectContent>
+    {getOfficersByJurisdiction(formData.taxJurisdiction).map(option => (
+      <SelectItem key={option.value} value={option.value}>
+        {option.label}
+      </SelectItem>
+    ))}
+  </SelectContent>
+</Select>
+```
+
+**The Bug:**
+- If `formData.taxJurisdiction` loads **after** `formData.officerDesignation`
+- Or if `taxJurisdiction` becomes momentarily `undefined` during hydration
+- The dropdown has **no matching options** for the stored value
+- `<Select>` then displays "Select officer designation" placeholder instead of the actual value
+
+This is a **race condition** during form hydration combined with insufficient fallback rendering.
+
+### Issue 2: Address Component Relies on `stateId` Dropdown Matching
+
+In `AddressForm.tsx` (lines 584-629), the State dropdown:
+
+```typescript
+<Select
+  value={value.stateId || ''}  // ← Relies on exact match in states array
+  onValueChange={(newStateId) => {
+    // Complex logic that CLEARS city when state changes
+  }}
+>
+```
+
+**The Problem:**
+- If `states` array hasn't loaded yet when the address is hydrated
+- Or if there's a mismatch between stored `stateId` and the `states` lookup
+- The Select displays "Select state" placeholder
+- When user changes it, the `onValueChange` handler **clears the city fields** (lines 608-609)
+
+### Issue 3: usePersistentDispatch Still Runs for UPDATE_COURT
+
+Even though we skipped realtime sync, `usePersistentDispatch.tsx` line 362-363 still runs:
+
+```typescript
+case 'UPDATE_COURT':
+  await storage.update('courts', action.payload.id, action.payload);
+  break;
+```
+
+This causes **double-write** scenario:
+1. `courtsService.update()` writes to database
+2. `usePersistentDispatch` catches the `UPDATE_COURT` action and writes **again**
+3. Second write might not include `officerDesignation` if it's missing from the action payload
+
+---
+
+## Why "Delete and Re-Add" Would Not Fix This
+
+Deleting the fields and re-adding them would:
+- ❌ Still have the same hydration race condition
+- ❌ Still have the same Select dropdown matching logic
+- ❌ Still have the same double-persistence issue
+
+The bug is **architectural**, not schema-related.
+
+---
+
+## The Solution (3-Part Fix)
+
+### Fix 1: Skip Duplicate Persistence in usePersistentDispatch
+
+**File:** `src/hooks/usePersistentDispatch.tsx`
+
+```typescript
+// Courts - SKIP: courtsService handles persistence
+case 'ADD_COURT': {
+  // ... existing ADD logic ...
 }
+case 'UPDATE_COURT':
+  // SKIP: courtsService.update() already persists to Supabase
+  console.log('⏭️ Skipping UPDATE_COURT persistence - handled by courtsService');
+  break;
+case 'DELETE_COURT':
+  await storage.delete('courts', action.payload);
+  break;
 ```
 
----
+**Rationale:** Prevents double-write and ensures courtsService is the single source of truth for court persistence.
 
-### Fix 2: Parse Address in List Mapping (DataInitializer)
+### Fix 2: Add Fallback Rendering for Officer Designation
 
-Ensure address is always parsed during initial data load so UI never receives raw JSON strings.
+**File:** `src/components/modals/CourtModal.tsx`
 
-**File:** `src/components/data/DataInitializer.tsx` (already done per schema version 11)
-
-**Verify:** The current parsing logic at lines 504-529 correctly handles this. No change needed here.
-
----
-
-### Fix 3: Add Address Parsing Fallback in Realtime Sync (Defense in Depth)
-
-If realtime sync ever processes courts, parse the address field before dispatch.
-
-**File:** `src/hooks/useRealtimeSync.ts`
+Update the Officer Designation `<Select>` to show the stored value even if the dropdown options haven't loaded:
 
 ```typescript
-// Parse address if it's a JSON string
-let parsedAddress = courtData.address;
-if (typeof courtData.address === 'string' && courtData.address.trim().startsWith('{')) {
-  try {
-    parsedAddress = JSON.parse(courtData.address);
-  } catch {
-    // Keep as string if parse fails
-  }
-}
+<Select
+  value={formData.officerDesignation || ''}
+  onValueChange={(value) => setFormData(prev => ({ 
+    ...prev, 
+    officerDesignation: value as OfficerDesignation || undefined
+  }))}
+  disabled={mode === 'view' || !formData.taxJurisdiction}
+>
+  <SelectTrigger>
+    <SelectValue 
+      placeholder={
+        formData.taxJurisdiction 
+          ? "Select officer designation" 
+          : "Select tax jurisdiction first"
+      }
+    >
+      {/* Fallback: Show stored value even if not in dropdown options */}
+      {formData.officerDesignation && !formData.taxJurisdiction && (
+        <span className="text-muted-foreground italic">
+          {getOfficerLabel(formData.officerDesignation)} (Select jurisdiction to edit)
+        </span>
+      )}
+    </SelectValue>
+  </SelectTrigger>
+  <SelectContent>
+    {getOfficersByJurisdiction(formData.taxJurisdiction).map(option => (
+      <SelectItem key={option.value} value={option.value}>
+        {option.label}
+      </SelectItem>
+    ))}
+  </SelectContent>
+</Select>
 ```
 
----
+**Rationale:** Ensures the stored value is always visible, even during hydration race conditions.
 
-### Fix 4: Ensure Modal Re-Hydrates on courtData Changes
+### Fix 3: Prevent Address Clear During Hydration
 
-Add proper key-based isolation to force remount when editing different courts.
+**File:** `src/components/ui/AddressForm.tsx`
 
-**File:** `src/components/masters/CourtMasters.tsx`
+The component already has guards (lines 647-655) to prevent spurious clears. We need to ensure this guard also covers the case where `stateId` is set but `states` array is empty:
 
 ```typescript
-<CourtModal
-  key={`${courtModal.court?.id || 'new'}-${courtModal.mode}`}
-  isOpen={courtModal.isOpen}
-  onClose={() => setCourtModal({ isOpen: false, mode: 'create', court: null })}
-  court={courtModal.court}
-  mode={courtModal.mode}
+<Select
+  value={value.stateId || ''}
+  onValueChange={(newStateId) => {
+    const currentValue = latestValueRef.current;
+    
+    // CRITICAL GUARD: Don't clear if states haven't loaded yet
+    if (!newStateId && states.length === 0 && currentValue.stateId) {
+      console.log('🛡️ [AddressForm] State guard: Preventing spurious clear during load');
+      return;
+    }
+    
+    // Don't clear city if state hasn't actually changed
+    if (newStateId === currentValue.stateId) {
+      if (cities.length === 0) {
+        loadCities(newStateId);
+      }
+      return;
+    }
+    
+    // ... rest of logic
+  }}
+>
+```
+
+**Rationale:** Prevents the Select from triggering `onValueChange('')` when the states dropdown is still loading, which would clear the stored address.
+
+---
+
+## Alternative Approach: Use SimpleAddressForm
+
+**The Ultimate Fix (if above doesn't work):**
+
+Replace the complex `AddressForm` component with the simpler `SimpleAddressForm` for courts:
+
+```typescript
+// In CourtModal.tsx, import SimpleAddressForm instead
+import { SimpleAddressForm, SimpleAddressData } from '@/components/ui/SimpleAddressForm';
+
+// Use in form:
+<SimpleAddressForm
+  value={{
+    line1: typeof formData.address === 'object' ? formData.address.line1 : formData.address,
+    line2: typeof formData.address === 'object' ? formData.address.line2 : '',
+    cityName: formData.city,
+    stateName: typeof formData.address === 'object' ? formData.address.stateName : '',
+    pincode: typeof formData.address === 'object' ? formData.address.pincode : '',
+  }}
+  onChange={(addr) => setFormData(prev => ({
+    ...prev,
+    address: addr,
+    city: addr.cityName || ''
+  }))}
+  disabled={mode === 'view'}
 />
 ```
 
-This matches the documented pattern in `modal-isolation-key-pattern` memory.
+**Why This Works:**
+- ✅ No async dropdowns = no race conditions
+- ✅ Plain text inputs = always shows stored value
+- ✅ Simpler state management = fewer bugs
+- ✅ Already exists in the codebase (used for other forms)
 
 ---
 
 ## Files to Modify
 
-| File | Change |
-|------|--------|
-| `src/hooks/useRealtimeSync.ts` | Skip UPDATE_COURT dispatch (lines 628-646) |
-| `src/components/masters/CourtMasters.tsx` | Add key prop to CourtModal for isolation |
+| File | Change | Risk Level |
+|------|--------|-----------|
+| `src/hooks/usePersistentDispatch.tsx` | Skip UPDATE_COURT persistence | Low |
+| `src/components/modals/CourtModal.tsx` | Add fallback rendering for Officer Designation | Low |
+| `src/components/modals/CourtModal.tsx` | **ALTERNATIVE:** Replace AddressForm with SimpleAddressForm | Medium |
 
 ---
 
-## Why Only These 2 Fields?
-
-Other fields like `name`, `jurisdiction`, `city` work because:
-1. They're simple strings that merge correctly
-2. They're always present in realtime payload
-
-Officer Designation and Address fail because:
-1. **officerDesignation**: Gets overwritten by undefined when realtime payload merges
-2. **address**: Stored as JSON string in DB, but UI expects parsed object. Realtime sends raw string which breaks AddressForm component
-
----
-
-## Expected Results After Fix
+## Expected Results
 
 | Scenario | Before | After |
 |----------|--------|-------|
-| Save Legal Forum with Officer Designation | Shows in DB, disappears in UI after reload | Persists correctly |
-| Save Legal Forum with Address | Shows in DB, address fields empty in UI | Address displays correctly |
-| Edit Legal Forum | Fields may be stale from previous edit | Clean hydration via key isolation |
+| Edit court with Officer Designation | Shows "Select officer designation" | Shows "Principal Commissioner" |
+| Edit court with Address | Shows empty state fields | Shows complete address |
+| Save and reopen | Fields disappear | Fields persist correctly |
+| Change jurisdiction | Officer resets (correct) | Officer resets (correct) |
 
 ---
 
-## Technical Details
+## Why This Issue Is Hard to Debug
 
-### Data Flow After Fix
+1. **Database confirms data is stored** → suggests UI bug
+2. **UI shows correct data initially** → suggests database bug
+3. **Issue only appears on re-open** → race condition
+4. **Realtime sync was a red herring** → multiple systems involved
 
-```text
-1. User clicks "Update Court"
-2. courtsService.update() persists to Supabase ✓
-3. courtsService.update() dispatches UPDATE_COURT with FULL data ✓
-4. Supabase fires realtime UPDATE event
-5. useRealtimeSync receives event
-6. useRealtimeSync SKIPS dispatch (courts handled by service) ✓ NEW
-7. AppStateContext retains FULL data from step 3 ✓
-8. UI renders correctly with all fields ✓
-```
+The root cause is a **timing issue during form hydration** combined with **complex cascading dropdowns** in the address system, not a persistence layer bug.
 
-### Risk Assessment
+---
 
-- **Low risk**: Skipping realtime UPDATE for courts means multi-client sync won't auto-update. However, INSERT and DELETE events still work for new/removed courts.
-- **Mitigation**: If multi-client editing is required later, implement a refresh button or periodic polling specifically for courts.
+## Recommendation
+
+**Implement Fix 1 + Alternative Approach (SimpleAddressForm)**
+
+This provides the most robust solution:
+- Eliminates double-persistence
+- Removes complex async dropdown logic for addresses
+- Guarantees stored values are always visible
+- Matches the pattern already used in the codebase
+
+If you want to preserve the fancy address dropdown system, use Fix 1 + Fix 2 + Fix 3 instead.
+
