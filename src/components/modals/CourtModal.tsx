@@ -513,34 +513,37 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                 </p>
               </div>
 
-              <div>
-                <div className="flex items-center gap-1">
-                  <Label htmlFor="officerDesignation">Officer Designation <span className="text-destructive">*</span></Label>
-                  <FieldTooltip formId="create-court" fieldId="officerDesignation" />
+              {/* Only render officer select after jurisdiction is determined or show stored value */}
+              {(formData.taxJurisdiction || formData.officerDesignation) && (
+                <div>
+                  <div className="flex items-center gap-1">
+                    <Label htmlFor="officerDesignation">Officer Designation <span className="text-destructive">*</span></Label>
+                    <FieldTooltip formId="create-court" fieldId="officerDesignation" />
+                  </div>
+                  <Select
+                    value={formData.officerDesignation || ''}
+                    onValueChange={(value) => setFormData(prev => ({ 
+                      ...prev, 
+                      officerDesignation: value as OfficerDesignation || undefined
+                    }))}
+                    disabled={mode === 'view' || !formData.taxJurisdiction}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={formData.taxJurisdiction ? "Select officer designation" : "Select tax jurisdiction first"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getOfficersByJurisdiction(formData.taxJurisdiction).map(option => (
+                        <SelectItem key={option.value} value={option.value}>
+                          <span className="font-medium">{option.label}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {formData.taxJurisdiction ? `${formData.taxJurisdiction} officer hierarchy` : 'Officer rank in GST hierarchy'}
+                  </p>
                 </div>
-                <Select
-                  value={formData.officerDesignation || ''}
-                  onValueChange={(value) => setFormData(prev => ({ 
-                    ...prev, 
-                    officerDesignation: value as OfficerDesignation || undefined
-                  }))}
-                  disabled={mode === 'view' || !formData.taxJurisdiction}
-                >
-                <SelectTrigger>
-                    <SelectValue placeholder={formData.taxJurisdiction ? "Select officer designation" : "Select tax jurisdiction first"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {getOfficersByJurisdiction(formData.taxJurisdiction).map(option => (
-                      <SelectItem key={option.value} value={option.value}>
-                        <span className="font-medium">{option.label}</span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {formData.taxJurisdiction ? `${formData.taxJurisdiction} officer hierarchy` : 'Officer rank in GST hierarchy'}
-                </p>
-              </div>
+              )}
             </div>
 
             {/* Legacy Authority Level - For case lifecycle tracking (hidden/optional) */}

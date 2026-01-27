@@ -104,10 +104,15 @@ export const OFFICER_DESIGNATION_METADATA: Record<OfficerDesignation, {
 };
 
 // Helper function to get officers by jurisdiction
+// Returns combined deduplicated list when no jurisdiction selected to ensure stored values display
 export const getOfficersByJurisdiction = (jurisdiction: TaxJurisdiction | undefined): OfficerOption[] => {
   if (jurisdiction === 'CGST') return CGST_OFFICERS;
   if (jurisdiction === 'SGST') return SGST_OFFICERS;
-  return [];
+  // Return combined officers list when no jurisdiction selected
+  // This ensures stored values can always be displayed in Select dropdowns
+  return [...CGST_OFFICERS, ...SGST_OFFICERS.filter(o => 
+    !CGST_OFFICERS.some(c => c.value === o.value)
+  )];
 };
 
 // Helper function to get officer label
