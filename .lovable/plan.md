@@ -1,419 +1,245 @@
 
-
-# Fix: Document Download and View Functionality Not Working
+# Fix: Judge Edit Form Data Retention and Display Issues
 
 ## Problem Summary
 
-The Document Management module has download and view issues where:
-1. Download shows "success" message but downloaded files appear corrupted or can't be opened
-2. Different behavior observed for PNG, Excel, and PDF files
-3. View functionality sometimes fails to open documents properly
+The user has reported four issues with the Judge Edit functionality:
+
+1. **Missing field capture during edit**: Qualifications & Experience, Tenure Details, Contact Information, and Address Information are not being retained/persisted during updates
+2. **Created by / Updated By shows "Unknown"**: The Record Information section always displays "Unknown" for user attribution
+3. **Years of Service is fixed at 26 years**: The calculation appears stuck instead of dynamically computing
+4. **Edit and View screens are the same**: There's no visual distinction between edit and view modes
+
+---
 
 ## Root Cause Analysis
 
-After thorough investigation, I identified **three critical issues**:
+### Issue 1: Phase 1 Fields Not Persisted During Update
 
-### Issue 1: Cross-Origin Download Attribute Limitation
+**Location**: `src/services/judgesService.ts` lines 168-190
 
-**Current Implementation** (Lines 703-711 in `DocumentManagement.tsx`):
-```typescript
-const signedUrl = await supabaseDocumentService.getDownloadUrl(filePath, 3600);
+The `update` method only handles the original judge fields and **completely omits** Phase 1 fields:
+- `memberType`
+- `authorityLevel`  
+- `qualifications`
+- `tenureDetails`
+- `address`
 
-// Trigger download using anchor tag with download attribute
-const link = document.createElement('a');
-link.href = signedUrl;
-link.download = doc.name || doc.fileName || 'document.pdf';
-document.body.appendChild(link);
-link.click();
-```
+These fields exist in the CREATE method (lines 113-122) but are missing from UPDATE.
 
-**Problem**: The HTML5 `download` attribute **does not work for cross-origin URLs**. When the browser encounters a signed URL from Supabase (`myncxddatwvtyiioqekh.supabase.co`), the `download` attribute is ignored. Instead of downloading, the browser:
-- Opens the URL in the current tab or new window
-- May show a corrupted preview if MIME type is misinterpreted
-- For binary files (Excel, images), the browser may fail to handle them correctly
+**Evidence**: Database query shows all Phase 1 fields are null/empty even after edit attempts.
 
-### Issue 2: Missing MIME Type Metadata
+### Issue 2: Created By/Updated By Shows "Unknown"
 
-From database query results:
-```
-file_name: Whats Xpress and Geo Xpress.png
-mime_type: <nil>  ← Missing!
-storage_url: <nil>  ← Missing!
-```
+**Problem 1**: Database column `updated_by` does not exist (only `created_by` exists)
+**Problem 2**: `created_by` stores a UUID, but the form displays it directly without resolving the user name
+**Problem 3**: The `list()` and `getById()` methods don't include `createdBy`, `updatedBy`, `createdAt`, `updatedAt` in the returned Judge object
 
-Some documents (especially employee documents) are uploaded without proper `mime_type` and `storage_url` fields. When these files are downloaded, the browser doesn't know how to handle them.
+**Location**: 
+- `JudgeForm.tsx` lines 1062-1063: Display code expects `createdBy`/`updatedBy` as names
+- `judgesService.ts` lines 284-306: `list()` doesn't map Phase 1 fields or audit fields
+- `judgesService.ts` lines 323-345: `getById()` same issue
 
-### Issue 3: Inconsistent Storage Path Formats
+### Issue 3: Years of Service Fixed at 26 Years
 
-Documents have different `file_path` formats:
-- Standard: `tenant_id/document_id.ext`
-- Employee docs: `tenant_id/employees/empId/docType/timestamp-filename.ext`
+**Root Cause**: The form's `calculateYearsOfService()` function is correct (lines 252-257), BUT when data is loaded during edit:
+1. The `appointmentDate` in the database is `null` for existing records
+2. When null, the calculation defaults to 0
+3. The "26 years" comes from previously saved static `years_of_service` database column (not recalculated)
 
-The current code handles `file_path` correctly, but the missing metadata causes issues downstream.
+**Additionally**: The UPDATE method (line 159-165) only recalculates if `updates.appointmentDate` is truthy, but the data flow from JudgeForm passes Date objects that may not trigger this.
 
----
+### Issue 4: Edit and View Screens Are Same
 
-## Solution: Blob-Based Download Approach
+**Root Cause**: The `isReadOnly` flag is set correctly (`mode === 'view'`), BUT:
+1. All form inputs respect `disabled={isReadOnly}` 
+2. The footer correctly hides submit button for view mode
+3. **The visual appearance is identical** - both modes use the same styling
 
-Replace the problematic anchor-tag approach with a **fetch + blob** approach that:
-1. Fetches the file content via signed URL
-2. Creates a local blob with correct MIME type
-3. Downloads using `createObjectURL` (same-origin, no cross-origin issues)
-
-This is the same pattern used successfully in `ClientDocumentLibrary.tsx` (lines 200-258).
+**Missing differentiation**:
+- No "read-only" visual indicator (e.g., grayed background, lock icon)
+- Delete button appears in edit mode but not handled distinctly in view
+- Form title says "Judge Details" for view but appearance is identical to edit
 
 ---
 
-## Implementation Plan
+## Solution Plan
 
-### Step 1: Create Robust Download/View Utility
+### Part 1: Fix Phase 1 Field Persistence During Update
 
-**File: `src/services/documentDownloadService.ts`** (New)
+**File**: `src/services/judgesService.ts`
 
-Create a dedicated service for document operations:
-
-```typescript
-import { supabase } from '@/integrations/supabase/client';
-
-interface DownloadResult {
-  success: boolean;
-  error?: string;
-}
-
-/**
- * Get MIME type from file extension
- */
-const getMimeType = (fileType: string): string => {
-  const mimeTypes: Record<string, string> = {
-    'pdf': 'application/pdf',
-    'doc': 'application/msword',
-    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'xls': 'application/vnd.ms-excel',
-    'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'ppt': 'application/vnd.ms-powerpoint',
-    'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    'txt': 'text/plain',
-    'jpg': 'image/jpeg',
-    'jpeg': 'image/jpeg',
-    'png': 'image/png',
-    'gif': 'image/gif',
-    'webp': 'image/webp',
-    'csv': 'text/csv'
-  };
-  return mimeTypes[fileType?.toLowerCase()] || 'application/octet-stream';
-};
-
-/**
- * Download document as blob and trigger browser download
- */
-export const downloadDocumentAsBlob = async (
-  filePath: string,
-  fileName: string,
-  fileType?: string
-): Promise<DownloadResult> => {
-  try {
-    // Method 1: Try direct download from storage
-    const { data: blob, error: downloadError } = await supabase.storage
-      .from('documents')
-      .download(filePath);
-
-    if (downloadError) {
-      console.log('Direct download failed, trying signed URL:', downloadError.message);
-      
-      // Method 2: Fallback to signed URL + fetch
-      const { data: signedData, error: signedError } = await supabase.storage
-        .from('documents')
-        .createSignedUrl(filePath, 3600);
-      
-      if (signedError || !signedData?.signedUrl) {
-        throw new Error(signedError?.message || 'Failed to create signed URL');
-      }
-      
-      const response = await fetch(signedData.signedUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch file: ${response.status} ${response.statusText}`);
-      }
-      
-      const fetchedBlob = await response.blob();
-      
-      // Ensure correct MIME type
-      const mimeType = fileType ? getMimeType(fileType) : fetchedBlob.type || 'application/octet-stream';
-      const typedBlob = new Blob([fetchedBlob], { type: mimeType });
-      
-      triggerDownload(typedBlob, fileName);
-      return { success: true };
-    }
-
-    // Direct download succeeded - ensure correct MIME type
-    const mimeType = fileType ? getMimeType(fileType) : blob.type || 'application/octet-stream';
-    const typedBlob = new Blob([blob], { type: mimeType });
-    
-    triggerDownload(typedBlob, fileName);
-    return { success: true };
-    
-  } catch (error: any) {
-    console.error('Document download failed:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-/**
- * Open document for preview in new tab
- */
-export const previewDocument = async (
-  filePath: string,
-  fileName: string,
-  fileType?: string
-): Promise<DownloadResult> => {
-  try {
-    // For PDFs and images, try direct blob approach for reliable preview
-    const fileExt = fileType || filePath.split('.').pop()?.toLowerCase();
-    const previewableTypes = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'txt'];
-    
-    if (previewableTypes.includes(fileExt || '')) {
-      const { data: blob, error } = await supabase.storage
-        .from('documents')
-        .download(filePath);
-      
-      if (!error && blob) {
-        const mimeType = getMimeType(fileExt || '');
-        const typedBlob = new Blob([blob], { type: mimeType });
-        const url = URL.createObjectURL(typedBlob);
-        
-        window.open(url, '_blank');
-        
-        // Revoke after delay to allow browser to load
-        setTimeout(() => URL.revokeObjectURL(url), 60000);
-        return { success: true };
-      }
-    }
-    
-    // Fallback: Use signed URL (works for most browsers)
-    const { data: signedData, error: signedError } = await supabase.storage
-      .from('documents')
-      .createSignedUrl(filePath, 3600);
-    
-    if (signedError || !signedData?.signedUrl) {
-      throw new Error(signedError?.message || 'Failed to create preview URL');
-    }
-    
-    window.open(signedData.signedUrl, '_blank');
-    return { success: true };
-    
-  } catch (error: any) {
-    console.error('Document preview failed:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-/**
- * Trigger browser download from blob
- */
-const triggerDownload = (blob: Blob, fileName: string) => {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = fileName;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-};
-
-export const documentDownloadService = {
-  download: downloadDocumentAsBlob,
-  preview: previewDocument,
-  getMimeType
-};
-```
-
-### Step 2: Update DocumentManagement Handlers
-
-**File: `src/components/documents/DocumentManagement.tsx`**
-
-Replace the current `handleDocumentView` and `handleDocumentDownload` functions:
-
-**Lines 656-730** - Replace with:
+Update the `update()` method to include all Phase 1 fields:
 
 ```typescript
-import { documentDownloadService } from '@/services/documentDownloadService';
-
-// ... inside component ...
-
-const handleDocumentView = useCallback(async (doc: any) => {
-  try {
-    console.log('📖 [DocumentManagement] Attempting to preview document:', {
-      id: doc.id,
-      name: doc.name,
-      filePath: doc.filePath || doc.file_path
-    });
-
-    const filePath = doc.filePath || doc.file_path;
-    if (!filePath) {
-      throw new Error('No file path available for preview');
-    }
-
-    const fileType = doc.type || doc.fileType || doc.file_type || 
-                     filePath.split('.').pop()?.toLowerCase();
-    
-    const result = await documentDownloadService.preview(
-      filePath,
-      doc.name || doc.fileName || 'document',
-      fileType
-    );
-
-    if (!result.success) {
-      throw new Error(result.error || 'Preview failed');
-    }
-
-    toast({
-      title: "Opening Document",
-      description: `${doc.name} opened for preview`,
-    });
-
-  } catch (error: any) {
-    console.error('❌ [DocumentManagement] Preview error:', error);
-    toast({
-      title: "Preview Error",
-      description: error.message || "Unable to preview this document. Try downloading instead.",
-      variant: "destructive",
-    });
-  }
-}, []);
-
-const handleDocumentDownload = useCallback(async (doc: any) => {
-  try {
-    console.log('⬇️ [DocumentManagement] Attempting to download document:', {
-      id: doc.id,
-      name: doc.name,
-      filePath: doc.filePath || doc.file_path
-    });
-
-    const filePath = doc.filePath || doc.file_path;
-    if (!filePath) {
-      throw new Error('No file path available for download');
-    }
-
-    const fileType = doc.type || doc.fileType || doc.file_type || 
-                     filePath.split('.').pop()?.toLowerCase();
-    const fileName = doc.name || doc.fileName || `document.${fileType || 'bin'}`;
-
-    toast({
-      title: "Preparing Download",
-      description: `Downloading ${fileName}...`,
-    });
-
-    const result = await documentDownloadService.download(
-      filePath,
-      fileName,
-      fileType
-    );
-
-    if (!result.success) {
-      throw new Error(result.error || 'Download failed');
-    }
-
-    toast({
-      title: "Download Complete",
-      description: `${fileName} downloaded successfully`,
-    });
-
-  } catch (error: any) {
-    console.error('❌ [DocumentManagement] Download error:', error);
-    toast({
-      title: "Download Error",
-      description: error.message || "Unable to download this document.",
-      variant: "destructive",
-    });
-  }
-}, []);
+// In update method (around line 168-190), add:
+...(updates.memberType !== undefined && { member_type: updates.memberType }),
+...(updates.authorityLevel !== undefined && { authority_level: updates.authorityLevel }),
+...(updates.qualifications && { qualifications: JSON.stringify(updates.qualifications) }),
+...(updates.tenureDetails && { 
+  tenure_details: JSON.stringify({
+    tenureStartDate: formatDateFieldSafe(updates.tenureDetails.tenureStartDate),
+    tenureEndDate: formatDateFieldSafe(updates.tenureDetails.tenureEndDate),
+    maxTenureYears: updates.tenureDetails.maxTenureYears,
+    extensionGranted: updates.tenureDetails.extensionGranted,
+    ageLimit: updates.tenureDetails.ageLimit
+  })
+}),
+...(updates.address && { address: JSON.stringify(updates.address) }),
 ```
 
-### Step 3: Update CaseDocuments Handlers
+Also update `list()` and `getById()` methods to include Phase 1 fields in the returned object.
 
-**File: `src/components/cases/CaseDocuments.tsx`**
+### Part 2: Add Database Column for updated_by and address
 
-Update the `handlePreviewDocument` and `handleDownloadDocument` functions to use the same service (around lines 240-320).
+**Database Migration**: Add missing columns
 
-### Step 4: Fix Employee Document Uploads
+```sql
+ALTER TABLE public.judges 
+  ADD COLUMN IF NOT EXISTS updated_by uuid REFERENCES auth.users(id),
+  ADD COLUMN IF NOT EXISTS address jsonb DEFAULT '{}';
+```
 
-**File: `src/services/employeeDocumentService.ts`**
+### Part 3: Resolve Created By/Updated By to User Names
 
-Ensure `mime_type` is always set during upload. Add to the upload logic:
+**File**: `src/services/judgesService.ts`
+
+Update `list()` and `getById()` to JOIN with profiles table:
 
 ```typescript
-// Ensure mime_type is set
-const mimeType = file.type || getMimeTypeFromExtension(file.name.split('.').pop() || '');
+// In list() - use Supabase select with join
+const { data: judges } = await supabase
+  .from('judges')
+  .select(`
+    *,
+    created_by_profile:profiles!created_by(full_name),
+    updated_by_profile:profiles!updated_by(full_name)
+  `);
 
-// Include in database record
-mime_type: mimeType,
+// Map to include resolved names
+createdByName: j.created_by_profile?.full_name || 'Unknown',
+updatedByName: j.updated_by_profile?.full_name || 'Unknown',
 ```
+
+**File**: `src/components/masters/judges/JudgeForm.tsx`
+
+Update display (lines 1062-1063) to use resolved names:
+
+```typescript
+<div>Created by: {initialData?.createdByName || 'Unknown'}</div>
+<div>Updated by: {initialData?.updatedByName || 'Unknown'}</div>
+```
+
+### Part 4: Fix Years of Service Dynamic Calculation
+
+**File**: `src/services/judgesService.ts`
+
+1. In `update()`, always recalculate years of service from the database's `appointment_date`:
+
+```typescript
+// After fetching existingJudge
+const appointmentDate = existingJudge?.appointment_date;
+const yearsOfService = appointmentDate 
+  ? Math.floor((Date.now() - new Date(appointmentDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+  : 0;
+```
+
+2. In `list()` and `getById()`, calculate dynamically:
+
+```typescript
+yearsOfService: j.appointment_date 
+  ? Math.floor((Date.now() - new Date(j.appointment_date).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+  : 0,
+```
+
+### Part 5: Differentiate Edit vs View Mode Visually
+
+**File**: `src/components/masters/judges/JudgeForm.tsx`
+
+Add visual distinction for view mode:
+
+1. Add a banner for view mode:
+```tsx
+{mode === 'view' && (
+  <div className="bg-muted border rounded-md p-3 mb-4 flex items-center gap-2">
+    <Eye className="h-4 w-4 text-muted-foreground" />
+    <span className="text-sm text-muted-foreground">
+      Viewing judge details (read-only)
+    </span>
+  </div>
+)}
+```
+
+2. Apply subtle styling to disabled fields:
+```tsx
+className={cn(
+  "...",
+  isReadOnly && "bg-muted/50 cursor-not-allowed"
+)}
+```
+
+**File**: `src/components/modals/JudgeModal.tsx`
+
+Update footer handling:
+- For view mode, show only "Close" button
+- Hide Delete button entirely in view mode
 
 ---
 
 ## Technical Details
 
-### Why Blob Approach Works
-
-| Approach | Cross-Origin | MIME Handling | Reliability |
-|----------|--------------|---------------|-------------|
-| Anchor + download attr | Fails for cross-origin | Browser dependent | Low |
-| Signed URL + window.open | Works (view only) | Browser dependent | Medium |
-| **Blob + createObjectURL** | Works (same-origin blob) | Explicit control | High |
-
 ### Data Flow After Fix
 
 ```
-User clicks Download/View
-        ↓
-documentDownloadService called
-        ↓
-supabase.storage.download(filePath)  ← First attempt: direct blob
-        ↓
-If fails → createSignedUrl + fetch  ← Fallback
-        ↓
-Create typed Blob with correct MIME
-        ↓
-URL.createObjectURL(blob)  ← Same-origin URL!
-        ↓
-Trigger download or open in new tab
+JudgeMasters (click edit)
+    ↓
+JudgeModal (mode='edit')
+    ↓
+JudgeForm.populateFormFromJudge (loads all fields including Phase 1)
+    ↓
+User makes changes
+    ↓
+JudgeForm.handleSubmit (validates & calls onSubmit)
+    ↓
+JudgeModal.handleFormSubmit (prepares payload)
+    ↓
+judgesService.update (NOW includes Phase 1 fields + updated_by)
+    ↓
+Database updated with all fields
+    ↓
+Re-fetch with profile JOINs for display names
 ```
 
----
+### Files to Modify
 
-## Files to Create/Modify
-
-| File | Action | Description |
-|------|--------|-------------|
-| `src/services/documentDownloadService.ts` | Create | New service for reliable downloads |
-| `src/components/documents/DocumentManagement.tsx` | Modify | Update handlers (lines 656-730) |
-| `src/components/cases/CaseDocuments.tsx` | Modify | Update handlers (lines 240-320) |
-| `src/components/documents/RecentDocuments.tsx` | No change | Already uses passed callbacks |
-| `src/services/employeeDocumentService.ts` | Modify | Ensure mime_type is set on upload |
+| File | Changes |
+|------|---------|
+| `src/services/judgesService.ts` | Add Phase 1 fields to update(), list(), getById(); Add profile JOINs; Fix years calculation |
+| `src/components/masters/judges/JudgeForm.tsx` | Add view mode banner; Update record info display |
+| `src/components/modals/JudgeModal.tsx` | Prepare complete edit payload with Phase 1 fields |
+| `src/contexts/AppStateContext.tsx` | Add createdByName, updatedByName to Judge interface |
+| **Database Migration** | Add updated_by and address columns |
 
 ---
 
-## Expected Results
+## Expected Results After Fix
 
-| Scenario | Before | After |
-|----------|--------|-------|
-| Download PDF | Shows success but file corrupted | File downloads correctly |
-| Download Excel | Corrupted or opens in browser | Downloads as valid .xlsx |
-| Download PNG | May show inline instead of download | Downloads correctly |
-| View PDF | Sometimes fails | Opens in new tab reliably |
-| View image | May show decode error | Displays correctly |
-| Employee docs (missing mime_type) | Fails to open | Downloads with detected MIME |
+| Issue | Before | After |
+|-------|--------|-------|
+| Qualifications not saved | Data lost on edit | All Phase 1 fields persist correctly |
+| Created/Updated By "Unknown" | Shows "Unknown" | Shows actual user name (e.g., "Darshan Sanghavi") |
+| Years of Service stuck | Fixed at 26 years | Dynamically calculated from appointment date |
+| Edit/View identical | No visual difference | View mode has read-only banner, grayed fields, Close-only button |
 
 ---
 
-## Testing Checklist
+## Validation Checklist
 
-After implementation, verify:
-1. PDF download - opens in viewer correctly
-2. Excel download - opens in Excel/compatible app
-3. PNG/JPG download - opens in image viewer
-4. PDF preview - opens in new browser tab
-5. Image preview - displays correctly
-6. Employee documents - download despite missing metadata
-7. Large files (>1MB) - download completes without corruption
-
+After implementation:
+1. Create new judge with Phase 1 fields → All fields saved
+2. Edit existing judge → All fields load correctly in form
+3. Update Phase 1 fields → Changes persist to database
+4. Check Record Information → Shows actual user names
+5. Change appointment date → Years of Service recalculates
+6. Open in View mode → Read-only banner visible, fields grayed, only Close button
+7. Open in Edit mode → Normal editable fields, Submit + Delete buttons visible
