@@ -11,7 +11,9 @@ import {
   Globe,
   MapPin,
   HelpCircle,
-  Info
+  Info,
+  Lock,
+  Loader2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -33,6 +35,7 @@ import { AuthorityHierarchySettings } from '@/components/settings/AuthorityHiera
 import { DataManagement } from './DataManagement';
 import { SystemSettingsLayout, SettingsSection } from './SystemSettingsLayout';
 import { InlineHelp } from '@/components/help/InlineHelp';
+import { useRBAC } from '@/hooks/useAdvancedRBAC';
 import {
   Tooltip,
   TooltipContent,
@@ -127,10 +130,42 @@ const FieldWithTooltip: React.FC<{
 );
 
 export const GlobalParameters: React.FC = () => {
+  const { hasPermission, isRbacReady, enforcementEnabled } = useRBAC();
   const [activeSection, setActiveSection] = useState<SettingsSection>('general');
   const [parameters, setParameters] = useState(systemParameters);
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Page-level RBAC check - defense in depth
+  // Show loading state while RBAC permissions are being loaded
+  if (enforcementEnabled && !isRbacReady) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto" />
+          <p className="text-muted-foreground">Loading permissions...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check settings permission - deny access if user doesn't have settings.read
+  if (enforcementEnabled && isRbacReady && !hasPermission('settings', 'read')) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center space-y-4">
+          <Lock className="h-12 w-12 text-muted-foreground mx-auto" />
+          <h2 className="text-lg font-semibold">Access Denied</h2>
+          <p className="text-muted-foreground">
+            You don't have permission to view System Settings.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Contact your administrator to request access.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const updateParameter = (id: string, value: string) => {
     setParameters(prev => prev.map(param => 

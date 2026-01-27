@@ -282,8 +282,9 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
     // If RBAC enforcement is disabled, allow all
     if (!enforcementEnabled) return true;
     
-    // While loading, show items (will be gated at component level)
-    if (!isRbacReady) return true;
+    // SECURITY: Be restrictive during loading (fail-closed)
+    // This prevents menu items from appearing before permissions are verified
+    if (!isRbacReady) return false;
     
     // Get the RBAC module for this route
     const rbacModule = getRbacModuleForRoute(href);
