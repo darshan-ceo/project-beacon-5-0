@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Check, X, Loader2 } from 'lucide-react';
+import { Shield, Check, X, Loader2, Info } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { supabaseRbacService, type RoleDefinition, type Permission, type AppRole } from '@/services/supabaseRbacService';
 
@@ -25,29 +26,118 @@ const groupPermissionsByModule = (permissions: Permission[]): Record<string, Per
   }, {} as Record<string, Permission[]>);
 };
 
-// Module display names
-const MODULE_LABELS: Record<string, string> = {
-  cases: 'Cases',
-  clients: 'Clients',
-  'client-groups': 'Client Groups',
-  tasks: 'Tasks',
-  'tasks.templates': 'Task Templates',
-  'tasks.automation': 'Task Automation',
-  'tasks.escalation': 'Task Escalation',
-  'tasks.ai': 'Task AI Assistant',
-  documents: 'Documents',
-  hearings: 'Hearings',
-  employees: 'Employees',
-  courts: 'Courts',
-  judges: 'Judges',
-  gst: 'GST Compliance',
-  compliance: 'Compliance',
-  dashboard: 'Dashboard',
-  reports: 'Reports',
-  settings: 'Settings',
-  statutory: 'Statutory Deadlines',
-  rbac: 'Access & Roles',
-  notifications: 'Notifications',
+// Module metadata with descriptions and examples for better clarity
+const MODULE_METADATA: Record<string, { label: string; description: string; example: string }> = {
+  cases: {
+    label: 'Case Management',
+    description: 'Legal matters from intake to resolution',
+    example: 'Managing a GST appeal through all stages'
+  },
+  clients: {
+    label: 'Clients',
+    description: 'Client and contact information management',
+    example: 'Adding new corporate clients with GSTIN'
+  },
+  'client-groups': {
+    label: 'Client Groups',
+    description: 'Organize clients into hierarchical groups',
+    example: 'Grouping subsidiaries under a parent company'
+  },
+  tasks: {
+    label: 'Task Management',
+    description: 'Work assignments and team coordination',
+    example: 'Creating drafting tasks with SLA tracking'
+  },
+  'tasks.templates': {
+    label: 'Task Templates',
+    description: 'Reusable task bundle definitions',
+    example: 'Templates for standard case onboarding steps'
+  },
+  'tasks.automation': {
+    label: 'Task Automation',
+    description: 'Rules that create tasks automatically',
+    example: 'Auto-generate tasks when case stage changes'
+  },
+  'tasks.escalation': {
+    label: 'Task Escalation',
+    description: 'SLA breach handling and notification chains',
+    example: 'Auto-notify Partner when task is 2 days overdue'
+  },
+  'tasks.ai': {
+    label: 'Task AI Assistant',
+    description: 'AI-powered task suggestions and analysis',
+    example: 'Get recommendations for next actions on a case'
+  },
+  documents: {
+    label: 'Document Management',
+    description: 'Store, organize, and share legal documents',
+    example: 'Uploading and categorizing case evidence'
+  },
+  hearings: {
+    label: 'Hearings',
+    description: 'Schedule and track court/tribunal hearings',
+    example: 'Managing hearing calendar with reminders'
+  },
+  employees: {
+    label: 'Employee Masters',
+    description: 'Manage staff, roles, and team structure',
+    example: 'Onboarding new team members'
+  },
+  courts: {
+    label: 'Legal Authorities',
+    description: 'Master data for tribunals, courts, and forums',
+    example: 'Configuring GSTAT benches and HC jurisdictions'
+  },
+  judges: {
+    label: 'Judge Masters',
+    description: 'Maintain judge directory and preferences',
+    example: 'Tracking judge writing styles and tendencies'
+  },
+  gst: {
+    label: 'GST Features',
+    description: 'GST-specific case stages and workflows',
+    example: 'Tracking GST cases from SCN to tribunal'
+  },
+  compliance: {
+    label: 'Compliance Dashboard',
+    description: 'Track statutory deadline adherence across cases',
+    example: 'Monitoring firm-wide SLA compliance rates'
+  },
+  dashboard: {
+    label: 'Dashboard',
+    description: 'Overview widgets and quick metrics',
+    example: "Viewing today's tasks and upcoming hearings"
+  },
+  reports: {
+    label: 'Reports & Analytics',
+    description: 'Generate performance and status reports',
+    example: 'Monthly case aging report by attorney'
+  },
+  settings: {
+    label: 'System Settings',
+    description: 'Application-wide configuration options',
+    example: 'Setting firm branding and default values'
+  },
+  statutory: {
+    label: 'Statutory Deadlines',
+    description: 'Configure legal timeframe rules',
+    example: 'Setting 90-day appeal window from order date'
+  },
+  rbac: {
+    label: 'Access & Roles',
+    description: 'Permission management and role configuration',
+    example: 'Creating custom roles for specialized staff'
+  },
+  notifications: {
+    label: 'Notifications',
+    description: 'System alerts and reminders',
+    example: 'Receiving deadline breach warnings'
+  }
+};
+
+// Helper to get module label
+const getModuleLabel = (module: string): string => {
+  return MODULE_METADATA[module]?.label || module.charAt(0).toUpperCase() + module.slice(1);
 };
 
 // Action display names
@@ -173,7 +263,7 @@ export const RolePermissionEditor: React.FC<RolePermissionEditorProps> = ({
           <div className="space-y-4 pb-4">
             {Object.entries(permissionsByModule).map(([module, perms]) => (
               <div key={module} className="border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <Checkbox
                       checked={isModuleFullySelected(perms)}
@@ -185,13 +275,33 @@ export const RolePermissionEditor: React.FC<RolePermissionEditorProps> = ({
                       onCheckedChange={() => toggleModule(module, perms)}
                     />
                     <h4 className="font-semibold">
-                      {MODULE_LABELS[module] || module.charAt(0).toUpperCase() + module.slice(1)}
+                      {getModuleLabel(module)}
                     </h4>
+                    {MODULE_METADATA[module] && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent side="right" className="max-w-xs">
+                            <p className="font-medium">{MODULE_METADATA[module].description}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              <span className="font-medium">Example:</span> {MODULE_METADATA[module].example}
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
                   </div>
                   <span className="text-xs text-muted-foreground">
                     {perms.filter(p => selectedPermissions.has(p.key)).length}/{perms.length}
                   </span>
                 </div>
+                {MODULE_METADATA[module] && (
+                  <p className="text-xs text-muted-foreground mb-3 ml-6">
+                    {MODULE_METADATA[module].description}
+                  </p>
+                )}
                 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {perms.map((perm) => (

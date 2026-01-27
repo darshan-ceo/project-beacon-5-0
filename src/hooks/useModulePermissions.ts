@@ -95,9 +95,8 @@ export const ROUTE_TO_RBAC_MODULE: Record<string, string> = {
   '/employees': 'employees',
   '/statutory-acts': 'settings',
   
-  // SUPPORT section - always visible
-  '/help': 'help',
-  '/profile': 'profile',
+  // SUPPORT section - BYPASSED from RBAC (always accessible to all users)
+  // '/help' and '/profile' intentionally NOT mapped - they bypass RBAC checks
   
   // ADMINISTRATION section - admin only
   '/settings': 'settings',
