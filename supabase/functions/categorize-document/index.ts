@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -33,14 +34,39 @@ serve(async (req) => {
   }
 
   try {
-    // Verify API key for security
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const authHeader = req.headers.get('x-api-key') || req.headers.get('authorization')?.replace('Bearer ', '');
+    const authHeader = req.headers.get('authorization');
+    const apiKeyHeader = req.headers.get('x-api-key');
     
-    if (!LOVABLE_API_KEY || authHeader !== LOVABLE_API_KEY) {
+    let isAuthorized = false;
+    
+    // Method 1: API key authentication (for server-to-server calls)
+    if (apiKeyHeader && LOVABLE_API_KEY && apiKeyHeader === LOVABLE_API_KEY) {
+      isAuthorized = true;
+      console.log('[Categorize Document] Authorized via API key');
+    }
+    
+    // Method 2: JWT authentication (for browser client calls)
+    if (!isAuthorized && authHeader?.startsWith('Bearer ')) {
+      const supabase = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_ANON_KEY')!,
+        { global: { headers: { Authorization: authHeader } } }
+      );
+      
+      const token = authHeader.replace('Bearer ', '');
+      const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+      
+      if (!claimsError && claimsData?.claims?.sub) {
+        isAuthorized = true;
+        console.log('[Categorize Document] Authorized via JWT for user:', claimsData.claims.sub);
+      }
+    }
+    
+    if (!isAuthorized) {
       console.log('[Categorize Document] Unauthorized access attempt');
       return new Response(
-        JSON.stringify({ error: 'Unauthorized - Invalid API key' }),
+        JSON.stringify({ error: 'Unauthorized - Invalid credentials' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
