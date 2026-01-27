@@ -19,18 +19,40 @@ export const RecentDocuments: React.FC<RecentDocumentsProps> = ({ documents, onV
     .slice(0, 10);
 
   const getFileIcon = (type: string) => {
-    switch (type) {
+    const normalizedType = type?.toLowerCase() || '';
+    switch (normalizedType) {
+      case 'pdf': 
       case 'application/pdf':
-      case 'pdf': return '📄';
+        return '📄';
+      case 'doc':
+      case 'docx':
+      case 'application/msword':
       case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
-      case 'doc': return '📝';
+        return '📝';
+      case 'xls':
+      case 'xlsx':
+      case 'application/vnd.ms-excel':
       case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
-      case 'xlsx': return '📊';
+        return '📊';
+      case 'ppt':
+      case 'pptx':
+      case 'application/vnd.ms-powerpoint':
+      case 'application/vnd.openxmlformats-officedocument.presentationml.presentation':
+        return '📽️';
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+      case 'webp':
       case 'image/jpeg':
       case 'image/png':
-      case 'jpg':
-      case 'png': return '🖼️';
-      default: return '📁';
+      case 'image/gif':
+        return '🖼️';
+      case 'txt':
+      case 'text/plain':
+        return '📋';
+      default: 
+        return '📄';
     }
   };
 

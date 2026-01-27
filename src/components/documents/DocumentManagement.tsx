@@ -202,13 +202,40 @@ export const DocumentManagement: React.FC = () => {
   };
 
   const getFileIcon = (type: string) => {
-    switch (type) {
-      case 'pdf': return '📄';
-      case 'doc': return '📝';
-      case 'xlsx': return '📊';
+    const normalizedType = type?.toLowerCase() || '';
+    switch (normalizedType) {
+      case 'pdf': 
+      case 'application/pdf':
+        return '📄';
+      case 'doc':
+      case 'docx':
+      case 'application/msword':
+      case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+        return '📝';
+      case 'xls':
+      case 'xlsx':
+      case 'application/vnd.ms-excel':
+      case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+        return '📊';
+      case 'ppt':
+      case 'pptx':
+      case 'application/vnd.ms-powerpoint':
+      case 'application/vnd.openxmlformats-officedocument.presentationml.presentation':
+        return '📽️';
       case 'jpg':
-      case 'png': return '🖼️';
-      default: return '📁';
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+      case 'webp':
+      case 'image/jpeg':
+      case 'image/png':
+      case 'image/gif':
+        return '🖼️';
+      case 'txt':
+      case 'text/plain':
+        return '📋';
+      default: 
+        return '📄';
     }
   };
 
