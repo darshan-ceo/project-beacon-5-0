@@ -281,13 +281,14 @@ export const SignatoryModal: React.FC<SignatoryModalProps> = ({
             </div>
 
             <div>
-              <SignatoryPhoneManager
+            <SignatoryPhoneManager
                 phones={formData.phones}
                 onChange={(phones) => {
                   setFormData(prev => ({ ...prev, phones }));
                   setErrors(prev => ({ ...prev, phones: '' }));
                 }}
                 disabled={mode === 'view'}
+                excludeEntityId={mode === 'edit' ? signatory?.id : undefined}
               />
               {errors.phones && (
                 <p className="text-sm text-destructive mt-1">{errors.phones}</p>
