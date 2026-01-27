@@ -1916,8 +1916,16 @@ export class SupabaseAdapter implements StoragePort {
             normalized.court_id = null;
           }
           
-          // Whitelist only valid columns (now includes all judge table columns)
-          const validJudgeFields = ['id', 'tenant_id', 'name', 'court_id', 'designation', 'phone', 'email', 'created_by', 'created_at', 'updated_at', 'status', 'specialization', 'appointment_date', 'notes'];
+          // Whitelist only valid columns (complete list matching judges table schema)
+          const validJudgeFields = [
+            'id', 'tenant_id', 'name', 'designation', 'status', 'court_id',
+            'bench', 'jurisdiction', 'city', 'state', 'email', 'phone',
+            'appointment_date', 'retirement_date', 'years_of_service',
+            'specialization', 'chambers', 'assistant', 'availability',
+            'tags', 'notes', 'photo_url', 'created_at', 'updated_at', 'created_by',
+            // Phase 1 fields
+            'member_type', 'authority_level', 'qualifications', 'tenure_details'
+          ];
           Object.keys(normalized).forEach(key => {
             if (!validJudgeFields.includes(key)) delete normalized[key];
           });
