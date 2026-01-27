@@ -1,128 +1,99 @@
 
+# Fix RBAC Enforcement: Staff Incorrectly Accessing System Settings
 
-# Fix Role-Based Onboarding: Staff Sees Admin Content
+## Problem Analysis
 
-## Problem Summary
+User "Mahesh" with **Staff** role can view and access System Settings despite having **0/2 permissions** assigned in the Access & Roles configuration.
 
-User "Mahesh" with **Staff** role is seeing **"Administrator Onboarding"** (19 steps, ~90 minutes) instead of **"Staff Onboarding"** (5 steps, ~30 minutes).
+### Evidence from Database:
 
-### Root Cause
+| Role | Settings Permissions |
+|------|---------------------|
+| Admin | `settings.read`, `settings.update` ✅ |
+| Advocate | `settings.read`, `settings.update` ✅ |
+| Client | `settings.read`, `settings.update` ✅ (likely a misconfiguration) |
+| **Staff** | **NONE** ❌ |
+| Manager | **NONE** ❌ |
+| Partner | **NONE** ❌ (should be granted) |
+| CA | **NONE** ❌ |
 
-There's a disconnect between the permission system (`supabaseRole`) and the legacy `currentUser.role` object:
+### Root Causes Identified
 
-| Property | Where Set | Current Value for Mahesh |
-|----------|-----------|--------------------------|
-| `supabaseRole` | Loaded from `user_roles` table | `'staff'` ✅ |
-| `currentUser.role` | Hardcoded to `defaultUser` | `'Admin'` ❌ |
+**Cause 1: Sidebar shows menu during RBAC loading**
+In `Sidebar.tsx` line 286, `hasRbacAccess()` returns `true` when `!isRbacReady`, allowing all menu items to show before permissions are loaded.
 
-**The Bug (in `useAdvancedRBAC.tsx`):**
-```typescript
-// Line 78-84: defaultUser has role: 'Admin'
-const defaultUser: User = {
-  id: 'demo-user',
-  name: 'Demo User',
-  email: 'demo@lawfirm.com',
-  role: 'Admin',  // ← This is the problem
-  permissions: [{ module: '*', action: 'admin' }]
-};
+**Cause 2: No page-level access control**
+`GlobalParameters.tsx` (System Settings page) has no RBAC check. The route only uses `ProtectedRoute` which checks authentication, not permissions.
 
-// Line 96: currentUser inherits this
-const [currentUser, setCurrentUser] = useState<User>(defaultUser);
-
-// MISSING: No useEffect syncs supabaseRole → currentUser.role
-```
-
-**Impact Flow:**
-1. `HelpCenter.tsx` line 50: `const userRole = currentUser?.role || 'Staff';`
-2. `userRole` = `'Admin'` (not `'Staff'`)
-3. `OnboardingWizard` requests path for `'admin'`
-4. Returns "Administrator Onboarding" with 19 steps (including inherited Partner→Manager→Advocate→Staff steps)
+**Cause 3: Missing role-based database permissions**
+Several roles that SHOULD have Settings access (Partner) don't have database permissions, while Client role incorrectly has full settings access.
 
 ---
 
 ## Solution
 
-### Part 1: Sync `currentUser.role` with `supabaseRole`
+### Part 1: Fix Sidebar RBAC Loading Behavior
 
-Add a `useEffect` in `useAdvancedRBAC.tsx` to update `currentUser` when `supabaseRole` changes:
+Update `hasRbacAccess()` in `Sidebar.tsx` to be restrictive during loading (fail-closed):
 
 ```typescript
-// After the existing role loading useEffect (around line 146)
-useEffect(() => {
-  // Sync currentUser.role with the actual Supabase role
-  if (supabaseRole && supabaseRole !== 'user') {
-    // Capitalize first letter to match UserRole type
-    const formattedRole = supabaseRole.charAt(0).toUpperCase() + supabaseRole.slice(1) as UserRole;
-    setCurrentUser(prev => ({
-      ...prev,
-      role: formattedRole
-    }));
-  }
+const hasRbacAccess = (href: string): boolean => {
+  if (!enforcementEnabled) return true;
   
-  // Also sync user profile info when available
-  if (userProfile) {
-    setCurrentUser(prev => ({
-      ...prev,
-      id: user?.id || prev.id,
-      name: userProfile.full_name || prev.name,
-      email: user?.email || prev.email
-    }));
-  }
-}, [supabaseRole, user, userProfile]);
-```
-
-### Part 2: Update Default User Role (Fail-Safe)
-
-Change `defaultUser.role` from `'Admin'` to `'Client'` (least privileged):
-
-```typescript
-const defaultUser: User = {
-  id: 'demo-user',
-  name: 'Demo User',
-  email: 'demo@lawfirm.com',
-  role: 'Client',  // ← Changed from 'Admin' (principle of least privilege)
-  permissions: []  // ← Changed from admin wildcard
+  // CHANGED: Be restrictive during loading (fail-closed security)
+  if (!isRbacReady) return false;  // Was: return true
+  
+  const rbacModule = getRbacModuleForRoute(href);
+  if (!rbacModule) return true;
+  
+  return hasPermission(rbacModule, 'read');
 };
 ```
 
-**Rationale:** If role resolution fails, users should see the minimal onboarding (Client Portal: 5 steps, ~10 min) rather than admin content.
+### Part 2: Add Page-Level Access Control to System Settings
 
----
+Wrap `GlobalParameters` component with permission check:
 
-## Onboarding Architecture (For Reference)
+```typescript
+// In GlobalParameters.tsx - add at the top of the component
+const { hasPermission, isRbacReady } = useRBAC();
 
-The current `onboarding-paths.json` defines role-specific paths with inheritance:
-
-```text
-┌─────────────┐
-│   Client    │ 5 steps, ~10 min (portal-focused)
-└─────────────┘
-
-┌─────────────┐
-│    Staff    │ 5 steps, ~30 min
-└──────┬──────┘
-       │ inherits
-┌──────▼──────┐
-│  Advocate   │ +3 steps, ~45 min total
-└──────┬──────┘
-       │ inherits
-┌──────▼──────┐
-│   Manager   │ +4 steps, ~60 min total
-└──────┬──────┘
-       │ inherits
-┌──────▼──────┐
-│   Partner   │ +3 steps, ~75 min total
-└──────┬──────┘
-       │ inherits
-┌──────▼──────┐
-│    Admin    │ +4 steps, ~90 min total (19 steps!)
-└─────────────┘
+// Check settings permission
+if (isRbacReady && !hasPermission('settings', 'read')) {
+  return (
+    <div className="flex items-center justify-center h-64">
+      <div className="text-center space-y-4">
+        <Lock className="h-12 w-12 text-muted-foreground mx-auto" />
+        <h2 className="text-lg font-semibold">Access Denied</h2>
+        <p className="text-muted-foreground">
+          You don't have permission to view System Settings.
+        </p>
+      </div>
+    </div>
+  );
+}
 ```
 
-**After the fix:**
-- **Staff** will see: "Staff Onboarding" (5 steps, ~30 min)
-- **Advocate** will see: "Advocate Onboarding" (8 steps, ~45 min - includes Staff steps)
-- **Admin** will see: "Administrator Onboarding" (19 steps, ~90 min - includes all inherited steps)
+### Part 3: Fix Database Role Permissions
+
+Database migration to correct role assignments:
+
+```sql
+-- Remove incorrect Client settings permissions
+DELETE FROM role_permissions 
+WHERE role = 'client' AND permission_key LIKE 'settings%';
+
+-- Add Partner settings permissions (they should have access)
+INSERT INTO role_permissions (role, permission_key) VALUES
+  ('partner', 'settings.read'),
+  ('partner', 'settings.update')
+ON CONFLICT DO NOTHING;
+
+-- Optionally add Manager read-only access
+INSERT INTO role_permissions (role, permission_key) VALUES
+  ('manager', 'settings.read')
+ON CONFLICT DO NOTHING;
+```
 
 ---
 
@@ -130,42 +101,33 @@ The current `onboarding-paths.json` defines role-specific paths with inheritance
 
 | File | Changes |
 |------|---------|
-| `src/hooks/useAdvancedRBAC.tsx` | Add sync effect for `currentUser.role`, update `defaultUser` |
+| `src/components/layout/Sidebar.tsx` | Change `hasRbacAccess()` to return `false` during loading |
+| `src/components/admin/GlobalParameters.tsx` | Add page-level RBAC check with access denied fallback |
+| Database migration | Fix Client/Partner/Manager settings permissions |
 
 ---
 
-## Expected Result
+## Expected Results After Fix
 
-After implementation:
-
-| User | RBAC Role | Onboarding Path | Steps |
-|------|-----------|-----------------|-------|
-| Mahesh | Staff | Staff Onboarding | 5 steps |
-| Advocate user | Advocate | Advocate Onboarding | 8 steps |
-| Partner user | Partner | Partner Onboarding | 16 steps |
-| Admin user | Admin | Administrator Onboarding | 19 steps |
-| Client user | Client | Client Portal Onboarding | 5 steps |
-
-The "Get Started" tab will correctly reflect the logged-in user's role and show only relevant onboarding content.
+| Role | Sidebar Shows Settings | Can Access /settings Page |
+|------|----------------------|--------------------------|
+| Admin | ✅ Yes | ✅ Yes |
+| Partner | ✅ Yes | ✅ Yes |
+| Advocate | ✅ Yes | ✅ Yes |
+| Manager | ✅ Yes (read-only) | ✅ Yes (read-only) |
+| **Staff** | ❌ No | ❌ Access Denied |
+| CA | ❌ No | ❌ Access Denied |
+| Clerk | ❌ No | ❌ Access Denied |
+| Client | ❌ No | ❌ Access Denied |
 
 ---
 
-## Technical Details
+## Security Model Summary
 
-### Role Mapping
+The fix implements defense-in-depth:
 
-The `supabaseRole` uses lowercase (`staff`, `admin`, `partner`) while `UserRole` type uses title case (`Staff`, `Admin`, `Partner`). The sync effect handles this conversion:
+1. **Layer 1 - Sidebar**: Hides menu items user cannot access (fail-closed during load)
+2. **Layer 2 - Page Component**: Shows "Access Denied" if permission check fails
+3. **Layer 3 - Database**: Correct permission assignments in `role_permissions` table
 
-```typescript
-const formattedRole = supabaseRole.charAt(0).toUpperCase() + supabaseRole.slice(1) as UserRole;
-```
-
-### Type Safety
-
-The `UserRole` type should include all roles defined in `onboarding-paths.json`:
-```typescript
-export type UserRole = 'Partner' | 'Admin' | 'Manager' | 'Advocate' | 'Staff' | 'Client' | 'Ca';
-```
-
-Verify that `'Staff'` and `'Client'` are included (they currently may be missing based on the type definition at line 15).
-
+All three layers must agree for access to be granted, ensuring security even if one layer has a bug.
