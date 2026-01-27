@@ -26,6 +26,7 @@ import { Progress } from '@/components/ui/progress';
 import { Task, useAppState } from '@/contexts/AppStateContext';
 import { aiTaskService, AITaskSuggestion, TaskOptimization, WorkloadRecommendation } from '@/services/aiTaskService';
 import { toast } from '@/hooks/use-toast';
+import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 
 export const AITaskAssistant: React.FC = () => {
   const { state } = useAppState();
@@ -36,6 +37,10 @@ export const AITaskAssistant: React.FC = () => {
   const [optimizations, setOptimizations] = useState<TaskOptimization[]>([]);
   const [recommendations, setRecommendations] = useState<WorkloadRecommendation[]>([]);
   const [selectedCase, setSelectedCase] = useState<string>('');
+
+  // RBAC permission checks
+  const { hasPermission } = useAdvancedRBAC();
+  const canManageAI = hasPermission('tasks.ai', 'admin') || hasPermission('tasks.ai', 'write');
 
   useEffect(() => {
     const status = aiTaskService.getApiKeyStatus();
@@ -174,6 +179,30 @@ export const AITaskAssistant: React.FC = () => {
   };
 
   if (!isConfigured) {
+    // Only show configuration UI if user has permission to manage AI
+    if (!canManageAI) {
+      return (
+        <div className="space-y-6">
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="text-center"
+          >
+            <div className="flex items-center justify-center mb-4">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                <Brain className="h-8 w-8 text-primary" />
+              </div>
+            </div>
+            <h2 className="text-2xl font-bold text-foreground">AI Task Assistant</h2>
+            <p className="text-muted-foreground mt-2">
+              AI integration has not been configured yet. Contact an administrator to set up the AI Task Assistant.
+            </p>
+          </motion.div>
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-6">
         {/* Configuration Header */}

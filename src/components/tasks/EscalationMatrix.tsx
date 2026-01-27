@@ -25,6 +25,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 
 interface TaskDisplay {
   id: string;
@@ -68,6 +69,10 @@ export const EscalationMatrix: React.FC<EscalationMatrixProps> = ({ tasks }) => 
   const [isConfigureRulesOpen, setIsConfigureRulesOpen] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  // RBAC permission checks
+  const { hasPermission } = useAdvancedRBAC();
+  const canManageEscalation = hasPermission('tasks.escalation', 'admin') || hasPermission('tasks.escalation', 'write');
 
   const loadEscalationData = useCallback(async () => {
     try {
@@ -225,10 +230,12 @@ export const EscalationMatrix: React.FC<EscalationMatrixProps> = ({ tasks }) => 
             <RefreshCw className={`mr-2 h-4 w-4 ${isChecking ? 'animate-spin' : ''}`} />
             {isChecking ? 'Checking...' : 'Check Overdue Tasks'}
           </Button>
-          <Button variant="outline" onClick={() => setIsConfigureRulesOpen(true)}>
-            <Settings className="mr-2 h-4 w-4" />
-            Configure Rules
-          </Button>
+          {canManageEscalation && (
+            <Button variant="outline" onClick={() => setIsConfigureRulesOpen(true)}>
+              <Settings className="mr-2 h-4 w-4" />
+              Configure Rules
+            </Button>
+          )}
         </div>
       </motion.div>
 

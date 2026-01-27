@@ -65,6 +65,7 @@ import type { CreateTaskBundleData } from '@/data/repositories/TaskBundleReposit
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAppState } from '@/contexts/AppStateContext';
 import { getAvailableEmployeeRoles } from '@/utils/masterDataUtils';
+import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 
 const GST_STAGES = ['Any Stage', 'Notice Received', 'Reply Filed', 'Hearing', 'Order'];
 
@@ -76,6 +77,10 @@ export const TaskAutomation: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [editingBundle, setEditingBundle] = useState<EnhancedTaskBundleWithItems | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  
+  // RBAC permission checks
+  const { hasPermission } = useAdvancedRBAC();
+  const canManageAutomation = hasPermission('tasks.automation', 'admin') || hasPermission('tasks.automation', 'write');
   
   // Form states for creating/editing
   const [bundleName, setBundleName] = useState('');
@@ -536,23 +541,27 @@ export const TaskAutomation: React.FC = () => {
               Task Automation
             </div>
             <div className="flex gap-2">
-              <Button 
-                onClick={() => setIsImportDialogOpen(true)}
-                variant="outline"
-                className="flex items-center gap-2"
-                disabled={!initialized}
-              >
-                <Upload className="h-4 w-4" />
-                Import JSON
-              </Button>
-              <Button 
-                onClick={() => setIsCreating(true)}
-                className="flex items-center gap-2"
-                disabled={!initialized}
-              >
-                <Plus className="h-4 w-4" />
-                Create Bundle
-              </Button>
+              {canManageAutomation && (
+                <>
+                  <Button 
+                    onClick={() => setIsImportDialogOpen(true)}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                    disabled={!initialized}
+                  >
+                    <Upload className="h-4 w-4" />
+                    Import JSON
+                  </Button>
+                  <Button 
+                    onClick={() => setIsCreating(true)}
+                    className="flex items-center gap-2"
+                    disabled={!initialized}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Create Bundle
+                  </Button>
+                </>
+              )}
             </div>
           </CardTitle>
         </CardHeader>
@@ -608,22 +617,24 @@ export const TaskAutomation: React.FC = () => {
                               </span>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => startEditing(bundle)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteBundle(bundle.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
+                          {canManageAutomation && (
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => startEditing(bundle)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteBundle(bundle.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       </CardHeader>
                       {bundle.items && bundle.items.length > 0 && (
