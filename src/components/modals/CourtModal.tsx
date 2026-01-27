@@ -526,11 +526,8 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                   }))}
                   disabled={mode === 'view' || !formData.taxJurisdiction}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder={formData.taxJurisdiction ? "Select officer designation" : "Select tax jurisdiction first"}>
-                      {/* Always display the stored label when we have a value */}
-                      {formData.officerDesignation && getOfficerLabel(formData.officerDesignation)}
-                    </SelectValue>
+                <SelectTrigger>
+                    <SelectValue placeholder={formData.taxJurisdiction ? "Select officer designation" : "Select tax jurisdiction first"} />
                   </SelectTrigger>
                   <SelectContent>
                     {getOfficersByJurisdiction(formData.taxJurisdiction).map(option => (
