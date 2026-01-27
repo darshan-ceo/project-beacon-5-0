@@ -1,8 +1,10 @@
+# COMPLETED: Task Sub-Module RBAC Enforcement for Action Buttons
 
+## Implementation Status: ✅ DONE
 
-# Fix: Task Sub-Module RBAC Enforcement for Action Buttons
+RBAC permission checks have been added to all 4 task sub-module components.
 
-## Problem Summary
+## Problem Summary (RESOLVED)
 
 Staff role has only "View" (`tasks.templates.read`) permission for Task Templates, but the UI shows Edit, Clone, Create Template, and Delete buttons. The same issue exists in Automation, Escalation, and AI Assistant sub-modules - tab access is controlled but individual action buttons are not permission-gated.
 

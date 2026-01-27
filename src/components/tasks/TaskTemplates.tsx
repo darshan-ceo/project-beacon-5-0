@@ -53,6 +53,7 @@ import { GST_STAGES } from '../../../config/appConfig';
 import { HelpButton } from '@/components/ui/help-button';
 import { useAppState } from '@/contexts/AppStateContext';
 import { getAvailableEmployeeRoles } from '@/utils/masterDataUtils';
+import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 
 interface TaskBundle {
   id: string;
@@ -78,6 +79,12 @@ export const TaskTemplates: React.FC<TaskTemplatesProps> = ({ bundles }) => {
   const [templates, setTemplates] = useState<TaskTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<any>(null);
+
+  // RBAC permission checks
+  const { hasPermission } = useAdvancedRBAC();
+  const canCreateTemplate = hasPermission('tasks.templates', 'write');
+  const canEditTemplate = hasPermission('tasks.templates', 'write');
+  const canDeleteTemplate = hasPermission('tasks.templates', 'delete') || hasPermission('tasks.templates', 'admin');
 
   // Form state for create/edit
   const [formData, setFormData] = useState({
@@ -377,44 +384,52 @@ export const TaskTemplates: React.FC<TaskTemplatesProps> = ({ bundles }) => {
               </div>
             )}
 
-            {/* Actions */}
-            <div className="flex space-x-2 pt-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="flex-1"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openEditDialog(template);
-                }}
-              >
-                <Edit className="mr-2 h-3 w-3" />
-                Edit
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="flex-1"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleCloneTemplate(template);
-                }}
-              >
-                <Copy className="mr-2 h-3 w-3" />
-                Clone
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteTemplate(template);
-                }}
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
-            </div>
+            {/* Actions - Only show buttons user has permission for */}
+            {(canEditTemplate || canCreateTemplate || canDeleteTemplate) && (
+              <div className="flex space-x-2 pt-2">
+                {canEditTemplate && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openEditDialog(template);
+                    }}
+                  >
+                    <Edit className="mr-2 h-3 w-3" />
+                    Edit
+                  </Button>
+                )}
+                {canCreateTemplate && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCloneTemplate(template);
+                    }}
+                  >
+                    <Copy className="mr-2 h-3 w-3" />
+                    Clone
+                  </Button>
+                )}
+                {canDeleteTemplate && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteTemplate(template);
+                    }}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -436,13 +451,14 @@ export const TaskTemplates: React.FC<TaskTemplatesProps> = ({ bundles }) => {
             Manage reusable task templates for consistent workflow automation
           </p>
         </div>
-        <Dialog open={isCreateTemplateOpen} onOpenChange={setIsCreateTemplateOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-primary hover:bg-primary-hover">
-              <Plus className="mr-2 h-4 w-4" />
-              Create Template
-            </Button>
-          </DialogTrigger>
+        {canCreateTemplate && (
+          <Dialog open={isCreateTemplateOpen} onOpenChange={setIsCreateTemplateOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-primary hover:bg-primary-hover">
+                <Plus className="mr-2 h-4 w-4" />
+                Create Template
+              </Button>
+            </DialogTrigger>
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
               <DialogTitle>Create Task Template</DialogTitle>
@@ -599,6 +615,7 @@ export const TaskTemplates: React.FC<TaskTemplatesProps> = ({ bundles }) => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        )}
 
         {/* Edit Template Dialog */}
         <Dialog open={isEditTemplateOpen} onOpenChange={setIsEditTemplateOpen}>
