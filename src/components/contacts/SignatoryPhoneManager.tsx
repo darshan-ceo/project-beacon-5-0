@@ -7,12 +7,14 @@ interface SignatoryPhoneManagerProps {
   phones: SignatoryPhone[];
   onChange: (phones: SignatoryPhone[]) => void;
   disabled?: boolean;
+  excludeEntityId?: string;
 }
 
 export const SignatoryPhoneManager: React.FC<SignatoryPhoneManagerProps> = ({
   phones,
   onChange,
-  disabled
+  disabled,
+  excludeEntityId
 }) => {
   // Convert SignatoryPhone to ContactPhone
   const contactPhones: ContactPhone[] = phones.map(p => ({
@@ -40,6 +42,7 @@ export const SignatoryPhoneManager: React.FC<SignatoryPhoneManagerProps> = ({
       phones={contactPhones}
       onChange={handleChange}
       disabled={disabled}
+      excludeEntityId={excludeEntityId}
     />
   );
 };
