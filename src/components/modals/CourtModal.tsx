@@ -12,7 +12,7 @@ import { toast } from '@/hooks/use-toast';
 import { AdaptiveFormShell } from '@/components/ui/adaptive-form-shell';
 import { FormStickyFooter } from '@/components/ui/form-sticky-footer';
 import { Court, useAppState } from '@/contexts/AppStateContext';
-import { AddressForm } from '@/components/ui/AddressForm';
+import { SimpleAddressForm, SimpleAddressData } from '@/components/ui/SimpleAddressForm';
 import { AddressView } from '@/components/ui/AddressView';
 import { EnhancedAddressData, addressMasterService } from '@/services/addressMasterService';
 import { featureFlagService } from '@/services/featureFlagService';
@@ -527,7 +527,10 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                   disabled={mode === 'view' || !formData.taxJurisdiction}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={formData.taxJurisdiction ? "Select officer designation" : "Select tax jurisdiction first"} />
+                    <SelectValue placeholder={formData.taxJurisdiction ? "Select officer designation" : "Select tax jurisdiction first"}>
+                      {/* Always display the stored label when we have a value */}
+                      {formData.officerDesignation && getOfficerLabel(formData.officerDesignation)}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {getOfficersByJurisdiction(formData.taxJurisdiction).map(option => (
@@ -763,7 +766,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
             </CardContent>
           </Card>
 
-            {/* Section 3: Address */}
+            {/* Section 3: Address - Using SimpleAddressForm to eliminate race conditions */}
             <Card className="rounded-beacon-lg border bg-card shadow-beacon-md">
               <CardHeader className="border-b border-border p-6 pb-4">
                 <CardTitle className="flex items-center gap-2">
@@ -779,20 +782,34 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                   showActions={false}
                 />
               ) : (
-                <AddressForm
-                  value={formData.address}
-                  onChange={(address) => {
-                    const extractedCity = extractCityFromAddress(address);
+                <SimpleAddressForm
+                  value={{
+                    line1: typeof formData.address === 'object' ? formData.address.line1 || '' : String(formData.address || ''),
+                    line2: typeof formData.address === 'object' ? formData.address.line2 || '' : '',
+                    cityName: formData.city || (typeof formData.address === 'object' ? formData.address.cityName || '' : ''),
+                    stateName: typeof formData.address === 'object' ? formData.address.stateName || '' : '',
+                    pincode: typeof formData.address === 'object' ? formData.address.pincode || '' : '',
+                    countryName: 'India'
+                  }}
+                  onChange={(addr: SimpleAddressData) => {
+                    // Convert SimpleAddressData to EnhancedAddressData format for storage
+                    const enhancedAddress: EnhancedAddressData = {
+                      ...formData.address,
+                      line1: addr.line1 || '',
+                      line2: addr.line2 || '',
+                      cityName: addr.cityName || '',
+                      stateName: addr.stateName || '',
+                      pincode: addr.pincode || '',
+                      countryId: 'IN',
+                      source: 'manual'
+                    };
                     setFormData(prev => ({
                       ...prev,
-                      address,
-                      // Only auto-fill if city is empty or N/A
-                      city: !prev.city || prev.city === 'N/A' || prev.city === '' ? extractedCity : prev.city
+                      address: enhancedAddress,
+                      city: addr.cityName || prev.city || ''
                     }));
                   }}
                   disabled={mode === 'view'}
-                  required={true}
-                  module="court"
                 />
                 )}
               </CardContent>

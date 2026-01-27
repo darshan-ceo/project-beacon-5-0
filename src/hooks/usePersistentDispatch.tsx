@@ -360,7 +360,9 @@ export const usePersistentDispatch = (
           return; // Prevent the generic dispatch below from firing
         }
         case 'UPDATE_COURT':
-          await storage.update('courts', action.payload.id, action.payload);
+          // SKIP: courtsService.update() already persists to Supabase
+          // Doing it here causes double-write and potential data loss
+          console.log('⏭️ Skipping UPDATE_COURT persistence - handled by courtsService');
           break;
         case 'DELETE_COURT':
           await storage.delete('courts', action.payload);
