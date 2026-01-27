@@ -2764,6 +2764,7 @@ export type Database = {
         Row: {
           appointment_date: string | null
           assistant: Json | null
+          authority_level: string | null
           availability: Json | null
           bench: string | null
           chambers: string | null
@@ -2775,23 +2776,27 @@ export type Database = {
           email: string | null
           id: string
           jurisdiction: string | null
+          member_type: string | null
           name: string
           notes: string | null
           phone: string | null
           photo_path: string | null
           photo_url: string | null
+          qualifications: Json | null
           retirement_date: string | null
           specialization: string[] | null
           state: string | null
           status: string | null
           tags: string[] | null
           tenant_id: string
+          tenure_details: Json | null
           updated_at: string
           years_of_service: number | null
         }
         Insert: {
           appointment_date?: string | null
           assistant?: Json | null
+          authority_level?: string | null
           availability?: Json | null
           bench?: string | null
           chambers?: string | null
@@ -2803,23 +2808,27 @@ export type Database = {
           email?: string | null
           id?: string
           jurisdiction?: string | null
+          member_type?: string | null
           name: string
           notes?: string | null
           phone?: string | null
           photo_path?: string | null
           photo_url?: string | null
+          qualifications?: Json | null
           retirement_date?: string | null
           specialization?: string[] | null
           state?: string | null
           status?: string | null
           tags?: string[] | null
           tenant_id: string
+          tenure_details?: Json | null
           updated_at?: string
           years_of_service?: number | null
         }
         Update: {
           appointment_date?: string | null
           assistant?: Json | null
+          authority_level?: string | null
           availability?: Json | null
           bench?: string | null
           chambers?: string | null
@@ -2831,17 +2840,20 @@ export type Database = {
           email?: string | null
           id?: string
           jurisdiction?: string | null
+          member_type?: string | null
           name?: string
           notes?: string | null
           phone?: string | null
           photo_path?: string | null
           photo_url?: string | null
+          qualifications?: Json | null
           retirement_date?: string | null
           specialization?: string[] | null
           state?: string | null
           status?: string | null
           tags?: string[] | null
           tenant_id?: string
+          tenure_details?: Json | null
           updated_at?: string
           years_of_service?: number | null
         }

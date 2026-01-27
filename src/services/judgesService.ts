@@ -3,6 +3,14 @@ import { storageManager } from '@/data/StorageManager';
 import { toast } from '@/hooks/use-toast';
 import { normalizeJudgePayload } from '@/utils/formatters';
 
+// Helper to safely format date fields (handles Date objects, strings, null/undefined)
+function formatDateFieldSafe(value: unknown): string | null {
+  if (!value) return null;
+  if (value instanceof Date) return value.toISOString().split('T')[0];
+  if (typeof value === 'string') return value;
+  return null;
+}
+
 export interface CreateJudgeData {
   name: string;
   designation: string;
@@ -56,8 +64,8 @@ class JudgesService {
         jurisdiction: normalizedData.jurisdiction,
         city: normalizedData.city,
         state: normalizedData.state,
-        appointmentDate: judgeData.appointmentDate || '',
-        retirementDate: judgeData.retirementDate,
+        appointmentDate: judgeData.appointmentDate || undefined,
+        retirementDate: judgeData.retirementDate || undefined,
         yearsOfService,
         specialization: judgeData.specialization || [],
         chambers: judgeData.chambers,
@@ -91,8 +99,8 @@ class JudgesService {
         jurisdiction: newJudge.jurisdiction,
         city: newJudge.city,
         state: newJudge.state,
-        appointment_date: newJudge.appointmentDate,
-        retirement_date: newJudge.retirementDate,
+        appointment_date: newJudge.appointmentDate || null,
+        retirement_date: newJudge.retirementDate || null,
         years_of_service: yearsOfService,
         specialization: newJudge.specialization || [],
         chambers: newJudge.chambers,
@@ -101,6 +109,17 @@ class JudgesService {
         tags: newJudge.tags || [],
         notes: newJudge.notes,
         photo_url: newJudge.photoUrl,
+        // Phase 1 fields
+        member_type: judgeData.memberType || null,
+        authority_level: judgeData.authorityLevel || null,
+        qualifications: judgeData.qualifications ? JSON.stringify(judgeData.qualifications) : null,
+        tenure_details: judgeData.tenureDetails ? JSON.stringify({
+          tenureStartDate: formatDateFieldSafe(judgeData.tenureDetails.tenureStartDate),
+          tenureEndDate: formatDateFieldSafe(judgeData.tenureDetails.tenureEndDate),
+          maxTenureYears: judgeData.tenureDetails.maxTenureYears,
+          extensionGranted: judgeData.tenureDetails.extensionGranted,
+          ageLimit: judgeData.tenureDetails.ageLimit
+        }) : null,
       } as any);
 
       // Get server-generated UUID
