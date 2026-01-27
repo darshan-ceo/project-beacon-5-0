@@ -1,232 +1,171 @@
 
-# Fix: Document View/Download Button Behavior for Word, Excel, and PDF Files
 
-## Problem Summary
+# Fix: DOCX Files Showing Folder Icon Instead of Document Icon
 
-The Document Management module has incorrect behavior for View and Download buttons:
+## Problem
 
-| File Type | Current "View" Behavior | Current "Download" Behavior | Expected Behavior |
-|-----------|------------------------|---------------------------|-------------------|
-| **Excel (.xlsx, .xls)** | Downloads the file | Works correctly | Should open in preview |
-| **Word (.docx, .doc)** | Downloads the file | Works correctly | Should open in preview |
-| **PDF** | Opens in new tab but shows download icon in browser toolbar | Works correctly | Should open cleanly for preview |
-| **Images (PNG, JPG)** | Works correctly | Works correctly | N/A |
-
----
+In Document Management, DOCX files display a folder icon (📁) instead of a document-related icon. This happens because the `getFileIcon` function in multiple components doesn't include `'docx'` in its switch cases, causing it to fall through to the default case which returns a folder emoji.
 
 ## Root Cause
 
-### Technical Limitation
-
-The `previewDocument` function in `documentDownloadService.ts` (line 124) defines only these file types as "previewable":
+The `getFileIcon` function in `DocumentManagement.tsx` (line 204-213):
 
 ```typescript
-const previewableTypes = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'txt'];
-```
-
-For **Excel** and **Word** files, the code falls back to a signed URL opened in a new tab. Since browsers **cannot natively render** these formats, they trigger a download instead.
-
-### Solution Approach
-
-Use **Microsoft Office Online Viewer** to preview Word and Excel files. This is a free public service that renders Office documents in an iframe/new tab:
-
-```
-https://view.officeapps.live.com/op/view.aspx?src={encoded_public_url}
-```
-
-**Requirements:**
-- The file URL must be publicly accessible (or have a long-lived signed URL)
-- The URL must be properly encoded
-
-For PDF files, the current blob-based approach works correctly for preview; the "download icon" the user sees is the browser's built-in PDF viewer toolbar (expected behavior, not a bug).
-
----
-
-## Implementation Plan
-
-### Step 1: Update `documentDownloadService.ts` to Support Office Files
-
-**File:** `src/services/documentDownloadService.ts`
-
-Add a new constant for Office file types and integrate Microsoft Office Online Viewer:
-
-```typescript
-// Add at the top
-const OFFICE_PREVIEWABLE_TYPES = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
-
-// Update previewDocument function
-export const previewDocument = async (
-  filePath: string,
-  fileName: string,
-  fileType?: string
-): Promise<DownloadResult> => {
-  try {
-    console.log('👁️ [documentDownloadService] Starting preview:', { filePath, fileName, fileType });
-    
-    const fileExt = fileType || filePath.split('.').pop()?.toLowerCase();
-    const nativePreviewableTypes = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'txt'];
-    
-    // Handle Office files via Microsoft Office Online Viewer
-    if (OFFICE_PREVIEWABLE_TYPES.includes(fileExt || '')) {
-      // Create a long-lived signed URL (1 hour)
-      const { data: signedData, error: signedError } = await supabase.storage
-        .from('documents')
-        .createSignedUrl(filePath, 3600);
-      
-      if (signedError || !signedData?.signedUrl) {
-        throw new Error(signedError?.message || 'Failed to create preview URL');
-      }
-      
-      // Encode the signed URL for Microsoft Office Online Viewer
-      const encodedUrl = encodeURIComponent(signedData.signedUrl);
-      const officeViewerUrl = `https://view.officeapps.live.com/op/view.aspx?src=${encodedUrl}`;
-      
-      window.open(officeViewerUrl, '_blank');
-      console.log('✅ [documentDownloadService] Office preview opened via Microsoft Viewer');
-      return { success: true };
-    }
-    
-    // Handle native browser previewable types (PDF, images, txt)
-    if (nativePreviewableTypes.includes(fileExt || '')) {
-      const { data: blob, error } = await supabase.storage
-        .from('documents')
-        .download(filePath);
-      
-      if (!error && blob) {
-        const mimeType = getMimeType(fileExt || '');
-        const typedBlob = new Blob([blob], { type: mimeType });
-        const url = URL.createObjectURL(typedBlob);
-        
-        window.open(url, '_blank');
-        setTimeout(() => URL.revokeObjectURL(url), 60000);
-        console.log('✅ [documentDownloadService] Native preview opened via blob');
-        return { success: true };
-      }
-      
-      console.log('⚠️ [documentDownloadService] Blob preview failed, falling back to signed URL');
-    }
-    
-    // Fallback: Use signed URL directly
-    const { data: signedData, error: signedError } = await supabase.storage
-      .from('documents')
-      .createSignedUrl(filePath, 3600);
-    
-    if (signedError || !signedData?.signedUrl) {
-      throw new Error(signedError?.message || 'Failed to create preview URL');
-    }
-    
-    window.open(signedData.signedUrl, '_blank');
-    console.log('✅ [documentDownloadService] Preview opened via signed URL');
-    return { success: true };
-    
-  } catch (error: any) {
-    console.error('❌ [documentDownloadService] Preview failed:', error);
-    return { success: false, error: error.message };
+const getFileIcon = (type: string) => {
+  switch (type) {
+    case 'pdf': return '📄';
+    case 'doc': return '📝';      // ← Only 'doc', missing 'docx'!
+    case 'xlsx': return '📊';      // ← Only 'xlsx', missing 'xls'!
+    case 'jpg':
+    case 'png': return '🖼️';
+    default: return '📁';          // ← Falls through to folder icon!
   }
 };
 ```
 
-### Step 2: Update Toast Messages for Clarity
+The same issue exists in `RecentDocuments.tsx` (lines 21-34).
 
-**File:** `src/components/documents/DocumentManagement.tsx`
+## Solution
 
-Update the success toast to indicate the viewer being used:
-
-```typescript
-// In handleDocumentView, after result.success:
-const fileExt = (doc.type || doc.fileType || doc.file_type || 
-                 filePath.split('.').pop())?.toLowerCase();
-const officeTypes = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
-
-toast({
-  title: "Opening Document",
-  description: officeTypes.includes(fileExt || '') 
-    ? `${doc.name} opening in Microsoft Viewer...`
-    : `${doc.name} opened for preview`,
-});
-```
-
-### Step 3: Update CaseDocuments Component
-
-**File:** `src/components/cases/CaseDocuments.tsx`
-
-Apply the same toast message update for consistency.
-
----
-
-## Technical Details
-
-### Why Microsoft Office Online Viewer?
-
-| Feature | Microsoft Viewer | Google Docs Viewer |
-|---------|-----------------|-------------------|
-| Word (.docx, .doc) | ✅ Full support | ✅ Supported |
-| Excel (.xlsx, .xls) | ✅ Full support | ✅ Supported |
-| PowerPoint (.pptx, .ppt) | ✅ Full support | ✅ Supported |
-| Reliability | High (Microsoft's own formats) | Medium |
-| URL Encoding | Required | Required |
-| Public URL Required | Yes (signed URL works) | Yes |
-
-### Data Flow After Fix
-
-```
-User clicks "View" button
-        ↓
-handleDocumentView(doc)
-        ↓
-documentDownloadService.preview(filePath, fileName, fileType)
-        ↓
-Determine file extension
-        ↓
-┌──────────────────┬─────────────────────┬──────────────────┐
-│ Office Files     │ Native Previewable  │ Other Files      │
-│ (docx,xlsx,pptx) │ (pdf,jpg,png,txt)   │ (zip,rar,etc)    │
-├──────────────────┼─────────────────────┼──────────────────┤
-│ Create signed URL│ Download as blob    │ Create signed URL│
-│ Encode URL       │ Create blob URL     │ Open in new tab  │
-│ Open Office      │ Open in new tab     │ (may download)   │
-│ Online Viewer    │                     │                  │
-└──────────────────┴─────────────────────┴──────────────────┘
-```
+Update the `getFileIcon` functions in affected components to:
+1. Add `'docx'` case alongside `'doc'` 
+2. Add `'xls'` case alongside `'xlsx'`
+3. Add common file extensions like `'jpeg'`, `'gif'`, `'txt'`
+4. Change the default fallback from folder (📁) to a generic document icon (📄)
 
 ---
 
 ## Files to Modify
 
-| File | Action | Description |
-|------|--------|-------------|
-| `src/services/documentDownloadService.ts` | Modify | Add Office file detection and Microsoft Viewer URL generation |
-| `src/components/documents/DocumentManagement.tsx` | Modify | Update toast message for Office files |
-| `src/components/cases/CaseDocuments.tsx` | Modify | Update toast message for consistency |
+### 1. `src/components/documents/DocumentManagement.tsx`
+
+**Location:** Lines 204-213
+
+Update the `getFileIcon` function:
+
+```typescript
+const getFileIcon = (type: string) => {
+  const normalizedType = type?.toLowerCase() || '';
+  switch (normalizedType) {
+    case 'pdf': 
+    case 'application/pdf':
+      return '📄';
+    case 'doc':
+    case 'docx':
+    case 'application/msword':
+    case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+      return '📝';
+    case 'xls':
+    case 'xlsx':
+    case 'application/vnd.ms-excel':
+    case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+      return '📊';
+    case 'ppt':
+    case 'pptx':
+    case 'application/vnd.ms-powerpoint':
+    case 'application/vnd.openxmlformats-officedocument.presentationml.presentation':
+      return '📽️';
+    case 'jpg':
+    case 'jpeg':
+    case 'png':
+    case 'gif':
+    case 'webp':
+    case 'image/jpeg':
+    case 'image/png':
+    case 'image/gif':
+      return '🖼️';
+    case 'txt':
+    case 'text/plain':
+      return '📋';
+    default: 
+      return '📄'; // Generic document icon, NOT folder
+  }
+};
+```
+
+### 2. `src/components/documents/RecentDocuments.tsx`
+
+**Location:** Lines 21-34
+
+Update the `getFileIcon` function with the same comprehensive mapping:
+
+```typescript
+const getFileIcon = (type: string) => {
+  const normalizedType = type?.toLowerCase() || '';
+  switch (normalizedType) {
+    case 'pdf': 
+    case 'application/pdf':
+      return '📄';
+    case 'doc':
+    case 'docx':
+    case 'application/msword':
+    case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+      return '📝';
+    case 'xls':
+    case 'xlsx':
+    case 'application/vnd.ms-excel':
+    case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+      return '📊';
+    case 'ppt':
+    case 'pptx':
+    case 'application/vnd.ms-powerpoint':
+    case 'application/vnd.openxmlformats-officedocument.presentationml.presentation':
+      return '📽️';
+    case 'jpg':
+    case 'jpeg':
+    case 'png':
+    case 'gif':
+    case 'webp':
+    case 'image/jpeg':
+    case 'image/png':
+    case 'image/gif':
+      return '🖼️';
+    case 'txt':
+    case 'text/plain':
+      return '📋';
+    default: 
+      return '📄'; // Generic document icon, NOT folder
+  }
+};
+```
+
+---
+
+## File Type to Icon Mapping (After Fix)
+
+| File Extension | MIME Type | Icon | Description |
+|---------------|-----------|------|-------------|
+| `.pdf` | application/pdf | 📄 | PDF document |
+| `.doc`, `.docx` | application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document | 📝 | Word document |
+| `.xls`, `.xlsx` | application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet | 📊 | Excel spreadsheet |
+| `.ppt`, `.pptx` | application/vnd.ms-powerpoint, application/vnd.openxmlformats-officedocument.presentationml.presentation | 📽️ | PowerPoint presentation |
+| `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp` | image/* | 🖼️ | Image |
+| `.txt` | text/plain | 📋 | Text file |
+| *Other/Unknown* | - | 📄 | Generic document |
 
 ---
 
 ## Expected Results After Fix
 
-| File Type | View Button (After) | Download Button |
-|-----------|---------------------|-----------------|
-| **Excel (.xlsx)** | Opens in Microsoft Office Online viewer | Downloads file |
-| **Word (.docx)** | Opens in Microsoft Office Online viewer | Downloads file |
-| **PDF** | Opens in browser's native PDF viewer | Downloads file |
-| **PNG/JPG** | Opens in browser natively | Downloads file |
-| **PowerPoint (.pptx)** | Opens in Microsoft Office Online viewer | Downloads file |
+| File Type | Before | After |
+|-----------|--------|-------|
+| `.docx` | 📁 (folder) | 📝 (Word doc) |
+| `.doc` | 📝 | 📝 (no change) |
+| `.xlsx` | 📊 | 📊 (no change) |
+| `.xls` | 📁 (folder) | 📊 (Excel) |
+| `.pptx` | 📁 (folder) | 📽️ (PowerPoint) |
+| Unknown type | 📁 (folder) | 📄 (document) |
 
 ---
 
 ## Testing Checklist
 
-After implementation, verify:
-1. Click "View" on XLSX file → Opens in Microsoft Office Online (new tab shows spreadsheet)
-2. Click "View" on DOCX file → Opens in Microsoft Office Online (new tab shows Word doc)
-3. Click "View" on PDF file → Opens in browser's PDF viewer (as before)
-4. Click "View" on PNG file → Opens image in new tab (as before)
-5. Click "Download" on any file → Downloads the file correctly
-6. Toast messages show appropriate context ("opening in Microsoft Viewer" for Office files)
+After implementation:
+1. Upload a `.docx` file → Should display 📝 icon
+2. Upload a `.doc` file → Should display 📝 icon
+3. Upload a `.xlsx` file → Should display 📊 icon
+4. Upload a `.xls` file → Should display 📊 icon
+5. Upload a `.pptx` file → Should display 📽️ icon
+6. Upload an unknown file type → Should display 📄 (not folder)
+7. Check "Recent Documents" section → Same correct icons
 
----
-
-## Notes
-
-- The Microsoft Office Online Viewer requires the file URL to be publicly accessible. Our signed URLs (valid for 1 hour) work correctly for this purpose.
-- If the user's network blocks access to Microsoft domains, the Office files will still fall back to download behavior (graceful degradation).
-- PDF "download icon" in browser toolbar is expected browser behavior for the built-in PDF viewer - this is not a bug.
