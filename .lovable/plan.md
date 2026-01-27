@@ -1,218 +1,419 @@
 
-# Fix: Judge Creation Fails with Date Error + Value Retention Issues
+
+# Fix: Document Download and View Functionality Not Working
 
 ## Problem Summary
 
-The "Add New Judge" form fails with `Database error: invalid input syntax for type date: ""` because:
-1. Empty date fields are converted to empty strings (`''`) instead of `null`
-2. PostgreSQL rejects `''` for date columns - it requires `null` or a valid date
-
-Additionally, Phase 1 fields (member type, authority level, qualifications, tenure details) are not being persisted because:
-1. The database is missing columns for these new fields
-2. The SupabaseAdapter whitelist strips out these fields before persistence
-
----
+The Document Management module has download and view issues where:
+1. Download shows "success" message but downloaded files appear corrupted or can't be opened
+2. Different behavior observed for PNG, Excel, and PDF files
+3. View functionality sometimes fails to open documents properly
 
 ## Root Cause Analysis
 
-### Issue 1: Empty Dates Passed as Empty Strings
+After thorough investigation, I identified **three critical issues**:
 
-**Flow:**
-```
-JudgeForm → JudgeModal.handleFormSubmit → judgesService.create → Supabase
-```
+### Issue 1: Cross-Origin Download Attribute Limitation
 
-**In JudgeModal.tsx (line 44):**
+**Current Implementation** (Lines 703-711 in `DocumentManagement.tsx`):
 ```typescript
-appointmentDate: formData.appointmentDate?.toISOString().split('T')[0] || ''  // ← Returns '' when null
+const signedUrl = await supabaseDocumentService.getDownloadUrl(filePath, 3600);
+
+// Trigger download using anchor tag with download attribute
+const link = document.createElement('a');
+link.href = signedUrl;
+link.download = doc.name || doc.fileName || 'document.pdf';
+document.body.appendChild(link);
+link.click();
 ```
 
-**In judgesService.ts (line 94):**
-```typescript
-appointment_date: newJudge.appointmentDate,  // ← Passes '' to database
+**Problem**: The HTML5 `download` attribute **does not work for cross-origin URLs**. When the browser encounters a signed URL from Supabase (`myncxddatwvtyiioqekh.supabase.co`), the `download` attribute is ignored. Instead of downloading, the browser:
+- Opens the URL in the current tab or new window
+- May show a corrupted preview if MIME type is misinterpreted
+- For binary files (Excel, images), the browser may fail to handle them correctly
+
+### Issue 2: Missing MIME Type Metadata
+
+From database query results:
+```
+file_name: Whats Xpress and Geo Xpress.png
+mime_type: <nil>  ← Missing!
+storage_url: <nil>  ← Missing!
 ```
 
-**PostgreSQL Response:**
-- `date` columns accept `null` or valid date strings like `'2024-01-15'`
-- Empty string `''` is not a valid date format → throws error
+Some documents (especially employee documents) are uploaded without proper `mime_type` and `storage_url` fields. When these files are downloaded, the browser doesn't know how to handle them.
 
-### Issue 2: Missing Database Columns
+### Issue 3: Inconsistent Storage Path Formats
 
-The judges table is missing these Phase 1 fields:
-- `member_type` (varchar)
-- `authority_level` (varchar)
-- `qualifications` (jsonb)
-- `tenure_details` (jsonb)
+Documents have different `file_path` formats:
+- Standard: `tenant_id/document_id.ext`
+- Employee docs: `tenant_id/employees/empId/docType/timestamp-filename.ext`
 
-### Issue 3: SupabaseAdapter Whitelist
-
-In `SupabaseAdapter.ts` line 1920:
-```typescript
-const validJudgeFields = ['id', 'tenant_id', 'name', 'court_id', 'designation', 'phone', 'email', 'created_by', 'created_at', 'updated_at', 'status', 'specialization', 'appointment_date', 'notes'];
-```
-
-This is **incomplete** - missing many valid columns. The correct list is at line 767-772:
-```typescript
-const validJudgeFields = [
-  'id', 'tenant_id', 'name', 'designation', 'status', 'court_id',
-  'bench', 'jurisdiction', 'city', 'state', 'email', 'phone',
-  'appointment_date', 'retirement_date', 'years_of_service',
-  'specialization', 'chambers', 'assistant', 'availability',
-  'tags', 'notes', 'photo_url', 'created_at', 'updated_at', 'created_by'
-];
-```
+The current code handles `file_path` correctly, but the missing metadata causes issues downstream.
 
 ---
 
-## Solution Plan
+## Solution: Blob-Based Download Approach
 
-### Part 1: Fix Empty Date String Issue (Critical - Fixes Error)
+Replace the problematic anchor-tag approach with a **fetch + blob** approach that:
+1. Fetches the file content via signed URL
+2. Creates a local blob with correct MIME type
+3. Downloads using `createObjectURL` (same-origin, no cross-origin issues)
 
-**File: `src/components/modals/JudgeModal.tsx`**
+This is the same pattern used successfully in `ClientDocumentLibrary.tsx` (lines 200-258).
 
-Change date handling to pass `undefined` instead of empty string:
+---
 
-```typescript
-// Lines 44, 52: Change || '' to || undefined
-appointmentDate: formData.appointmentDate?.toISOString().split('T')[0] || undefined,
-retirementDate: formData.retirementDate?.toISOString().split('T')[0] || undefined,
-```
+## Implementation Plan
 
-**File: `src/services/judgesService.ts`**
+### Step 1: Create Robust Download/View Utility
 
-Update lines 59-60 and 94-95 to handle empty strings:
+**File: `src/services/documentDownloadService.ts`** (New)
 
-```typescript
-// Line 59: Don't default to ''
-appointmentDate: judgeData.appointmentDate || undefined,
-
-// Line 94-95: Convert empty strings to null
-appointment_date: newJudge.appointmentDate || null,
-retirement_date: newJudge.retirementDate || null,
-```
-
-### Part 2: Add Missing Database Columns (Schema Migration)
-
-Add these columns to the judges table:
-
-```sql
-ALTER TABLE public.judges 
-  ADD COLUMN IF NOT EXISTS member_type varchar(50),
-  ADD COLUMN IF NOT EXISTS authority_level varchar(50),
-  ADD COLUMN IF NOT EXISTS qualifications jsonb DEFAULT '{}',
-  ADD COLUMN IF NOT EXISTS tenure_details jsonb DEFAULT '{}';
-
-COMMENT ON COLUMN judges.member_type IS 'Judicial, Technical-Centre, Technical-State, President, Vice President, Not Applicable';
-COMMENT ON COLUMN judges.authority_level IS 'ADJUDICATION, FIRST_APPEAL, TRIBUNAL, HIGH_COURT, SUPREME_COURT';
-COMMENT ON COLUMN judges.qualifications IS 'JSON: {educationalQualification, yearsOfExperience, previousPosition, specialization, governmentNominee}';
-COMMENT ON COLUMN judges.tenure_details IS 'JSON: {tenureStartDate, tenureEndDate, maxTenureYears, extensionGranted, ageLimit}';
-```
-
-### Part 3: Fix SupabaseAdapter Whitelist
-
-**File: `src/data/adapters/SupabaseAdapter.ts`**
-
-Update the incomplete whitelist at line 1920 to match the comprehensive list at line 767-772, plus new columns:
+Create a dedicated service for document operations:
 
 ```typescript
-const validJudgeFields = [
-  'id', 'tenant_id', 'name', 'designation', 'status', 'court_id',
-  'bench', 'jurisdiction', 'city', 'state', 'email', 'phone',
-  'appointment_date', 'retirement_date', 'years_of_service',
-  'specialization', 'chambers', 'assistant', 'availability',
-  'tags', 'notes', 'photo_url', 'created_at', 'updated_at', 'created_by',
-  // Phase 1 fields
-  'member_type', 'authority_level', 'qualifications', 'tenure_details'
-];
+import { supabase } from '@/integrations/supabase/client';
+
+interface DownloadResult {
+  success: boolean;
+  error?: string;
+}
+
+/**
+ * Get MIME type from file extension
+ */
+const getMimeType = (fileType: string): string => {
+  const mimeTypes: Record<string, string> = {
+    'pdf': 'application/pdf',
+    'doc': 'application/msword',
+    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'xls': 'application/vnd.ms-excel',
+    'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'ppt': 'application/vnd.ms-powerpoint',
+    'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'txt': 'text/plain',
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png': 'image/png',
+    'gif': 'image/gif',
+    'webp': 'image/webp',
+    'csv': 'text/csv'
+  };
+  return mimeTypes[fileType?.toLowerCase()] || 'application/octet-stream';
+};
+
+/**
+ * Download document as blob and trigger browser download
+ */
+export const downloadDocumentAsBlob = async (
+  filePath: string,
+  fileName: string,
+  fileType?: string
+): Promise<DownloadResult> => {
+  try {
+    // Method 1: Try direct download from storage
+    const { data: blob, error: downloadError } = await supabase.storage
+      .from('documents')
+      .download(filePath);
+
+    if (downloadError) {
+      console.log('Direct download failed, trying signed URL:', downloadError.message);
+      
+      // Method 2: Fallback to signed URL + fetch
+      const { data: signedData, error: signedError } = await supabase.storage
+        .from('documents')
+        .createSignedUrl(filePath, 3600);
+      
+      if (signedError || !signedData?.signedUrl) {
+        throw new Error(signedError?.message || 'Failed to create signed URL');
+      }
+      
+      const response = await fetch(signedData.signedUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch file: ${response.status} ${response.statusText}`);
+      }
+      
+      const fetchedBlob = await response.blob();
+      
+      // Ensure correct MIME type
+      const mimeType = fileType ? getMimeType(fileType) : fetchedBlob.type || 'application/octet-stream';
+      const typedBlob = new Blob([fetchedBlob], { type: mimeType });
+      
+      triggerDownload(typedBlob, fileName);
+      return { success: true };
+    }
+
+    // Direct download succeeded - ensure correct MIME type
+    const mimeType = fileType ? getMimeType(fileType) : blob.type || 'application/octet-stream';
+    const typedBlob = new Blob([blob], { type: mimeType });
+    
+    triggerDownload(typedBlob, fileName);
+    return { success: true };
+    
+  } catch (error: any) {
+    console.error('Document download failed:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Open document for preview in new tab
+ */
+export const previewDocument = async (
+  filePath: string,
+  fileName: string,
+  fileType?: string
+): Promise<DownloadResult> => {
+  try {
+    // For PDFs and images, try direct blob approach for reliable preview
+    const fileExt = fileType || filePath.split('.').pop()?.toLowerCase();
+    const previewableTypes = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'txt'];
+    
+    if (previewableTypes.includes(fileExt || '')) {
+      const { data: blob, error } = await supabase.storage
+        .from('documents')
+        .download(filePath);
+      
+      if (!error && blob) {
+        const mimeType = getMimeType(fileExt || '');
+        const typedBlob = new Blob([blob], { type: mimeType });
+        const url = URL.createObjectURL(typedBlob);
+        
+        window.open(url, '_blank');
+        
+        // Revoke after delay to allow browser to load
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+        return { success: true };
+      }
+    }
+    
+    // Fallback: Use signed URL (works for most browsers)
+    const { data: signedData, error: signedError } = await supabase.storage
+      .from('documents')
+      .createSignedUrl(filePath, 3600);
+    
+    if (signedError || !signedData?.signedUrl) {
+      throw new Error(signedError?.message || 'Failed to create preview URL');
+    }
+    
+    window.open(signedData.signedUrl, '_blank');
+    return { success: true };
+    
+  } catch (error: any) {
+    console.error('Document preview failed:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Trigger browser download from blob
+ */
+const triggerDownload = (blob: Blob, fileName: string) => {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
+export const documentDownloadService = {
+  download: downloadDocumentAsBlob,
+  preview: previewDocument,
+  getMimeType
+};
 ```
 
-### Part 4: Update judgesService to Handle Phase 1 Fields
+### Step 2: Update DocumentManagement Handlers
 
-**File: `src/services/judgesService.ts`**
+**File: `src/components/documents/DocumentManagement.tsx`**
 
-Add persistence for new fields in the `create` method (around line 83-104):
+Replace the current `handleDocumentView` and `handleDocumentDownload` functions:
+
+**Lines 656-730** - Replace with:
 
 ```typescript
-const created = await storage.create('judges', {
-  // ... existing fields ...
-  // Phase 1 fields
-  member_type: judgeData.memberType || null,
-  authority_level: judgeData.authorityLevel || null,
-  qualifications: judgeData.qualifications ? JSON.stringify(judgeData.qualifications) : null,
-  tenure_details: judgeData.tenureDetails ? JSON.stringify({
-    tenureStartDate: judgeData.tenureDetails.tenureStartDate?.toISOString?.()?.split('T')[0] 
-      || judgeData.tenureDetails.tenureStartDate || null,
-    tenureEndDate: judgeData.tenureDetails.tenureEndDate?.toISOString?.()?.split('T')[0]
-      || judgeData.tenureDetails.tenureEndDate || null,
-    maxTenureYears: judgeData.tenureDetails.maxTenureYears,
-    extensionGranted: judgeData.tenureDetails.extensionGranted,
-    ageLimit: judgeData.tenureDetails.ageLimit
-  }) : null,
-} as any);
+import { documentDownloadService } from '@/services/documentDownloadService';
+
+// ... inside component ...
+
+const handleDocumentView = useCallback(async (doc: any) => {
+  try {
+    console.log('📖 [DocumentManagement] Attempting to preview document:', {
+      id: doc.id,
+      name: doc.name,
+      filePath: doc.filePath || doc.file_path
+    });
+
+    const filePath = doc.filePath || doc.file_path;
+    if (!filePath) {
+      throw new Error('No file path available for preview');
+    }
+
+    const fileType = doc.type || doc.fileType || doc.file_type || 
+                     filePath.split('.').pop()?.toLowerCase();
+    
+    const result = await documentDownloadService.preview(
+      filePath,
+      doc.name || doc.fileName || 'document',
+      fileType
+    );
+
+    if (!result.success) {
+      throw new Error(result.error || 'Preview failed');
+    }
+
+    toast({
+      title: "Opening Document",
+      description: `${doc.name} opened for preview`,
+    });
+
+  } catch (error: any) {
+    console.error('❌ [DocumentManagement] Preview error:', error);
+    toast({
+      title: "Preview Error",
+      description: error.message || "Unable to preview this document. Try downloading instead.",
+      variant: "destructive",
+    });
+  }
+}, []);
+
+const handleDocumentDownload = useCallback(async (doc: any) => {
+  try {
+    console.log('⬇️ [DocumentManagement] Attempting to download document:', {
+      id: doc.id,
+      name: doc.name,
+      filePath: doc.filePath || doc.file_path
+    });
+
+    const filePath = doc.filePath || doc.file_path;
+    if (!filePath) {
+      throw new Error('No file path available for download');
+    }
+
+    const fileType = doc.type || doc.fileType || doc.file_type || 
+                     filePath.split('.').pop()?.toLowerCase();
+    const fileName = doc.name || doc.fileName || `document.${fileType || 'bin'}`;
+
+    toast({
+      title: "Preparing Download",
+      description: `Downloading ${fileName}...`,
+    });
+
+    const result = await documentDownloadService.download(
+      filePath,
+      fileName,
+      fileType
+    );
+
+    if (!result.success) {
+      throw new Error(result.error || 'Download failed');
+    }
+
+    toast({
+      title: "Download Complete",
+      description: `${fileName} downloaded successfully`,
+    });
+
+  } catch (error: any) {
+    console.error('❌ [DocumentManagement] Download error:', error);
+    toast({
+      title: "Download Error",
+      description: error.message || "Unable to download this document.",
+      variant: "destructive",
+    });
+  }
+}, []);
+```
+
+### Step 3: Update CaseDocuments Handlers
+
+**File: `src/components/cases/CaseDocuments.tsx`**
+
+Update the `handlePreviewDocument` and `handleDownloadDocument` functions to use the same service (around lines 240-320).
+
+### Step 4: Fix Employee Document Uploads
+
+**File: `src/services/employeeDocumentService.ts`**
+
+Ensure `mime_type` is always set during upload. Add to the upload logic:
+
+```typescript
+// Ensure mime_type is set
+const mimeType = file.type || getMimeTypeFromExtension(file.name.split('.').pop() || '');
+
+// Include in database record
+mime_type: mimeType,
 ```
 
 ---
 
 ## Technical Details
 
-### Why Empty String Fails for Dates
+### Why Blob Approach Works
 
-PostgreSQL date type parsing:
-- `NULL` → valid (no date)
-- `'2024-01-15'` → valid date
-- `''` → **invalid** - not a recognized date format
-
-The Supabase SDK passes values directly to PostgreSQL, so JavaScript's empty string `''` causes the parse error.
-
-### Why Phase 1 Fields Don't Persist
-
-1. **No database columns**: The schema only has the original columns
-2. **Whitelist filtering**: SupabaseAdapter removes unknown fields before insert
-3. **No camelCase → snake_case mapping**: For new fields in the service
+| Approach | Cross-Origin | MIME Handling | Reliability |
+|----------|--------------|---------------|-------------|
+| Anchor + download attr | Fails for cross-origin | Browser dependent | Low |
+| Signed URL + window.open | Works (view only) | Browser dependent | Medium |
+| **Blob + createObjectURL** | Works (same-origin blob) | Explicit control | High |
 
 ### Data Flow After Fix
 
 ```
-JudgeForm (Date objects + Phase 1 objects)
-    ↓
-JudgeModal (Convert dates to ISO strings or undefined)
-    ↓
-judgesService (Convert undefined to null, serialize JSONB)
-    ↓
-SupabaseAdapter (Whitelist allows all valid fields)
-    ↓
-Database (Accepts null for dates, JSONB for nested objects)
+User clicks Download/View
+        ↓
+documentDownloadService called
+        ↓
+supabase.storage.download(filePath)  ← First attempt: direct blob
+        ↓
+If fails → createSignedUrl + fetch  ← Fallback
+        ↓
+Create typed Blob with correct MIME
+        ↓
+URL.createObjectURL(blob)  ← Same-origin URL!
+        ↓
+Trigger download or open in new tab
 ```
 
 ---
 
-## Files to Modify
+## Files to Create/Modify
 
-| File | Change | Impact |
-|------|--------|--------|
-| `src/components/modals/JudgeModal.tsx` | Return `undefined` instead of `''` for empty dates | Fixes immediate error |
-| `src/services/judgesService.ts` | Convert empty strings to `null`, add Phase 1 field handling | Data persistence |
-| `src/data/adapters/SupabaseAdapter.ts` | Update whitelist at line 1920 | Prevents field stripping |
-| **Database Migration** | Add 4 new columns for Phase 1 fields | Enables new feature storage |
+| File | Action | Description |
+|------|--------|-------------|
+| `src/services/documentDownloadService.ts` | Create | New service for reliable downloads |
+| `src/components/documents/DocumentManagement.tsx` | Modify | Update handlers (lines 656-730) |
+| `src/components/cases/CaseDocuments.tsx` | Modify | Update handlers (lines 240-320) |
+| `src/components/documents/RecentDocuments.tsx` | No change | Already uses passed callbacks |
+| `src/services/employeeDocumentService.ts` | Modify | Ensure mime_type is set on upload |
 
 ---
 
-## Expected Results After Fix
+## Expected Results
 
 | Scenario | Before | After |
 |----------|--------|-------|
-| Create judge with no dates | Error: "invalid input syntax for type date" | Judge created successfully |
-| Create judge with dates | Error (if any date empty) | All dates saved correctly |
-| Create judge with Phase 1 fields | Fields silently dropped | Fields persist in database |
-| Edit judge with Phase 1 fields | Fields not populated | Fields hydrate correctly |
+| Download PDF | Shows success but file corrupted | File downloads correctly |
+| Download Excel | Corrupted or opens in browser | Downloads as valid .xlsx |
+| Download PNG | May show inline instead of download | Downloads correctly |
+| View PDF | Sometimes fails | Opens in new tab reliably |
+| View image | May show decode error | Displays correctly |
+| Employee docs (missing mime_type) | Fails to open | Downloads with detected MIME |
 
 ---
 
-## Risk Assessment
+## Testing Checklist
 
-| Risk | Mitigation |
-|------|------------|
-| Database migration failure | Use `IF NOT EXISTS` clauses |
-| Existing data affected | New columns have nullable defaults |
-| JSONB serialization issues | Use `JSON.stringify()` consistently |
-| Date format inconsistency | Always use ISO format `YYYY-MM-DD` |
+After implementation, verify:
+1. PDF download - opens in viewer correctly
+2. Excel download - opens in Excel/compatible app
+3. PNG/JPG download - opens in image viewer
+4. PDF preview - opens in new browser tab
+5. Image preview - displays correctly
+6. Employee documents - download despite missing metadata
+7. Large files (>1MB) - download completes without corruption
+
