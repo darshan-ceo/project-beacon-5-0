@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Legacy compatibility types
-export type UserRole = 'Partner' | 'Admin' | 'Manager' | 'Associate' | 'Clerk' | 'Client';
+export type UserRole = 'Partner' | 'Admin' | 'Manager' | 'Advocate' | 'Staff' | 'Client' | 'Ca' | 'Associate' | 'Clerk';
 
 export interface Permission {
   module: string;
@@ -74,13 +74,13 @@ interface AdvancedRBACProviderProps {
   enableEnforcement?: boolean;
 }
 
-// Default demo user
+// Default demo user - uses least-privileged role as fail-safe
 const defaultUser: User = {
   id: 'demo-user',
   name: 'Demo User',
   email: 'demo@lawfirm.com',
-  role: 'Admin',
-  permissions: [{ module: '*', action: 'admin' }]
+  role: 'Client',
+  permissions: []
 };
 
 export const AdvancedRBACProvider: React.FC<AdvancedRBACProviderProps> = ({
@@ -144,6 +144,30 @@ export const AdvancedRBACProvider: React.FC<AdvancedRBACProviderProps> = ({
       loadRoleAndPermissions();
     }
   }, [currentUserId, enforcementEnabled]);
+
+  // Sync currentUser with supabaseRole and user profile
+  useEffect(() => {
+    // Sync currentUser.role with the actual Supabase role
+    if (supabaseRole && supabaseRole !== 'user') {
+      // Capitalize first letter to match UserRole type (e.g., 'staff' → 'Staff')
+      const formattedRole = supabaseRole.charAt(0).toUpperCase() + supabaseRole.slice(1) as UserRole;
+      setCurrentUser(prev => ({
+        ...prev,
+        role: formattedRole
+      }));
+      console.log(`[RBAC] Synced currentUser.role to: ${formattedRole}`);
+    }
+    
+    // Also sync user profile info when available
+    if (user || userProfile) {
+      setCurrentUser(prev => ({
+        ...prev,
+        id: user?.id || prev.id,
+        name: userProfile?.full_name || prev.name,
+        email: user?.email || prev.email
+      }));
+    }
+  }, [supabaseRole, user, userProfile]);
 
   // Permission checking using Supabase-backed resolver (FAIL-CLOSED)
   const hasPermission = useCallback((module: string, action: Permission['action']): boolean => {
