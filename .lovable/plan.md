@@ -1,295 +1,104 @@
 
+# Fix: Officer Designation Not Displaying on Edit
 
-# Root Cause Analysis: Officer Designation & Address Persistence Issue
+## Root Cause Identified
 
-## The Real Problem (Not What We Fixed Earlier)
+The Officer Designation dropdown fails to display the stored value due to a **Radix UI Select timing/options mismatch issue**:
 
-The previous fix (skipping realtime UPDATE events) was **correct** but **incomplete**. The actual issue is more subtle and occurs during **form hydration** in the CourtModal component.
+1. Modal renders Select with `value={formData.officerDesignation || ''}` 
+2. Select options come from `getOfficersByJurisdiction(formData.taxJurisdiction)`
+3. When `formData.taxJurisdiction` is `undefined`, this returns `[]` (empty array)
+4. Radix Select has **no options to match** against the stored value
+5. Select displays placeholder instead of the actual value
 
----
+**Why Address Works But Officer Designation Doesn't:**
+- Address was switched to `SimpleAddressForm` with plain text inputs (no matching required)
+- Officer Designation uses a dropdown that requires option-value matching
 
-## Critical Discovery from Database Query
+## Solution: Always Provide Fallback Options
 
-```sql
-address: {"line1":"A1","line2":"A2","locality":"l1",...,"cityName":"Port Blair","stateName":"Andaman and Nicobar Islands"}
-city: Ahmedabad
-tax_jurisdiction: CGST
-officer_designation: PRINCIPAL_COMMISSIONER
-```
+Modify `getOfficersByJurisdiction()` to return ALL officers when jurisdiction is undefined, ensuring the stored value always has a matching option to display.
 
-**The database has ALL the data correctly stored!** This confirms:
-1. ✅ Persistence layer works (courtsService.update)
-2. ✅ Database schema supports these fields
-3. ✅ Data was successfully written
+### File Changes
 
-But the UI doesn't display them after reopening the modal. Why?
-
----
-
-## Root Cause: Form Hydration Logic Bug
-
-### Issue 1: Officer Designation Validation Against Wrong Jurisdiction
-
-In `CourtModal.tsx` lines 205-206:
+**1. `src/types/officer-designation.ts`** - Update helper function
 
 ```typescript
-taxJurisdiction: courtData.taxJurisdiction as TaxJurisdiction | undefined,
-officerDesignation: courtData.officerDesignation as OfficerDesignation | undefined
+// Line 106-111: Change getOfficersByJurisdiction to return all officers as fallback
+export const getOfficersByJurisdiction = (jurisdiction: TaxJurisdiction | undefined): OfficerOption[] => {
+  if (jurisdiction === 'CGST') return CGST_OFFICERS;
+  if (jurisdiction === 'SGST') return SGST_OFFICERS;
+  // CHANGE: Return combined officers list when no jurisdiction selected
+  // This ensures stored values can always be displayed
+  return [...CGST_OFFICERS, ...SGST_OFFICERS.filter(o => 
+    !CGST_OFFICERS.some(c => c.value === o.value)
+  )];
+};
 ```
 
-**Problem:** The code correctly loads both fields, BUT when rendering the `<Select>` dropdown for Officer Designation (line 521-539), it validates the selected value against jurisdiction-specific options:
+This returns a deduplicated combined list when no jurisdiction is selected, ensuring:
+- `COMMISSIONER` (which exists in both lists) will have a matching option
+- All other designations from both lists are included
+- The stored value will always have an option to match against
+
+**2. `src/components/modals/CourtModal.tsx`** - Add loading guard (Optional enhancement)
+
+As an additional safeguard, add a check to ensure form data is hydrated before rendering the select:
 
 ```typescript
-<Select
-  value={formData.officerDesignation || ''}
-  onValueChange={(value) => setFormData(prev => ({ 
-    ...prev, 
-    officerDesignation: value as OfficerDesignation || undefined
-  }))}
-  disabled={mode === 'view' || !formData.taxJurisdiction}  // ← Disabled if no jurisdiction!
->
-  <SelectContent>
-    {getOfficersByJurisdiction(formData.taxJurisdiction).map(option => (
-      <SelectItem key={option.value} value={option.value}>
-        {option.label}
-      </SelectItem>
-    ))}
-  </SelectContent>
-</Select>
+// Around line 520-540: Add conditional rendering
+{/* Only render officer select after jurisdiction is determined or show stored value */}
+{(formData.taxJurisdiction || formData.officerDesignation) && (
+  <Select
+    value={formData.officerDesignation || ''}
+    onValueChange={(value) => setFormData(prev => ({ 
+      ...prev, 
+      officerDesignation: value as OfficerDesignation || undefined
+    }))}
+    disabled={mode === 'view' || !formData.taxJurisdiction}
+  >
+    <SelectTrigger>
+      <SelectValue placeholder={formData.taxJurisdiction ? "Select officer designation" : "Select tax jurisdiction first"} />
+    </SelectTrigger>
+    <SelectContent>
+      {getOfficersByJurisdiction(formData.taxJurisdiction).map(option => (
+        <SelectItem key={option.value} value={option.value}>
+          <span className="font-medium">{option.label}</span>
+        </SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+)}
 ```
 
-**The Bug:**
-- If `formData.taxJurisdiction` loads **after** `formData.officerDesignation`
-- Or if `taxJurisdiction` becomes momentarily `undefined` during hydration
-- The dropdown has **no matching options** for the stored value
-- `<Select>` then displays "Select officer designation" placeholder instead of the actual value
+## Technical Details
 
-This is a **race condition** during form hydration combined with insufficient fallback rendering.
+### Why This Fix Works
 
-### Issue 2: Address Component Relies on `stateId` Dropdown Matching
+1. **Radix Select Requirement**: The `value` prop MUST have a corresponding `<SelectItem value={...}>` in the DOM for the selection to display
+2. **Empty Options = No Match**: When `getOfficersByJurisdiction(undefined)` returned `[]`, there were no options to match against
+3. **Fallback Options Solution**: By always providing a complete list of officers as options, the stored value (e.g., `COMMISSIONER`) will always find a match
 
-In `AddressForm.tsx` (lines 584-629), the State dropdown:
+### Risk Assessment
 
-```typescript
-<Select
-  value={value.stateId || ''}  // ← Relies on exact match in states array
-  onValueChange={(newStateId) => {
-    // Complex logic that CLEARS city when state changes
-  }}
->
-```
-
-**The Problem:**
-- If `states` array hasn't loaded yet when the address is hydrated
-- Or if there's a mismatch between stored `stateId` and the `states` lookup
-- The Select displays "Select state" placeholder
-- When user changes it, the `onValueChange` handler **clears the city fields** (lines 608-609)
-
-### Issue 3: usePersistentDispatch Still Runs for UPDATE_COURT
-
-Even though we skipped realtime sync, `usePersistentDispatch.tsx` line 362-363 still runs:
-
-```typescript
-case 'UPDATE_COURT':
-  await storage.update('courts', action.payload.id, action.payload);
-  break;
-```
-
-This causes **double-write** scenario:
-1. `courtsService.update()` writes to database
-2. `usePersistentDispatch` catches the `UPDATE_COURT` action and writes **again**
-3. Second write might not include `officerDesignation` if it's missing from the action payload
-
----
-
-## Why "Delete and Re-Add" Would Not Fix This
-
-Deleting the fields and re-adding them would:
-- ❌ Still have the same hydration race condition
-- ❌ Still have the same Select dropdown matching logic
-- ❌ Still have the same double-persistence issue
-
-The bug is **architectural**, not schema-related.
-
----
-
-## The Solution (3-Part Fix)
-
-### Fix 1: Skip Duplicate Persistence in usePersistentDispatch
-
-**File:** `src/hooks/usePersistentDispatch.tsx`
-
-```typescript
-// Courts - SKIP: courtsService handles persistence
-case 'ADD_COURT': {
-  // ... existing ADD logic ...
-}
-case 'UPDATE_COURT':
-  // SKIP: courtsService.update() already persists to Supabase
-  console.log('⏭️ Skipping UPDATE_COURT persistence - handled by courtsService');
-  break;
-case 'DELETE_COURT':
-  await storage.delete('courts', action.payload);
-  break;
-```
-
-**Rationale:** Prevents double-write and ensures courtsService is the single source of truth for court persistence.
-
-### Fix 2: Add Fallback Rendering for Officer Designation
-
-**File:** `src/components/modals/CourtModal.tsx`
-
-Update the Officer Designation `<Select>` to show the stored value even if the dropdown options haven't loaded:
-
-```typescript
-<Select
-  value={formData.officerDesignation || ''}
-  onValueChange={(value) => setFormData(prev => ({ 
-    ...prev, 
-    officerDesignation: value as OfficerDesignation || undefined
-  }))}
-  disabled={mode === 'view' || !formData.taxJurisdiction}
->
-  <SelectTrigger>
-    <SelectValue 
-      placeholder={
-        formData.taxJurisdiction 
-          ? "Select officer designation" 
-          : "Select tax jurisdiction first"
-      }
-    >
-      {/* Fallback: Show stored value even if not in dropdown options */}
-      {formData.officerDesignation && !formData.taxJurisdiction && (
-        <span className="text-muted-foreground italic">
-          {getOfficerLabel(formData.officerDesignation)} (Select jurisdiction to edit)
-        </span>
-      )}
-    </SelectValue>
-  </SelectTrigger>
-  <SelectContent>
-    {getOfficersByJurisdiction(formData.taxJurisdiction).map(option => (
-      <SelectItem key={option.value} value={option.value}>
-        {option.label}
-      </SelectItem>
-    ))}
-  </SelectContent>
-</Select>
-```
-
-**Rationale:** Ensures the stored value is always visible, even during hydration race conditions.
-
-### Fix 3: Prevent Address Clear During Hydration
-
-**File:** `src/components/ui/AddressForm.tsx`
-
-The component already has guards (lines 647-655) to prevent spurious clears. We need to ensure this guard also covers the case where `stateId` is set but `states` array is empty:
-
-```typescript
-<Select
-  value={value.stateId || ''}
-  onValueChange={(newStateId) => {
-    const currentValue = latestValueRef.current;
-    
-    // CRITICAL GUARD: Don't clear if states haven't loaded yet
-    if (!newStateId && states.length === 0 && currentValue.stateId) {
-      console.log('🛡️ [AddressForm] State guard: Preventing spurious clear during load');
-      return;
-    }
-    
-    // Don't clear city if state hasn't actually changed
-    if (newStateId === currentValue.stateId) {
-      if (cities.length === 0) {
-        loadCities(newStateId);
-      }
-      return;
-    }
-    
-    // ... rest of logic
-  }}
->
-```
-
-**Rationale:** Prevents the Select from triggering `onValueChange('')` when the states dropdown is still loading, which would clear the stored address.
-
----
-
-## Alternative Approach: Use SimpleAddressForm
-
-**The Ultimate Fix (if above doesn't work):**
-
-Replace the complex `AddressForm` component with the simpler `SimpleAddressForm` for courts:
-
-```typescript
-// In CourtModal.tsx, import SimpleAddressForm instead
-import { SimpleAddressForm, SimpleAddressData } from '@/components/ui/SimpleAddressForm';
-
-// Use in form:
-<SimpleAddressForm
-  value={{
-    line1: typeof formData.address === 'object' ? formData.address.line1 : formData.address,
-    line2: typeof formData.address === 'object' ? formData.address.line2 : '',
-    cityName: formData.city,
-    stateName: typeof formData.address === 'object' ? formData.address.stateName : '',
-    pincode: typeof formData.address === 'object' ? formData.address.pincode : '',
-  }}
-  onChange={(addr) => setFormData(prev => ({
-    ...prev,
-    address: addr,
-    city: addr.cityName || ''
-  }))}
-  disabled={mode === 'view'}
-/>
-```
-
-**Why This Works:**
-- ✅ No async dropdowns = no race conditions
-- ✅ Plain text inputs = always shows stored value
-- ✅ Simpler state management = fewer bugs
-- ✅ Already exists in the codebase (used for other forms)
-
----
+| Risk | Mitigation |
+|------|------------|
+| User might select invalid officer for jurisdiction | Dropdown is still disabled when `!formData.taxJurisdiction` - user cannot interact until jurisdiction is set |
+| Performance impact from larger options list | Negligible - only adds ~10 extra options when no jurisdiction selected |
+| Duplicate options | Deduplication logic prevents same officer appearing twice |
 
 ## Files to Modify
 
-| File | Change | Risk Level |
-|------|--------|-----------|
-| `src/hooks/usePersistentDispatch.tsx` | Skip UPDATE_COURT persistence | Low |
-| `src/components/modals/CourtModal.tsx` | Add fallback rendering for Officer Designation | Low |
-| `src/components/modals/CourtModal.tsx` | **ALTERNATIVE:** Replace AddressForm with SimpleAddressForm | Medium |
+| File | Change | Impact |
+|------|--------|--------|
+| `src/types/officer-designation.ts` | Return combined officers list instead of empty when jurisdiction is undefined | Ensures stored values always display |
+| `src/components/modals/CourtModal.tsx` | Optional: Add render guard for officer select | Extra safety for hydration timing |
 
----
-
-## Expected Results
+## Expected Behavior After Fix
 
 | Scenario | Before | After |
 |----------|--------|-------|
-| Edit court with Officer Designation | Shows "Select officer designation" | Shows "Principal Commissioner" |
-| Edit court with Address | Shows empty state fields | Shows complete address |
-| Save and reopen | Fields disappear | Fields persist correctly |
-| Change jurisdiction | Officer resets (correct) | Officer resets (correct) |
-
----
-
-## Why This Issue Is Hard to Debug
-
-1. **Database confirms data is stored** → suggests UI bug
-2. **UI shows correct data initially** → suggests database bug
-3. **Issue only appears on re-open** → race condition
-4. **Realtime sync was a red herring** → multiple systems involved
-
-The root cause is a **timing issue during form hydration** combined with **complex cascading dropdowns** in the address system, not a persistence layer bug.
-
----
-
-## Recommendation
-
-**Implement Fix 1 + Alternative Approach (SimpleAddressForm)**
-
-This provides the most robust solution:
-- Eliminates double-persistence
-- Removes complex async dropdown logic for addresses
-- Guarantees stored values are always visible
-- Matches the pattern already used in the codebase
-
-If you want to preserve the fancy address dropdown system, use Fix 1 + Fix 2 + Fix 3 instead.
-
+| Open court with SGST + Commissioner | Shows "Select officer designation" placeholder | Shows "Commissioner" |
+| Open court with no jurisdiction set | Shows placeholder, can't see stored value | Shows stored value (read-only until jurisdiction set) |
+| Change jurisdiction in edit mode | Resets officer correctly | Same - resets correctly |
+| Create new court | No change | No change |
