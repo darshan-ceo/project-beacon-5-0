@@ -626,24 +626,11 @@ export const useRealtimeSync = () => {
               } as any 
             });
           } else if (payload.eventType === 'UPDATE' && payload.new) {
-            const courtData = payload.new as any;
-            rawDispatch({ 
-              type: 'UPDATE_COURT', 
-              payload: {
-                id: courtData.id,
-                name: courtData.name,
-                type: courtData.type,
-                jurisdiction: courtData.jurisdiction,
-                address: courtData.address,
-                city: courtData.city,
-                phone: courtData.phone,
-                email: courtData.email,
-                status: courtData.status || 'Active',
-                benchLocation: courtData.bench_location,
-                taxJurisdiction: courtData.tax_jurisdiction,
-                officerDesignation: courtData.officer_designation,
-              } as any 
-            });
+            // SKIP: courtsService handles UPDATE persistence and dispatches
+            // complete payload. Realtime would overwrite with partial data,
+            // causing officerDesignation and address fields to be lost.
+            // Per service-layer-persistence-and-sync-policy memory.
+            console.log('[Realtime] Courts UPDATE skipped - handled by courtsService');
           } else if (payload.eventType === 'DELETE' && payload.old) {
             rawDispatch({ type: 'DELETE_COURT', payload: (payload.old as any).id });
           }

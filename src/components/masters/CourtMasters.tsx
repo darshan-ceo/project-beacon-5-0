@@ -470,6 +470,7 @@ export const CourtMasters: React.FC = () => {
       </motion.div>
 
       <CourtModal
+        key={`${courtModal.court?.id || 'new'}-${courtModal.mode}`}
         isOpen={courtModal.isOpen}
         onClose={() => setCourtModal({ isOpen: false, mode: 'create', court: null })}
         court={courtModal.court}
