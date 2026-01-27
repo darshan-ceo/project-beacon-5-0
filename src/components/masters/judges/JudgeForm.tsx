@@ -341,7 +341,7 @@ export const JudgeForm: React.FC<JudgeFormProps> = ({
   const isReadOnly = mode === 'view';
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
+    <form id="judge-form" onSubmit={handleSubmit} className="space-y-8">
       {/* Identity Section */}
       <Card>
         <CardHeader>
@@ -1065,17 +1065,6 @@ export const JudgeForm: React.FC<JudgeFormProps> = ({
         </Card>
       )}
 
-      {/* Actions */}
-      <div className="flex justify-end space-x-3 pt-6">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
-          {mode === 'view' ? 'Close' : 'Cancel'}
-        </Button>
-        {mode !== 'view' && (
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? 'Saving...' : mode === 'create' ? 'Add Judge' : 'Update Judge'}
-          </Button>
-        )}
-      </div>
     </form>
   );
 };

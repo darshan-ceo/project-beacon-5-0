@@ -20,8 +20,6 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [pendingFormData, setPendingFormData] = useState<any>(null);
-
   useEffect(() => {
     const fetchUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -32,31 +30,42 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
     fetchUser();
   }, []);
 
-  const handleFormChange = (formData: any) => {
-    setPendingFormData(formData);
-  };
-
-  const handleSubmit = async () => {
-    if (!pendingFormData) return;
-    
+  const handleFormSubmit = async (formData: any) => {
     setIsSaving(true);
     try {
       const { judgesService } = await import('@/services/judgesService');
       
       if (mode === 'create') {
         const judgePayload = {
-          name: pendingFormData.name,
-          designation: pendingFormData.designation,
-          status: pendingFormData.status,
-          courtId: pendingFormData.courtId,
-          appointmentDate: pendingFormData.appointmentDate?.toISOString().split('T')[0] || '',
-          phone: pendingFormData.phone,
-          email: pendingFormData.email,
+          name: formData.name,
+          designation: formData.designation,
+          status: formData.status,
+          courtId: formData.courtId,
+          appointmentDate: formData.appointmentDate?.toISOString().split('T')[0] || '',
+          phone: formData.phone,
+          email: formData.email,
+          bench: formData.bench,
+          jurisdiction: formData.jurisdiction,
+          city: formData.city,
+          state: formData.state,
+          photoUrl: formData.photoUrl,
+          retirementDate: formData.retirementDate?.toISOString().split('T')[0],
+          specialization: formData.specializations,
+          chambers: formData.chambers,
+          assistant: formData.assistant,
+          address: formData.address,
+          availability: formData.availability,
+          tags: formData.tags,
+          notes: formData.notes,
+          memberType: formData.memberType,
+          authorityLevel: formData.authorityLevel,
+          qualifications: formData.qualifications,
+          tenureDetails: formData.tenureDetails,
         };
 
         await judgesService.create(judgePayload, rawDispatch);
       } else if (mode === 'edit' && judgeData) {
-        await judgesService.update(judgeData.id, pendingFormData, dispatch);
+        await judgesService.update(judgeData.id, formData, dispatch);
       }
 
       onClose();
@@ -116,7 +125,10 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
     <FormStickyFooter
       mode={mode}
       onCancel={onClose}
-      onPrimaryAction={handleSubmit}
+      onPrimaryAction={mode !== 'view' ? () => {
+        const form = document.getElementById('judge-form') as HTMLFormElement;
+        if (form) form.requestSubmit();
+      } : undefined}
       onDelete={handleDelete}
       primaryLabel={mode === 'create' ? 'Create Judge' : 'Update Judge'}
       isPrimaryLoading={isSaving}
@@ -137,7 +149,7 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
     >
       <JudgeForm
         initialData={judgeData}
-        onSubmit={handleFormChange}
+        onSubmit={handleFormSubmit}
         onCancel={onClose}
         mode={mode}
       />
