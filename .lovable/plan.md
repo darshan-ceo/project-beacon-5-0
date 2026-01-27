@@ -1,138 +1,150 @@
 
-# Fix: Signatory Phone Duplicate Validation Across Multiple Clients
+# Fix: Task Edit Sheet - Buttons Overlapping Form Fields
 
-## Problem Summary
+## Problem
 
-When entering a mobile number for a signatory, the system does not show a warning if the same phone number exists in another client's signatory. The duplicate check code exists in `phoneDuplicateService.ts` but the signatory ID is not being passed through the component chain, preventing proper detection.
+In the Task Edit Sheet, the "Cancel" and "Save Changes" buttons appear in the middle of the screen, overlapping the form fields (specifically the Case and Stage fields). This makes these fields inaccessible to users.
 
 ## Root Cause
 
-The component chain for signatory phone input:
-```
-SignatoryModal → SignatoryPhoneManager → PhoneManager → PhoneInput
-```
+The current layout in `TaskEditSheet.tsx` uses `absolute bottom-0` for the footer inside a scrollable container with `overflow-y-auto`. This causes the footer to be positioned relative to the viewport instead of staying at the bottom of the sheet panel.
 
-**Issues found:**
-1. `SignatoryPhoneManager` does not accept or pass `excludeEntityId` prop
-2. `SignatoryModal` does not pass the signatory ID to `SignatoryPhoneManager`
-
-Without the `excludeEntityId`, when editing an existing signatory:
-- The duplicate check finds the signatory's own phone and reports it as a duplicate
-- This may cause false positives or the check may be silently failing
+**Current problematic structure:**
+```
+SheetContent (overflow-y-auto)       <- Scrollable
+  ├── SheetHeader
+  ├── div.pb-20                       <- Form content with padding
+  │     └── TaskForm
+  └── div.absolute.bottom-0           <- Footer floats mid-screen!
+        └── Buttons
+```
 
 ## Solution
 
-Pass the signatory ID through the component chain so that:
-1. When creating a new signatory: no ID is excluded (check all signatories)
-2. When editing a signatory: exclude only the current signatory's ID
+Restructure the layout using flexbox to create a proper header-body-footer pattern:
 
----
+1. Remove `overflow-y-auto` from SheetContent
+2. Add flexbox column layout to SheetContent
+3. Make form area scrollable with `flex-1 overflow-y-auto`
+4. Keep footer as a normal flex child (sticky at bottom)
 
-## Files to Modify
-
-### 1. Update SignatoryPhoneManager to Accept excludeEntityId
-
-**File:** `src/components/contacts/SignatoryPhoneManager.tsx`
-
-Add the `excludeEntityId` prop and pass it to `PhoneManager`:
-
-```typescript
-interface SignatoryPhoneManagerProps {
-  phones: SignatoryPhone[];
-  onChange: (phones: SignatoryPhone[]) => void;
-  disabled?: boolean;
-  excludeEntityId?: string;  // NEW: signatory ID to exclude from duplicate check
-}
-
-export const SignatoryPhoneManager: React.FC<SignatoryPhoneManagerProps> = ({
-  phones,
-  onChange,
-  disabled,
-  excludeEntityId  // NEW
-}) => {
-  // ... existing conversion logic ...
-
-  return (
-    <PhoneManager
-      phones={contactPhones}
-      onChange={handleChange}
-      disabled={disabled}
-      excludeEntityId={excludeEntityId}  // NEW: pass through
-    />
-  );
-};
+**New structure:**
 ```
-
-### 2. Update SignatoryModal to Pass Signatory ID
-
-**File:** `src/components/modals/SignatoryModal.tsx`
-
-Pass the current signatory's ID when in edit mode:
-
-```typescript
-<SignatoryPhoneManager
-  phones={formData.phones}
-  onChange={(phones) => {
-    setFormData(prev => ({ ...prev, phones }));
-    setErrors(prev => ({ ...prev, phones: '' }));
-  }}
-  disabled={mode === 'view'}
-  excludeEntityId={mode === 'edit' ? signatory?.id : undefined}  // NEW
-/>
+SheetContent (flex flex-col)          <- Flex container
+  ├── SheetHeader                      <- Fixed header
+  ├── div.flex-1.overflow-y-auto       <- Scrollable body
+  │     └── TaskForm (all fields)
+  └── div (border-t, sticky)           <- Footer always at bottom
+        └── Buttons
 ```
 
 ---
 
-## Data Flow After Fix
+## File to Modify
 
+**`src/components/tasks/TaskEditSheet.tsx`**
+
+### Changes
+
+1. **Line 141-143**: Update SheetContent className
+   - Remove: `overflow-y-auto`
+   - Add: `flex flex-col` for proper layout
+
+2. **Line 156**: Update form wrapper div
+   - Change: `className="pb-20"` 
+   - To: `className="flex-1 overflow-y-auto px-6 py-6"` (scrollable area with proper padding)
+
+3. **Line 170**: Update footer div
+   - Remove: `absolute bottom-0 left-0 right-0`
+   - Keep: `border-t bg-background p-4 flex justify-end gap-3`
+   - Add: `shrink-0` to prevent footer from shrinking
+
+### Code Changes
+
+**Before (lines 139-178):**
+```tsx
+return (
+  <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <SheetContent 
+      side="right" 
+      className="w-full sm:max-w-xl md:max-w-2xl lg:max-w-3xl overflow-y-auto"
+    >
+      <SheetHeader className="border-b pb-4 mb-4">
+        ...
+      </SheetHeader>
+
+      <div className="pb-20">
+        <TaskForm ... />
+      </div>
+
+      {/* Sticky Footer */}
+      <div className="absolute bottom-0 left-0 right-0 border-t bg-background p-4 flex justify-end gap-3">
+        <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
+          Cancel
+        </Button>
+        <Button onClick={handleSubmit} disabled={isSubmitting}>
+          {isSubmitting ? 'Saving...' : 'Save Changes'}
+        </Button>
+      </div>
+    </SheetContent>
+  </Sheet>
+);
 ```
-User enters phone in Signatory form
-         ↓
-SignatoryModal passes signatory.id (if editing)
-         ↓
-SignatoryPhoneManager passes excludeEntityId
-         ↓
-PhoneManager passes excludeEntityId
-         ↓
-PhoneInput calls checkPhoneDuplicateDebounced(countryCode, number, callback, excludeEntityId)
-         ↓
-phoneDuplicateService.checkPhoneDuplicate() checks:
-  • client_contacts (Contacts)
-  • employees (Employees)
-  • clients (Client main phone)
-  • courts (Courts)
-  • clients.signatories (ALL signatories across ALL clients)
-         ↓
-Returns matches, excluding the entity with excludeEntityId
-         ↓
-PhoneInput displays warning if duplicates found
+
+**After:**
+```tsx
+return (
+  <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <SheetContent 
+      side="right" 
+      className="w-full sm:max-w-xl md:max-w-2xl lg:max-w-3xl flex flex-col p-0"
+    >
+      <SheetHeader className="border-b px-6 py-4 shrink-0">
+        ...
+      </SheetHeader>
+
+      {/* Scrollable Form Content */}
+      <div className="flex-1 overflow-y-auto px-6 py-6">
+        <TaskForm ... />
+      </div>
+
+      {/* Footer - Always at bottom */}
+      <div className="shrink-0 border-t bg-background px-6 py-4 flex justify-end gap-3">
+        <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
+          Cancel
+        </Button>
+        <Button onClick={handleSubmit} disabled={isSubmitting}>
+          {isSubmitting ? 'Saving...' : 'Save Changes'}
+        </Button>
+      </div>
+    </SheetContent>
+  </Sheet>
+);
 ```
 
 ---
 
-## Expected Behavior After Fix
+## Visual Comparison
 
-| Scenario | Before | After |
-|----------|--------|-------|
-| New signatory with phone matching signatory in Client A | No warning | Warning: "Number exists for [Name] (Client A)" |
-| New signatory with phone matching signatory in Client B | No warning | Warning: "Number exists for [Name] (Client B)" |
-| Edit signatory - same phone as before | May show false positive | No warning (excluded) |
-| Edit signatory - change to phone matching another signatory | No warning | Warning displayed |
+| Aspect | Before | After |
+|--------|--------|-------|
+| Button position | Floating mid-screen | Fixed at sheet bottom |
+| Case/Stage fields | Hidden behind buttons | Fully visible |
+| Form scrolling | Entire sheet scrolls | Only form area scrolls |
+| Header | Scrolls away | Stays visible |
 
 ---
 
 ## Testing Checklist
 
 After implementation:
-1. Create signatory for Client A with phone 9876543210
-2. Create signatory for Client B with same phone 9876543210
-   - Expected: Warning "This phone number already exists for [Signatory Name] (Client A)"
-3. Edit the signatory in Client A
-   - Expected: No self-duplicate warning
-4. Change phone to match another signatory
-   - Expected: Warning about the duplicate
-5. Existing duplicate checks still work:
-   - Employee phone detection
-   - Contact phone detection
-   - Client phone detection
-   - Court phone detection
+1. Open any task and click "Edit Task"
+2. Verify all form sections are visible:
+   - Task Information (Title, Description)
+   - Case & Stage Context (Case selector, Stage dropdown)
+   - Priority & Assignment (Priority, Status, Assignee, Hours, Due Date)
+3. Buttons should appear at the very bottom of the sheet
+4. Scroll the form content - header and footer should stay fixed
+5. Test on different screen sizes (mobile, tablet, desktop)
+6. Cancel button should close the sheet
+7. Save Changes should submit and close
