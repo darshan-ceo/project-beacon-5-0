@@ -149,22 +149,27 @@ class JudgesService {
   /**
    * Update an existing judge
    */
-  async update(judgeId: string, updates: Partial<Judge>, dispatch: any): Promise<Judge> {
+  async update(judgeId: string, updates: Partial<Judge>, dispatch: any, userId?: string): Promise<Judge> {
     try {
       const storage = storageManager.getStorage();
 
       // Normalize payload before persistence
       const normalizedUpdates = normalizeJudgePayload(updates);
 
-      // Recalculate years of service if appointment date changes
-      let yearsOfService = normalizedUpdates.yearsOfService;
-      if (updates.appointmentDate) {
+      // Fetch existing judge to get appointment_date for years calculation
+      const existingJudge = await storage.getById<any>('judges', judgeId);
+      
+      // Recalculate years of service from appointment date (use update value or existing)
+      const appointmentDateStr = updates.appointmentDate || existingJudge?.appointment_date;
+      let yearsOfService = 0;
+      if (appointmentDateStr) {
+        const appointmentDate = new Date(appointmentDateStr);
         yearsOfService = Math.floor(
-          (new Date().getTime() - new Date(updates.appointmentDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000)
+          (Date.now() - appointmentDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000)
         );
       }
 
-      // Persist to Supabase
+      // Persist to Supabase - include ALL fields including Phase 1
       await storage.update('judges', judgeId, {
         ...(updates.name && { name: updates.name }),
         ...(updates.designation && { designation: updates.designation }),
@@ -178,47 +183,62 @@ class JudgesService {
         ...(updates.state && { state: updates.state }),
         ...(updates.appointmentDate && { appointment_date: updates.appointmentDate }),
         ...(updates.retirementDate && { retirement_date: updates.retirementDate }),
-        ...(yearsOfService !== undefined && { years_of_service: yearsOfService }),
+        years_of_service: yearsOfService, // Always update years of service
         ...(updates.specialization && { specialization: updates.specialization }),
         ...(updates.chambers && { chambers: updates.chambers }),
-        ...(updates.assistant && { assistant: updates.assistant }),
-        ...(updates.availability && { availability: updates.availability }),
+        ...(updates.assistant && { assistant: JSON.stringify(updates.assistant) }),
+        ...(updates.availability && { availability: JSON.stringify(updates.availability) }),
         ...(updates.tags && { tags: updates.tags }),
         ...(updates.notes !== undefined && { notes: updates.notes }),
         ...(updates.photoUrl && { photo_url: updates.photoUrl }),
+        // Phase 1 fields
+        ...(updates.memberType !== undefined && { member_type: updates.memberType }),
+        ...(updates.authorityLevel !== undefined && { authority_level: updates.authorityLevel }),
+        ...(updates.qualifications && { qualifications: JSON.stringify(updates.qualifications) }),
+        ...(updates.tenureDetails && { 
+          tenure_details: JSON.stringify({
+            tenureStartDate: formatDateFieldSafe(updates.tenureDetails.tenureStartDate),
+            tenureEndDate: formatDateFieldSafe(updates.tenureDetails.tenureEndDate),
+            maxTenureYears: updates.tenureDetails.maxTenureYears,
+            extensionGranted: updates.tenureDetails.extensionGranted,
+            ageLimit: updates.tenureDetails.ageLimit
+          })
+        }),
+        ...(updates.address && { address: JSON.stringify(updates.address) }),
         updated_at: new Date().toISOString(),
+        ...(userId && { updated_by: userId }),
       } as any);
 
       // Fetch the full updated judge from database
-      const existingJudge = await storage.getById<any>('judges', judgeId);
+      const updatedJudge = await storage.getById<any>('judges', judgeId);
       const fullJudge: Judge = {
         id: judgeId,
-        name: existingJudge?.name || updates.name || '',
-        designation: existingJudge?.designation || updates.designation || '',
-        status: existingJudge?.status || updates.status || 'Active',
-        courtId: existingJudge?.court_id || updates.courtId || '',
-        bench: existingJudge?.bench || updates.bench,
-        jurisdiction: existingJudge?.jurisdiction || updates.jurisdiction,
-        city: existingJudge?.city || updates.city,
-        state: existingJudge?.state || updates.state,
-        appointmentDate: existingJudge?.appointment_date || updates.appointmentDate || '',
-        retirementDate: existingJudge?.retirement_date || updates.retirementDate,
-        yearsOfService: yearsOfService ?? existingJudge?.years_of_service ?? 0,
-        specialization: existingJudge?.specialization || updates.specialization || [],
-        chambers: existingJudge?.chambers || updates.chambers,
-        email: existingJudge?.email || updates.email,
-        phone: existingJudge?.phone || updates.phone,
-        assistant: existingJudge?.assistant || updates.assistant || {},
-        availability: existingJudge?.availability || updates.availability || {},
-        tags: existingJudge?.tags || updates.tags || [],
-        notes: existingJudge?.notes ?? updates.notes,
-        photoUrl: existingJudge?.photo_url || updates.photoUrl,
+        name: updatedJudge?.name || updates.name || '',
+        designation: updatedJudge?.designation || updates.designation || '',
+        status: updatedJudge?.status || updates.status || 'Active',
+        courtId: updatedJudge?.court_id || updates.courtId || '',
+        bench: updatedJudge?.bench || updates.bench,
+        jurisdiction: updatedJudge?.jurisdiction || updates.jurisdiction,
+        city: updatedJudge?.city || updates.city,
+        state: updatedJudge?.state || updates.state,
+        appointmentDate: updatedJudge?.appointment_date || updates.appointmentDate || '',
+        retirementDate: updatedJudge?.retirement_date || updates.retirementDate,
+        yearsOfService: yearsOfService ?? updatedJudge?.years_of_service ?? 0,
+        specialization: updatedJudge?.specialization || updates.specialization || [],
+        chambers: updatedJudge?.chambers || updates.chambers,
+        email: updatedJudge?.email || updates.email,
+        phone: updatedJudge?.phone || updates.phone,
+        assistant: updatedJudge?.assistant || updates.assistant || {},
+        availability: updatedJudge?.availability || updates.availability || {},
+        tags: updatedJudge?.tags || updates.tags || [],
+        notes: updatedJudge?.notes ?? updates.notes,
+        photoUrl: updatedJudge?.photo_url || updates.photoUrl,
         totalCases: 0,
         avgDisposalTime: '0 days',
         contactInfo: {
-          chambers: existingJudge?.chambers || updates.chambers || '',
-          phone: existingJudge?.phone || updates.phone,
-          email: existingJudge?.email || updates.email
+          chambers: updatedJudge?.chambers || updates.chambers || '',
+          phone: updatedJudge?.phone || updates.phone,
+          email: updatedJudge?.email || updates.email
         },
         ...updates // Apply updates on top
       };
@@ -274,36 +294,71 @@ class JudgesService {
   }
 
   /**
-   * List all judges from Supabase
+   * List all judges from Supabase with profile resolution for created/updated by
    */
   async list(): Promise<Judge[]> {
     try {
-      const storage = storageManager.getStorage();
-      const judges = await storage.getAll('judges');
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data: judges, error } = await supabase
+        .from('judges')
+        .select(`
+          *,
+          created_by_profile:profiles!judges_created_by_fkey(full_name),
+          updated_by_profile:profiles!judges_updated_by_fkey(full_name)
+        `);
       
-      return judges.map((j: any) => ({
-        id: j.id,
-        name: j.name,
-        designation: j.designation,
-        courtId: j.court_id,
-        email: j.email,
-        phone: j.phone,
-        status: j.status,
-        bench: j.bench,
-        jurisdiction: j.jurisdiction,
-        city: j.city,
-        state: j.state,
-        appointmentDate: j.appointment_date,
-        retirementDate: j.retirement_date,
-        yearsOfService: j.years_of_service || 0,
-        specialization: j.specialization || [],
-        chambers: j.chambers,
-        assistant: j.assistant || {},
-        availability: j.availability || {},
-        tags: j.tags || [],
-        notes: j.notes,
-        photoUrl: j.photo_url,
-      } as Judge));
+      if (error) throw error;
+      
+      return (judges || []).map((j: any) => {
+        // Dynamic years of service calculation
+        const yearsOfService = j.appointment_date 
+          ? Math.floor((Date.now() - new Date(j.appointment_date).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+          : 0;
+        
+        // Parse JSONB fields
+        const qualifications = j.qualifications ? (typeof j.qualifications === 'string' ? JSON.parse(j.qualifications) : j.qualifications) : undefined;
+        const tenureDetails = j.tenure_details ? (typeof j.tenure_details === 'string' ? JSON.parse(j.tenure_details) : j.tenure_details) : undefined;
+        const address = j.address ? (typeof j.address === 'string' ? JSON.parse(j.address) : j.address) : undefined;
+        const assistant = j.assistant ? (typeof j.assistant === 'string' ? JSON.parse(j.assistant) : j.assistant) : {};
+        const availability = j.availability ? (typeof j.availability === 'string' ? JSON.parse(j.availability) : j.availability) : {};
+        
+        return {
+          id: j.id,
+          name: j.name,
+          designation: j.designation,
+          courtId: j.court_id,
+          email: j.email,
+          phone: j.phone,
+          status: j.status,
+          bench: j.bench,
+          jurisdiction: j.jurisdiction,
+          city: j.city,
+          state: j.state,
+          appointmentDate: j.appointment_date,
+          retirementDate: j.retirement_date,
+          yearsOfService,
+          specialization: j.specialization || [],
+          chambers: j.chambers,
+          assistant,
+          availability,
+          tags: j.tags || [],
+          notes: j.notes,
+          photoUrl: j.photo_url,
+          // Phase 1 fields
+          memberType: j.member_type,
+          authorityLevel: j.authority_level,
+          qualifications,
+          tenureDetails,
+          address,
+          // Audit fields with resolved names
+          createdAt: j.created_at,
+          updatedAt: j.updated_at,
+          createdBy: j.created_by,
+          updatedBy: j.updated_by,
+          createdByName: j.created_by_profile?.full_name || 'Unknown',
+          updatedByName: j.updated_by_profile?.full_name || 'Unknown',
+        } as Judge;
+      });
     } catch (error) {
       console.error('Failed to list judges:', error);
       throw error;
@@ -311,14 +366,34 @@ class JudgesService {
   }
 
   /**
-   * Get single judge by ID
+   * Get single judge by ID with profile resolution
    */
   async getById(judgeId: string): Promise<Judge | null> {
     try {
-      const storage = storageManager.getStorage();
-      const judge = await storage.getById('judges', judgeId) as any;
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data: judge, error } = await supabase
+        .from('judges')
+        .select(`
+          *,
+          created_by_profile:profiles!judges_created_by_fkey(full_name),
+          updated_by_profile:profiles!judges_updated_by_fkey(full_name)
+        `)
+        .eq('id', judgeId)
+        .single();
       
-      if (!judge) return null;
+      if (error || !judge) return null;
+      
+      // Dynamic years of service calculation
+      const yearsOfService = judge.appointment_date 
+        ? Math.floor((Date.now() - new Date(judge.appointment_date).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+        : 0;
+      
+      // Parse JSONB fields
+      const qualifications = judge.qualifications ? (typeof judge.qualifications === 'string' ? JSON.parse(judge.qualifications) : judge.qualifications) : undefined;
+      const tenureDetails = judge.tenure_details ? (typeof judge.tenure_details === 'string' ? JSON.parse(judge.tenure_details) : judge.tenure_details) : undefined;
+      const address = judge.address ? (typeof judge.address === 'string' ? JSON.parse(judge.address) : judge.address) : undefined;
+      const assistant = judge.assistant ? (typeof judge.assistant === 'string' ? JSON.parse(judge.assistant) : judge.assistant) : {};
+      const availability = judge.availability ? (typeof judge.availability === 'string' ? JSON.parse(judge.availability) : judge.availability) : {};
       
       return {
         id: judge.id,
@@ -334,14 +409,27 @@ class JudgesService {
         state: judge.state,
         appointmentDate: judge.appointment_date,
         retirementDate: judge.retirement_date,
-        yearsOfService: judge.years_of_service || 0,
+        yearsOfService,
         specialization: judge.specialization || [],
         chambers: judge.chambers,
-        assistant: judge.assistant || {},
-        availability: judge.availability || {},
+        assistant,
+        availability,
         tags: judge.tags || [],
         notes: judge.notes,
         photoUrl: judge.photo_url,
+        // Phase 1 fields
+        memberType: judge.member_type,
+        authorityLevel: judge.authority_level,
+        qualifications,
+        tenureDetails,
+        address,
+        // Audit fields with resolved names
+        createdAt: judge.created_at,
+        updatedAt: judge.updated_at,
+        createdBy: judge.created_by,
+        updatedBy: judge.updated_by,
+        createdByName: (judge as any).created_by_profile?.full_name || 'Unknown',
+        updatedByName: (judge as any).updated_by_profile?.full_name || 'Unknown',
       } as Judge;
     } catch (error) {
       console.error('Failed to get judge:', error);

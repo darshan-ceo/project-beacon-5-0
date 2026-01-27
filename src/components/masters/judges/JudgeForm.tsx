@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { MapPin, User, Phone, Mail, Tag, X, Plus } from 'lucide-react';
+import { MapPin, User, Phone, Mail, Tag, X, Plus, Eye } from 'lucide-react';
 import { AddressForm } from '@/components/ui/AddressForm';
 import { Judge, useAppState } from '@/contexts/AppStateContext';
 import { EnhancedAddressData } from '@/services/addressMasterService';
@@ -342,8 +342,18 @@ export const JudgeForm: React.FC<JudgeFormProps> = ({
 
   return (
     <form id="judge-form" onSubmit={handleSubmit} className="space-y-8">
+      {/* View Mode Banner */}
+      {mode === 'view' && (
+        <div className="bg-muted border rounded-md p-3 flex items-center gap-2">
+          <Eye className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">
+            Viewing judge details (read-only)
+          </span>
+        </div>
+      )}
+
       {/* Identity Section */}
-      <Card>
+      <Card className={cn(isReadOnly && "bg-muted/30")}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <User className="h-4 w-4" />
@@ -1050,17 +1060,37 @@ export const JudgeForm: React.FC<JudgeFormProps> = ({
         </CardContent>
       </Card>
 
-      {/* Read-only metadata for edit mode */}
-      {mode === 'edit' && initialData && (
-        <Card>
+      {/* Read-only metadata for edit/view mode */}
+      {(mode === 'edit' || mode === 'view') && initialData && (
+        <Card className={cn(isReadOnly && "bg-muted/30")}>
           <CardHeader>
             <CardTitle>Record Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <div>Created: {initialData.createdAt ? new Date(initialData.createdAt).toLocaleString('en-GB') : 'Unknown'}</div>
-            <div>Updated: {initialData.updatedAt ? new Date(initialData.updatedAt).toLocaleString('en-GB') : 'Unknown'}</div>
-            <div>Created by: {(initialData as any).createdBy || 'Unknown'}</div>
-            <div>Updated by: {(initialData as any).updatedBy || 'Unknown'}</div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <span className="font-medium">Created:</span>{' '}
+                {initialData.createdAt ? new Date(initialData.createdAt).toLocaleString('en-GB') : 'Unknown'}
+              </div>
+              <div>
+                <span className="font-medium">Created by:</span>{' '}
+                {(initialData as any).createdByName || 'Unknown'}
+              </div>
+              <div>
+                <span className="font-medium">Updated:</span>{' '}
+                {initialData.updatedAt ? new Date(initialData.updatedAt).toLocaleString('en-GB') : 'Unknown'}
+              </div>
+              <div>
+                <span className="font-medium">Updated by:</span>{' '}
+                {(initialData as any).updatedByName || (initialData as any).createdByName || 'Unknown'}
+              </div>
+            </div>
+            {initialData.yearsOfService !== undefined && initialData.yearsOfService > 0 && (
+              <div className="pt-2 border-t mt-2">
+                <span className="font-medium">Years of Service:</span>{' '}
+                {initialData.yearsOfService} years
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

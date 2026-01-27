@@ -2762,6 +2762,7 @@ export type Database = {
       }
       judges: {
         Row: {
+          address: Json | null
           appointment_date: string | null
           assistant: Json | null
           authority_level: string | null
@@ -2791,9 +2792,11 @@ export type Database = {
           tenant_id: string
           tenure_details: Json | null
           updated_at: string
+          updated_by: string | null
           years_of_service: number | null
         }
         Insert: {
+          address?: Json | null
           appointment_date?: string | null
           assistant?: Json | null
           authority_level?: string | null
@@ -2823,9 +2826,11 @@ export type Database = {
           tenant_id: string
           tenure_details?: Json | null
           updated_at?: string
+          updated_by?: string | null
           years_of_service?: number | null
         }
         Update: {
+          address?: Json | null
           appointment_date?: string | null
           assistant?: Json | null
           authority_level?: string | null
@@ -2855,6 +2860,7 @@ export type Database = {
           tenant_id?: string
           tenure_details?: Json | null
           updated_at?: string
+          updated_by?: string | null
           years_of_service?: number | null
         }
         Relationships: [

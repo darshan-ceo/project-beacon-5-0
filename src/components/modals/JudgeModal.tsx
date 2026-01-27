@@ -35,13 +35,19 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
     try {
       const { judgesService } = await import('@/services/judgesService');
       
+      // Helper to format Date to YYYY-MM-DD string
+      const formatDate = (date: Date | null | undefined): string | undefined => {
+        if (!date) return undefined;
+        return date instanceof Date ? date.toISOString().split('T')[0] : date;
+      };
+      
       if (mode === 'create') {
         const judgePayload = {
           name: formData.name,
           designation: formData.designation,
           status: formData.status,
           courtId: formData.courtId,
-          appointmentDate: formData.appointmentDate?.toISOString().split('T')[0] || undefined,
+          appointmentDate: formatDate(formData.appointmentDate),
           phone: formData.phone,
           email: formData.email,
           bench: formData.bench,
@@ -49,7 +55,7 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
           city: formData.city,
           state: formData.state,
           photoUrl: formData.photoUrl,
-          retirementDate: formData.retirementDate?.toISOString().split('T')[0] || undefined,
+          retirementDate: formatDate(formData.retirementDate),
           specialization: formData.specializations,
           chambers: formData.chambers,
           assistant: formData.assistant,
@@ -60,12 +66,49 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
           memberType: formData.memberType,
           authorityLevel: formData.authorityLevel,
           qualifications: formData.qualifications,
-          tenureDetails: formData.tenureDetails,
+          tenureDetails: formData.tenureDetails ? {
+            ...formData.tenureDetails,
+            tenureStartDate: formatDate(formData.tenureDetails.tenureStartDate),
+            tenureEndDate: formatDate(formData.tenureDetails.tenureEndDate),
+          } : undefined,
         };
 
         await judgesService.create(judgePayload, rawDispatch);
       } else if (mode === 'edit' && judgeData) {
-        await judgesService.update(judgeData.id, formData, dispatch);
+        // Prepare complete update payload including all Phase 1 fields
+        const updatePayload = {
+          name: formData.name,
+          designation: formData.designation,
+          status: formData.status,
+          courtId: formData.courtId,
+          appointmentDate: formatDate(formData.appointmentDate),
+          phone: formData.phone,
+          email: formData.email,
+          bench: formData.bench,
+          jurisdiction: formData.jurisdiction,
+          city: formData.city,
+          state: formData.state,
+          photoUrl: formData.photoUrl,
+          retirementDate: formatDate(formData.retirementDate),
+          specialization: formData.specializations,
+          chambers: formData.chambers,
+          assistant: formData.assistant,
+          address: formData.address,
+          availability: formData.availability,
+          tags: formData.tags,
+          notes: formData.notes,
+          // Phase 1 fields
+          memberType: formData.memberType,
+          authorityLevel: formData.authorityLevel,
+          qualifications: formData.qualifications,
+          tenureDetails: formData.tenureDetails ? {
+            ...formData.tenureDetails,
+            tenureStartDate: formatDate(formData.tenureDetails.tenureStartDate),
+            tenureEndDate: formatDate(formData.tenureDetails.tenureEndDate),
+          } : undefined,
+        };
+        
+        await judgesService.update(judgeData.id, updatePayload, dispatch, currentUserId || undefined);
       }
 
       onClose();
