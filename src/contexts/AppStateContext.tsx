@@ -342,6 +342,9 @@ interface Judge {
   updatedAt?: string;
   createdBy?: string;
   updatedBy?: string;
+  // Resolved user names for display
+  createdByName?: string;
+  updatedByName?: string;
 }
 
 interface Document {
