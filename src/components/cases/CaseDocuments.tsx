@@ -274,9 +274,15 @@ export const CaseDocuments: React.FC<CaseDocumentsProps> = ({ selectedCase }) =>
         throw new Error(result.error || 'Preview failed');
       }
       
+      // Determine if Office viewer was used for appropriate toast message
+      const officeTypes = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
+      const isOfficeFile = officeTypes.includes(fileType?.toLowerCase() || '');
+
       toast({
         title: "Opening Document",
-        description: `${document.name} opened for preview`,
+        description: isOfficeFile 
+          ? `${document.name} opening in Microsoft Viewer...`
+          : `${document.name} opened for preview`,
       });
     } catch (error: any) {
       console.error('Failed to preview document:', error);
