@@ -1,245 +1,232 @@
 
-# Fix: Judge Edit Form Data Retention and Display Issues
+# Fix: Document View/Download Button Behavior for Word, Excel, and PDF Files
 
 ## Problem Summary
 
-The user has reported four issues with the Judge Edit functionality:
+The Document Management module has incorrect behavior for View and Download buttons:
 
-1. **Missing field capture during edit**: Qualifications & Experience, Tenure Details, Contact Information, and Address Information are not being retained/persisted during updates
-2. **Created by / Updated By shows "Unknown"**: The Record Information section always displays "Unknown" for user attribution
-3. **Years of Service is fixed at 26 years**: The calculation appears stuck instead of dynamically computing
-4. **Edit and View screens are the same**: There's no visual distinction between edit and view modes
-
----
-
-## Root Cause Analysis
-
-### Issue 1: Phase 1 Fields Not Persisted During Update
-
-**Location**: `src/services/judgesService.ts` lines 168-190
-
-The `update` method only handles the original judge fields and **completely omits** Phase 1 fields:
-- `memberType`
-- `authorityLevel`  
-- `qualifications`
-- `tenureDetails`
-- `address`
-
-These fields exist in the CREATE method (lines 113-122) but are missing from UPDATE.
-
-**Evidence**: Database query shows all Phase 1 fields are null/empty even after edit attempts.
-
-### Issue 2: Created By/Updated By Shows "Unknown"
-
-**Problem 1**: Database column `updated_by` does not exist (only `created_by` exists)
-**Problem 2**: `created_by` stores a UUID, but the form displays it directly without resolving the user name
-**Problem 3**: The `list()` and `getById()` methods don't include `createdBy`, `updatedBy`, `createdAt`, `updatedAt` in the returned Judge object
-
-**Location**: 
-- `JudgeForm.tsx` lines 1062-1063: Display code expects `createdBy`/`updatedBy` as names
-- `judgesService.ts` lines 284-306: `list()` doesn't map Phase 1 fields or audit fields
-- `judgesService.ts` lines 323-345: `getById()` same issue
-
-### Issue 3: Years of Service Fixed at 26 Years
-
-**Root Cause**: The form's `calculateYearsOfService()` function is correct (lines 252-257), BUT when data is loaded during edit:
-1. The `appointmentDate` in the database is `null` for existing records
-2. When null, the calculation defaults to 0
-3. The "26 years" comes from previously saved static `years_of_service` database column (not recalculated)
-
-**Additionally**: The UPDATE method (line 159-165) only recalculates if `updates.appointmentDate` is truthy, but the data flow from JudgeForm passes Date objects that may not trigger this.
-
-### Issue 4: Edit and View Screens Are Same
-
-**Root Cause**: The `isReadOnly` flag is set correctly (`mode === 'view'`), BUT:
-1. All form inputs respect `disabled={isReadOnly}` 
-2. The footer correctly hides submit button for view mode
-3. **The visual appearance is identical** - both modes use the same styling
-
-**Missing differentiation**:
-- No "read-only" visual indicator (e.g., grayed background, lock icon)
-- Delete button appears in edit mode but not handled distinctly in view
-- Form title says "Judge Details" for view but appearance is identical to edit
+| File Type | Current "View" Behavior | Current "Download" Behavior | Expected Behavior |
+|-----------|------------------------|---------------------------|-------------------|
+| **Excel (.xlsx, .xls)** | Downloads the file | Works correctly | Should open in preview |
+| **Word (.docx, .doc)** | Downloads the file | Works correctly | Should open in preview |
+| **PDF** | Opens in new tab but shows download icon in browser toolbar | Works correctly | Should open cleanly for preview |
+| **Images (PNG, JPG)** | Works correctly | Works correctly | N/A |
 
 ---
 
-## Solution Plan
+## Root Cause
 
-### Part 1: Fix Phase 1 Field Persistence During Update
+### Technical Limitation
 
-**File**: `src/services/judgesService.ts`
-
-Update the `update()` method to include all Phase 1 fields:
+The `previewDocument` function in `documentDownloadService.ts` (line 124) defines only these file types as "previewable":
 
 ```typescript
-// In update method (around line 168-190), add:
-...(updates.memberType !== undefined && { member_type: updates.memberType }),
-...(updates.authorityLevel !== undefined && { authority_level: updates.authorityLevel }),
-...(updates.qualifications && { qualifications: JSON.stringify(updates.qualifications) }),
-...(updates.tenureDetails && { 
-  tenure_details: JSON.stringify({
-    tenureStartDate: formatDateFieldSafe(updates.tenureDetails.tenureStartDate),
-    tenureEndDate: formatDateFieldSafe(updates.tenureDetails.tenureEndDate),
-    maxTenureYears: updates.tenureDetails.maxTenureYears,
-    extensionGranted: updates.tenureDetails.extensionGranted,
-    ageLimit: updates.tenureDetails.ageLimit
-  })
-}),
-...(updates.address && { address: JSON.stringify(updates.address) }),
+const previewableTypes = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'txt'];
 ```
 
-Also update `list()` and `getById()` methods to include Phase 1 fields in the returned object.
+For **Excel** and **Word** files, the code falls back to a signed URL opened in a new tab. Since browsers **cannot natively render** these formats, they trigger a download instead.
 
-### Part 2: Add Database Column for updated_by and address
+### Solution Approach
 
-**Database Migration**: Add missing columns
+Use **Microsoft Office Online Viewer** to preview Word and Excel files. This is a free public service that renders Office documents in an iframe/new tab:
 
-```sql
-ALTER TABLE public.judges 
-  ADD COLUMN IF NOT EXISTS updated_by uuid REFERENCES auth.users(id),
-  ADD COLUMN IF NOT EXISTS address jsonb DEFAULT '{}';
+```
+https://view.officeapps.live.com/op/view.aspx?src={encoded_public_url}
 ```
 
-### Part 3: Resolve Created By/Updated By to User Names
+**Requirements:**
+- The file URL must be publicly accessible (or have a long-lived signed URL)
+- The URL must be properly encoded
 
-**File**: `src/services/judgesService.ts`
+For PDF files, the current blob-based approach works correctly for preview; the "download icon" the user sees is the browser's built-in PDF viewer toolbar (expected behavior, not a bug).
 
-Update `list()` and `getById()` to JOIN with profiles table:
+---
+
+## Implementation Plan
+
+### Step 1: Update `documentDownloadService.ts` to Support Office Files
+
+**File:** `src/services/documentDownloadService.ts`
+
+Add a new constant for Office file types and integrate Microsoft Office Online Viewer:
 
 ```typescript
-// In list() - use Supabase select with join
-const { data: judges } = await supabase
-  .from('judges')
-  .select(`
-    *,
-    created_by_profile:profiles!created_by(full_name),
-    updated_by_profile:profiles!updated_by(full_name)
-  `);
+// Add at the top
+const OFFICE_PREVIEWABLE_TYPES = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
 
-// Map to include resolved names
-createdByName: j.created_by_profile?.full_name || 'Unknown',
-updatedByName: j.updated_by_profile?.full_name || 'Unknown',
+// Update previewDocument function
+export const previewDocument = async (
+  filePath: string,
+  fileName: string,
+  fileType?: string
+): Promise<DownloadResult> => {
+  try {
+    console.log('👁️ [documentDownloadService] Starting preview:', { filePath, fileName, fileType });
+    
+    const fileExt = fileType || filePath.split('.').pop()?.toLowerCase();
+    const nativePreviewableTypes = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'txt'];
+    
+    // Handle Office files via Microsoft Office Online Viewer
+    if (OFFICE_PREVIEWABLE_TYPES.includes(fileExt || '')) {
+      // Create a long-lived signed URL (1 hour)
+      const { data: signedData, error: signedError } = await supabase.storage
+        .from('documents')
+        .createSignedUrl(filePath, 3600);
+      
+      if (signedError || !signedData?.signedUrl) {
+        throw new Error(signedError?.message || 'Failed to create preview URL');
+      }
+      
+      // Encode the signed URL for Microsoft Office Online Viewer
+      const encodedUrl = encodeURIComponent(signedData.signedUrl);
+      const officeViewerUrl = `https://view.officeapps.live.com/op/view.aspx?src=${encodedUrl}`;
+      
+      window.open(officeViewerUrl, '_blank');
+      console.log('✅ [documentDownloadService] Office preview opened via Microsoft Viewer');
+      return { success: true };
+    }
+    
+    // Handle native browser previewable types (PDF, images, txt)
+    if (nativePreviewableTypes.includes(fileExt || '')) {
+      const { data: blob, error } = await supabase.storage
+        .from('documents')
+        .download(filePath);
+      
+      if (!error && blob) {
+        const mimeType = getMimeType(fileExt || '');
+        const typedBlob = new Blob([blob], { type: mimeType });
+        const url = URL.createObjectURL(typedBlob);
+        
+        window.open(url, '_blank');
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+        console.log('✅ [documentDownloadService] Native preview opened via blob');
+        return { success: true };
+      }
+      
+      console.log('⚠️ [documentDownloadService] Blob preview failed, falling back to signed URL');
+    }
+    
+    // Fallback: Use signed URL directly
+    const { data: signedData, error: signedError } = await supabase.storage
+      .from('documents')
+      .createSignedUrl(filePath, 3600);
+    
+    if (signedError || !signedData?.signedUrl) {
+      throw new Error(signedError?.message || 'Failed to create preview URL');
+    }
+    
+    window.open(signedData.signedUrl, '_blank');
+    console.log('✅ [documentDownloadService] Preview opened via signed URL');
+    return { success: true };
+    
+  } catch (error: any) {
+    console.error('❌ [documentDownloadService] Preview failed:', error);
+    return { success: false, error: error.message };
+  }
+};
 ```
 
-**File**: `src/components/masters/judges/JudgeForm.tsx`
+### Step 2: Update Toast Messages for Clarity
 
-Update display (lines 1062-1063) to use resolved names:
+**File:** `src/components/documents/DocumentManagement.tsx`
+
+Update the success toast to indicate the viewer being used:
 
 ```typescript
-<div>Created by: {initialData?.createdByName || 'Unknown'}</div>
-<div>Updated by: {initialData?.updatedByName || 'Unknown'}</div>
+// In handleDocumentView, after result.success:
+const fileExt = (doc.type || doc.fileType || doc.file_type || 
+                 filePath.split('.').pop())?.toLowerCase();
+const officeTypes = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
+
+toast({
+  title: "Opening Document",
+  description: officeTypes.includes(fileExt || '') 
+    ? `${doc.name} opening in Microsoft Viewer...`
+    : `${doc.name} opened for preview`,
+});
 ```
 
-### Part 4: Fix Years of Service Dynamic Calculation
+### Step 3: Update CaseDocuments Component
 
-**File**: `src/services/judgesService.ts`
+**File:** `src/components/cases/CaseDocuments.tsx`
 
-1. In `update()`, always recalculate years of service from the database's `appointment_date`:
-
-```typescript
-// After fetching existingJudge
-const appointmentDate = existingJudge?.appointment_date;
-const yearsOfService = appointmentDate 
-  ? Math.floor((Date.now() - new Date(appointmentDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
-  : 0;
-```
-
-2. In `list()` and `getById()`, calculate dynamically:
-
-```typescript
-yearsOfService: j.appointment_date 
-  ? Math.floor((Date.now() - new Date(j.appointment_date).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
-  : 0,
-```
-
-### Part 5: Differentiate Edit vs View Mode Visually
-
-**File**: `src/components/masters/judges/JudgeForm.tsx`
-
-Add visual distinction for view mode:
-
-1. Add a banner for view mode:
-```tsx
-{mode === 'view' && (
-  <div className="bg-muted border rounded-md p-3 mb-4 flex items-center gap-2">
-    <Eye className="h-4 w-4 text-muted-foreground" />
-    <span className="text-sm text-muted-foreground">
-      Viewing judge details (read-only)
-    </span>
-  </div>
-)}
-```
-
-2. Apply subtle styling to disabled fields:
-```tsx
-className={cn(
-  "...",
-  isReadOnly && "bg-muted/50 cursor-not-allowed"
-)}
-```
-
-**File**: `src/components/modals/JudgeModal.tsx`
-
-Update footer handling:
-- For view mode, show only "Close" button
-- Hide Delete button entirely in view mode
+Apply the same toast message update for consistency.
 
 ---
 
 ## Technical Details
 
+### Why Microsoft Office Online Viewer?
+
+| Feature | Microsoft Viewer | Google Docs Viewer |
+|---------|-----------------|-------------------|
+| Word (.docx, .doc) | ✅ Full support | ✅ Supported |
+| Excel (.xlsx, .xls) | ✅ Full support | ✅ Supported |
+| PowerPoint (.pptx, .ppt) | ✅ Full support | ✅ Supported |
+| Reliability | High (Microsoft's own formats) | Medium |
+| URL Encoding | Required | Required |
+| Public URL Required | Yes (signed URL works) | Yes |
+
 ### Data Flow After Fix
 
 ```
-JudgeMasters (click edit)
-    ↓
-JudgeModal (mode='edit')
-    ↓
-JudgeForm.populateFormFromJudge (loads all fields including Phase 1)
-    ↓
-User makes changes
-    ↓
-JudgeForm.handleSubmit (validates & calls onSubmit)
-    ↓
-JudgeModal.handleFormSubmit (prepares payload)
-    ↓
-judgesService.update (NOW includes Phase 1 fields + updated_by)
-    ↓
-Database updated with all fields
-    ↓
-Re-fetch with profile JOINs for display names
+User clicks "View" button
+        ↓
+handleDocumentView(doc)
+        ↓
+documentDownloadService.preview(filePath, fileName, fileType)
+        ↓
+Determine file extension
+        ↓
+┌──────────────────┬─────────────────────┬──────────────────┐
+│ Office Files     │ Native Previewable  │ Other Files      │
+│ (docx,xlsx,pptx) │ (pdf,jpg,png,txt)   │ (zip,rar,etc)    │
+├──────────────────┼─────────────────────┼──────────────────┤
+│ Create signed URL│ Download as blob    │ Create signed URL│
+│ Encode URL       │ Create blob URL     │ Open in new tab  │
+│ Open Office      │ Open in new tab     │ (may download)   │
+│ Online Viewer    │                     │                  │
+└──────────────────┴─────────────────────┴──────────────────┘
 ```
 
-### Files to Modify
+---
 
-| File | Changes |
-|------|---------|
-| `src/services/judgesService.ts` | Add Phase 1 fields to update(), list(), getById(); Add profile JOINs; Fix years calculation |
-| `src/components/masters/judges/JudgeForm.tsx` | Add view mode banner; Update record info display |
-| `src/components/modals/JudgeModal.tsx` | Prepare complete edit payload with Phase 1 fields |
-| `src/contexts/AppStateContext.tsx` | Add createdByName, updatedByName to Judge interface |
-| **Database Migration** | Add updated_by and address columns |
+## Files to Modify
+
+| File | Action | Description |
+|------|--------|-------------|
+| `src/services/documentDownloadService.ts` | Modify | Add Office file detection and Microsoft Viewer URL generation |
+| `src/components/documents/DocumentManagement.tsx` | Modify | Update toast message for Office files |
+| `src/components/cases/CaseDocuments.tsx` | Modify | Update toast message for consistency |
 
 ---
 
 ## Expected Results After Fix
 
-| Issue | Before | After |
-|-------|--------|-------|
-| Qualifications not saved | Data lost on edit | All Phase 1 fields persist correctly |
-| Created/Updated By "Unknown" | Shows "Unknown" | Shows actual user name (e.g., "Darshan Sanghavi") |
-| Years of Service stuck | Fixed at 26 years | Dynamically calculated from appointment date |
-| Edit/View identical | No visual difference | View mode has read-only banner, grayed fields, Close-only button |
+| File Type | View Button (After) | Download Button |
+|-----------|---------------------|-----------------|
+| **Excel (.xlsx)** | Opens in Microsoft Office Online viewer | Downloads file |
+| **Word (.docx)** | Opens in Microsoft Office Online viewer | Downloads file |
+| **PDF** | Opens in browser's native PDF viewer | Downloads file |
+| **PNG/JPG** | Opens in browser natively | Downloads file |
+| **PowerPoint (.pptx)** | Opens in Microsoft Office Online viewer | Downloads file |
 
 ---
 
-## Validation Checklist
+## Testing Checklist
 
-After implementation:
-1. Create new judge with Phase 1 fields → All fields saved
-2. Edit existing judge → All fields load correctly in form
-3. Update Phase 1 fields → Changes persist to database
-4. Check Record Information → Shows actual user names
-5. Change appointment date → Years of Service recalculates
-6. Open in View mode → Read-only banner visible, fields grayed, only Close button
-7. Open in Edit mode → Normal editable fields, Submit + Delete buttons visible
+After implementation, verify:
+1. Click "View" on XLSX file → Opens in Microsoft Office Online (new tab shows spreadsheet)
+2. Click "View" on DOCX file → Opens in Microsoft Office Online (new tab shows Word doc)
+3. Click "View" on PDF file → Opens in browser's PDF viewer (as before)
+4. Click "View" on PNG file → Opens image in new tab (as before)
+5. Click "Download" on any file → Downloads the file correctly
+6. Toast messages show appropriate context ("opening in Microsoft Viewer" for Office files)
+
+---
+
+## Notes
+
+- The Microsoft Office Online Viewer requires the file URL to be publicly accessible. Our signed URLs (valid for 1 hour) work correctly for this purpose.
+- If the user's network blocks access to Microsoft domains, the Office files will still fall back to download behavior (graceful degradation).
+- PDF "download icon" in browser toolbar is expected browser behavior for the built-in PDF viewer - this is not a bug.
