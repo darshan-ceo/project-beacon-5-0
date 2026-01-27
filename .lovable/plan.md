@@ -1,150 +1,170 @@
 
-# Fix: Task Edit Sheet - Buttons Overlapping Form Fields
 
-## Problem
+# Fix: Task Sub-Module RBAC Enforcement for Action Buttons
 
-In the Task Edit Sheet, the "Cancel" and "Save Changes" buttons appear in the middle of the screen, overlapping the form fields (specifically the Case and Stage fields). This makes these fields inaccessible to users.
+## Problem Summary
 
-## Root Cause
+Staff role has only "View" (`tasks.templates.read`) permission for Task Templates, but the UI shows Edit, Clone, Create Template, and Delete buttons. The same issue exists in Automation, Escalation, and AI Assistant sub-modules - tab access is controlled but individual action buttons are not permission-gated.
 
-The current layout in `TaskEditSheet.tsx` uses `absolute bottom-0` for the footer inside a scrollable container with `overflow-y-auto`. This causes the footer to be positioned relative to the viewport instead of staying at the bottom of the sheet panel.
+## Root Cause Analysis
 
-**Current problematic structure:**
-```
-SheetContent (overflow-y-auto)       <- Scrollable
-  ├── SheetHeader
-  ├── div.pb-20                       <- Form content with padding
-  │     └── TaskForm
-  └── div.absolute.bottom-0           <- Footer floats mid-screen!
-        └── Buttons
-```
+| Component | Tab Access Control | Button Permission Control |
+|-----------|-------------------|---------------------------|
+| TaskManagement.tsx | Correctly checks `hasPermission('tasks.templates', 'read')` | N/A (parent) |
+| TaskTemplates.tsx | N/A (child) | **MISSING** - No RBAC checks |
+| TaskAutomation.tsx | N/A (child) | **MISSING** - No RBAC checks |
+| EscalationMatrix.tsx | N/A (child) | **MISSING** - No RBAC checks |
+| AITaskAssistant.tsx | N/A (child) | **MISSING** - No RBAC checks |
+
+## Database Permissions (Reference)
+
+Staff role permissions for task sub-modules:
+- `tasks.templates.read` - Has this ONLY
+- `tasks.templates.create` - Does NOT have
+- `tasks.templates.update` - Does NOT have  
+- `tasks.templates.delete` - Does NOT have
+- `tasks.automation.*` - Does NOT have any
+- `tasks.escalation.*` - Does NOT have any
+- `tasks.ai.*` - Does NOT have any
 
 ## Solution
 
-Restructure the layout using flexbox to create a proper header-body-footer pattern:
-
-1. Remove `overflow-y-auto` from SheetContent
-2. Add flexbox column layout to SheetContent
-3. Make form area scrollable with `flex-1 overflow-y-auto`
-4. Keep footer as a normal flex child (sticky at bottom)
-
-**New structure:**
-```
-SheetContent (flex flex-col)          <- Flex container
-  ├── SheetHeader                      <- Fixed header
-  ├── div.flex-1.overflow-y-auto       <- Scrollable body
-  │     └── TaskForm (all fields)
-  └── div (border-t, sticky)           <- Footer always at bottom
-        └── Buttons
-```
+Add RBAC permission checks to each task sub-module component to conditionally render or disable action buttons.
 
 ---
 
-## File to Modify
+## Files to Modify
 
-**`src/components/tasks/TaskEditSheet.tsx`**
+### 1. TaskTemplates.tsx
 
-### Changes
+Import RBAC hook and add permission checks:
 
-1. **Line 141-143**: Update SheetContent className
-   - Remove: `overflow-y-auto`
-   - Add: `flex flex-col` for proper layout
+```typescript
+// Add imports
+import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 
-2. **Line 156**: Update form wrapper div
-   - Change: `className="pb-20"` 
-   - To: `className="flex-1 overflow-y-auto px-6 py-6"` (scrollable area with proper padding)
-
-3. **Line 170**: Update footer div
-   - Remove: `absolute bottom-0 left-0 right-0`
-   - Keep: `border-t bg-background p-4 flex justify-end gap-3`
-   - Add: `shrink-0` to prevent footer from shrinking
-
-### Code Changes
-
-**Before (lines 139-178):**
-```tsx
-return (
-  <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-    <SheetContent 
-      side="right" 
-      className="w-full sm:max-w-xl md:max-w-2xl lg:max-w-3xl overflow-y-auto"
-    >
-      <SheetHeader className="border-b pb-4 mb-4">
-        ...
-      </SheetHeader>
-
-      <div className="pb-20">
-        <TaskForm ... />
-      </div>
-
-      {/* Sticky Footer */}
-      <div className="absolute bottom-0 left-0 right-0 border-t bg-background p-4 flex justify-end gap-3">
-        <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
-          Cancel
-        </Button>
-        <Button onClick={handleSubmit} disabled={isSubmitting}>
-          {isSubmitting ? 'Saving...' : 'Save Changes'}
-        </Button>
-      </div>
-    </SheetContent>
-  </Sheet>
-);
+// Inside component
+const { hasPermission } = useAdvancedRBAC();
+const canCreateTemplate = hasPermission('tasks.templates', 'write');
+const canEditTemplate = hasPermission('tasks.templates', 'write');
+const canDeleteTemplate = hasPermission('tasks.templates', 'delete');
 ```
 
-**After:**
-```tsx
-return (
-  <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-    <SheetContent 
-      side="right" 
-      className="w-full sm:max-w-xl md:max-w-2xl lg:max-w-3xl flex flex-col p-0"
-    >
-      <SheetHeader className="border-b px-6 py-4 shrink-0">
-        ...
-      </SheetHeader>
+**Changes needed:**
 
-      {/* Scrollable Form Content */}
-      <div className="flex-1 overflow-y-auto px-6 py-6">
-        <TaskForm ... />
-      </div>
+1. **Create Template button** (header) - Conditionally render based on `canCreateTemplate`
+2. **Edit button** (TemplateCard) - Conditionally render based on `canEditTemplate`
+3. **Clone button** (TemplateCard) - Conditionally render based on `canCreateTemplate` (clone creates new)
+4. **Delete button** (TemplateCard) - Conditionally render based on `canDeleteTemplate`
 
-      {/* Footer - Always at bottom */}
-      <div className="shrink-0 border-t bg-background px-6 py-4 flex justify-end gap-3">
-        <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
-          Cancel
-        </Button>
-        <Button onClick={handleSubmit} disabled={isSubmitting}>
-          {isSubmitting ? 'Saving...' : 'Save Changes'}
-        </Button>
-      </div>
-    </SheetContent>
-  </Sheet>
-);
+### 2. TaskAutomation.tsx
+
+Import RBAC hook and add permission checks:
+
+```typescript
+import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
+
+const { hasPermission } = useAdvancedRBAC();
+const canManageAutomation = hasPermission('tasks.automation', 'admin') || 
+                            hasPermission('tasks.automation', 'manage');
 ```
+
+**Changes needed:**
+
+1. **Create Bundle button** - Conditionally render based on `canManageAutomation`
+2. **Edit bundle button** - Conditionally render based on `canManageAutomation`
+3. **Delete bundle button** - Conditionally render based on `canManageAutomation`
+
+### 3. EscalationMatrix.tsx
+
+Import RBAC hook and add permission checks:
+
+```typescript
+import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
+
+const { hasPermission } = useAdvancedRBAC();
+const canManageEscalation = hasPermission('tasks.escalation', 'admin') || 
+                            hasPermission('tasks.escalation', 'manage');
+```
+
+**Changes needed:**
+
+1. **Configure Rules button** - Conditionally render based on `canManageEscalation`
+2. **Create/Edit rule buttons** - Conditionally render based on `canManageEscalation`
+
+### 4. AITaskAssistant.tsx
+
+Import RBAC hook and add permission checks:
+
+```typescript
+import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
+
+const { hasPermission } = useAdvancedRBAC();
+const canManageAI = hasPermission('tasks.ai', 'admin') || 
+                    hasPermission('tasks.ai', 'manage');
+```
+
+**Changes needed:**
+
+1. **Configure API button** - Conditionally render based on `canManageAI`
+2. **Settings tab** - Conditionally render based on `canManageAI`
 
 ---
 
-## Visual Comparison
+## Permission Mapping
 
-| Aspect | Before | After |
-|--------|--------|-------|
-| Button position | Floating mid-screen | Fixed at sheet bottom |
-| Case/Stage fields | Hidden behind buttons | Fully visible |
-| Form scrolling | Entire sheet scrolls | Only form area scrolls |
-| Header | Scrolls away | Stays visible |
+| UI Action | Database Permission Key | RBAC Action |
+|-----------|------------------------|-------------|
+| Create Template | `tasks.templates.create` | `write` |
+| Edit Template | `tasks.templates.update` | `write` |
+| Delete Template | `tasks.templates.delete` | `delete` |
+| Clone Template | `tasks.templates.create` | `write` |
+| Manage Automation | `tasks.automation.manage` | `admin`/`manage` |
+| Manage Escalation | `tasks.escalation.manage` | `admin`/`manage` |
+| Configure AI | `tasks.ai.manage` | `admin`/`manage` |
+
+---
+
+## Expected Behavior After Fix
+
+| Role | Templates Tab | Create/Edit/Delete Buttons |
+|------|--------------|---------------------------|
+| Staff | Visible (read) | **Hidden** |
+| Manager | Visible | Create/Edit visible |
+| Admin/Partner | Visible | All buttons visible |
+
+| Role | Automation Tab | Create/Edit/Delete |
+|------|---------------|-------------------|
+| Staff | Hidden | N/A |
+| Manager | Hidden | N/A |
+| Admin/Partner | Visible | All visible |
 
 ---
 
 ## Testing Checklist
 
 After implementation:
-1. Open any task and click "Edit Task"
-2. Verify all form sections are visible:
-   - Task Information (Title, Description)
-   - Case & Stage Context (Case selector, Stage dropdown)
-   - Priority & Assignment (Priority, Status, Assignee, Hours, Due Date)
-3. Buttons should appear at the very bottom of the sheet
-4. Scroll the form content - header and footer should stay fixed
-5. Test on different screen sizes (mobile, tablet, desktop)
-6. Cancel button should close the sheet
-7. Save Changes should submit and close
+
+1. **Staff user testing:**
+   - Login as Staff
+   - Navigate to Task Management > Templates tab
+   - Verify: Can see templates (read only)
+   - Verify: "Create Template" button is hidden
+   - Verify: Edit, Clone, Delete buttons are hidden on cards
+   - Verify: Automation, Escalation, AI tabs are not accessible
+
+2. **Manager user testing:**
+   - Login as Manager
+   - Navigate to Templates tab
+   - Verify: Create, Edit buttons visible
+   - Verify: Automation/Escalation/AI tabs hidden (Manager doesn't have manage permission)
+
+3. **Admin/Partner testing:**
+   - All tabs visible
+   - All action buttons visible
+
+4. **Permission change testing:**
+   - Assign `tasks.templates.create` to Staff via Access & Roles
+   - Refresh page
+   - Verify: Create Template button now visible for Staff
+
