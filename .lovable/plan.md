@@ -1,171 +1,138 @@
 
+# Fix: Signatory Phone Duplicate Validation Across Multiple Clients
 
-# Fix: DOCX Files Showing Folder Icon Instead of Document Icon
+## Problem Summary
 
-## Problem
-
-In Document Management, DOCX files display a folder icon (📁) instead of a document-related icon. This happens because the `getFileIcon` function in multiple components doesn't include `'docx'` in its switch cases, causing it to fall through to the default case which returns a folder emoji.
+When entering a mobile number for a signatory, the system does not show a warning if the same phone number exists in another client's signatory. The duplicate check code exists in `phoneDuplicateService.ts` but the signatory ID is not being passed through the component chain, preventing proper detection.
 
 ## Root Cause
 
-The `getFileIcon` function in `DocumentManagement.tsx` (line 204-213):
-
-```typescript
-const getFileIcon = (type: string) => {
-  switch (type) {
-    case 'pdf': return '📄';
-    case 'doc': return '📝';      // ← Only 'doc', missing 'docx'!
-    case 'xlsx': return '📊';      // ← Only 'xlsx', missing 'xls'!
-    case 'jpg':
-    case 'png': return '🖼️';
-    default: return '📁';          // ← Falls through to folder icon!
-  }
-};
+The component chain for signatory phone input:
+```
+SignatoryModal → SignatoryPhoneManager → PhoneManager → PhoneInput
 ```
 
-The same issue exists in `RecentDocuments.tsx` (lines 21-34).
+**Issues found:**
+1. `SignatoryPhoneManager` does not accept or pass `excludeEntityId` prop
+2. `SignatoryModal` does not pass the signatory ID to `SignatoryPhoneManager`
+
+Without the `excludeEntityId`, when editing an existing signatory:
+- The duplicate check finds the signatory's own phone and reports it as a duplicate
+- This may cause false positives or the check may be silently failing
 
 ## Solution
 
-Update the `getFileIcon` functions in affected components to:
-1. Add `'docx'` case alongside `'doc'` 
-2. Add `'xls'` case alongside `'xlsx'`
-3. Add common file extensions like `'jpeg'`, `'gif'`, `'txt'`
-4. Change the default fallback from folder (📁) to a generic document icon (📄)
+Pass the signatory ID through the component chain so that:
+1. When creating a new signatory: no ID is excluded (check all signatories)
+2. When editing a signatory: exclude only the current signatory's ID
 
 ---
 
 ## Files to Modify
 
-### 1. `src/components/documents/DocumentManagement.tsx`
+### 1. Update SignatoryPhoneManager to Accept excludeEntityId
 
-**Location:** Lines 204-213
+**File:** `src/components/contacts/SignatoryPhoneManager.tsx`
 
-Update the `getFileIcon` function:
+Add the `excludeEntityId` prop and pass it to `PhoneManager`:
 
 ```typescript
-const getFileIcon = (type: string) => {
-  const normalizedType = type?.toLowerCase() || '';
-  switch (normalizedType) {
-    case 'pdf': 
-    case 'application/pdf':
-      return '📄';
-    case 'doc':
-    case 'docx':
-    case 'application/msword':
-    case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
-      return '📝';
-    case 'xls':
-    case 'xlsx':
-    case 'application/vnd.ms-excel':
-    case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
-      return '📊';
-    case 'ppt':
-    case 'pptx':
-    case 'application/vnd.ms-powerpoint':
-    case 'application/vnd.openxmlformats-officedocument.presentationml.presentation':
-      return '📽️';
-    case 'jpg':
-    case 'jpeg':
-    case 'png':
-    case 'gif':
-    case 'webp':
-    case 'image/jpeg':
-    case 'image/png':
-    case 'image/gif':
-      return '🖼️';
-    case 'txt':
-    case 'text/plain':
-      return '📋';
-    default: 
-      return '📄'; // Generic document icon, NOT folder
-  }
+interface SignatoryPhoneManagerProps {
+  phones: SignatoryPhone[];
+  onChange: (phones: SignatoryPhone[]) => void;
+  disabled?: boolean;
+  excludeEntityId?: string;  // NEW: signatory ID to exclude from duplicate check
+}
+
+export const SignatoryPhoneManager: React.FC<SignatoryPhoneManagerProps> = ({
+  phones,
+  onChange,
+  disabled,
+  excludeEntityId  // NEW
+}) => {
+  // ... existing conversion logic ...
+
+  return (
+    <PhoneManager
+      phones={contactPhones}
+      onChange={handleChange}
+      disabled={disabled}
+      excludeEntityId={excludeEntityId}  // NEW: pass through
+    />
+  );
 };
 ```
 
-### 2. `src/components/documents/RecentDocuments.tsx`
+### 2. Update SignatoryModal to Pass Signatory ID
 
-**Location:** Lines 21-34
+**File:** `src/components/modals/SignatoryModal.tsx`
 
-Update the `getFileIcon` function with the same comprehensive mapping:
+Pass the current signatory's ID when in edit mode:
 
 ```typescript
-const getFileIcon = (type: string) => {
-  const normalizedType = type?.toLowerCase() || '';
-  switch (normalizedType) {
-    case 'pdf': 
-    case 'application/pdf':
-      return '📄';
-    case 'doc':
-    case 'docx':
-    case 'application/msword':
-    case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
-      return '📝';
-    case 'xls':
-    case 'xlsx':
-    case 'application/vnd.ms-excel':
-    case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
-      return '📊';
-    case 'ppt':
-    case 'pptx':
-    case 'application/vnd.ms-powerpoint':
-    case 'application/vnd.openxmlformats-officedocument.presentationml.presentation':
-      return '📽️';
-    case 'jpg':
-    case 'jpeg':
-    case 'png':
-    case 'gif':
-    case 'webp':
-    case 'image/jpeg':
-    case 'image/png':
-    case 'image/gif':
-      return '🖼️';
-    case 'txt':
-    case 'text/plain':
-      return '📋';
-    default: 
-      return '📄'; // Generic document icon, NOT folder
-  }
-};
+<SignatoryPhoneManager
+  phones={formData.phones}
+  onChange={(phones) => {
+    setFormData(prev => ({ ...prev, phones }));
+    setErrors(prev => ({ ...prev, phones: '' }));
+  }}
+  disabled={mode === 'view'}
+  excludeEntityId={mode === 'edit' ? signatory?.id : undefined}  // NEW
+/>
 ```
 
 ---
 
-## File Type to Icon Mapping (After Fix)
+## Data Flow After Fix
 
-| File Extension | MIME Type | Icon | Description |
-|---------------|-----------|------|-------------|
-| `.pdf` | application/pdf | 📄 | PDF document |
-| `.doc`, `.docx` | application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document | 📝 | Word document |
-| `.xls`, `.xlsx` | application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet | 📊 | Excel spreadsheet |
-| `.ppt`, `.pptx` | application/vnd.ms-powerpoint, application/vnd.openxmlformats-officedocument.presentationml.presentation | 📽️ | PowerPoint presentation |
-| `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp` | image/* | 🖼️ | Image |
-| `.txt` | text/plain | 📋 | Text file |
-| *Other/Unknown* | - | 📄 | Generic document |
+```
+User enters phone in Signatory form
+         ↓
+SignatoryModal passes signatory.id (if editing)
+         ↓
+SignatoryPhoneManager passes excludeEntityId
+         ↓
+PhoneManager passes excludeEntityId
+         ↓
+PhoneInput calls checkPhoneDuplicateDebounced(countryCode, number, callback, excludeEntityId)
+         ↓
+phoneDuplicateService.checkPhoneDuplicate() checks:
+  • client_contacts (Contacts)
+  • employees (Employees)
+  • clients (Client main phone)
+  • courts (Courts)
+  • clients.signatories (ALL signatories across ALL clients)
+         ↓
+Returns matches, excluding the entity with excludeEntityId
+         ↓
+PhoneInput displays warning if duplicates found
+```
 
 ---
 
-## Expected Results After Fix
+## Expected Behavior After Fix
 
-| File Type | Before | After |
-|-----------|--------|-------|
-| `.docx` | 📁 (folder) | 📝 (Word doc) |
-| `.doc` | 📝 | 📝 (no change) |
-| `.xlsx` | 📊 | 📊 (no change) |
-| `.xls` | 📁 (folder) | 📊 (Excel) |
-| `.pptx` | 📁 (folder) | 📽️ (PowerPoint) |
-| Unknown type | 📁 (folder) | 📄 (document) |
+| Scenario | Before | After |
+|----------|--------|-------|
+| New signatory with phone matching signatory in Client A | No warning | Warning: "Number exists for [Name] (Client A)" |
+| New signatory with phone matching signatory in Client B | No warning | Warning: "Number exists for [Name] (Client B)" |
+| Edit signatory - same phone as before | May show false positive | No warning (excluded) |
+| Edit signatory - change to phone matching another signatory | No warning | Warning displayed |
 
 ---
 
 ## Testing Checklist
 
 After implementation:
-1. Upload a `.docx` file → Should display 📝 icon
-2. Upload a `.doc` file → Should display 📝 icon
-3. Upload a `.xlsx` file → Should display 📊 icon
-4. Upload a `.xls` file → Should display 📊 icon
-5. Upload a `.pptx` file → Should display 📽️ icon
-6. Upload an unknown file type → Should display 📄 (not folder)
-7. Check "Recent Documents" section → Same correct icons
-
+1. Create signatory for Client A with phone 9876543210
+2. Create signatory for Client B with same phone 9876543210
+   - Expected: Warning "This phone number already exists for [Signatory Name] (Client A)"
+3. Edit the signatory in Client A
+   - Expected: No self-duplicate warning
+4. Change phone to match another signatory
+   - Expected: Warning about the duplicate
+5. Existing duplicate checks still work:
+   - Employee phone detection
+   - Contact phone detection
+   - Client phone detection
+   - Court phone detection
