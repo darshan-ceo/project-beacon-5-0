@@ -59,11 +59,15 @@ class CourtsService {
       };
 
       // Build unified address for JSONB storage
+      // Check if addressJsonb already contains structured address data
+      const rawAddress = normalizedData.addressJsonb || (normalizedData as any).address_jsonb || {};
       const unifiedAddress: UnifiedAddress = normalizeAddress({
-        line1: normalizedData.address || '',
-        cityName: normalizedData.city || '',
-        stateName: normalizedData.state || '',
-        source: 'manual'
+        ...rawAddress,
+        // Fallback to legacy fields if no JSONB address structure
+        line1: rawAddress.line1 || (typeof normalizedData.address === 'string' ? normalizedData.address : '') || '',
+        cityName: rawAddress.cityName || normalizedData.city || '',
+        stateName: rawAddress.stateName || (normalizedData as any).state || '',
+        source: rawAddress.source || 'manual'
       });
 
       // Persist to Supabase
@@ -118,12 +122,16 @@ class CourtsService {
 
       // Build unified address for JSONB storage if address-related fields are updated
       let addressJsonb: string | undefined;
-      if (updates.address || updates.city || (updates as any).state) {
+      if (updates.address || updates.city || (updates as any).state || (updates as any).addressJsonb) {
+        // Check if addressJsonb already contains structured address data
+        const rawAddress = (updates as any).addressJsonb || (updates as any).address_jsonb || {};
         const unifiedAddress: UnifiedAddress = normalizeAddress({
-          line1: updates.address || '',
-          cityName: updates.city || '',
-          stateName: (updates as any).state || '',
-          source: 'edited'
+          ...rawAddress,
+          // Fallback to legacy fields if no JSONB address structure
+          line1: rawAddress.line1 || (typeof updates.address === 'string' ? updates.address : '') || '',
+          cityName: rawAddress.cityName || updates.city || '',
+          stateName: rawAddress.stateName || (updates as any).state || '',
+          source: rawAddress.source || 'edited'
         });
         addressJsonb = serializeAddress(unifiedAddress);
       }
