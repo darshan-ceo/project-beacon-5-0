@@ -66,7 +66,7 @@ export const UnifiedAddressForm: React.FC<UnifiedAddressFormProps> = ({
   module,
   mode,
   showGSTIntegration,
-  showGeocoding: _showGeocoding, // Reserved for future use
+  showGeocoding,
   addressType,
   gstin,
   onGSTAddressSelect,
@@ -85,6 +85,7 @@ export const UnifiedAddressForm: React.FC<UnifiedAddressFormProps> = ({
   
   // Determine feature flags with module defaults
   const gstEnabled = showGSTIntegration ?? moduleConfig.showGSTIntegration;
+  const geocodingEnabled = showGeocoding ?? moduleConfig.showGeocoding;
   
   // Handle mode-based states
   const isDisabled = disabled ?? (mode === 'view');
@@ -116,6 +117,7 @@ export const UnifiedAddressForm: React.FC<UnifiedAddressFormProps> = ({
       onChange={handleChange}
       module={legacyModule}
       showGSTIntegration={gstEnabled}
+      showGeocoding={geocodingEnabled}
       gstin={gstin}
       onGSTAddressSelect={onGSTAddressSelect ? handleGSTAddressSelect : undefined}
       disabled={isDisabled}

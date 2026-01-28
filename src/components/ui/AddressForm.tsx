@@ -12,7 +12,7 @@ import { gstAddressMapper, GSTAddressMapping } from '@/services/gstAddressMapper
 import { gstPublicService, GSTTaxpayerInfo } from '@/services/gstPublicService';
 import { SourceChip, DataSource, EditableSourceChip } from '@/components/ui/source-chip';
 import { featureFlagService } from '@/services/featureFlagService';
-import { Download, MapPin, AlertCircle } from 'lucide-react';
+import { Download, MapPin, AlertCircle, ExternalLink, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { autoCapitalizeFirst } from '@/utils/textFormatters';
 
@@ -23,6 +23,7 @@ interface AddressFormProps {
   required?: boolean;
   module?: ModuleName;
   showGSTIntegration?: boolean;
+  showGeocoding?: boolean;
   gstin?: string;
   onGSTAddressSelect?: (address: EnhancedAddressData) => void;
   className?: string;
@@ -35,6 +36,7 @@ export const AddressForm: React.FC<AddressFormProps> = ({
   required = false,
   module = 'client',
   showGSTIntegration = false,
+  showGeocoding = false,
   gstin,
   onGSTAddressSelect,
   className
@@ -51,6 +53,8 @@ export const AddressForm: React.FC<AddressFormProps> = ({
   const [isAddressMasterEnabled, setIsAddressMasterEnabled] = useState(false);
   const [manualCityMode, setManualCityMode] = useState(false);
   const [manualCityInput, setManualCityInput] = useState('');
+  const [geocodeLoading, setGeocodeLoading] = useState(false);
+  const [geocodeError, setGeocodeError] = useState<string | null>(null);
 
   // Prevent async initial-load logic from using stale `value` and overwriting a newer address
   const latestValueRef = useRef(value);
@@ -270,6 +274,58 @@ export const AddressForm: React.FC<AddressFormProps> = ({
       toast.success(`City "${newCity.name}" added successfully`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to add city');
+    }
+  };
+
+  const handleGeocode = async () => {
+    if (!value.line1 && !value.cityId && !(value as any).cityName) {
+      toast.error('Please enter address details before geocoding');
+      return;
+    }
+
+    setGeocodeLoading(true);
+    setGeocodeError(null);
+
+    try {
+      const { geocodingService } = await import('@/services/geocodingService');
+      
+      const result = await geocodingService.geocodeAddress({
+        line1: value.line1,
+        line2: value.line2,
+        locality: value.locality,
+        cityName: (value as any).cityName,
+        district: (value as any).district,
+        stateName: (value as any).stateName,
+        pincode: value.pincode,
+        countryName: 'India'
+      });
+
+      if (result.success && result.data) {
+        const enhancedValue = {
+          ...value,
+          lat: result.data.lat,
+          lng: result.data.lng,
+          source: (value as any).source || 'manual'
+        };
+        onChange(enhancedValue);
+
+        if (result.data.confidence === 'high') {
+          toast.success('Coordinates found with high accuracy');
+        } else if (result.data.confidence === 'medium') {
+          toast.success('Coordinates found - please verify on map');
+        } else {
+          toast.warning('Approximate coordinates found - verification recommended');
+        }
+      } else {
+        setGeocodeError(result.error || 'Could not find coordinates');
+        toast.error(result.error || 'Could not find coordinates for this address');
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Geocoding failed';
+      setGeocodeError(errorMsg);
+      toast.error(errorMsg);
+    } finally {
+      setGeocodeLoading(false);
     }
   };
 
@@ -747,8 +803,98 @@ export const AddressForm: React.FC<AddressFormProps> = ({
           )}
         </div>
 
-        {/* Coordinates */}
-        {(isFieldVisible('lat') || isFieldVisible('lng')) && (
+        {/* Geocoding Section */}
+        {showGeocoding && (
+          <div className="space-y-4 pt-4 border-t">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">Location Coordinates</Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleGeocode}
+                disabled={disabled || geocodeLoading}
+                className="gap-2"
+              >
+                {geocodeLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Geocoding...
+                  </>
+                ) : (
+                  <>
+                    <MapPin className="h-4 w-4" />
+                    Get Coordinates
+                  </>
+                )}
+              </Button>
+            </div>
+            
+            {geocodeError && (
+              <div className="flex items-center gap-2 text-sm text-destructive">
+                <AlertCircle className="h-4 w-4" />
+                {geocodeError}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Latitude */}
+              <div className="space-y-2">
+                <Label htmlFor="latitude">Latitude</Label>
+                <Input
+                  id="latitude"
+                  type="number"
+                  step="any"
+                  value={(value as any).lat || ''}
+                  onChange={(e) => handleFieldChange('lat', parseFloat(e.target.value) || 0)}
+                  placeholder="e.g., 23.0225"
+                  disabled={disabled}
+                />
+              </div>
+
+              {/* Longitude */}
+              <div className="space-y-2">
+                <Label htmlFor="longitude">Longitude</Label>
+                <Input
+                  id="longitude"
+                  type="number"
+                  step="any"
+                  value={(value as any).lng || ''}
+                  onChange={(e) => handleFieldChange('lng', parseFloat(e.target.value) || 0)}
+                  placeholder="e.g., 72.5714"
+                  disabled={disabled}
+                />
+              </div>
+            </div>
+
+            {/* Map Preview Links */}
+            {(value as any).lat && (value as any).lng && (
+              <div className="flex items-center gap-2 text-sm">
+                <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                <a
+                  href={`https://www.google.com/maps?q=${(value as any).lat},${(value as any).lng}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  View on Google Maps
+                </a>
+                <span className="text-muted-foreground">|</span>
+                <a
+                  href={`https://www.openstreetmap.org/?mlat=${(value as any).lat}&mlon=${(value as any).lng}&zoom=17`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  OpenStreetMap
+                </a>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Legacy Coordinates (when geocoding not enabled but fields visible) */}
+        {!showGeocoding && (isFieldVisible('lat') || isFieldVisible('lng')) && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {isFieldVisible('lat') && (
               <div className="space-y-2">
