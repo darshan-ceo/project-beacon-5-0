@@ -1,285 +1,329 @@
 
-# Day 2: Refactor clientsService to Unified Address Architecture
+# Day 3: Unified Address Handling for judgesService & employeesService
 
 ## Objective
-Refactor `clientsService.ts` to fully comply with Unified Address Architecture by routing all address handling through `addressUtils`.
+Enforce Unified Address Architecture in both services by replacing manual JSON handling and inline validation with centralized utilities.
 
 ---
 
-## Current Issues Found
+## Part A: judgesService.ts Refactoring
 
-| Line(s) | Issue | Violation |
-|---------|-------|-----------|
-| 60-73 | `validatePincode()` duplicates addressUtils logic | Inline validation |
-| 163-168 | Uses `clientsService.validatePincode()` for address validation | Should use `validateAddress()` |
-| 218 | `JSON.stringify(clientData.address)` | Direct JSON manipulation |
-| 240-246 | Manual address object construction | Should use `normalizeAddress()` |
-| 328 | `JSON.stringify(updates.address)` | Direct JSON manipulation |
-| 563-573 | Legacy migration creates address manually | Should use `createAddressFromLegacy()` |
+### Current Violations Found
 
----
+| Line(s) | Issue | Type |
+|---------|-------|------|
+| 207 | `JSON.stringify(updates.address)` | Direct JSON manipulation |
+| 319-321 | `typeof j.address === 'string' ? JSON.parse(j.address)` | Manual parsing in list() |
+| 391-394 | Same pattern in getById() | Manual parsing |
+| 75, 352, 425 | Raw address passthrough | No normalization |
 
-## Tasks
+### Changes Required
 
-### Task 1: Add Required Imports
-
-Add imports at top of file:
+#### 1. Add Imports (Top of file)
 ```typescript
 import { 
   normalizeAddress, 
   serializeAddress, 
-  validateAddress,
+  parseDbAddress 
+} from '@/utils/addressUtils';
+import { PartialAddress } from '@/types/address';
+```
+
+#### 2. Refactor CREATE Flow (Line 75)
+**Before:**
+```typescript
+address: judgeData.address,
+```
+**After:**
+```typescript
+address: judgeData.address ? normalizeAddress(judgeData.address) : undefined,
+```
+
+#### 3. Refactor UPDATE Flow (Line 207)
+**Before:**
+```typescript
+...(updates.address && { address: JSON.stringify(updates.address) }),
+```
+**After:**
+```typescript
+...(updates.address && { address: serializeAddress(updates.address as PartialAddress) }),
+```
+
+#### 4. Refactor list() READ Flow (Lines 319-324)
+**Before:**
+```typescript
+const qualifications = j.qualifications ? (typeof j.qualifications === 'string' ? JSON.parse(j.qualifications) : j.qualifications) : undefined;
+const tenureDetails = j.tenure_details ? (typeof j.tenure_details === 'string' ? JSON.parse(j.tenure_details) : j.tenure_details) : undefined;
+const address = j.address ? (typeof j.address === 'string' ? JSON.parse(j.address) : j.address) : undefined;
+const assistant = j.assistant ? (typeof j.assistant === 'string' ? JSON.parse(j.assistant) : j.assistant) : {};
+const availability = j.availability ? (typeof j.availability === 'string' ? JSON.parse(j.availability) : j.availability) : {};
+```
+**After:**
+```typescript
+const qualifications = j.qualifications ? (typeof j.qualifications === 'string' ? JSON.parse(j.qualifications) : j.qualifications) : undefined;
+const tenureDetails = j.tenure_details ? (typeof j.tenure_details === 'string' ? JSON.parse(j.tenure_details) : j.tenure_details) : undefined;
+const address = parseDbAddress(j.address); // Use centralized utility
+const assistant = j.assistant ? (typeof j.assistant === 'string' ? JSON.parse(j.assistant) : j.assistant) : {};
+const availability = j.availability ? (typeof j.availability === 'string' ? JSON.parse(j.availability) : j.availability) : {};
+```
+
+#### 5. Refactor getById() READ Flow (Lines 391-396)
+Apply same pattern:
+**Before:**
+```typescript
+const address = judge.address ? (typeof judge.address === 'string' ? JSON.parse(judge.address) : judge.address) : undefined;
+```
+**After:**
+```typescript
+const address = parseDbAddress(judge.address);
+```
+
+---
+
+## Part B: employeesService.ts Refactoring
+
+### Current State Analysis
+
+| Field | Location | Status |
+|-------|----------|--------|
+| `currentAddress` | Interface line 34 | Legacy TEXT (preserve) |
+| `permanentAddress` | Interface line 35 | Legacy TEXT (preserve) |
+| `address` | DB column (JSONB) | NEW - added Day 1 |
+| `pincode` | Interface line 38 | Legacy, inline validation |
+
+### Changes Required
+
+#### 1. Add Imports (Top of file)
+```typescript
+import { 
+  normalizeAddress, 
+  serializeAddress, 
+  parseDbAddress,
   createAddressFromLegacy,
-  extractLegacyFields
+  isAddressEmpty
 } from '@/utils/addressUtils';
 import { PartialAddress, UnifiedAddress } from '@/types/address';
 ```
 
----
-
-### Task 2: Refactor CREATE Flow (Lines 139-284)
-
-**Before (Line 163-168):**
+#### 2. Update Employee Interface (Lines 6-87)
+Add unified address field alongside legacy fields:
 ```typescript
-if (clientData.address && typeof clientData.address === 'object' && clientData.address.pincode) {
-  const pincodeValidation = clientsService.validatePincode(clientData.address.pincode);
-  if (!pincodeValidation.isValid) {
-    validationErrors.push(...pincodeValidation.errors);
-  }
-}
+// Contact Tab - Legacy fields preserved for backward compat
+currentAddress?: string;
+permanentAddress?: string;
+city?: string;
+state?: string;
+pincode?: string;
+
+// NEW: Unified address (takes priority when present)
+address?: UnifiedAddress;
 ```
 
-**After:**
+#### 3. Refactor Validation (Lines 151-154)
+**Before:**
 ```typescript
-if (clientData.address && typeof clientData.address === 'object') {
-  const addressValidation = validateAddress(clientData.address as PartialAddress, 'client');
+// Pincode validation
+if (employee.pincode && !/^\d{6}$/.test(employee.pincode)) {
+  errors.push("Invalid pincode. Must be 6 digits");
+}
+```
+**After (no change needed):** Keep inline validation for legacy field, but add:
+```typescript
+// Unified address validation (if provided)
+if (employee.address && !isAddressEmpty(employee.address)) {
+  const { validateAddress } = await import('@/utils/addressUtils');
+  const addressValidation = validateAddress(employee.address, 'employee');
   if (!addressValidation.isValid) {
-    addressValidation.errors.forEach(err => validationErrors.push(err.message));
+    addressValidation.errors.forEach(err => errors.push(err.message));
   }
 }
 ```
 
-**Before (Line 218):**
+#### 4. Refactor CREATE Flow - Persistence (Lines 211-226)
+**Before:**
 ```typescript
-address: clientData.address ? JSON.stringify(clientData.address) : null,
+await storage.create('employees', {
+  id: newEmployee.id,
+  employee_code: newEmployee.employeeCode,
+  email: newEmployee.email,
+  // ... other fields
+});
+```
+**After (add address field):**
+```typescript
+await storage.create('employees', {
+  id: newEmployee.id,
+  employee_code: newEmployee.employeeCode,
+  email: newEmployee.email,
+  // ... other fields
+  // NEW: Unified address JSONB
+  address: newEmployee.address ? serializeAddress(newEmployee.address) : null,
+});
 ```
 
+#### 5. Refactor UPDATE Flow - Persistence (Lines 271-276)
+**Before:**
+```typescript
+await storage.update('employees', employeeId, {
+  ...updates,
+  email: updates.email || updates.officialEmail,
+  status: updates.status,
+  updated_at: new Date(),
+});
+```
 **After:**
 ```typescript
-address: clientData.address ? serializeAddress(clientData.address as PartialAddress) : null,
+await storage.update('employees', employeeId, {
+  ...updates,
+  email: updates.email || updates.officialEmail,
+  status: updates.status,
+  // NEW: Serialize unified address if provided
+  ...(updates.address && { address: serializeAddress(updates.address as PartialAddress) }),
+  updated_at: new Date(),
+});
 ```
 
-**Before (Lines 240-246):**
-```typescript
-address: clientData.address || {
-  line1: '',
-  city: savedClient.city || clientData.address?.city || '',
-  state: savedClient.state || clientData.address?.state || '',
-  pincode: '',
-  country: 'India'
-},
-```
-
-**After:**
-```typescript
-address: clientData.address 
-  ? normalizeAddress(clientData.address) 
-  : normalizeAddress({ 
-      cityName: savedClient.city || '', 
-      stateName: savedClient.state || '' 
-    }),
-```
-
----
-
-### Task 3: Refactor UPDATE Flow (Lines 286-364)
-
-**Before (Line 328):**
-```typescript
-if (updates.address !== undefined) supabaseUpdates.address = JSON.stringify(updates.address);
-```
-
-**After:**
-```typescript
-if (updates.address !== undefined) {
-  // Validate address before serialization
-  if (updates.address && typeof updates.address === 'object') {
-    const addressValidation = validateAddress(updates.address as PartialAddress, 'client');
-    if (!addressValidation.isValid) {
-      throw new Error(addressValidation.errors.map(e => e.message).join(', '));
-    }
-  }
-  supabaseUpdates.address = updates.address ? serializeAddress(updates.address as PartialAddress) : null;
-}
-```
-
----
-
-### Task 4: Refactor Migration Utility (Lines 552-616)
-
-**Before (Lines 562-573):**
-```typescript
-if (typeof client.address === 'string') {
-  updates.address = {
-    line1: client.address,
-    city: '',
-    state: '',
-    pincode: '',
-    country: 'India'
-  };
-  updates.needsAddressReview = true;
-  needsUpdate = true;
-  flagged++;
-}
-```
-
-**After:**
-```typescript
-if (typeof client.address === 'string') {
-  updates.address = createAddressFromLegacy(client.address, null, null);
-  updates.needsAddressReview = true;
-  needsUpdate = true;
-  flagged++;
-}
-```
-
----
-
-### Task 5: Remove Duplicate validatePincode (Lines 60-73)
-
-Keep the function for backward compatibility but mark as deprecated and delegate to addressUtils:
+#### 6. Add Legacy Fallback Helper Function
+Add helper for backward compatible reads:
 ```typescript
 /**
- * @deprecated Use validateAddress from addressUtils instead
+ * Get address from employee with legacy fallback
+ * Priority: address (JSONB) > legacy fields
  */
-validatePincode: (pincode: string): ValidationResult => {
-  if (!pincode) {
-    return { isValid: false, errors: ['Pincode is required'] };
+function getEmployeeAddress(emp: Partial<Employee>): UnifiedAddress | null {
+  // Priority 1: New unified JSONB address
+  if (emp.address && !isAddressEmpty(emp.address)) {
+    return normalizeAddress(emp.address);
   }
   
-  if (!/^\d{6}$/.test(pincode.trim())) {
-    return {
-      isValid: false,
-      errors: ['Pincode must be exactly 6 digits']
-    };
+  // Priority 2: Legacy TEXT fields
+  if (emp.currentAddress || emp.city || emp.state) {
+    return createAddressFromLegacy(
+      emp.currentAddress || null,
+      emp.city || null,
+      emp.state || null,
+      emp.pincode || null
+    );
   }
   
-  return { isValid: true, errors: [] };
-},
+  return null;
+}
 ```
-
-This function is still used elsewhere (signatory forms), so we keep it but add deprecation notice.
 
 ---
 
 ## Files Modified
 
-| File | Change Type |
-|------|-------------|
-| `src/services/clientsService.ts` | EDIT - Refactor address handling |
+| File | Change Type | Description |
+|------|-------------|-------------|
+| `src/services/judgesService.ts` | EDIT | Use addressUtils for parse/serialize |
+| `src/services/employeesService.ts` | EDIT | Add unified address handling with legacy fallback |
 
 ---
 
-## Diff Preview (Key Changes)
+## Diff Summary
 
+### judgesService.ts
 ```diff
-// IMPORTS
 + import { 
 +   normalizeAddress, 
 +   serializeAddress, 
-+   validateAddress,
-+   createAddressFromLegacy
++   parseDbAddress 
 + } from '@/utils/addressUtils';
 + import { PartialAddress } from '@/types/address';
 
-// CREATE - Validation (Line 163)
-- if (clientData.address && typeof clientData.address === 'object' && clientData.address.pincode) {
--   const pincodeValidation = clientsService.validatePincode(clientData.address.pincode);
--   if (!pincodeValidation.isValid) {
--     validationErrors.push(...pincodeValidation.errors);
--   }
-- }
-+ if (clientData.address && typeof clientData.address === 'object') {
-+   const addressValidation = validateAddress(clientData.address as PartialAddress, 'client');
-+   if (!addressValidation.isValid) {
-+     addressValidation.errors.forEach(err => validationErrors.push(err.message));
+// Line 75: CREATE - normalize
+- address: judgeData.address,
++ address: judgeData.address ? normalizeAddress(judgeData.address) : undefined,
+
+// Line 207: UPDATE - serialize
+- ...(updates.address && { address: JSON.stringify(updates.address) }),
++ ...(updates.address && { address: serializeAddress(updates.address as PartialAddress) }),
+
+// Line 321: list() - parse
+- const address = j.address ? (typeof j.address === 'string' ? JSON.parse(j.address) : j.address) : undefined;
++ const address = parseDbAddress(j.address);
+
+// Line 394: getById() - parse
+- const address = judge.address ? (typeof judge.address === 'string' ? JSON.parse(judge.address) : judge.address) : undefined;
++ const address = parseDbAddress(judge.address);
+```
+
+### employeesService.ts
+```diff
++ import { 
++   normalizeAddress, 
++   serializeAddress, 
++   parseDbAddress,
++   createAddressFromLegacy,
++   isAddressEmpty
++ } from '@/utils/addressUtils';
++ import { PartialAddress, UnifiedAddress } from '@/types/address';
+
+// Interface update
++ // NEW: Unified address (JSONB)
++ address?: UnifiedAddress;
+
+// CREATE - add address to persistence
+  await storage.create('employees', {
+    ...existing fields...,
++   address: newEmployee.address ? serializeAddress(newEmployee.address) : null,
+  });
+
+// UPDATE - serialize address
+  await storage.update('employees', employeeId, {
+    ...existing fields...,
++   ...(updates.address && { address: serializeAddress(updates.address as PartialAddress) }),
+  });
+
++ // NEW: Legacy fallback helper
++ function getEmployeeAddress(emp: Partial<Employee>): UnifiedAddress | null {
++   if (emp.address && !isAddressEmpty(emp.address)) {
++     return normalizeAddress(emp.address);
 +   }
-+ }
-
-// CREATE - Serialize (Line 218)
-- address: clientData.address ? JSON.stringify(clientData.address) : null,
-+ address: clientData.address ? serializeAddress(clientData.address as PartialAddress) : null,
-
-// CREATE - Normalize response (Line 240)
-- address: clientData.address || {
--   line1: '',
--   city: savedClient.city || clientData.address?.city || '',
--   state: savedClient.state || clientData.address?.state || '',
--   pincode: '',
--   country: 'India'
-- },
-+ address: clientData.address 
-+   ? normalizeAddress(clientData.address) 
-+   : normalizeAddress({ cityName: savedClient.city || '', stateName: savedClient.state || '' }),
-
-// UPDATE - Serialize (Line 328)
-- if (updates.address !== undefined) supabaseUpdates.address = JSON.stringify(updates.address);
-+ if (updates.address !== undefined) {
-+   if (updates.address && typeof updates.address === 'object') {
-+     const addressValidation = validateAddress(updates.address as PartialAddress, 'client');
-+     if (!addressValidation.isValid) {
-+       throw new Error(addressValidation.errors.map(e => e.message).join(', '));
-+     }
++   if (emp.currentAddress || emp.city || emp.state) {
++     return createAddressFromLegacy(
++       emp.currentAddress || null,
++       emp.city || null,
++       emp.state || null,
++       emp.pincode || null
++     );
 +   }
-+   supabaseUpdates.address = updates.address ? serializeAddress(updates.address as PartialAddress) : null;
++   return null;
 + }
-
-// MIGRATION - Legacy address (Line 562)
-- updates.address = {
--   line1: client.address,
--   city: '',
--   state: '',
--   pincode: '',
--   country: 'India'
-- };
-+ updates.address = createAddressFromLegacy(client.address, null, null);
 ```
 
 ---
 
-## Backward Compatibility Preserved
+## Backward Compatibility Guarantee
 
-- Legacy `Address` interface in `AppStateContext` unchanged
-- `EnhancedAddressData` in `addressMasterService` unchanged (adapter exists)
-- GST integration via `gstAddressMapper` unchanged (works through AddressForm)
-- `validatePincode` kept with deprecation notice
-- Legacy string addresses still parse correctly via `normalizeAddress()`
+### Judges
+- Legacy string addresses: `parseDbAddress()` handles TEXT → UnifiedAddress
+- Empty addresses: Returns EMPTY_ADDRESS defaults
+- Existing data: No migration needed, parsing is non-destructive
 
----
-
-## GST Autofill Confirmation
-
-GST autofill flow is NOT affected:
-1. User enters GSTIN in `AddressForm.tsx`
-2. `AddressForm` calls `gstPublicService.getGSTInfo()`
-3. Response mapped via `gstAddressMapper.mapGSTTaxpayerToAddress()`
-4. Result populates form fields as `EnhancedAddressData`
-5. On save, data flows to `clientsService.create()` where it will now use `serializeAddress()`
-
-The `normalizeAddress()` utility already handles `EnhancedAddressData` field mappings (line1, cityName, stateName, stateCode, etc.), so GST data flows through correctly.
+### Employees
+- Legacy TEXT fields (`currentAddress`, `permanentAddress`): Preserved, NOT modified
+- New JSONB `address` column: Takes priority when present
+- Fallback chain: `address` (JSONB) → `currentAddress`/`city`/`state` (legacy)
+- Pincode validation: Legacy inline validation preserved alongside new unified validation
 
 ---
 
 ## Safety Checklist
 
-- No UI component changes
-- No RLS policy changes
-- No database schema changes
-- Backward compatible with legacy string addresses
-- GST integration behavior unchanged
-- Validation now uses centralized module-aware logic
+- [ ] No UI component changes
+- [ ] No RLS policy changes  
+- [ ] No database schema changes (Day 1 already added employees.address)
+- [ ] Legacy TEXT fields NOT deleted
+- [ ] Legacy validation preserved
+- [ ] Fallback priority documented
+- [ ] parseDbAddress handles null/undefined gracefully
 
 ---
 
 ## Estimated Effort
-~20 minutes implementation + testing
+- judgesService refactoring: ~15 minutes
+- employeesService refactoring: ~25 minutes
+- Testing: ~15 minutes
+- **Total: ~55 minutes**
