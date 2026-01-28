@@ -1,6 +1,14 @@
 import { toast } from '@/hooks/use-toast';
 import type { Client, Signatory, PortalAccess, AppAction } from '@/contexts/AppStateContext';
 import { normalizeClientPayload } from '@/utils/formatters';
+import { 
+  normalizeAddress, 
+  serializeAddress, 
+  validateAddress,
+  createAddressFromLegacy
+} from '@/utils/addressUtils';
+import { PartialAddress } from '@/types/address';
+
 
 // GSTIN validation regex
 const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
@@ -57,6 +65,10 @@ export const clientsService = {
     return { isValid: true, errors: [] };
   },
 
+  /**
+   * @deprecated Use validateAddress from addressUtils instead
+   * Kept for backward compatibility with signatory forms
+   */
   validatePincode: (pincode: string): ValidationResult => {
     if (!pincode) {
       return { isValid: false, errors: ['Pincode is required'] };
@@ -160,10 +172,11 @@ export const clientsService = {
         }
       }
 
-      if (clientData.address && typeof clientData.address === 'object' && clientData.address.pincode) {
-        const pincodeValidation = clientsService.validatePincode(clientData.address.pincode);
-        if (!pincodeValidation.isValid) {
-          validationErrors.push(...pincodeValidation.errors);
+      // Validate address using centralized addressUtils
+      if (clientData.address && typeof clientData.address === 'object') {
+        const addressValidation = validateAddress(clientData.address as PartialAddress, 'client');
+        if (!addressValidation.isValid) {
+          addressValidation.errors.forEach(err => validationErrors.push(err.message));
         }
       }
       
@@ -215,7 +228,7 @@ export const clientsService = {
         client_group_id: clientData.clientGroupId || null,
         owner_id: clientData.assignedCAId || null,
         signatories: clientData.signatories ? JSON.stringify(clientData.signatories) : null,
-        address: clientData.address ? JSON.stringify(clientData.address) : null,
+        address: clientData.address ? serializeAddress(clientData.address as PartialAddress) : null,
         jurisdiction: clientData.jurisdiction ? JSON.stringify(clientData.jurisdiction) : null,
         // Dual Access Model: data_scope defaults to TEAM
         data_scope: (clientData as any).dataScope || 'TEAM',
@@ -237,13 +250,12 @@ export const clientsService = {
         pan: savedClient.pan || clientData.pan!.toUpperCase(),
         email: savedClient.email || clientData.email,
         phone: savedClient.phone || clientData.phone,
-        address: clientData.address || {
-          line1: '',
-          city: savedClient.city || clientData.address?.city || '',
-          state: savedClient.state || clientData.address?.state || '',
-          pincode: '',
-          country: 'India'
-        },
+        address: clientData.address 
+          ? normalizeAddress(clientData.address) 
+          : normalizeAddress({ 
+              cityName: savedClient.city || '', 
+              stateName: savedClient.state || '' 
+            }),
         jurisdiction: clientData.jurisdiction || {},
         portalAccess: clientData.portalAccess || {
           allowLogin: false
@@ -325,7 +337,16 @@ export const clientsService = {
       if (updates.clientGroupId !== undefined) supabaseUpdates.client_group_id = updates.clientGroupId || null;
       if (updates.assignedCAId !== undefined) supabaseUpdates.owner_id = updates.assignedCAId || null;
       if (updates.signatories !== undefined) supabaseUpdates.signatories = JSON.stringify(updates.signatories);
-      if (updates.address !== undefined) supabaseUpdates.address = JSON.stringify(updates.address);
+      if (updates.address !== undefined) {
+        // Validate address before serialization using centralized addressUtils
+        if (updates.address && typeof updates.address === 'object') {
+          const addressValidation = validateAddress(updates.address as PartialAddress, 'client');
+          if (!addressValidation.isValid) {
+            throw new Error(addressValidation.errors.map(e => e.message).join(', '));
+          }
+        }
+        supabaseUpdates.address = updates.address ? serializeAddress(updates.address as PartialAddress) : null;
+      }
       if (updates.jurisdiction !== undefined) supabaseUpdates.jurisdiction = JSON.stringify(updates.jurisdiction);
       // Dual Access Model: handle data_scope updates
       if ((updates as any).dataScope !== undefined) supabaseUpdates.data_scope = (updates as any).dataScope;
@@ -558,15 +579,9 @@ export const clientsService = {
       let needsUpdate = false;
       const updates: Partial<Client> = { ...client };
 
-      // Migrate address if it's a string
+      // Migrate address if it's a string - use centralized addressUtils
       if (typeof client.address === 'string') {
-        updates.address = {
-          line1: client.address,
-          city: '',
-          state: '',
-          pincode: '',
-          country: 'India'
-        };
+        updates.address = createAddressFromLegacy(client.address, null, null);
         updates.needsAddressReview = true;
         needsUpdate = true;
         flagged++;
