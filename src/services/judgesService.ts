@@ -2,6 +2,12 @@ import { Judge } from '@/contexts/AppStateContext';
 import { storageManager } from '@/data/StorageManager';
 import { toast } from '@/hooks/use-toast';
 import { normalizeJudgePayload } from '@/utils/formatters';
+import { 
+  normalizeAddress, 
+  serializeAddress, 
+  parseDbAddress 
+} from '@/utils/addressUtils';
+import { PartialAddress } from '@/types/address';
 
 // Helper to safely format date fields (handles Date objects, strings, null/undefined)
 function formatDateFieldSafe(value: unknown): string | null {
@@ -72,7 +78,7 @@ class JudgesService {
         email: judgeData.email,
         phone: judgeData.phone,
         assistant: judgeData.assistant,
-        address: judgeData.address,
+        address: judgeData.address ? normalizeAddress(judgeData.address) : undefined,
         availability: judgeData.availability,
         tags: judgeData.tags,
         notes: judgeData.notes,
@@ -204,7 +210,7 @@ class JudgesService {
             ageLimit: updates.tenureDetails.ageLimit
           })
         }),
-        ...(updates.address && { address: JSON.stringify(updates.address) }),
+        ...(updates.address && { address: serializeAddress(updates.address as PartialAddress) }),
         updated_at: new Date().toISOString(),
         ...(userId && { updated_by: userId }),
       } as any);
@@ -318,7 +324,7 @@ class JudgesService {
         // Parse JSONB fields
         const qualifications = j.qualifications ? (typeof j.qualifications === 'string' ? JSON.parse(j.qualifications) : j.qualifications) : undefined;
         const tenureDetails = j.tenure_details ? (typeof j.tenure_details === 'string' ? JSON.parse(j.tenure_details) : j.tenure_details) : undefined;
-        const address = j.address ? (typeof j.address === 'string' ? JSON.parse(j.address) : j.address) : undefined;
+        const address = parseDbAddress(j.address);
         const assistant = j.assistant ? (typeof j.assistant === 'string' ? JSON.parse(j.assistant) : j.assistant) : {};
         const availability = j.availability ? (typeof j.availability === 'string' ? JSON.parse(j.availability) : j.availability) : {};
         
@@ -391,7 +397,7 @@ class JudgesService {
       // Parse JSONB fields
       const qualifications = judge.qualifications ? (typeof judge.qualifications === 'string' ? JSON.parse(judge.qualifications) : judge.qualifications) : undefined;
       const tenureDetails = judge.tenure_details ? (typeof judge.tenure_details === 'string' ? JSON.parse(judge.tenure_details) : judge.tenure_details) : undefined;
-      const address = judge.address ? (typeof judge.address === 'string' ? JSON.parse(judge.address) : judge.address) : undefined;
+      const address = parseDbAddress(judge.address);
       const assistant = judge.assistant ? (typeof judge.assistant === 'string' ? JSON.parse(judge.assistant) : judge.assistant) : {};
       const availability = judge.availability ? (typeof judge.availability === 'string' ? JSON.parse(judge.availability) : judge.availability) : {};
       
