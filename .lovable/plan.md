@@ -1,370 +1,328 @@
 
-
-# Day 4: Complete Unified Address Adoption
+# Day 5: Create UnifiedAddressForm Component
 
 ## Objective
-Complete Unified Address Architecture adoption in `clientContactsService` and identify/mark deprecated duplicated address logic across other services.
+Create a contract layer component that wraps the existing `AddressForm` while exposing the Unified Address Architecture interface. This enables consumers to use the typed `UnifiedAddress`/`PartialAddress` interface while leveraging the existing UI implementation.
 
 ---
 
-## Current State Analysis
+## Component Design
 
-### clientContactsService.ts
+### Props Interface
 
-| Area | Current Status | Gap |
-|------|----------------|-----|
-| Interface (line 57) | ✅ `address?: UnifiedAddress` | Complete |
-| CreateContactRequest (line 85) | ✅ `address?: PartialAddress` | Complete |
-| toClientContact (line 119) | ✅ Uses `parseDbAddress()` | Complete |
-| **createContact (line 271-286)** | ❌ **Missing address serialization** | Needs fix |
-| **updateContact (line 411-420)** | ❌ **Missing address handling** | Needs fix |
-| **bulkCreateContacts (line 655-670)** | ❌ **Missing address handling** | Needs fix |
-
-### Other Services Status
-
-| Service | normalizeAddress | serializeAddress | validateAddress | parseDbAddress | Status |
-|---------|------------------|------------------|-----------------|----------------|--------|
-| clientsService.ts | ✅ | ✅ | ✅ | - | ✅ Complete |
-| judgesService.ts | ✅ | ✅ | - | ✅ | ✅ Complete |
-| employeesService.ts | ✅ | ✅ | ✅ | ✅ | ✅ Complete |
-| courtsService.ts | ✅ | ✅ | - | ✅ | ✅ Complete |
-| clientContactsService.ts | - | ❌ Missing | ❌ Missing | ✅ | ❌ Incomplete |
-
-### Duplicated Logic to Deprecate
-
-| Service | Method | Issue |
-|---------|--------|-------|
-| addressLookupService.ts | `validateAddress()` (line 306) | Custom validation logic |
-| addressLookupService.ts | `validatePincode()` (line 301) | Inline regex check |
-| addressMasterService.ts | `validateAddress()` (line 415) | Already marked `@deprecated` ✅ |
-
----
-
-## Task 1: Complete clientContactsService Address Handling
-
-### 1.1 Add Required Imports (Line 9)
-
-**Before:**
 ```typescript
-import { parseDbAddress } from '@/utils/addressUtils';
+interface UnifiedAddressFormProps {
+  // Core data binding
+  value: UnifiedAddress | PartialAddress;
+  onChange: (address: UnifiedAddress) => void;
+  
+  // Module configuration
+  module: AddressModule;  // 'client' | 'court' | 'judge' | 'employee' | 'contact'
+  mode: 'create' | 'edit' | 'view';
+  
+  // Feature toggles (optional - defaults from ADDRESS_MODULE_CONFIGS)
+  showGSTIntegration?: boolean;
+  showGeocoding?: boolean;
+  addressType?: AddressType;
+  
+  // GST integration props
+  gstin?: string;
+  onGSTAddressSelect?: (address: UnifiedAddress) => void;
+  
+  // Standard form props
+  disabled?: boolean;
+  required?: boolean;
+  className?: string;
+}
 ```
 
-**After:**
+### Internal Mapping Strategy
+
+The component will:
+1. **Normalize incoming `value`** via `normalizeAddress()` before passing to `AddressForm`
+2. **Map `module` to `ModuleName`** for legacy `AddressForm` compatibility
+3. **Convert `AddressForm` output** back to `UnifiedAddress` via `normalizeAddress()` in the `onChange` handler
+4. **Derive defaults** from `ADDRESS_MODULE_CONFIGS` when optional props not provided
+5. **Handle `mode='view'`** by setting `disabled=true`
+
+---
+
+## Data Flow Diagram
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                        Consumer Component                            │
+│  (ClientModal, JudgeForm, EmployeeModal, etc.)                       │
+└──────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│                     UnifiedAddressForm                               │
+│  ┌─────────────────────────────────────────────────────────────┐     │
+│  │ Props: value (UnifiedAddress), onChange, module, mode       │     │
+│  └─────────────────────────────────────────────────────────────┘     │
+│                              │                                       │
+│         normalizeAddress(value) ──► Normalized UnifiedAddress        │
+│                              │                                       │
+│                              ▼                                       │
+│  ┌─────────────────────────────────────────────────────────────┐     │
+│  │              Existing AddressForm                            │     │
+│  │  Props: value (EnhancedAddressData), onChange, module...    │     │
+│  └─────────────────────────────────────────────────────────────┘     │
+│                              │                                       │
+│         onChange handler ──► normalizeAddress(output)                │
+│                              │                                       │
+│                              ▼                                       │
+│         Callback: onChange(UnifiedAddress)                           │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Files to Create
+
+| File | Description |
+|------|-------------|
+| `src/components/ui/UnifiedAddressForm.tsx` | Wrapper component |
+
+---
+
+## Implementation Details
+
+### 1. Module Type Mapping
+
+The existing `AddressForm` uses `ModuleName` from `addressConfigService`:
 ```typescript
+type ModuleName = 'employee' | 'judge' | 'client' | 'court';
+```
+
+The `AddressModule` from `types/address.ts` adds `'contact'`:
+```typescript
+type AddressModule = 'client' | 'court' | 'judge' | 'employee' | 'contact';
+```
+
+The wrapper will map `'contact'` to `'client'` for legacy compatibility.
+
+### 2. Mode Handling
+
+| Mode | Behavior |
+|------|----------|
+| `'create'` | `disabled=false`, `required` based on module config |
+| `'edit'` | `disabled=false`, `required` based on module config |
+| `'view'` | `disabled=true`, fields read-only |
+
+### 3. Feature Flag Defaults
+
+When `showGSTIntegration` or `showGeocoding` are not explicitly provided, defaults are derived from `ADDRESS_MODULE_CONFIGS[module]`.
+
+### 4. GST Integration Passthrough
+
+The component will:
+- Pass `gstin` and `onGSTAddressSelect` directly to `AddressForm`
+- Wrap `onGSTAddressSelect` callback to ensure output is `UnifiedAddress`
+
+---
+
+## Component Code Structure
+
+```typescript
+import React, { useMemo, useCallback } from 'react';
+import { AddressForm } from '@/components/ui/AddressForm';
 import { 
-  parseDbAddress, 
-  serializeAddress, 
-  validateAddress 
-} from '@/utils/addressUtils';
-```
+  UnifiedAddress, 
+  PartialAddress, 
+  AddressModule, 
+  AddressType,
+  ADDRESS_MODULE_CONFIGS,
+  EMPTY_ADDRESS
+} from '@/types/address';
+import { normalizeAddress } from '@/utils/addressUtils';
+import { ModuleName } from '@/services/addressConfigService';
+import { EnhancedAddressData } from '@/services/addressMasterService';
 
-### 1.2 Add Address Validation in createContact (After line 268)
-
-Add address validation before the try block:
-```typescript
-// Validate address using unified architecture
-if (migratedContact.address) {
-  const addressValidation = validateAddress(migratedContact.address, 'contact');
-  if (!addressValidation.isValid) {
-    return {
-      success: false,
-      error: `Address validation failed: ${addressValidation.errors.map(e => e.message).join(', ')}`,
-      data: null
-    };
-  }
+interface UnifiedAddressFormProps {
+  value: UnifiedAddress | PartialAddress;
+  onChange: (address: UnifiedAddress) => void;
+  module: AddressModule;
+  mode: 'create' | 'edit' | 'view';
+  showGSTIntegration?: boolean;
+  showGeocoding?: boolean;
+  addressType?: AddressType;
+  gstin?: string;
+  onGSTAddressSelect?: (address: UnifiedAddress) => void;
+  disabled?: boolean;
+  required?: boolean;
+  className?: string;
 }
+
+export const UnifiedAddressForm: React.FC<UnifiedAddressFormProps> = ({
+  value,
+  onChange,
+  module,
+  mode,
+  showGSTIntegration,
+  showGeocoding,
+  addressType,
+  gstin,
+  onGSTAddressSelect,
+  disabled,
+  required,
+  className
+}) => {
+  // Get module configuration
+  const moduleConfig = ADDRESS_MODULE_CONFIGS[module];
+  
+  // Map AddressModule to legacy ModuleName
+  const legacyModule: ModuleName = module === 'contact' ? 'client' : module;
+  
+  // Normalize value for AddressForm
+  const normalizedValue = useMemo(() => normalizeAddress(value), [value]);
+  
+  // Determine feature flags
+  const gstEnabled = showGSTIntegration ?? moduleConfig.showGSTIntegration;
+  
+  // Handle mode
+  const isDisabled = disabled ?? (mode === 'view');
+  const isRequired = required ?? (mode !== 'view');
+  
+  // Wrap onChange to normalize output
+  const handleChange = useCallback((data: EnhancedAddressData | AddressData) => {
+    const normalized = normalizeAddress(data);
+    // Preserve addressType if set
+    if (addressType) normalized.addressType = addressType;
+    onChange(normalized);
+  }, [onChange, addressType]);
+  
+  // Wrap GST callback
+  const handleGSTAddressSelect = useCallback((data: EnhancedAddressData) => {
+    const normalized = normalizeAddress(data);
+    if (addressType) normalized.addressType = addressType;
+    onGSTAddressSelect?.(normalized);
+  }, [onGSTAddressSelect, addressType]);
+  
+  return (
+    <AddressForm
+      value={normalizedValue}
+      onChange={handleChange}
+      module={legacyModule}
+      showGSTIntegration={gstEnabled}
+      gstin={gstin}
+      onGSTAddressSelect={onGSTAddressSelect ? handleGSTAddressSelect : undefined}
+      disabled={isDisabled}
+      required={isRequired}
+      className={className}
+    />
+  );
+};
+
+export default UnifiedAddressForm;
 ```
 
-### 1.3 Add Address Serialization in createContact (Line 271-286)
+---
 
-**Before:**
+## Example Usage Snippets
+
+### 1. Client Modal (with GST Integration)
+
 ```typescript
-const insertData = {
-  tenant_id: tenantId,
-  client_id: clientId || null,
-  name: migratedContact.name,
-  designation: migratedContact.designation || null,
-  emails: JSON.parse(JSON.stringify(migratedContact.emails || [])),
-  phones: JSON.parse(JSON.stringify(migratedContact.phones || [])),
-  roles: migratedContact.roles || [],
-  is_primary: migratedContact.isPrimary || false,
-  is_active: true,
-  source: 'manual',
-  notes: migratedContact.notes || null,
-  owner_user_id: user.id,
-  data_scope: contact.dataScope || 'TEAM'
+import { UnifiedAddressForm } from '@/components/ui/UnifiedAddressForm';
+import { UnifiedAddress, PartialAddress } from '@/types/address';
+
+const ClientModal = () => {
+  const [address, setAddress] = useState<PartialAddress>({});
+  
+  return (
+    <UnifiedAddressForm
+      value={address}
+      onChange={setAddress}
+      module="client"
+      mode="edit"
+      showGSTIntegration={true}
+      gstin={clientData.gstin}
+      onGSTAddressSelect={(addr) => {
+        setAddress(addr);
+        toast.success('GST address populated');
+      }}
+    />
+  );
 };
 ```
 
-**After:**
+### 2. Court Modal (Basic)
+
 ```typescript
-const insertData = {
-  tenant_id: tenantId,
-  client_id: clientId || null,
-  name: migratedContact.name,
-  designation: migratedContact.designation || null,
-  emails: JSON.parse(JSON.stringify(migratedContact.emails || [])),
-  phones: JSON.parse(JSON.stringify(migratedContact.phones || [])),
-  roles: migratedContact.roles || [],
-  is_primary: migratedContact.isPrimary || false,
-  is_active: true,
-  source: 'manual',
-  notes: migratedContact.notes || null,
-  owner_user_id: user.id,
-  data_scope: contact.dataScope || 'TEAM',
-  // Unified Address Architecture: serialize address to JSONB
-  address: migratedContact.address ? serializeAddress(migratedContact.address) : null
-};
+<UnifiedAddressForm
+  value={courtData.address || {}}
+  onChange={(addr) => setCourtData(prev => ({ ...prev, address: addr }))}
+  module="court"
+  mode={isEditing ? 'edit' : 'view'}
+/>
 ```
 
-### 1.4 Add Address Handling in updateContact (Lines 411-420)
+### 3. Employee Modal (with Address Type)
 
-**Before:**
 ```typescript
-const updateData: any = {};
-if (updates.name !== undefined) updateData.name = updates.name;
-if (updates.designation !== undefined) updateData.designation = updates.designation;
-if (updates.emails !== undefined) updateData.emails = JSON.parse(JSON.stringify(updates.emails));
-if (updates.phones !== undefined) updateData.phones = JSON.parse(JSON.stringify(updates.phones));
-if (updates.roles !== undefined) updateData.roles = updates.roles;
-if (updates.isPrimary !== undefined) updateData.is_primary = updates.isPrimary;
-if (updates.notes !== undefined) updateData.notes = updates.notes;
-if (updates.dataScope !== undefined) updateData.data_scope = updates.dataScope;
-if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
+<UnifiedAddressForm
+  value={employee.currentAddress}
+  onChange={(addr) => updateAddress('current', addr)}
+  module="employee"
+  mode="edit"
+  addressType="current"
+/>
+
+<UnifiedAddressForm
+  value={employee.permanentAddress}
+  onChange={(addr) => updateAddress('permanent', addr)}
+  module="employee"
+  mode="edit"
+  addressType="permanent"
+/>
 ```
 
-**After:**
+### 4. Judge Form (View Mode)
+
 ```typescript
-const updateData: any = {};
-if (updates.name !== undefined) updateData.name = updates.name;
-if (updates.designation !== undefined) updateData.designation = updates.designation;
-if (updates.emails !== undefined) updateData.emails = JSON.parse(JSON.stringify(updates.emails));
-if (updates.phones !== undefined) updateData.phones = JSON.parse(JSON.stringify(updates.phones));
-if (updates.roles !== undefined) updateData.roles = updates.roles;
-if (updates.isPrimary !== undefined) updateData.is_primary = updates.isPrimary;
-if (updates.notes !== undefined) updateData.notes = updates.notes;
-if (updates.dataScope !== undefined) updateData.data_scope = updates.dataScope;
-if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
-
-// Unified Address Architecture: validate and serialize address
-if (updates.address !== undefined) {
-  if (updates.address) {
-    const addressValidation = validateAddress(updates.address, 'contact');
-    if (!addressValidation.isValid) {
-      return {
-        success: false,
-        error: `Address validation failed: ${addressValidation.errors.map(e => e.message).join(', ')}`,
-        data: null
-      };
-    }
-    updateData.address = serializeAddress(updates.address);
-  } else {
-    updateData.address = null;
-  }
-}
-```
-
-### 1.5 Add Address Handling in bulkCreateContacts (Lines 656-670)
-
-**Before:**
-```typescript
-const insertData = contacts.map(contact => {
-  const migrated = this.migrateContactData(contact);
-  return {
-    tenant_id: tenantId,
-    client_id: clientId,
-    name: migrated.name,
-    designation: migrated.designation || null,
-    emails: JSON.parse(JSON.stringify(migrated.emails || [])),
-    phones: JSON.parse(JSON.stringify(migrated.phones || [])),
-    roles: migrated.roles || [],
-    is_primary: migrated.isPrimary || false,
-    is_active: true,
-    source: 'imported',
-    notes: migrated.notes || null
-  };
-});
-```
-
-**After:**
-```typescript
-const insertData = contacts.map(contact => {
-  const migrated = this.migrateContactData(contact);
-  return {
-    tenant_id: tenantId,
-    client_id: clientId,
-    name: migrated.name,
-    designation: migrated.designation || null,
-    emails: JSON.parse(JSON.stringify(migrated.emails || [])),
-    phones: JSON.parse(JSON.stringify(migrated.phones || [])),
-    roles: migrated.roles || [],
-    is_primary: migrated.isPrimary || false,
-    is_active: true,
-    source: 'imported',
-    notes: migrated.notes || null,
-    // Unified Address Architecture: serialize address to JSONB
-    address: migrated.address ? serializeAddress(migrated.address) : null
-  };
-});
+<UnifiedAddressForm
+  value={judge.address}
+  onChange={() => {}} // No-op in view mode
+  module="judge"
+  mode="view"
+/>
 ```
 
 ---
 
-## Task 2: Deprecate Duplicated Logic in addressLookupService
+## Backward Compatibility
 
-### 2.1 Mark validatePincode as Deprecated (Lines 301-304)
-
-**Before:**
-```typescript
-async validatePincode(pincode: string): Promise<boolean> {
-  const pincodeRegex = /^[0-9]{6}$/;
-  return pincodeRegex.test(pincode);
-}
-```
-
-**After:**
-```typescript
-/**
- * @deprecated Use validateAddress from @/utils/addressUtils.ts instead
- */
-async validatePincode(pincode: string): Promise<boolean> {
-  const pincodeRegex = /^[0-9]{6}$/;
-  return pincodeRegex.test(pincode);
-}
-```
-
-### 2.2 Mark validateAddress as Deprecated (Lines 306-335)
-
-**Before:**
-```typescript
-async validateAddress(address: AddressData): Promise<{ isValid: boolean; errors: string[] }> {
-```
-
-**After:**
-```typescript
-/**
- * @deprecated Use validateAddress from @/utils/addressUtils.ts instead
- */
-async validateAddress(address: AddressData): Promise<{ isValid: boolean; errors: string[] }> {
-```
-
----
-
-## Files Modified
-
-| File | Change Type | Description |
-|------|-------------|-------------|
-| `src/services/clientContactsService.ts` | EDIT | Add validate + serialize for address in create/update/bulk flows |
-| `src/services/addressLookupService.ts` | EDIT | Add @deprecated JSDoc to validatePincode and validateAddress |
-
----
-
-## Diff Summary
-
-### clientContactsService.ts
-```diff
-// Line 9 - Imports
-- import { parseDbAddress } from '@/utils/addressUtils';
-+ import { 
-+   parseDbAddress, 
-+   serializeAddress, 
-+   validateAddress 
-+ } from '@/utils/addressUtils';
-
-// Line 268 - Before createContact try block
-+ // Validate address using unified architecture
-+ if (migratedContact.address) {
-+   const addressValidation = validateAddress(migratedContact.address, 'contact');
-+   if (!addressValidation.isValid) {
-+     return {
-+       success: false,
-+       error: `Address validation failed: ${addressValidation.errors.map(e => e.message).join(', ')}`,
-+       data: null
-+     };
-+   }
-+ }
-
-// Line 286 - Add to insertData
-    data_scope: contact.dataScope || 'TEAM'
-+   // Unified Address Architecture
-+   address: migratedContact.address ? serializeAddress(migratedContact.address) : null
-
-// Line 420 - Add after isActive handling
-+ if (updates.address !== undefined) {
-+   if (updates.address) {
-+     const addressValidation = validateAddress(updates.address, 'contact');
-+     if (!addressValidation.isValid) {
-+       return {
-+         success: false,
-+         error: `Address validation failed: ${addressValidation.errors.map(e => e.message).join(', ')}`,
-+         data: null
-+       };
-+     }
-+     updateData.address = serializeAddress(updates.address);
-+   } else {
-+     updateData.address = null;
-+   }
-+ }
-
-// Line 670 - Add to bulk insert data
-    notes: migrated.notes || null
-+   address: migrated.address ? serializeAddress(migrated.address) : null
-```
-
-### addressLookupService.ts
-```diff
-// Line 301
-+ /**
-+  * @deprecated Use validateAddress from @/utils/addressUtils.ts instead
-+  */
-  async validatePincode(pincode: string): Promise<boolean> {
-
-// Line 306
-+ /**
-+  * @deprecated Use validateAddress from @/utils/addressUtils.ts instead
-+  */
-  async validateAddress(address: AddressData): Promise<{ isValid: boolean; errors: string[] }> {
-```
-
----
-
-## Final Compliance Summary
-
-### Services Now Using addressUtils
-
-| Service | Status | Notes |
-|---------|--------|-------|
-| clientsService.ts | ✅ Complete | Day 2 - Full compliance |
-| judgesService.ts | ✅ Complete | Day 3 - Full compliance |
-| employeesService.ts | ✅ Complete | Day 3 - Full compliance with legacy fallback |
-| courtsService.ts | ✅ Complete | Pre-existing compliance |
-| clientContactsService.ts | ✅ Complete | Day 4 - After this update |
-
-### Deprecated Methods (Kept for Backward Compatibility)
-
-| Service | Method | Reason |
-|---------|--------|--------|
-| clientsService.ts | `validatePincode()` | Used by signatory forms |
-| addressLookupService.ts | `validatePincode()` | Legacy callers |
-| addressLookupService.ts | `validateAddress()` | Legacy callers |
-| addressMasterService.ts | `validateAddress()` | Already deprecated |
+| Existing Component | Status | Migration Path |
+|-------------------|--------|----------------|
+| `AddressForm` | PRESERVED | Used internally by UnifiedAddressForm |
+| `SimpleAddressForm` | PRESERVED | Alternative for simple text-only forms |
+| `AddressView` | PRESERVED | Separate read-only display component |
 
 ---
 
 ## Safety Checklist
 
-- [ ] No UI component changes
-- [ ] No database schema changes
-- [ ] No RLS policy changes
-- [ ] addressUtils is single source of truth
-- [ ] Legacy data continues to render via parseDbAddress
-- [ ] Backward compatibility maintained via @deprecated markers
+- No deletion of existing components
+- No UI redesign
+- No database changes
+- No RLS policy changes
+- GST integration behavior preserved
+- Existing AddressForm consumers unaffected
+
+---
+
+## Technical Considerations
+
+1. **Type Compatibility**: `UnifiedAddress` is compatible with `EnhancedAddressData` through `normalizeAddress()` which handles all field name variations
+2. **Memoization**: Using `useMemo` for normalization and `useCallback` for handlers to prevent unnecessary re-renders
+3. **Module Fallback**: `'contact'` module maps to `'client'` config since AddressForm doesn't have contact-specific config
+4. **GST Flow Preserved**: All GST-related props pass through to AddressForm unchanged
 
 ---
 
 ## Estimated Effort
-- clientContactsService refactoring: ~20 minutes
-- addressLookupService deprecation: ~5 minutes
-- Testing: ~10 minutes
-- **Total: ~35 minutes**
-
+- Component creation: ~15 minutes
+- Documentation: ~5 minutes
+- **Total: ~20 minutes**
