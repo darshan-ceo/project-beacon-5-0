@@ -1215,6 +1215,62 @@ export class SupabaseAdapter implements StoragePort {
           });
           break;
           
+        case 'client_contacts':
+          // Map camelCase to snake_case
+          if (normalized.clientId && !normalized.client_id) {
+            normalized.client_id = normalized.clientId;
+          }
+          if (normalized.ownerUserId && !normalized.owner_user_id) {
+            normalized.owner_user_id = normalized.ownerUserId;
+          }
+          if (normalized.isPrimary !== undefined && normalized.is_primary === undefined) {
+            normalized.is_primary = normalized.isPrimary;
+          }
+          if (normalized.isActive !== undefined && normalized.is_active === undefined) {
+            normalized.is_active = normalized.isActive;
+          }
+          if (normalized.dataScope && !normalized.data_scope) {
+            normalized.data_scope = normalized.dataScope;
+          }
+          if (normalized.createdAt && !normalized.created_at) {
+            normalized.created_at = normalized.createdAt;
+          }
+          if (normalized.updatedAt && !normalized.updated_at) {
+            normalized.updated_at = normalized.updatedAt;
+          }
+          
+          // Delete camelCase versions
+          delete normalized.clientId;
+          delete normalized.ownerUserId;
+          delete normalized.isPrimary;
+          delete normalized.isActive;
+          delete normalized.dataScope;
+          delete normalized.createdAt;
+          delete normalized.updatedAt;
+          
+          // Stringify JSONB fields
+          if (normalized.emails && typeof normalized.emails === 'object') {
+            normalized.emails = JSON.stringify(normalized.emails);
+          }
+          if (normalized.phones && typeof normalized.phones === 'object') {
+            normalized.phones = JSON.stringify(normalized.phones);
+          }
+          if (normalized.address && typeof normalized.address === 'object') {
+            normalized.address = JSON.stringify(normalized.address);
+          }
+          
+          // Whitelist valid columns
+          const validContactFields = [
+            'id', 'tenant_id', 'client_id', 'name', 'designation', 
+            'emails', 'phones', 'address', 'notes',
+            'is_primary', 'is_active', 'data_scope', 'owner_user_id',
+            'created_at', 'updated_at', 'roles', 'source'
+          ];
+          Object.keys(normalized).forEach(key => {
+            if (!validContactFields.includes(key)) delete normalized[key];
+          });
+          break;
+          
         case 'automation_rules':
           // Map nested trigger to flat columns
           if (normalized.trigger?.event && !normalized.trigger_type) {
@@ -1884,8 +1940,13 @@ export class SupabaseAdapter implements StoragePort {
           delete normalized.taxJurisdiction;
           delete normalized.officerDesignation;
           
+          // Stringify address_jsonb for JSONB column
+          if (normalized.address_jsonb && typeof normalized.address_jsonb === 'object') {
+            normalized.address_jsonb = JSON.stringify(normalized.address_jsonb);
+          }
+          
           // Whitelist only valid columns (now includes all DB columns)
-          const validCourtFields = ['id', 'tenant_id', 'name', 'code', 'type', 'level', 'city', 'state', 'jurisdiction', 'address', 'created_by', 'created_at', 'updated_at', 'established_year', 'bench_location', 'tax_jurisdiction', 'officer_designation', 'phone', 'email', 'status'];
+          const validCourtFields = ['id', 'tenant_id', 'name', 'code', 'type', 'level', 'city', 'state', 'jurisdiction', 'address', 'address_jsonb', 'created_by', 'created_at', 'updated_at', 'established_year', 'bench_location', 'tax_jurisdiction', 'officer_designation', 'phone', 'email', 'status'];
           Object.keys(normalized).forEach(key => {
             if (!validCourtFields.includes(key)) delete normalized[key];
           });
@@ -1916,6 +1977,11 @@ export class SupabaseAdapter implements StoragePort {
             normalized.court_id = null;
           }
           
+          // Stringify address for JSONB column
+          if (normalized.address && typeof normalized.address === 'object') {
+            normalized.address = JSON.stringify(normalized.address);
+          }
+          
           // Whitelist only valid columns (complete list matching judges table schema)
           const validJudgeFields = [
             'id', 'tenant_id', 'name', 'designation', 'status', 'court_id',
@@ -1924,7 +1990,8 @@ export class SupabaseAdapter implements StoragePort {
             'specialization', 'chambers', 'assistant', 'availability',
             'tags', 'notes', 'photo_url', 'created_at', 'updated_at', 'created_by',
             // Phase 1 fields
-            'member_type', 'authority_level', 'qualifications', 'tenure_details'
+            'member_type', 'authority_level', 'qualifications', 'tenure_details',
+            'address'  // JSONB address field
           ];
           Object.keys(normalized).forEach(key => {
             if (!validJudgeFields.includes(key)) delete normalized[key];
