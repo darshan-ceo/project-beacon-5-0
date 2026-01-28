@@ -1,7 +1,11 @@
 import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PartialAddress } from '@/types/address';
 
+/**
+ * @deprecated Use PartialAddress from @/types/address.ts instead
+ */
 export interface SimpleAddressData {
   line1?: string;
   line2?: string;
@@ -12,7 +16,7 @@ export interface SimpleAddressData {
 }
 
 interface SimpleAddressFormProps {
-  value: SimpleAddressData;
+  value: SimpleAddressData | PartialAddress;
   onChange: (address: SimpleAddressData) => void;
   disabled?: boolean;
   className?: string;

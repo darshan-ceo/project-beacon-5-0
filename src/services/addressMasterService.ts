@@ -1,12 +1,25 @@
 /**
  * Address Master Service for Central Address Management
  * Handles CRUD operations for centralized address system with GST integration
+ * 
+ * NOTE: This service is being migrated to use UnifiedAddress from @/types/address.ts
+ * The EnhancedAddressData interface below is kept for backward compatibility.
  */
 
 import { apiService, ApiResponse } from './apiService';
 import { envConfig } from '../utils/envConfig';
 import { DataSource } from '@/components/ui/source-chip';
+import { 
+  UnifiedAddress, 
+  EMPTY_ADDRESS, 
+  AddressSource, 
+  AddressType 
+} from '@/types/address';
+import { normalizeAddress, serializeAddress, validateAddress } from '@/utils/addressUtils';
 
+/**
+ * @deprecated Use UnifiedAddress from @/types/address.ts instead
+ */
 export interface EnhancedAddressData {
   id?: string;
   line1?: string;
@@ -26,6 +39,36 @@ export interface EnhancedAddressData {
   source?: DataSource;
   createdAt?: string;
   updatedAt?: string;
+}
+
+/**
+ * Convert EnhancedAddressData to UnifiedAddress
+ */
+export function toUnifiedAddress(enhanced: EnhancedAddressData): UnifiedAddress {
+  return normalizeAddress(enhanced);
+}
+
+/**
+ * Convert UnifiedAddress to EnhancedAddressData (for backward compatibility)
+ */
+export function fromUnifiedAddress(unified: UnifiedAddress): EnhancedAddressData {
+  return {
+    line1: unified.line1,
+    line2: unified.line2,
+    landmark: unified.landmark,
+    locality: unified.locality,
+    district: unified.district,
+    cityId: unified.cityId,
+    cityName: unified.cityName,
+    stateId: unified.stateId,
+    stateCode: unified.stateCode,
+    stateName: unified.stateName,
+    countryId: unified.countryId,
+    pincode: unified.pincode,
+    lat: unified.lat,
+    lng: unified.lng,
+    source: unified.source as DataSource
+  };
 }
 
 export interface AddressLink {
@@ -366,37 +409,22 @@ class AddressMasterService {
   }
 
   /**
-   * Validate address data
+   * Validate address data using unified validation
+   * @deprecated Use validateAddress from @/utils/addressUtils.ts instead
    */
   validateAddress(address: Partial<EnhancedAddressData>): { isValid: boolean; errors: string[] } {
-    const errors: string[] = [];
-
-    if (!address.line1?.trim()) {
-      errors.push('Address Line 1 is required');
-    }
-
-    if (!address.district?.trim()) {
-      errors.push('District is required');
-    }
-
-    if (!address.stateId?.trim()) {
-      errors.push('State is required');
-    }
-
-    if (!address.countryId?.trim()) {
-      errors.push('Country is required');
-    }
-
-    if (!address.pincode?.trim()) {
-      errors.push('Pincode is required');
-    } else if (!/^\d{6}$/.test(address.pincode)) {
-      errors.push('Pincode must be 6 digits');
-    }
-
+    const result = validateAddress(address, 'client');
     return {
-      isValid: errors.length === 0,
-      errors
+      isValid: result.isValid,
+      errors: result.errors.map(e => e.message)
     };
+  }
+
+  /**
+   * Validate address using unified validation (new method)
+   */
+  validateUnified(address: Partial<UnifiedAddress>, module: 'client' | 'court' | 'judge' | 'employee' | 'contact' = 'client') {
+    return validateAddress(address, module);
   }
 
   /**
