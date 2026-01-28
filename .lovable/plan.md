@@ -1,213 +1,251 @@
 
-# Day 3: Unified Address Handling for judgesService & employeesService
+
+# Day 4: Complete Unified Address Adoption
 
 ## Objective
-Enforce Unified Address Architecture in both services by replacing manual JSON handling and inline validation with centralized utilities.
+Complete Unified Address Architecture adoption in `clientContactsService` and identify/mark deprecated duplicated address logic across other services.
 
 ---
 
-## Part A: judgesService.ts Refactoring
+## Current State Analysis
 
-### Current Violations Found
+### clientContactsService.ts
 
-| Line(s) | Issue | Type |
-|---------|-------|------|
-| 207 | `JSON.stringify(updates.address)` | Direct JSON manipulation |
-| 319-321 | `typeof j.address === 'string' ? JSON.parse(j.address)` | Manual parsing in list() |
-| 391-394 | Same pattern in getById() | Manual parsing |
-| 75, 352, 425 | Raw address passthrough | No normalization |
+| Area | Current Status | Gap |
+|------|----------------|-----|
+| Interface (line 57) | ✅ `address?: UnifiedAddress` | Complete |
+| CreateContactRequest (line 85) | ✅ `address?: PartialAddress` | Complete |
+| toClientContact (line 119) | ✅ Uses `parseDbAddress()` | Complete |
+| **createContact (line 271-286)** | ❌ **Missing address serialization** | Needs fix |
+| **updateContact (line 411-420)** | ❌ **Missing address handling** | Needs fix |
+| **bulkCreateContacts (line 655-670)** | ❌ **Missing address handling** | Needs fix |
 
-### Changes Required
+### Other Services Status
 
-#### 1. Add Imports (Top of file)
-```typescript
-import { 
-  normalizeAddress, 
-  serializeAddress, 
-  parseDbAddress 
-} from '@/utils/addressUtils';
-import { PartialAddress } from '@/types/address';
-```
+| Service | normalizeAddress | serializeAddress | validateAddress | parseDbAddress | Status |
+|---------|------------------|------------------|-----------------|----------------|--------|
+| clientsService.ts | ✅ | ✅ | ✅ | - | ✅ Complete |
+| judgesService.ts | ✅ | ✅ | - | ✅ | ✅ Complete |
+| employeesService.ts | ✅ | ✅ | ✅ | ✅ | ✅ Complete |
+| courtsService.ts | ✅ | ✅ | - | ✅ | ✅ Complete |
+| clientContactsService.ts | - | ❌ Missing | ❌ Missing | ✅ | ❌ Incomplete |
 
-#### 2. Refactor CREATE Flow (Line 75)
-**Before:**
-```typescript
-address: judgeData.address,
-```
-**After:**
-```typescript
-address: judgeData.address ? normalizeAddress(judgeData.address) : undefined,
-```
+### Duplicated Logic to Deprecate
 
-#### 3. Refactor UPDATE Flow (Line 207)
-**Before:**
-```typescript
-...(updates.address && { address: JSON.stringify(updates.address) }),
-```
-**After:**
-```typescript
-...(updates.address && { address: serializeAddress(updates.address as PartialAddress) }),
-```
-
-#### 4. Refactor list() READ Flow (Lines 319-324)
-**Before:**
-```typescript
-const qualifications = j.qualifications ? (typeof j.qualifications === 'string' ? JSON.parse(j.qualifications) : j.qualifications) : undefined;
-const tenureDetails = j.tenure_details ? (typeof j.tenure_details === 'string' ? JSON.parse(j.tenure_details) : j.tenure_details) : undefined;
-const address = j.address ? (typeof j.address === 'string' ? JSON.parse(j.address) : j.address) : undefined;
-const assistant = j.assistant ? (typeof j.assistant === 'string' ? JSON.parse(j.assistant) : j.assistant) : {};
-const availability = j.availability ? (typeof j.availability === 'string' ? JSON.parse(j.availability) : j.availability) : {};
-```
-**After:**
-```typescript
-const qualifications = j.qualifications ? (typeof j.qualifications === 'string' ? JSON.parse(j.qualifications) : j.qualifications) : undefined;
-const tenureDetails = j.tenure_details ? (typeof j.tenure_details === 'string' ? JSON.parse(j.tenure_details) : j.tenure_details) : undefined;
-const address = parseDbAddress(j.address); // Use centralized utility
-const assistant = j.assistant ? (typeof j.assistant === 'string' ? JSON.parse(j.assistant) : j.assistant) : {};
-const availability = j.availability ? (typeof j.availability === 'string' ? JSON.parse(j.availability) : j.availability) : {};
-```
-
-#### 5. Refactor getById() READ Flow (Lines 391-396)
-Apply same pattern:
-**Before:**
-```typescript
-const address = judge.address ? (typeof judge.address === 'string' ? JSON.parse(judge.address) : judge.address) : undefined;
-```
-**After:**
-```typescript
-const address = parseDbAddress(judge.address);
-```
+| Service | Method | Issue |
+|---------|--------|-------|
+| addressLookupService.ts | `validateAddress()` (line 306) | Custom validation logic |
+| addressLookupService.ts | `validatePincode()` (line 301) | Inline regex check |
+| addressMasterService.ts | `validateAddress()` (line 415) | Already marked `@deprecated` ✅ |
 
 ---
 
-## Part B: employeesService.ts Refactoring
+## Task 1: Complete clientContactsService Address Handling
 
-### Current State Analysis
+### 1.1 Add Required Imports (Line 9)
 
-| Field | Location | Status |
-|-------|----------|--------|
-| `currentAddress` | Interface line 34 | Legacy TEXT (preserve) |
-| `permanentAddress` | Interface line 35 | Legacy TEXT (preserve) |
-| `address` | DB column (JSONB) | NEW - added Day 1 |
-| `pincode` | Interface line 38 | Legacy, inline validation |
-
-### Changes Required
-
-#### 1. Add Imports (Top of file)
-```typescript
-import { 
-  normalizeAddress, 
-  serializeAddress, 
-  parseDbAddress,
-  createAddressFromLegacy,
-  isAddressEmpty
-} from '@/utils/addressUtils';
-import { PartialAddress, UnifiedAddress } from '@/types/address';
-```
-
-#### 2. Update Employee Interface (Lines 6-87)
-Add unified address field alongside legacy fields:
-```typescript
-// Contact Tab - Legacy fields preserved for backward compat
-currentAddress?: string;
-permanentAddress?: string;
-city?: string;
-state?: string;
-pincode?: string;
-
-// NEW: Unified address (takes priority when present)
-address?: UnifiedAddress;
-```
-
-#### 3. Refactor Validation (Lines 151-154)
 **Before:**
 ```typescript
-// Pincode validation
-if (employee.pincode && !/^\d{6}$/.test(employee.pincode)) {
-  errors.push("Invalid pincode. Must be 6 digits");
-}
+import { parseDbAddress } from '@/utils/addressUtils';
 ```
-**After (no change needed):** Keep inline validation for legacy field, but add:
+
+**After:**
 ```typescript
-// Unified address validation (if provided)
-if (employee.address && !isAddressEmpty(employee.address)) {
-  const { validateAddress } = await import('@/utils/addressUtils');
-  const addressValidation = validateAddress(employee.address, 'employee');
+import { 
+  parseDbAddress, 
+  serializeAddress, 
+  validateAddress 
+} from '@/utils/addressUtils';
+```
+
+### 1.2 Add Address Validation in createContact (After line 268)
+
+Add address validation before the try block:
+```typescript
+// Validate address using unified architecture
+if (migratedContact.address) {
+  const addressValidation = validateAddress(migratedContact.address, 'contact');
   if (!addressValidation.isValid) {
-    addressValidation.errors.forEach(err => errors.push(err.message));
+    return {
+      success: false,
+      error: `Address validation failed: ${addressValidation.errors.map(e => e.message).join(', ')}`,
+      data: null
+    };
   }
 }
 ```
 
-#### 4. Refactor CREATE Flow - Persistence (Lines 211-226)
+### 1.3 Add Address Serialization in createContact (Line 271-286)
+
 **Before:**
 ```typescript
-await storage.create('employees', {
-  id: newEmployee.id,
-  employee_code: newEmployee.employeeCode,
-  email: newEmployee.email,
-  // ... other fields
-});
-```
-**After (add address field):**
-```typescript
-await storage.create('employees', {
-  id: newEmployee.id,
-  employee_code: newEmployee.employeeCode,
-  email: newEmployee.email,
-  // ... other fields
-  // NEW: Unified address JSONB
-  address: newEmployee.address ? serializeAddress(newEmployee.address) : null,
-});
+const insertData = {
+  tenant_id: tenantId,
+  client_id: clientId || null,
+  name: migratedContact.name,
+  designation: migratedContact.designation || null,
+  emails: JSON.parse(JSON.stringify(migratedContact.emails || [])),
+  phones: JSON.parse(JSON.stringify(migratedContact.phones || [])),
+  roles: migratedContact.roles || [],
+  is_primary: migratedContact.isPrimary || false,
+  is_active: true,
+  source: 'manual',
+  notes: migratedContact.notes || null,
+  owner_user_id: user.id,
+  data_scope: contact.dataScope || 'TEAM'
+};
 ```
 
-#### 5. Refactor UPDATE Flow - Persistence (Lines 271-276)
-**Before:**
-```typescript
-await storage.update('employees', employeeId, {
-  ...updates,
-  email: updates.email || updates.officialEmail,
-  status: updates.status,
-  updated_at: new Date(),
-});
-```
 **After:**
 ```typescript
-await storage.update('employees', employeeId, {
-  ...updates,
-  email: updates.email || updates.officialEmail,
-  status: updates.status,
-  // NEW: Serialize unified address if provided
-  ...(updates.address && { address: serializeAddress(updates.address as PartialAddress) }),
-  updated_at: new Date(),
+const insertData = {
+  tenant_id: tenantId,
+  client_id: clientId || null,
+  name: migratedContact.name,
+  designation: migratedContact.designation || null,
+  emails: JSON.parse(JSON.stringify(migratedContact.emails || [])),
+  phones: JSON.parse(JSON.stringify(migratedContact.phones || [])),
+  roles: migratedContact.roles || [],
+  is_primary: migratedContact.isPrimary || false,
+  is_active: true,
+  source: 'manual',
+  notes: migratedContact.notes || null,
+  owner_user_id: user.id,
+  data_scope: contact.dataScope || 'TEAM',
+  // Unified Address Architecture: serialize address to JSONB
+  address: migratedContact.address ? serializeAddress(migratedContact.address) : null
+};
+```
+
+### 1.4 Add Address Handling in updateContact (Lines 411-420)
+
+**Before:**
+```typescript
+const updateData: any = {};
+if (updates.name !== undefined) updateData.name = updates.name;
+if (updates.designation !== undefined) updateData.designation = updates.designation;
+if (updates.emails !== undefined) updateData.emails = JSON.parse(JSON.stringify(updates.emails));
+if (updates.phones !== undefined) updateData.phones = JSON.parse(JSON.stringify(updates.phones));
+if (updates.roles !== undefined) updateData.roles = updates.roles;
+if (updates.isPrimary !== undefined) updateData.is_primary = updates.isPrimary;
+if (updates.notes !== undefined) updateData.notes = updates.notes;
+if (updates.dataScope !== undefined) updateData.data_scope = updates.dataScope;
+if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
+```
+
+**After:**
+```typescript
+const updateData: any = {};
+if (updates.name !== undefined) updateData.name = updates.name;
+if (updates.designation !== undefined) updateData.designation = updates.designation;
+if (updates.emails !== undefined) updateData.emails = JSON.parse(JSON.stringify(updates.emails));
+if (updates.phones !== undefined) updateData.phones = JSON.parse(JSON.stringify(updates.phones));
+if (updates.roles !== undefined) updateData.roles = updates.roles;
+if (updates.isPrimary !== undefined) updateData.is_primary = updates.isPrimary;
+if (updates.notes !== undefined) updateData.notes = updates.notes;
+if (updates.dataScope !== undefined) updateData.data_scope = updates.dataScope;
+if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
+
+// Unified Address Architecture: validate and serialize address
+if (updates.address !== undefined) {
+  if (updates.address) {
+    const addressValidation = validateAddress(updates.address, 'contact');
+    if (!addressValidation.isValid) {
+      return {
+        success: false,
+        error: `Address validation failed: ${addressValidation.errors.map(e => e.message).join(', ')}`,
+        data: null
+      };
+    }
+    updateData.address = serializeAddress(updates.address);
+  } else {
+    updateData.address = null;
+  }
+}
+```
+
+### 1.5 Add Address Handling in bulkCreateContacts (Lines 656-670)
+
+**Before:**
+```typescript
+const insertData = contacts.map(contact => {
+  const migrated = this.migrateContactData(contact);
+  return {
+    tenant_id: tenantId,
+    client_id: clientId,
+    name: migrated.name,
+    designation: migrated.designation || null,
+    emails: JSON.parse(JSON.stringify(migrated.emails || [])),
+    phones: JSON.parse(JSON.stringify(migrated.phones || [])),
+    roles: migrated.roles || [],
+    is_primary: migrated.isPrimary || false,
+    is_active: true,
+    source: 'imported',
+    notes: migrated.notes || null
+  };
 });
 ```
 
-#### 6. Add Legacy Fallback Helper Function
-Add helper for backward compatible reads:
+**After:**
+```typescript
+const insertData = contacts.map(contact => {
+  const migrated = this.migrateContactData(contact);
+  return {
+    tenant_id: tenantId,
+    client_id: clientId,
+    name: migrated.name,
+    designation: migrated.designation || null,
+    emails: JSON.parse(JSON.stringify(migrated.emails || [])),
+    phones: JSON.parse(JSON.stringify(migrated.phones || [])),
+    roles: migrated.roles || [],
+    is_primary: migrated.isPrimary || false,
+    is_active: true,
+    source: 'imported',
+    notes: migrated.notes || null,
+    // Unified Address Architecture: serialize address to JSONB
+    address: migrated.address ? serializeAddress(migrated.address) : null
+  };
+});
+```
+
+---
+
+## Task 2: Deprecate Duplicated Logic in addressLookupService
+
+### 2.1 Mark validatePincode as Deprecated (Lines 301-304)
+
+**Before:**
+```typescript
+async validatePincode(pincode: string): Promise<boolean> {
+  const pincodeRegex = /^[0-9]{6}$/;
+  return pincodeRegex.test(pincode);
+}
+```
+
+**After:**
 ```typescript
 /**
- * Get address from employee with legacy fallback
- * Priority: address (JSONB) > legacy fields
+ * @deprecated Use validateAddress from @/utils/addressUtils.ts instead
  */
-function getEmployeeAddress(emp: Partial<Employee>): UnifiedAddress | null {
-  // Priority 1: New unified JSONB address
-  if (emp.address && !isAddressEmpty(emp.address)) {
-    return normalizeAddress(emp.address);
-  }
-  
-  // Priority 2: Legacy TEXT fields
-  if (emp.currentAddress || emp.city || emp.state) {
-    return createAddressFromLegacy(
-      emp.currentAddress || null,
-      emp.city || null,
-      emp.state || null,
-      emp.pincode || null
-    );
-  }
-  
-  return null;
+async validatePincode(pincode: string): Promise<boolean> {
+  const pincodeRegex = /^[0-9]{6}$/;
+  return pincodeRegex.test(pincode);
 }
+```
+
+### 2.2 Mark validateAddress as Deprecated (Lines 306-335)
+
+**Before:**
+```typescript
+async validateAddress(address: AddressData): Promise<{ isValid: boolean; errors: string[] }> {
+```
+
+**After:**
+```typescript
+/**
+ * @deprecated Use validateAddress from @/utils/addressUtils.ts instead
+ */
+async validateAddress(address: AddressData): Promise<{ isValid: boolean; errors: string[] }> {
 ```
 
 ---
@@ -216,114 +254,117 @@ function getEmployeeAddress(emp: Partial<Employee>): UnifiedAddress | null {
 
 | File | Change Type | Description |
 |------|-------------|-------------|
-| `src/services/judgesService.ts` | EDIT | Use addressUtils for parse/serialize |
-| `src/services/employeesService.ts` | EDIT | Add unified address handling with legacy fallback |
+| `src/services/clientContactsService.ts` | EDIT | Add validate + serialize for address in create/update/bulk flows |
+| `src/services/addressLookupService.ts` | EDIT | Add @deprecated JSDoc to validatePincode and validateAddress |
 
 ---
 
 ## Diff Summary
 
-### judgesService.ts
+### clientContactsService.ts
 ```diff
+// Line 9 - Imports
+- import { parseDbAddress } from '@/utils/addressUtils';
 + import { 
-+   normalizeAddress, 
++   parseDbAddress, 
 +   serializeAddress, 
-+   parseDbAddress 
++   validateAddress 
 + } from '@/utils/addressUtils';
-+ import { PartialAddress } from '@/types/address';
 
-// Line 75: CREATE - normalize
-- address: judgeData.address,
-+ address: judgeData.address ? normalizeAddress(judgeData.address) : undefined,
+// Line 268 - Before createContact try block
++ // Validate address using unified architecture
++ if (migratedContact.address) {
++   const addressValidation = validateAddress(migratedContact.address, 'contact');
++   if (!addressValidation.isValid) {
++     return {
++       success: false,
++       error: `Address validation failed: ${addressValidation.errors.map(e => e.message).join(', ')}`,
++       data: null
++     };
++   }
++ }
 
-// Line 207: UPDATE - serialize
-- ...(updates.address && { address: JSON.stringify(updates.address) }),
-+ ...(updates.address && { address: serializeAddress(updates.address as PartialAddress) }),
+// Line 286 - Add to insertData
+    data_scope: contact.dataScope || 'TEAM'
++   // Unified Address Architecture
++   address: migratedContact.address ? serializeAddress(migratedContact.address) : null
 
-// Line 321: list() - parse
-- const address = j.address ? (typeof j.address === 'string' ? JSON.parse(j.address) : j.address) : undefined;
-+ const address = parseDbAddress(j.address);
+// Line 420 - Add after isActive handling
++ if (updates.address !== undefined) {
++   if (updates.address) {
++     const addressValidation = validateAddress(updates.address, 'contact');
++     if (!addressValidation.isValid) {
++       return {
++         success: false,
++         error: `Address validation failed: ${addressValidation.errors.map(e => e.message).join(', ')}`,
++         data: null
++       };
++     }
++     updateData.address = serializeAddress(updates.address);
++   } else {
++     updateData.address = null;
++   }
++ }
 
-// Line 394: getById() - parse
-- const address = judge.address ? (typeof judge.address === 'string' ? JSON.parse(judge.address) : judge.address) : undefined;
-+ const address = parseDbAddress(judge.address);
+// Line 670 - Add to bulk insert data
+    notes: migrated.notes || null
++   address: migrated.address ? serializeAddress(migrated.address) : null
 ```
 
-### employeesService.ts
+### addressLookupService.ts
 ```diff
-+ import { 
-+   normalizeAddress, 
-+   serializeAddress, 
-+   parseDbAddress,
-+   createAddressFromLegacy,
-+   isAddressEmpty
-+ } from '@/utils/addressUtils';
-+ import { PartialAddress, UnifiedAddress } from '@/types/address';
+// Line 301
++ /**
++  * @deprecated Use validateAddress from @/utils/addressUtils.ts instead
++  */
+  async validatePincode(pincode: string): Promise<boolean> {
 
-// Interface update
-+ // NEW: Unified address (JSONB)
-+ address?: UnifiedAddress;
-
-// CREATE - add address to persistence
-  await storage.create('employees', {
-    ...existing fields...,
-+   address: newEmployee.address ? serializeAddress(newEmployee.address) : null,
-  });
-
-// UPDATE - serialize address
-  await storage.update('employees', employeeId, {
-    ...existing fields...,
-+   ...(updates.address && { address: serializeAddress(updates.address as PartialAddress) }),
-  });
-
-+ // NEW: Legacy fallback helper
-+ function getEmployeeAddress(emp: Partial<Employee>): UnifiedAddress | null {
-+   if (emp.address && !isAddressEmpty(emp.address)) {
-+     return normalizeAddress(emp.address);
-+   }
-+   if (emp.currentAddress || emp.city || emp.state) {
-+     return createAddressFromLegacy(
-+       emp.currentAddress || null,
-+       emp.city || null,
-+       emp.state || null,
-+       emp.pincode || null
-+     );
-+   }
-+   return null;
-+ }
+// Line 306
++ /**
++  * @deprecated Use validateAddress from @/utils/addressUtils.ts instead
++  */
+  async validateAddress(address: AddressData): Promise<{ isValid: boolean; errors: string[] }> {
 ```
 
 ---
 
-## Backward Compatibility Guarantee
+## Final Compliance Summary
 
-### Judges
-- Legacy string addresses: `parseDbAddress()` handles TEXT → UnifiedAddress
-- Empty addresses: Returns EMPTY_ADDRESS defaults
-- Existing data: No migration needed, parsing is non-destructive
+### Services Now Using addressUtils
 
-### Employees
-- Legacy TEXT fields (`currentAddress`, `permanentAddress`): Preserved, NOT modified
-- New JSONB `address` column: Takes priority when present
-- Fallback chain: `address` (JSONB) → `currentAddress`/`city`/`state` (legacy)
-- Pincode validation: Legacy inline validation preserved alongside new unified validation
+| Service | Status | Notes |
+|---------|--------|-------|
+| clientsService.ts | ✅ Complete | Day 2 - Full compliance |
+| judgesService.ts | ✅ Complete | Day 3 - Full compliance |
+| employeesService.ts | ✅ Complete | Day 3 - Full compliance with legacy fallback |
+| courtsService.ts | ✅ Complete | Pre-existing compliance |
+| clientContactsService.ts | ✅ Complete | Day 4 - After this update |
+
+### Deprecated Methods (Kept for Backward Compatibility)
+
+| Service | Method | Reason |
+|---------|--------|--------|
+| clientsService.ts | `validatePincode()` | Used by signatory forms |
+| addressLookupService.ts | `validatePincode()` | Legacy callers |
+| addressLookupService.ts | `validateAddress()` | Legacy callers |
+| addressMasterService.ts | `validateAddress()` | Already deprecated |
 
 ---
 
 ## Safety Checklist
 
 - [ ] No UI component changes
-- [ ] No RLS policy changes  
-- [ ] No database schema changes (Day 1 already added employees.address)
-- [ ] Legacy TEXT fields NOT deleted
-- [ ] Legacy validation preserved
-- [ ] Fallback priority documented
-- [ ] parseDbAddress handles null/undefined gracefully
+- [ ] No database schema changes
+- [ ] No RLS policy changes
+- [ ] addressUtils is single source of truth
+- [ ] Legacy data continues to render via parseDbAddress
+- [ ] Backward compatibility maintained via @deprecated markers
 
 ---
 
 ## Estimated Effort
-- judgesService refactoring: ~15 minutes
-- employeesService refactoring: ~25 minutes
-- Testing: ~15 minutes
-- **Total: ~55 minutes**
+- clientContactsService refactoring: ~20 minutes
+- addressLookupService deprecation: ~5 minutes
+- Testing: ~10 minutes
+- **Total: ~35 minutes**
+
