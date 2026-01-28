@@ -1,176 +1,285 @@
 
-# Day 1 Execution Plan: Database Schema & TypeScript Alignment
+# Day 2: Refactor clientsService to Unified Address Architecture
 
 ## Objective
-Align database schema and TypeScript contracts with Unified Address Architecture without touching UI or business logic.
+Refactor `clientsService.ts` to fully comply with Unified Address Architecture by routing all address handling through `addressUtils`.
 
 ---
 
-## Current State Assessment
+## Current Issues Found
 
-| Entity | Column | Type | Status |
-|--------|--------|------|--------|
-| Courts | `address` | TEXT | Exists (needs deprecation comment) |
-| Courts | `address_jsonb` | JSONB | ✅ Already migrated |
-| Client Contacts | `address` | JSONB | ✅ In DB, ❌ Missing in TypeScript |
-| Employees | `address` | JSONB | ❌ **MISSING** - needs creation |
-| Employees | `current_address` | TEXT | Exists (legacy - keep) |
-| Employees | `permanent_address` | TEXT | Exists (legacy - keep) |
-
----
-
-## Task 1: Employees Table - Add Unified Address Column
-
-### SQL Migration
-
-```sql
--- Add unified address JSONB column to employees table
-ALTER TABLE employees 
-ADD COLUMN IF NOT EXISTS address JSONB;
-
--- Add documentation comment
-COMMENT ON COLUMN employees.address IS 
-  'Unified structured address replacing legacy current_address/permanent_address fields after migration. 
-   Structure: {line1, line2, pincode, cityId, cityName, stateId, stateName, source, addressType, ...}';
-
--- Create functional index for address searches
-CREATE INDEX IF NOT EXISTS idx_employees_address_city 
-  ON employees ((address->>'cityName'));
-CREATE INDEX IF NOT EXISTS idx_employees_address_state 
-  ON employees ((address->>'stateName'));
-```
-
-### Verification
-- Legacy columns `current_address` and `permanent_address` remain untouched
-- RLS policies unaffected (column addition only)
-- No data migration in this phase (Day 1 is schema-only)
+| Line(s) | Issue | Violation |
+|---------|-------|-----------|
+| 60-73 | `validatePincode()` duplicates addressUtils logic | Inline validation |
+| 163-168 | Uses `clientsService.validatePincode()` for address validation | Should use `validateAddress()` |
+| 218 | `JSON.stringify(clientData.address)` | Direct JSON manipulation |
+| 240-246 | Manual address object construction | Should use `normalizeAddress()` |
+| 328 | `JSON.stringify(updates.address)` | Direct JSON manipulation |
+| 563-573 | Legacy migration creates address manually | Should use `createAddressFromLegacy()` |
 
 ---
 
-## Task 2: Courts Table - Safe Deprecation Comment
+## Tasks
 
-### SQL Migration
+### Task 1: Add Required Imports
 
-```sql
--- Mark legacy TEXT address column as deprecated
-COMMENT ON COLUMN courts.address IS 
-  'DEPRECATED: Use address_jsonb instead. This TEXT column is preserved for backward compatibility.
-   All new writes should target address_jsonb column. Will be removed in future migration.';
-```
-
-### Verification
-- `address` (TEXT) remains for backward compatibility
-- `address_jsonb` (JSONB) continues as primary target
-- No data changes
-
----
-
-## Task 3: Client Contacts - TypeScript Type Safety Fix
-
-### Current State
-
-The database has `client_contacts.address` as JSONB (confirmed in types.ts line 743):
+Add imports at top of file:
 ```typescript
-// Database type (auto-generated)
-address: Json | null  // ✅ Exists
+import { 
+  normalizeAddress, 
+  serializeAddress, 
+  validateAddress,
+  createAddressFromLegacy,
+  extractLegacyFields
+} from '@/utils/addressUtils';
+import { PartialAddress, UnifiedAddress } from '@/types/address';
 ```
 
-But the **service interface** `ClientContact` does not include the address field.
+---
 
-### Required Change
+### Task 2: Refactor CREATE Flow (Lines 139-284)
 
-**File: `src/services/clientContactsService.ts`**
-
-Update the `ClientContact` interface to include:
+**Before (Line 163-168):**
 ```typescript
-export interface ClientContact {
-  id: string;
-  clientId?: string;
-  name: string;
-  designation?: string;
-  emails: ContactEmail[];
-  phones: ContactPhone[];
-  // ... existing fields ...
-  
-  // NEW: Unified address support
-  address?: UnifiedAddress;  // Add this field
-  
-  // ... rest of fields
+if (clientData.address && typeof clientData.address === 'object' && clientData.address.pincode) {
+  const pincodeValidation = clientsService.validatePincode(clientData.address.pincode);
+  if (!pincodeValidation.isValid) {
+    validationErrors.push(...pincodeValidation.errors);
+  }
 }
 ```
 
-**Also update `CreateContactRequest`**:
+**After:**
 ```typescript
-export interface CreateContactRequest {
-  name: string;
-  // ... existing fields ...
-  
-  // NEW: Optional address during creation
-  address?: PartialAddress;
+if (clientData.address && typeof clientData.address === 'object') {
+  const addressValidation = validateAddress(clientData.address as PartialAddress, 'client');
+  if (!addressValidation.isValid) {
+    addressValidation.errors.forEach(err => validationErrors.push(err.message));
+  }
 }
 ```
 
-**Update the `toClientContact` helper**:
+**Before (Line 218):**
 ```typescript
-function toClientContact(row: any): ClientContact {
-  return {
-    id: row.id,
-    // ... existing fields ...
-    
-    // NEW: Parse address from DB
-    address: row.address ? parseDbAddress(row.address) : undefined,
+address: clientData.address ? JSON.stringify(clientData.address) : null,
+```
+
+**After:**
+```typescript
+address: clientData.address ? serializeAddress(clientData.address as PartialAddress) : null,
+```
+
+**Before (Lines 240-246):**
+```typescript
+address: clientData.address || {
+  line1: '',
+  city: savedClient.city || clientData.address?.city || '',
+  state: savedClient.state || clientData.address?.state || '',
+  pincode: '',
+  country: 'India'
+},
+```
+
+**After:**
+```typescript
+address: clientData.address 
+  ? normalizeAddress(clientData.address) 
+  : normalizeAddress({ 
+      cityName: savedClient.city || '', 
+      stateName: savedClient.state || '' 
+    }),
+```
+
+---
+
+### Task 3: Refactor UPDATE Flow (Lines 286-364)
+
+**Before (Line 328):**
+```typescript
+if (updates.address !== undefined) supabaseUpdates.address = JSON.stringify(updates.address);
+```
+
+**After:**
+```typescript
+if (updates.address !== undefined) {
+  // Validate address before serialization
+  if (updates.address && typeof updates.address === 'object') {
+    const addressValidation = validateAddress(updates.address as PartialAddress, 'client');
+    if (!addressValidation.isValid) {
+      throw new Error(addressValidation.errors.map(e => e.message).join(', '));
+    }
+  }
+  supabaseUpdates.address = updates.address ? serializeAddress(updates.address as PartialAddress) : null;
+}
+```
+
+---
+
+### Task 4: Refactor Migration Utility (Lines 552-616)
+
+**Before (Lines 562-573):**
+```typescript
+if (typeof client.address === 'string') {
+  updates.address = {
+    line1: client.address,
+    city: '',
+    state: '',
+    pincode: '',
+    country: 'India'
   };
+  updates.needsAddressReview = true;
+  needsUpdate = true;
+  flagged++;
 }
 ```
 
-### Import Required
+**After:**
 ```typescript
-import { UnifiedAddress, PartialAddress } from '@/types/address';
-import { parseDbAddress } from '@/utils/addressUtils';
+if (typeof client.address === 'string') {
+  updates.address = createAddressFromLegacy(client.address, null, null);
+  updates.needsAddressReview = true;
+  needsUpdate = true;
+  flagged++;
+}
 ```
 
 ---
 
-## Files to Modify
+### Task 5: Remove Duplicate validatePincode (Lines 60-73)
 
-| File | Change Type | Description |
-|------|-------------|-------------|
-| `supabase/migrations/new_migration.sql` | CREATE | SQL for employees.address + courts.address comment |
-| `src/services/clientContactsService.ts` | EDIT | Add address field to interfaces |
+Keep the function for backward compatibility but mark as deprecated and delegate to addressUtils:
+```typescript
+/**
+ * @deprecated Use validateAddress from addressUtils instead
+ */
+validatePincode: (pincode: string): ValidationResult => {
+  if (!pincode) {
+    return { isValid: false, errors: ['Pincode is required'] };
+  }
+  
+  if (!/^\d{6}$/.test(pincode.trim())) {
+    return {
+      isValid: false,
+      errors: ['Pincode must be exactly 6 digits']
+    };
+  }
+  
+  return { isValid: true, errors: [] };
+},
+```
+
+This function is still used elsewhere (signatory forms), so we keep it but add deprecation notice.
+
+---
+
+## Files Modified
+
+| File | Change Type |
+|------|-------------|
+| `src/services/clientsService.ts` | EDIT - Refactor address handling |
+
+---
+
+## Diff Preview (Key Changes)
+
+```diff
+// IMPORTS
++ import { 
++   normalizeAddress, 
++   serializeAddress, 
++   validateAddress,
++   createAddressFromLegacy
++ } from '@/utils/addressUtils';
++ import { PartialAddress } from '@/types/address';
+
+// CREATE - Validation (Line 163)
+- if (clientData.address && typeof clientData.address === 'object' && clientData.address.pincode) {
+-   const pincodeValidation = clientsService.validatePincode(clientData.address.pincode);
+-   if (!pincodeValidation.isValid) {
+-     validationErrors.push(...pincodeValidation.errors);
+-   }
+- }
++ if (clientData.address && typeof clientData.address === 'object') {
++   const addressValidation = validateAddress(clientData.address as PartialAddress, 'client');
++   if (!addressValidation.isValid) {
++     addressValidation.errors.forEach(err => validationErrors.push(err.message));
++   }
++ }
+
+// CREATE - Serialize (Line 218)
+- address: clientData.address ? JSON.stringify(clientData.address) : null,
++ address: clientData.address ? serializeAddress(clientData.address as PartialAddress) : null,
+
+// CREATE - Normalize response (Line 240)
+- address: clientData.address || {
+-   line1: '',
+-   city: savedClient.city || clientData.address?.city || '',
+-   state: savedClient.state || clientData.address?.state || '',
+-   pincode: '',
+-   country: 'India'
+- },
++ address: clientData.address 
++   ? normalizeAddress(clientData.address) 
++   : normalizeAddress({ cityName: savedClient.city || '', stateName: savedClient.state || '' }),
+
+// UPDATE - Serialize (Line 328)
+- if (updates.address !== undefined) supabaseUpdates.address = JSON.stringify(updates.address);
++ if (updates.address !== undefined) {
++   if (updates.address && typeof updates.address === 'object') {
++     const addressValidation = validateAddress(updates.address as PartialAddress, 'client');
++     if (!addressValidation.isValid) {
++       throw new Error(addressValidation.errors.map(e => e.message).join(', '));
++     }
++   }
++   supabaseUpdates.address = updates.address ? serializeAddress(updates.address as PartialAddress) : null;
++ }
+
+// MIGRATION - Legacy address (Line 562)
+- updates.address = {
+-   line1: client.address,
+-   city: '',
+-   state: '',
+-   pincode: '',
+-   country: 'India'
+- };
++ updates.address = createAddressFromLegacy(client.address, null, null);
+```
+
+---
+
+## Backward Compatibility Preserved
+
+- Legacy `Address` interface in `AppStateContext` unchanged
+- `EnhancedAddressData` in `addressMasterService` unchanged (adapter exists)
+- GST integration via `gstAddressMapper` unchanged (works through AddressForm)
+- `validatePincode` kept with deprecation notice
+- Legacy string addresses still parse correctly via `normalizeAddress()`
+
+---
+
+## GST Autofill Confirmation
+
+GST autofill flow is NOT affected:
+1. User enters GSTIN in `AddressForm.tsx`
+2. `AddressForm` calls `gstPublicService.getGSTInfo()`
+3. Response mapped via `gstAddressMapper.mapGSTTaxpayerToAddress()`
+4. Result populates form fields as `EnhancedAddressData`
+5. On save, data flows to `clientsService.create()` where it will now use `serializeAddress()`
+
+The `normalizeAddress()` utility already handles `EnhancedAddressData` field mappings (line1, cityName, stateName, stateCode, etc.), so GST data flows through correctly.
 
 ---
 
 ## Safety Checklist
 
-- [ ] No legacy columns removed
-- [ ] No RLS policy changes
-- [ ] No UI component changes
-- [ ] No business logic changes
-- [ ] Backward compatibility maintained
-- [ ] NULL handling safe (all new fields nullable)
-
----
-
-## Expected Database State After Migration
-
-```text
-employees table:
-├── current_address (TEXT)    -- Legacy, preserved
-├── permanent_address (TEXT)  -- Legacy, preserved
-└── address (JSONB)           -- NEW: Unified address
-
-courts table:
-├── address (TEXT)            -- DEPRECATED (comment added)
-└── address_jsonb (JSONB)     -- Active unified address
-
-client_contacts table:
-└── address (JSONB)           -- Already exists, now typed in TS
-```
+- No UI component changes
+- No RLS policy changes
+- No database schema changes
+- Backward compatible with legacy string addresses
+- GST integration behavior unchanged
+- Validation now uses centralized module-aware logic
 
 ---
 
 ## Estimated Effort
-- SQL Migration: 5 minutes
-- TypeScript updates: 15 minutes
-- Testing: 10 minutes
-- **Total: ~30 minutes**
+~20 minutes implementation + testing
