@@ -116,10 +116,16 @@ export const TaskManagement: React.FC = () => {
   // RBAC permission checks - sub-module tabs (granular access)
   // Templates: Manager+ can access (read permission)
   const canAccessTemplates = hasPermission('tasks.templates', 'read') || hasPermission('tasks', 'admin');
-  // Automation, Escalation, AI: Admin/Partner only (manage permission)
-  const canAccessAutomation = hasPermission('tasks.automation', 'admin') || hasPermission('tasks.automation', 'manage');
-  const canAccessEscalation = hasPermission('tasks.escalation', 'admin') || hasPermission('tasks.escalation', 'manage');
-  const canAccessAI = hasPermission('tasks.ai', 'admin') || hasPermission('tasks.ai', 'manage');
+  // Automation, Escalation, AI: Check read (View), manage, and admin permissions
+  const canAccessAutomation = hasPermission('tasks.automation', 'read') || 
+                              hasPermission('tasks.automation', 'admin') || 
+                              hasPermission('tasks.automation', 'manage');
+  const canAccessEscalation = hasPermission('tasks.escalation', 'read') || 
+                              hasPermission('tasks.escalation', 'admin') || 
+                              hasPermission('tasks.escalation', 'manage');
+  const canAccessAI = hasPermission('tasks.ai', 'read') || 
+                      hasPermission('tasks.ai', 'admin') || 
+                      hasPermission('tasks.ai', 'manage');
   
   // Load view mode from storage
   useEffect(() => {
