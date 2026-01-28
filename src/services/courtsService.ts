@@ -2,6 +2,8 @@ import { Court } from '@/contexts/AppStateContext';
 import { storageManager } from '@/data/StorageManager';
 import { toast } from '@/hooks/use-toast';
 import { normalizeCourtPayload } from '@/utils/formatters';
+import { UnifiedAddress, EMPTY_ADDRESS } from '@/types/address';
+import { normalizeAddress, serializeAddress, parseDbAddress } from '@/utils/addressUtils';
 
 export interface CreateCourtData {
   name: string;
@@ -56,12 +58,21 @@ class CourtsService {
         ...normalizedData
       };
 
+      // Build unified address for JSONB storage
+      const unifiedAddress: UnifiedAddress = normalizeAddress({
+        line1: normalizedData.address || '',
+        cityName: normalizedData.city || '',
+        stateName: normalizedData.state || '',
+        source: 'manual'
+      });
+
       // Persist to Supabase
       const created = await storage.create('courts', {
         name: newCourt.name,
         type: newCourt.type,
         jurisdiction: newCourt.jurisdiction,
-        address: newCourt.address,
+        address: newCourt.address, // Keep legacy TEXT for backward compatibility
+        address_jsonb: serializeAddress(unifiedAddress), // New JSONB field
         city: newCourt.city,
         phone: newCourt.phone,
         email: newCourt.email,
@@ -105,12 +116,25 @@ class CourtsService {
       // Normalize payload before persistence
       const normalizedUpdates = normalizeCourtPayload(updates);
 
+      // Build unified address for JSONB storage if address-related fields are updated
+      let addressJsonb: string | undefined;
+      if (updates.address || updates.city || (updates as any).state) {
+        const unifiedAddress: UnifiedAddress = normalizeAddress({
+          line1: updates.address || '',
+          cityName: updates.city || '',
+          stateName: (updates as any).state || '',
+          source: 'edited'
+        });
+        addressJsonb = serializeAddress(unifiedAddress);
+      }
+
       // Persist to Supabase
       await storage.update('courts', courtId, {
         ...(updates.name && { name: updates.name }),
         ...(updates.type && { type: updates.type }),
         ...(updates.jurisdiction && { jurisdiction: updates.jurisdiction }),
         ...(updates.address && { address: updates.address }),
+        ...(addressJsonb && { address_jsonb: addressJsonb }), // Sync JSONB field
         ...(updates.city && { city: updates.city }),
         ...(updates.phone && { phone: updates.phone }),
         ...(updates.email && { email: updates.email }),
@@ -201,24 +225,31 @@ class CourtsService {
       const storage = storageManager.getStorage();
       const courts = await storage.getAll('courts');
       
-      return courts.map((c: any) => ({
-        id: c.id,
-        name: c.name,
-        type: c.type,
-        jurisdiction: c.jurisdiction,
-        address: c.address,
-        city: c.city,
-        phone: c.phone,
-        email: c.email,
-        status: c.status,
-        benchLocation: c.bench_location,
-        taxJurisdiction: c.tax_jurisdiction,
-        officerDesignation: c.officer_designation,
-        activeCases: 0,
-        avgHearingTime: '30 mins',
-        digitalFiling: false,
-        workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-      } as Court));
+      return courts.map((c: any) => {
+        // Parse JSONB address if available, fallback to legacy fields
+        const parsedAddress = c.address_jsonb ? parseDbAddress(c.address_jsonb) : null;
+        
+        return {
+          id: c.id,
+          name: c.name,
+          type: c.type,
+          jurisdiction: c.jurisdiction,
+          address: c.address, // Legacy TEXT field
+          addressJsonb: parsedAddress, // New unified address
+          city: parsedAddress?.cityName || c.city,
+          state: parsedAddress?.stateName || c.state,
+          phone: c.phone,
+          email: c.email,
+          status: c.status,
+          benchLocation: c.bench_location,
+          taxJurisdiction: c.tax_jurisdiction,
+          officerDesignation: c.officer_designation,
+          activeCases: 0,
+          avgHearingTime: '30 mins',
+          digitalFiling: false,
+          workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+        } as Court;
+      });
     } catch (error) {
       console.error('Failed to list courts:', error);
       throw error;
@@ -235,13 +266,18 @@ class CourtsService {
       
       if (!court) return null;
       
+      // Parse JSONB address if available
+      const parsedAddress = court.address_jsonb ? parseDbAddress(court.address_jsonb) : null;
+      
       return {
         id: court.id,
         name: court.name,
         type: court.type,
         jurisdiction: court.jurisdiction,
-        address: court.address,
-        city: court.city,
+        address: court.address, // Legacy TEXT field
+        addressJsonb: parsedAddress, // New unified address
+        city: parsedAddress?.cityName || court.city,
+        state: parsedAddress?.stateName || court.state,
         phone: court.phone,
         email: court.email,
         status: court.status,

@@ -740,6 +740,7 @@ export type Database = {
       }
       client_contacts: {
         Row: {
+          address: Json | null
           client_id: string | null
           created_at: string | null
           data_scope: Database["public"]["Enums"]["entity_data_scope"] | null
@@ -758,6 +759,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          address?: Json | null
           client_id?: string | null
           created_at?: string | null
           data_scope?: Database["public"]["Enums"]["entity_data_scope"] | null
@@ -776,6 +778,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          address?: Json | null
           client_id?: string | null
           created_at?: string | null
           data_scope?: Database["public"]["Enums"]["entity_data_scope"] | null
@@ -1242,6 +1245,7 @@ export type Database = {
       courts: {
         Row: {
           address: string | null
+          address_jsonb: Json | null
           bench_location: string | null
           city: string | null
           code: string | null
@@ -1264,6 +1268,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          address_jsonb?: Json | null
           bench_location?: string | null
           city?: string | null
           code?: string | null
@@ -1286,6 +1291,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          address_jsonb?: Json | null
           bench_location?: string | null
           city?: string | null
           code?: string | null
