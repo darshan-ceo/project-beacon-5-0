@@ -23,7 +23,8 @@ import { ContactsDrawer } from '@/components/contacts/ContactsDrawer';
 import { ClientContactsSection } from '@/components/contacts/ClientContactsSection';
 import { featureFlagService } from '@/services/featureFlagService';
 import { envConfig } from '../../utils/envConfig';
-import { SimpleAddressForm, SimpleAddressData } from '@/components/ui/SimpleAddressForm';
+import { UnifiedAddressForm } from '@/components/ui/UnifiedAddressForm';
+import { UnifiedAddress } from '@/types/address';
 import { AddressView } from '@/components/ui/AddressView';
 import { EnhancedAddressData, addressMasterService } from '@/services/addressMasterService';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
@@ -1210,34 +1211,14 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                     />
                   )
                 ) : (
-                  <SimpleAddressForm
-                    value={{
-                      line1: formData.address?.line1 || '',
-                      line2: formData.address?.line2 || '',
-                      cityName: (formData.address as any)?.cityName || '',
-                      stateName: (formData.address as any)?.stateName || '',
-                      pincode: formData.address?.pincode || '',
-                      countryName: 'India'
-                    }}
-                    onChange={(address) => setFormData(prev => ({ 
-                      ...prev, 
-                      address: {
-                        ...prev.address,
-                        line1: address.line1 || '',
-                        line2: address.line2 || '',
-                        cityName: address.cityName || '',
-                        stateName: address.stateName || '',
-                        pincode: address.pincode || '',
-                        countryName: address.countryName || 'India'
-                      }
+                  <UnifiedAddressForm
+                    value={formData.address || {}}
+                    onChange={(address: UnifiedAddress) => setFormData(prev => ({
+                      ...prev,
+                      address: address as unknown as EnhancedAddressData
                     }))}
-                    disabled={mode === 'view'}
-                    errors={{
-                      line1: errors.addressLine1,
-                      city: errors.addressCity,
-                      state: errors.addressState,
-                      pincode: errors.pincode
-                    }}
+                    module="client"
+                    mode={mode}
                   />
                 )}
               </CardContent>

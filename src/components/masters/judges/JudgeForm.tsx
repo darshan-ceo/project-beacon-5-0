@@ -9,7 +9,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { MapPin, User, Phone, Mail, Tag, X, Plus, Eye } from 'lucide-react';
-import { AddressForm } from '@/components/ui/AddressForm';
+import { UnifiedAddressForm } from '@/components/ui/UnifiedAddressForm';
+import { UnifiedAddress } from '@/types/address';
 import { Judge, useAppState } from '@/contexts/AppStateContext';
 import { EnhancedAddressData } from '@/services/addressMasterService';
 import { specializationsService } from '@/services/specializationsService';
@@ -909,22 +910,12 @@ export const JudgeForm: React.FC<JudgeFormProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <AddressForm
-            value={formData.address || {
-              line1: '',
-              line2: '',
-              locality: '',
-              district: '',
-              cityId: '',
-              stateId: '',
-              pincode: '',
-              countryId: 'IN',
-              source: 'manual'
-            }}
-            onChange={(address) => setFormData(prev => ({ ...prev, address }))}
-            disabled={isReadOnly}
-            required={false}
+          <UnifiedAddressForm
+            value={formData.address || {}}
+            onChange={(address: UnifiedAddress) => setFormData(prev => ({ ...prev, address: address as unknown as EnhancedAddressData }))}
             module="judge"
+            mode={isReadOnly ? 'view' : 'edit'}
+            required={false}
           />
         </CardContent>
       </Card>

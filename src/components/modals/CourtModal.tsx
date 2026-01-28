@@ -12,7 +12,8 @@ import { toast } from '@/hooks/use-toast';
 import { AdaptiveFormShell } from '@/components/ui/adaptive-form-shell';
 import { FormStickyFooter } from '@/components/ui/form-sticky-footer';
 import { Court, useAppState } from '@/contexts/AppStateContext';
-import { SimpleAddressForm, SimpleAddressData } from '@/components/ui/SimpleAddressForm';
+import { UnifiedAddressForm } from '@/components/ui/UnifiedAddressForm';
+import { UnifiedAddress } from '@/types/address';
 import { AddressView } from '@/components/ui/AddressView';
 import { EnhancedAddressData, addressMasterService } from '@/services/addressMasterService';
 import { featureFlagService } from '@/services/featureFlagService';
@@ -782,36 +783,19 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                   showActions={false}
                 />
               ) : (
-                <SimpleAddressForm
-                  value={{
-                    line1: typeof formData.address === 'object' ? formData.address.line1 || '' : String(formData.address || ''),
-                    line2: typeof formData.address === 'object' ? formData.address.line2 || '' : '',
-                    cityName: formData.city || (typeof formData.address === 'object' ? formData.address.cityName || '' : ''),
-                    stateName: typeof formData.address === 'object' ? formData.address.stateName || '' : '',
-                    pincode: typeof formData.address === 'object' ? formData.address.pincode || '' : '',
-                    countryName: 'India'
-                  }}
-                  onChange={(addr: SimpleAddressData) => {
-                    // Convert SimpleAddressData to EnhancedAddressData format for storage
-                    const enhancedAddress: EnhancedAddressData = {
-                      ...formData.address,
-                      line1: addr.line1 || '',
-                      line2: addr.line2 || '',
-                      cityName: addr.cityName || '',
-                      stateName: addr.stateName || '',
-                      pincode: addr.pincode || '',
-                      countryId: 'IN',
-                      source: 'manual'
-                    };
+                <UnifiedAddressForm
+                  value={formData.address || {}}
+                  onChange={(address: UnifiedAddress) => {
                     setFormData(prev => ({
                       ...prev,
-                      address: enhancedAddress,
-                      city: addr.cityName || prev.city || ''
+                      address: address as unknown as EnhancedAddressData,
+                      city: address.cityName || prev.city || ''
                     }));
                   }}
-                  disabled={mode === 'view'}
+                  module="court"
+                  mode={mode}
                 />
-                )}
+              )}
               </CardContent>
             </Card>
 
