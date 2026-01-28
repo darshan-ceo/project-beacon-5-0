@@ -101,7 +101,7 @@ export const ADDRESS_MODULE_CONFIGS: Record<AddressModule, AddressModuleConfig> 
     module: 'court',
     requiredFields: ['line1', 'cityName', 'stateName'],
     showGSTIntegration: false,
-    showGeocoding: false,
+    showGeocoding: true,
     showAddressType: false,
     defaultSource: 'manual'
   },
@@ -109,7 +109,7 @@ export const ADDRESS_MODULE_CONFIGS: Record<AddressModule, AddressModuleConfig> 
     module: 'judge',
     requiredFields: ['line1', 'cityName', 'stateName'],
     showGSTIntegration: false,
-    showGeocoding: false,
+    showGeocoding: true,
     showAddressType: false,
     defaultSource: 'manual'
   },
