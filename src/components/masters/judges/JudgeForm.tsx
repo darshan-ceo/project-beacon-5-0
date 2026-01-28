@@ -140,6 +140,8 @@ export const JudgeForm: React.FC<JudgeFormProps> = ({
   isLoading = false
 }) => {
   const { state } = useAppState();
+  // Hydration guard: prevents address form race condition when editing
+  const [formReady, setFormReady] = useState(!initialData);
   const [formData, setFormData] = useState<JudgeFormData>({
     name: '',
     designation: '',
@@ -166,6 +168,7 @@ export const JudgeForm: React.FC<JudgeFormProps> = ({
     loadSpecializations();
     if (initialData) {
       populateFormFromJudge(initialData);
+      setFormReady(true); // Mark as ready after hydration complete
     }
   }, [initialData]);
 
@@ -910,13 +913,17 @@ export const JudgeForm: React.FC<JudgeFormProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <UnifiedAddressForm
-            value={formData.address || {}}
-            onChange={(address: UnifiedAddress) => setFormData(prev => ({ ...prev, address: address as unknown as EnhancedAddressData }))}
-            module="judge"
-            mode={isReadOnly ? 'view' : 'edit'}
-            required={false}
-          />
+          {formReady ? (
+            <UnifiedAddressForm
+              value={formData.address || {}}
+              onChange={(address: UnifiedAddress) => setFormData(prev => ({ ...prev, address: address as unknown as EnhancedAddressData }))}
+              module="judge"
+              mode={isReadOnly ? 'view' : 'edit'}
+              required={false}
+            />
+          ) : (
+            <div className="text-sm text-muted-foreground py-4">Loading address...</div>
+          )}
         </CardContent>
       </Card>
 
