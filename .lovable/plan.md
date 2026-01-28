@@ -1,133 +1,135 @@
 
 
-# Fix JudgeModal "Saving..." Button Loop Issue
+# Fix: Judge Address Goes Blank When City Selected
 
 ## Problem Summary
 
-When opening an existing Judge record in edit mode, the "Saving..." button appears immediately and remains in a loading state indefinitely. The address data is visible but the modal appears stuck.
+When a Judge record with a city selected is opened for editing, the address fields go blank immediately after loading. Console logs confirm:
+```
+📍 [AddressForm] Value received: {"cityId":"HR002","cityName":"Faridabad",...}  
+📍 [AddressForm] Value received: {"cityId":"","cityName":"",...}  ← Immediately reset!
+```
+
+---
 
 ## Root Cause Analysis
 
-Two issues combine to cause this bug:
+The bug is a **race condition during form hydration**. Here's the sequence:
 
-### Issue 1: Missing Key-Based Isolation Pattern
+1. **JudgeForm initial render**: `formData.address = undefined`
+2. **UnifiedAddressForm** receives `value={formData.address || {}}` → passes `{}`
+3. **useMemo in UnifiedAddressForm** normalizes `{}` → returns `EMPTY_ADDRESS`
+4. **AddressForm** renders with empty normalized value
+5. **useEffect** runs `populateFormFromJudge()` → sets correct address data
+6. **Race condition**: AddressForm's internal state initialization with empty data races with the correct data
 
-**File:** `src/components/masters/JudgeMasters.tsx` (line 431)
+The issue is that `formData.address || {}` passes an empty object on the FIRST render before hydration completes, and this empty object triggers normalization that produces blank values.
 
-The JudgeModal is rendered without a `key` prop, violating the established modal-isolation-key-pattern. When users switch between different judges or modes, React reuses the same component instance, causing stale state to persist.
+---
 
-```typescript
-// Current (buggy):
-<JudgeModal
-  isOpen={judgeModal.isOpen}
-  onClose={() => setJudgeModal({ isOpen: false, mode: 'create', judge: null })}
-  judge={judgeModal.judge}
-  mode={judgeModal.mode}
-/>
-```
+## Solution
 
-### Issue 2: Missing State Reset on Success
+### Fix 1: Defer Address Form Rendering Until Hydration Complete
 
-**File:** `src/components/modals/JudgeModal.tsx` (lines 114-123)
+Add a hydration guard to ensure the UnifiedAddressForm only renders AFTER `populateFormFromJudge` has completed.
 
-When a save operation succeeds, `isSaving` is never reset to `false` before calling `onClose()`. If the modal doesn't fully unmount (due to missing key), the `isSaving: true` state persists to the next open.
+**File:** `src/components/masters/judges/JudgeForm.tsx`
 
-```typescript
-// Current (buggy):
-await judgesService.update(...);
-onClose(); // isSaving still true!
-// ...
-catch (error) {
-  setIsSaving(false); // Only reset on error
-}
-```
-
-## Implementation Plan
-
-### Fix 1: Add Key Prop to JudgeModal (JudgeMasters.tsx)
-
-**File:** `src/components/masters/JudgeMasters.tsx`
-**Line:** 431
-
-Add a unique key based on judge ID and mode to force component remount:
+Add a `formReady` state that becomes true after initial data is populated:
 
 ```typescript
-<JudgeModal
-  key={`${judgeModal.judge?.id || 'new'}-${judgeModal.mode}`}
-  isOpen={judgeModal.isOpen}
-  onClose={() => setJudgeModal({ isOpen: false, mode: 'create', judge: null })}
-  judge={judgeModal.judge}
-  mode={judgeModal.mode}
-/>
-```
+// Add state to track if form is ready
+const [formReady, setFormReady] = useState(!initialData); // Ready immediately if no initial data
 
-### Fix 2: Reset State on Success (JudgeModal.tsx)
-
-**File:** `src/components/modals/JudgeModal.tsx`
-**Lines:** 113-114
-
-Reset `isSaving` before closing the modal on successful save:
-
-```typescript
-// Before onClose(), add:
-setIsSaving(false);
-onClose();
-```
-
-### Fix 3: Add useEffect Reset Guard (JudgeModal.tsx)
-
-As a safety net, reset loading states when the modal opens:
-
-**File:** `src/components/modals/JudgeModal.tsx`
-**After line 31 (after the fetchUser useEffect)**
-
-```typescript
-// Reset loading states when modal opens
 useEffect(() => {
-  if (isOpen) {
-    setIsSaving(false);
-    setIsDeleting(false);
+  loadSpecializations();
+  if (initialData) {
+    populateFormFromJudge(initialData);
+    setFormReady(true); // Mark as ready after population
   }
-}, [isOpen]);
+}, [initialData]);
 ```
+
+Then in the Address section, conditionally render:
+
+```typescript
+<CardContent>
+  {formReady ? (
+    <UnifiedAddressForm
+      value={formData.address || {}}
+      onChange={(address: UnifiedAddress) => setFormData(prev => ({ ...prev, address: address as unknown as EnhancedAddressData }))}
+      module="judge"
+      mode={isReadOnly ? 'view' : 'edit'}
+      required={false}
+    />
+  ) : (
+    <div className="text-sm text-muted-foreground">Loading address...</div>
+  )}
+</CardContent>
+```
+
+### Fix 2: Initialize formData.address from initialData in useState
+
+**Alternative/Complementary Fix** - Initialize the form state with initial data if available:
+
+```typescript
+const [formData, setFormData] = useState<JudgeFormData>(() => {
+  if (initialData) {
+    return {
+      name: initialData.name || '',
+      designation: initialData.designation || '',
+      status: initialData.status || 'Active',
+      courtId: initialData.courtId || '',
+      // ... other fields
+      address: (initialData as any).address,
+      // ... rest
+    };
+  }
+  return {
+    name: '',
+    designation: '',
+    status: 'Active',
+    // ... default empty state
+  };
+});
+```
+
+---
+
+## Recommended Approach: Fix 1 (Hydration Guard)
+
+The hydration guard pattern is cleaner because:
+- Follows the established `modal-isolation-key-pattern` memory 
+- Prevents any race conditions during async data loading
+- Is more defensive and works even if initialData changes
+
+---
 
 ## Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/components/masters/JudgeMasters.tsx` | Add `key` prop to JudgeModal (line 431) |
-| `src/components/modals/JudgeModal.tsx` | Add `setIsSaving(false)` before `onClose()` on success (line 113) |
-| `src/components/modals/JudgeModal.tsx` | Add useEffect to reset states when modal opens (after line 31) |
+| `src/components/masters/judges/JudgeForm.tsx` | Add `formReady` state and conditional rendering for address form |
 
-## Technical Details
-
-The key prop pattern follows React's component identity model. When the key changes, React treats it as a completely new component instance, unmounting the old one and mounting a fresh one. This guarantees:
-
-1. All local state (useState) is initialized fresh
-2. All effects (useEffect) run their setup functions
-3. No stale closures or cached values persist
-
-The pattern `key={\`${entity?.id || 'new'}-${mode}\`}` ensures:
-- Different judges get different keys
-- Same judge in different modes (view/edit) gets different keys
-- New entity creation always gets the same 'new' prefix
+---
 
 ## Validation Steps
 
-After implementation:
-1. Create a new judge with address data
-2. Save successfully - modal should close
-3. Reopen the same judge in edit mode
-4. Verify "Update Judge" button is visible (not "Saving...")
-5. Verify address fields are populated correctly
-6. Make a change and save again
-7. Verify save completes and modal closes properly
+1. Open an existing Judge record that has address with city selected
+2. Verify address fields are populated correctly (not blank)
+3. Verify city dropdown shows the correct city
+4. Modify address and save
+5. Reopen and verify changes persisted
+
+---
 
 ## Risk Assessment
 
 | Risk | Mitigation |
 |------|------------|
-| Component remount performance | Minimal - only occurs on modal open, not during editing |
-| Breaking existing functionality | None - adds defensive patterns without changing core logic |
-| Rollback difficulty | Simple - remove key prop and useEffect |
+| Brief loading flash | Minimal - hydration is fast |
+| Breaking existing flow | None - only delays render, doesn't change data flow |
+| Rollback difficulty | Simple - remove formReady state and conditional |
+
+**Safety Level:** Fully Safe
 
