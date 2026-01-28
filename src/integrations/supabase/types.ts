@@ -2591,6 +2591,7 @@ export type Database = {
           order_file_path: string | null
           order_file_url: string | null
           outcome: string | null
+          outcome_text: string | null
           status: string | null
           tenant_id: string
           updated_at: string | null
@@ -2610,6 +2611,7 @@ export type Database = {
           order_file_path?: string | null
           order_file_url?: string | null
           outcome?: string | null
+          outcome_text?: string | null
           status?: string | null
           tenant_id: string
           updated_at?: string | null
@@ -2629,6 +2631,7 @@ export type Database = {
           order_file_path?: string | null
           order_file_url?: string | null
           outcome?: string | null
+          outcome_text?: string | null
           status?: string | null
           tenant_id?: string
           updated_at?: string | null
