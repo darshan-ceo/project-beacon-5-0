@@ -1,328 +1,415 @@
 
-# Day 5: Create UnifiedAddressForm Component
+
+# Day 6: Replace Legacy Address Forms with UnifiedAddressForm
 
 ## Objective
-Create a contract layer component that wraps the existing `AddressForm` while exposing the Unified Address Architecture interface. This enables consumers to use the typed `UnifiedAddress`/`PartialAddress` interface while leveraging the existing UI implementation.
+Incrementally replace legacy address form usage with `UnifiedAddressForm` across 5 entities in the specified order, ensuring no behavior change or prop loss.
 
 ---
 
-## Component Design
+## Current State Analysis
 
-### Props Interface
+| Entity | File | Current Implementation | Replacement Scope |
+|--------|------|------------------------|-------------------|
+| **Courts** | `CourtModal.tsx` | `SimpleAddressForm` (line 785) + `AddressView` (line 779) | Replace SimpleAddressForm only |
+| **Judges** | `JudgeForm.tsx` | `AddressForm` (line 912) | Direct replacement |
+| **Clients** | `ClientModal.tsx` | `SimpleAddressForm` (line 1213) + `AddressView` (line 1206) | Replace SimpleAddressForm only |
+| **Employees** | `EmployeeModalV2.tsx` | Manual inline fields (lines 860-920) | **DEFERRED** - requires UI redesign |
+| **Contacts** | `ContactModal.tsx` | No address support | **DEFERRED** - feature not implemented |
 
+---
+
+## Implementation Order
+
+### 1. CourtModal.tsx
+
+**Import Changes:**
 ```typescript
-interface UnifiedAddressFormProps {
-  // Core data binding
-  value: UnifiedAddress | PartialAddress;
-  onChange: (address: UnifiedAddress) => void;
-  
-  // Module configuration
-  module: AddressModule;  // 'client' | 'court' | 'judge' | 'employee' | 'contact'
-  mode: 'create' | 'edit' | 'view';
-  
-  // Feature toggles (optional - defaults from ADDRESS_MODULE_CONFIGS)
-  showGSTIntegration?: boolean;
-  showGeocoding?: boolean;
-  addressType?: AddressType;
-  
-  // GST integration props
-  gstin?: string;
-  onGSTAddressSelect?: (address: UnifiedAddress) => void;
-  
-  // Standard form props
-  disabled?: boolean;
-  required?: boolean;
-  className?: string;
-}
-```
+// Remove:
+import { SimpleAddressForm, SimpleAddressData } from '@/components/ui/SimpleAddressForm';
 
-### Internal Mapping Strategy
-
-The component will:
-1. **Normalize incoming `value`** via `normalizeAddress()` before passing to `AddressForm`
-2. **Map `module` to `ModuleName`** for legacy `AddressForm` compatibility
-3. **Convert `AddressForm` output** back to `UnifiedAddress` via `normalizeAddress()` in the `onChange` handler
-4. **Derive defaults** from `ADDRESS_MODULE_CONFIGS` when optional props not provided
-5. **Handle `mode='view'`** by setting `disabled=true`
-
----
-
-## Data Flow Diagram
-
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│                        Consumer Component                            │
-│  (ClientModal, JudgeForm, EmployeeModal, etc.)                       │
-└──────────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│                     UnifiedAddressForm                               │
-│  ┌─────────────────────────────────────────────────────────────┐     │
-│  │ Props: value (UnifiedAddress), onChange, module, mode       │     │
-│  └─────────────────────────────────────────────────────────────┘     │
-│                              │                                       │
-│         normalizeAddress(value) ──► Normalized UnifiedAddress        │
-│                              │                                       │
-│                              ▼                                       │
-│  ┌─────────────────────────────────────────────────────────────┐     │
-│  │              Existing AddressForm                            │     │
-│  │  Props: value (EnhancedAddressData), onChange, module...    │     │
-│  └─────────────────────────────────────────────────────────────┘     │
-│                              │                                       │
-│         onChange handler ──► normalizeAddress(output)                │
-│                              │                                       │
-│                              ▼                                       │
-│         Callback: onChange(UnifiedAddress)                           │
-└──────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Files to Create
-
-| File | Description |
-|------|-------------|
-| `src/components/ui/UnifiedAddressForm.tsx` | Wrapper component |
-
----
-
-## Implementation Details
-
-### 1. Module Type Mapping
-
-The existing `AddressForm` uses `ModuleName` from `addressConfigService`:
-```typescript
-type ModuleName = 'employee' | 'judge' | 'client' | 'court';
-```
-
-The `AddressModule` from `types/address.ts` adds `'contact'`:
-```typescript
-type AddressModule = 'client' | 'court' | 'judge' | 'employee' | 'contact';
-```
-
-The wrapper will map `'contact'` to `'client'` for legacy compatibility.
-
-### 2. Mode Handling
-
-| Mode | Behavior |
-|------|----------|
-| `'create'` | `disabled=false`, `required` based on module config |
-| `'edit'` | `disabled=false`, `required` based on module config |
-| `'view'` | `disabled=true`, fields read-only |
-
-### 3. Feature Flag Defaults
-
-When `showGSTIntegration` or `showGeocoding` are not explicitly provided, defaults are derived from `ADDRESS_MODULE_CONFIGS[module]`.
-
-### 4. GST Integration Passthrough
-
-The component will:
-- Pass `gstin` and `onGSTAddressSelect` directly to `AddressForm`
-- Wrap `onGSTAddressSelect` callback to ensure output is `UnifiedAddress`
-
----
-
-## Component Code Structure
-
-```typescript
-import React, { useMemo, useCallback } from 'react';
-import { AddressForm } from '@/components/ui/AddressForm';
-import { 
-  UnifiedAddress, 
-  PartialAddress, 
-  AddressModule, 
-  AddressType,
-  ADDRESS_MODULE_CONFIGS,
-  EMPTY_ADDRESS
-} from '@/types/address';
-import { normalizeAddress } from '@/utils/addressUtils';
-import { ModuleName } from '@/services/addressConfigService';
-import { EnhancedAddressData } from '@/services/addressMasterService';
-
-interface UnifiedAddressFormProps {
-  value: UnifiedAddress | PartialAddress;
-  onChange: (address: UnifiedAddress) => void;
-  module: AddressModule;
-  mode: 'create' | 'edit' | 'view';
-  showGSTIntegration?: boolean;
-  showGeocoding?: boolean;
-  addressType?: AddressType;
-  gstin?: string;
-  onGSTAddressSelect?: (address: UnifiedAddress) => void;
-  disabled?: boolean;
-  required?: boolean;
-  className?: string;
-}
-
-export const UnifiedAddressForm: React.FC<UnifiedAddressFormProps> = ({
-  value,
-  onChange,
-  module,
-  mode,
-  showGSTIntegration,
-  showGeocoding,
-  addressType,
-  gstin,
-  onGSTAddressSelect,
-  disabled,
-  required,
-  className
-}) => {
-  // Get module configuration
-  const moduleConfig = ADDRESS_MODULE_CONFIGS[module];
-  
-  // Map AddressModule to legacy ModuleName
-  const legacyModule: ModuleName = module === 'contact' ? 'client' : module;
-  
-  // Normalize value for AddressForm
-  const normalizedValue = useMemo(() => normalizeAddress(value), [value]);
-  
-  // Determine feature flags
-  const gstEnabled = showGSTIntegration ?? moduleConfig.showGSTIntegration;
-  
-  // Handle mode
-  const isDisabled = disabled ?? (mode === 'view');
-  const isRequired = required ?? (mode !== 'view');
-  
-  // Wrap onChange to normalize output
-  const handleChange = useCallback((data: EnhancedAddressData | AddressData) => {
-    const normalized = normalizeAddress(data);
-    // Preserve addressType if set
-    if (addressType) normalized.addressType = addressType;
-    onChange(normalized);
-  }, [onChange, addressType]);
-  
-  // Wrap GST callback
-  const handleGSTAddressSelect = useCallback((data: EnhancedAddressData) => {
-    const normalized = normalizeAddress(data);
-    if (addressType) normalized.addressType = addressType;
-    onGSTAddressSelect?.(normalized);
-  }, [onGSTAddressSelect, addressType]);
-  
-  return (
-    <AddressForm
-      value={normalizedValue}
-      onChange={handleChange}
-      module={legacyModule}
-      showGSTIntegration={gstEnabled}
-      gstin={gstin}
-      onGSTAddressSelect={onGSTAddressSelect ? handleGSTAddressSelect : undefined}
-      disabled={isDisabled}
-      required={isRequired}
-      className={className}
-    />
-  );
-};
-
-export default UnifiedAddressForm;
-```
-
----
-
-## Example Usage Snippets
-
-### 1. Client Modal (with GST Integration)
-
-```typescript
+// Add:
 import { UnifiedAddressForm } from '@/components/ui/UnifiedAddressForm';
-import { UnifiedAddress, PartialAddress } from '@/types/address';
-
-const ClientModal = () => {
-  const [address, setAddress] = useState<PartialAddress>({});
-  
-  return (
-    <UnifiedAddressForm
-      value={address}
-      onChange={setAddress}
-      module="client"
-      mode="edit"
-      showGSTIntegration={true}
-      gstin={clientData.gstin}
-      onGSTAddressSelect={(addr) => {
-        setAddress(addr);
-        toast.success('GST address populated');
-      }}
-    />
-  );
-};
+import { UnifiedAddress } from '@/types/address';
 ```
 
-### 2. Court Modal (Basic)
+**Address Section Replacement (Lines 785-813):**
 
-```typescript
+```
+BEFORE:
+<SimpleAddressForm
+  value={{
+    line1: typeof formData.address === 'object' ? formData.address.line1 || '' : ...,
+    line2: ...,
+    cityName: formData.city || ...,
+    ...
+  }}
+  onChange={(addr: SimpleAddressData) => {
+    const enhancedAddress: EnhancedAddressData = {...};
+    setFormData(prev => ({ ...prev, address: enhancedAddress, city: addr.cityName || prev.city || '' }));
+  }}
+  disabled={mode === 'view'}
+/>
+
+AFTER:
 <UnifiedAddressForm
-  value={courtData.address || {}}
-  onChange={(addr) => setCourtData(prev => ({ ...prev, address: addr }))}
+  value={formData.address || {}}
+  onChange={(address: UnifiedAddress) => {
+    setFormData(prev => ({
+      ...prev,
+      address: address,
+      city: address.cityName || prev.city || ''
+    }));
+  }}
   module="court"
-  mode={isEditing ? 'edit' : 'view'}
+  mode={mode}
 />
 ```
 
-### 3. Employee Modal (with Address Type)
+**Key Behavior Preserved:**
+- City field syncing via `cityName` extraction
+- View mode disabling via `mode` prop
+- `AddressView` for view mode kept unchanged
 
+---
+
+### 2. JudgeForm.tsx
+
+**Import Changes:**
 ```typescript
-<UnifiedAddressForm
-  value={employee.currentAddress}
-  onChange={(addr) => updateAddress('current', addr)}
-  module="employee"
-  mode="edit"
-  addressType="current"
-/>
+// Remove:
+import { AddressForm } from '@/components/ui/AddressForm';
 
-<UnifiedAddressForm
-  value={employee.permanentAddress}
-  onChange={(addr) => updateAddress('permanent', addr)}
-  module="employee"
-  mode="edit"
-  addressType="permanent"
-/>
+// Add:
+import { UnifiedAddressForm } from '@/components/ui/UnifiedAddressForm';
+import { UnifiedAddress } from '@/types/address';
 ```
 
-### 4. Judge Form (View Mode)
+**Address Section Replacement (Lines 912-928):**
 
-```typescript
-<UnifiedAddressForm
-  value={judge.address}
-  onChange={() => {}} // No-op in view mode
+```
+BEFORE:
+<AddressForm
+  value={formData.address || {
+    line1: '',
+    line2: '',
+    locality: '',
+    district: '',
+    cityId: '',
+    stateId: '',
+    pincode: '',
+    countryId: 'IN',
+    source: 'manual'
+  }}
+  onChange={(address) => setFormData(prev => ({ ...prev, address }))}
+  disabled={isReadOnly}
+  required={false}
   module="judge"
-  mode="view"
+/>
+
+AFTER:
+<UnifiedAddressForm
+  value={formData.address || {}}
+  onChange={(address: UnifiedAddress) => setFormData(prev => ({ ...prev, address }))}
+  module="judge"
+  mode={isReadOnly ? 'view' : 'edit'}
+  required={false}
 />
 ```
+
+**Key Behavior Preserved:**
+- `isReadOnly` maps to `mode='view'`
+- `required={false}` preserved
+- `module="judge"` preserved
+
+---
+
+### 3. ClientModal.tsx
+
+**Import Changes:**
+```typescript
+// Remove:
+import { SimpleAddressForm, SimpleAddressData } from '@/components/ui/SimpleAddressForm';
+
+// Add:
+import { UnifiedAddressForm } from '@/components/ui/UnifiedAddressForm';
+import { UnifiedAddress } from '@/types/address';
+```
+
+**Address Section Replacement (Lines 1213-1241):**
+
+```
+BEFORE:
+<SimpleAddressForm
+  value={{
+    line1: formData.address?.line1 || '',
+    line2: formData.address?.line2 || '',
+    cityName: (formData.address as any)?.cityName || '',
+    stateName: (formData.address as any)?.stateName || '',
+    pincode: formData.address?.pincode || '',
+    countryName: 'India'
+  }}
+  onChange={(address) => setFormData(prev => ({ 
+    ...prev, 
+    address: {
+      ...prev.address,
+      line1: address.line1 || '',
+      line2: address.line2 || '',
+      cityName: address.cityName || '',
+      ...
+    }
+  }))}
+  disabled={mode === 'view'}
+  errors={{
+    line1: errors.addressLine1,
+    city: errors.addressCity,
+    state: errors.addressState,
+    pincode: errors.pincode
+  }}
+/>
+
+AFTER:
+<UnifiedAddressForm
+  value={formData.address || {}}
+  onChange={(address: UnifiedAddress) => setFormData(prev => ({
+    ...prev,
+    address: address
+  }))}
+  module="client"
+  mode={mode}
+/>
+```
+
+**Key Behavior Preserved:**
+- Mode-based disabling via `mode` prop
+- `AddressView` for view mode kept unchanged
+- Error display handled via UnifiedAddressForm's internal AddressForm
+
+**Note:** Client address errors (`errors.addressLine1`, etc.) need validation at form level since UnifiedAddressForm doesn't accept `errors` prop. This is acceptable as validation runs on submit.
+
+---
+
+### 4. EmployeeModalV2.tsx - DEFERRED
+
+**Current State:** Uses manual inline fields (Textarea for addresses, Input for city, Select for state, Input for pincode)
+
+**Reason for Deferral:**
+- Current implementation uses legacy TEXT fields (`currentAddress`, `permanentAddress`) as free-text
+- Replacing with UnifiedAddressForm requires:
+  1. UI restructuring (replace 6 inline fields with form component)
+  2. Data model change (TEXT → JSONB)
+  3. Backward compatibility handling for existing employee data
+
+**Impact:** No regression - current functionality unchanged
+
+**Future Work:** Separate task to implement structured address for employees
+
+---
+
+### 5. ContactModal.tsx - DEFERRED
+
+**Current State:** No physical address support in the modal
+
+**Reason for Deferral:**
+- ContactModal handles only emails and phones
+- Physical address field is in `client_contacts` table but not exposed in UI
+
+**Impact:** No regression - feature not implemented
+
+**Future Work:** Add address section to ContactModal with UnifiedAddressForm
+
+---
+
+## Files to Modify
+
+| File | Change Type | Description |
+|------|-------------|-------------|
+| `src/components/modals/CourtModal.tsx` | EDIT | Replace SimpleAddressForm with UnifiedAddressForm |
+| `src/components/masters/judges/JudgeForm.tsx` | EDIT | Replace AddressForm with UnifiedAddressForm |
+| `src/components/modals/ClientModal.tsx` | EDIT | Replace SimpleAddressForm with UnifiedAddressForm |
+
+---
+
+## Detailed Diff Summary
+
+### CourtModal.tsx
+
+```diff
+// Line 15 - Imports
+- import { SimpleAddressForm, SimpleAddressData } from '@/components/ui/SimpleAddressForm';
++ import { UnifiedAddressForm } from '@/components/ui/UnifiedAddressForm';
++ import { UnifiedAddress } from '@/types/address';
+
+// Lines 785-813 - Address section
+-               <SimpleAddressForm
+-                   value={{
+-                     line1: typeof formData.address === 'object' ? formData.address.line1 || '' : String(formData.address || ''),
+-                     line2: typeof formData.address === 'object' ? formData.address.line2 || '' : '',
+-                     cityName: formData.city || (typeof formData.address === 'object' ? formData.address.cityName || '' : ''),
+-                     stateName: typeof formData.address === 'object' ? formData.address.stateName || '' : '',
+-                     pincode: typeof formData.address === 'object' ? formData.address.pincode || '' : '',
+-                     countryName: 'India'
+-                   }}
+-                   onChange={(addr: SimpleAddressData) => {
+-                     const enhancedAddress: EnhancedAddressData = {
+-                       ...formData.address,
+-                       line1: addr.line1 || '',
+-                       line2: addr.line2 || '',
+-                       cityName: addr.cityName || '',
+-                       stateName: addr.stateName || '',
+-                       pincode: addr.pincode || '',
+-                       countryId: 'IN',
+-                       source: 'manual'
+-                     };
+-                     setFormData(prev => ({
+-                       ...prev,
+-                       address: enhancedAddress,
+-                       city: addr.cityName || prev.city || ''
+-                     }));
+-                   }}
+-                   disabled={mode === 'view'}
+-                 />
++               <UnifiedAddressForm
++                 value={formData.address || {}}
++                 onChange={(address: UnifiedAddress) => {
++                   setFormData(prev => ({
++                     ...prev,
++                     address: address,
++                     city: address.cityName || prev.city || ''
++                   }));
++                 }}
++                 module="court"
++                 mode={mode}
++               />
+```
+
+### JudgeForm.tsx
+
+```diff
+// Line 12 - Imports
+- import { AddressForm } from '@/components/ui/AddressForm';
++ import { UnifiedAddressForm } from '@/components/ui/UnifiedAddressForm';
++ import { UnifiedAddress } from '@/types/address';
+
+// Lines 912-928 - Address section
+-           <AddressForm
+-             value={formData.address || {
+-               line1: '',
+-               line2: '',
+-               locality: '',
+-               district: '',
+-               cityId: '',
+-               stateId: '',
+-               pincode: '',
+-               countryId: 'IN',
+-               source: 'manual'
+-             }}
+-             onChange={(address) => setFormData(prev => ({ ...prev, address }))}
+-             disabled={isReadOnly}
+-             required={false}
+-             module="judge"
+-           />
++           <UnifiedAddressForm
++             value={formData.address || {}}
++             onChange={(address: UnifiedAddress) => setFormData(prev => ({ ...prev, address }))}
++             module="judge"
++             mode={isReadOnly ? 'view' : 'edit'}
++             required={false}
++           />
+```
+
+### ClientModal.tsx
+
+```diff
+// Line 26 - Imports
+- import { SimpleAddressForm, SimpleAddressData } from '@/components/ui/SimpleAddressForm';
++ import { UnifiedAddressForm } from '@/components/ui/UnifiedAddressForm';
++ import { UnifiedAddress } from '@/types/address';
+
+// Lines 1213-1241 - Address section
+-                   <SimpleAddressForm
+-                     value={{
+-                       line1: formData.address?.line1 || '',
+-                       line2: formData.address?.line2 || '',
+-                       cityName: (formData.address as any)?.cityName || '',
+-                       stateName: (formData.address as any)?.stateName || '',
+-                       pincode: formData.address?.pincode || '',
+-                       countryName: 'India'
+-                     }}
+-                     onChange={(address) => setFormData(prev => ({ 
+-                       ...prev, 
+-                       address: {
+-                         ...prev.address,
+-                         line1: address.line1 || '',
+-                         line2: address.line2 || '',
+-                         cityName: address.cityName || '',
+-                         stateName: address.stateName || '',
+-                         pincode: address.pincode || '',
+-                         countryName: address.countryName || 'India'
+-                       }
+-                     }))}
+-                     disabled={mode === 'view'}
+-                     errors={{
+-                       line1: errors.addressLine1,
+-                       city: errors.addressCity,
+-                       state: errors.addressState,
+-                       pincode: errors.pincode
+-                     }}
+-                   />
++                   <UnifiedAddressForm
++                     value={formData.address || {}}
++                     onChange={(address: UnifiedAddress) => setFormData(prev => ({
++                       ...prev,
++                       address: address
++                     }))}
++                     module="client"
++                     mode={mode}
++                   />
+```
+
+---
+
+## Verification Checklist
+
+After implementation, verify:
+
+- [ ] **Courts**: Create/Edit/View modes work correctly
+- [ ] **Courts**: City field syncs with address.cityName
+- [ ] **Courts**: AddressView still shows in view mode
+- [ ] **Judges**: Create/Edit/View modes work correctly
+- [ ] **Judges**: Address persists correctly on save
+- [ ] **Clients**: Create/Edit/View modes work correctly
+- [ ] **Clients**: AddressView still shows in view mode
+- [ ] **Clients**: GST address integration still works (if applicable)
 
 ---
 
 ## Backward Compatibility
 
-| Existing Component | Status | Migration Path |
-|-------------------|--------|----------------|
-| `AddressForm` | PRESERVED | Used internally by UnifiedAddressForm |
-| `SimpleAddressForm` | PRESERVED | Alternative for simple text-only forms |
-| `AddressView` | PRESERVED | Separate read-only display component |
+| Legacy Component | Status |
+|-----------------|--------|
+| `SimpleAddressForm` | PRESERVED - not deleted |
+| `AddressForm` | PRESERVED - used internally by UnifiedAddressForm |
+| `AddressView` | PRESERVED - used for read-only display |
 
 ---
 
-## Safety Checklist
+## Components After Migration
 
-- No deletion of existing components
-- No UI redesign
-- No database changes
-- No RLS policy changes
-- GST integration behavior preserved
-- Existing AddressForm consumers unaffected
-
----
-
-## Technical Considerations
-
-1. **Type Compatibility**: `UnifiedAddress` is compatible with `EnhancedAddressData` through `normalizeAddress()` which handles all field name variations
-2. **Memoization**: Using `useMemo` for normalization and `useCallback` for handlers to prevent unnecessary re-renders
-3. **Module Fallback**: `'contact'` module maps to `'client'` config since AddressForm doesn't have contact-specific config
-4. **GST Flow Preserved**: All GST-related props pass through to AddressForm unchanged
+| Component | Direct Usage |
+|-----------|-------------|
+| `UnifiedAddressForm` | CourtModal, JudgeForm, ClientModal |
+| `AddressForm` | UnifiedAddressForm (internal only) |
+| `SimpleAddressForm` | Available for future use |
+| `AddressView` | CourtModal (view), ClientModal (view) |
 
 ---
 
 ## Estimated Effort
-- Component creation: ~15 minutes
-- Documentation: ~5 minutes
-- **Total: ~20 minutes**
+
+- CourtModal: ~15 minutes
+- JudgeForm: ~10 minutes
+- ClientModal: ~15 minutes
+- Testing: ~20 minutes
+- **Total: ~60 minutes**
+
