@@ -2,6 +2,7 @@
  * Masters QC Runner
  * Comprehensive CRUD test runner for all master entities
  * Tests create/read/update/delete operations and reports detailed errors
+ * Includes JSONB address persistence verification
  */
 
 import React, { useState, useCallback } from 'react';
@@ -9,24 +10,23 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { 
   Play, 
   CheckCircle, 
   XCircle, 
-  Clock, 
   AlertTriangle, 
   RefreshCw,
   Database,
   Copy,
-  Loader2
+  Loader2,
+  MapPin
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
 interface TestResult {
   entity: string;
-  operation: 'create' | 'read' | 'update' | 'delete';
+  operation: 'create' | 'read' | 'update' | 'delete' | 'verify-address';
   status: 'pass' | 'fail' | 'skip';
   duration: number;
   errorCode?: string;
@@ -41,20 +41,80 @@ interface EntityTestConfig {
   createPayload: Record<string, any>;
   updatePayload: Record<string, any>;
   requiredFields: string[];
+  requiresOwner?: boolean;
+  requiresClientLink?: boolean;
+  skipCreate?: boolean;
+  skipReason?: string;
+  verifyFields?: string[]; // JSONB fields to verify after read
 }
 
-// Entity test config with optional special handling flags
-interface EntityTestConfig {
-  name: string;
-  table: string;
-  createPayload: Record<string, any>;
-  updatePayload: Record<string, any>;
-  requiredFields: string[];
-  requiresOwner?: boolean; // Set owner_id/owner_user_id to current user
-  requiresClientLink?: boolean; // Create temp client first
-  skipCreate?: boolean; // Skip create/delete (e.g., employees need provisioning)
-  skipReason?: string;
+interface AddressVerificationResult {
+  passed: boolean;
+  errors: string[];
 }
+
+/**
+ * Generate a test UnifiedAddress for QC testing
+ * Uses stringified JSON to match service layer behavior
+ */
+const generateTestAddress = (entityName: string): string => {
+  return JSON.stringify({
+    line1: `QC Test Address for ${entityName}`,
+    line2: 'Building A, Floor 3',
+    pincode: '380001',
+    cityId: '',
+    cityName: 'Ahmedabad',
+    stateId: '',
+    stateCode: '24',
+    stateName: 'Gujarat',
+    countryId: 'IN',
+    countryName: 'India',
+    landmark: 'Near Test Landmark',
+    locality: 'Test Locality',
+    district: 'Ahmedabad',
+    source: 'manual',
+    isPrimary: true
+  });
+};
+
+/**
+ * Verify JSONB address fields contain expected UnifiedAddress structure
+ */
+const verifyAddressFields = (
+  data: Record<string, any>, 
+  verifyFields: string[]
+): AddressVerificationResult => {
+  const errors: string[] = [];
+  
+  for (const field of verifyFields) {
+    const value = data[field];
+    
+    if (!value) {
+      errors.push(`${field} is null/undefined`);
+      continue;
+    }
+    
+    // Parse if string (JSONB returned as string sometimes)
+    let parsed: any;
+    try {
+      parsed = typeof value === 'string' ? JSON.parse(value) : value;
+    } catch {
+      errors.push(`${field} is not valid JSON`);
+      continue;
+    }
+    
+    // Verify required UnifiedAddress fields
+    if (!parsed.line1) errors.push(`${field}.line1 is missing`);
+    if (!parsed.cityName) errors.push(`${field}.cityName is missing`);
+    if (!parsed.stateName) errors.push(`${field}.stateName is missing`);
+    if (!parsed.source) errors.push(`${field}.source is missing`);
+  }
+  
+  return {
+    passed: errors.length === 0,
+    errors
+  };
+};
 
 // Test configurations for each master entity
 const MASTER_ENTITIES: EntityTestConfig[] = [
@@ -69,11 +129,13 @@ const MASTER_ENTITIES: EntityTestConfig[] = [
       type: 'Proprietorship',
       state: 'Gujarat',
       city: 'Ahmedabad',
-      data_scope: 'TEAM'
+      data_scope: 'TEAM',
+      address: generateTestAddress('Clients')
     },
     updatePayload: { status: 'inactive' },
     requiredFields: ['display_name'],
-    requiresOwner: true
+    requiresOwner: true,
+    verifyFields: ['address']
   },
   {
     name: 'Client Contacts',
@@ -85,12 +147,14 @@ const MASTER_ENTITIES: EntityTestConfig[] = [
       is_active: true,
       data_scope: 'TEAM',
       emails: [{ email: 'test@example.com', isPrimary: true }],
-      phones: [{ countryCode: '+91', number: '9999999999', isPrimary: true }]
+      phones: [{ countryCode: '+91', number: '9999999999', isPrimary: true }],
+      address: generateTestAddress('Client Contacts')
     },
     updatePayload: { designation: 'Director' },
     requiredFields: ['name'],
     requiresOwner: true,
-    requiresClientLink: true
+    requiresClientLink: true,
+    verifyFields: ['address']
   },
   {
     name: 'Client Groups',
@@ -103,6 +167,7 @@ const MASTER_ENTITIES: EntityTestConfig[] = [
     },
     updatePayload: { description: 'Updated by QC test' },
     requiredFields: ['name', 'code']
+    // No address field for client_groups
   },
   {
     name: 'Legal Authorities (Courts)',
@@ -117,10 +182,12 @@ const MASTER_ENTITIES: EntityTestConfig[] = [
       status: 'Active',
       tax_jurisdiction: 'CGST',
       officer_designation: 'Commissioner (Appeals)',
-      bench_location: 'Ahmedabad'
+      bench_location: 'Ahmedabad',
+      address_jsonb: generateTestAddress('Courts')
     },
     updatePayload: { status: 'Inactive' },
-    requiredFields: ['name']
+    requiredFields: ['name'],
+    verifyFields: ['address_jsonb']
   },
   {
     name: 'Judges',
@@ -130,10 +197,12 @@ const MASTER_ENTITIES: EntityTestConfig[] = [
       designation: 'Member (Technical)',
       status: 'Active',
       phone: '+91 9999999999',
-      email: `qc-judge-${Date.now()}@test.local`
+      email: `qc-judge-${Date.now()}@test.local`,
+      address: generateTestAddress('Judges')
     },
     updatePayload: { status: 'Inactive' },
-    requiredFields: ['name']
+    requiredFields: ['name'],
+    verifyFields: ['address']
   },
   {
     name: 'Employees',
@@ -143,6 +212,7 @@ const MASTER_ENTITIES: EntityTestConfig[] = [
     requiredFields: ['full_name', 'employee_code', 'email', 'department', 'role'],
     skipCreate: true,
     skipReason: 'Employees require auth provisioning (profile + auth.users FK)'
+    // No address verification for employees (uses legacy current_address/permanent_address)
   }
 ];
 
@@ -354,6 +424,47 @@ export default function MastersQC() {
         });
       }
 
+      // VERIFY ADDRESS (after READ, before UPDATE)
+      if (config.verifyFields?.length) {
+        const verifyStart = performance.now();
+        try {
+          // Fetch with specific address fields
+          const { data, error } = await (supabase as any)
+            .from(config.table)
+            .select(config.verifyFields.join(', '))
+            .eq('id', createdId)
+            .single();
+
+          if (error) {
+            entityResults.push({
+              entity: config.name,
+              operation: 'verify-address',
+              status: 'fail',
+              duration: performance.now() - verifyStart,
+              errorCode: error.code,
+              errorMessage: error.message
+            });
+          } else {
+            const verification = verifyAddressFields(data, config.verifyFields);
+            entityResults.push({
+              entity: config.name,
+              operation: 'verify-address',
+              status: verification.passed ? 'pass' : 'fail',
+              duration: performance.now() - verifyStart,
+              errorMessage: verification.passed ? undefined : verification.errors.join('; ')
+            });
+          }
+        } catch (err: any) {
+          entityResults.push({
+            entity: config.name,
+            operation: 'verify-address',
+            status: 'fail',
+            duration: performance.now() - verifyStart,
+            errorMessage: err.message
+          });
+        }
+      }
+
       // UPDATE
       const updateStart = performance.now();
       try {
@@ -428,11 +539,15 @@ export default function MastersQC() {
         });
       }
     } else {
-      // Skip read/update/delete if create failed
-      ['read', 'update', 'delete'].forEach(op => {
+      // Skip read/verify-address/update/delete if create failed
+      const skippedOps: Array<'read' | 'verify-address' | 'update' | 'delete'> = ['read', 'update', 'delete'];
+      if (config.verifyFields?.length) {
+        skippedOps.splice(1, 0, 'verify-address');
+      }
+      skippedOps.forEach(op => {
         entityResults.push({
           entity: config.name,
-          operation: op as any,
+          operation: op,
           status: 'skip',
           duration: 0,
           errorMessage: 'Skipped - create failed'
@@ -506,10 +621,28 @@ Error Details: ${result.errorDetails || 'N/A'}`;
     toast({ title: 'Copied to clipboard' });
   };
 
+  // Get badge variant and icon for operation
+  const getOperationBadge = (result: TestResult) => {
+    const isAddress = result.operation === 'verify-address';
+    const variant = result.status === 'pass' ? 'default' : result.status === 'fail' ? 'destructive' : 'secondary';
+    
+    return (
+      <Badge 
+        variant={variant}
+        className={`text-xs ${isAddress ? 'gap-1' : ''}`}
+      >
+        {isAddress && <MapPin className="h-3 w-3" />}
+        {result.operation}
+      </Badge>
+    );
+  };
+
   // Summary stats
   const passCount = results.filter(r => r.status === 'pass').length;
   const failCount = results.filter(r => r.status === 'fail').length;
   const skipCount = results.filter(r => r.status === 'skip').length;
+  const addressPassCount = results.filter(r => r.operation === 'verify-address' && r.status === 'pass').length;
+  const addressFailCount = results.filter(r => r.operation === 'verify-address' && r.status === 'fail').length;
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -521,7 +654,7 @@ Error Details: ${result.errorDetails || 'N/A'}`;
               <div>
                 <CardTitle>Masters QC Runner</CardTitle>
                 <CardDescription>
-                  Comprehensive CRUD test for all master entities
+                  Comprehensive CRUD + Address JSONB persistence tests for all master entities
                 </CardDescription>
               </div>
             </div>
@@ -547,7 +680,7 @@ Error Details: ${result.errorDetails || 'N/A'}`;
         <CardContent>
           {/* Summary */}
           {results.length > 0 && (
-            <div className="flex gap-4 mb-6">
+            <div className="flex flex-wrap gap-4 mb-6">
               <Badge variant="outline" className="text-green-600 border-green-600">
                 <CheckCircle className="h-3 w-3 mr-1" />
                 {passCount} Passed
@@ -560,6 +693,12 @@ Error Details: ${result.errorDetails || 'N/A'}`;
                 <AlertTriangle className="h-3 w-3 mr-1" />
                 {skipCount} Skipped
               </Badge>
+              {(addressPassCount > 0 || addressFailCount > 0) && (
+                <Badge variant="outline" className="text-blue-600 border-blue-600">
+                  <MapPin className="h-3 w-3 mr-1" />
+                  Address: {addressPassCount}/{addressPassCount + addressFailCount}
+                </Badge>
+              )}
             </div>
           )}
 
@@ -583,15 +722,11 @@ Error Details: ${result.errorDetails || 'N/A'}`;
                     <CardHeader className="py-3 px-4">
                       <div className="flex items-center justify-between">
                         <span className="font-medium">{entity.name}</span>
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 flex-wrap">
                           {entityResults.map((r, idx) => (
-                            <Badge 
-                              key={idx}
-                              variant={r.status === 'pass' ? 'default' : r.status === 'fail' ? 'destructive' : 'secondary'}
-                              className="text-xs"
-                            >
-                              {r.operation}
-                            </Badge>
+                            <span key={idx}>
+                              {getOperationBadge(r)}
+                            </span>
                           ))}
                         </div>
                       </div>
@@ -603,7 +738,10 @@ Error Details: ${result.errorDetails || 'N/A'}`;
                             <div className="space-y-1">
                               <div className="flex items-center gap-2">
                                 <XCircle className="h-4 w-4 text-destructive" />
-                                <span className="font-medium capitalize">{r.operation}</span>
+                                <span className="font-medium capitalize flex items-center gap-1">
+                                  {r.operation === 'verify-address' && <MapPin className="h-3 w-3" />}
+                                  {r.operation}
+                                </span>
                                 {r.errorCode && (
                                   <Badge variant="outline" className="text-xs">
                                     {r.errorCode}
