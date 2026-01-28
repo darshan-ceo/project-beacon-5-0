@@ -30,6 +30,14 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
     fetchUser();
   }, []);
 
+  // Reset loading states when modal opens (safety net for stale state)
+  useEffect(() => {
+    if (isOpen) {
+      setIsSaving(false);
+      setIsDeleting(false);
+    }
+  }, [isOpen]);
+
   const handleFormSubmit = async (formData: any) => {
     setIsSaving(true);
     try {
@@ -111,6 +119,7 @@ export const JudgeModal: React.FC<JudgeModalProps> = ({ isOpen, onClose, judge: 
         await judgesService.update(judgeData.id, updatePayload, dispatch, currentUserId || undefined);
       }
 
+      setIsSaving(false);
       onClose();
     } catch (error: any) {
       console.error('Judge operation failed:', error);
