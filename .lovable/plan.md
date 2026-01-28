@@ -1,216 +1,147 @@
 
 
-# Fix SupabaseAdapter Address Whitelist Issues
+# QA Validation Report: Address Persistence Testing
 
-## Problem Summary
+## Executive Summary
 
-The `normalizeForBackend()` method in `SupabaseAdapter.ts` uses entity-specific field whitelists that are **silently dropping address JSONB fields** during CREATE/UPDATE operations.
+**Overall Status: PARTIAL PASS with BLOCKING BUG FOUND**
 
-| Entity | DB Column | Whitelist Status | Current Result |
-|--------|-----------|------------------|----------------|
-| Clients | `address` | ✅ Included (line 1168) | Working |
-| Courts | `address_jsonb` | ❌ Missing | Double-serialized |
-| Judges | `address` | ❌ Missing | Empty objects {} |
-| Client Contacts | `address` | ❌ No handler | Passes through unsanitized |
+The SupabaseAdapter whitelist fixes are correctly implemented, but a separate data preparation bug was discovered in `courtsService.ts` that causes address double-serialization.
 
 ---
 
-## Root Cause Analysis
+## Test Results by Entity
 
-### Courts (lines 1867-1892)
-```typescript
-const validCourtFields = ['id', 'tenant_id', 'name', 'code', 'type', 'level', 
-  'city', 'state', 'jurisdiction', 'address', ...];
-//                                  ^^^^ Wrong! DB column is address_jsonb
-```
-**Issue:** Whitelist has `address` but DB column is `address_jsonb`
+### 1. Judges
 
-### Judges (lines 1920-1928)
-```typescript
-const validJudgeFields = [
-  'id', 'tenant_id', 'name', 'designation', 'status', 'court_id',
-  'bench', 'jurisdiction', 'city', 'state', 'email', 'phone',
-  // ... no 'address' field listed
-];
-```
-**Issue:** `address` field completely missing from whitelist
+| Check | Result | Evidence |
+|-------|--------|----------|
+| Record Created | PASS | Judge "Qa Test Judge Address" created (ID: 55080c97-...) |
+| Address Persisted | INCONCLUSIVE | Empty `{}` - no address data entered during test |
+| Whitelist Fix Applied | PASS | `address` field in whitelist at line 1994 |
+| Stringify Applied | PASS | Lines 1980-1983 implement stringify |
 
-### Client Contacts (no case handler)
-The switch statement in `normalizeForBackend()` has no `case 'client_contacts':` handler, so records pass through without field normalization or validation.
-
----
-
-## Implementation Plan
-
-### File: `src/data/adapters/SupabaseAdapter.ts`
-
-#### Fix 1: Courts Whitelist (line 1888)
-
-**Current:**
-```typescript
-const validCourtFields = ['id', 'tenant_id', 'name', 'code', 'type', 'level', 
-  'city', 'state', 'jurisdiction', 'address', 'created_by', 'created_at', 
-  'updated_at', 'established_year', 'bench_location', 'tax_jurisdiction', 
-  'officer_designation', 'phone', 'email', 'status'];
-```
-
-**Fixed:**
-```typescript
-const validCourtFields = ['id', 'tenant_id', 'name', 'code', 'type', 'level', 
-  'city', 'state', 'jurisdiction', 'address', 'address_jsonb', 'created_by', 
-  'created_at', 'updated_at', 'established_year', 'bench_location', 
-  'tax_jurisdiction', 'officer_designation', 'phone', 'email', 'status'];
-```
-
-**Also add JSONB stringification before the whitelist (before line 1887):**
-```typescript
-// Stringify address_jsonb for JSONB column
-if (normalized.address_jsonb && typeof normalized.address_jsonb === 'object') {
-  normalized.address_jsonb = JSON.stringify(normalized.address_jsonb);
+**Database Snippet (NEW record):**
+```json
+{
+  "id": "55080c97-4d59-4d7b-a8db-2a43953a0e45",
+  "name": "Qa Test Judge Address",
+  "designation": "Chief Justice",
+  "address": {}
 }
 ```
 
-#### Fix 2: Judges Whitelist (lines 1920-1928)
+**Conclusion:** Whitelist fix is correct. Test was incomplete due to form navigation complexity - address fields were not filled.
 
-**Current:**
-```typescript
-const validJudgeFields = [
-  'id', 'tenant_id', 'name', 'designation', 'status', 'court_id',
-  'bench', 'jurisdiction', 'city', 'state', 'email', 'phone',
-  'appointment_date', 'retirement_date', 'years_of_service',
-  'specialization', 'chambers', 'assistant', 'availability',
-  'tags', 'notes', 'photo_url', 'created_at', 'updated_at', 'created_by',
-  'member_type', 'authority_level', 'qualifications', 'tenure_details'
-];
-```
+---
 
-**Fixed:**
-```typescript
-const validJudgeFields = [
-  'id', 'tenant_id', 'name', 'designation', 'status', 'court_id',
-  'bench', 'jurisdiction', 'city', 'state', 'email', 'phone',
-  'appointment_date', 'retirement_date', 'years_of_service',
-  'specialization', 'chambers', 'assistant', 'availability',
-  'tags', 'notes', 'photo_url', 'created_at', 'updated_at', 'created_by',
-  'member_type', 'authority_level', 'qualifications', 'tenure_details',
-  'address'  // <-- Add this
-];
-```
+### 2. Courts
 
-**Also add JSONB stringification (before line 1919):**
-```typescript
-// Stringify address for JSONB column
-if (normalized.address && typeof normalized.address === 'object') {
-  normalized.address = JSON.stringify(normalized.address);
+| Check | Result | Evidence |
+|-------|--------|----------|
+| Whitelist Fix Applied | PASS | `address_jsonb` in whitelist at line 1949 |
+| Stringify Applied | PASS | Lines 1943-1946 implement stringify |
+| Data Integrity | FAIL | Double-serialization in legacy data |
+
+**Database Snippet (LEGACY record - "RJ District Court"):**
+```json
+{
+  "line1": "{\"line1\":\"1\",\"line2\":\"2\",\"locality\":\"3\"...}",
+  "cityName": "New Delhi",
+  "source": "imported"
 }
 ```
 
-#### Fix 3: Add Client Contacts Handler (after line 1216)
-
-Insert new case handler after `client_groups` case:
-
+**Root Cause:** `courtsService.ts` lines 62-67 incorrectly assigns a potentially JSON-stringified `address` field to `line1`:
 ```typescript
-case 'client_contacts':
-  // Map camelCase to snake_case
-  if (normalized.clientId && !normalized.client_id) {
-    normalized.client_id = normalized.clientId;
-  }
-  if (normalized.ownerUserId && !normalized.owner_user_id) {
-    normalized.owner_user_id = normalized.ownerUserId;
-  }
-  if (normalized.isPrimary !== undefined && normalized.is_primary === undefined) {
-    normalized.is_primary = normalized.isPrimary;
-  }
-  if (normalized.isActive !== undefined && normalized.is_active === undefined) {
-    normalized.is_active = normalized.isActive;
-  }
-  if (normalized.dataScope && !normalized.data_scope) {
-    normalized.data_scope = normalized.dataScope;
-  }
-  if (normalized.createdAt && !normalized.created_at) {
-    normalized.created_at = normalized.createdAt;
-  }
-  if (normalized.updatedAt && !normalized.updated_at) {
-    normalized.updated_at = normalized.updatedAt;
-  }
-  
-  // Delete camelCase versions
-  delete normalized.clientId;
-  delete normalized.ownerUserId;
-  delete normalized.isPrimary;
-  delete normalized.isActive;
-  delete normalized.dataScope;
-  delete normalized.createdAt;
-  delete normalized.updatedAt;
-  
-  // Stringify JSONB fields
-  if (normalized.emails && typeof normalized.emails === 'object') {
-    normalized.emails = JSON.stringify(normalized.emails);
-  }
-  if (normalized.phones && typeof normalized.phones === 'object') {
-    normalized.phones = JSON.stringify(normalized.phones);
-  }
-  if (normalized.address && typeof normalized.address === 'object') {
-    normalized.address = JSON.stringify(normalized.address);
-  }
-  
-  // Whitelist valid columns
-  const validContactFields = [
-    'id', 'tenant_id', 'client_id', 'name', 'designation', 
-    'emails', 'phones', 'address', 'notes',
-    'is_primary', 'is_active', 'data_scope', 'owner_user_id',
-    'created_at', 'updated_at'
-  ];
-  Object.keys(normalized).forEach(key => {
-    if (!validContactFields.includes(key)) delete normalized[key];
-  });
-  break;
+const unifiedAddress = normalizeAddress({
+  line1: normalizedData.address || '',  // BUG: may be JSON string
+  ...
+});
+```
+
+**Conclusion:** FAIL - Double-serialization bug exists in service layer, not SupabaseAdapter.
+
+---
+
+### 3. Client Contacts
+
+| Check | Result | Evidence |
+|-------|--------|----------|
+| Case Handler Added | PASS | Lines 1150-1216 in SupabaseAdapter |
+| Address in Whitelist | PASS | `address` field whitelisted |
+| Data Validation | INCONCLUSIVE | No records with address data exist |
+
+**Database Query Result:**
+```sql
+SELECT * FROM client_contacts WHERE address::text != '{}' → 0 rows
+```
+
+**Conclusion:** Fix is implemented but cannot be validated without test data.
+
+---
+
+## SupabaseAdapter Verification
+
+All three fixes were correctly applied:
+
+| Entity | Whitelist Field | Stringify Logic | Line Reference |
+|--------|----------------|-----------------|----------------|
+| Courts | `address_jsonb` | Lines 1943-1946 | Line 1949 |
+| Judges | `address` | Lines 1980-1983 | Line 1994 |
+| Client Contacts | `address` | Lines 1203-1205 | Line 1213 |
+
+---
+
+## Blocking Issue Requiring Fix
+
+### Bug: Courts Address Double-Serialization
+
+**File:** `src/services/courtsService.ts`
+
+**Location:** Lines 62-67
+
+**Current (Buggy):**
+```typescript
+const unifiedAddress: UnifiedAddress = normalizeAddress({
+  line1: normalizedData.address || '',  // Wrong: address may be JSON object
+  cityName: normalizedData.city || '',
+  stateName: normalizedData.state || '',
+  source: 'manual'
+});
+```
+
+**Fix Required:**
+```typescript
+// If normalizedData has a full address object, use it directly
+const rawAddress = normalizedData.addressJsonb || normalizedData.address_jsonb || {};
+const unifiedAddress: UnifiedAddress = normalizeAddress({
+  ...rawAddress,
+  // Fallback to legacy fields if no JSONB address
+  line1: rawAddress.line1 || normalizedData.addressText || '',
+  cityName: rawAddress.cityName || normalizedData.city || '',
+  stateName: rawAddress.stateName || normalizedData.state || '',
+  source: rawAddress.source || 'manual'
+});
 ```
 
 ---
 
-## Files to Modify
+## Final Summary Table
 
-| File | Lines | Change |
-|------|-------|--------|
-| `src/data/adapters/SupabaseAdapter.ts` | 1886-1888 | Add `address_jsonb` to courts whitelist + stringify |
-| `src/data/adapters/SupabaseAdapter.ts` | 1918-1928 | Add `address` to judges whitelist + stringify |
-| `src/data/adapters/SupabaseAdapter.ts` | after 1216 | Add new `client_contacts` case handler |
-
----
-
-## Validation
-
-After implementation, run MastersQC at `/qa/masters-qc` to verify:
-
-| Entity | Expected Result |
-|--------|-----------------|
-| Clients | ✅ verify-address: PASS |
-| Courts | ✅ verify-address: PASS (address_jsonb persists) |
-| Judges | ✅ verify-address: PASS (address persists) |
-| Client Contacts | ✅ verify-address: PASS (address persists) |
+| Entity | SupabaseAdapter Fix | Service Layer | End-to-End | Status |
+|--------|---------------------|---------------|------------|--------|
+| Clients | N/A (already working) | N/A | PASS | PASS |
+| Courts | PASS | FAIL (double-serialize) | FAIL | FAIL |
+| Judges | PASS | PASS | INCONCLUSIVE | NEEDS RETEST |
+| Contacts | PASS | PASS | INCONCLUSIVE | NEEDS RETEST |
 
 ---
 
-## Risk Assessment
+## Recommended Actions
 
-| Risk | Mitigation |
-|------|------------|
-| Breaking existing data | None - only affects new writes; existing data unchanged |
-| Side effects | None - changes are additive (adding fields to whitelists) |
-| Rollback | Simple - remove added fields from whitelists |
-
-**Safety Level:** Fully Safe
-
----
-
-## Estimated Effort
-
-| Task | Time |
-|------|------|
-| Fix Courts whitelist + stringify | ~5 min |
-| Fix Judges whitelist + stringify | ~5 min |
-| Add Client Contacts handler | ~10 min |
-| Run MastersQC validation | ~5 min |
-| **Total** | **~25 min** |
+1. **Immediate:** Fix `courtsService.ts` double-serialization bug
+2. **Validation:** Re-run Courts create/edit with address data
+3. **Complete:** Create test Judge and Contact records with full address data
+4. **Optional:** Add sidebar link to `/qa/masters-qc` for easier QC access
 
