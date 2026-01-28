@@ -1,127 +1,87 @@
 
-# Fix: "Tour Not Available" for All Onboarding Steps
+# Fix: Staff Role Cannot See Task Automation Tab Despite Having View Permission
 
 ## Problem Summary
-When clicking "Start Tour" for any onboarding step (except completed ones), users see a "Tour Not Available" error message. This affects all user roles and prevents the Get Started onboarding flow from functioning.
 
-## Root Cause
-The file `public/help/tours.json` contains **invalid JSON** that prevents the entire tours data from being parsed.
+When logging in as Staff, the Automation tab in Task Management is not visible even though the Staff role has "View Automation" permission assigned in Access & Roles. The RBAC configuration shows `tasks.automation.read` is assigned to Staff, but the code is not checking for `read` permission.
 
-### Location of Corruption
-**File:** `public/help/tours.json`  
-**Lines:** 1215-1226
+## Root Cause Analysis
 
-### Current (Malformed) Structure
-```json
-      }
-    ]
-  },                                          // ← hearing-lifecycle-tour closes
-        "content": "If adjourned...",         // ← ORPHAN! No opening brace
-        "target": "[data-tour='next-hearing']",
-        "placement": "right"
-      },
-      {
-        "id": "hl-order",
-        "title": "Upload Order",
-        ...
-    }
-  ]                                           // ← Extra closing bracket
-},
-{
-  "id": "dashboard-tour",
+### Database Configuration (Correct)
+```
+role: staff → permission_key: tasks.automation.read
 ```
 
-This orphaned fragment breaks JSON.parse(), causing `toursData` in OnboardingWizard to remain empty (`[]`). As a result, when `handleStartTour()` searches for any tour ID, it finds nothing and displays "Tour Not Available".
+### Code Check (Incorrect)
+**File:** `src/components/tasks/TaskManagement.tsx` (line 120)
+```typescript
+const canAccessAutomation = hasPermission('tasks.automation', 'admin') || hasPermission('tasks.automation', 'manage');
+```
+
+The code only checks for `admin` or `manage` actions, but the Staff role has `read` action (View). The `read` permission is never checked, so the tab remains hidden.
+
+### Permission Resolution Flow
+1. `hasPermission('tasks.automation', 'admin')` → checks for `tasks.automation.manage` or `tasks.automation.admin`
+2. `hasPermission('tasks.automation', 'manage')` → checks for `tasks.automation.manage`
+3. Neither includes `tasks.automation.read` which Staff has
+
+---
 
 ## Solution
 
-### Fix 1: Remove Orphaned JSON Fragment
+### Fix the Permission Check in TaskManagement.tsx
 
-Delete the orphaned step fragments (lines 1215-1226) that exist outside any tour object. These appear to be duplicate remnants from `hearing-lifecycle-tour`.
+Update the permission checks to include `read` action for viewing tabs:
 
-**Before (lines 1213-1228):**
-```json
-      }
-    ]
-  },
-        "content": "If adjourned, schedule next hearing...",
-        "target": "[data-tour='next-hearing']",
-        "placement": "right"
-      },
-      {
-        "id": "hl-order",
-        "title": "Upload Order",
-        "content": "When order is passed...",
-        "target": "[data-tour='upload-order']",
-        "placement": "left"
-    }
-  ]
-},
+**File:** `src/components/tasks/TaskManagement.tsx`  
+**Lines:** 118-122
+
+**Before:**
+```typescript
+// RBAC permission checks - sub-module tabs (granular access)
+// Templates: Manager+ can access (read permission)
+const canAccessTemplates = hasPermission('tasks.templates', 'read') || hasPermission('tasks', 'admin');
+// Automation, Escalation, AI: Admin/Partner only (manage permission)
+const canAccessAutomation = hasPermission('tasks.automation', 'admin') || hasPermission('tasks.automation', 'manage');
+const canAccessEscalation = hasPermission('tasks.escalation', 'admin') || hasPermission('tasks.escalation', 'manage');
+const canAccessAI = hasPermission('tasks.ai', 'admin') || hasPermission('tasks.ai', 'manage');
 ```
 
-**After (lines 1213-1215):**
-```json
-      }
-    ]
-  },
-```
-
-### Fix 2: Restore Missing Steps to hearing-lifecycle-tour (Optional)
-
-The orphaned steps (`hl-next-hearing` and `hl-order`) appear to be legitimate steps that were accidentally displaced. These should be reintegrated into the `hearing-lifecycle-tour` before the closing bracket.
-
-**Complete Corrected hearing-lifecycle-tour structure:**
-```json
-{
-  "id": "hearing-lifecycle-tour",
-  "title": "Hearing Lifecycle Management",
-  ...
-  "steps": [
-    ... existing steps ...,
-    {
-      "id": "hl-outcome",
-      "title": "Record Outcome",
-      ...
-    },
-    {
-      "id": "hl-next-hearing",
-      "title": "Schedule Next Hearing",
-      "content": "If adjourned, schedule next hearing from outcome form. This links hearings together and maintains continuity in case history.",
-      "target": "[data-tour='next-hearing']",
-      "placement": "right"
-    },
-    {
-      "id": "hl-order",
-      "title": "Upload Order",
-      "content": "When order is passed, upload the order document immediately. Link it to this hearing for proper case history and timeline.",
-      "target": "[data-tour='upload-order']",
-      "placement": "left"
-    }
-  ]
-},
+**After:**
+```typescript
+// RBAC permission checks - sub-module tabs (granular access)
+// Templates: Manager+ can access (read permission)
+const canAccessTemplates = hasPermission('tasks.templates', 'read') || hasPermission('tasks', 'admin');
+// Automation, Escalation, AI: Check both view (read) and manage permissions
+const canAccessAutomation = hasPermission('tasks.automation', 'read') || 
+                            hasPermission('tasks.automation', 'admin') || 
+                            hasPermission('tasks.automation', 'manage');
+const canAccessEscalation = hasPermission('tasks.escalation', 'read') || 
+                            hasPermission('tasks.escalation', 'admin') || 
+                            hasPermission('tasks.escalation', 'manage');
+const canAccessAI = hasPermission('tasks.ai', 'read') || 
+                    hasPermission('tasks.ai', 'admin') || 
+                    hasPermission('tasks.ai', 'manage');
 ```
 
 ---
 
 ## Technical Details
 
-### Flow Diagram
-```
-User clicks "Start Tour"
-         ↓
-OnboardingWizard.handleStartTour(tourId)
-         ↓
-toursData.find(t => t.id === tourId)
-         ↓
-toursData is [] (empty due to JSON parse failure)
-         ↓
-tourData = undefined
-         ↓
-Shows "Tour Not Available" toast
-```
+### Permission Matrix Alignment
 
-### Why Step 1 Appeared to Work
-The first step may have been cached in the browser or completed before the JSON corruption occurred. Browser caching of `/help/tours.json` can show stale (valid) data until cache expires.
+| UI Checkbox | Database Key | Code Check |
+|-------------|--------------|------------|
+| View | `tasks.automation.read` | `hasPermission(..., 'read')` |
+| Manage | `tasks.automation.manage` | `hasPermission(..., 'manage')` or `hasPermission(..., 'admin')` |
+
+The fix ensures the code respects both permission levels as configured in the Access & Roles UI.
+
+### Optional: Read-Only Mode for View Permission
+
+For future enhancement, users with only `read` permission could see the Automation tab in a read-only mode (view rules but not edit/create). This would require:
+1. Adding a `canManageAutomation` check for edit/create buttons
+2. Passing this as a prop to `TaskAutomation` component
 
 ---
 
@@ -129,18 +89,19 @@ The first step may have been cached in the browser or completed before the JSON 
 
 | File | Change |
 |------|--------|
-| `public/help/tours.json` | Fix JSON structure at lines 1207-1228: remove orphaned fragments and properly close hearing-lifecycle-tour with its complete steps |
+| `src/components/tasks/TaskManagement.tsx` | Add `read` permission check for canAccessAutomation, canAccessEscalation, canAccessAI (lines 120-122) |
 
 ---
 
 ## Validation Steps
 
-After the fix:
-1. Hard refresh the browser (Ctrl+Shift+R) to clear cache
-2. Navigate to Help → Get Started
-3. Click "Start Tour" for "Case Management Basics" (Step 2)
-4. Verify the tour launches successfully
-5. Test "Start Tour" for all other steps (Daily Workflow, Hearing Management, etc.)
+After fix:
+1. Login as Admin → Assign Staff role the "View" permission for Task Automation in Access & Roles
+2. Save changes
+3. Login as Staff user
+4. Navigate to Task Management
+5. Verify Automation tab is now visible
+6. Verify Automation tab contents are accessible
 
 ---
 
@@ -148,8 +109,8 @@ After the fix:
 
 | Risk | Mitigation |
 |------|------------|
-| Other JSON issues | Validate entire file with JSON linter after fix |
-| Missing tour steps | Restore orphaned steps to their correct position |
-| Cache issues | Instruct users to hard refresh browser |
+| Staff seeing sensitive automation rules | View permission is intentionally granted - this is expected behavior |
+| Breaking existing admin access | Admin already has manage permission, no change needed |
+| Future edit capability for view-only users | Edit buttons should also check for manage permission (minor follow-up) |
 
-**Impact:** All onboarding tours will work once JSON is valid. This is a critical fix affecting all users' onboarding experience.
+**Impact:** Low risk - this aligns code with configured RBAC permissions
