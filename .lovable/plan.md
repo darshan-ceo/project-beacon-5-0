@@ -1,147 +1,133 @@
 
 
-# QA Validation Report: Address Persistence Testing
+# Fix JudgeModal "Saving..." Button Loop Issue
 
-## Executive Summary
+## Problem Summary
 
-**Overall Status: PARTIAL PASS with BLOCKING BUG FOUND**
+When opening an existing Judge record in edit mode, the "Saving..." button appears immediately and remains in a loading state indefinitely. The address data is visible but the modal appears stuck.
 
-The SupabaseAdapter whitelist fixes are correctly implemented, but a separate data preparation bug was discovered in `courtsService.ts` that causes address double-serialization.
+## Root Cause Analysis
 
----
+Two issues combine to cause this bug:
 
-## Test Results by Entity
+### Issue 1: Missing Key-Based Isolation Pattern
 
-### 1. Judges
+**File:** `src/components/masters/JudgeMasters.tsx` (line 431)
 
-| Check | Result | Evidence |
-|-------|--------|----------|
-| Record Created | PASS | Judge "Qa Test Judge Address" created (ID: 55080c97-...) |
-| Address Persisted | INCONCLUSIVE | Empty `{}` - no address data entered during test |
-| Whitelist Fix Applied | PASS | `address` field in whitelist at line 1994 |
-| Stringify Applied | PASS | Lines 1980-1983 implement stringify |
+The JudgeModal is rendered without a `key` prop, violating the established modal-isolation-key-pattern. When users switch between different judges or modes, React reuses the same component instance, causing stale state to persist.
 
-**Database Snippet (NEW record):**
-```json
-{
-  "id": "55080c97-4d59-4d7b-a8db-2a43953a0e45",
-  "name": "Qa Test Judge Address",
-  "designation": "Chief Justice",
-  "address": {}
+```typescript
+// Current (buggy):
+<JudgeModal
+  isOpen={judgeModal.isOpen}
+  onClose={() => setJudgeModal({ isOpen: false, mode: 'create', judge: null })}
+  judge={judgeModal.judge}
+  mode={judgeModal.mode}
+/>
+```
+
+### Issue 2: Missing State Reset on Success
+
+**File:** `src/components/modals/JudgeModal.tsx` (lines 114-123)
+
+When a save operation succeeds, `isSaving` is never reset to `false` before calling `onClose()`. If the modal doesn't fully unmount (due to missing key), the `isSaving: true` state persists to the next open.
+
+```typescript
+// Current (buggy):
+await judgesService.update(...);
+onClose(); // isSaving still true!
+// ...
+catch (error) {
+  setIsSaving(false); // Only reset on error
 }
 ```
 
-**Conclusion:** Whitelist fix is correct. Test was incomplete due to form navigation complexity - address fields were not filled.
+## Implementation Plan
 
----
+### Fix 1: Add Key Prop to JudgeModal (JudgeMasters.tsx)
 
-### 2. Courts
+**File:** `src/components/masters/JudgeMasters.tsx`
+**Line:** 431
 
-| Check | Result | Evidence |
-|-------|--------|----------|
-| Whitelist Fix Applied | PASS | `address_jsonb` in whitelist at line 1949 |
-| Stringify Applied | PASS | Lines 1943-1946 implement stringify |
-| Data Integrity | FAIL | Double-serialization in legacy data |
+Add a unique key based on judge ID and mode to force component remount:
 
-**Database Snippet (LEGACY record - "RJ District Court"):**
-```json
-{
-  "line1": "{\"line1\":\"1\",\"line2\":\"2\",\"locality\":\"3\"...}",
-  "cityName": "New Delhi",
-  "source": "imported"
-}
-```
-
-**Root Cause:** `courtsService.ts` lines 62-67 incorrectly assigns a potentially JSON-stringified `address` field to `line1`:
 ```typescript
-const unifiedAddress = normalizeAddress({
-  line1: normalizedData.address || '',  // BUG: may be JSON string
-  ...
-});
+<JudgeModal
+  key={`${judgeModal.judge?.id || 'new'}-${judgeModal.mode}`}
+  isOpen={judgeModal.isOpen}
+  onClose={() => setJudgeModal({ isOpen: false, mode: 'create', judge: null })}
+  judge={judgeModal.judge}
+  mode={judgeModal.mode}
+/>
 ```
 
-**Conclusion:** FAIL - Double-serialization bug exists in service layer, not SupabaseAdapter.
+### Fix 2: Reset State on Success (JudgeModal.tsx)
 
----
+**File:** `src/components/modals/JudgeModal.tsx`
+**Lines:** 113-114
 
-### 3. Client Contacts
+Reset `isSaving` before closing the modal on successful save:
 
-| Check | Result | Evidence |
-|-------|--------|----------|
-| Case Handler Added | PASS | Lines 1150-1216 in SupabaseAdapter |
-| Address in Whitelist | PASS | `address` field whitelisted |
-| Data Validation | INCONCLUSIVE | No records with address data exist |
-
-**Database Query Result:**
-```sql
-SELECT * FROM client_contacts WHERE address::text != '{}' → 0 rows
-```
-
-**Conclusion:** Fix is implemented but cannot be validated without test data.
-
----
-
-## SupabaseAdapter Verification
-
-All three fixes were correctly applied:
-
-| Entity | Whitelist Field | Stringify Logic | Line Reference |
-|--------|----------------|-----------------|----------------|
-| Courts | `address_jsonb` | Lines 1943-1946 | Line 1949 |
-| Judges | `address` | Lines 1980-1983 | Line 1994 |
-| Client Contacts | `address` | Lines 1203-1205 | Line 1213 |
-
----
-
-## Blocking Issue Requiring Fix
-
-### Bug: Courts Address Double-Serialization
-
-**File:** `src/services/courtsService.ts`
-
-**Location:** Lines 62-67
-
-**Current (Buggy):**
 ```typescript
-const unifiedAddress: UnifiedAddress = normalizeAddress({
-  line1: normalizedData.address || '',  // Wrong: address may be JSON object
-  cityName: normalizedData.city || '',
-  stateName: normalizedData.state || '',
-  source: 'manual'
-});
+// Before onClose(), add:
+setIsSaving(false);
+onClose();
 ```
 
-**Fix Required:**
+### Fix 3: Add useEffect Reset Guard (JudgeModal.tsx)
+
+As a safety net, reset loading states when the modal opens:
+
+**File:** `src/components/modals/JudgeModal.tsx`
+**After line 31 (after the fetchUser useEffect)**
+
 ```typescript
-// If normalizedData has a full address object, use it directly
-const rawAddress = normalizedData.addressJsonb || normalizedData.address_jsonb || {};
-const unifiedAddress: UnifiedAddress = normalizeAddress({
-  ...rawAddress,
-  // Fallback to legacy fields if no JSONB address
-  line1: rawAddress.line1 || normalizedData.addressText || '',
-  cityName: rawAddress.cityName || normalizedData.city || '',
-  stateName: rawAddress.stateName || normalizedData.state || '',
-  source: rawAddress.source || 'manual'
-});
+// Reset loading states when modal opens
+useEffect(() => {
+  if (isOpen) {
+    setIsSaving(false);
+    setIsDeleting(false);
+  }
+}, [isOpen]);
 ```
 
----
+## Files to Modify
 
-## Final Summary Table
+| File | Change |
+|------|--------|
+| `src/components/masters/JudgeMasters.tsx` | Add `key` prop to JudgeModal (line 431) |
+| `src/components/modals/JudgeModal.tsx` | Add `setIsSaving(false)` before `onClose()` on success (line 113) |
+| `src/components/modals/JudgeModal.tsx` | Add useEffect to reset states when modal opens (after line 31) |
 
-| Entity | SupabaseAdapter Fix | Service Layer | End-to-End | Status |
-|--------|---------------------|---------------|------------|--------|
-| Clients | N/A (already working) | N/A | PASS | PASS |
-| Courts | PASS | FAIL (double-serialize) | FAIL | FAIL |
-| Judges | PASS | PASS | INCONCLUSIVE | NEEDS RETEST |
-| Contacts | PASS | PASS | INCONCLUSIVE | NEEDS RETEST |
+## Technical Details
 
----
+The key prop pattern follows React's component identity model. When the key changes, React treats it as a completely new component instance, unmounting the old one and mounting a fresh one. This guarantees:
 
-## Recommended Actions
+1. All local state (useState) is initialized fresh
+2. All effects (useEffect) run their setup functions
+3. No stale closures or cached values persist
 
-1. **Immediate:** Fix `courtsService.ts` double-serialization bug
-2. **Validation:** Re-run Courts create/edit with address data
-3. **Complete:** Create test Judge and Contact records with full address data
-4. **Optional:** Add sidebar link to `/qa/masters-qc` for easier QC access
+The pattern `key={\`${entity?.id || 'new'}-${mode}\`}` ensures:
+- Different judges get different keys
+- Same judge in different modes (view/edit) gets different keys
+- New entity creation always gets the same 'new' prefix
+
+## Validation Steps
+
+After implementation:
+1. Create a new judge with address data
+2. Save successfully - modal should close
+3. Reopen the same judge in edit mode
+4. Verify "Update Judge" button is visible (not "Saving...")
+5. Verify address fields are populated correctly
+6. Make a change and save again
+7. Verify save completes and modal closes properly
+
+## Risk Assessment
+
+| Risk | Mitigation |
+|------|------------|
+| Component remount performance | Minimal - only occurs on modal open, not during editing |
+| Breaking existing functionality | None - adds defensive patterns without changing core logic |
+| Rollback difficulty | Simple - remove key prop and useEffect |
 
