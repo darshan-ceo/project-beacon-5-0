@@ -1,47 +1,52 @@
 
-# Fix: Staff Role Cannot See Task Automation Tab Despite Having View Permission
+
+# Fix: Staff Role Cannot See Task Automation/Escalation Tabs Despite Having View Permission
 
 ## Problem Summary
 
-When logging in as Staff, the Automation tab in Task Management is not visible even though the Staff role has "View Automation" permission assigned in Access & Roles. The RBAC configuration shows `tasks.automation.read` is assigned to Staff, but the code is not checking for `read` permission.
+When logged in as Staff, the Automation and Escalation tabs in Task Management are not visible even though the Staff role has "View" permission assigned in Access & Roles. The screenshots confirm:
+- Staff role has **View** checked for Task Automation (1/2)
+- Staff role has **View** checked for Task Escalation (1/2)
+- Staff user (Mahesh) only sees: Board, Templates, Analytics, Insights, Collaboration tabs
 
 ## Root Cause Analysis
 
 ### Database Configuration (Correct)
+The "View" checkbox in Access & Roles saves these permissions to the database:
 ```
 role: staff → permission_key: tasks.automation.read
+role: staff → permission_key: tasks.escalation.read
 ```
 
 ### Code Check (Incorrect)
-**File:** `src/components/tasks/TaskManagement.tsx` (line 120)
+**File:** `src/components/tasks/TaskManagement.tsx` (lines 120-122)
 ```typescript
 const canAccessAutomation = hasPermission('tasks.automation', 'admin') || hasPermission('tasks.automation', 'manage');
+const canAccessEscalation = hasPermission('tasks.escalation', 'admin') || hasPermission('tasks.escalation', 'manage');
+const canAccessAI = hasPermission('tasks.ai', 'admin') || hasPermission('tasks.ai', 'manage');
 ```
 
-The code only checks for `admin` or `manage` actions, but the Staff role has `read` action (View). The `read` permission is never checked, so the tab remains hidden.
+The code only checks for `admin` or `manage` actions. It **never checks for `read`** which is what the "View" checkbox assigns.
 
-### Permission Resolution Flow
-1. `hasPermission('tasks.automation', 'admin')` → checks for `tasks.automation.manage` or `tasks.automation.admin`
-2. `hasPermission('tasks.automation', 'manage')` → checks for `tasks.automation.manage`
-3. Neither includes `tasks.automation.read` which Staff has
+### Permission Mapping
+| UI Checkbox | Database Permission Key | Code Check Required |
+|-------------|------------------------|---------------------|
+| View | `tasks.automation.read` | `hasPermission(..., 'read')` ← **MISSING** |
+| Manage | `tasks.automation.manage` | `hasPermission(..., 'manage')` ✓ |
 
 ---
 
 ## Solution
 
-### Fix the Permission Check in TaskManagement.tsx
+### Update Permission Checks in TaskManagement.tsx
 
-Update the permission checks to include `read` action for viewing tabs:
+Add `read` permission checks for tab visibility:
 
 **File:** `src/components/tasks/TaskManagement.tsx`  
-**Lines:** 118-122
+**Lines:** 120-122
 
 **Before:**
 ```typescript
-// RBAC permission checks - sub-module tabs (granular access)
-// Templates: Manager+ can access (read permission)
-const canAccessTemplates = hasPermission('tasks.templates', 'read') || hasPermission('tasks', 'admin');
-// Automation, Escalation, AI: Admin/Partner only (manage permission)
 const canAccessAutomation = hasPermission('tasks.automation', 'admin') || hasPermission('tasks.automation', 'manage');
 const canAccessEscalation = hasPermission('tasks.escalation', 'admin') || hasPermission('tasks.escalation', 'manage');
 const canAccessAI = hasPermission('tasks.ai', 'admin') || hasPermission('tasks.ai', 'manage');
@@ -49,10 +54,6 @@ const canAccessAI = hasPermission('tasks.ai', 'admin') || hasPermission('tasks.a
 
 **After:**
 ```typescript
-// RBAC permission checks - sub-module tabs (granular access)
-// Templates: Manager+ can access (read permission)
-const canAccessTemplates = hasPermission('tasks.templates', 'read') || hasPermission('tasks', 'admin');
-// Automation, Escalation, AI: Check both view (read) and manage permissions
 const canAccessAutomation = hasPermission('tasks.automation', 'read') || 
                             hasPermission('tasks.automation', 'admin') || 
                             hasPermission('tasks.automation', 'manage');
@@ -66,42 +67,42 @@ const canAccessAI = hasPermission('tasks.ai', 'read') ||
 
 ---
 
-## Technical Details
-
-### Permission Matrix Alignment
-
-| UI Checkbox | Database Key | Code Check |
-|-------------|--------------|------------|
-| View | `tasks.automation.read` | `hasPermission(..., 'read')` |
-| Manage | `tasks.automation.manage` | `hasPermission(..., 'manage')` or `hasPermission(..., 'admin')` |
-
-The fix ensures the code respects both permission levels as configured in the Access & Roles UI.
-
-### Optional: Read-Only Mode for View Permission
-
-For future enhancement, users with only `read` permission could see the Automation tab in a read-only mode (view rules but not edit/create). This would require:
-1. Adding a `canManageAutomation` check for edit/create buttons
-2. Passing this as a prop to `TaskAutomation` component
-
----
-
 ## Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/components/tasks/TaskManagement.tsx` | Add `read` permission check for canAccessAutomation, canAccessEscalation, canAccessAI (lines 120-122) |
+| `src/components/tasks/TaskManagement.tsx` | Add `read` permission check to `canAccessAutomation`, `canAccessEscalation`, and `canAccessAI` (lines 120-122) |
+
+---
+
+## Technical Details
+
+The `hasPermission` function checks if the user has a specific permission key in their effective permissions. The permission key format is `module.action` where:
+- Module: `tasks.automation`, `tasks.escalation`, `tasks.ai`
+- Action: `read` (View), `manage` (Manage), `admin` (Full control)
+
+By adding the `read` check first, users with View-only permission will see the tab. The order doesn't affect functionality since any match returns `true`.
+
+### Read-Only vs. Manage Mode (Future Enhancement)
+
+For future consideration, users with only `read` permission could see the content in a read-only mode (view rules but not create/edit). This would require:
+1. Adding separate `canManageAutomation` checks for edit/create buttons
+2. Passing this prop to child components
 
 ---
 
 ## Validation Steps
 
-After fix:
-1. Login as Admin → Assign Staff role the "View" permission for Task Automation in Access & Roles
-2. Save changes
-3. Login as Staff user
-4. Navigate to Task Management
-5. Verify Automation tab is now visible
-6. Verify Automation tab contents are accessible
+After implementing the fix:
+1. Login as Admin
+2. Go to Access & Roles → Edit Staff role permissions
+3. Confirm "View" is checked for Task Automation and Task Escalation
+4. Save changes if needed
+5. Login as Staff user (e.g., Mahesh)
+6. Navigate to Task Management
+7. **Verify**: Automation tab is now visible
+8. **Verify**: Escalation tab is now visible
+9. **Verify**: Tab contents load correctly
 
 ---
 
@@ -109,8 +110,9 @@ After fix:
 
 | Risk | Mitigation |
 |------|------------|
-| Staff seeing sensitive automation rules | View permission is intentionally granted - this is expected behavior |
-| Breaking existing admin access | Admin already has manage permission, no change needed |
-| Future edit capability for view-only users | Edit buttons should also check for manage permission (minor follow-up) |
+| Staff seeing automation rules | View permission is intentionally granted by Admin - expected behavior |
+| Breaking Admin/Manager access | They have `manage` permission which is still checked |
+| Edit capability for view-only users | Edit buttons should separately check for `manage` permission (minor follow-up) |
 
-**Impact:** Low risk - this aligns code with configured RBAC permissions
+**Impact:** Low risk - this aligns code behavior with configured RBAC permissions in the database
+
