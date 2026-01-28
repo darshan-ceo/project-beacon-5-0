@@ -1,69 +1,127 @@
 
 
-# Fix: Staff Role Cannot See Task Automation/Escalation Tabs Despite Having View Permission
+# Fix: Hearing Date Validation Blocking Outcome Updates
 
 ## Problem Summary
 
-When logged in as Staff, the Automation and Escalation tabs in Task Management are not visible even though the Staff role has "View" permission assigned in Access & Roles. The screenshots confirm:
-- Staff role has **View** checked for Task Automation (1/2)
-- Staff role has **View** checked for Task Escalation (1/2)
-- Staff user (Mahesh) only sees: Board, Templates, Analytics, Insights, Collaboration tabs
+When editing a scheduled hearing to record its outcome, users receive the error "Hearing date cannot be in the past" which prevents saving. This is a logical bug - when recording an outcome, the hearing date is naturally in the past (the hearing already happened).
+
+**Screenshots confirm:**
+- Hearing scheduled for January 7, 2026 (past date)
+- User edits and changes outcome to "Closed"
+- Validation error prevents save: "Hearing date cannot be in the past"
+
+---
 
 ## Root Cause Analysis
 
-### Database Configuration (Correct)
-The "View" checkbox in Access & Roles saves these permissions to the database:
-```
-role: staff → permission_key: tasks.automation.read
-role: staff → permission_key: tasks.escalation.read
-```
+### Current Validation Logic
+**File:** `src/components/modals/HearingModal.tsx` (lines 221-232)
 
-### Code Check (Incorrect)
-**File:** `src/components/tasks/TaskManagement.tsx` (lines 120-122)
 ```typescript
-const canAccessAutomation = hasPermission('tasks.automation', 'admin') || hasPermission('tasks.automation', 'manage');
-const canAccessEscalation = hasPermission('tasks.escalation', 'admin') || hasPermission('tasks.escalation', 'manage');
-const canAccessAI = hasPermission('tasks.ai', 'admin') || hasPermission('tasks.ai', 'manage');
+// Phase 1: Validate past date using local midnight
+const selectedLocalDate = new Date(formData.date.getFullYear(), formData.date.getMonth(), formData.date.getDate());
+const todayLocalDate = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+if (selectedLocalDate < todayLocalDate) {
+  toast({
+    title: "Validation Error",
+    description: "Hearing date cannot be in the past",
+    variant: "destructive"
+  });
+  setIsSubmitting(false);
+  return;
+}
 ```
 
-The code only checks for `admin` or `manage` actions. It **never checks for `read`** which is what the "View" checkbox assigns.
-
-### Permission Mapping
-| UI Checkbox | Database Permission Key | Code Check Required |
-|-------------|------------------------|---------------------|
-| View | `tasks.automation.read` | `hasPermission(..., 'read')` ← **MISSING** |
-| Manage | `tasks.automation.manage` | `hasPermission(..., 'manage')` ✓ |
+The validation runs unconditionally for BOTH create and edit modes, but:
+- **Create mode:** Past date validation is correct - you shouldn't schedule a new hearing in the past
+- **Edit mode:** Past date validation should be skipped when:
+  - The hearing date hasn't been changed, OR
+  - The user is recording an outcome (hearings naturally occur in the past before outcomes are recorded)
 
 ---
 
 ## Solution
 
-### Update Permission Checks in TaskManagement.tsx
+### Fix 1: Skip Past Date Validation in Edit Mode When Date Unchanged
 
-Add `read` permission checks for tab visibility:
+The validation should only apply when:
+1. Creating a new hearing (mode === 'create'), OR
+2. Editing a hearing AND changing the date to a different value
 
-**File:** `src/components/tasks/TaskManagement.tsx`  
-**Lines:** 120-122
+**File:** `src/components/modals/HearingModal.tsx`
 
 **Before:**
 ```typescript
-const canAccessAutomation = hasPermission('tasks.automation', 'admin') || hasPermission('tasks.automation', 'manage');
-const canAccessEscalation = hasPermission('tasks.escalation', 'admin') || hasPermission('tasks.escalation', 'manage');
-const canAccessAI = hasPermission('tasks.ai', 'admin') || hasPermission('tasks.ai', 'manage');
+// Phase 1: Validate past date using local midnight
+const selectedLocalDate = new Date(formData.date.getFullYear(), formData.date.getMonth(), formData.date.getDate());
+const todayLocalDate = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+if (selectedLocalDate < todayLocalDate) {
+  toast({
+    title: "Validation Error",
+    description: "Hearing date cannot be in the past",
+    variant: "destructive"
+  });
+  setIsSubmitting(false);
+  return;
+}
 ```
 
 **After:**
 ```typescript
-const canAccessAutomation = hasPermission('tasks.automation', 'read') || 
-                            hasPermission('tasks.automation', 'admin') || 
-                            hasPermission('tasks.automation', 'manage');
-const canAccessEscalation = hasPermission('tasks.escalation', 'read') || 
-                            hasPermission('tasks.escalation', 'admin') || 
-                            hasPermission('tasks.escalation', 'manage');
-const canAccessAI = hasPermission('tasks.ai', 'read') || 
-                    hasPermission('tasks.ai', 'admin') || 
-                    hasPermission('tasks.ai', 'manage');
+// Phase 1: Validate past date using local midnight
+// Only validate for new hearings OR when the date has been changed during edit
+const selectedLocalDate = new Date(formData.date.getFullYear(), formData.date.getMonth(), formData.date.getDate());
+const todayLocalDate = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+
+// Get the original hearing date for comparison
+const originalHearingDate = hearingData ? new Date(hearingData.date) : null;
+const originalLocalDate = originalHearingDate 
+  ? new Date(originalHearingDate.getFullYear(), originalHearingDate.getMonth(), originalHearingDate.getDate())
+  : null;
+
+// Skip past date validation if:
+// - We're in edit mode AND the date hasn't been changed
+// Only block if: creating new hearing with past date OR changing existing date to a past date
+const isDateChanged = !originalLocalDate || selectedLocalDate.getTime() !== originalLocalDate.getTime();
+
+if (selectedLocalDate < todayLocalDate && (mode === 'create' || isDateChanged)) {
+  toast({
+    title: "Validation Error",
+    description: "Hearing date cannot be in the past",
+    variant: "destructive"
+  });
+  setIsSubmitting(false);
+  return;
+}
 ```
+
+### Fix 2: Apply Same Logic to QuickEditHearing Component
+
+**File:** `src/components/hearings/QuickEditHearing.tsx` (lines 39-51)
+
+Same fix - skip past date validation if the date hasn't been changed from the original.
+
+---
+
+## Technical Details
+
+### Validation Matrix
+
+| Mode | Date Changed | Past Date | Action |
+|------|--------------|-----------|--------|
+| Create | N/A | Yes | ❌ Block with error |
+| Create | N/A | No | ✅ Allow |
+| Edit | No | Yes | ✅ Allow (recording outcome) |
+| Edit | No | No | ✅ Allow |
+| Edit | Yes | Yes | ❌ Block (can't reschedule to past) |
+| Edit | Yes | No | ✅ Allow |
+
+### Why This is the Correct Fix
+
+1. **Business Logic:** Hearings happen in the past, then outcomes are recorded. This is the natural workflow.
+2. **Rescheduling Protection:** Users still cannot reschedule a hearing TO a past date (only block when date is actively changed to a past value)
+3. **Create Protection:** New hearings still cannot be scheduled in the past
 
 ---
 
@@ -71,38 +129,21 @@ const canAccessAI = hasPermission('tasks.ai', 'read') ||
 
 | File | Change |
 |------|--------|
-| `src/components/tasks/TaskManagement.tsx` | Add `read` permission check to `canAccessAutomation`, `canAccessEscalation`, and `canAccessAI` (lines 120-122) |
-
----
-
-## Technical Details
-
-The `hasPermission` function checks if the user has a specific permission key in their effective permissions. The permission key format is `module.action` where:
-- Module: `tasks.automation`, `tasks.escalation`, `tasks.ai`
-- Action: `read` (View), `manage` (Manage), `admin` (Full control)
-
-By adding the `read` check first, users with View-only permission will see the tab. The order doesn't affect functionality since any match returns `true`.
-
-### Read-Only vs. Manage Mode (Future Enhancement)
-
-For future consideration, users with only `read` permission could see the content in a read-only mode (view rules but not create/edit). This would require:
-1. Adding separate `canManageAutomation` checks for edit/create buttons
-2. Passing this prop to child components
+| `src/components/modals/HearingModal.tsx` | Add date-changed check before past date validation (lines 221-232) |
+| `src/components/hearings/QuickEditHearing.tsx` | Add date-changed check before past date validation (lines 39-51) |
 
 ---
 
 ## Validation Steps
 
-After implementing the fix:
-1. Login as Admin
-2. Go to Access & Roles → Edit Staff role permissions
-3. Confirm "View" is checked for Task Automation and Task Escalation
-4. Save changes if needed
-5. Login as Staff user (e.g., Mahesh)
-6. Navigate to Task Management
-7. **Verify**: Automation tab is now visible
-8. **Verify**: Escalation tab is now visible
-9. **Verify**: Tab contents load correctly
+After the fix:
+1. Navigate to a case with a past scheduled hearing
+2. Click "Edit Hearing"
+3. Change the outcome to "Closed" or any other value
+4. Add outcome notes
+5. Click "Update Hearing"
+6. **Verify:** Hearing saves successfully without validation error
+7. **Verify:** Attempting to change the date to a past date still shows error
 
 ---
 
@@ -110,9 +151,9 @@ After implementing the fix:
 
 | Risk | Mitigation |
 |------|------------|
-| Staff seeing automation rules | View permission is intentionally granted by Admin - expected behavior |
-| Breaking Admin/Manager access | They have `manage` permission which is still checked |
-| Edit capability for view-only users | Edit buttons should separately check for `manage` permission (minor follow-up) |
+| Users accidentally keeping past dates | The original date is preserved, not changed |
+| Rescheduling to past | Still blocked because date change is detected |
+| Regression in create flow | Create mode explicitly checks `mode === 'create'` |
 
-**Impact:** Low risk - this aligns code behavior with configured RBAC permissions in the database
+**Impact:** Low risk - this fix aligns the validation with the natural hearing lifecycle (schedule → attend → record outcome)
 
