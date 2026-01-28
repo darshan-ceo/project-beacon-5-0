@@ -2,6 +2,14 @@ import { toast } from "@/hooks/use-toast";
 import { AppAction } from "@/contexts/AppStateContext";
 import { roleMapperService } from './roleMapperService';
 import { normalizeEmployeePayload } from '@/utils/formatters';
+import { 
+  normalizeAddress, 
+  serializeAddress, 
+  createAddressFromLegacy,
+  isAddressEmpty,
+  validateAddress
+} from '@/utils/addressUtils';
+import { PartialAddress, UnifiedAddress } from '@/types/address';
 
 export interface Employee {
   id: string;
@@ -36,6 +44,9 @@ export interface Employee {
   city?: string;
   state?: string;
   pincode?: string;
+  
+  // NEW: Unified address (JSONB - takes priority when present)
+  address?: UnifiedAddress;
   
   // Employment Tab
   designation?: string;
@@ -148,9 +159,17 @@ const validateEmployee = (employee: Partial<Employee>, existingEmployees: Employ
     errors.push("Invalid PAN format. Required: AAAAA9999A");
   }
 
-  // Pincode validation
+  // Pincode validation (legacy field)
   if (employee.pincode && !/^\d{6}$/.test(employee.pincode)) {
     errors.push("Invalid pincode. Must be 6 digits");
+  }
+  
+  // Unified address validation (if provided)
+  if (employee.address && !isAddressEmpty(employee.address)) {
+    const addressValidation = validateAddress(employee.address, 'employee');
+    if (!addressValidation.isValid) {
+      addressValidation.errors.forEach(err => errors.push(err.message));
+    }
   }
 
   // Billing rate validation
@@ -221,6 +240,8 @@ export const employeesService = {
         workload_capacity: newEmployee.workloadCapacity,
         billing_rate: newEmployee.billingRate || 0,
         billable: newEmployee.billable,
+        // NEW: Unified address JSONB
+        address: newEmployee.address ? serializeAddress(newEmployee.address) : null,
         created_at: new Date(),
         updated_at: new Date(),
       });
@@ -272,6 +293,8 @@ export const employeesService = {
         ...updates,
         email: updates.email || updates.officialEmail,
         status: updates.status,
+        // NEW: Serialize unified address if provided
+        ...(updates.address && { address: serializeAddress(updates.address as PartialAddress) }),
         updated_at: new Date(),
       });
     } catch (storageError) {
@@ -460,5 +483,28 @@ export const employeesService = {
       tasks: migratedTasks,
       report: migrationReport
     };
+  },
+
+  /**
+   * Get address from employee with legacy fallback
+   * Priority: address (JSONB) > legacy fields (currentAddress/city/state)
+   */
+  getEmployeeAddress: (emp: Partial<Employee>): UnifiedAddress | null => {
+    // Priority 1: New unified JSONB address
+    if (emp.address && !isAddressEmpty(emp.address)) {
+      return normalizeAddress(emp.address);
+    }
+    
+    // Priority 2: Legacy TEXT fields
+    if (emp.currentAddress || emp.city || emp.state) {
+      return createAddressFromLegacy(
+        emp.currentAddress || null,
+        emp.city || null,
+        emp.state || null,
+        emp.pincode || null
+      );
+    }
+    
+    return null;
   }
 };
