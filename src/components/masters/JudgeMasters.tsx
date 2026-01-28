@@ -429,6 +429,7 @@ const JudgeMasters: React.FC = () => {
       </Card>
 
       <JudgeModal
+        key={`${judgeModal.judge?.id || 'new'}-${judgeModal.mode}`}
         isOpen={judgeModal.isOpen}
         onClose={() => setJudgeModal({ isOpen: false, mode: 'create', judge: null })}
         judge={judgeModal.judge}
