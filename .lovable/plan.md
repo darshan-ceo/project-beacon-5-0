@@ -1,159 +1,118 @@
 
+## What’s happening now (why it “worked once, then broke again”)
 
-# Fix: Hearing Date Validation Blocking Outcome Updates
+Your **past-date validation fix is working** (it no longer blocks saving outcomes for hearings whose date didn’t change).
 
-## Problem Summary
+The new error you’re seeing (“Failed to record hearing outcome. Please try again.”) is coming from a different place:
 
-When editing a scheduled hearing to record its outcome, users receive the error "Hearing date cannot be in the past" which prevents saving. This is a logical bug - when recording an outcome, the hearing date is naturally in the past (the hearing already happened).
+- Outcome saving uses `hearingsService.recordOutcome(...)`
+- That method currently calls: `PUT /api/hearings/:id` via `apiService.put(...)`
+- In this Lovable app, there is **no server route** for `/api/hearings/...` (it returns the app’s HTML instead of JSON)
+- Because of that, the outcome request fails and the UI shows the “Failed to record hearing outcome” toast
 
-**Screenshots confirm:**
-- Hearing scheduled for January 7, 2026 (past date)
-- User edits and changes outcome to "Closed"
-- Validation error prevents save: "Hearing date cannot be in the past"
-
----
-
-## Root Cause Analysis
-
-### Current Validation Logic
-**File:** `src/components/modals/HearingModal.tsx` (lines 221-232)
-
-```typescript
-// Phase 1: Validate past date using local midnight
-const selectedLocalDate = new Date(formData.date.getFullYear(), formData.date.getMonth(), formData.date.getDate());
-const todayLocalDate = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
-if (selectedLocalDate < todayLocalDate) {
-  toast({
-    title: "Validation Error",
-    description: "Hearing date cannot be in the past",
-    variant: "destructive"
-  });
-  setIsSubmitting(false);
-  return;
-}
-```
-
-The validation runs unconditionally for BOTH create and edit modes, but:
-- **Create mode:** Past date validation is correct - you shouldn't schedule a new hearing in the past
-- **Edit mode:** Past date validation should be skipped when:
-  - The hearing date hasn't been changed, OR
-  - The user is recording an outcome (hearings naturally occur in the past before outcomes are recorded)
+So: hearing “update” can still show success (it uses the database adapter), but the “record outcome” step fails (it uses the missing `/api` route).
 
 ---
 
-## Solution
+## Goal
 
-### Fix 1: Skip Past Date Validation in Edit Mode When Date Unchanged
-
-The validation should only apply when:
-1. Creating a new hearing (mode === 'create'), OR
-2. Editing a hearing AND changing the date to a different value
-
-**File:** `src/components/modals/HearingModal.tsx`
-
-**Before:**
-```typescript
-// Phase 1: Validate past date using local midnight
-const selectedLocalDate = new Date(formData.date.getFullYear(), formData.date.getMonth(), formData.date.getDate());
-const todayLocalDate = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
-if (selectedLocalDate < todayLocalDate) {
-  toast({
-    title: "Validation Error",
-    description: "Hearing date cannot be in the past",
-    variant: "destructive"
-  });
-  setIsSubmitting(false);
-  return;
-}
-```
-
-**After:**
-```typescript
-// Phase 1: Validate past date using local midnight
-// Only validate for new hearings OR when the date has been changed during edit
-const selectedLocalDate = new Date(formData.date.getFullYear(), formData.date.getMonth(), formData.date.getDate());
-const todayLocalDate = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
-
-// Get the original hearing date for comparison
-const originalHearingDate = hearingData ? new Date(hearingData.date) : null;
-const originalLocalDate = originalHearingDate 
-  ? new Date(originalHearingDate.getFullYear(), originalHearingDate.getMonth(), originalHearingDate.getDate())
-  : null;
-
-// Skip past date validation if:
-// - We're in edit mode AND the date hasn't been changed
-// Only block if: creating new hearing with past date OR changing existing date to a past date
-const isDateChanged = !originalLocalDate || selectedLocalDate.getTime() !== originalLocalDate.getTime();
-
-if (selectedLocalDate < todayLocalDate && (mode === 'create' || isDateChanged)) {
-  toast({
-    title: "Validation Error",
-    description: "Hearing date cannot be in the past",
-    variant: "destructive"
-  });
-  setIsSubmitting(false);
-  return;
-}
-```
-
-### Fix 2: Apply Same Logic to QuickEditHearing Component
-
-**File:** `src/components/hearings/QuickEditHearing.tsx` (lines 39-51)
-
-Same fix - skip past date validation if the date hasn't been changed from the original.
+Make “Record/Update Outcome” persist correctly for hearings (including past hearings), using the same working database persistence approach as the rest of the Hearings module, and show meaningful errors if anything fails.
 
 ---
 
-## Technical Details
+## Implementation plan (code + backend)
 
-### Validation Matrix
+### 1) Fix outcome persistence path (stop using `/api/hearings`)
+**File:** `src/services/hearingsService.ts`  
+**Change:** Refactor `recordOutcome()` to persist using the database adapter (StorageManager) instead of `apiService.put(...)`.
 
-| Mode | Date Changed | Past Date | Action |
-|------|--------------|-----------|--------|
-| Create | N/A | Yes | ❌ Block with error |
-| Create | N/A | No | ✅ Allow |
-| Edit | No | Yes | ✅ Allow (recording outcome) |
-| Edit | No | No | ✅ Allow |
-| Edit | Yes | Yes | ❌ Block (can't reschedule to past) |
-| Edit | Yes | No | ✅ Allow |
+- Use:
+  - `const storage = storageManager.getStorage()`
+  - `await storage.update('hearings', id, updateData)`
+- This aligns with `createHearing()` and `updateHearing()` which already use the adapter successfully.
 
-### Why This is the Correct Fix
-
-1. **Business Logic:** Hearings happen in the past, then outcomes are recorded. This is the natural workflow.
-2. **Rescheduling Protection:** Users still cannot reschedule a hearing TO a past date (only block when date is actively changed to a past value)
-3. **Create Protection:** New hearings still cannot be scheduled in the past
+**Why this fixes it:** it removes the dependency on a non-existent `/api` endpoint.
 
 ---
 
-## Files to Modify
+### 2) Make DB columns match what the UI captures (Outcome Notes)
+Right now the UI collects “Outcome Notes” (`outcomeText`), and the code tries to store it as `outcome_text`, but the database table `hearings` currently does **not** have an `outcome_text` column.
 
-| File | Change |
-|------|--------|
-| `src/components/modals/HearingModal.tsx` | Add date-changed check before past date validation (lines 221-232) |
-| `src/components/hearings/QuickEditHearing.tsx` | Add date-changed check before past date validation (lines 39-51) |
+**Backend change (migration):**
+- Add `outcome_text` column (nullable text) to `hearings`.
 
----
-
-## Validation Steps
-
-After the fix:
-1. Navigate to a case with a past scheduled hearing
-2. Click "Edit Hearing"
-3. Change the outcome to "Closed" or any other value
-4. Add outcome notes
-5. Click "Update Hearing"
-6. **Verify:** Hearing saves successfully without validation error
-7. **Verify:** Attempting to change the date to a past date still shows error
+This avoids silent drops of outcome notes and prevents future update errors when we persist outcome notes properly.
 
 ---
 
-## Risk Assessment
+### 3) Ensure date types are consistent for `next_hearing_date`
+The DB column `next_hearing_date` is a timestamp. The UI often provides a `YYYY-MM-DD` string.
 
-| Risk | Mitigation |
-|------|------------|
-| Users accidentally keeping past dates | The original date is preserved, not changed |
-| Rescheduling to past | Still blocked because date change is detected |
-| Regression in create flow | Create mode explicitly checks `mode === 'create'` |
+**Change in `recordOutcome()` mapping:**
+- Convert `nextHearingDate` into an ISO timestamp consistently (e.g., midnight UTC or local midnight converted to UTC) to avoid timezone confusion and keep consistent storage.
+- Keep it nullable when not provided.
 
-**Impact:** Low risk - this fix aligns the validation with the natural hearing lifecycle (schedule → attend → record outcome)
+---
+
+### 4) Make error messages actionable (no more generic “Please try again”)
+**Files:**
+- `src/services/hearingsService.ts`
+- `src/utils/errorUtils.ts` (already exists)
+
+**Change:**
+- Use `getErrorMessage(error)` in the `catch` block and show that message in the toast (examples: permission issue, missing column, RLS denial, etc.).
+
+This will immediately reveal the real reason if any backend rule blocks saving.
+
+---
+
+### 5) Prevent partial-state overwrites after outcome update
+After updating outcome in DB:
+- Fetch the updated hearing record back from storage (`getById`)
+- Dispatch a merged, complete payload (following your existing “merge reducer” pattern) so the UI always reflects the DB state.
+
+This avoids situations where outcome appears saved, then disappears because a partial update overwrote it.
+
+---
+
+## Testing / validation checklist (end-to-end)
+
+1. Open a hearing dated in the past → Edit → change only Outcome → Save  
+   - Expected: no past-date error; outcome saves successfully; success toast shown.
+2. Refresh the page and re-open the same hearing  
+   - Expected: outcome + outcome notes persist after refresh.
+3. Set outcome to “Adjournment” and pick “Next Hearing Date”  
+   - Expected: next hearing date saves; if auto-create next hearing is enabled, the next hearing is created.
+4. Try the same flow from:
+   - Hearings list modal (“Edit Hearing”)
+   - Hearing drawer (if used)
+5. Confirm failures (if any) show a specific message (permissions/validation), not generic.
+
+---
+
+## Scope / files that will change
+
+### Frontend / service logic
+- `src/services/hearingsService.ts`
+  - Refactor `recordOutcome()` to use StorageManager adapter instead of `/api/hearings`
+  - Normalize `next_hearing_date`
+  - Improve error messaging
+
+### Backend schema change (Lovable Cloud migration)
+- Add `outcome_text` column to `public.hearings` table (nullable)
+
+---
+
+## Risks and mitigations
+
+- **Risk:** Adding a new column requires a schema migration.
+  - Mitigation: It’s additive (safe), nullable, and won’t break existing rows.
+- **Risk:** Timezone confusion for `next_hearing_date`.
+  - Mitigation: enforce one consistent conversion method in `recordOutcome()`.
+
+---
+
+## Optional follow-up improvements (not required for the fix)
+- Make “Outcome Notes” visually distinct from general “Notes” (pre-hearing) everywhere outcomes are displayed.
+- Add a small “Outcome saved at …” indicator to confirm persistence.
 
