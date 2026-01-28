@@ -6,7 +6,11 @@
 import { supabase } from '@/integrations/supabase/client';
 import { ApiResponse } from './apiService';
 import { UnifiedAddress, PartialAddress } from '@/types/address';
-import { parseDbAddress } from '@/utils/addressUtils';
+import { 
+  parseDbAddress, 
+  serializeAddress, 
+  validateAddress 
+} from '@/utils/addressUtils';
 
 export interface ContactEmail {
   id: string;
@@ -267,6 +271,18 @@ class ClientContactsService {
       };
     }
 
+    // Validate address using unified architecture
+    if (migratedContact.address) {
+      const addressValidation = validateAddress(migratedContact.address, 'contact');
+      if (!addressValidation.isValid) {
+        return {
+          success: false,
+          error: `Address validation failed: ${addressValidation.errors.map(e => e.message).join(', ')}`,
+          data: null
+        };
+      }
+    }
+
     try {
       const insertData = {
         tenant_id: tenantId,
@@ -282,7 +298,9 @@ class ClientContactsService {
         notes: migratedContact.notes || null,
         // Dual Access Model fields
         owner_user_id: user.id,
-        data_scope: contact.dataScope || 'TEAM'
+        data_scope: contact.dataScope || 'TEAM',
+        // Unified Address Architecture: serialize address to JSONB
+        address: migratedContact.address ? serializeAddress(migratedContact.address) : null
       };
 
       // Debug logging for RLS troubleshooting
@@ -418,6 +436,23 @@ class ClientContactsService {
       if (updates.notes !== undefined) updateData.notes = updates.notes;
       if (updates.dataScope !== undefined) updateData.data_scope = updates.dataScope;
       if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
+
+      // Unified Address Architecture: validate and serialize address
+      if (updates.address !== undefined) {
+        if (updates.address) {
+          const addressValidation = validateAddress(updates.address, 'contact');
+          if (!addressValidation.isValid) {
+            return {
+              success: false,
+              error: `Address validation failed: ${addressValidation.errors.map(e => e.message).join(', ')}`,
+              data: null
+            };
+          }
+          updateData.address = serializeAddress(updates.address);
+        } else {
+          updateData.address = null;
+        }
+      }
 
       const { data, error } = await supabase
         .from('client_contacts')
@@ -666,7 +701,9 @@ class ClientContactsService {
           is_primary: migrated.isPrimary || false,
           is_active: true,
           source: 'imported',
-          notes: migrated.notes || null
+          notes: migrated.notes || null,
+          // Unified Address Architecture: serialize address to JSONB
+          address: migrated.address ? serializeAddress(migrated.address) : null
         };
       });
 

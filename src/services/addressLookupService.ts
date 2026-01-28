@@ -298,11 +298,17 @@ class AddressLookupService {
     return allCities;
   }
 
+  /**
+   * @deprecated Use validateAddress from @/utils/addressUtils.ts instead
+   */
   async validatePincode(pincode: string): Promise<boolean> {
     const pincodeRegex = /^[0-9]{6}$/;
     return pincodeRegex.test(pincode);
   }
 
+  /**
+   * @deprecated Use validateAddress from @/utils/addressUtils.ts instead
+   */
   async validateAddress(address: AddressData): Promise<{ isValid: boolean; errors: string[] }> {
     const errors: string[] = [];
 
