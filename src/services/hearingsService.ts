@@ -532,172 +532,204 @@ export const hearingsService = {
     dispatch?: React.Dispatch<AppAction>
   ): Promise<Hearing | null> {
     try {
+      // Import storage manager and error utils
+      const { storageManager } = await import('@/data/StorageManager');
+      const { getErrorMessage } = await import('@/utils/errorUtils');
+      const storage = storageManager.getStorage();
+      
+      // Normalize next_hearing_date to ISO timestamp if provided
+      let normalizedNextHearingDate: string | null = null;
+      if (nextHearingDate) {
+        // If it's just a date string (YYYY-MM-DD), convert to midnight UTC
+        if (nextHearingDate.length === 10) {
+          const [year, month, day] = nextHearingDate.split('-').map(Number);
+          normalizedNextHearingDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0)).toISOString();
+        } else {
+          normalizedNextHearingDate = nextHearingDate;
+        }
+      }
+      
       const updates: any = {
         status: 'concluded' as const,
         outcome,
-        outcome_text: outcomeText,
-        next_hearing_date: nextHearingDate,
+        outcome_text: outcomeText || null,
+        next_hearing_date: normalizedNextHearingDate,
         updated_at: new Date().toISOString()
       };
 
-      // Get the full hearing object before updating
-      const appState = await loadAppState();
-      const hearing = appState.hearings.find(h => h.id === id) as any;
+      // Persist to database using storage adapter (like createHearing/updateHearing)
+      await storage.update('hearings', id, updates);
       
-      if (!hearing) {
-        throw new Error('Hearing not found');
+      // Fetch the updated hearing from database to ensure UI state is in sync
+      const updatedHearing = await storage.getById<any>('hearings', id);
+      
+      if (!updatedHearing) {
+        throw new Error('Hearing not found after update');
+      }
+      
+      // Get the full hearing with all fields for dispatch
+      const hearing: any = {
+        id: updatedHearing.id,
+        case_id: updatedHearing.case_id,
+        date: updatedHearing.hearing_date?.split('T')[0],
+        start_time: updatedHearing.start_time || '10:00',
+        time: updatedHearing.start_time || '10:00',
+        status: updatedHearing.status,
+        outcome: updatedHearing.outcome,
+        outcome_text: updatedHearing.outcome_text,
+        notes: updatedHearing.notes,
+        next_hearing_date: updatedHearing.next_hearing_date,
+        court_id: updatedHearing.court_id,
+        authority_id: updatedHearing.authority_id,
+        forum_id: updatedHearing.forum_id,
+        judge_name: updatedHearing.judge_name,
+        created_at: updatedHearing.created_at,
+        updated_at: updatedHearing.updated_at
+      };
+
+      // Update hearing in state with complete data
+      if (dispatch) {
+        dispatch({ 
+          type: 'UPDATE_HEARING', 
+          payload: hearing 
+        });
       }
 
-      const response = await apiService.put<Hearing>(`/api/hearings/${id}`, updates);
-      
-      if (response.success || import.meta.env.DEV) {
-        // Update hearing in state
-        if (dispatch) {
-          dispatch({ 
-            type: 'UPDATE_HEARING', 
-            payload: { 
-              id, 
-              case_id: hearing.case_id || hearing.caseId,  // CRITICAL: Include case_id
-              ...updates 
-            } 
+      // Add timeline entry for outcome
+      try {
+        await timelineService.addEntry({
+          caseId: hearing.case_id,
+          type: 'hearing_scheduled',
+          title: 'Hearing Outcome Recorded',
+          description: `Outcome: ${outcome}. ${outcomeText || ''}`,
+          createdBy: 'current-user-id',
+          metadata: {
+            hearingId: id,
+            outcome,
+            outcomeText,
+            nextHearingDate
+          }
+        });
+        console.log('[Hearings] Timeline entry added for outcome');
+      } catch (timelineError) {
+        console.error('[Hearings] Failed to add timeline entry:', timelineError);
+      }
+
+      // Auto-create next hearing if outcome is Adjournment
+      if (outcome === 'Adjournment' && autoCreateNext && nextHearingDate && dispatch) {
+        try {
+          const nextHearingData: HearingFormData = {
+            case_id: hearing.case_id,
+            date: nextHearingDate,
+            start_time: hearing.start_time || '10:00',
+            end_time: hearing.end_time || '11:00',
+            timezone: hearing.timezone || 'Asia/Kolkata',
+            court_id: hearing.court_id,
+            judge_ids: hearing.judge_ids || [],
+            purpose: hearing.purpose || 'mention',
+            notes: `Adjourned from ${format(new Date(hearing.date), 'dd MMM yyyy')}. ${outcomeText || ''}`,
+            authority_id: hearing.authority_id,
+            forum_id: hearing.forum_id
+          };
+
+          const nextHearing = await this.createHearing(nextHearingData, dispatch);
+          
+          toast({
+            title: "Next Hearing Scheduled",
+            description: `Hearing automatically scheduled for ${format(new Date(nextHearingDate), 'dd MMM yyyy')}`,
+          });
+
+          console.log('[Hearings] Auto-created next hearing:', nextHearing.id);
+          
+          return nextHearing as any;
+        } catch (createError) {
+          console.error('[Hearings] Failed to auto-create next hearing:', createError);
+          toast({
+            title: "Warning",
+            description: "Outcome recorded but failed to auto-create next hearing. Please schedule manually.",
+            variant: "default"
           });
         }
+      }
 
-        // Phase 2: Add timeline entry for outcome
+      // Auto-generate outcome-based tasks
+      if (dispatch) {
         try {
-          await timelineService.addEntry({
-            caseId: hearing.case_id || hearing.caseId,
-            type: 'hearing_scheduled',
-            title: 'Hearing Outcome Recorded',
-            description: `Outcome: ${outcome}. ${outcomeText || ''}`,
-            createdBy: 'current-user-id',
-            metadata: {
-              hearingId: id,
+          const appState = await loadAppState();
+          const relatedCase = appState.cases.find(c => c.id === hearing.case_id) as any;
+          
+          if (relatedCase) {
+            // Get current user info
+            const { data: { user } } = await supabase.auth.getUser();
+            const currentUserId = user?.id || 'system';
+            
+            // Find current user in employees
+            const currentEmployee = appState.employees.find(e => e.id === currentUserId) as any;
+            const currentUserName = currentEmployee?.full_name || 'System';
+            
+            // Find assigned employee  
+            const assignedEmployee = appState.employees.find(e => e.id === (relatedCase.assigned_to_id || relatedCase.assignedToId)) as any;
+            const assignedToName = assignedEmployee?.full_name || 'Unassigned';
+
+            await generateOutcomeTasks(
+              outcome,
+              id,
+              relatedCase.id,
+              relatedCase.client_id || relatedCase.clientId,
+              relatedCase.case_number || relatedCase.caseNumber,
+              hearing.date,
+              relatedCase.assigned_to_id || relatedCase.assignedToId || '',
+              assignedToName,
+              currentUserId,
+              currentUserName,
+              dispatch
+            );
+            
+            console.log('[Hearings] Auto-generated outcome tasks for outcome:', outcome);
+          }
+        } catch (taskError) {
+          console.error('[Hearings] Failed to generate outcome tasks:', taskError);
+          // Don't show error to user as this is non-critical
+        }
+      }
+      
+      // Log audit event for outcome recording
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).single();
+        if (user && profile?.tenant_id) {
+          await auditService.log('update_hearing', profile.tenant_id, {
+            userId: user.id,
+            entityType: 'hearing',
+            entityId: id,
+            details: { 
+              action: 'record_outcome',
               outcome,
               outcomeText,
-              nextHearingDate
+              nextHearingDate,
+              caseId: hearing.case_id
             }
           });
-          console.log('[Hearings] Timeline entry added for outcome');
-        } catch (timelineError) {
-          console.error('[Hearings] Failed to add timeline entry:', timelineError);
         }
-
-        // Phase 2: Auto-create next hearing if outcome is Adjournment
-        if (outcome === 'Adjournment' && autoCreateNext && nextHearingDate && dispatch) {
-          try {
-            const nextHearingData: HearingFormData = {
-              case_id: hearing.case_id || hearing.caseId,
-              date: nextHearingDate,
-              start_time: hearing.start_time || hearing.time || '10:00',
-              end_time: hearing.end_time || '11:00',
-              timezone: hearing.timezone || 'Asia/Kolkata',
-              court_id: hearing.court_id || hearing.courtId,
-              judge_ids: hearing.judge_ids || (hearing.judgeId ? [hearing.judgeId] : []),
-              purpose: hearing.purpose || 'mention',
-              notes: `Adjourned from ${format(new Date(hearing.date), 'dd MMM yyyy')}. ${outcomeText || ''}`,
-              authority_id: hearing.authority_id || hearing.authorityId,
-              forum_id: hearing.forum_id || hearing.forumId
-            };
-
-            const nextHearing = await this.createHearing(nextHearingData, dispatch);
-            
-            toast({
-              title: "Next Hearing Scheduled",
-              description: `Hearing automatically scheduled for ${format(new Date(nextHearingDate), 'dd MMM yyyy')}`,
-            });
-
-            console.log('[Hearings] Auto-created next hearing:', nextHearing.id);
-            
-            return nextHearing as any;
-          } catch (createError) {
-            console.error('[Hearings] Failed to auto-create next hearing:', createError);
-            toast({
-              title: "Warning",
-              description: "Outcome recorded but failed to auto-create next hearing. Please schedule manually.",
-              variant: "default"
-            });
-          }
-        }
-
-        // Phase 3: Auto-generate outcome-based tasks
-        if (dispatch) {
-          try {
-            const appState = await loadAppState();
-            const relatedCase = appState.cases.find(c => c.id === (hearing.case_id || hearing.caseId)) as any;
-            
-            if (relatedCase) {
-              // Get current user info
-              const { data: { user } } = await supabase.auth.getUser();
-              const currentUserId = user?.id || 'system';
-              
-              // Find current user in employees
-              const currentEmployee = appState.employees.find(e => e.id === currentUserId) as any;
-              const currentUserName = currentEmployee?.full_name || 'System';
-              
-              // Find assigned employee  
-              const assignedEmployee = appState.employees.find(e => e.id === (relatedCase.assigned_to_id || relatedCase.assignedToId)) as any;
-              const assignedToName = assignedEmployee?.full_name || 'Unassigned';
-
-              await generateOutcomeTasks(
-                outcome,
-                id,
-                relatedCase.id,
-                relatedCase.client_id || relatedCase.clientId,
-                relatedCase.case_number || relatedCase.caseNumber,
-                hearing.hearing_date || hearing.date,
-                relatedCase.assigned_to_id || relatedCase.assignedToId || '',
-                assignedToName,
-                currentUserId,
-                currentUserName,
-                dispatch
-              );
-              
-              console.log('[Hearings] Auto-generated outcome tasks for outcome:', outcome);
-            }
-          } catch (taskError) {
-            console.error('[Hearings] Failed to generate outcome tasks:', taskError);
-            // Don't show error to user as this is non-critical
-          }
-        }
-        
-        // Log audit event for outcome recording
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).single();
-          if (user && profile?.tenant_id) {
-            await auditService.log('update_hearing', profile.tenant_id, {
-              userId: user.id,
-              entityType: 'hearing',
-              entityId: id,
-              details: { 
-                action: 'record_outcome',
-                outcome,
-                outcomeText,
-                nextHearingDate,
-                caseId: hearing.case_id || hearing.caseId
-              }
-            });
-          }
-        } catch (auditError) {
-          console.warn('Failed to log audit event for hearing outcome:', auditError);
-        }
-        
-        toast({
-          title: "Outcome Recorded",
-          description: `Hearing outcome: ${outcome}`,
-        });
-        
-        log('success', 'record outcome', { hearingId: id, outcome });
-        return hearing;
-      } else {
-        throw new Error('Failed to record outcome');
+      } catch (auditError) {
+        console.warn('Failed to log audit event for hearing outcome:', auditError);
       }
+      
+      toast({
+        title: "Outcome Recorded",
+        description: `Hearing outcome: ${outcome}`,
+      });
+      
+      log('success', 'record outcome', { hearingId: id, outcome });
+      return hearing;
     } catch (error) {
       log('error', 'record outcome', error);
+      // Use getErrorMessage for actionable error messages
+      const { getErrorMessage } = await import('@/utils/errorUtils');
+      const errorMsg = getErrorMessage(error);
       toast({
         title: "Error",
-        description: "Failed to record hearing outcome. Please try again.",
+        description: errorMsg || "Failed to record hearing outcome. Please try again.",
         variant: "destructive",
       });
       throw error;
