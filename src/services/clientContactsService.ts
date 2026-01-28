@@ -5,6 +5,8 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { ApiResponse } from './apiService';
+import { UnifiedAddress, PartialAddress } from '@/types/address';
+import { parseDbAddress } from '@/utils/addressUtils';
 
 export interface ContactEmail {
   id: string;
@@ -51,6 +53,9 @@ export interface ClientContact {
   createdAt: string;
   updatedAt: string;
   
+  // Unified Address Architecture support
+  address?: UnifiedAddress;
+  
   // Dual Access Model fields
   ownerUserId?: string; // FK to profiles.id - Owner user ID
   ownerName?: string; // Display name of owner (derived)
@@ -75,6 +80,9 @@ export interface CreateContactRequest {
   roles: ContactRole[];
   isPrimary?: boolean;
   notes?: string;
+  
+  // Unified Address Architecture support
+  address?: PartialAddress;
   
   // Dual Access Model fields
   dataScope?: 'OWN' | 'TEAM' | 'ALL';
@@ -107,6 +115,8 @@ function toClientContact(row: any): ClientContact {
     notes: row.notes,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    // Unified Address Architecture support
+    address: row.address ? parseDbAddress(row.address) : undefined,
     // Dual Access Model fields
     ownerUserId: row.owner_user_id || undefined,
     dataScope: row.data_scope || 'TEAM'

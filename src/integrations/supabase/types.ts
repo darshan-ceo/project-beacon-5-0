@@ -1965,6 +1965,7 @@ export type Database = {
       employees: {
         Row: {
           aadhaar: string | null
+          address: Json | null
           ai_access: boolean | null
           alternate_contact: string | null
           areas_of_practice: string[] | null
@@ -2024,6 +2025,7 @@ export type Database = {
         }
         Insert: {
           aadhaar?: string | null
+          address?: Json | null
           ai_access?: boolean | null
           alternate_contact?: string | null
           areas_of_practice?: string[] | null
@@ -2083,6 +2085,7 @@ export type Database = {
         }
         Update: {
           aadhaar?: string | null
+          address?: Json | null
           ai_access?: boolean | null
           alternate_contact?: string | null
           areas_of_practice?: string[] | null
