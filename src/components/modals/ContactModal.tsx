@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, UserCircle, Building2, Trash2, Mail, Phone, Settings, Plus, Edit, Eye } from 'lucide-react';
+import { Loader2, UserCircle, Building2, Trash2, Mail, Phone, Settings, Plus, Edit, Eye, MapPin } from 'lucide-react';
 import { 
   clientContactsService, 
   ClientContact, 
@@ -24,6 +24,8 @@ import { EmailManager } from '@/components/contacts/EmailManager';
 import { PhoneManager } from '@/components/contacts/PhoneManager';
 import { SearchableClientSelector } from '@/components/ui/searchable-client-selector';
 import { supabase } from '@/integrations/supabase/client';
+import { UnifiedAddressForm } from '@/components/ui/UnifiedAddressForm';
+import { UnifiedAddress, PartialAddress } from '@/types/address';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -71,7 +73,7 @@ export const ContactModal: React.FC<ContactModalProps> = ({
   const [clients, setClients] = useState<Client[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   
-  const [formData, setFormData] = useState<CreateContactRequest & { clientId?: string | null; isActive?: boolean }>({
+  const [formData, setFormData] = useState<CreateContactRequest & { clientId?: string | null; isActive?: boolean; address?: PartialAddress }>({
     name: '',
     designation: '',
     emails: [],
@@ -81,7 +83,8 @@ export const ContactModal: React.FC<ContactModalProps> = ({
     notes: '',
     dataScope: 'TEAM',
     clientId: defaultClientId || null,
-    isActive: true
+    isActive: true,
+    address: {}
   });
 
   const [contactData, setContactData] = useState<(ClientContact & { clientName?: string }) | null>(null);
@@ -124,7 +127,8 @@ export const ContactModal: React.FC<ContactModalProps> = ({
           notes: '',
           dataScope: 'TEAM',
           clientId: defaultClientId || null,
-          isActive: true
+          isActive: true,
+          address: {}
         });
         return;
       }
@@ -148,7 +152,8 @@ export const ContactModal: React.FC<ContactModalProps> = ({
             notes: contact.notes || '',
             dataScope: contact.dataScope || 'TEAM',
             clientId: contact.clientId || null,
-            isActive: contact.isActive
+            isActive: contact.isActive,
+            address: contact.address || {}
           });
         } else {
           setError(result.error || 'Failed to load contact');
@@ -173,7 +178,8 @@ export const ContactModal: React.FC<ContactModalProps> = ({
         notes: '',
         dataScope: 'TEAM',
         clientId: defaultClientId || null,
-        isActive: true
+        isActive: true,
+        address: {}
       });
     }
   }, [isOpen, contactId, mode, defaultClientId]);
@@ -213,7 +219,8 @@ export const ContactModal: React.FC<ContactModalProps> = ({
           isPrimary: formData.isPrimary,
           notes: formData.notes,
           dataScope: formData.dataScope,
-          isActive: formData.isActive
+          isActive: formData.isActive,
+          address: formData.address
         });
         
         if (response.success) {
@@ -444,6 +451,28 @@ export const ContactModal: React.FC<ContactModalProps> = ({
                           disabled={isViewMode}
                         />
                       </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Address Card */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-primary" />
+                        Address
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <UnifiedAddressForm
+                        value={formData.address || {}}
+                        onChange={(address: UnifiedAddress) => setFormData(prev => ({ 
+                          ...prev, 
+                          address 
+                        }))}
+                        module="contact"
+                        mode={isViewMode ? 'view' : mode}
+                        required={false}
+                      />
                     </CardContent>
                   </Card>
 

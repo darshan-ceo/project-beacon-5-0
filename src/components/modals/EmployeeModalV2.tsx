@@ -35,6 +35,8 @@ import { secureLog } from '@/utils/secureLogger';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { StandardDateInput } from '@/components/ui/standard-date-input';
+import { UnifiedAddressForm } from '@/components/ui/UnifiedAddressForm';
+import { UnifiedAddress, PartialAddress } from '@/types/address';
 import {
   User,
   Phone,
@@ -49,6 +51,7 @@ import {
   Mail,
   Loader2,
   HelpCircle,
+  MapPin,
 } from 'lucide-react';
 
 interface EmployeeModalV2Props {
@@ -145,6 +148,8 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
   const [formData, setFormData] = useState<Partial<Employee & { 
     passwordOption?: 'email' | 'manual';
     tempPassword?: string;
+    currentAddressData?: PartialAddress;
+    permanentAddressData?: PartialAddress;
   }>>({
     status: 'Active',
     billable: true,
@@ -156,6 +161,8 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
     workShift: 'Regular',
     employmentType: 'Permanent',
     passwordOption: 'email',
+    currentAddressData: {},
+    permanentAddressData: {},
   });
 
   const isReadOnly = mode === 'view';
@@ -163,7 +170,29 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
   // Initialize form data
   useEffect(() => {
     if (employee && (mode === 'edit' || mode === 'view')) {
-      setFormData(employee);
+      // Hydrate address data from legacy fields or unified address
+      const currentAddressData: PartialAddress = employee.address?.addressType === 'current'
+        ? employee.address
+        : {
+            line1: employee.currentAddress || '',
+            cityName: employee.city || '',
+            stateName: employee.state || '',
+            pincode: employee.pincode || '',
+            source: 'manual',
+            addressType: 'current'
+          };
+      
+      const permanentAddressData: PartialAddress = {
+        line1: employee.permanentAddress || '',
+        source: 'manual',
+        addressType: 'permanent'
+      };
+      
+      setFormData({
+        ...employee,
+        currentAddressData,
+        permanentAddressData
+      });
     } else if (mode === 'create') {
       // Auto-generate employee code
       const autoCode = `GSTE${(state.employees.length + 1).toString().padStart(4, '0')}`;
@@ -412,11 +441,12 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
           officialEmail: formData.officialEmail,
           personalEmail: formData.personalEmail,
           alternateContact: formData.alternateContact,
-          currentAddress: formData.currentAddress,
-          permanentAddress: formData.permanentAddress,
-          city: formData.city,
-          state: formData.state,
-          pincode: formData.pincode,
+          currentAddress: formData.currentAddressData?.line1 || formData.currentAddress || '',
+          permanentAddress: formData.permanentAddressData?.line1 || formData.permanentAddress || '',
+          city: formData.currentAddressData?.cityName || formData.city || '',
+          state: formData.currentAddressData?.stateName || formData.state || '',
+          pincode: formData.currentAddressData?.pincode || formData.pincode || '',
+          address: formData.currentAddressData,
           branch: formData.branch,
           employmentType: formData.employmentType,
           confirmationDate: formData.confirmationDate,
@@ -559,11 +589,12 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
             official_email: formData.officialEmail,
             personal_email: formData.personalEmail,
             alternate_contact: formData.alternateContact,
-            current_address: formData.currentAddress,
-            permanent_address: formData.permanentAddress,
-            city: formData.city,
-            state: formData.state,
-            pincode: formData.pincode,
+            current_address: formData.currentAddressData?.line1 || formData.currentAddress || '',
+            permanent_address: formData.permanentAddressData?.line1 || formData.permanentAddress || '',
+            city: formData.currentAddressData?.cityName || formData.city || '',
+            state: formData.currentAddressData?.stateName || formData.state || '',
+            pincode: formData.currentAddressData?.pincode || formData.pincode || '',
+            address: formData.currentAddressData ? JSON.stringify(formData.currentAddressData) : null,
             branch: formData.branch,
             employment_type: formData.employmentType,
             confirmation_date: formData.confirmationDate,
@@ -857,67 +888,35 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
         />
       </div>
 
+      {/* Current Address Section */}
       <div className="space-y-2 md:col-span-2">
-        <Label htmlFor="currentAddress">Current Address</Label>
-        <Textarea
-          id="currentAddress"
-          value={formData.currentAddress || ''}
-          onChange={(e) => handleInputChange('currentAddress', e.target.value)}
-          rows={2}
-          disabled={isReadOnly}
+        <Label className="flex items-center gap-2">
+          <MapPin className="h-4 w-4" />
+          Current Address
+        </Label>
+        <UnifiedAddressForm
+          value={formData.currentAddressData || {}}
+          onChange={(address: UnifiedAddress) => handleInputChange('currentAddressData', address)}
+          module="employee"
+          mode={isReadOnly ? 'view' : mode}
+          addressType="current"
+          required={false}
         />
       </div>
 
+      {/* Permanent Address Section */}
       <div className="space-y-2 md:col-span-2">
-        <Label htmlFor="permanentAddress">Permanent Address</Label>
-        <Textarea
-          id="permanentAddress"
-          value={formData.permanentAddress || ''}
-          onChange={(e) => handleInputChange('permanentAddress', e.target.value)}
-          rows={2}
-          disabled={isReadOnly}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="city">City</Label>
-        <Input
-          id="city"
-          value={formData.city || ''}
-          onChange={(e) => handleInputChange('city', e.target.value)}
-          disabled={isReadOnly}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="state">State</Label>
-        <Select
-          value={formData.state || ''}
-          onValueChange={(value) => handleInputChange('state', value)}
-          disabled={isReadOnly}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select state" />
-          </SelectTrigger>
-          <SelectContent>
-            {states.map((state) => (
-              <SelectItem key={state} value={state}>
-                {state}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="pincode">Pincode</Label>
-        <Input
-          id="pincode"
-          value={formData.pincode || ''}
-          onChange={(e) => handleInputChange('pincode', e.target.value)}
-          maxLength={6}
-          placeholder="400001"
-          disabled={isReadOnly}
+        <Label className="flex items-center gap-2">
+          <MapPin className="h-4 w-4" />
+          Permanent Address
+        </Label>
+        <UnifiedAddressForm
+          value={formData.permanentAddressData || {}}
+          onChange={(address: UnifiedAddress) => handleInputChange('permanentAddressData', address)}
+          module="employee"
+          mode={isReadOnly ? 'view' : mode}
+          addressType="permanent"
+          required={false}
         />
       </div>
     </div>
