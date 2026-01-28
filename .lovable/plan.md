@@ -1,172 +1,356 @@
-# COMPLETED: Task Sub-Module RBAC Enforcement for Action Buttons
 
-## Implementation Status: ✅ DONE
 
-RBAC permission checks have been added to all 4 task sub-module components.
+# Address Architecture Analysis & Unified Design Proposal
 
-## Problem Summary (RESOLVED)
+## Current State Analysis
 
-Staff role has only "View" (`tasks.templates.read`) permission for Task Templates, but the UI shows Edit, Clone, Create Template, and Delete buttons. The same issue exists in Automation, Escalation, and AI Assistant sub-modules - tab access is controlled but individual action buttons are not permission-gated.
+### Entity-Wise Address Storage Patterns
 
-## Root Cause Analysis
+Based on the deep research of the codebase, I found **5 distinct patterns** for address management across entities:
 
-| Component | Tab Access Control | Button Permission Control |
-|-----------|-------------------|---------------------------|
-| TaskManagement.tsx | Correctly checks `hasPermission('tasks.templates', 'read')` | N/A (parent) |
-| TaskTemplates.tsx | N/A (child) | **MISSING** - No RBAC checks |
-| TaskAutomation.tsx | N/A (child) | **MISSING** - No RBAC checks |
-| EscalationMatrix.tsx | N/A (child) | **MISSING** - No RBAC checks |
-| AITaskAssistant.tsx | N/A (child) | **MISSING** - No RBAC checks |
-
-## Database Permissions (Reference)
-
-Staff role permissions for task sub-modules:
-- `tasks.templates.read` - Has this ONLY
-- `tasks.templates.create` - Does NOT have
-- `tasks.templates.update` - Does NOT have  
-- `tasks.templates.delete` - Does NOT have
-- `tasks.automation.*` - Does NOT have any
-- `tasks.escalation.*` - Does NOT have any
-- `tasks.ai.*` - Does NOT have any
-
-## Solution
-
-Add RBAC permission checks to each task sub-module component to conditionally render or disable action buttons.
+| Entity | Database Column | Data Type | Storage Pattern | Form Component |
+|--------|-----------------|-----------|-----------------|----------------|
+| **Clients** | `address` | JSONB | Enhanced structured object | `AddressForm`, `SimpleAddressForm` |
+| **Courts** | `address` | TEXT | Plain text string | Manual input |
+| **Judges** | `address` | JSONB | Enhanced structured object | `AddressForm` |
+| **Employees** | `current_address`, `permanent_address` | TEXT | Plain text strings | Manual input |
+| **Contacts** | N/A | N/A | No address field exists | N/A |
 
 ---
 
-## Files to Modify
+## Key Architectural Differences
 
-### 1. TaskTemplates.tsx
-
-Import RBAC hook and add permission checks:
-
+### 1. Clients (Most Advanced)
 ```typescript
-// Add imports
-import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
-
-// Inside component
-const { hasPermission } = useAdvancedRBAC();
-const canCreateTemplate = hasPermission('tasks.templates', 'write');
-const canEditTemplate = hasPermission('tasks.templates', 'write');
-const canDeleteTemplate = hasPermission('tasks.templates', 'delete');
+// Database: JSONB
+// TypeScript: EnhancedAddressData
+interface ClientAddress {
+  line1: string;
+  line2?: string;
+  landmark?: string;
+  locality?: string;
+  district?: string;
+  cityId?: string;
+  cityName?: string;      // Display name
+  stateId?: string;
+  stateCode?: string;     // GST state code
+  stateName?: string;     // Display name
+  countryId?: string;
+  pincode?: string;
+  lat?: number;
+  lng?: number;
+  source?: 'manual' | 'gsp' | 'public' | 'edited';
+}
 ```
+**Features:**
+- GST integration via `gstAddressMapper.ts`
+- Source tracking (manual, GST portal, public API)
+- Cascading dropdowns (Country → State → City)
+- City master with custom city addition
+- Address configuration per module
+- Jurisdiction mapping from GST data
 
-**Changes needed:**
-
-1. **Create Template button** (header) - Conditionally render based on `canCreateTemplate`
-2. **Edit button** (TemplateCard) - Conditionally render based on `canEditTemplate`
-3. **Clone button** (TemplateCard) - Conditionally render based on `canCreateTemplate` (clone creates new)
-4. **Delete button** (TemplateCard) - Conditionally render based on `canDeleteTemplate`
-
-### 2. TaskAutomation.tsx
-
-Import RBAC hook and add permission checks:
-
+### 2. Courts/Legal Forums (Legacy)
 ```typescript
-import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
-
-const { hasPermission } = useAdvancedRBAC();
-const canManageAutomation = hasPermission('tasks.automation', 'admin') || 
-                            hasPermission('tasks.automation', 'manage');
+// Database: TEXT
+// TypeScript: string
+address: string;  // "Room 101, High Court Building, Ahmedabad"
 ```
+**Issues:**
+- No structured data for filtering/searching
+- No geocoding capability
+- No pincode validation
+- Inconsistent with client addresses
 
-**Changes needed:**
-
-1. **Create Bundle button** - Conditionally render based on `canManageAutomation`
-2. **Edit bundle button** - Conditionally render based on `canManageAutomation`
-3. **Delete bundle button** - Conditionally render based on `canManageAutomation`
-
-### 3. EscalationMatrix.tsx
-
-Import RBAC hook and add permission checks:
-
+### 3. Judges (Partial Enhanced)
 ```typescript
-import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
-
-const { hasPermission } = useAdvancedRBAC();
-const canManageEscalation = hasPermission('tasks.escalation', 'admin') || 
-                            hasPermission('tasks.escalation', 'manage');
+// Database: JSONB (but rarely populated)
+// TypeScript: EnhancedAddressData
+address?: EnhancedAddressData;
 ```
+**Issues:**
+- Form component exists but rarely used
+- Most judges have no address stored
+- Address is optional, not tied to court location
 
-**Changes needed:**
-
-1. **Configure Rules button** - Conditionally render based on `canManageEscalation`
-2. **Create/Edit rule buttons** - Conditionally render based on `canManageEscalation`
-
-### 4. AITaskAssistant.tsx
-
-Import RBAC hook and add permission checks:
-
+### 4. Employees (Split Fields)
 ```typescript
-import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
-
-const { hasPermission } = useAdvancedRBAC();
-const canManageAI = hasPermission('tasks.ai', 'admin') || 
-                    hasPermission('tasks.ai', 'manage');
+// Database: TEXT, TEXT
+current_address?: string;
+permanent_address?: string;
+city?: string;
+state?: string;
+pincode?: string;
 ```
+**Issues:**
+- Two separate address fields (current/permanent)
+- City, state, pincode as separate columns
+- No structured JSONB storage
+- No source tracking
+- No GST integration
 
-**Changes needed:**
-
-1. **Configure API button** - Conditionally render based on `canManageAI`
-2. **Settings tab** - Conditionally render based on `canManageAI`
+### 5. Contacts (Missing)
+```typescript
+// Database: No address column
+// Only has emails and phones JSONB arrays
+```
+**Issues:**
+- Contacts cannot have addresses
+- Business contacts often need mailing addresses
 
 ---
 
-## Permission Mapping
+## Address Service Layer Analysis
 
-| UI Action | Database Permission Key | RBAC Action |
-|-----------|------------------------|-------------|
-| Create Template | `tasks.templates.create` | `write` |
-| Edit Template | `tasks.templates.update` | `write` |
-| Delete Template | `tasks.templates.delete` | `delete` |
-| Clone Template | `tasks.templates.create` | `write` |
-| Manage Automation | `tasks.automation.manage` | `admin`/`manage` |
-| Manage Escalation | `tasks.escalation.manage` | `admin`/`manage` |
-| Configure AI | `tasks.ai.manage` | `admin`/`manage` |
+### Existing Services
+
+| Service | Purpose | Used By |
+|---------|---------|---------|
+| `addressMasterService.ts` | Central CRUD for addresses with entity linking | Not fully integrated |
+| `addressLookupService.ts` | State/City/Country dropdown data | AddressForm |
+| `addressConfigService.ts` | Per-module field visibility/validation config | AddressForm |
+| `gstAddressMapper.ts` | GST API address → EnhancedAddressData | Client GST autofill |
+| `cityMasterService.ts` | Custom city addition to master | AddressForm |
+
+### Critical Gap: `addressMasterService` Not Utilized
+
+The `addressMasterService` was designed as a central address registry with entity linking:
+
+```typescript
+interface AddressLink {
+  id: string;
+  addressId: string;
+  entityType: 'employee' | 'judge' | 'client' | 'court';
+  entityId: string;
+  isPrimary: boolean;
+}
+```
+
+**However**, this is currently an **in-memory implementation** with no database persistence. Entities still store addresses inline rather than referencing a central `addresses` table.
 
 ---
 
-## Expected Behavior After Fix
+## Proposed Unified Architecture
 
-| Role | Templates Tab | Create/Edit/Delete Buttons |
-|------|--------------|---------------------------|
-| Staff | Visible (read) | **Hidden** |
-| Manager | Visible | Create/Edit visible |
-| Admin/Partner | Visible | All buttons visible |
+### Option A: Normalize to Central Addresses Table (Enterprise Pattern)
 
-| Role | Automation Tab | Create/Edit/Delete |
-|------|---------------|-------------------|
-| Staff | Hidden | N/A |
-| Manager | Hidden | N/A |
-| Admin/Partner | Visible | All visible |
+```text
+┌─────────────────────────────────────────────────────────────────────┐
+│                         addresses (new table)                       │
+├─────────────────────────────────────────────────────────────────────┤
+│ id (UUID PK)                                                        │
+│ tenant_id (UUID FK)                                                 │
+│ line1, line2, landmark, locality, district (TEXT)                   │
+│ city_id, state_id, country_id (UUID FK to masters)                  │
+│ city_name, state_name (TEXT - denormalized for display)             │
+│ pincode (VARCHAR 6)                                                 │
+│ lat, lng (NUMERIC - optional geocoding)                             │
+│ source ('manual' | 'gsp' | 'public' | 'imported')                   │
+│ created_at, updated_at (TIMESTAMP)                                  │
+└─────────────────────────────────────────────────────────────────────┘
+                              │
+        ┌─────────────────────┼─────────────────────┐
+        │                     │                     │
+        ▼                     ▼                     ▼
+┌───────────────┐    ┌───────────────┐    ┌───────────────┐
+│    clients    │    │    courts     │    │   employees   │
+│ address_id FK │    │ address_id FK │    │ current_addr  │
+│               │    │               │    │ permanent_addr│
+└───────────────┘    └───────────────┘    └───────────────┘
+```
+
+**Pros:**
+- Single source of truth
+- Reusable addresses across entities
+- Easy to add address to any entity
+- Consistent validation
+- Enables address deduplication
+
+**Cons:**
+- Migration complexity
+- Breaking change for existing integrations
+- Additional JOINs for reads
 
 ---
 
-## Testing Checklist
+### Option B: Standardize JSONB Format (Recommended)
 
-After implementation:
+Simpler approach: Keep inline storage but enforce identical JSONB structure everywhere.
 
-1. **Staff user testing:**
-   - Login as Staff
-   - Navigate to Task Management > Templates tab
-   - Verify: Can see templates (read only)
-   - Verify: "Create Template" button is hidden
-   - Verify: Edit, Clone, Delete buttons are hidden on cards
-   - Verify: Automation, Escalation, AI tabs are not accessible
+```text
+Step 1: Database Migration
+────────────────────────────────────────────────────────────────
+1. ALTER courts.address from TEXT → JSONB
+2. ALTER employees: add address JSONB, deprecate current_address/permanent_address
+3. ADD client_contacts.address JSONB (nullable)
+4. Ensure judges.address uses consistent schema
 
-2. **Manager user testing:**
-   - Login as Manager
-   - Navigate to Templates tab
-   - Verify: Create, Edit buttons visible
-   - Verify: Automation/Escalation/AI tabs hidden (Manager doesn't have manage permission)
+Step 2: Unified TypeScript Interface
+────────────────────────────────────────────────────────────────
+// Single canonical interface for ALL entities
+interface UnifiedAddress {
+  // Core fields (always present)
+  line1: string;
+  line2?: string;
+  pincode: string;
+  
+  // Location hierarchy
+  cityId?: string;
+  cityName: string;        // Always populated
+  stateId?: string;
+  stateName: string;       // Always populated
+  countryId?: string;
+  countryName?: string;
+  
+  // Enhanced fields (optional)
+  landmark?: string;
+  locality?: string;
+  district?: string;
+  stateCode?: string;      // For GST integration
+  
+  // Geocoding (optional)
+  lat?: number;
+  lng?: number;
+  
+  // Metadata
+  source: 'manual' | 'gsp' | 'public' | 'imported' | 'edited';
+  isPrimary?: boolean;     // For multi-address entities
+  addressType?: 'registered' | 'correspondence' | 'current' | 'permanent';
+}
 
-3. **Admin/Partner testing:**
-   - All tabs visible
-   - All action buttons visible
+Step 3: Shared Form Component
+────────────────────────────────────────────────────────────────
+// Unified form for all entities
+<UnifiedAddressForm
+  value={address}
+  onChange={setAddress}
+  module="client" | "court" | "judge" | "employee" | "contact"
+  mode="create" | "edit" | "view"
+  showGSTIntegration={true/false}
+  showGeocoding={true/false}
+/>
 
-4. **Permission change testing:**
-   - Assign `tasks.templates.create` to Staff via Access & Roles
-   - Refresh page
-   - Verify: Create Template button now visible for Staff
+Step 4: Adapter Pattern for Services
+────────────────────────────────────────────────────────────────
+// Each entity service uses shared adapter
+import { normalizeAddress, serializeAddress } from '@/utils/addressUtils';
+
+// On read: Parse JSONB → UnifiedAddress
+// On write: Validate → Serialize → JSONB
+```
+
+---
+
+## Implementation Plan
+
+### Phase 1: Unify TypeScript Types (1-2 days)
+
+1. Create `src/types/address.ts`:
+```typescript
+export interface UnifiedAddress {
+  line1: string;
+  line2?: string;
+  landmark?: string;
+  locality?: string;
+  district?: string;
+  cityId?: string;
+  cityName: string;
+  stateId?: string;
+  stateCode?: string;
+  stateName: string;
+  countryId?: string;
+  countryName?: string;
+  pincode: string;
+  lat?: number;
+  lng?: number;
+  source: AddressSource;
+  addressType?: AddressType;
+  isPrimary?: boolean;
+}
+
+export type AddressSource = 'manual' | 'gsp' | 'public' | 'imported' | 'edited';
+export type AddressType = 'registered' | 'correspondence' | 'current' | 'permanent';
+```
+
+2. Create `src/utils/addressUtils.ts`:
+```typescript
+export function normalizeAddress(raw: any): UnifiedAddress;
+export function serializeAddress(addr: UnifiedAddress): string;
+export function validateAddress(addr: Partial<UnifiedAddress>): ValidationResult;
+export function formatDisplayAddress(addr: UnifiedAddress): string;
+export function compareAddresses(a: UnifiedAddress, b: UnifiedAddress): boolean;
+```
+
+### Phase 2: Database Alignment (Migration)
+
+```sql
+-- Convert courts.address from TEXT to JSONB
+ALTER TABLE courts ADD COLUMN address_new JSONB;
+UPDATE courts SET address_new = jsonb_build_object(
+  'line1', address,
+  'cityName', city,
+  'stateName', state,
+  'source', 'manual'
+) WHERE address IS NOT NULL;
+ALTER TABLE courts DROP COLUMN address;
+ALTER TABLE courts RENAME COLUMN address_new TO address;
+
+-- Add address to client_contacts
+ALTER TABLE client_contacts ADD COLUMN address JSONB;
+
+-- Add unified address to employees (keep legacy for migration)
+ALTER TABLE employees ADD COLUMN address JSONB;
+COMMENT ON COLUMN employees.address IS 'Unified address replacing current_address/permanent_address';
+```
+
+### Phase 3: Unified AddressForm Component
+
+Refactor existing `AddressForm.tsx` to:
+1. Accept `module` prop to configure field visibility
+2. Support `addressType` for multi-address entities (employees)
+3. Use shared validation from `addressUtils.ts`
+4. Handle legacy TEXT → JSONB parsing gracefully
+
+### Phase 4: Service Layer Updates
+
+Update each entity service to use shared address utilities:
+- `clientsService.ts` - Already uses JSONB, add normalization
+- `courtsService.ts` - Parse/serialize JSONB instead of TEXT
+- `judgesService.ts` - Ensure consistent JSONB handling
+- `employeesService.ts` - Migrate to single address field
+- `clientContactsService.ts` - Add address support
+
+---
+
+## Technical Recommendations
+
+### Do First
+1. Create shared types (`UnifiedAddress`) without changing existing code
+2. Create adapter functions that can parse both legacy and new formats
+3. Add database migration with backward compatibility
+
+### Avoid
+1. Breaking existing GST integration
+2. Changing RLS policies unexpectedly
+3. Removing legacy fields before full migration
+
+### Testing Strategy
+1. Unit tests for address parsing/normalization
+2. Integration tests for GST autofill flow
+3. E2E tests for each entity CRUD with addresses
+
+---
+
+## Summary
+
+| Aspect | Current State | Proposed State |
+|--------|---------------|----------------|
+| Type Definition | 3+ different interfaces | 1 `UnifiedAddress` |
+| Database Storage | TEXT/JSONB mixed | JSONB everywhere |
+| Form Component | AddressForm + SimpleAddressForm | UnifiedAddressForm |
+| Validation | Scattered in services | Centralized in `addressUtils` |
+| GST Integration | Client only | Available for all entities |
+| Source Tracking | Client only | All entities |
+
+This architecture ensures **single source of design** while maintaining backward compatibility and enabling gradual migration.
 
