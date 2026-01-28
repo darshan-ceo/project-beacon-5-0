@@ -1209,9 +1209,10 @@
         "content": "After the hearing, record the outcome (Adjourned, Order Passed, etc.). This triggers appropriate follow-up tasks and updates case status.",
         "target": "[data-tour='hearing-outcome']",
         "placement": "top"
-      }
-    ]
-  },
+      },
+      {
+        "id": "hl-next-hearing",
+        "title": "Schedule Next Hearing",
         "content": "If adjourned, schedule next hearing from outcome form. This links hearings together and maintains continuity in case history.",
         "target": "[data-tour='next-hearing']",
         "placement": "right"
@@ -1222,10 +1223,10 @@
         "content": "When order is passed, upload the order document immediately. Link it to this hearing for proper case history and timeline.",
         "target": "[data-tour='upload-order']",
         "placement": "left"
-    }
-  ]
-},
-{
+      }
+    ]
+  },
+  {
   "id": "dashboard-tour",
   "title": "Dashboard Overview",
   "description": "Understand your personalized dashboard with KPIs, quick actions, and upcoming deadlines",
