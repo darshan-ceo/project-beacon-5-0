@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
-  ArrowLeft, 
   Paperclip, 
   X, 
   Loader2,
@@ -14,13 +13,13 @@ import {
   Sparkles,
   Briefcase,
   Link2,
-  ChevronDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -33,11 +32,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { TASK_CATEGORIES } from '../../config/appConfig';
 import { useAppState } from '@/contexts/AppStateContext';
@@ -52,11 +46,11 @@ import { TemplatePickerDialog } from '@/components/tasks/TemplatePickerDialog';
 import { TaskTemplate } from '@/types/taskTemplate';
 import { SearchableClientSelector } from '@/components/ui/searchable-client-selector';
 import { CaseSelector } from '@/components/ui/relationship-selector';
+import { AdaptiveFormShell } from '@/components/ui/adaptive-form-shell';
+import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 
 const PRIORITY_OPTIONS = ['Critical', 'High', 'Medium', 'Low'];
 const DEFAULT_TAGS = ['Urgent', 'Review', 'Follow-up', 'Documentation', 'Client'];
-
-import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 
 export const CreateTask: React.FC = () => {
   const navigate = useNavigate();
@@ -122,7 +116,6 @@ export const CreateTask: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
-  const [isLinkageExpanded, setIsLinkageExpanded] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   // Fetch current user on mount
@@ -141,19 +134,6 @@ export const CreateTask: React.FC = () => {
   const creatorName = creatorEmployee?.full_name || 'You';
   const creatorRole = creatorEmployee?.role || '';
 
-  // Summary text for collapsed linkage state
-  const linkageSummary = selectedClient 
-    ? selectedCase 
-      ? `${selectedClient.name || (selectedClient as any).display_name} • ${selectedCase.caseNumber}${selectedCase.currentStage ? ` (${selectedCase.currentStage})` : ''}`
-      : selectedClient.name || (selectedClient as any).display_name
-    : 'No linkage selected';
-
-  // Auto-collapse when both client and case are selected
-  useEffect(() => {
-    if (selectedClientId && selectedCaseId) {
-      setIsLinkageExpanded(false);
-    }
-  }, [selectedClientId, selectedCaseId]);
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -370,51 +350,45 @@ export const CreateTask: React.FC = () => {
     }
   };
 
-  return (
-    <div className="h-full flex flex-col bg-background">
-      {/* Header */}
-      <div className="border-b bg-card px-3 md:px-4 py-3">
-        <div className="flex items-center justify-between gap-2 md:gap-3 flex-wrap">
-          <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => caseId ? navigate(`/cases?caseId=${caseId}`) : navigate('/tasks')}
-              className="shrink-0"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div className="min-w-0">
-              <h1 className="text-base md:text-lg font-semibold truncate">Create New Task</h1>
-              {linkedCase && (
-                <p className="text-xs text-muted-foreground truncate">
-                  For case: {linkedCase.caseNumber || linkedCase.title}
-                </p>
-              )}
-            </div>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowTemplatePicker(true)}
-            className="gap-1.5 md:gap-2 shrink-0"
-          >
-            <FileText className="h-4 w-4" />
-            <span className="hidden sm:inline">Use Template</span>
-            <span className="sm:hidden">Template</span>
-          </Button>
-        </div>
-        {/* Show who is creating the task - separate row on mobile */}
-        <div className="mt-2 md:mt-3 bg-muted/30 rounded-lg px-3 py-1.5 md:px-4 md:py-2 flex items-center gap-2 text-xs md:text-sm w-fit">
-          <User className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
-          <span className="text-muted-foreground hidden sm:inline">Creating as:</span>
-          <span className="font-medium">{creatorName}</span>
-          {creatorRole && (
-            <Badge variant="outline" className="text-[10px] md:text-xs">{creatorRole}</Badge>
-          )}
-        </div>
-      </div>
+  const handleClose = () => {
+    if (caseId) {
+      navigate(`/cases?caseId=${caseId}`);
+    } else {
+      navigate('/tasks');
+    }
+  };
 
+  // Footer for AdaptiveFormShell
+  const footer = (
+    <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-2 sm:gap-3 w-full">
+      <Button 
+        type="button" 
+        variant="outline" 
+        className="w-full sm:w-auto"
+        onClick={handleClose}
+      >
+        Cancel
+      </Button>
+      <Button 
+        type="button" 
+        className="w-full sm:w-auto"
+        onClick={handleSubmit} 
+        disabled={isSubmitting || !formData.title.trim()}
+      >
+        {isSubmitting ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            Creating...
+          </>
+        ) : (
+          'Create Task'
+        )}
+      </Button>
+    </div>
+  );
+
+  return (
+    <>
       {/* Template Picker Dialog */}
       <TemplatePickerDialog
         open={showTemplatePicker}
@@ -422,364 +396,386 @@ export const CreateTask: React.FC = () => {
         onSelectTemplate={handleTemplateSelect}
       />
 
-      {/* Form - Clean Linear Layout */}
-      <div className="flex-1 overflow-auto bg-muted/20">
-        <div className="max-w-2xl mx-auto p-4 md:p-6 space-y-4 md:space-y-6">
-          {/* Case Context Card - Show when creating from case */}
-          {linkedCase && (
-            <div className="bg-primary/5 rounded-xl border border-primary/20 p-4 flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <Briefcase className="h-5 w-5 text-primary" />
+      <AdaptiveFormShell
+        isOpen={true}
+        onClose={handleClose}
+        title="Create New Task"
+        icon={<FileText className="h-5 w-5" />}
+        complexity="complex"
+        footer={footer}
+        dataTour="task-form"
+      >
+        <div className="space-y-6">
+          {/* Card 1: Task Details */}
+          <Card className="shadow-sm border">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-base">Task Details</CardTitle>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowTemplatePicker(true)}
+                  className="gap-1.5"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  <span className="hidden sm:inline">Use Template</span>
+                  <span className="sm:hidden">Template</span>
+                </Button>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground">
-                  Linked to Case
-                </p>
-                <p className="text-xs text-muted-foreground truncate">
-                  {linkedCase.caseNumber} • {linkedClient?.name || 'Unknown Client'}
-                </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Creator context badge */}
+              <div className="bg-muted/30 rounded-lg px-4 py-2 flex items-center gap-2 text-sm">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Creating as:</span>
+                <span className="font-medium">{creatorName}</span>
+                {creatorRole && (
+                  <Badge variant="outline" className="text-xs">{creatorRole}</Badge>
+                )}
               </div>
-            </div>
-          )}
 
-          {/* Task Linkage Card - Optional Client/Case Selection (show when NOT from case context) */}
-          {!linkedCase && (
-            <Collapsible open={isLinkageExpanded} onOpenChange={setIsLinkageExpanded}>
-              <div className="bg-muted/20 rounded-xl border border-border p-4">
-                <div className="flex items-center justify-between">
-                  <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                    <Link2 className="h-4 w-4" />
-                    {selectedClientId || selectedCaseId ? 'Link to Case' : 'Link to Case (Optional)'}
-                    <ChevronDown className={cn("h-4 w-4 transition-transform", isLinkageExpanded && "rotate-180")} />
-                  </CollapsibleTrigger>
-                  
-                  <div className="flex items-center gap-2">
-                    {/* Collapsed Summary - Bold client name with icon */}
-                    {!isLinkageExpanded && (selectedClientId || selectedCaseId) && (
-                      <div className="flex items-center gap-1.5 text-xs">
-                        <User className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span className="font-semibold text-foreground">
-                          {selectedClient?.name || (selectedClient as any)?.display_name}
-                        </span>
-                        {selectedCase && (
-                          <>
-                            <span className="text-muted-foreground">•</span>
-                            <span className="text-muted-foreground">
-                              {selectedCase.caseNumber}
-                              {selectedCase.currentStage ? ` (${selectedCase.currentStage})` : ''}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    )}
-                    
-                    {/* Clear Button */}
-                    {(selectedClientId || selectedCaseId) && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={(e) => { 
-                          e.stopPropagation();
-                          setSelectedClientId(''); 
-                          setSelectedCaseId('');
-                          setIsLinkageExpanded(true);
-                        }}
-                        className="h-7 px-2 text-xs"
-                      >
-                        <X className="h-3 w-3 mr-1" /> Clear
-                      </Button>
-                    )}
+              {/* Title */}
+              <div className="space-y-2">
+                <Label>
+                  Task Title <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  value={formData.title}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
+                  placeholder="What needs to be done?"
+                  className="text-base"
+                />
+              </div>
+
+              {/* Description */}
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+                  placeholder="Add more details about this task..."
+                  className="min-h-[100px] resize-none"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Card 2: Link to Case (Optional) - Only when NOT from case context */}
+          {linkedCase ? (
+            <Card className="shadow-sm border bg-primary/5">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-2">
+                  <Briefcase className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-base">Linked Case</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <Briefcase className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground">
+                      {linkedCase.caseNumber || linkedCase.title}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {linkedClient?.name || (linkedClient as any)?.display_name || 'Unknown Client'}
+                    </p>
                   </div>
                 </div>
-                
-                <CollapsibleContent className="pt-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-                    {/* Client Selector */}
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-                        <User className="h-3.5 w-3.5" />
-                        Client
-                      </Label>
-                      <SearchableClientSelector
-                        clients={state.clients.map(c => ({
-                          id: c.id,
-                          name: c.name || (c as any).display_name || '',
-                          display_name: c.name || (c as any).display_name,
-                          email: c.email,
-                          phone: c.phone,
-                          gstin: c.gstin,
-                        }))}
-                        value={selectedClientId}
-                        onValueChange={handleClientChange}
-                      />
-                    </div>
-                    
-                    {/* Case Selector - Filters based on selected client */}
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-                        <Briefcase className="h-3.5 w-3.5" />
-                        Case {selectedClientId && availableCases.length === 0 && (
-                          <span className="text-xs text-muted-foreground/70">(No cases)</span>
-                        )}
-                      </Label>
-                      <CaseSelector
-                        cases={availableCases}
-                        value={selectedCaseId}
-                        onValueChange={setSelectedCaseId}
-                        disabled={availableCases.length === 0}
-                        hideLabel
-                      />
-                    </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="shadow-sm border">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Link2 className="h-5 w-5 text-primary" />
+                    <CardTitle className="text-base">Link to Case (Optional)</CardTitle>
                   </div>
-                  
-                  {/* Selected Case Context Badge */}
-                  {selectedCase && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground bg-primary/5 rounded-lg p-2.5 mt-4">
-                      <Briefcase className="h-3.5 w-3.5 text-primary" />
-                      <span>Linked to:</span>
-                      <Badge variant="outline" className="text-xs font-medium">
-                        {selectedCase.caseNumber}
-                      </Badge>
-                      {selectedCase.currentStage && (
-                        <>
-                          <span className="text-muted-foreground">•</span>
-                          <span>{selectedCase.currentStage}</span>
-                        </>
-                      )}
-                    </div>
+                  {(selectedClientId || selectedCaseId) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedClientId('');
+                        setSelectedCaseId('');
+                      }}
+                      className="h-7 px-2 text-xs"
+                    >
+                      <X className="h-3 w-3 mr-1" /> Clear
+                    </Button>
                   )}
-                </CollapsibleContent>
-              </div>
-            </Collapsible>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Client Selector */}
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <User className="h-3.5 w-3.5" />
+                      Client
+                    </Label>
+                    <SearchableClientSelector
+                      clients={state.clients.map(c => ({
+                        id: c.id,
+                        name: c.name || (c as any).display_name || '',
+                        display_name: c.name || (c as any).display_name,
+                        email: c.email,
+                        phone: c.phone,
+                        gstin: c.gstin,
+                      }))}
+                      value={selectedClientId}
+                      onValueChange={handleClientChange}
+                    />
+                  </div>
+
+                  {/* Case Selector */}
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <Briefcase className="h-3.5 w-3.5" />
+                      Case {selectedClientId && availableCases.length === 0 && (
+                        <span className="text-xs text-muted-foreground/70">(No cases)</span>
+                      )}
+                    </Label>
+                    <CaseSelector
+                      cases={availableCases}
+                      value={selectedCaseId}
+                      onValueChange={setSelectedCaseId}
+                      disabled={availableCases.length === 0}
+                      hideLabel
+                    />
+                  </div>
+                </div>
+
+                {/* Selected Case Context Badge */}
+                {selectedCase && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground bg-primary/5 rounded-lg p-2.5">
+                    <Briefcase className="h-3.5 w-3.5 text-primary" />
+                    <span>Linked to:</span>
+                    <Badge variant="outline" className="text-xs font-medium">
+                      {selectedCase.caseNumber}
+                    </Badge>
+                    {selectedCase.currentStage && (
+                      <>
+                        <span className="text-muted-foreground">•</span>
+                        <span>{selectedCase.currentStage}</span>
+                      </>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           )}
 
-          {/* Main Form Card */}
-          <div className="bg-card rounded-xl border border-border shadow-sm p-6 space-y-6">
-            {/* Title - Primary Focus */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-foreground">Task Title</Label>
-              <Input
-                id="title"
-                value={formData.title}
-                onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
-                placeholder="What needs to be done?"
-                className="text-lg font-medium h-12 bg-muted/30 border-border focus-visible:ring-2 focus-visible:ring-primary"
-              />
-            </div>
-
-            {/* Description */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-foreground">Description</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-                placeholder="Add more details about this task..."
-                className="min-h-[120px] resize-none bg-muted/20 border-border focus-visible:ring-2 focus-visible:ring-primary"
-              />
-            </div>
-          </div>
-
-          {/* Quick Settings Card */}
-          <div className="bg-muted/30 rounded-xl border border-border p-5 space-y-4">
-            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <Flag className="h-4 w-4" />
-              Task Settings
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-            {/* Assign To with Combobox + Category Auto-fill */}
-            <div className="space-y-1.5 col-span-2 sm:col-span-1">
-              <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <User className="h-3.5 w-3.5" />
-                Assign To
-              </Label>
-              <EmployeeCombobox
-                employees={state.employees}
-                value={formData.assignedTo}
-                onValueChange={handleAssigneeChange}
-                placeholder="Who will complete this?"
-                className="h-9"
-              />
-            </div>
-
-            {/* Category Dropdown */}
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <Tag className="h-3.5 w-3.5" />
-                Category
-              </Label>
-              <Select
-                value={formData.category}
-                onValueChange={(value) => setFormData((prev) => ({ ...prev, category: value }))}
-              >
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {TASK_CATEGORIES.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Priority with visual badges */}
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <Flag className="h-3.5 w-3.5" />
-                Priority
-              </Label>
-              <div className="flex flex-wrap gap-1 sm:gap-1.5">
-                {PRIORITY_OPTIONS.map((p) => (
-                  <Badge
-                    key={p}
-                    variant={formData.priority === p ? 'default' : 'outline'}
-                    className={cn(
-                      'cursor-pointer transition-all text-[11px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1',
-                      formData.priority === p ? getPriorityColor(p) : 'hover:bg-muted'
-                    )}
-                    onClick={() => setFormData((prev) => ({ ...prev, priority: p }))}
-                  >
-                    {p}
-                  </Badge>
-                ))}
+          {/* Card 3: Assignment */}
+          <Card className="shadow-sm border">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-2">
+                <User className="h-5 w-5 text-primary" />
+                <CardTitle className="text-base">Assignment</CardTitle>
               </div>
-            </div>
-
-            {/* Estimated Hours */}
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5" />
-                Est. Hours
-              </Label>
-              <Input
-                type="number"
-                min="0"
-                step="0.5"
-                value={formData.estimatedHours}
-                onChange={(e) => setFormData((prev) => ({ ...prev, estimatedHours: e.target.value }))}
-                placeholder="0"
-                className="h-9"
-              />
-            </div>
-
-            {/* Due Date */}
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <Calendar className="h-3.5 w-3.5" />
-                Due Date
-              </Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      'w-full justify-start text-left font-normal h-9',
-                      !formData.dueDate && 'text-muted-foreground'
-                    )}
-                  >
-                    {formData.dueDate
-                      ? format(formData.dueDate, 'MMM d, yyyy')
-                      : 'Select date'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <CalendarComponent
-                    mode="single"
-                    selected={formData.dueDate}
-                    onSelect={(date) => setFormData((prev) => ({ ...prev, dueDate: date }))}
-                    initialFocus
-                    className="pointer-events-auto"
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Assign To */}
+                <div className="space-y-2">
+                  <Label>Assign To</Label>
+                  <EmployeeCombobox
+                    employees={state.employees}
+                    value={formData.assignedTo}
+                    onValueChange={handleAssigneeChange}
+                    placeholder="Select team member"
                   />
-                </PopoverContent>
-              </Popover>
-            </div>
-            </div>
-          </div>
+                  <p className="text-xs text-muted-foreground">
+                    Who will complete this task? Can include managers, partners, or admins.
+                  </p>
+                </div>
 
-          {/* Tags Card */}
-          <div className="bg-muted/20 rounded-xl border border-border p-5 space-y-3">
-            <Label className="text-sm font-medium text-foreground flex items-center gap-2">
-              <Tag className="h-4 w-4 text-primary" />
-              Tags
-            </Label>
-            <div className="flex flex-wrap gap-2">
-              {DEFAULT_TAGS.map((tag) => (
-                <Badge
-                  key={tag}
-                  variant={formData.tags.includes(tag) ? 'default' : 'outline'}
-                  className="cursor-pointer transition-all hover:scale-105 px-3 py-1"
-                  onClick={() => toggleTag(tag)}
-                >
-                  {tag}
-                </Badge>
-              ))}
-            </div>
-          </div>
-
-          {/* Attachments Card */}
-          <div className="bg-muted/10 rounded-xl border-2 border-dashed border-border hover:border-primary/50 transition-colors p-5 space-y-3">
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              onChange={handleFileSelect}
-              className="hidden"
-              id="task-attachments"
-            />
-            
-            {attachments.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-2">
-                {attachments.map((att) => (
-                  <div
-                    key={att.id}
-                    className="flex items-center gap-2 bg-card border border-border px-3 py-2 rounded-lg text-sm group shadow-sm"
+                {/* Category */}
+                <div className="space-y-2">
+                  <Label>Category</Label>
+                  <Select
+                    value={formData.category}
+                    onValueChange={(value) => setFormData((prev) => ({ ...prev, category: value }))}
                   >
-                    <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="truncate max-w-[150px]">{att.name}</span>
-                    <button
-                      onClick={() => removeAttachment(att.id)}
-                      className="text-muted-foreground hover:text-destructive transition-colors"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                ))}
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TASK_CATEGORIES.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            )}
+            </CardContent>
+          </Card>
 
-            <Button
-              variant="ghost"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isUploading}
-              className="w-full h-14 text-muted-foreground hover:text-foreground hover:bg-muted/50"
-            >
-              {isUploading ? (
-                <Loader2 className="h-5 w-5 animate-spin mr-2" />
-              ) : (
-                <Paperclip className="h-5 w-5 mr-2" />
-              )}
-              {attachments.length > 0 ? 'Add More Files' : 'Click to attach files'}
-            </Button>
-          </div>
+          {/* Card 4: Scheduling */}
+          <Card className="shadow-sm border">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-primary" />
+                <CardTitle className="text-base">Scheduling</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Due Date */}
+                <div className="space-y-2">
+                  <Label>Due Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          'w-full justify-start text-left font-normal',
+                          !formData.dueDate && 'text-muted-foreground'
+                        )}
+                      >
+                        <Calendar className="h-4 w-4 mr-2" />
+                        {formData.dueDate
+                          ? format(formData.dueDate, 'MMM d, yyyy')
+                          : 'Select date'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={formData.dueDate}
+                        onSelect={(date) => setFormData((prev) => ({ ...prev, dueDate: date }))}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {/* Priority */}
+                <div className="space-y-2">
+                  <Label>Priority</Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {PRIORITY_OPTIONS.map((p) => (
+                      <Badge
+                        key={p}
+                        variant={formData.priority === p ? 'default' : 'outline'}
+                        className={cn(
+                          'cursor-pointer transition-all text-xs px-2 py-1',
+                          formData.priority === p ? getPriorityColor(p) : 'hover:bg-muted'
+                        )}
+                        onClick={() => setFormData((prev) => ({ ...prev, priority: p }))}
+                      >
+                        {p}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Estimated Hours */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5" />
+                    Est. Hours
+                  </Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    value={formData.estimatedHours}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, estimatedHours: e.target.value }))}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Card 5: Attachments & Tags */}
+          <Card className="shadow-sm border">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-2">
+                <Paperclip className="h-5 w-5 text-primary" />
+                <CardTitle className="text-base">Attachments & Tags</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Tags */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Tag className="h-4 w-4" /> Tags
+                </Label>
+                <div className="flex flex-wrap gap-2">
+                  {DEFAULT_TAGS.map((tag) => (
+                    <Badge
+                      key={tag}
+                      variant={formData.tags.includes(tag) ? 'default' : 'outline'}
+                      className="cursor-pointer transition-all hover:scale-105 px-3 py-1"
+                      onClick={() => toggleTag(tag)}
+                    >
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              {/* Attachments */}
+              <div className="space-y-3">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  id="task-attachments"
+                />
+
+                {attachments.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {attachments.map((att) => (
+                      <div
+                        key={att.id}
+                        className="flex items-center gap-2 bg-muted/50 border border-border px-3 py-2 rounded-lg text-sm"
+                      >
+                        <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="truncate max-w-[150px]">{att.name}</span>
+                        <button
+                          onClick={() => removeAttachment(att.id)}
+                          className="text-muted-foreground hover:text-destructive transition-colors"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="w-full border-dashed"
+                >
+                  {isUploading ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Paperclip className="h-4 w-4 mr-2" />
+                  )}
+                  {attachments.length > 0 ? 'Add More Files' : 'Click to attach files'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      </div>
-
-      {/* Footer - Sticky */}
-      <div className="border-t bg-card p-3 md:p-4 flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">
-        <Button variant="ghost" className="w-full sm:w-auto" onClick={() => navigate('/tasks')}>
-          Cancel
-        </Button>
-        <Button className="w-full sm:w-auto" onClick={handleSubmit} disabled={isSubmitting || !formData.title.trim()}>
-          {isSubmitting ? (
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          ) : null}
-          Create Task
-        </Button>
-      </div>
-    </div>
+      </AdaptiveFormShell>
+    </>
   );
 };
 
