@@ -1,166 +1,216 @@
 
-## What we verified (mandatory, end-to-end)
+# Plan: Fix Timeline Tracker Issues
 
-### 1) Database verification: notifications table is empty
-I executed the required query against the backend:
+## Problems Identified
 
-```sql
-select id, user_id, type, title, read, created_at
-from public.notifications
-order by created_at desc;
+1. **Export Report Error** - Clicking "Export Report" fails with "Failed to export timeline breach report"
+2. **Form-wise Timeline Performance blank** - Shows no data because it relies on `generatedForms` array which doesn't exist in the database
+3. **RAG Status Matrix incorrect counts** - Displays hardcoded values (89, 23, 8) instead of calculating from actual case data
+
+---
+
+## Root Cause Analysis
+
+### Issue 1: Export Report Failure
+The export uses `exportRows()` with `moduleKey: 'cases'` but passes custom-mapped objects that don't match the expected `Case` type structure. The exporter expects specific column configurations from `CASE_EXPORT_COLUMNS` but the data being passed has different field names like `caseTitle` vs `title`.
+
+**Location:** `TimelineBreachTracker.tsx` lines 450-467
+
+### Issue 2: Form-wise Timeline Performance Empty
+The `getFormTimelineReport()` function (line 763 of reportsService.ts) iterates through `caseItem.generatedForms`:
+```typescript
+if (caseItem.generatedForms && caseItem.generatedForms.length > 0) {
+  caseItem.generatedForms.forEach((form) => { ... });
+}
+```
+However:
+- There is no `generated_forms` column in the `cases` table (only `form_type` exists)
+- The `SupabaseAdapter.transformCaseFields()` doesn't include `generatedForms`
+- The `DataInitializer` defaults to empty array: `generatedForms: c.generated_forms || c.generatedForms || []`
+
+Since no case has `generatedForms` data, the result is always empty.
+
+**Solution approach:** Refactor `getFormTimelineReport` to use the existing `form_type` column instead of the non-existent `generatedForms` array, and calculate compliance based on case dates and timeline breach status.
+
+### Issue 3: Hardcoded RAG Matrix Counts
+The RAG Status Matrix section (lines 397-422) contains hardcoded values:
+```tsx
+<h3 className="text-2xl font-bold text-success">89</h3>  // Line 401
+<h3 className="text-2xl font-bold text-warning">23</h3>  // Line 410
+<h3 className="text-2xl font-bold text-destructive">8</h3> // Line 419
+```
+These should be calculated dynamically from the `cases` prop.
+
+---
+
+## Implementation Plan
+
+### 1. Fix RAG Status Matrix to Use Real Data
+
+**File:** `src/components/cases/TimelineBreachTracker.tsx`
+
+Add a `useMemo` hook to calculate actual counts from the cases prop:
+
+```typescript
+const ragCounts = useMemo(() => {
+  const activeCases = cases.filter(c => (c as any).status !== 'Completed');
+  return {
+    green: activeCases.filter(c => 
+      !c.timelineBreachStatus || c.timelineBreachStatus === 'Green'
+    ).length,
+    amber: activeCases.filter(c => c.timelineBreachStatus === 'Amber').length,
+    red: activeCases.filter(c => c.timelineBreachStatus === 'Red').length,
+  };
+}, [cases]);
 ```
 
-Result: **0 rows** (confirmed again via `select count(*) from public.notifications;` → **0**).
+Replace hardcoded values with `ragCounts.green`, `ragCounts.amber`, `ragCounts.red`.
 
-So the UI is not “missing” records — **there are no notification records being created**.
+### 2. Fix Form-wise Timeline Performance
 
-### 2) Policies are present, RLS is enabled
-- `notifications` has RLS enabled (`relrowsecurity=true`).
-- Policies currently:
-  - SELECT: only `auth.uid() = user_id` (recipient-only visibility)
-  - INSERT: `tenant_id = public.get_user_tenant_id()` (tenant-scoped inserts)
-  - UPDATE/DELETE: only own notifications
+**File:** `src/services/reportsService.ts`
 
-### 3) Runtime evidence: the bell is querying correctly, but gets empty data
-From the browser network logs, the app is calling:
+Refactor `getFormTimelineReport` to use `form_type` column instead of `generatedForms`:
 
-`GET /rest/v1/notifications?user_id=eq.<current_user_uuid>...`
+```typescript
+// Current (broken):
+if (caseItem.generatedForms && caseItem.generatedForms.length > 0) {
+  caseItem.generatedForms.forEach((form) => { ... });
+}
 
-and receiving `[]` (200 OK), consistent with “table is empty”.
+// Fix: Group cases by form_type and calculate metrics
+const formTypeGroups = new Map<string, any[]>();
+filteredCases.forEach((caseItem) => {
+  const formType = caseItem.form_type || caseItem.formType || 'Unknown';
+  if (!formTypeGroups.has(formType)) {
+    formTypeGroups.set(formType, []);
+  }
+  formTypeGroups.get(formType).push(caseItem);
+});
 
-Also runtime console confirms the notification service realtime subscription initializes successfully:
-`[NotificationSystem] initializeRealtimeSubscription success { userId: ... }`
-
-So the **UI fetch path is working**; the missing link is **notification creation**.
-
----
-
-## Root cause (most likely): insert is being blocked by “RETURNING/SELECT” RLS
-In `notificationSystemService.createNotification()`, the insert is done like:
-
-```ts
-supabase.from('notifications')
-  .insert(notificationData)
-  .select()
-  .single();
+// Calculate metrics per form type
+formTypeGroups.forEach((casesInGroup, formType) => {
+  const onTime = casesInGroup.filter(c => 
+    (c.timeline_breach_status || c.timelineBreachStatus) === 'Green'
+  ).length;
+  const delayed = casesInGroup.filter(c => 
+    (c.timeline_breach_status || c.timelineBreachStatus) === 'Red'
+  ).length;
+  
+  reportData.push({
+    formCode: formType,
+    formTitle: formType,
+    totalCases: casesInGroup.length,
+    onTime,
+    delayed,
+    status: onTime > delayed ? 'On Time' : 'Delayed',
+    ragStatus: delayed > 0 ? 'Red' : onTime < casesInGroup.length ? 'Amber' : 'Green'
+  });
+});
 ```
 
-Even though the INSERT policy is tenant-scoped (so a manager can insert for another user), the `.select()` forces a `RETURNING *` representation. With the current SELECT policy (`auth.uid() = user_id`), the creator **cannot read** the inserted notification row for another user, so the insert request can fail due to RLS on the RETURNING/SELECT step.
+Also update the filter in `TimelineBreachTracker.tsx` to include actual form types from the database (like ASMT-10, DRC-01, DRC-1A) instead of the non-existent `ASMT10_REPLY` codes.
 
-Important: with PostgREST-style inserts, if the “return representation” step is denied, the entire request can fail and the row may not be inserted at all. This perfectly matches what we’re seeing: **0 notification rows**, even after task assignment/hearing scheduling.
+### 3. Fix Export Report Error
 
----
+**File:** `src/components/cases/TimelineBreachTracker.tsx`
 
-## Secondary issues that can also prevent notifications from being created
-We will verify/fix these too (because you requested “Do NOT assume backend is correct”):
+The issue is using `exportRows()` with `moduleKey: 'cases'` which expects the full Case type. Instead, we should:
 
-1) **Notification triggers only fire on cross-user events**
-   - `tasksService` only sends notification if `assignedToId !== currentUser.id`.
-   - `hearingsService` only notifies case assignee if `assigneeId !== currentUser.id`.
+Option A: Create a direct Excel export using XLSX library without the module configs:
 
-If you tested by assigning to yourself (common during admin testing), no notification is supposed to be created. We’ll add explicit logging/UX hints so this doesn’t look “broken”.
-
-2) **Case assignee field name mismatch in hearing notifications**
-   - Case objects from storage are transformed to include `assignedTo` (not `assignedToId`).
-   - `hearingsService` currently tries `(relatedCase as any)?.assignedToId || assigned_to || assigned_to_id`.
-   - If the case object only has `assignedTo`, the assignee lookup can be undefined, preventing notification creation for hearings even when a different assignee exists.
-
----
-
-## Implementation plan (with explicit runtime verification)
-
-### A) Add “hard proof” runtime logging (temporary, dev-only)
-Goal: when a task/hearing triggers a notification attempt, we can see:
-- current auth user id
-- tenant id (from profiles)
-- recipient user id
-- insert attempt payload summary (no sensitive data)
-- exact backend error message/code if insert fails (42501, etc.)
-
-Changes:
-1) `src/services/notificationSystemService.ts`
-   - In `createNotification()`:
-     - log context `{ contextUserId, tenantId }`
-     - log recipient `userId`
-     - if insert fails, log **error.code + error.message** (not generic)
-
-2) `src/services/tasksService.ts` and `src/services/hearingsService.ts`
-   - Add dev-only logs right before calling `createNotification()` showing:
-     - currentUser.id
-     - assignedToId / resolvedAssigneeId
-     - whether notification will be skipped due to self-assignment
-
-This gives immediate on-screen proof of whether the service is invoked and why it might be skipping.
-
-### B) Fix the RLS/RETURNING problem in createNotification()
-Goal: allow tenant-scoped inserts without granting broader SELECT permissions.
-
-Changes in `src/services/notificationSystemService.ts`:
-1) Replace `.insert(...).select().single()` with an insert that does **not** require reading the inserted row:
-   - Use `.insert(notificationData)` without `.select()`
-   - Treat success as “insert succeeded” and return a minimal object (or `null`) safely
-
-Optional enhancement (recommended):
-- Provide an `id` ourselves (generate a UUID client-side) so we can return a consistent object without needing RETURNING:
-  - Add `id: crypto.randomUUID()` to notificationData
-  - Still do `.insert(notificationData)` without `.select()`
-
-This avoids any dependency on SELECT policy and preserves the “recipient-only read” security model.
-
-### C) Fix hearing assignee resolution so notifications actually fire
-In `src/services/hearingsService.ts`:
-- Expand assignee resolution to include `assignedTo` (camelCase) as a fallback:
-  - `const assigneeId = relatedCase.assignedTo || relatedCase.assignedToId || relatedCase.assigned_to || ...`
-
-This ensures “hearing scheduled” notifications are sent to the correct user.
-
-### D) End-to-end verification steps (mandatory)
-After implementing A–C, we will verify in this order:
-
-1) **Create a task assigned to another user**
-   - In the UI, create a task and assign it to a different employee (not yourself).
-   - Expect:
-     - Console logs show “notification will send”
-     - Insert succeeds (no error log)
-     - DB now has at least 1 row in `public.notifications`
-
-2) **DB verification query (same as you requested)**
-```sql
-select id, user_id, type, title, read, created_at
-from notifications
-order by created_at desc;
+```typescript
+onClick={async () => {
+  setIsExporting(true);
+  try {
+    const result = await getTimelineBreachReport({});
+    
+    if (!result.data || result.data.length === 0) {
+      toast({ title: "No Data", description: "No timeline breach data to export" });
+      return;
+    }
+    
+    // Direct Excel export without module configs
+    const XLSX = await import('xlsx');
+    const wsData = [
+      ['Case Number', 'Title', 'Client', 'Stage', 'Due Date', 'Aging (Days)', 'RAG Status', 'Owner', 'Breached'],
+      ...result.data.map((item: any) => [
+        item.caseNumber || item.caseId,
+        item.caseTitle,
+        item.client,
+        item.stage,
+        item.timelineDue,
+        item.agingDays,
+        item.ragStatus,
+        item.owner,
+        item.breached ? 'Yes' : 'No'
+      ])
+    ];
+    
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Timeline Breach Report');
+    XLSX.writeFile(wb, `timeline-breach-report-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+    
+    toast({ title: "Export Complete" });
+  } catch (error) {
+    console.error('Export error:', error);
+    toast({ title: "Export Failed", variant: "destructive" });
+  } finally {
+    setIsExporting(false);
+  }
+}}
 ```
-   - Expect: newest row(s) exist, user_id matches the assignee
 
-3) **Login as the assignee and open notification bell**
-   - Expect:
-     - GET /notifications returns non-empty list
-     - Bell badge count increments
-     - Clicking bell shows the notification
+### 4. Update Overview Statistics Cards
 
-4) **Schedule a hearing for a case assigned to someone else**
-   - Expect:
-     - New notification row for `hearing_scheduled`
-     - Assignee sees it
+The header cards (Overall Timeline 87.5%, Critical Cases 8, etc.) at lines 214-265 are also hardcoded. These should be calculated dynamically:
 
-### E) Optional (only if you want “creator visibility” too)
-If you want the creator (manager) to see the notification they sent (without exposing all notifications tenant-wide), we can add a `created_by` column and adjust SELECT policy:
-- allow `auth.uid() = user_id OR auth.uid() = created_by`
-This is a security-design choice. By default we’ll keep recipient-only visibility.
-
----
-
-## Files involved
-- `src/services/notificationSystemService.ts` (primary fix: insert without RETURNING + better logging)
-- `src/services/tasksService.ts` (dev logging + clearer “skipped because self-assignment”)
-- `src/services/hearingsService.ts` (assignee id resolution + dev logging)
-
-No further database schema changes are strictly required for the core fix (because we already have the tenant-scoped INSERT policy). The issue is the “insert + returning/select” behavior against recipient-only SELECT policy.
+```typescript
+const overviewStats = useMemo(() => {
+  const activeCases = cases.filter(c => (c as any).status !== 'Completed');
+  const total = activeCases.length;
+  const onTimeCount = activeCases.filter(c => 
+    !c.timelineBreachStatus || c.timelineBreachStatus === 'Green'
+  ).length;
+  const criticalCount = activeCases.filter(c => c.timelineBreachStatus === 'Red').length;
+  
+  return {
+    overallCompliance: total > 0 ? Math.round((onTimeCount / total) * 100) : 0,
+    criticalCases: criticalCount,
+    onTimeDelivery: total > 0 ? Math.round((onTimeCount / total) * 100) : 0,
+  };
+}, [cases]);
+```
 
 ---
 
-## Acceptance criteria
-- Creating a task assigned to a different user creates a row in `public.notifications`
-- Scheduling a hearing for a case assigned to a different user creates a row in `public.notifications`
-- Notification bell shows a non-zero count for the recipient, and list displays the new items
-- Logs show explicit reasons for skips (self-assignment) and explicit backend error messages if any failure occurs
+## Files to Modify
+
+| File | Change Type | Description |
+|------|-------------|-------------|
+| `src/components/cases/TimelineBreachTracker.tsx` | Modify | Replace hardcoded RAG counts with dynamic calculation; fix export button; update overview cards |
+| `src/services/reportsService.ts` | Modify | Rewrite `getFormTimelineReport()` to use `form_type` column instead of `generatedForms` |
+
+---
+
+## Testing Checklist
+
+1. **RAG Status Matrix**
+   - Open Timeline Tracker tab
+   - Verify Green/Amber/Red counts match the actual case distribution
+   - Check counts match the console log: "8 cases with Active status"
+
+2. **Form-wise Timeline Performance**
+   - Verify section shows form types from database (ASMT-10, DRC-01, etc.)
+   - Verify compliance percentages are calculated correctly
+   - Check progress bars reflect on-time vs delayed ratios
+
+3. **Export Report**
+   - Click "Export Report" button
+   - Verify Excel file downloads without error
+   - Open file and confirm columns and data match displayed data
+
+4. **Overview Statistics**
+   - Verify "Overall Timeline" percentage reflects actual compliance
+   - Verify "Critical Cases" count matches Red status count
