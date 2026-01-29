@@ -126,3 +126,86 @@ export function parsePortalLoginError(err: unknown): { code: PortalLoginErrorCod
   
   return { code: PortalLoginErrorCode.UNKNOWN, message: getAuthErrorMessage(err) };
 }
+
+/**
+ * Password error result with actionable guidance
+ */
+export interface PasswordErrorResult {
+  title: string;
+  description: string;
+  guidance?: string[];
+}
+
+/**
+ * Get a user-friendly error message for password-related errors
+ * Specifically detects leaked password errors from HaveIBeenPwned integration
+ */
+export function getPasswordErrorMessage(err: unknown): PasswordErrorResult {
+  const rawMessage = getErrorMessage(err);
+  const lowerMessage = rawMessage.toLowerCase();
+  
+  // Leaked password detection (HaveIBeenPwned integration)
+  if (lowerMessage.includes('weak') && 
+      (lowerMessage.includes('known') || lowerMessage.includes('guess') || lowerMessage.includes('easy'))) {
+    return {
+      title: 'Password Found in Data Breach',
+      description: 'This password has appeared in a known data breach and cannot be used for security reasons.',
+      guidance: [
+        'Choose a unique password not used on other websites',
+        'Use at least 12 characters with uppercase, lowercase, numbers, and symbols',
+        'Consider using a password manager to generate secure passwords',
+        'Avoid common words, names, or patterns like "Password123"'
+      ]
+    };
+  }
+  
+  // Password too short
+  if (lowerMessage.includes('too short') || 
+      (lowerMessage.includes('at least') && lowerMessage.includes('character'))) {
+    return {
+      title: 'Password Too Short',
+      description: 'Password must be at least 8 characters long.',
+      guidance: ['Use a longer password with a mix of characters']
+    };
+  }
+  
+  // Generic weak password (without breach detection)
+  if (lowerMessage.includes('weak')) {
+    return {
+      title: 'Password Too Weak',
+      description: 'Please choose a stronger password.',
+      guidance: [
+        'Include uppercase and lowercase letters',
+        'Add numbers and special characters (!@#$%^&*)',
+        'Avoid common patterns or dictionary words'
+      ]
+    };
+  }
+  
+  // Password mismatch
+  if (lowerMessage.includes('match') || lowerMessage.includes('mismatch')) {
+    return {
+      title: 'Passwords Do Not Match',
+      description: 'Please ensure both password fields are identical.'
+    };
+  }
+  
+  // Common password patterns
+  if (lowerMessage.includes('common') || lowerMessage.includes('dictionary')) {
+    return {
+      title: 'Password Too Common',
+      description: 'This password is too common and easy to guess.',
+      guidance: [
+        'Avoid common words and phrases',
+        'Use a unique combination of characters',
+        'Consider using a passphrase with random words'
+      ]
+    };
+  }
+  
+  // Default fallback
+  return {
+    title: 'Password Error',
+    description: rawMessage || 'Failed to update password. Please try again.'
+  };
+}

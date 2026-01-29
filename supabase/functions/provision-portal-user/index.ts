@@ -155,9 +155,16 @@ serve(async (req) => {
 
       if (updateError) {
         console.error('Update user error:', updateError);
-        const errorMessage = updateError.message?.includes('weak') 
-          ? 'Password is too weak or commonly used. Please choose a stronger password with letters, numbers, and special characters.'
-          : updateError.message;
+        const errorMsg = updateError.message?.toLowerCase() || '';
+        let errorMessage = updateError.message;
+        
+        // Detect leaked password error and provide clearer message
+        if (errorMsg.includes('weak') && (errorMsg.includes('known') || errorMsg.includes('guess') || errorMsg.includes('easy'))) {
+          errorMessage = 'Password rejected: This password has appeared in a known data breach database. Please choose a unique password with at least 12 characters, including uppercase, lowercase, numbers, and symbols.';
+        } else if (errorMsg.includes('weak')) {
+          errorMessage = 'Password is too weak. Please choose a stronger password with at least 12 characters, including uppercase, lowercase, numbers, and symbols.';
+        }
+        
         return new Response(
           JSON.stringify({ error: errorMessage }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -206,9 +213,16 @@ serve(async (req) => {
 
         if (createUserError) {
           console.error('Create user error:', createUserError);
-          const errorMessage = createUserError.message?.includes('weak') 
-            ? 'Password is too weak or commonly used. Please choose a stronger password with letters, numbers, and special characters.'
-            : createUserError.message;
+          const errorMsg = createUserError.message?.toLowerCase() || '';
+          let errorMessage = createUserError.message;
+          
+          // Detect leaked password error and provide clearer message
+          if (errorMsg.includes('weak') && (errorMsg.includes('known') || errorMsg.includes('guess') || errorMsg.includes('easy'))) {
+            errorMessage = 'Password rejected: This password has appeared in a known data breach database. Please choose a unique password with at least 12 characters, including uppercase, lowercase, numbers, and symbols.';
+          } else if (errorMsg.includes('weak')) {
+            errorMessage = 'Password is too weak. Please choose a stronger password with at least 12 characters, including uppercase, lowercase, numbers, and symbols.';
+          }
+          
           return new Response(
             JSON.stringify({ error: errorMessage }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

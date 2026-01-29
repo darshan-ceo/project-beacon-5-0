@@ -44,6 +44,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAppState } from '@/contexts/AppStateContext';
 import { supabase } from '@/integrations/supabase/client';
 import { featureFlagService } from '@/services/featureFlagService';
+import { getPasswordErrorMessage } from '@/utils/errorUtils';
 import { hierarchyService } from '@/services/hierarchyService';
 import { FileDropzone } from '@/components/ui/file-dropzone';
 import { ImageCropper } from '@/components/ui/image-cropper';
@@ -348,10 +349,13 @@ export const UserProfile: React.FC = () => {
       (document.getElementById('currentPassword') as HTMLInputElement).value = '';
       (document.getElementById('newPassword') as HTMLInputElement).value = '';
       (document.getElementById('confirmPassword') as HTMLInputElement).value = '';
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const passwordError = getPasswordErrorMessage(error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to update password.",
+        title: passwordError.title,
+        description: passwordError.guidance 
+          ? `${passwordError.description} ${passwordError.guidance[0]}`
+          : passwordError.description,
         variant: "destructive"
       });
     }
