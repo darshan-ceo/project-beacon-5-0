@@ -1,184 +1,166 @@
 
+## What we verified (mandatory, end-to-end)
 
-# Plan: Fix Notification System
-
-## Problem Summary
-
-The notification bell shows "No notifications - You're all caught up!" because:
-1. **No notifications exist in the database** - the `notifications` table is empty
-2. **Notifications are never being created** - key application events (task assignment, hearing creation, etc.) don't trigger notification creation
-3. **RLS policy blocks cross-user notifications** - when User A creates a task for User B, User A cannot insert a notification for User B
-4. **Missing automatic triggers** - no database triggers exist to create notifications on events
-
-## Root Cause Analysis
-
-### 1. Empty Notifications Table
-The database query confirms zero rows in the notifications table. The system has no mechanism to populate it.
-
-### 2. No Notification Creation on Key Events
-Looking at `tasksService.create()`:
-- Creates task in database ✓
-- Logs to audit ✓
-- **Does NOT create notification for assignee** ✗
-
-Looking at `hearingsService.createHearing()`:
-- Creates hearing in database ✓  
-- Adds timeline entry ✓
-- **Does NOT create notification for related users** ✗
-
-### 3. RLS Policy Blocks Cross-User Inserts
-Current INSERT policy: `auth.uid() = user_id`
-
-When Manager creates task for Staff:
-- Manager (auth.uid) ≠ Staff (user_id for notification)
-- Insert BLOCKED by RLS
-
-### 4. UserId Fallback Creates Mismatch
-```typescript
-// In AdminLayout.tsx line 60
-const userId = user?.id || userProfile?.full_name || 'user';
-```
-If `user?.id` is undefined, it falls back to a name string, causing notification queries to fail silently.
-
----
-
-## Implementation Plan
-
-### 1. Fix RLS Policy for Notifications
-
-Update the INSERT policy to allow users to create notifications for others within the same tenant:
+### 1) Database verification: notifications table is empty
+I executed the required query against the backend:
 
 ```sql
--- Drop existing restrictive policy
-DROP POLICY IF EXISTS "Users can insert their own notifications" ON notifications;
-
--- Create new policy allowing tenant-scoped inserts
-CREATE POLICY "Users can insert notifications for same tenant" ON notifications
-  FOR INSERT
-  WITH CHECK (
-    tenant_id = public.get_user_tenant_id()
-  );
+select id, user_id, type, title, read, created_at
+from public.notifications
+order by created_at desc;
 ```
 
-This allows any authenticated user to create notifications for other users in their tenant.
+Result: **0 rows** (confirmed again via `select count(*) from public.notifications;` → **0**).
 
-### 2. Fix UserId in AdminLayout
+So the UI is not “missing” records — **there are no notification records being created**.
 
-Ensure we always pass a valid UUID to NotificationBell:
+### 2) Policies are present, RLS is enabled
+- `notifications` has RLS enabled (`relrowsecurity=true`).
+- Policies currently:
+  - SELECT: only `auth.uid() = user_id` (recipient-only visibility)
+  - INSERT: `tenant_id = public.get_user_tenant_id()` (tenant-scoped inserts)
+  - UPDATE/DELETE: only own notifications
 
-```typescript
-// Before (buggy)
-const userId = user?.id || userProfile?.full_name || 'user';
+### 3) Runtime evidence: the bell is querying correctly, but gets empty data
+From the browser network logs, the app is calling:
 
-// After (fixed)
-const userId = user?.id || '';
+`GET /rest/v1/notifications?user_id=eq.<current_user_uuid>...`
 
-// And in the component - only render if userId is valid
-{userId && <NotificationBell userId={userId} />}
-```
+and receiving `[]` (200 OK), consistent with “table is empty”.
 
-### 3. Add Notification Creation to Task Assignment
+Also runtime console confirms the notification service realtime subscription initializes successfully:
+`[NotificationSystem] initializeRealtimeSubscription success { userId: ... }`
 
-Update `tasksService.create()` to send notification when task is assigned:
-
-```typescript
-// After successful task creation, notify assignee
-if (persistedTask.assignedToId && persistedTask.assignedToId !== currentUserId) {
-  await notificationSystemService.createNotification(
-    'task_assigned',
-    `New Task: ${persistedTask.title}`,
-    `You have been assigned a new task for case ${persistedTask.caseNumber}. Due: ${persistedTask.dueDate}`,
-    persistedTask.assignedToId,
-    {
-      relatedEntityType: 'task',
-      relatedEntityId: persistedTask.id,
-      channels: ['in_app'],
-      metadata: { priority: persistedTask.priority, caseId: persistedTask.caseId }
-    }
-  );
-}
-```
-
-### 4. Add Notification Creation to Hearing Scheduling
-
-Update `hearingsService.createHearing()` to notify relevant users:
-
-```typescript
-// After hearing creation, notify case owner/assignee
-const caseData = appState.cases.find(c => c.id === data.case_id);
-if (caseData?.assignedToId) {
-  await notificationSystemService.createNotification(
-    'hearing_scheduled',
-    `Hearing Scheduled: ${data.date}`,
-    `A hearing has been scheduled for case ${caseData.caseNumber} on ${format(new Date(data.date), 'dd MMM yyyy')}`,
-    caseData.assignedToId,
-    {
-      relatedEntityType: 'hearing',
-      relatedEntityId: newHearing.id,
-      channels: ['in_app'],
-      metadata: { caseId: data.case_id, hearingDate: data.date }
-    }
-  );
-}
-```
-
-### 5. Add Initial Notification Fetch in NotificationBell
-
-Ensure notifications are loaded on mount:
-
-```typescript
-useEffect(() => {
-  // Immediately fetch notifications on mount
-  const loadInitial = async () => {
-    if (userId) {
-      const initial = await notificationSystemService.getNotifications(userId);
-      setNotifications(initial);
-      setUnreadCount(initial.filter(n => !n.read).length);
-    }
-  };
-  loadInitial();
-  
-  // Then subscribe for updates...
-}, [userId]);
-```
+So the **UI fetch path is working**; the missing link is **notification creation**.
 
 ---
 
-## Files to Modify
+## Root cause (most likely): insert is being blocked by “RETURNING/SELECT” RLS
+In `notificationSystemService.createNotification()`, the insert is done like:
 
-| File | Change | Description |
-|------|--------|-------------|
-| Database Migration | Create | Update RLS policy for notifications to allow tenant-scoped inserts |
-| `src/components/layout/AdminLayout.tsx` | Modify | Fix userId fallback and conditionally render NotificationBell |
-| `src/services/tasksService.ts` | Modify | Add notification creation on task assignment |
-| `src/services/hearingsService.ts` | Modify | Add notification creation on hearing scheduling |
-| `src/components/notifications/NotificationBell.tsx` | Modify | Add immediate notification fetch on mount |
-| `src/services/notificationSystemService.ts` | Modify | Add defensive check in createNotification for valid context |
+```ts
+supabase.from('notifications')
+  .insert(notificationData)
+  .select()
+  .single();
+```
+
+Even though the INSERT policy is tenant-scoped (so a manager can insert for another user), the `.select()` forces a `RETURNING *` representation. With the current SELECT policy (`auth.uid() = user_id`), the creator **cannot read** the inserted notification row for another user, so the insert request can fail due to RLS on the RETURNING/SELECT step.
+
+Important: with PostgREST-style inserts, if the “return representation” step is denied, the entire request can fail and the row may not be inserted at all. This perfectly matches what we’re seeing: **0 notification rows**, even after task assignment/hearing scheduling.
 
 ---
 
-## Testing Checklist
+## Secondary issues that can also prevent notifications from being created
+We will verify/fix these too (because you requested “Do NOT assume backend is correct”):
 
-1. **RLS Policy**
-   - Create a task as Manager for Staff
-   - Verify notification appears in Staff's bell (not Manager's)
-   
-2. **Task Notification**
-   - Assign task to another user
-   - Switch to that user's account
-   - Verify task notification appears with correct details
+1) **Notification triggers only fire on cross-user events**
+   - `tasksService` only sends notification if `assignedToId !== currentUser.id`.
+   - `hearingsService` only notifies case assignee if `assigneeId !== currentUser.id`.
 
-3. **Hearing Notification**
-   - Schedule a hearing for a case
-   - Verify case owner/assignee receives notification
+If you tested by assigning to yourself (common during admin testing), no notification is supposed to be created. We’ll add explicit logging/UX hints so this doesn’t look “broken”.
 
-4. **Bell Component**
-   - Login as user with existing notifications
-   - Verify count badge shows correct number
-   - Click to open and see notification list
+2) **Case assignee field name mismatch in hearing notifications**
+   - Case objects from storage are transformed to include `assignedTo` (not `assignedToId`).
+   - `hearingsService` currently tries `(relatedCase as any)?.assignedToId || assigned_to || assigned_to_id`.
+   - If the case object only has `assignedTo`, the assignee lookup can be undefined, preventing notification creation for hearings even when a different assignee exists.
 
-5. **Edge Cases**
-   - Self-assignment (no notification needed)
-   - Unassigned task (no notification)
-   - Invalid userId handling
+---
 
+## Implementation plan (with explicit runtime verification)
+
+### A) Add “hard proof” runtime logging (temporary, dev-only)
+Goal: when a task/hearing triggers a notification attempt, we can see:
+- current auth user id
+- tenant id (from profiles)
+- recipient user id
+- insert attempt payload summary (no sensitive data)
+- exact backend error message/code if insert fails (42501, etc.)
+
+Changes:
+1) `src/services/notificationSystemService.ts`
+   - In `createNotification()`:
+     - log context `{ contextUserId, tenantId }`
+     - log recipient `userId`
+     - if insert fails, log **error.code + error.message** (not generic)
+
+2) `src/services/tasksService.ts` and `src/services/hearingsService.ts`
+   - Add dev-only logs right before calling `createNotification()` showing:
+     - currentUser.id
+     - assignedToId / resolvedAssigneeId
+     - whether notification will be skipped due to self-assignment
+
+This gives immediate on-screen proof of whether the service is invoked and why it might be skipping.
+
+### B) Fix the RLS/RETURNING problem in createNotification()
+Goal: allow tenant-scoped inserts without granting broader SELECT permissions.
+
+Changes in `src/services/notificationSystemService.ts`:
+1) Replace `.insert(...).select().single()` with an insert that does **not** require reading the inserted row:
+   - Use `.insert(notificationData)` without `.select()`
+   - Treat success as “insert succeeded” and return a minimal object (or `null`) safely
+
+Optional enhancement (recommended):
+- Provide an `id` ourselves (generate a UUID client-side) so we can return a consistent object without needing RETURNING:
+  - Add `id: crypto.randomUUID()` to notificationData
+  - Still do `.insert(notificationData)` without `.select()`
+
+This avoids any dependency on SELECT policy and preserves the “recipient-only read” security model.
+
+### C) Fix hearing assignee resolution so notifications actually fire
+In `src/services/hearingsService.ts`:
+- Expand assignee resolution to include `assignedTo` (camelCase) as a fallback:
+  - `const assigneeId = relatedCase.assignedTo || relatedCase.assignedToId || relatedCase.assigned_to || ...`
+
+This ensures “hearing scheduled” notifications are sent to the correct user.
+
+### D) End-to-end verification steps (mandatory)
+After implementing A–C, we will verify in this order:
+
+1) **Create a task assigned to another user**
+   - In the UI, create a task and assign it to a different employee (not yourself).
+   - Expect:
+     - Console logs show “notification will send”
+     - Insert succeeds (no error log)
+     - DB now has at least 1 row in `public.notifications`
+
+2) **DB verification query (same as you requested)**
+```sql
+select id, user_id, type, title, read, created_at
+from notifications
+order by created_at desc;
+```
+   - Expect: newest row(s) exist, user_id matches the assignee
+
+3) **Login as the assignee and open notification bell**
+   - Expect:
+     - GET /notifications returns non-empty list
+     - Bell badge count increments
+     - Clicking bell shows the notification
+
+4) **Schedule a hearing for a case assigned to someone else**
+   - Expect:
+     - New notification row for `hearing_scheduled`
+     - Assignee sees it
+
+### E) Optional (only if you want “creator visibility” too)
+If you want the creator (manager) to see the notification they sent (without exposing all notifications tenant-wide), we can add a `created_by` column and adjust SELECT policy:
+- allow `auth.uid() = user_id OR auth.uid() = created_by`
+This is a security-design choice. By default we’ll keep recipient-only visibility.
+
+---
+
+## Files involved
+- `src/services/notificationSystemService.ts` (primary fix: insert without RETURNING + better logging)
+- `src/services/tasksService.ts` (dev logging + clearer “skipped because self-assignment”)
+- `src/services/hearingsService.ts` (assignee id resolution + dev logging)
+
+No further database schema changes are strictly required for the core fix (because we already have the tenant-scoped INSERT policy). The issue is the “insert + returning/select” behavior against recipient-only SELECT policy.
+
+---
+
+## Acceptance criteria
+- Creating a task assigned to a different user creates a row in `public.notifications`
+- Scheduling a hearing for a case assigned to a different user creates a row in `public.notifications`
+- Notification bell shows a non-zero count for the recipient, and list displays the new items
+- Logs show explicit reasons for skips (self-assignment) and explicit backend error messages if any failure occurs
