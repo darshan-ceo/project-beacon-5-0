@@ -1,187 +1,176 @@
 
-# Plan: Fix Timeline Tracker Issues
+# Plan: Fix Notification Bell - RLS Policy Insert Failure
 
-## Problems Identified
+## Problem Summary
 
-1. **Export Report Error** - Clicking "Export Report" fails with "Failed to export timeline breach report"
-2. **Form-wise Timeline Performance blank** - Shows no data because it relies on `generatedForms` array which doesn't exist in the database
-3. **RAG Status Matrix incorrect counts** - Displays hardcoded values (89, 23, 8) instead of calculating from actual case data
+The notification bell shows "No notifications – You're all caught up!" because **notification inserts are being blocked by RLS policy**, as confirmed by database error logs:
 
----
+```
+ERROR: new row violates row-level security policy for table "notifications"
+```
 
 ## Root Cause Analysis
 
-### Issue 1: Export Report Failure
-The export uses `exportRows()` with `moduleKey: 'cases'` but passes custom-mapped objects that don't match the expected `Case` type structure. The exporter expects specific column configurations from `CASE_EXPORT_COLUMNS` but the data being passed has different field names like `caseTitle` vs `title`.
+### Database Evidence
+From Postgres logs at timestamp `1769682342004`:
+```sql
+error_severity: ERROR
+event_message: new row violates row-level security policy for table "notifications"
+```
 
-**Location:** `TimelineBreachTracker.tsx` lines 450-467
+### Why the RLS Policy Fails
 
-### Issue 2: Form-wise Timeline Performance Empty
-The `getFormTimelineReport()` function (line 763 of reportsService.ts) iterates through `caseItem.generatedForms`:
+The current INSERT policy on `notifications` table is:
+```sql
+WITH CHECK (tenant_id = public.get_user_tenant_id())
+```
+
+The `get_user_tenant_id()` function:
+```sql
+CREATE FUNCTION public.get_user_tenant_id()
+RETURNS uuid AS $$
+  SELECT tenant_id FROM profiles WHERE id = auth.uid()
+$$ LANGUAGE sql STABLE SECURITY DEFINER SET row_security TO 'off';
+```
+
+**Failure scenarios:**
+1. **Session expiry** - If the user's JWT session expires between auth check and insert, `auth.uid()` returns NULL
+2. **Race condition** - If `getContext()` succeeds but the Supabase insert call happens after token refresh, the auth context might be misaligned
+3. **Async timing** - The notification creation is `async` and doesn't `await` the auth refresh before insert
+
+When `get_user_tenant_id()` returns NULL:
+- The check `tenant_id = NULL` evaluates to NULL (not TRUE)
+- RLS policy fails even though valid `tenant_id` is provided
+
+## Solution
+
+### Option A: Make RLS Policy More Robust (Recommended)
+Update the INSERT policy to also allow inserts where the tenant_id matches any existing tenant that the creator belongs to:
+
+```sql
+-- Drop existing policy
+DROP POLICY IF EXISTS "Users can insert notifications for same tenant" ON notifications;
+
+-- Create more robust policy
+CREATE POLICY "Users can insert notifications for same tenant" 
+ON notifications FOR INSERT
+WITH CHECK (
+  tenant_id = COALESCE(
+    public.get_user_tenant_id(),
+    -- Fallback: verify tenant exists and user is in that tenant
+    (SELECT tenant_id FROM profiles WHERE id = auth.uid())
+  )
+);
+```
+
+Wait - this is redundant since `get_user_tenant_id()` already queries profiles. The real issue is that `auth.uid()` returns NULL.
+
+### Option B: Add Service-Level Retry with Auth Refresh
+In `notificationSystemService.createNotification()`, add auth validation before insert:
+
 ```typescript
-if (caseItem.generatedForms && caseItem.generatedForms.length > 0) {
-  caseItem.generatedForms.forEach((form) => { ... });
+async createNotification(...) {
+  // Force refresh auth session before insert
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    log('error', 'createNotification', 'No active session, cannot create notification');
+    return null;
+  }
+  
+  // Refresh if token is expiring soon (within 60 seconds)
+  const expiresAt = session.expires_at ? session.expires_at * 1000 : 0;
+  if (expiresAt - Date.now() < 60000) {
+    await supabase.auth.refreshSession();
+  }
+  
+  // Proceed with getContext() and insert...
 }
 ```
-However:
-- There is no `generated_forms` column in the `cases` table (only `form_type` exists)
-- The `SupabaseAdapter.transformCaseFields()` doesn't include `generatedForms`
-- The `DataInitializer` defaults to empty array: `generatedForms: c.generated_forms || c.generatedForms || []`
 
-Since no case has `generatedForms` data, the result is always empty.
+### Option C: Use Database Trigger Instead of Direct Insert (Most Reliable)
+Create a database function with SECURITY DEFINER that bypasses RLS entirely:
 
-**Solution approach:** Refactor `getFormTimelineReport` to use the existing `form_type` column instead of the non-existent `generatedForms` array, and calculate compliance based on case dates and timeline breach status.
+```sql
+CREATE OR REPLACE FUNCTION public.create_notification(
+  p_user_id uuid,
+  p_type text,
+  p_title text,
+  p_message text,
+  p_related_entity_type text DEFAULT NULL,
+  p_related_entity_id uuid DEFAULT NULL,
+  p_channels text[] DEFAULT ARRAY['in_app'],
+  p_metadata jsonb DEFAULT NULL
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+SET row_security = off
+AS $$
+DECLARE
+  v_tenant_id uuid;
+  v_notification_id uuid;
+BEGIN
+  -- Get caller's tenant
+  SELECT tenant_id INTO v_tenant_id FROM profiles WHERE id = auth.uid();
+  IF v_tenant_id IS NULL THEN
+    RAISE EXCEPTION 'Unable to determine tenant for current user';
+  END IF;
+  
+  -- Generate notification ID
+  v_notification_id := gen_random_uuid();
+  
+  -- Insert bypassing RLS
+  INSERT INTO notifications (
+    id, tenant_id, user_id, type, title, message,
+    related_entity_type, related_entity_id, channels, status, read, metadata, created_at
+  ) VALUES (
+    v_notification_id, v_tenant_id, p_user_id, p_type, p_title, p_message,
+    p_related_entity_type, p_related_entity_id, p_channels, 'pending', false, p_metadata, now()
+  );
+  
+  RETURN v_notification_id;
+END;
+$$;
 
-### Issue 3: Hardcoded RAG Matrix Counts
-The RAG Status Matrix section (lines 397-422) contains hardcoded values:
-```tsx
-<h3 className="text-2xl font-bold text-success">89</h3>  // Line 401
-<h3 className="text-2xl font-bold text-warning">23</h3>  // Line 410
-<h3 className="text-2xl font-bold text-destructive">8</h3> // Line 419
+-- Grant execute to authenticated users
+GRANT EXECUTE ON FUNCTION public.create_notification TO authenticated;
 ```
-These should be calculated dynamically from the `cases` prop.
+
+Then update the service to call:
+```typescript
+const { data, error } = await supabase.rpc('create_notification', {
+  p_user_id: userId,
+  p_type: type,
+  p_title: title,
+  p_message: message,
+  p_related_entity_type: options?.relatedEntityType,
+  p_related_entity_id: options?.relatedEntityId,
+  p_channels: options?.channels || ['in_app'],
+  p_metadata: options?.metadata
+});
+```
+
+## Recommended Approach: Option C (Database Function)
+
+This is the most reliable because:
+1. SECURITY DEFINER ensures the function runs with elevated privileges
+2. SET row_security = off explicitly disables RLS for the insert
+3. Tenant validation happens inside the function, not via RLS policy
+4. No dependency on client-side auth token timing
 
 ---
 
-## Implementation Plan
+## Implementation Steps
 
-### 1. Fix RAG Status Matrix to Use Real Data
+### Step 1: Create Database Function
+Migration to create `create_notification` function with SECURITY DEFINER.
 
-**File:** `src/components/cases/TimelineBreachTracker.tsx`
+### Step 2: Update Service
+Modify `notificationSystemService.createNotification()` to call `supabase.rpc('create_notification', ...)` instead of direct insert.
 
-Add a `useMemo` hook to calculate actual counts from the cases prop:
-
-```typescript
-const ragCounts = useMemo(() => {
-  const activeCases = cases.filter(c => (c as any).status !== 'Completed');
-  return {
-    green: activeCases.filter(c => 
-      !c.timelineBreachStatus || c.timelineBreachStatus === 'Green'
-    ).length,
-    amber: activeCases.filter(c => c.timelineBreachStatus === 'Amber').length,
-    red: activeCases.filter(c => c.timelineBreachStatus === 'Red').length,
-  };
-}, [cases]);
-```
-
-Replace hardcoded values with `ragCounts.green`, `ragCounts.amber`, `ragCounts.red`.
-
-### 2. Fix Form-wise Timeline Performance
-
-**File:** `src/services/reportsService.ts`
-
-Refactor `getFormTimelineReport` to use `form_type` column instead of `generatedForms`:
-
-```typescript
-// Current (broken):
-if (caseItem.generatedForms && caseItem.generatedForms.length > 0) {
-  caseItem.generatedForms.forEach((form) => { ... });
-}
-
-// Fix: Group cases by form_type and calculate metrics
-const formTypeGroups = new Map<string, any[]>();
-filteredCases.forEach((caseItem) => {
-  const formType = caseItem.form_type || caseItem.formType || 'Unknown';
-  if (!formTypeGroups.has(formType)) {
-    formTypeGroups.set(formType, []);
-  }
-  formTypeGroups.get(formType).push(caseItem);
-});
-
-// Calculate metrics per form type
-formTypeGroups.forEach((casesInGroup, formType) => {
-  const onTime = casesInGroup.filter(c => 
-    (c.timeline_breach_status || c.timelineBreachStatus) === 'Green'
-  ).length;
-  const delayed = casesInGroup.filter(c => 
-    (c.timeline_breach_status || c.timelineBreachStatus) === 'Red'
-  ).length;
-  
-  reportData.push({
-    formCode: formType,
-    formTitle: formType,
-    totalCases: casesInGroup.length,
-    onTime,
-    delayed,
-    status: onTime > delayed ? 'On Time' : 'Delayed',
-    ragStatus: delayed > 0 ? 'Red' : onTime < casesInGroup.length ? 'Amber' : 'Green'
-  });
-});
-```
-
-Also update the filter in `TimelineBreachTracker.tsx` to include actual form types from the database (like ASMT-10, DRC-01, DRC-1A) instead of the non-existent `ASMT10_REPLY` codes.
-
-### 3. Fix Export Report Error
-
-**File:** `src/components/cases/TimelineBreachTracker.tsx`
-
-The issue is using `exportRows()` with `moduleKey: 'cases'` which expects the full Case type. Instead, we should:
-
-Option A: Create a direct Excel export using XLSX library without the module configs:
-
-```typescript
-onClick={async () => {
-  setIsExporting(true);
-  try {
-    const result = await getTimelineBreachReport({});
-    
-    if (!result.data || result.data.length === 0) {
-      toast({ title: "No Data", description: "No timeline breach data to export" });
-      return;
-    }
-    
-    // Direct Excel export without module configs
-    const XLSX = await import('xlsx');
-    const wsData = [
-      ['Case Number', 'Title', 'Client', 'Stage', 'Due Date', 'Aging (Days)', 'RAG Status', 'Owner', 'Breached'],
-      ...result.data.map((item: any) => [
-        item.caseNumber || item.caseId,
-        item.caseTitle,
-        item.client,
-        item.stage,
-        item.timelineDue,
-        item.agingDays,
-        item.ragStatus,
-        item.owner,
-        item.breached ? 'Yes' : 'No'
-      ])
-    ];
-    
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Timeline Breach Report');
-    XLSX.writeFile(wb, `timeline-breach-report-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
-    
-    toast({ title: "Export Complete" });
-  } catch (error) {
-    console.error('Export error:', error);
-    toast({ title: "Export Failed", variant: "destructive" });
-  } finally {
-    setIsExporting(false);
-  }
-}}
-```
-
-### 4. Update Overview Statistics Cards
-
-The header cards (Overall Timeline 87.5%, Critical Cases 8, etc.) at lines 214-265 are also hardcoded. These should be calculated dynamically:
-
-```typescript
-const overviewStats = useMemo(() => {
-  const activeCases = cases.filter(c => (c as any).status !== 'Completed');
-  const total = activeCases.length;
-  const onTimeCount = activeCases.filter(c => 
-    !c.timelineBreachStatus || c.timelineBreachStatus === 'Green'
-  ).length;
-  const criticalCount = activeCases.filter(c => c.timelineBreachStatus === 'Red').length;
-  
-  return {
-    overallCompliance: total > 0 ? Math.round((onTimeCount / total) * 100) : 0,
-    criticalCases: criticalCount,
-    onTimeDelivery: total > 0 ? Math.round((onTimeCount / total) * 100) : 0,
-  };
-}, [cases]);
-```
+### Step 3: Add Error Handling
+Add specific error handling for the RPC call with clear error messages.
 
 ---
 
@@ -189,28 +178,28 @@ const overviewStats = useMemo(() => {
 
 | File | Change Type | Description |
 |------|-------------|-------------|
-| `src/components/cases/TimelineBreachTracker.tsx` | Modify | Replace hardcoded RAG counts with dynamic calculation; fix export button; update overview cards |
-| `src/services/reportsService.ts` | Modify | Rewrite `getFormTimelineReport()` to use `form_type` column instead of `generatedForms` |
+| Database Migration | Create | Add `create_notification` function with SECURITY DEFINER |
+| `src/services/notificationSystemService.ts` | Modify | Use `supabase.rpc()` instead of direct insert |
 
 ---
 
 ## Testing Checklist
 
-1. **RAG Status Matrix**
-   - Open Timeline Tracker tab
-   - Verify Green/Amber/Red counts match the actual case distribution
-   - Check counts match the console log: "8 cases with Active status"
+1. **Create task assigned to another user**
+   - Login as User A
+   - Create task assigned to User B
+   - Verify notification row exists in database
+   
+2. **Verify notification appears for recipient**
+   - Login as User B
+   - Click notification bell
+   - Verify notification appears in list
 
-2. **Form-wise Timeline Performance**
-   - Verify section shows form types from database (ASMT-10, DRC-01, etc.)
-   - Verify compliance percentages are calculated correctly
-   - Check progress bars reflect on-time vs delayed ratios
+3. **Verify RLS error is resolved**
+   - Check Postgres logs after test
+   - Confirm no RLS policy violation errors
 
-3. **Export Report**
-   - Click "Export Report" button
-   - Verify Excel file downloads without error
-   - Open file and confirm columns and data match displayed data
-
-4. **Overview Statistics**
-   - Verify "Overall Timeline" percentage reflects actual compliance
-   - Verify "Critical Cases" count matches Red status count
+4. **Session expiry scenario**
+   - Let session sit idle near expiry
+   - Create a task
+   - Verify notification still created (function bypasses RLS)
