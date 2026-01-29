@@ -5452,6 +5452,19 @@ export type Database = {
         }
         Returns: string
       }
+      create_notification: {
+        Args: {
+          p_channels?: string[]
+          p_message: string
+          p_metadata?: Json
+          p_related_entity_id?: string
+          p_related_entity_type?: string
+          p_title: string
+          p_type: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       ensure_user_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
