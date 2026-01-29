@@ -1,225 +1,184 @@
 
-# Plan: Fix Timeline Tracker Issues (Critical Alerts, Task Creation, Export)
+
+# Plan: Fix Notification System
 
 ## Problem Summary
 
-You've identified **three distinct issues** in the Timeline Tracker tab:
-
-1. **Critical Timeline Breach Alerts shows dummy data** - The alerts list is hardcoded with sample data (CASE-2024-001, CASE-2024-005, etc.) instead of pulling from real database cases.
-
-2. **"Create Task" button doesn't respond** - When clicking "Take Action" and filling out the form, the "Create Task" button appears unresponsive. Root cause: the modal passes a **dummy case ID** (e.g., "1", "2", "3") because the critical cases list is hardcoded. When `handleCreateTask()` tries to find the case via `state.cases.find(c => c.id === caseId)`, it returns `undefined` (the real cases have UUIDs like `case_xxx`), causing the function to exit silently at line 60.
-
-3. **"Export Report" and "Schedule Report" show incorrect data** - The Export button calls `reportsService.exportCaseList([])` with an **empty array**, which produces a generic case list export instead of the actual timeline breach data. The Schedule button just shows a simple placeholder modal with no real scheduling functionality.
-
----
+The notification bell shows "No notifications - You're all caught up!" because:
+1. **No notifications exist in the database** - the `notifications` table is empty
+2. **Notifications are never being created** - key application events (task assignment, hearing creation, etc.) don't trigger notification creation
+3. **RLS policy blocks cross-user notifications** - when User A creates a task for User B, User A cannot insert a notification for User B
+4. **Missing automatic triggers** - no database triggers exist to create notifications on events
 
 ## Root Cause Analysis
 
-### Issue 1: Hardcoded Critical Cases
+### 1. Empty Notifications Table
+The database query confirms zero rows in the notifications table. The system has no mechanism to populate it.
 
+### 2. No Notification Creation on Key Events
+Looking at `tasksService.create()`:
+- Creates task in database ✓
+- Logs to audit ✓
+- **Does NOT create notification for assignee** ✗
+
+Looking at `hearingsService.createHearing()`:
+- Creates hearing in database ✓  
+- Adds timeline entry ✓
+- **Does NOT create notification for related users** ✗
+
+### 3. RLS Policy Blocks Cross-User Inserts
+Current INSERT policy: `auth.uid() = user_id`
+
+When Manager creates task for Staff:
+- Manager (auth.uid) ≠ Staff (user_id for notification)
+- Insert BLOCKED by RLS
+
+### 4. UserId Fallback Creates Mismatch
 ```typescript
-// src/components/cases/TimelineBreachTracker.tsx (lines 53-81)
-const criticalCases = [
-  {
-    id: '1',  // Dummy ID
-    caseNumber: 'CASE-2024-001',  // Fake case number
-    title: 'Tax Assessment Appeal - Acme Corp',  // Sample data
-    ...
-  },
-  ...
-];
+// In AdminLayout.tsx line 60
+const userId = user?.id || userProfile?.full_name || 'user';
 ```
-
-This static array is rendered directly without any database lookup.
-
-### Issue 2: Task Creation Fails Silently
-
-```typescript
-// src/components/modals/ActionItemModal.tsx (line 59-60)
-const caseData = state.cases.find(c => c.id === caseId);
-if (!caseData) return;  // Silent exit when case not found
-```
-
-Since `caseId` comes from the dummy data ("1", "2", "3"), the lookup fails and the function returns without feedback.
-
-### Issue 3: Export Uses Wrong Data
-
-```typescript
-// src/components/cases/TimelineBreachTracker.tsx (line 415)
-await reportsService.exportCaseList([], 'excel');  // Empty array!
-```
-
-This passes an empty array to a generic case export function, not the specific timeline breach data.
+If `user?.id` is undefined, it falls back to a name string, causing notification queries to fail silently.
 
 ---
 
 ## Implementation Plan
 
-### 1. Replace Hardcoded Critical Cases with Real Database Data
+### 1. Fix RLS Policy for Notifications
 
-**File:** `src/components/cases/TimelineBreachTracker.tsx`
+Update the INSERT policy to allow users to create notifications for others within the same tenant:
 
-**Changes:**
-- Remove the static `criticalCases` constant
-- Add state to hold real critical cases: `useState<CriticalCase[]>([])`
-- In the existing `useEffect`, query cases with `timelineBreachStatus === 'Red'` or approaching breach (Amber + due soon)
-- Calculate actual time remaining based on `reply_due_date` or last activity date
-- Map real case data to the critical cases display format
+```sql
+-- Drop existing restrictive policy
+DROP POLICY IF EXISTS "Users can insert their own notifications" ON notifications;
 
-**Technical approach:**
+-- Create new policy allowing tenant-scoped inserts
+CREATE POLICY "Users can insert notifications for same tenant" ON notifications
+  FOR INSERT
+  WITH CHECK (
+    tenant_id = public.get_user_tenant_id()
+  );
+```
+
+This allows any authenticated user to create notifications for other users in their tenant.
+
+### 2. Fix UserId in AdminLayout
+
+Ensure we always pass a valid UUID to NotificationBell:
+
 ```typescript
-// Load critical cases from real data
-const [criticalCases, setCriticalCases] = useState<CriticalCase[]>([]);
+// Before (buggy)
+const userId = user?.id || userProfile?.full_name || 'user';
 
+// After (fixed)
+const userId = user?.id || '';
+
+// And in the component - only render if userId is valid
+{userId && <NotificationBell userId={userId} />}
+```
+
+### 3. Add Notification Creation to Task Assignment
+
+Update `tasksService.create()` to send notification when task is assigned:
+
+```typescript
+// After successful task creation, notify assignee
+if (persistedTask.assignedToId && persistedTask.assignedToId !== currentUserId) {
+  await notificationSystemService.createNotification(
+    'task_assigned',
+    `New Task: ${persistedTask.title}`,
+    `You have been assigned a new task for case ${persistedTask.caseNumber}. Due: ${persistedTask.dueDate}`,
+    persistedTask.assignedToId,
+    {
+      relatedEntityType: 'task',
+      relatedEntityId: persistedTask.id,
+      channels: ['in_app'],
+      metadata: { priority: persistedTask.priority, caseId: persistedTask.caseId }
+    }
+  );
+}
+```
+
+### 4. Add Notification Creation to Hearing Scheduling
+
+Update `hearingsService.createHearing()` to notify relevant users:
+
+```typescript
+// After hearing creation, notify case owner/assignee
+const caseData = appState.cases.find(c => c.id === data.case_id);
+if (caseData?.assignedToId) {
+  await notificationSystemService.createNotification(
+    'hearing_scheduled',
+    `Hearing Scheduled: ${data.date}`,
+    `A hearing has been scheduled for case ${caseData.caseNumber} on ${format(new Date(data.date), 'dd MMM yyyy')}`,
+    caseData.assignedToId,
+    {
+      relatedEntityType: 'hearing',
+      relatedEntityId: newHearing.id,
+      channels: ['in_app'],
+      metadata: { caseId: data.case_id, hearingDate: data.date }
+    }
+  );
+}
+```
+
+### 5. Add Initial Notification Fetch in NotificationBell
+
+Ensure notifications are loaded on mount:
+
+```typescript
 useEffect(() => {
-  const loadCriticalCases = async () => {
-    const storage = storageManager.getStorage();
-    const allCases = await storage.getAll('cases');
-    
-    // Filter for Red/Amber status cases
-    const critical = allCases
-      .filter(c => c.status === 'Active' && 
-        (c.timeline_breach_status === 'Red' || c.timeline_breach_status === 'Amber'))
-      .map(c => ({
-        id: c.id,  // Real UUID
-        caseNumber: c.case_number || c.caseNumber,
-        title: c.title,
-        form: c.current_form || 'N/A',
-        timeRemaining: calculateTimeRemaining(c.reply_due_date),
-        status: c.timeline_breach_status,
-        urgency: c.timeline_breach_status === 'Red' ? 'Critical' : 'High'
-      }));
-    
-    setCriticalCases(critical);
+  // Immediately fetch notifications on mount
+  const loadInitial = async () => {
+    if (userId) {
+      const initial = await notificationSystemService.getNotifications(userId);
+      setNotifications(initial);
+      setUnreadCount(initial.filter(n => !n.read).length);
+    }
   };
-  loadCriticalCases();
-}, []);
-```
-
-### 2. Fix Task Creation to Use tasksService
-
-**File:** `src/components/modals/ActionItemModal.tsx`
-
-**Changes:**
-- Replace direct `dispatch({ type: 'ADD_TASK' })` with `tasksService.create()`
-- This ensures:
-  - Task is persisted to database first
-  - Server generates the UUID
-  - Only after successful persistence is the UI updated
-- Add error handling for case not found scenario (show toast instead of silent return)
-- Make the function `async` to properly await the service call
-
-**Technical approach:**
-```typescript
-const handleCreateTask = async () => {
-  // Validation...
+  loadInitial();
   
-  const caseData = state.cases.find(c => c.id === caseId);
-  if (!caseData) {
-    toast({
-      title: "Case Not Found",
-      description: "The selected case could not be found.",
-      variant: "destructive"
-    });
-    return;
-  }
-  
-  try {
-    await tasksService.create({
-      title: formData.title,
-      description: formData.description,
-      // ... other fields
-    }, dispatch);
-    
-    onClose();
-  } catch (error) {
-    // Error already handled by tasksService
-  }
-};
+  // Then subscribe for updates...
+}, [userId]);
 ```
-
-### 3. Fix Export to Use Timeline Breach Report Data
-
-**File:** `src/components/cases/TimelineBreachTracker.tsx`
-
-**Changes:**
-- Replace `exportCaseList([])` with proper timeline breach report export
-- Use `getTimelineBreachReport()` to fetch filtered data
-- Export using the correct report exporter utility with timeline breach columns
-
-**Technical approach:**
-```typescript
-onClick={async () => {
-  try {
-    const { getTimelineBreachReport } = await import('@/services/reportsService');
-    const { exportRows } = await import('@/utils/exporter');
-    
-    const result = await getTimelineBreachReport({});
-    
-    await exportRows(
-      result.data,
-      'excel',
-      'timeline-breach-report',
-      [
-        { key: 'caseId', label: 'Case ID' },
-        { key: 'caseTitle', label: 'Case Title' },
-        { key: 'client', label: 'Client' },
-        { key: 'stage', label: 'Stage' },
-        { key: 'timelineDue', label: 'Timeline Due' },
-        { key: 'agingDays', label: 'Aging Days' },
-        { key: 'ragStatus', label: 'RAG Status' },
-        { key: 'owner', label: 'Owner' },
-        { key: 'breached', label: 'Breached' }
-      ]
-    );
-    
-    toast({ title: "Export Complete" });
-  } catch (error) {
-    // Error handling
-  }
-}}
-```
-
-### 4. Enhance Schedule Report Modal (Optional Enhancement)
-
-**File:** `src/components/cases/TimelineBreachTracker.tsx`
-
-The current schedule modal is a placeholder. As part of this fix, we can either:
-- A) Keep it as placeholder with clearer messaging that scheduling is "Coming Soon"
-- B) Connect it to the existing report scheduling infrastructure
-
-For now, we'll clarify it's a placeholder until proper scheduling is implemented.
 
 ---
 
 ## Files to Modify
 
-| File | Change Type | Description |
-|------|-------------|-------------|
-| `src/components/cases/TimelineBreachTracker.tsx` | Modify | Replace hardcoded `criticalCases` with real database query; fix export button to use timeline breach data |
-| `src/components/modals/ActionItemModal.tsx` | Modify | Use `tasksService.create()` instead of direct dispatch; add error handling |
+| File | Change | Description |
+|------|--------|-------------|
+| Database Migration | Create | Update RLS policy for notifications to allow tenant-scoped inserts |
+| `src/components/layout/AdminLayout.tsx` | Modify | Fix userId fallback and conditionally render NotificationBell |
+| `src/services/tasksService.ts` | Modify | Add notification creation on task assignment |
+| `src/services/hearingsService.ts` | Modify | Add notification creation on hearing scheduling |
+| `src/components/notifications/NotificationBell.tsx` | Modify | Add immediate notification fetch on mount |
+| `src/services/notificationSystemService.ts` | Modify | Add defensive check in createNotification for valid context |
 
 ---
 
 ## Testing Checklist
 
-1. **Critical Alerts**
-   - Open Timeline Tracker tab
-   - Verify alerts show real cases with Red/Amber timeline status
-   - Verify time remaining is calculated from actual due dates
+1. **RLS Policy**
+   - Create a task as Manager for Staff
+   - Verify notification appears in Staff's bell (not Manager's)
+   
+2. **Task Notification**
+   - Assign task to another user
+   - Switch to that user's account
+   - Verify task notification appears with correct details
 
-2. **Task Creation**
-   - Click "Take Action" on a real case alert
-   - Fill in task form and click "Create Task"
-   - Verify success toast appears
-   - Verify task appears in Task Management module
-   - Refresh page and confirm task persists
+3. **Hearing Notification**
+   - Schedule a hearing for a case
+   - Verify case owner/assignee receives notification
 
-3. **Export Report**
-   - Click "Export Report" button
-   - Verify downloaded file contains timeline breach data (not generic case list)
-   - Check that columns match: Case ID, Title, Client, Stage, Due Date, RAG Status, etc.
+4. **Bell Component**
+   - Login as user with existing notifications
+   - Verify count badge shows correct number
+   - Click to open and see notification list
 
-4. **Error Scenarios**
-   - Test with missing required fields → should show validation error
-   - Test when not logged in → should show authentication error
+5. **Edge Cases**
+   - Self-assignment (no notification needed)
+   - Unassigned task (no notification)
+   - Invalid userId handling
+
