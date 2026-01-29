@@ -99,7 +99,14 @@ export const CaseModal: React.FC<CaseModalProps> = ({
     section_invoked: '',
     financial_year: '',
     authorityId: '',
-    city: ''
+    city: '',
+    // Phase 5: Order & Appeal Milestone Fields
+    order_date: '',
+    order_received_date: '',
+    appeal_filed_date: '',
+    impugned_order_no: '',
+    impugned_order_date: '',
+    impugned_order_amount: ''
   });
 
   useEffect(() => {
@@ -140,7 +147,14 @@ export const CaseModal: React.FC<CaseModalProps> = ({
         section_invoked: c.sectionInvoked || c.section_invoked || '',
         financial_year: c.financialYear || c.financial_year || '',
         authorityId: c.authorityId || c.authority_id || '',
-        city: c.city || ''
+        city: c.city || '',
+        // Phase 5: Order & Appeal Milestone Fields
+        order_date: c.orderDate || c.order_date || '',
+        order_received_date: c.orderReceivedDate || c.order_received_date || '',
+        appeal_filed_date: c.appealFiledDate || c.appeal_filed_date || '',
+        impugned_order_no: c.impugnedOrderNo || c.impugned_order_no || '',
+        impugned_order_date: c.impugnedOrderDate || c.impugned_order_date || '',
+        impugned_order_amount: (c.impugnedOrderAmount || c.impugned_order_amount)?.toString() || ''
       });
       updateContext({ clientId: c.clientId || c.client_id });
     } else if (mode === 'create') {

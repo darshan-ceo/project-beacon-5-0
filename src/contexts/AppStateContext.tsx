@@ -86,6 +86,20 @@ interface Case {
   stateBenchState?: string; // State selection for State Bench cases (e.g., "Gujarat", "Maharashtra")
   stateBenchCity?: string; // City selection for State Bench cases (e.g., "Ahmedabad", "Mumbai")
   
+  // Phase 5: Order & Appeal Milestones (GST Litigation Lifecycle)
+  order_date?: string;           // Date of adjudication order (DRC-07) - triggers appeal deadline
+  orderDate?: string;            // CamelCase variant for order_date
+  order_received_date?: string;  // Date order was actually received - may differ from order_date
+  orderReceivedDate?: string;    // CamelCase variant for order_received_date
+  appeal_filed_date?: string;    // Date appeal was filed (APL-01) - tracks filing milestone
+  appealFiledDate?: string;      // CamelCase variant for appeal_filed_date
+  impugned_order_no?: string;    // Order number being appealed against (e.g., DRC-07/2025/001)
+  impugnedOrderNo?: string;      // CamelCase variant for impugned_order_no
+  impugned_order_date?: string;  // Date of the impugned order being challenged
+  impugnedOrderDate?: string;    // CamelCase variant for impugned_order_date
+  impugned_order_amount?: number; // Amount in dispute from the impugned order
+  impugnedOrderAmount?: number;  // CamelCase variant for impugned_order_amount
+  
   // Backward compatibility
   slaStatus?: 'Green' | 'Amber' | 'Red'; // Deprecated: use timelineBreachStatus
 }

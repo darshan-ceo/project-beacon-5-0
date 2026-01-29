@@ -7,8 +7,10 @@ import { format, parseISO, addDays } from 'date-fns';
 
 interface UseStatutoryDeadlinesOptions {
   caseId?: string;
-  noticeDate?: string;
+  noticeDate?: string;       // For Assessment stage (SCN replies)
+  orderDate?: string;        // For Appeal stages (triggers appeal deadline)
   noticeType?: string;
+  currentStage?: string;     // Current case stage
   autoCalculate?: boolean;
 }
 
@@ -27,16 +29,20 @@ interface UseStatutoryDeadlinesReturn {
   
   // Actions
   calculateReplyDeadline: (noticeDate: string, noticeType?: string) => Promise<DeadlineCalculationResult | null>;
+  calculateAppealDeadline: (orderDate: string, currentStage: string) => Promise<DeadlineCalculationResult | null>;
   refreshEventTypes: () => Promise<void>;
   refreshCaseDeadlines: () => Promise<void>;
   
   // Helpers
   formatDeadlineForForm: (deadline: Date | DeadlineCalculationResult | null) => string;
   getDeadlineStatus: (deadline: string) => { status: string; color: string; daysRemaining: number };
+  
+  // Appeal stage to event code mapping
+  getAppealEventCode: (stage: string) => string | null;
 }
 
 export function useStatutoryDeadlines(options: UseStatutoryDeadlinesOptions = {}): UseStatutoryDeadlinesReturn {
-  const { caseId, noticeDate, noticeType, autoCalculate = true } = options;
+  const { caseId, noticeDate, orderDate, noticeType, currentStage, autoCalculate = true } = options;
 
   // State
   const [replyDeadline, setReplyDeadline] = useState<DeadlineCalculationResult | null>(null);
@@ -94,7 +100,84 @@ export function useStatutoryDeadlines(options: UseStatutoryDeadlinesOptions = {}
     }
   }, []);
 
-  // Auto-calculate when notice date changes
+  // Stage to statutory event code mapping for appeals
+  const getAppealEventCode = useCallback((stage: string): string | null => {
+    const stageEventMap: Record<string, string> = {
+      'Adjudication': 'GST-APPEAL-1',       // 3 months from order
+      'First Appeal': 'GST-TRIBUNAL-APPEAL', // 3 months from appellate order
+      'Tribunal': 'HC-WRIT',                 // 180 days from tribunal order
+      'High Court': 'SC-SLP'                 // 30 days from HC order
+    };
+    return stageEventMap[stage] || null;
+  }, []);
+
+  // Calculate appeal deadline based on order date and current stage
+  const calculateAppealDeadline = useCallback(async (
+    orderDateStr: string,
+    stage: string
+  ): Promise<DeadlineCalculationResult | null> => {
+    if (!orderDateStr || !stage) return null;
+    
+    const eventCode = getAppealEventCode(stage);
+    if (!eventCode) {
+      console.warn(`[useStatutoryDeadlines] No event code mapping for stage: ${stage}`);
+      return null;
+    }
+    
+    setIsCalculating(true);
+    try {
+      // Find the event type for deadline calculation
+      const eventType = eventTypes.find(et => et.code === eventCode);
+      if (!eventType) {
+        console.warn(`[useStatutoryDeadlines] Event type not found for code: ${eventCode}`);
+        // Fallback: Use calculateReplyDeadline with eventCode as noticeType
+        const result = await statutoryDeadlineService.calculateReplyDeadline(orderDateStr, eventCode);
+        return result;
+      }
+      
+      // Parse the order date and use it for calculation
+      const baseDate = parseISO(orderDateStr);
+      const calculatedDeadline = eventType.deadlineType === 'months' 
+        ? addDays(baseDate, eventType.deadlineCount * 30) // Approximate months as 30 days
+        : addDays(baseDate, eventType.deadlineCount);
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const daysRemaining = Math.ceil((calculatedDeadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      
+      let status: 'safe' | 'warning' | 'critical' | 'overdue';
+      let statusColor: 'green' | 'orange' | 'red';
+      
+      if (daysRemaining < 0) {
+        status = 'overdue';
+        statusColor = 'red';
+      } else if (daysRemaining <= 7) {
+        status = 'critical';
+        statusColor = 'red';
+      } else if (daysRemaining <= 15) {
+        status = 'warning';
+        statusColor = 'orange';
+      } else {
+        status = 'safe';
+        statusColor = 'green';
+      }
+      
+      return {
+        calculatedDeadline,
+        daysRemaining,
+        status,
+        statusColor,
+        eventType
+      };
+    } catch (error) {
+      console.error('[useStatutoryDeadlines] Error calculating appeal deadline:', error);
+      return null;
+    } finally {
+      setIsCalculating(false);
+    }
+  }, [eventTypes, getAppealEventCode]);
+
+  // Auto-calculate when notice date changes (for Assessment stage)
   useEffect(() => {
     if (autoCalculate && noticeDate) {
       calculateReplyDeadline(noticeDate, noticeType);
@@ -163,10 +246,12 @@ export function useStatutoryDeadlines(options: UseStatutoryDeadlinesOptions = {}
     caseDeadlines,
     loadingCaseDeadlines,
     calculateReplyDeadline,
+    calculateAppealDeadline,
     refreshEventTypes,
     refreshCaseDeadlines,
     formatDeadlineForForm,
-    getDeadlineStatus
+    getDeadlineStatus,
+    getAppealEventCode
   };
 }
 

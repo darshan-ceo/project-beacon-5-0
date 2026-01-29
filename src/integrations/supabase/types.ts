@@ -568,6 +568,7 @@ export type Database = {
       }
       cases: {
         Row: {
+          appeal_filed_date: string | null
           assigned_to: string | null
           authority_id: string | null
           case_number: string
@@ -586,6 +587,9 @@ export type Database = {
           form_type: string | null
           forum_id: string | null
           id: string
+          impugned_order_amount: number | null
+          impugned_order_date: string | null
+          impugned_order_no: string | null
           interest_amount: number | null
           is_read_only: boolean | null
           issue_type: string | null
@@ -594,6 +598,8 @@ export type Database = {
           notice_no: string | null
           notice_type: string | null
           office_file_no: string | null
+          order_date: string | null
+          order_received_date: string | null
           owner_id: string | null
           penalty_amount: number | null
           priority: string | null
@@ -610,6 +616,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          appeal_filed_date?: string | null
           assigned_to?: string | null
           authority_id?: string | null
           case_number: string
@@ -628,6 +635,9 @@ export type Database = {
           form_type?: string | null
           forum_id?: string | null
           id?: string
+          impugned_order_amount?: number | null
+          impugned_order_date?: string | null
+          impugned_order_no?: string | null
           interest_amount?: number | null
           is_read_only?: boolean | null
           issue_type?: string | null
@@ -636,6 +646,8 @@ export type Database = {
           notice_no?: string | null
           notice_type?: string | null
           office_file_no?: string | null
+          order_date?: string | null
+          order_received_date?: string | null
           owner_id?: string | null
           penalty_amount?: number | null
           priority?: string | null
@@ -652,6 +664,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          appeal_filed_date?: string | null
           assigned_to?: string | null
           authority_id?: string | null
           case_number?: string
@@ -670,6 +683,9 @@ export type Database = {
           form_type?: string | null
           forum_id?: string | null
           id?: string
+          impugned_order_amount?: number | null
+          impugned_order_date?: string | null
+          impugned_order_no?: string | null
           interest_amount?: number | null
           is_read_only?: boolean | null
           issue_type?: string | null
@@ -678,6 +694,8 @@ export type Database = {
           notice_no?: string | null
           notice_type?: string | null
           office_file_no?: string | null
+          order_date?: string | null
+          order_received_date?: string | null
           owner_id?: string | null
           penalty_amount?: number | null
           priority?: string | null

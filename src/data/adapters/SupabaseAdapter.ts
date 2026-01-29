@@ -1489,6 +1489,25 @@ export class SupabaseAdapter implements StoragePort {
           if (normalized.replyDueDate && !normalized.reply_due_date) {
             normalized.reply_due_date = normalized.replyDueDate;
           }
+          // Phase 5: Order & Appeal Milestone Fields
+          if (normalized.orderDate && !normalized.order_date) {
+            normalized.order_date = normalized.orderDate;
+          }
+          if (normalized.orderReceivedDate && !normalized.order_received_date) {
+            normalized.order_received_date = normalized.orderReceivedDate;
+          }
+          if (normalized.appealFiledDate && !normalized.appeal_filed_date) {
+            normalized.appeal_filed_date = normalized.appealFiledDate;
+          }
+          if (normalized.impugnedOrderNo && !normalized.impugned_order_no) {
+            normalized.impugned_order_no = normalized.impugnedOrderNo;
+          }
+          if (normalized.impugnedOrderDate && !normalized.impugned_order_date) {
+            normalized.impugned_order_date = normalized.impugnedOrderDate;
+          }
+          if (normalized.impugnedOrderAmount && !normalized.impugned_order_amount) {
+            normalized.impugned_order_amount = normalized.impugnedOrderAmount;
+          }
           
           // Delete camelCase versions after mapping
           delete normalized.caseNumber;
@@ -1550,7 +1569,7 @@ export class SupabaseAdapter implements StoragePort {
           }
           
           // Sanitize date fields - convert empty strings to null for PostgreSQL
-          const dateFields = ['notice_date', 'reply_due_date', 'next_hearing_date'];
+          const dateFields = ['notice_date', 'reply_due_date', 'next_hearing_date', 'order_date', 'order_received_date', 'appeal_filed_date', 'impugned_order_date'];
           dateFields.forEach(field => {
             if (normalized[field] === '' || normalized[field] === undefined) {
               normalized[field] = null;
@@ -1566,7 +1585,10 @@ export class SupabaseAdapter implements StoragePort {
             'state_bench_state', 'state_bench_city', 'city',
             'case_type', 'case_year', 'case_sequence', 'office_file_no',
             'issue_type', 'form_type', 'section_invoked', 'financial_year',
-            'interest_amount', 'penalty_amount', 'total_demand', 'reply_due_date'
+            'interest_amount', 'penalty_amount', 'total_demand', 'reply_due_date',
+            // Phase 5: Order & Appeal Milestone Fields
+            'order_date', 'order_received_date', 'appeal_filed_date',
+            'impugned_order_no', 'impugned_order_date', 'impugned_order_amount'
           ];
           Object.keys(normalized).forEach(key => {
             if (!validCaseFields.includes(key)) delete normalized[key];
