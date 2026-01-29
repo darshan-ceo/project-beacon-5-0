@@ -1,377 +1,345 @@
 
-# Plan: Improve Task View UI/UX for Web, Tablet, and Mobile
 
-## Problem Analysis
+# Plan: Unify "Create New Task" UI with "Create New Case" Modal Pattern
 
-Based on thorough exploration of the codebase and the screenshot provided, the current Task UI has several issues:
+## Current State Analysis
 
-### Current Issues Identified
+| Aspect | Create New Case | Create New Task (Current) |
+|--------|-----------------|---------------------------|
+| **Container** | `AdaptiveFormShell` (modal/overlay) | Full-page route layout |
+| **Header** | Clean title with icon, X close button | Back arrow with inline title |
+| **Content** | `Card` sections with icons and headers | Mixed divs, collapsibles, inline styling |
+| **Footer** | Sticky footer via `AdaptiveFormShell` | Inline sticky div |
+| **Navigation** | Modal close returns to previous view | Navigate away to `/tasks` |
+| **Form Layout** | Organized into semantic Card groups | Scattered across styled divs |
 
-1. **CreateTask Page (`/tasks/new`)**
-   - Fixed-width container (`max-w-2xl`) doesn't adapt well to different screen sizes
-   - Task Settings grid (`grid-cols-2 sm:grid-cols-4`) causes cramped fields on tablet
-   - "Creating as" badge in header doesn't wrap properly on mobile
-   - Priority buttons overlap on smaller screens
-   - Footer buttons lack proper spacing on mobile
+## Solution Approach
 
-2. **TaskConversation Page (`/tasks/:taskId`)**
-   - Compact header meta info wraps awkwardly on mobile
-   - Messages area lacks proper mobile padding
-   - Compose message bar is cramped on mobile
-   - View mode action buttons don't stack on mobile
+### Option A: Convert to Modal-Based Flow
+Keep CreateTask as a full-page route but wrap content in `AdaptiveFormShell` to achieve visual consistency. This approach:
+- Preserves the `/tasks/new` route (for bookmarking, deep linking)
+- Uses the same visual container as CaseModal
+- Organizes fields into Card sections like CaseForm
 
-3. **TaskManagement Page (Task Home)**
-   - Tab list overflows horizontally without proper scroll indicators
-   - Metric cards use fixed 5-column grid that breaks on tablet
-   - Task list table columns hidden inconsistently
-   - View toggle buttons don't adapt to mobile
+### Architecture Decision
 
-4. **TaskBoard Component**
-   - Horizontal columns don't adapt to mobile (no mobile-first view)
-   - Task cards lack proper touch target sizing
-   - No swipe gestures for mobile status changes
-
-5. **TaskList Component**
-   - Table-based design not mobile-friendly
-   - Filter dropdowns too wide on mobile
-   - Bulk actions bar overlaps on small screens
-
-## Solution Overview
-
-### Design Principles (Following AFPA Pattern)
-
-| Device | CreateTask | TaskConversation | TaskManagement |
-|--------|------------|------------------|----------------|
-| Desktop (>=1024px) | Centered form, max-w-2xl | Full conversation view | Board/List with 5-col metrics |
-| Tablet (768-1023px) | Full-width with 2-col grid | Compact header, full messages | 3-col metrics, scrollable tabs |
-| Mobile (<768px) | Stacked single-column | Simplified header, full-screen | Card-based metrics, stacked tabs |
+We will adopt **Option A** - wrapping the CreateTask page content in `AdaptiveFormShell` while keeping it as a route. This is consistent with the AFPA memory pattern and ensures uniform experience.
 
 ---
 
-## Detailed Changes
+## Detailed Implementation
 
-### Part 1: CreateTask Page Responsive Improvements
+### File: `src/pages/CreateTask.tsx`
 
-**File: `src/pages/CreateTask.tsx`**
+#### Change 1: Import AdaptiveFormShell and Card Components
 
-**Change 1: Improve container responsiveness (line ~422-423)**
+Add imports for the adaptive shell and card components:
+
 ```typescript
-// Before
-<div className="max-w-2xl mx-auto p-6 space-y-6">
-
-// After  
-<div className="max-w-2xl mx-auto p-4 md:p-6 space-y-4 md:space-y-6">
+import { AdaptiveFormShell } from '@/components/ui/adaptive-form-shell';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 ```
 
-**Change 2: Fix header layout for mobile (lines ~376-411)**
-```typescript
-// Before
-<div className="border-b bg-card px-4 py-3 flex items-center justify-between gap-3">
-  <div className="flex items-center gap-3">
-    ...
-    <div className="bg-muted/30 rounded-lg px-4 py-2 flex items-center gap-2 text-sm">
+#### Change 2: Replace Container Structure
 
-// After
-<div className="border-b bg-card px-3 md:px-4 py-3">
-  <div className="flex items-center justify-between gap-2 md:gap-3 flex-wrap">
-    <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
-      ...
+**Before (current):**
+```tsx
+return (
+  <div className="h-full flex flex-col bg-background">
+    {/* Header - custom inline */}
+    <div className="border-b bg-card px-3...">
+      <Button variant="ghost" onClick={() => navigate('/tasks')}>
+        <ArrowLeft />
+      </Button>
+      <h1>Create New Task</h1>
     </div>
-    <Button ...> {/* Template button moves to own row on mobile */}
-  </div>
-  {/* "Creating as" moves below header on mobile */}
-  <div className="mt-3 md:mt-0 md:ml-auto bg-muted/30 rounded-lg px-3 py-1.5 md:px-4 md:py-2 flex items-center gap-2 text-xs md:text-sm w-fit">
-```
-
-**Change 3: Fix Task Settings grid for tablet/mobile (lines ~585)**
-```typescript
-// Before
-<div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-
-// After
-<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-```
-
-**Change 4: Stack priority buttons on mobile (lines ~630-644)**
-```typescript
-// Before
-<div className="flex flex-wrap gap-1.5">
-
-// After
-<div className="flex flex-wrap gap-1.5 sm:gap-2">
-  {PRIORITY_OPTIONS.map((p) => (
-    <Badge
-      ...
-      className={cn(
-        'cursor-pointer transition-all text-[11px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1',
-        ...
-      )}
-    >
-```
-
-**Change 5: Fix footer for mobile (lines ~766-777)**
-```typescript
-// Before
-<div className="border-t bg-card p-4 flex justify-end gap-3">
-
-// After
-<div className="border-t bg-card p-3 md:p-4 flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">
-  <Button variant="ghost" className="w-full sm:w-auto" onClick={() => navigate('/tasks')}>
-  <Button className="w-full sm:w-auto" onClick={handleSubmit} ...>
-```
-
----
-
-### Part 2: TaskConversation Page Responsive Improvements
-
-**File: `src/components/tasks/TaskConversation.tsx`**
-
-**Change 1: Improve header padding and layout (lines ~344-397)**
-```typescript
-// Before
-<div className="h-full flex flex-col bg-muted/30">
-  <div className="border-b bg-gradient-to-r from-card via-card to-muted/50 shadow-sm">
-    <div className="px-4 py-3 flex items-center gap-3">
-
-// After
-<div className="h-full flex flex-col bg-muted/30">
-  <div className="border-b bg-gradient-to-r from-card via-card to-muted/50 shadow-sm">
-    <div className="px-3 md:px-4 py-2.5 md:py-3 flex items-center gap-2 md:gap-3">
-```
-
-**Change 2: Fix Task meta info for mobile (line ~394-396)**
-```typescript
-// Before
-<div className="px-4 pb-3 border-t border-border/50 pt-3 bg-muted/20">
-  <TaskHeader task={task} compact />
-
-// After
-<div className="px-3 md:px-4 pb-2.5 md:pb-3 border-t border-border/50 pt-2.5 md:pt-3 bg-muted/20 overflow-x-auto scrollbar-thin">
-  <TaskHeader task={task} compact />
-```
-
-**Change 3: Improve messages area padding (lines ~403-404)**
-```typescript
-// Before
-<div className="divide-y divide-border/50 px-4 py-2 space-y-2">
-
-// After
-<div className="divide-y divide-border/50 px-2 md:px-4 py-2 space-y-1 md:space-y-2">
-```
-
-**Change 4: Stack action buttons on mobile (lines ~449-469)**
-```typescript
-// Before
-<div className="border-t bg-card p-4 flex gap-3">
-  <Button variant="outline" ... className="flex-1 gap-2">
-  <Button ... className="flex-1 gap-2">
-
-// After
-<div className="border-t bg-card p-3 md:p-4 flex flex-col sm:flex-row gap-2 sm:gap-3">
-  <Button variant="outline" ... className="flex-1 gap-2 order-2 sm:order-1">
-  {canEditTasks && (
-    <Button ... className="flex-1 gap-2 order-1 sm:order-2">
-  )}
-```
-
----
-
-### Part 3: TaskHeader Component Mobile Improvements
-
-**File: `src/components/tasks/TaskHeader.tsx`**
-
-**Change 1: Add horizontal scroll for compact mode (lines ~78-117)**
-```typescript
-// Before
-<div className="flex items-center gap-3 py-2 flex-wrap">
-
-// After
-<div className="flex items-center gap-2 md:gap-3 py-2 overflow-x-auto scrollbar-thin pb-1">
-  <div className="flex items-center gap-2 md:gap-3 shrink-0">
-```
-
-**Change 2: Hide created date on mobile in compact mode (lines ~105-109)**
-```typescript
-// Before
-{task.createdDate && (
-  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-
-// After
-{task.createdDate && (
-  <div className="hidden md:flex items-center gap-1 text-sm text-muted-foreground">
-```
-
----
-
-### Part 4: TaskManagement (Home Page) Responsive Improvements
-
-**File: `src/components/tasks/TaskManagement.tsx`**
-
-**Change 1: Improve metrics grid responsiveness (lines ~748-818)**
-```typescript
-// Before
-<motion.div ... className="grid grid-cols-1 md:grid-cols-5 gap-6">
-
-// After
-<motion.div ... className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-6">
-```
-
-**Change 2: Simplify metric cards on mobile**
-```typescript
-// Add responsive padding and font sizes to cards
-<Card>
-  <CardContent className="p-4 md:p-6">
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-xs md:text-sm font-medium text-muted-foreground">Total Tasks</p>
-        <p className="text-xl md:text-2xl font-bold text-foreground">{stats.total}</p>
+    
+    {/* Content - inline scroll container */}
+    <div className="flex-1 overflow-auto bg-muted/20">
+      <div className="max-w-2xl mx-auto p-4">
+        {/* Mixed div sections */}
       </div>
-      <CheckSquare className="h-6 w-6 md:h-8 md:w-8 text-primary" />
+    </div>
+    
+    {/* Footer - inline sticky */}
+    <div className="border-t bg-card p-4">
+      <Button>Create Task</Button>
+    </div>
+  </div>
+);
+```
+
+**After:**
+```tsx
+return (
+  <AdaptiveFormShell
+    isOpen={true}
+    onClose={() => navigate('/tasks')}
+    title="Create New Task"
+    icon={<FileText className="h-5 w-5" />}
+    complexity="complex"
+    footer={footer}
+    dataTour="task-form"
+  >
+    {/* Content organized in Cards */}
+    <TaskFormContent ... />
+  </AdaptiveFormShell>
+);
+```
+
+#### Change 3: Reorganize Form Content into Card Sections
+
+Restructure the form content to match CaseForm's pattern:
+
+| Card Section | Icon | Fields Included |
+|--------------|------|-----------------|
+| **Task Details** | `FileText` | Title, Description |
+| **Case Linkage** (Optional) | `Link2` | Client selector, Case selector |
+| **Assignment** | `User` | Assign To (with helper text), Category |
+| **Scheduling** | `Calendar` | Due Date, Priority, Estimated Hours |
+| **Attachments & Tags** | `Paperclip` | File upload, Tag selection |
+
+#### Change 4: Update Field Labels and Helper Text
+
+Following the approved plan from the previous task assignment work:
+- Keep "Assign To" label with helper text "Who will complete this task?"
+- Keep "Creating as" context badge at the top (move into form header or first Card)
+
+#### Change 5: Define Footer Component
+
+```typescript
+const footer = (
+  <div className="flex items-center justify-end gap-3 px-6 py-4">
+    <Button type="button" variant="outline" onClick={() => navigate('/tasks')}>
+      Cancel
+    </Button>
+    <Button 
+      type="button" 
+      onClick={handleSubmit} 
+      disabled={isSubmitting || !formData.title.trim()}
+    >
+      {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creating...</> : 'Create Task'}
+    </Button>
+  </div>
+);
+```
+
+---
+
+## Detailed Card Structure
+
+### Card 1: Task Details
+```tsx
+<Card className="shadow-sm border">
+  <CardHeader className="pb-4">
+    <div className="flex items-center gap-2">
+      <FileText className="h-5 w-5 text-primary" />
+      <CardTitle className="text-base">Task Details</CardTitle>
+    </div>
+  </CardHeader>
+  <CardContent className="space-y-4">
+    {/* Creator context badge */}
+    <div className="bg-muted/30 rounded-lg px-4 py-2 flex items-center gap-2 text-sm">
+      <User className="h-4 w-4 text-muted-foreground" />
+      <span className="text-muted-foreground">Creating as:</span>
+      <span className="font-medium">{creatorName}</span>
+      {creatorRole && <Badge variant="outline" className="text-xs">{creatorRole}</Badge>}
+    </div>
+    
+    {/* Title */}
+    <div className="space-y-2">
+      <Label>Task Title <span className="text-destructive">*</span></Label>
+      <Input value={formData.title} ... placeholder="What needs to be done?" />
+    </div>
+    
+    {/* Description */}
+    <div className="space-y-2">
+      <Label>Description</Label>
+      <Textarea value={formData.description} ... />
     </div>
   </CardContent>
 </Card>
 ```
 
-**Change 3: Add scrollable tabs with visual indicators (lines ~838-868)**
-```typescript
-// Before
-<div className="border-b border-border bg-background">
-  <div className="overflow-x-auto scrollbar-thin">
-    <TabsList className="inline-flex w-max min-w-full h-auto p-1">
-
-// After
-<div className="border-b border-border bg-background relative">
-  {/* Scroll indicator gradients */}
-  <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-background to-transparent pointer-events-none z-10 md:hidden" />
-  <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-background to-transparent pointer-events-none z-10 md:hidden" />
-  <div className="overflow-x-auto scrollbar-thin">
-    <TabsList className="inline-flex w-max min-w-full h-auto p-1 gap-1">
+### Card 2: Case Linkage (Optional)
+```tsx
+<Card className="shadow-sm border">
+  <CardHeader className="pb-4">
+    <div className="flex items-center gap-2">
+      <Link2 className="h-5 w-5 text-primary" />
+      <CardTitle className="text-base">Link to Case (Optional)</CardTitle>
+    </div>
+  </CardHeader>
+  <CardContent className="space-y-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Client selector */}
+      {/* Case selector */}
+    </div>
+    {/* Selected case context badge */}
+  </CardContent>
+</Card>
 ```
 
-**Change 4: Improve view toggle buttons for mobile (lines ~873-899)**
-```typescript
-// Before
-<div className="flex items-center justify-between mb-6">
-  <div className="flex items-center gap-2">
-    <Button ... className="flex items-center gap-2">
-
-// After
-<div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 md:mb-6">
-  <div className="flex items-center gap-1.5 sm:gap-2">
-    <Button size="sm" ... className="flex items-center gap-1.5 text-xs sm:text-sm">
-      <LayoutGrid className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-      <span className="hidden sm:inline">Board View</span>
-      <span className="sm:hidden">Board</span>
-    </Button>
+### Card 3: Assignment
+```tsx
+<Card className="shadow-sm border">
+  <CardHeader className="pb-4">
+    <div className="flex items-center gap-2">
+      <User className="h-5 w-5 text-primary" />
+      <CardTitle className="text-base">Assignment</CardTitle>
+    </div>
+  </CardHeader>
+  <CardContent className="space-y-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Assign To with EmployeeCombobox */}
+      <div className="space-y-2">
+        <Label>Assign To</Label>
+        <EmployeeCombobox ... />
+        <p className="text-xs text-muted-foreground">
+          Who will complete this task? Can include managers, partners, or admins.
+        </p>
+      </div>
+      
+      {/* Category */}
+      <div className="space-y-2">
+        <Label>Category</Label>
+        <Select ... />
+      </div>
+    </div>
+  </CardContent>
+</Card>
 ```
 
----
-
-### Part 5: TaskBoard Mobile Optimization
-
-**File: `src/components/tasks/TaskBoard.tsx`**
-
-**Change 1: Add horizontal scroll container for mobile**
-```typescript
-// Before (around line 300+)
-<div className="grid grid-cols-5 gap-4">
-
-// After
-<div className="overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0">
-  <div className="grid grid-cols-5 gap-3 md:gap-4 min-w-[900px] md:min-w-0">
+### Card 4: Scheduling
+```tsx
+<Card className="shadow-sm border">
+  <CardHeader className="pb-4">
+    <div className="flex items-center gap-2">
+      <Calendar className="h-5 w-5 text-primary" />
+      <CardTitle className="text-base">Scheduling</CardTitle>
+    </div>
+  </CardHeader>
+  <CardContent className="space-y-4">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Due Date */}
+      {/* Priority (badge selector) */}
+      {/* Estimated Hours */}
+    </div>
+  </CardContent>
+</Card>
 ```
 
-**Change 2: Improve task card touch targets**
-```typescript
-// Before (line ~145)
-<div ... className={`p-4 bg-background rounded-lg border-l-4 ...`}
-
-// After
-<div ... className={`p-3 md:p-4 bg-background rounded-lg border-l-4 touch-manipulation min-h-[80px] ...`}
-```
-
----
-
-### Part 6: TaskList Mobile Improvements
-
-**File: `src/components/tasks/TaskList.tsx`**
-
-**Change 1: Improve header layout (lines ~261-328)**
-```typescript
-// Before
-<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-  <div>
-    <h2 className="text-2xl font-bold text-foreground">Task List</h2>
-
-// After
-<div className="flex flex-col gap-3 md:gap-4">
-  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-    <div>
-      <h2 className="text-xl md:text-2xl font-bold text-foreground">Task List</h2>
-      <p className="text-xs md:text-sm text-muted-foreground mt-1">
-```
-
-**Change 2: Stack filter dropdowns on mobile**
-```typescript
-// Before
-<div className="flex items-center gap-2 flex-wrap">
-  <Select value={clientFilter} onValueChange={setClientFilter}>
-    <SelectTrigger className="w-[200px]">
-
-// After
-<div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-wrap w-full sm:w-auto">
-  <Select value={clientFilter} onValueChange={setClientFilter}>
-    <SelectTrigger className="w-full sm:w-[180px] md:w-[200px]">
-```
-
----
-
-### Part 7: MessageBubble Mobile Improvements
-
-**File: `src/components/tasks/MessageBubble.tsx`**
-
-**Change: Improve message layout for mobile (lines ~120-168)**
-```typescript
-// Before
-<div className={cn('flex gap-3 px-4 py-4', ...)}>
-  <Avatar className="h-8 w-8 shrink-0 mt-0.5">
-
-// After
-<div className={cn('flex gap-2 md:gap-3 px-2 md:px-4 py-3 md:py-4', ...)}>
-  <Avatar className="h-7 w-7 md:h-8 md:w-8 shrink-0 mt-0.5">
+### Card 5: Attachments & Tags
+```tsx
+<Card className="shadow-sm border">
+  <CardHeader className="pb-4">
+    <div className="flex items-center gap-2">
+      <Paperclip className="h-5 w-5 text-primary" />
+      <CardTitle className="text-base">Attachments & Tags</CardTitle>
+    </div>
+  </CardHeader>
+  <CardContent className="space-y-4">
+    {/* Tags selection */}
+    <div className="space-y-2">
+      <Label className="flex items-center gap-2">
+        <Tag className="h-4 w-4" /> Tags
+      </Label>
+      <div className="flex flex-wrap gap-2">
+        {DEFAULT_TAGS.map(...)}
+      </div>
+    </div>
+    
+    {/* File upload */}
+    <div className="space-y-2">
+      {/* Attachment list and upload button */}
+    </div>
+  </CardContent>
+</Card>
 ```
 
 ---
 
-## Summary of Files to Modify
+## Template Button Handling
+
+The "Use Template" button currently lives in the header. We have two options:
+
+**Option 1**: Move to top of first Card as a secondary action
+```tsx
+<Card>
+  <CardHeader className="pb-4">
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <FileText className="h-5 w-5 text-primary" />
+        <CardTitle className="text-base">Task Details</CardTitle>
+      </div>
+      <Button variant="outline" size="sm" onClick={() => setShowTemplatePicker(true)}>
+        <Sparkles className="h-4 w-4 mr-1" /> Use Template
+      </Button>
+    </div>
+  </CardHeader>
+  ...
+</Card>
+```
+
+**Option 2**: Pass as description/action in AdaptiveFormShell
+
+We will use **Option 1** for cleaner integration with the Card-based layout.
+
+---
+
+## File Modifications Summary
 
 | File | Changes |
 |------|---------|
-| `src/pages/CreateTask.tsx` | Container width, header wrapping, settings grid, priority buttons, footer stacking |
-| `src/components/tasks/TaskConversation.tsx` | Header padding, messages padding, action button stacking |
-| `src/components/tasks/TaskHeader.tsx` | Horizontal scroll, hide date on mobile |
-| `src/components/tasks/TaskManagement.tsx` | Metrics grid, tabs scroll indicators, view toggle mobile |
-| `src/components/tasks/TaskBoard.tsx` | Horizontal scroll container, touch targets |
-| `src/components/tasks/TaskList.tsx` | Header layout, filter dropdown stacking |
-| `src/components/tasks/MessageBubble.tsx` | Mobile padding and avatar sizing |
+| `src/pages/CreateTask.tsx` | Replace full-page layout with `AdaptiveFormShell`, reorganize content into Card sections |
 
 ---
 
-## Outcome
+## Visual Comparison
 
-After implementation:
-- **Mobile (<768px)**: Single-column stacked layouts, horizontal scroll for complex content, full-width buttons, touch-friendly targets
-- **Tablet (768-1023px)**: 2-column grids, compact headers, adapted metrics
-- **Desktop (>=1024px)**: Full experience with 5-column metrics, side-by-side layouts, spacious padding
+```text
+BEFORE (CreateTask):                    AFTER (Unified):
+┌─────────────────────────┐            ┌─────────────────────────┐
+│ ← Create New Task   📄  │            │                         │
+│ Creating as: Admin      │            │ ┌─────────────────────┐ │
+├─────────────────────────┤            │ │ 📄 Create New Task X │ │
+│ ┌─Link to Case────────┐ │            │ ├─────────────────────┤ │
+│ │ Client | Case       │ │            │ │ Card: Task Details  │ │
+│ └─────────────────────┘ │            │ │ Creating as: Admin  │ │
+│                         │            │ │ Title: ___________  │ │
+│ ┌─Main Form Card──────┐ │            │ │ Description: ______ │ │
+│ │ Title               │ │            │ ├─────────────────────┤ │
+│ │ Description         │ │            │ │ Card: Link to Case  │ │
+│ └─────────────────────┘ │            │ │ Client | Case       │ │
+│                         │            │ ├─────────────────────┤ │
+│ ┌─Task Settings───────┐ │            │ │ Card: Assignment    │ │
+│ │ Assign|Cat|Pri|Hours│ │            │ │ Assign To | Category│ │
+│ └─────────────────────┘ │            │ ├─────────────────────┤ │
+│                         │            │ │ Card: Scheduling    │ │
+│ ┌─Tags────────────────┐ │            │ │ Due | Priority | Hr │ │
+│ │ [Tag] [Tag] [Tag]   │ │            │ ├─────────────────────┤ │
+│ └─────────────────────┘ │            │ │ Card: Attachments   │ │
+│                         │            │ │ Tags + Files        │ │
+│ ┌─Attachments─────────┐ │            │ └─────────────────────┘ │
+│ │ Click to attach     │ │            ├─────────────────────────┤
+│ └─────────────────────┘ │            │ [Cancel]   [Create Task]│
+├─────────────────────────┤            └─────────────────────────┘
+│ [Cancel]   [Create Task]│
+└─────────────────────────┘
+```
 
 ---
 
 ## Testing Checklist
 
-1. Open CreateTask on mobile - verify fields stack properly and buttons are full-width
-2. Open CreateTask on tablet - verify 2-column layout for settings
-3. Open TaskConversation on mobile - verify header wraps and messages are readable
-4. Open Task Home on mobile - verify metrics show 2-column and tabs scroll
-5. Test TaskBoard horizontal scroll on mobile
-6. Verify touch targets are at least 44px on mobile
-7. Test all views on desktop to ensure no regressions
+1. Open `/tasks/new` on desktop - verify full-page overlay appears (like CaseModal)
+2. Open on tablet - verify large slide-over drawer
+3. Open on mobile - verify full-screen modal
+4. Verify "Use Template" button works in new location
+5. Verify Case linkage (Client/Case selectors) work correctly
+6. Verify form submission creates task successfully
+7. Verify Cancel closes the shell and navigates back to `/tasks`
+8. Compare visual appearance with CaseModal for consistency
+9. Test keyboard navigation (Escape to close)
+10. Verify responsive behavior of Card sections
+
