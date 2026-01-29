@@ -120,7 +120,18 @@ Deno.serve(async (req) => {
     const tenantId = profile.tenant_id
     const url = new URL(req.url)
     const action = url.pathname.split('/').pop()
-    const body = req.method === 'POST' ? await req.json() : {}
+    
+    // Safely parse JSON body - handle empty bodies for GET-like actions
+    let body = {}
+    if (req.method === 'POST') {
+      try {
+        const text = await req.text()
+        body = text ? JSON.parse(text) : {}
+      } catch (e) {
+        // Empty or invalid body is okay for some actions like get-email-config
+        console.log('[manage-secrets] No JSON body provided, using empty object')
+      }
+    }
 
     console.log(`[manage-secrets] Action: ${action}, User: ${userId}, Tenant: ${tenantId}`)
 
