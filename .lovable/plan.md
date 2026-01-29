@@ -1,293 +1,261 @@
 
 
-# Plan: Improve Task View UI/UX to Match Create Task Modal Pattern
+# Plan: Enhance Header UI/UX with Better Alignment, Sizing & Missing Features
 
-## Problem Analysis
+## Current State Analysis
 
-Looking at the current Task View (screenshot 1) compared to the new Create Task modal (screenshot 2), the task view appears scattered and inconsistent:
+Based on the screenshot and code review, the current header structure is:
 
-### Current Issues Identified
+| Component | Current Position | Current Height | Issues |
+|-----------|------------------|----------------|--------|
+| Sidebar Trigger | Far left | ~40px | Fine |
+| Global Search | Left section | ~48px total (with header row) | Tallest element |
+| User Profile Menu | Right (but split layout) | ~32px avatar | Not aligned with search height |
+| Notification Bell | Far right (separate div) | ~40px button | Separate from user menu, looks disconnected |
 
-| Area | Current State | Target State (Like Create Task) |
-|------|---------------|--------------------------------|
-| **Header** | Plain gradient with inline badges | Clean header with icon and title |
-| **Metadata Row** | Inline badges scattered horizontally | Organized in Card sections |
-| **Description** | Collapsible accordion-style | Prominent Card section |
-| **Content Structure** | Mixed divs without visual hierarchy | Semantic Card sections with icons |
-| **Messages** | Plain chat-style list | Card-contained conversation |
-| **Actions** | Bottom bar with two buttons | Consistent footer pattern |
+**Key Issues Identified:**
+1. **Layout fragmentation**: NotificationBell is in a separate `<div>` from the user menu (AdminLayout lines 78-80), causing visual disconnect
+2. **Height mismatch**: Avatar (h-8 = 32px) is shorter than Global Search container (~48px with header)
+3. **Visual hierarchy**: Bell appears disconnected from user context on the right
+4. **Missing contextual information**: No live date/time, no quick-access shortcuts
 
-## Solution: Card-Based Task View Layout
+---
 
-Restructure the Task View to use the same Card-based pattern as Create Task, organizing information into clear visual sections.
+## Proposed Solution
+
+### Design Goals
+
+1. **Right-justify user section** - Move all user-related elements (Bell + Profile) to a cohesive right-aligned group
+2. **Vertical uniformity** - Increase avatar and bell to match global search height (~44-48px)
+3. **Add contextual info** - Display current date/time with live update
+4. **Improved visual grouping** - Use subtle separator or background to group related items
+
+### Visual Mockup (After)
+
+```text
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ ≡ │ [      🔍 Global Search                          ] │ Wed, Jan 30 │ 🔔 │ [Avatar ▼] │
+│   │ [      Search cases, clients, tasks...  🎯 All ▼ ] │   3:05 AM   │    │ Name       │
+│   │                                                     │             │    │ Admin      │
+└──────────────────────────────────────────────────────────────────────────────┘
+     ← Left: Search (max-w-lg)                             → Right: Date | Bell | Profile
+```
 
 ---
 
 ## Detailed Implementation
 
-### File 1: `src/components/tasks/TaskConversation.tsx`
+### File 1: `src/components/layout/AdminLayout.tsx`
 
-#### Change 1: Replace scattered layout with Card-based structure
+**Goal**: Move NotificationBell into the Header component for proper layout control
 
-**New Layout Architecture:**
-
-```text
-┌─────────────────────────────────────────────┐
-│ ←  Task Title                    [Status ▼] │  ← Clean header
-├─────────────────────────────────────────────┤
-│                                             │
-│ ┌─────────────────────────────────────────┐ │
-│ │ 📋 Task Overview                        │ │  ← Card 1
-│ │ ┌─────────┐  ┌───────────────────────┐  │ │
-│ │ │ Status  │  │ Description           │  │ │
-│ │ │ Priority│  │ (rendered HTML)       │  │ │
-│ │ │ Due     │  │                       │  │ │
-│ │ │ Assignee│  └───────────────────────┘  │ │
-│ │ └─────────┘                             │ │
-│ └─────────────────────────────────────────┘ │
-│                                             │
-│ ┌─────────────────────────────────────────┐ │
-│ │ 🔗 Linked Context                       │ │  ← Card 2
-│ │ Client: [Name →]    Case: [Number →]    │ │
-│ │ Created: Jan 30     By: Admin           │ │
-│ └─────────────────────────────────────────┘ │
-│                                             │
-│ ┌─────────────────────────────────────────┐ │
-│ │ 💬 Conversation (3 messages)            │ │  ← Card 3
-│ │ ├── System: Jan 30, 3:05 AM             │ │
-│ │ │   "description"                       │ │
-│ │ │   📎 sales-performance.pdf            │ │
-│ │ └── ...                                 │ │
-│ └─────────────────────────────────────────┘ │
-│                                             │
-├─────────────────────────────────────────────┤
-│ [+ Add Follow-up]           [✎ Edit Task]   │  ← Footer
-└─────────────────────────────────────────────┘
-```
-
-#### Change 2: Create new TaskViewCard component
-
-Create a reusable Card-based task overview component.
-
-#### Change 3: Update header to be simpler and cleaner
-
-Replace the multi-row gradient header with a cleaner single-row design matching the Create Task modal header:
+**Changes:**
+- Remove standalone NotificationBell div (lines 78-80)
+- Pass userId to Header component as prop
+- Header will handle all right-section items internally
 
 ```tsx
-// Before: Complex multi-row header with gradient
-<div className="border-b bg-gradient-to-r from-card via-card to-muted/50 shadow-sm">
-  <div className="px-3 md:px-4 py-2.5 md:py-3 flex items-center gap-2 md:gap-3">
-    <Button variant="ghost" size="icon" onClick={() => navigate('/tasks')}>
-      <ArrowLeft className="h-4 w-4" />
-    </Button>
-    <div className="flex-1 min-w-0">
-      <h1 className="text-base md:text-lg font-semibold truncate">{task.title}</h1>
-    </div>
-    {/* Status, dropdown menu, etc */}
+// Before:
+<div className="flex items-center justify-between p-4">
+  <div className="flex items-center">
+    <SidebarTrigger ... />
+    <Header />
   </div>
-  {/* Second row with TaskHeader compact badges */}
-  <div className="px-3 md:px-4 pb-2.5 md:pb-3 border-t ...">
-    <TaskHeader task={task} compact />
+  <div className="flex items-center gap-2">
+    {userId && <NotificationBell userId={userId} />}
   </div>
 </div>
 
-// After: Clean single-row header like Create Task modal
-<div className="sticky top-0 z-20 border-b bg-card shadow-sm">
-  <div className="px-4 py-3 flex items-center gap-3">
-    <Button variant="ghost" size="icon" onClick={() => navigate('/tasks')}>
-      <ArrowLeft className="h-4 w-4" />
-    </Button>
-    <CheckSquare className="h-5 w-5 text-primary" />
-    <h1 className="flex-1 text-lg font-semibold truncate">{task.title}</h1>
-    <QuickStatusButton ... />
-    <DropdownMenu ... />
+// After:
+<div className="flex items-center justify-between p-4">
+  <div className="flex items-center">
+    <SidebarTrigger ... />
   </div>
+  <Header userId={userId} /> {/* Header now manages all layout */}
 </div>
-```
-
-#### Change 4: Reorganize content into Card sections
-
-**Card 1: Task Overview**
-```tsx
-<Card className="shadow-sm border">
-  <CardHeader className="pb-4">
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <FileText className="h-5 w-5 text-primary" />
-        <CardTitle className="text-base">Task Overview</CardTitle>
-      </div>
-      <div className="flex items-center gap-2">
-        <Badge variant="secondary" className={statusConfig.color}>
-          {statusConfig.label}
-        </Badge>
-        <Badge variant="outline" className={priorityConfig.color}>
-          {task.priority}
-        </Badge>
-      </div>
-    </div>
-  </CardHeader>
-  <CardContent className="space-y-4">
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {/* Left: Key metadata */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2 text-sm">
-          <User className="h-4 w-4 text-muted-foreground" />
-          <span className="text-muted-foreground">Assigned to:</span>
-          <span className="font-medium">{task.assignedToName || 'Unassigned'}</span>
-        </div>
-        <div className="flex items-center gap-2 text-sm">
-          <Calendar className="h-4 w-4 text-muted-foreground" />
-          <span className="text-muted-foreground">Due:</span>
-          <span className={cn('font-medium', isOverdue && 'text-destructive')}>
-            {format(new Date(task.dueDate), 'MMM d, yyyy')}
-            {dueStatus && <span className="ml-2 text-xs">({dueStatus.text})</span>}
-          </span>
-        </div>
-        <div className="flex items-center gap-2 text-sm">
-          <CalendarPlus className="h-4 w-4 text-muted-foreground" />
-          <span className="text-muted-foreground">Created:</span>
-          <span>{format(new Date(task.createdDate), 'MMM d, yyyy')}</span>
-        </div>
-      </div>
-      
-      {/* Right: Description */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium text-muted-foreground">Description</Label>
-        {task.description ? (
-          <div 
-            className="prose prose-sm dark:prose-invert max-w-none text-sm bg-muted/30 rounded-lg p-3"
-            dangerouslySetInnerHTML={{ __html: task.description }}
-          />
-        ) : (
-          <p className="text-sm text-muted-foreground italic">No description provided</p>
-        )}
-      </div>
-    </div>
-  </CardContent>
-</Card>
-```
-
-**Card 2: Linked Context**
-```tsx
-<Card className="shadow-sm border">
-  <CardHeader className="pb-4">
-    <div className="flex items-center gap-2">
-      <Link2 className="h-5 w-5 text-primary" />
-      <CardTitle className="text-base">Linked Context</CardTitle>
-    </div>
-  </CardHeader>
-  <CardContent>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {/* Client link */}
-      <div className="flex items-center gap-2 text-sm">
-        <Building2 className="h-4 w-4 text-muted-foreground" />
-        <span className="text-muted-foreground">Client:</span>
-        {clientName ? (
-          <Button variant="link" className="h-auto p-0 text-sm font-medium">
-            {clientName} <ChevronRight className="h-3 w-3 ml-1" />
-          </Button>
-        ) : (
-          <span className="text-muted-foreground italic">Not linked</span>
-        )}
-      </div>
-      
-      {/* Case link */}
-      <div className="flex items-center gap-2 text-sm">
-        <Briefcase className="h-4 w-4 text-muted-foreground" />
-        <span className="text-muted-foreground">Case:</span>
-        {caseNumber ? (
-          <Button variant="link" className="h-auto p-0 text-sm font-medium">
-            {caseNumber} <ChevronRight className="h-3 w-3 ml-1" />
-          </Button>
-        ) : (
-          <span className="text-muted-foreground italic">Not linked</span>
-        )}
-      </div>
-    </div>
-  </CardContent>
-</Card>
-```
-
-**Card 3: Conversation**
-```tsx
-<Card className="shadow-sm border flex-1 flex flex-col min-h-0">
-  <CardHeader className="pb-4 shrink-0">
-    <div className="flex items-center gap-2">
-      <MessageSquare className="h-5 w-5 text-primary" />
-      <CardTitle className="text-base">
-        Conversation {messages.length > 0 && `(${messages.length})`}
-      </CardTitle>
-    </div>
-  </CardHeader>
-  <CardContent className="flex-1 overflow-auto p-0">
-    <ScrollArea className="h-full">
-      {/* Message list */}
-    </ScrollArea>
-  </CardContent>
-</Card>
 ```
 
 ---
 
-### File 2: Create `src/components/tasks/TaskViewContent.tsx`
+### File 2: `src/components/layout/Header.tsx`
 
-New component to encapsulate the Card-based view content, making TaskConversation cleaner:
+**Major refactor to include:**
+1. NotificationBell integrated
+2. Date/Time display component
+3. Improved right-section layout with visual grouping
+4. Increased avatar size to match search bar height
+
+**New Structure:**
 
 ```tsx
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-// ... other imports
+// Imports added
+import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { HeaderDateTime } from './HeaderDateTime';
 
-interface TaskViewContentProps {
-  task: Task;
-  messages: TaskMessage[];
-  isLoading: boolean;
-  currentUserId: string;
-  onNavigateToClient?: (clientId: string) => void;
-  onNavigateToCase?: (caseId: string) => void;
+interface HeaderProps {
+  userId?: string;
 }
 
-export const TaskViewContent: React.FC<TaskViewContentProps> = ({
-  task,
-  messages,
-  isLoading,
-  currentUserId,
-  onNavigateToClient,
-  onNavigateToCase,
-}) => {
-  // ... component logic with Card sections
+export const Header: React.FC<HeaderProps> = ({ userId }) => {
+  return (
+    <div className="flex items-center justify-between w-full gap-4">
+      {/* Left Section - Global Search */}
+      <div className="flex items-center flex-1 max-w-lg">
+        <GlobalSearch />
+      </div>
+
+      {/* Right Section - Grouped items with uniform height */}
+      <div className="flex items-center gap-1 md:gap-2">
+        {/* Date/Time Display - Hidden on mobile */}
+        <HeaderDateTime />
+        
+        {/* Vertical Separator */}
+        <div className="hidden md:block h-8 w-px bg-border mx-2" />
+        
+        {/* Notification Bell - Larger touch target */}
+        {userId && (
+          <NotificationBell 
+            userId={userId} 
+            className="h-10 w-10" // Match search bar height
+          />
+        )}
+        
+        {/* User Profile Menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="flex items-center gap-2 px-2 h-11">
+              <Avatar className="h-10 w-10"> {/* Increased from h-8 w-8 */}
+                <AvatarImage src={avatarUrl} alt={displayName} />
+                <AvatarFallback className="text-sm bg-primary/10 text-primary">
+                  {getInitials(displayName)}
+                </AvatarFallback>
+              </Avatar>
+              {/* User info - Hidden on mobile */}
+              <div className="hidden lg:flex flex-col items-start">
+                <span className="text-sm font-medium leading-tight">{displayName}</span>
+                <Badge className={`text-[10px] ${getRoleColor(userRole)}`}>
+                  {userRole}
+                </Badge>
+              </div>
+              <ChevronDown className="h-4 w-4 hidden sm:block text-muted-foreground" />
+            </Button>
+          </DropdownMenuTrigger>
+          {/* ... dropdown content stays same */}
+        </DropdownMenu>
+      </div>
+    </div>
+  );
 };
 ```
 
 ---
 
-### File 3: Update `src/components/tasks/TaskHeader.tsx`
+### File 3: Create `src/components/layout/HeaderDateTime.tsx`
 
-Remove the `compact` mode since we'll display metadata in Cards instead. Keep the standard (non-compact) mode for any other uses but simplify it.
-
----
-
-### File 4: Update `src/components/tasks/CollapsibleDescription.tsx`
-
-**Remove this component** - description will now be part of the Task Overview Card, not a separate collapsible section.
-
----
-
-## Responsive Considerations
-
-| Device | Layout Behavior |
-|--------|-----------------|
-| **Desktop** | Two-column grid in Task Overview Card (metadata left, description right) |
-| **Tablet** | Two-column with reduced spacing |
-| **Mobile** | Single-column stack, all Cards full-width |
+**New component for live date/time display:**
 
 ```tsx
-// Grid responsive pattern
-<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-  {/* Stacks on mobile, side-by-side on tablet+ */}
-</div>
+import React, { useState, useEffect } from 'react';
+import { Calendar, Clock } from 'lucide-react';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
+
+export const HeaderDateTime: React.FC = () => {
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 border border-border/50">
+      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <Calendar className="h-3.5 w-3.5" />
+        <span className="font-medium">{format(now, 'EEE, MMM d')}</span>
+      </div>
+      <div className="h-4 w-px bg-border" />
+      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <Clock className="h-3.5 w-3.5" />
+        <span className="font-medium">{format(now, 'h:mm a')}</span>
+      </div>
+    </div>
+  );
+};
 ```
+
+---
+
+### File 4: Update `src/components/notifications/NotificationBell.tsx`
+
+**Minor update to accept className prop for size flexibility:**
+
+```tsx
+interface NotificationBellProps {
+  userId: string;
+  className?: string;
+}
+
+export const NotificationBell: React.FC<NotificationBellProps> = ({ userId, className }) => {
+  // ...
+  return (
+    <Popover ...>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn("relative", className)}
+                aria-label={...}
+              >
+                <Bell className="h-5 w-5" />
+                {/* badge */}
+              </Button>
+            </PopoverTrigger>
+          </TooltipTrigger>
+          {/* tooltip content */}
+        </Tooltip>
+      </TooltipProvider>
+      {/* popover content */}
+    </Popover>
+  );
+};
+```
+
+---
+
+## Additional Header Improvement Suggestions
+
+Based on your request for suggestions, here are additional features that could enhance the header:
+
+| Feature | Value | Implementation Complexity |
+|---------|-------|---------------------------|
+| **Live Date/Time** ✓ | Quick context for appointments, deadlines | Low (included in plan) |
+| **Quick Actions Button** | Rapid access to "New Task", "New Case" | Medium |
+| **Keyboard Shortcut Hints** | Show `?` button for shortcuts overlay | Low |
+| **Theme Toggle** | Quick dark/light mode switch | Low |
+| **Breadcrumbs** | Show current navigation path | Medium |
+| **Online Status Indicator** | Show connection status (online/offline) | Low |
+| **Pending Approvals Badge** | Quick indicator for items needing action | Medium |
+
+### Recommendation for Phase 1 (This Plan)
+
+Implement these now:
+1. ✅ Date/Time display
+2. ✅ Better alignment and sizing
+3. ✅ Unified header component
+
+### Future Enhancements (Not in this plan)
+
+- Quick Actions dropdown (New Task, New Case, New Hearing)
+- Keyboard shortcuts help modal
+- Connection status indicator
+- Theme toggle in user menu
 
 ---
 
@@ -295,53 +263,31 @@ Remove the `compact` mode since we'll display metadata in Cards instead. Keep th
 
 | File | Action | Changes |
 |------|--------|---------|
-| `src/components/tasks/TaskConversation.tsx` | **Major refactor** | Replace scattered layout with Card-based sections |
-| `src/components/tasks/TaskViewContent.tsx` | **Create new** | Card-based content component for task view |
-| `src/components/tasks/TaskHeader.tsx` | **Simplify** | Remove compact mode, clean up for card context |
-| `src/components/tasks/CollapsibleDescription.tsx` | **Remove** | No longer needed - description in Card |
+| `src/components/layout/AdminLayout.tsx` | **Simplify** | Remove NotificationBell, pass userId to Header |
+| `src/components/layout/Header.tsx` | **Major refactor** | Add userId prop, integrate NotificationBell, add DateTime, increase sizes |
+| `src/components/layout/HeaderDateTime.tsx` | **Create new** | Live date/time display component |
+| `src/components/notifications/NotificationBell.tsx` | **Minor update** | Accept className prop for sizing |
 
 ---
 
-## Visual Comparison
+## Responsive Behavior
 
-```text
-BEFORE (Current scattered):              AFTER (Card-based like Create Task):
-┌─────────────────────────┐              ┌─────────────────────────┐
-│ ← title - dialy work    │              │ ← ☑ title - dialy work  │
-│ [Not Started] M Jan 31..│              └─────────────────────────┘
-├─────────────────────────┤              ┌─────────────────────────┐
-│ ▼ Task Description      │              │ 📋 Task Overview        │
-│   — desciption          │              │ ┌───────┐ ┌───────────┐ │
-├─────────────────────────┤              │ │Status │ │Description│ │
-│ ⚙ System Jan 30...      │              │ │Due    │ │           │ │
-│   desciption            │              │ │Assign │ └───────────┘ │
-│   📎 sales-performance  │              │ └───────┘               │
-│                         │              └─────────────────────────┘
-│                         │              ┌─────────────────────────┐
-│                         │              │ 🔗 Linked Context       │
-│                         │              │ Client: —  Case: —      │
-│                         │              └─────────────────────────┘
-│                         │              ┌─────────────────────────┐
-│                         │              │ 💬 Conversation (1)     │
-├─────────────────────────┤              │ ⚙ System Jan 30...      │
-│[+Add Follow-up][Edit]   │              │   📎 sales-performance  │
-└─────────────────────────┘              ├─────────────────────────┤
-                                         │[+Add Follow-up][Edit]   │
-                                         └─────────────────────────┘
-```
+| Device | DateTime | Bell | Avatar | Name/Role |
+|--------|----------|------|--------|-----------|
+| Desktop (>=1024px) | Visible | h-10 w-10 | h-10 w-10 | Visible |
+| Tablet (768-1023px) | Visible | h-10 w-10 | h-10 w-10 | Hidden |
+| Mobile (<768px) | Hidden | h-10 w-10 | h-10 w-10 | Hidden |
 
 ---
 
 ## Testing Checklist
 
-1. Open task view on desktop - verify Card layout displays correctly
-2. Open task view on tablet - verify responsive 2-column → 1-column transition
-3. Open task view on mobile - verify single-column stacked Cards
-4. Verify Client/Case navigation links work in Linked Context Card
-5. Verify Conversation Card displays messages correctly
-6. Verify "Add Follow-up" and "Edit Task" buttons work
-7. Compare visual appearance with Create Task modal for consistency
-8. Test with task that has no description - verify fallback text
-9. Test with task not linked to any case/client - verify "Not linked" states
-10. Verify status badge colors match throughout the app
+1. Verify Date/Time updates every minute
+2. Verify Avatar and Bell are same height as Global Search container
+3. Test NotificationBell popover still works correctly
+4. Test User Menu dropdown still functions
+5. Test responsive behavior on mobile, tablet, desktop
+6. Verify DEV MODE badge still appears when applicable
+7. Ensure keyboard shortcut `/` for search still works
+8. Test logout functionality still works
 
